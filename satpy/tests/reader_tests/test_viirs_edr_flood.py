@@ -36,51 +36,51 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
     def get_test_content(self, filename, filename_info, filename_type):
         """Mimic reader input file content."""
         file_content = {}
-        file_content['/attr/Satellitename'] = filename_info['platform_shortname']
-        file_content['/attr/SensorIdentifyCode'] = 'VIIRS'
+        file_content["/attr/Satellitename"] = filename_info["platform_shortname"]
+        file_content["/attr/SensorIdentifyCode"] = "VIIRS"
 
         # only one dataset for the flood reader
-        file_content['WaterDetection'] = DEFAULT_FILE_DATA
-        file_content['WaterDetection/attr/_Fillvalue'] = 1
-        file_content['WaterDetection/attr/scale_factor'] = 1.
-        file_content['WaterDetection/attr/add_offset'] = 0.
-        file_content['WaterDetection/attr/units'] = 'none'
-        file_content['WaterDetection/shape'] = DEFAULT_FILE_SHAPE
-        file_content['WaterDetection/attr/ProjectionMinLatitude'] = 15.
-        file_content['WaterDetection/attr/ProjectionMaxLatitude'] = 68.
-        file_content['WaterDetection/attr/ProjectionMinLongitude'] = -124.
-        file_content['WaterDetection/attr/ProjectionMaxLongitude'] = -61.
+        file_content["WaterDetection"] = DEFAULT_FILE_DATA
+        file_content["WaterDetection/attr/_Fillvalue"] = 1
+        file_content["WaterDetection/attr/scale_factor"] = 1.
+        file_content["WaterDetection/attr/add_offset"] = 0.
+        file_content["WaterDetection/attr/units"] = "none"
+        file_content["WaterDetection/shape"] = DEFAULT_FILE_SHAPE
+        file_content["WaterDetection/attr/ProjectionMinLatitude"] = 15.
+        file_content["WaterDetection/attr/ProjectionMaxLatitude"] = 68.
+        file_content["WaterDetection/attr/ProjectionMinLongitude"] = -124.
+        file_content["WaterDetection/attr/ProjectionMaxLongitude"] = -61.
 
         # convert tp xarrays
         from xarray import DataArray
         for key, val in file_content.items():
             if isinstance(val, np.ndarray):
                 attrs = {}
-                for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude',
-                          'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
+                for a in ["_Fillvalue", "units", "ProjectionMinLatitude", "ProjectionMaxLongitude",
+                          "ProjectionMinLongitude", "ProjectionMaxLatitude"]:
+                    if key + "/attr/" + a in file_content:
+                        attrs[a] = file_content[key + "/attr/" + a]
                 if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
+                    file_content[key] = DataArray(val, dims=("fakeDim0", "fakeDim1"), attrs=attrs)
                 else:
                     file_content[key] = DataArray(val, attrs=attrs)
 
-        if 'y' not in file_content['WaterDetection'].dims:
-            file_content['WaterDetection'] = file_content['WaterDetection'].rename({'fakeDim0': 'x', 'fakeDim1': 'y'})
+        if "y" not in file_content["WaterDetection"].dims:
+            file_content["WaterDetection"] = file_content["WaterDetection"].rename({"fakeDim0": "x", "fakeDim1": "y"})
         return file_content
 
 
 class TestVIIRSEDRFloodReader(unittest.TestCase):
     """Test VIIRS EDR Flood Reader."""
 
-    yaml_file = 'viirs_edr_flood.yaml'
+    yaml_file = "viirs_edr_flood.yaml"
 
     def setUp(self):
         """Wrap HDF4 file handler with own fake file handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_flood import VIIRSEDRFlood
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSEDRFlood, '__bases__', (FakeHDF4FileHandler2,))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
+        self.p = mock.patch.object(VIIRSEDRFlood, "__bases__", (FakeHDF4FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -93,34 +93,34 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf'
+            "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf"
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
 
     def test_load_dataset(self):
         """Test loading all datasets from a full swath file."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf'
+            "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf"
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['WaterDetection'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["WaterDetection"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'none')
+            assert v.attrs["units"] == "none"
 
     def test_load_dataset_aoi(self):
         """Test loading all datasets from an area of interest file."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_001_10_300_01.hdf'
+            "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_001_10_300_01.hdf"
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['WaterDetection'])
-        self.assertEqual(len(datasets), 1)
+        datasets = r.load(["WaterDetection"])
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'none')
+            assert v.attrs["units"] == "none"

@@ -26,6 +26,7 @@ The following people have made contributions to this project:
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
+- [Florian Fichtner (fwfichtner)](https://github.com/fwfichtner)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
 - [Gionata Ghiggi (ghiggi)](https://github.com/ghiggi)
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
@@ -50,6 +51,7 @@ The following people have made contributions to this project:
 - [Lu Liu (yukaribbba)](https://github.com/yukaribbba)
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
+- [Luca Merucci (lmeru)](https://github.com/lmeru)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
 - [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
@@ -87,3 +89,4 @@ The following people have made contributions to this project:
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
+- [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)

@@ -14,6 +14,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler
         file_patterns:
             - '{platform_shortname:3s}_{data_type:4s}_{level:3s}_{product:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit:5d}_{collection:2d}_{processor_version:6d}_{creation_time:%Y%m%dT%H%M%S}.nc'
+            - '{platform_shortname:3s}_{data_type:4s}_{level:3s}_{product:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit:5d}_{collection:2d}_{processor_version:6d}_{creation_time:%Y%m%dT%H%M%S}_reduced.nc'
 
 datasets:
     latitude:

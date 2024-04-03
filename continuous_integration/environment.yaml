@@ -37,15 +37,17 @@ dependencies:
   - mock
   - libtiff
   - geoviews
+  - holoviews
+  - hvplot
   - zarr
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - geoviews
-  - pytest
+  - pytest<8.0.0
   - pytest-cov
   - pytest-lazy-fixture
   - fsspec
+  - botocore>=1.33
   - s3fs
   - python-geotiepoints
   - pooch
@@ -58,6 +60,6 @@ dependencies:
   - bokeh
   - pip:
     - trollsift
-    - trollimage>=1.20
+    - trollimage>=1.23
     - pyspectral
     - pyorbital

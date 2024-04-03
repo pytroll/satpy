@@ -29,6 +29,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.utils import (
     angle2xyz,
     get_legacy_chunk_size,
@@ -80,7 +81,6 @@ class TestGeoUtils:
             ((90, 90), (1, 0, 0)),
             ((-90, 90), (-1, 0, 0)),
             ((180, 90), (0, -1, 0)),
-            ((0, -90), (0, -1, 0)),
             ((0, 45), (0, sqrt(2) / 2, sqrt(2) / 2)),
             ((0, 60), (0, sqrt(3) / 2, sqrt(1) / 2)),
         ],
@@ -162,21 +162,21 @@ class TestGetSatPos:
     def test_get_satpos(self, included_prefixes, preference, expected_result):
         """Test getting the satellite position."""
         all_orb_params = {
-            'nadir_longitude': 1,
-            'satellite_actual_longitude': 1.1,
-            'satellite_nominal_longitude': 1.2,
-            'projection_longitude': 1.3,
-            'nadir_latitude': 2,
-            'satellite_actual_latitude': 2.1,
-            'satellite_nominal_latitude': 2.2,
-            'projection_latitude': 2.3,
-            'satellite_actual_altitude': 3,
-            'satellite_nominal_altitude': 3.1,
-            'projection_altitude': 3.2
+            "nadir_longitude": 1,
+            "satellite_actual_longitude": 1.1,
+            "satellite_nominal_longitude": 1.2,
+            "projection_longitude": 1.3,
+            "nadir_latitude": 2,
+            "satellite_actual_latitude": 2.1,
+            "satellite_nominal_latitude": 2.2,
+            "projection_latitude": 2.3,
+            "satellite_actual_altitude": 3,
+            "satellite_nominal_altitude": 3.1,
+            "projection_altitude": 3.2
         }
         orb_params = {key: value for key, value in all_orb_params.items() if
                       any(in_prefix in key for in_prefix in included_prefixes)}
-        data_arr = xr.DataArray((), attrs={'orbital_parameters': orb_params})
+        data_arr = xr.DataArray((), attrs={"orbital_parameters": orb_params})
 
         with warnings.catch_warnings(record=True) as caught_warnings:
             lon, lat, alt = get_satpos(data_arr, preference=preference)
@@ -190,11 +190,11 @@ class TestGetSatPos:
 
     @pytest.mark.parametrize(
         "attrs",
-        (
+        [
                 {},
-                {'orbital_parameters': {'projection_longitude': 1}},
-                {'satellite_altitude': 1}
-        )
+                {"orbital_parameters": {"projection_longitude": 1}},
+                {"satellite_altitude": 1}
+        ]
     )
     def test_get_satpos_fails_with_informative_error(self, attrs):
         """Test that get_satpos raises an informative error message."""
@@ -202,6 +202,7 @@ class TestGetSatPos:
         with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
             get_satpos(data_arr)
 
+    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield does not support numpy 2 yet")
     def test_get_satpos_from_satname(self, caplog):
         """Test getting satellite position from satellite name only."""
         import pyorbital.tlefile
@@ -242,7 +243,7 @@ def test_make_fake_scene():
         "six": np.arange(25).reshape(5, 5)
     })
     assert len(sc.keys()) == 1
-    assert sc.keys().pop()['name'] == "six"
+    assert sc.keys().pop()["name"] == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
     sc = make_fake_scene({
         "seven": np.arange(3 * 7).reshape(3, 7),
@@ -276,15 +277,14 @@ class TestCheckSatpy(unittest.TestCase):
     def test_specific_check_satpy(self):
         """Test 'check_satpy' with specific features provided."""
         from satpy.utils import check_satpy
-        with mock.patch('satpy.utils.print') as print_mock:
-            check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
+        with mock.patch("satpy.utils.print") as print_mock:
+            check_satpy(readers=["viirs_sdr"], extras=("cartopy", "__fake"))
             checked_fake = False
             for call in print_mock.mock_calls:
-                if len(call[1]) > 0 and '__fake' in call[1][0]:
-                    self.assertNotIn('ok', call[1][1])
+                if len(call[1]) > 0 and "__fake" in call[1][0]:
+                    assert "ok" not in call[1][1]
                     checked_fake = True
-            self.assertTrue(checked_fake, "Did not find __fake module "
-                                          "mentioned in checks")
+            assert checked_fake, "Did not find __fake module mentioned in checks"
 
 
 def test_debug_on(caplog):
@@ -557,7 +557,7 @@ def test_convert_remote_files_to_fsspec_windows_paths():
     assert res == filenames
 
 
-@mock.patch('fsspec.open_files')
+@mock.patch("fsspec.open_files")
 def test_convert_remote_files_to_fsspec_storage_options(open_files):
     """Test convertion of remote files to fsspec objects.
 
@@ -566,7 +566,7 @@ def test_convert_remote_files_to_fsspec_storage_options(open_files):
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["s3://tmp/file1.nc"]
-    storage_options = {'anon': True}
+    storage_options = {"anon": True}
 
     _ = convert_remote_files_to_fsspec(filenames, storage_options=storage_options)
 
@@ -576,7 +576,7 @@ def test_convert_remote_files_to_fsspec_storage_options(open_files):
 def test_import_error_helper():
     """Test the import error helper."""
     module = "some_crazy_name_for_unknow_dependency_module"
-    with pytest.raises(ImportError) as err:
+    with pytest.raises(ImportError) as err:  # noqa: PT012
         with import_error_helper(module):
             import unknow_dependency_module  # noqa
     assert module in str(err)

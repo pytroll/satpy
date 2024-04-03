@@ -138,35 +138,43 @@ class ZarrCacheHelper:
 
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
         """Call the decorated function."""
-        new_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
-        arg_hash = _hash_args(*new_args, unhashable_types=self._uncacheable_arg_types)
-        should_cache, cache_dir = self._get_should_cache_and_cache_dir(new_args, cache_dir)
-        zarr_fn = self._zarr_pattern(arg_hash)
-        zarr_format = os.path.join(cache_dir, zarr_fn)
-        zarr_paths = glob(zarr_format.format("*"))
-        if not should_cache or not zarr_paths:
-            # use sanitized arguments if we are caching, otherwise use original arguments
-            args_to_use = new_args if should_cache else args
-            res = self._func(*args_to_use)
-            if should_cache and not zarr_paths:
-                self._warn_if_irregular_input_chunks(args, args_to_use)
-                self._cache_results(res, zarr_format)
-        # if we did any caching, let's load from the zarr files
-        if should_cache:
-            # re-calculate the cached paths
-            zarr_paths = sorted(glob(zarr_format.format("*")))
-            if not zarr_paths:
-                raise RuntimeError("Data was cached to disk but no files were found")
-            new_chunks = _get_output_chunks_from_func_arguments(args)
-            res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
+        should_cache: bool = satpy.config.get(self._cache_config_key, False)
+        if not should_cache:
+            return self._func(*args)
+
+        try:
+            return self._cache_and_read(args, cache_dir)
+        except TypeError as err:
+            warnings.warn("Cannot cache function because of unhashable argument: " + str(err), stacklevel=2)
+            return self._func(*args)
+
+    def _cache_and_read(self, args, cache_dir):
+        sanitized_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
+
+        zarr_file_pattern = self._get_zarr_file_pattern(sanitized_args, cache_dir)
+        zarr_paths = glob(zarr_file_pattern.format("*"))
+
+        if not zarr_paths:
+            # use sanitized arguments
+            self._warn_if_irregular_input_chunks(args, sanitized_args)
+            res_to_cache = self._func(*(sanitized_args))
+            self._cache_results(res_to_cache, zarr_file_pattern)
+
+        # if we did any caching, let's load from the zarr files, so that future calls have the same name
+        # re-calculate the cached paths
+        zarr_paths = sorted(glob(zarr_file_pattern.format("*")))
+        if not zarr_paths:
+            raise RuntimeError("Data was cached to disk but no files were found")
+
+        new_chunks = _get_output_chunks_from_func_arguments(args)
+        res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
         return res
 
-    def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
-        should_cache: bool = satpy.config.get(self._cache_config_key, False)
-        can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
-        should_cache = should_cache and can_cache
+    def _get_zarr_file_pattern(self, sanitized_args, cache_dir):
+        arg_hash = _hash_args(*sanitized_args, unhashable_types=self._uncacheable_arg_types)
+        zarr_filename = self._zarr_pattern(arg_hash)
         cache_dir = self._get_cache_dir_from_config(cache_dir)
-        return should_cache, cache_dir
+        return os.path.join(cache_dir, zarr_filename)
 
     @staticmethod
     def _get_cache_dir_from_config(cache_dir: Optional[str]) -> str:
@@ -189,14 +197,14 @@ class ZarrCacheHelper:
                 stacklevel=3
             )
 
-    def _cache_results(self, res, zarr_format):
-        os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
+    def _cache_results(self, res, zarr_file_pattern):
+        os.makedirs(os.path.dirname(zarr_file_pattern), exist_ok=True)
         new_res = []
         for idx, sub_res in enumerate(res):
             if not isinstance(sub_res, da.Array):
                 raise ValueError("Zarr caching currently only supports dask "
                                  f"arrays. Got {type(sub_res)}")
-            zarr_path = zarr_format.format(idx)
+            zarr_path = zarr_file_pattern.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
                 new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
@@ -252,14 +260,14 @@ def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
     hashable_args = []
     for arg in args:
         if isinstance(arg, unhashable_types):
-            continue
+            raise TypeError(f"Unhashable type ({type(arg)}).")
         if isinstance(arg, HASHABLE_GEOMETRIES):
             arg = hash(arg)
         elif isinstance(arg, datetime):
             arg = arg.isoformat(" ")
         hashable_args.append(arg)
     arg_hash = hashlib.sha1()  # nosec
-    arg_hash.update(json.dumps(tuple(hashable_args)).encode('utf8'))
+    arg_hash.update(json.dumps(tuple(hashable_args)).encode("utf8"))
     return arg_hash.hexdigest()
 
 
@@ -322,7 +330,7 @@ def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
-    return xr.DataArray(arr, dims=('y', 'x'))
+    return xr.DataArray(arr, dims=("y", "x"))
 
 
 def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr.DataArray:
@@ -331,6 +339,7 @@ def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr
     Args:
         sat_azi: DataArray for the satellite azimuth angles, typically in 0-360 degree range.
         sun_azi: DataArray for the solar azimuth angles, should be in same range as sat_azi.
+
     Returns:
         A DataArray containing the relative azimuth angle in the 0-180 degree range.
 
@@ -394,6 +403,9 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
     """
     chunks = _geo_chunks_from_data_arr(data_arr)
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], chunks)
+    if lons.dtype != data_arr.dtype and np.issubdtype(data_arr.dtype, np.floating):
+        lons = lons.astype(data_arr.dtype)
+        lats = lats.astype(data_arr.dtype)
     cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
     return _geo_dask_to_data_array(cos_sza)
 
@@ -450,7 +462,7 @@ def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dat
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
-    preference = satpy.config.get('sensor_angles_position_preference', 'actual')
+    preference = satpy.config.get("sensor_angles_position_preference", "actual")
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference=preference)
     area_def = data_arr.attrs["area"]
     chunks = _geo_chunks_from_data_arr(data_arr)
@@ -534,7 +546,7 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
         # gradually fall off for larger zenith angle
         grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
         # invert the factor so maximum correction is done at `limit` and falls off later
-        with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+        with np.errstate(invalid="ignore"):  # we expect space pixels to be invalid
             grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
         # make sure we don't make anything negative
         grad_factor = grad_factor.clip(0.)
@@ -571,7 +583,7 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
     reduction_factor = reduction_factor.clip(0., 1.)
 
     # invert the reduction factor such that minimum reduction is done at `limit` and gradually increases towards max_sza
-    with np.errstate(invalid='ignore'):  # we expect space pixels to be invalid
+    with np.errstate(invalid="ignore"):  # we expect space pixels to be invalid
         reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2)
 
     # apply non-linearity to the reduction factor for a non-linear reduction of the signal. This can be used for a

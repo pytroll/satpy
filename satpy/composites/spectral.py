@@ -16,9 +16,6 @@
 """Composite classes for spectral adjustments."""
 
 import logging
-import warnings
-
-import dask.array as da
 
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
@@ -149,7 +146,7 @@ class NDVIHybridGreen(SpectralBlender):
     def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), strength=1.0, **kwargs):
         """Initialize class and set the NDVI limits, blending fraction limits and strength."""
         if strength <= 0.0:
-            raise ValueError(f"Expected stength greater than 0.0, got {strength}.")
+            raise ValueError(f"Expected strength greater than 0.0, got {strength}.")
 
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max
@@ -162,12 +159,11 @@ class NDVIHybridGreen(SpectralBlender):
         LOG.info(f"Applying NDVI-weighted hybrid-green correction with limits [{self.limits[0]}, "
                  f"{self.limits[1]}] and strength {self.strength}.")
 
-        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+        projectables = self.match_data_arrays(projectables)
 
-        ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
+        ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
 
-        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
-        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+        ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
 
         # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
         if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
@@ -202,23 +198,3 @@ class NDVIHybridGreen(SpectralBlender):
             + self.limits[0]
 
         return fraction
-
-
-class GreenCorrector(SpectralBlender):
-    """Previous class used to blend channels for green band corrections.
-
-    This method has been refactored to make it more generic. The replacement class is 'SpectralBlender' which computes
-    a weighted average based on N number of channels and N number of corresponding weights/fractions. A new class
-    called 'HybridGreen' has been created, which performs a correction of green bands centered at 0.51 microns
-    following Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`) in order to improve true color imagery.
-    """
-
-    def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
-        """Set default keyword argument values."""
-        warnings.warn(
-            "'GreenCorrector' is deprecated, use 'SpectralBlender' instead, or 'HybridGreen' for hybrid green"
-            " correction following Miller et al. (2016).",
-            UserWarning,
-            stacklevel=2
-        )
-        super().__init__(fractions=fractions, *args, **kwargs)

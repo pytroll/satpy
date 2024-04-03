@@ -22,68 +22,71 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.21', 'pillow', 'pyresample >=1.24.0', 'trollsift',
-            'trollimage >=1.20', 'pykdtree', 'pyyaml >=5.1', 'xarray >=0.10.1, !=0.13.0',
-            'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
-            'packaging', 'pooch', 'pyorbital']
+requires = ["numpy >=1.21", "pillow", "pyresample >=1.24.0", "trollsift",
+            "trollimage >=1.23", "pykdtree", "pyyaml >=5.1", "xarray >=0.14.1",
+            "dask[array] >=0.17.1", "pyproj>=2.2", "zarr", "donfig", "appdirs",
+            "packaging", "pooch", "pyorbital"]
 
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio',
-                 'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
-                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
-                 's3fs', 'eccodes', 'h5netcdf', 'xarray-datatree',
-                 'skyfield', 'ephem', 'pint-xarray', 'astropy', 'dask-image']
+test_requires = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
+                 "rasterio", "geoviews", "trollimage", "fsspec", "bottleneck",
+                 "rioxarray", "pytest", "pytest-lazy-fixture", "defusedxml",
+                 "s3fs", "eccodes", "h5netcdf", "xarray-datatree",
+                 "skyfield", "ephem", "pint-xarray", "astropy", "dask-image"]
 
 extras_require = {
     # Readers:
-    'avhrr_l1b_gaclac': ['pygac >= 1.3.0'],
-    'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
-    'geocat': ['pyhdf'],
-    'acspo': ['netCDF4 >= 1.1.8'],
-    'clavrx': ['netCDF4 >= 1.1.8'],
-    'viirs_l1b': ['netCDF4 >= 1.1.8'],
-    'viirs_sdr': ['h5py >= 2.7.0'],
-    'viirs_compact': ['h5py >= 2.7.0'],
-    'omps_edr': ['h5py >= 2.7.0'],
-    'amsr2_l1b': ['h5py >= 2.7.0'],
-    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
-    'hrit_msg': ['pytroll-schedule'],
-    'msi_safe': ['rioxarray', "bottleneck", "python-geotiepoints"],
-    'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray', 'defusedxml'],
-    'abi_l1b': ['h5netcdf'],
-    'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
-    'seviri_l1b_native': ['pyorbital >= 1.3.1'],
-    'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
-    'seviri_l2_bufr': ['eccodes'],
-    'seviri_l2_grib': ['eccodes'],
-    'hsaf_grib': ['pygrib'],
-    'remote_reading': ['fsspec'],
-    'insat_3d': ['xarray-datatree'],
-    'gms5-vissr_l1b': ["numba"],
+    "avhrr_l1b_eps": ["defusedxml"],
+    "avhrr_l1b_gaclac": ["pygac >= 1.3.0"],
+    "modis_l1b": ["pyhdf", "python-geotiepoints >= 1.1.7"],
+    "geocat": ["pyhdf"],
+    "acspo": ["netCDF4 >= 1.1.8"],
+    "clavrx": ["netCDF4 >= 1.1.8"],
+    "viirs_l1b": ["netCDF4 >= 1.1.8"],
+    "viirs_sdr": ["h5py >= 2.7.0"],
+    "viirs_compact": ["h5py >= 2.7.0"],
+    "omps_edr": ["h5py >= 2.7.0"],
+    "amsr2_l1b": ["h5py >= 2.7.0"],
+    "hrpt": ["pyorbital >= 1.3.1", "pygac", "python-geotiepoints >= 1.1.7"],
+    "hrit_msg": ["pytroll-schedule"],
+    "msi_safe": ["rioxarray", "bottleneck", "python-geotiepoints", "defusedxml"],
+    "nc_nwcsaf_msg": ["netCDF4 >= 1.1.8"],
+    "sar_c": ["python-geotiepoints >= 1.1.7", "rasterio", "rioxarray", "defusedxml"],
+    "abi_l1b": ["h5netcdf"],
+    "seviri_l1b_hrit": ["pyorbital >= 1.3.1"],
+    "seviri_l1b_native": ["pyorbital >= 1.3.1"],
+    "seviri_l1b_nc": ["pyorbital >= 1.3.1", "netCDF4 >= 1.1.8"],
+    "seviri_l2_bufr": ["eccodes"],
+    "seviri_l2_grib": ["eccodes"],
+    "hsaf_grib": ["pygrib"],
+    "remote_reading": ["fsspec"],
+    "insat_3d": ["xarray-datatree"],
+    "gms5-vissr_l1b": ["numba"],
     # Writers:
-    'cf': ['h5netcdf >= 0.7.3'],
-    'awips_tiled': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['rasterio', 'trollimage[geotiff]'],
-    'ninjo': ['pyninjotiff', 'pint'],
+    "cf": ["h5netcdf >= 0.7.3"],
+    "awips_tiled": ["netCDF4 >= 1.1.8"],
+    "geotiff": ["rasterio", "trollimage[geotiff]"],
+    "ninjo": ["pyninjotiff", "pint"],
     "units": ["pint-xarray"],
     # Composites/Modifiers:
-    'rayleigh': ['pyspectral >= 0.10.1'],
-    'angles': ['pyorbital >= 1.3.1'],
-    'filters': ['dask-image'],
+    "rayleigh": ["pyspectral >= 0.10.1"],
+    "angles": ["pyorbital >= 1.3.1"],
+    "filters": ["dask-image"],
     # MultiScene:
-    'animations': ['imageio'],
+    "animations": ["imageio"],
     # Documentation:
-    'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
+    "doc": ["sphinx", "sphinx_rtd_theme", "sphinxcontrib-apidoc"],
     # Other
-    'geoviews': ['geoviews'],
-    'overlays': ['pycoast', 'pydecorate'],
-    'satpos_from_tle': ['skyfield', 'astropy'],
-    'tests': test_requires,
+    "geoviews": ["geoviews"],
+    "holoviews": ["holoviews"],
+    "hvplot": ["hvplot", "geoviews", "cartopy", "holoviews"],
+    "overlays": ["pycoast", "pydecorate"],
+    "satpos_from_tle": ["skyfield", "astropy"],
+    "tests": test_requires,
 }
 all_extras = []
 for extra_deps in extras_require.values():
     all_extras.extend(extra_deps)
-extras_require['all'] = list(set(all_extras))
+extras_require["all"] = list(set(all_extras))
 
 
 def _config_data_files(base_dirs, extensions=(".cfg", )):
@@ -110,21 +113,21 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 entry_points = {
-    'console_scripts': [
-        'satpy_retrieve_all_aux_data=satpy.aux_download:retrieve_all_cmd',
+    "console_scripts": [
+        "satpy_retrieve_all_aux_data=satpy.aux_download:retrieve_all_cmd",
     ],
 }
 
 
-NAME = 'satpy'
-with open('README.rst', 'r') as readme:
+NAME = "satpy"
+with open("README.rst", "r") as readme:
     README = readme.read()
 
 setup(name=NAME,
-      description='Python package for earth-observing satellite data processing',
+      description="Python package for earth-observing satellite data processing",
       long_description=README,
-      author='The Pytroll Team',
-      author_email='pytroll@googlegroups.com',
+      author="The Pytroll Team",
+      author_email="pytroll@googlegroups.com",
       classifiers=["Development Status :: 5 - Production/Stable",
                    "Intended Audience :: Science/Research",
                    "License :: OSI Approved :: GNU General Public License v3 " +
@@ -147,23 +150,23 @@ setup(name=NAME,
       packages=find_packages(),
       # Always use forward '/', even on Windows
       # See https://setuptools.readthedocs.io/en/latest/userguide/datafiles.html#data-files-support
-      package_data={'satpy': ['etc/geo_image.cfg',
-                              'etc/areas.yaml',
-                              'etc/satpy.cfg',
-                              'etc/himawari-8.cfg',
-                              'etc/eps_avhrrl1b_6.5.xml',
-                              'etc/readers/*.yaml',
-                              'etc/writers/*.yaml',
-                              'etc/composites/*.yaml',
-                              'etc/enhancements/*.cfg',
-                              'etc/enhancements/*.yaml',
-                              'tests/etc/readers/*.yaml',
-                              'tests/etc/composites/*.yaml',
-                              'tests/etc/writers/*.yaml',
+      package_data={"satpy": ["etc/geo_image.cfg",
+                              "etc/areas.yaml",
+                              "etc/satpy.cfg",
+                              "etc/himawari-8.cfg",
+                              "etc/eps_avhrrl1b_6.5.xml",
+                              "etc/readers/*.yaml",
+                              "etc/writers/*.yaml",
+                              "etc/composites/*.yaml",
+                              "etc/enhancements/*.cfg",
+                              "etc/enhancements/*.yaml",
+                              "tests/etc/readers/*.yaml",
+                              "tests/etc/composites/*.yaml",
+                              "tests/etc/writers/*.yaml",
                               ]},
       zip_safe=False,
       install_requires=requires,
-      python_requires='>=3.9',
+      python_requires=">=3.9",
       extras_require=extras_require,
       entry_points=entry_points,
       )

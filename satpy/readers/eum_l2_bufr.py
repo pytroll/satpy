@@ -111,7 +111,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
                                                         filename_info,
                                                         filetype_info)
 
-        if ('server' in filename_info):
+        if ("server" in filename_info):
             # EUMETSAT Offline Bufr product
             self.bufr_header = self._read_mpef_header()
         else:
@@ -225,7 +225,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
                 if bufr is None:
                     break
 
-                ec.codes_set(bufr, 'unpack', 1)
+                ec.codes_set(bufr, "unpack", 1)
 
                 if not ec.codes_is_defined(bufr, key):
                     logging.warning(f'Key: {key} does not exist in BUFR file')
@@ -258,26 +258,26 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         and create the dataset with or without an AreaDefinition.
 
         """
-        arr = self.get_array(dataset_info['key'])
+        arr = self.get_array(dataset_info["key"])
 
         if self.with_adef:
             xarr = self.get_dataset_with_area_def(arr, dataset_id, dataset_info["resolution"])
             # coordinates are not relevant when returning data with an AreaDefinition
-            if 'coordinates' in dataset_info.keys():
-                del dataset_info['coordinates']
+            if "coordinates" in dataset_info.keys():
+                del dataset_info["coordinates"]
         else:
             xarr = xr.DataArray(arr, dims=["y"])
 
-        if 'fill_value' in dataset_info:
-            xarr = xarr.where(xarr != dataset_info['fill_value'])
+        if "fill_value" in dataset_info:
+            xarr = xarr.where(xarr != dataset_info["fill_value"])
 
         self._add_attributes(xarr, dataset_info)
         return xarr
 
     def get_dataset_with_area_def(self, arr, dataset_id, resolution):
         """Get dataset with an AreaDefinition."""
-        if dataset_id['name'] in ['latitude', 'longitude']:
-            self.__setattr__(dataset_id['name'], arr)
+        if dataset_id["name"] in ["latitude", "longitude"]:
+            self.__setattr__(dataset_id["name"], arr)
             xarr = xr.DataArray(arr, dims=["y"])
         else:
             lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
@@ -288,13 +288,13 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             data_2d[:] = np.nan
             data_2d[irow.compressed(), icol.compressed()] = data_1d[~irow.mask]
 
-            xarr = xr.DataArray(da.from_array(data_2d, CHUNK_SIZE), dims=('y', 'x'))
+            xarr = xr.DataArray(da.from_array(data_2d, CHUNK_SIZE), dims=("y", "x"))
 
             ntotal = len(icol)
             nvalid = len(icol.compressed())
             if nvalid < ntotal:
-                logging.warning(f'{ntotal-nvalid} out of {ntotal} data points could not be put on '
-                                f'the grid {self._area_def.area_id}.')
+                logging.warning(f"{ntotal-nvalid} out of {ntotal} data points could not be put on "
+                                f"the grid {self._area_def.area_id}.")
 
         return xarr
 
@@ -316,11 +316,11 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         # Datasets with a segment size of 3 pixels extend outside the original SEVIRI 3km grid (with 1238 x 1238
         # segments a 3 pixels). Hence, we need to use corresponding area defintions in areas.yaml
         if self.seg_size == 3:
-            area_naming['area_id'] += '_ext'
-            area_naming['description'] += ' (extended outside original 3km grid)'
+            area_naming["area_id"] += "_ext"
+            area_naming["description"] += " (extended outside original 3km grid)"
 
         # Construct AreaDefinition from standardized area definition in areas.yaml.
-        stand_area_def = get_area_def(area_naming['area_id'])
+        stand_area_def = get_area_def(area_naming["area_id"])
 
         return stand_area_def
 

@@ -21,6 +21,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -56,7 +57,7 @@ class FakeDataset(object):
 class TestSCMIFileHandler(unittest.TestCase):
     """Test the SCMIFileHandler reader."""
 
-    @mock.patch('satpy.readers.scmi.xr')
+    @mock.patch("satpy.readers.scmi.xr")
     def setUp(self, xr_):
         """Set up for test."""
         from satpy.readers.scmi import SCMIFileHandler
@@ -68,213 +69,210 @@ class TestSCMIFileHandler(unittest.TestCase):
         time = xr.DataArray(0.)
         rad = xr.DataArray(
             rad_data,
-            dims=('y', 'x'),
+            dims=("y", "x"),
             attrs={
-                'scale_factor': 0.5,
-                'add_offset': -1.,
-                '_FillValue': 20,
-                'standard_name': 'toa_bidirectional_reflectance',
+                "scale_factor": 0.5,
+                "add_offset": -1.,
+                "_FillValue": 20,
+                "standard_name": "toa_bidirectional_reflectance",
             },
             coords={
-                'time': time,
+                "time": time,
             }
         )
         xr_.open_dataset.return_value = FakeDataset(
             {
-                'Sectorized_CMI': rad,
+                "Sectorized_CMI": rad,
                 "nominal_satellite_subpoint_lat": np.array(0.0),
                 "nominal_satellite_subpoint_lon": np.array(-89.5),
                 "nominal_satellite_height": np.array(35786.02),
             },
             {
-                'start_date_time': "2017210120000",
-                'satellite_id': 'GOES-16',
-                'satellite_longitude': -90.,
-                'satellite_latitude': 0.,
-                'satellite_altitude': 35785831.,
+                "start_date_time": "2017210120000",
+                "satellite_id": "GOES-16",
+                "satellite_longitude": -90.,
+                "satellite_latitude": 0.,
+                "satellite_altitude": 35785831.,
             },
-            {'y': 2, 'x': 5},
+            {"y": 2, "x": 5},
         )
 
-        self.reader = SCMIFileHandler('filename',
-                                      {'platform_shortname': 'G16'},
-                                      {'filetype': 'info'})
+        self.reader = SCMIFileHandler("filename",
+                                      {"platform_shortname": "G16"},
+                                      {"filetype": "info"})
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
 
         from satpy.tests.utils import make_dataid
-        self.assertEqual(self.reader.start_time,
-                         datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.end_time,
-                         datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.get_shape(make_dataid(name='C05'), {}),
-                         (2, 5))
+        assert self.reader.start_time == datetime(2017, 7, 29, 12, 0, 0, 0)
+        assert self.reader.end_time == datetime(2017, 7, 29, 12, 0, 0, 0)
+        assert self.reader.get_shape(make_dataid(name="C05"), {}) == (2, 5)
 
     def test_data_load(self):
         """Test data loading."""
         from satpy.tests.utils import make_dataid
         res = self.reader.get_dataset(
-            make_dataid(name='C05', calibration='reflectance'), {})
+            make_dataid(name="C05", calibration="reflectance"), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
-        self.assertNotIn('scale_factor', res.attrs)
-        self.assertNotIn('_FillValue', res.attrs)
-        self.assertEqual(res.attrs['standard_name'],
-                         'toa_bidirectional_reflectance')
-        assert 'orbital_parameters' in res.attrs
-        orb_params = res.attrs['orbital_parameters']
-        assert orb_params['projection_longitude'] == -90.0
-        assert orb_params['projection_latitude'] == 0.0
-        assert orb_params['projection_altitude'] == 35785831.0
+        assert "scale_factor" not in res.attrs
+        assert "_FillValue" not in res.attrs
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert "orbital_parameters" in res.attrs
+        orb_params = res.attrs["orbital_parameters"]
+        assert orb_params["projection_longitude"] == -90.0
+        assert orb_params["projection_latitude"] == 0.0
+        assert orb_params["projection_altitude"] == 35785831.0
 
 
 class TestSCMIFileHandlerArea(unittest.TestCase):
     """Test the SCMIFileHandler's area creation."""
 
-    @mock.patch('satpy.readers.scmi.xr')
+    @mock.patch("satpy.readers.scmi.xr")
     def create_reader(self, proj_name, proj_attrs, xr_):
         """Create a fake reader."""
         from satpy.readers.scmi import SCMIFileHandler
         proj = xr.DataArray([], attrs=proj_attrs)
         x__ = xr.DataArray(
             [0, 1],
-            attrs={'scale_factor': 2., 'add_offset': -1., 'units': 'meters'},
+            attrs={"scale_factor": 2., "add_offset": -1., "units": "meters"},
         )
         y__ = xr.DataArray(
             [0, 1],
-            attrs={'scale_factor': -2., 'add_offset': 1., 'units': 'meters'},
+            attrs={"scale_factor": -2., "add_offset": 1., "units": "meters"},
         )
         xr_.open_dataset.return_value = FakeDataset({
-            'goes_imager_projection': proj,
-            'x': x__,
-            'y': y__,
-            'Sectorized_CMI': np.ones((2, 2))},
+            "goes_imager_projection": proj,
+            "x": x__,
+            "y": y__,
+            "Sectorized_CMI": np.ones((2, 2))},
             {
-                'satellite_id': 'GOES-16',
-                'grid_mapping': proj_name,
+                "satellite_id": "GOES-16",
+                "grid_mapping": proj_name,
             },
             {
-                'y': y__.size,
-                'x': x__.size,
+                "y": y__.size,
+                "x": x__.size,
             }
         )
 
-        return SCMIFileHandler('filename',
-                               {'platform_shortname': 'G16'},
-                               {'filetype': 'info'})
+        return SCMIFileHandler("filename",
+                               {"platform_shortname": "G16"},
+                               {"filetype": "info"})
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def_geos(self, adef):
         """Test the area generation for geos projection."""
         reader = self.create_reader(
-            'goes_imager_projection',
+            "goes_imager_projection",
             {
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'perspective_point_height': 1.,
-                'longitude_of_projection_origin': -90.,
-                'sweep_angle_axis': u'x',
-                'grid_mapping_name': 'geostationary',
+                "semi_major_axis": 1.,
+                "semi_minor_axis": 1.,
+                "perspective_point_height": 1.,
+                "longitude_of_projection_origin": -90.,
+                "sweep_angle_axis": u"x",
+                "grid_mapping_name": "geostationary",
             }
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0, 'lat_0': 0.0,
-            'proj': 'geos', 'sweep': 'x', 'units': 'm'})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0, "h": 1.0,
+                                "lon_0": -90.0, "lat_0": 0.0,
+                                "proj": "geos", "sweep": "x", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def_lcc(self, adef):
         """Test the area generation for lcc projection."""
         reader = self.create_reader(
-            'goes_imager_projection',
+            "goes_imager_projection",
             {
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'longitude_of_central_meridian': -90.,
-                'standard_parallel': 25.,
-                'latitude_of_projection_origin': 25.,
-                'grid_mapping_name': 'lambert_conformal_conic',
+                "semi_major_axis": 1.,
+                "semi_minor_axis": 1.,
+                "longitude_of_central_meridian": -90.,
+                "standard_parallel": 25.,
+                "latitude_of_projection_origin": 25.,
+                "grid_mapping_name": "lambert_conformal_conic",
             }
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            'a': 1.0, 'b': 1.0, 'lon_0': -90.0, 'lat_0': 25.0, 'lat_1': 25.0,
-            'proj': 'lcc', 'units': 'm'})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0,
+                                "lon_0": -90.0, "lat_0": 25.0, "lat_1": 25.0,
+                                "proj": "lcc", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def_stere(self, adef):
         """Test the area generation for stere projection."""
         reader = self.create_reader(
-            'goes_imager_projection',
+            "goes_imager_projection",
             {
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'straight_vertical_longitude_from_pole': -90.,
-                'standard_parallel': 60.,
-                'latitude_of_projection_origin': 90.,
-                'grid_mapping_name': 'polar_stereographic',
+                "semi_major_axis": 1.,
+                "semi_minor_axis": 1.,
+                "straight_vertical_longitude_from_pole": -90.,
+                "standard_parallel": 60.,
+                "latitude_of_projection_origin": 90.,
+                "grid_mapping_name": "polar_stereographic",
             }
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            'a': 1.0, 'b': 1.0, 'lon_0': -90.0, 'lat_0': 90.0, 'lat_ts': 60.0,
-            'proj': 'stere', 'units': 'm'})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0,
+                                "lon_0": -90.0, "lat_0": 90.0, "lat_ts": 60.0,
+                                "proj": "stere", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def_merc(self, adef):
         """Test the area generation for merc projection."""
         reader = self.create_reader(
-            'goes_imager_projection',
+            "goes_imager_projection",
             {
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'longitude_of_projection_origin': -90.,
-                'standard_parallel': 0.,
-                'grid_mapping_name': 'mercator',
+                "semi_major_axis": 1.,
+                "semi_minor_axis": 1.,
+                "longitude_of_projection_origin": -90.,
+                "standard_parallel": 0.,
+                "grid_mapping_name": "mercator",
             }
         )
         reader.get_area_def(None)
 
-        self.assertEqual(adef.call_count, 1)
+        assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {
-            'a': 1.0, 'b': 1.0, 'lon_0': -90.0, 'lat_0': 0.0, 'lat_ts': 0.0,
-            'proj': 'merc', 'units': 'm'})
-        self.assertEqual(call_args[4], reader.ncols)
-        self.assertEqual(call_args[5], reader.nlines)
+        assert call_args[3] == {"a": 1.0, "b": 1.0,
+                                "lon_0": -90.0, "lat_0": 0.0, "lat_ts": 0.0,
+                                "proj": "merc", "units": "m"}
+        assert call_args[4] == reader.ncols
+        assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
+    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
     def test_get_area_def_bad(self, adef):
         """Test the area generation for bad projection."""
         reader = self.create_reader(
-            'goes_imager_projection',
+            "goes_imager_projection",
             {
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'longitude_of_projection_origin': -90.,
-                'standard_parallel': 0.,
-                'grid_mapping_name': 'fake',
+                "semi_major_axis": 1.,
+                "semi_minor_axis": 1.,
+                "longitude_of_projection_origin": -90.,
+                "standard_parallel": 0.,
+                "grid_mapping_name": "fake",
             }
         )
-        self.assertRaises(ValueError, reader.get_area_def, None)
+        with pytest.raises(ValueError, match="Can't handle projection 'fake'"):
+            reader.get_area_def(None)

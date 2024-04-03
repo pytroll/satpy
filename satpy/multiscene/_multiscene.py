@@ -87,12 +87,12 @@ class _GroupAliasGenerator:
                 alias_id=group_id,
             )
         elif len(member_ids) > 1:
-            raise ValueError('Cannot add multiple datasets from a scene '
-                             'to the same group')
+            raise ValueError("Cannot add multiple datasets from a scene "
+                             "to the same group")
 
     def _get_dataset_id_of_group_members_in_scene(self, group_members):
         return [
-            self.scene[member].attrs['_satpy_id']
+            self.scene[member].attrs["_satpy_id"]
             for member in group_members if member in self.scene
         ]
 
@@ -192,7 +192,7 @@ class MultiScene(object):
         return self._scene_gen.first
 
     @classmethod
-    def from_files(
+    def from_files(  # noqa: D417
             cls,
             files_to_sort: Collection[str],
             reader: str | Collection[str] | None = None,
@@ -281,7 +281,7 @@ class MultiScene(object):
                 ds = scn.get(ds_id)
                 if ds is None:
                     continue
-                all_areas.append(ds.attrs.get('area'))
+                all_areas.append(ds.attrs.get("area"))
         all_areas = [area for area in all_areas if area is not None]
         return all(all_areas[0] == area for area in all_areas[1:])
 
@@ -314,15 +314,15 @@ class MultiScene(object):
 
     def load(self, *args, **kwargs):
         """Load the required datasets from the multiple scenes."""
-        self._generate_scene_func(self._scenes, 'load', False, *args, **kwargs)
+        self._generate_scene_func(self._scenes, "load", False, *args, **kwargs)
 
     def crop(self, *args, **kwargs):
         """Crop the multiscene and return a new cropped multiscene."""
-        return self._generate_scene_func(self._scenes, 'crop', True, *args, **kwargs)
+        return self._generate_scene_func(self._scenes, "crop", True, *args, **kwargs)
 
     def resample(self, destination=None, **kwargs):
         """Resample the multiscene."""
-        return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
+        return self._generate_scene_func(self._scenes, "resample", True, destination=destination, **kwargs)
 
     def blend(
             self,
@@ -447,7 +447,7 @@ class MultiScene(object):
                     Note ``compute`` can not be provided.
 
         """
-        if 'compute' in kwargs:
+        if "compute" in kwargs:
             raise ValueError("The 'compute' keyword argument can not be provided.")
 
         client = self._get_client(client=client)
@@ -466,15 +466,15 @@ class MultiScene(object):
         first_img = get_enhanced_image(first_dataset)
         first_img_data = first_img.finalize(fill_value=fill_value)[0]
         shape = tuple(first_img_data.sizes.get(dim_name)
-                      for dim_name in ('y', 'x', 'bands'))
-        if fill_value is None and filename.endswith('gif'):
+                      for dim_name in ("y", "x", "bands"))
+        if fill_value is None and filename.endswith("gif"):
             log.warning("Forcing fill value to '0' for GIF Luminance images")
             fill_value = 0
             shape = shape[:2]
 
         attrs = first_dataset.attrs.copy()
-        if 'end_time' in last_dataset.attrs:
-            attrs['end_time'] = last_dataset.attrs['end_time']
+        if "end_time" in last_dataset.attrs:
+            attrs["end_time"] = last_dataset.attrs["end_time"]
         this_fn = filename.format(**attrs)
         return this_fn, shape, fill_value
 
@@ -508,7 +508,7 @@ class MultiScene(object):
             # assume all other shapes are (y, x)
             # we need arrays grouped by pixel so
             # transpose if needed
-            data = data.transpose('y', 'x', 'bands')
+            data = data.transpose("y", "x", "bands")
         return data
 
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
@@ -603,7 +603,7 @@ class MultiScene(object):
         first_scene = self.first_scene
         scenes = iter(self._scene_gen)
         info_scenes = [first_scene]
-        if 'end_time' in filename:
+        if "end_time" in filename:
             # if we need the last scene to generate the filename
             # then compute all the scenes so we can figure it out
             log.debug("Generating scenes to compute end_time for filename")

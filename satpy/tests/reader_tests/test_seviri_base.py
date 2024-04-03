@@ -74,41 +74,45 @@ class SeviriBaseTest(unittest.TestCase):
         exp = chebyshev4(coefs, time, domain)
         np.testing.assert_allclose(res, exp)
 
-    def test_get_cds_time(self):
-        """Test the get_cds_time function."""
-        # Scalar
-        self.assertEqual(get_cds_time(days=21246, msecs=12*3600*1000),
-                         np.datetime64('2016-03-03 12:00'))
+    def test_get_cds_time_scalar(self):
+        """Test the get_cds_time function for scalar inputs."""
+        assert get_cds_time(days=21246, msecs=12 * 3600 * 1000) == np.datetime64("2016-03-03 12:00")
 
-        # Array
+    def test_get_cds_time_array(self):
+        """Test the get_cds_time function for array inputs."""
         days = np.array([21246, 21247, 21248])
         msecs = np.array([12*3600*1000, 13*3600*1000 + 1, 14*3600*1000 + 2])
-        expected = np.array([np.datetime64('2016-03-03 12:00:00.000'),
-                             np.datetime64('2016-03-04 13:00:00.001'),
-                             np.datetime64('2016-03-05 14:00:00.002')])
-        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+        expected = np.array([np.datetime64("2016-03-03 12:00:00.000"),
+                             np.datetime64("2016-03-04 13:00:00.001"),
+                             np.datetime64("2016-03-05 14:00:00.002")])
+        res = get_cds_time(days=days, msecs=msecs)
+        np.testing.assert_equal(res, expected)
 
+    def test_get_cds_time_nanoseconds(self):
+        """Test the get_cds_time function for having nanosecond precision."""
         days = 21246
-        msecs = 12*3600*1000
-        expected = np.datetime64('2016-03-03 12:00:00.000')
-        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+        msecs = 12 * 3600 * 1000
+        expected = np.datetime64("2016-03-03 12:00:00.000")
+        res = get_cds_time(days=days, msecs=msecs)
+        np.testing.assert_equal(res, expected)
+        assert res.dtype == np.dtype("datetime64[ns]")
 
     def test_pad_data_horizontally_bad_shape(self):
         """Test the error handling for the horizontal hrv padding."""
-        data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
+        data = xr.DataArray(data=np.zeros((1, 10)), dims=("y", "x"))
         east_bound = 5
         west_bound = 10
         final_size = (1, 20)
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             pad_data_horizontally(data, final_size, east_bound, west_bound)
 
     def test_pad_data_vertically_bad_shape(self):
         """Test the error handling for the vertical hrv padding."""
-        data = xr.DataArray(data=np.zeros((10, 1)), dims=('y', 'x'))
+        data = xr.DataArray(data=np.zeros((10, 1)), dims=("y", "x"))
         south_bound = 5
         north_bound = 10
         final_size = (20, 1)
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             pad_data_vertically(data, final_size, south_bound, north_bound)
 
     def observation_start_time(self):
@@ -121,23 +125,15 @@ class SeviriBaseTest(unittest.TestCase):
 
     def test_round_nom_time(self):
         """Test the rouding of start/end_time."""
-        self.assertEqual(round_nom_time(
-                                        dt=self.observation_start_time(),
-                                        time_delta=timedelta(minutes=15)
-                                        ),
-                         datetime(2023, 3, 20, 15, 0)
-                         )
-        self.assertEqual(round_nom_time(
-                                        dt=self.observation_end_time(),
-                                        time_delta=timedelta(minutes=15)
-                                        ),
-                         datetime(2023, 3, 20, 15, 15)
-                         )
+        assert round_nom_time(dt=self.observation_start_time(),
+                              time_delta=timedelta(minutes=15)) == datetime(2023, 3, 20, 15, 0)
+        assert round_nom_time(dt=self.observation_end_time(),
+                              time_delta=timedelta(minutes=15)) == datetime(2023, 3, 20, 15, 15)
 
     @staticmethod
     def test_pad_data_horizontally():
         """Test the horizontal hrv padding."""
-        data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
+        data = xr.DataArray(data=np.zeros((1, 10)), dims=("y", "x"))
         east_bound = 4
         west_bound = 13
         final_size = (1, 20)
@@ -149,7 +145,7 @@ class SeviriBaseTest(unittest.TestCase):
     @staticmethod
     def test_pad_data_vertically():
         """Test the vertical hrv padding."""
-        data = xr.DataArray(data=np.zeros((10, 1)), dims=('y', 'x'))
+        data = xr.DataArray(data=np.zeros((10, 1)), dims=("y", "x"))
         south_bound = 4
         north_bound = 13
         final_size = (20, 1)
@@ -179,30 +175,30 @@ class SeviriBaseTest(unittest.TestCase):
 
 
 ORBIT_POLYNOMIALS = {
-    'StartTime': np.array([
+    "StartTime": np.array([
         [
             datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12),
             datetime(2006, 1, 1, 18), datetime(1958, 1, 1, 0)]
     ]),
-    'EndTime': np.array([
+    "EndTime": np.array([
         [
             datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
             datetime(2006, 1, 2, 0), datetime(1958, 1, 1, 0)
         ]
     ]),
-    'X': [np.zeros(8),
+    "X": [np.zeros(8),
           [8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
            -2.70135453e-01,
            -3.84364650e-02, 8.48718433e-03, 7.70548174e-04,
            -1.44262718e-04],
           np.zeros(8)],
-    'Y': [np.zeros(8),
+    "Y": [np.zeros(8),
           [-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
            -3.09634144e-01,
            6.18232793e-02, 7.50505681e-03, -1.35131011e-03,
            -1.12054405e-04],
           np.zeros(8)],
-    'Z': [np.zeros(8),
+    "Z": [np.zeros(8),
           [-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
            -3.90970565e+00,
            -7.38137565e-01, 3.06131644e-02, 3.82892428e-03,
@@ -214,7 +210,7 @@ ORBIT_POLYNOMIALS_SYNTH = {
     # 01-01: Small gap (12:00 - 13:00)
     # 01-02: Large gap (04:00 - 18:00)
     # 01-03: Overlap (10:00 - 13:00)
-    'StartTime': np.array([
+    "StartTime": np.array([
         [
             datetime(2005, 12, 31, 10), datetime(2005, 12, 31, 12),
             datetime(2006, 1, 1, 10), datetime(2006, 1, 1, 13),
@@ -222,7 +218,7 @@ ORBIT_POLYNOMIALS_SYNTH = {
             datetime(2006, 1, 3, 6), datetime(2006, 1, 3, 10),
         ]
     ]),
-    'EndTime': np.array([
+    "EndTime": np.array([
         [
             datetime(2005, 12, 31, 12), datetime(2005, 12, 31, 18),
             datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
@@ -230,31 +226,31 @@ ORBIT_POLYNOMIALS_SYNTH = {
             datetime(2006, 1, 3, 13), datetime(2006, 1, 3, 18),
         ]
     ]),
-    'X': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-    'Y': [1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1],
-    'Z': [1.2, 2.2, 3.2, 4.2, 5.2, 6.2, 7.2, 8.2],
+    "X": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+    "Y": [1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1],
+    "Z": [1.2, 2.2, 3.2, 4.2, 5.2, 6.2, 7.2, 8.2],
 }
 ORBIT_POLYNOMIALS_INVALID = {
-    'StartTime': np.array([
+    "StartTime": np.array([
         [
             datetime(1958, 1, 1), datetime(1958, 1, 1)
         ]
     ]),
-    'EndTime': np.array([
+    "EndTime": np.array([
         [
             datetime(1958, 1, 1), datetime(1958, 1, 1)
         ]
     ]),
-    'X': [1, 2],
-    'Y': [3, 4],
-    'Z': [5, 6],
+    "X": [1, 2],
+    "Y": [3, 4],
+    "Z": [5, 6],
 }
 
 
 class TestSatellitePosition:
     """Test locating the satellite."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def orbit_polynomial(self):
         """Get an orbit polynomial for testing."""
         return OrbitPolynomial(
@@ -273,7 +269,7 @@ class TestSatellitePosition:
             )
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def time(self):
         """Get scan timestamp for testing."""
         return datetime(2006, 1, 1, 12, 15, 9, 304888)
@@ -304,7 +300,7 @@ class TestOrbitPolynomialFinder:
     """Unit tests for orbit polynomial finder."""
 
     @pytest.mark.parametrize(
-        ('orbit_polynomials', 'time', 'orbit_polynomial_exp'),
+        ("orbit_polynomials", "time", "orbit_polynomial_exp"),
         [
             # Contiguous validity intervals (that's the norm)
             (
@@ -312,8 +308,8 @@ class TestOrbitPolynomialFinder:
                 datetime(2005, 12, 31, 12, 15),
                 OrbitPolynomial(
                     coefs=(2.0, 2.1, 2.2),
-                    start_time=np.datetime64('2005-12-31 12:00'),
-                    end_time=np.datetime64('2005-12-31 18:00')
+                    start_time=np.datetime64("2005-12-31 12:00"),
+                    end_time=np.datetime64("2005-12-31 18:00")
                 )
             ),
             # No interval enclosing the given timestamp, but closest interval
@@ -323,8 +319,8 @@ class TestOrbitPolynomialFinder:
                     datetime(2006, 1, 1, 12, 15),
                     OrbitPolynomial(
                         coefs=(3.0, 3.1, 3.2),
-                        start_time=np.datetime64('2006-01-01 10:00'),
-                        end_time=np.datetime64('2006-01-01 12:00')
+                        start_time=np.datetime64("2006-01-01 10:00"),
+                        end_time=np.datetime64("2006-01-01 12:00")
                     )
             ),
             # Overlapping intervals
@@ -333,8 +329,8 @@ class TestOrbitPolynomialFinder:
                     datetime(2006, 1, 3, 12, 15),
                     OrbitPolynomial(
                         coefs=(8.0, 8.1, 8.2),
-                        start_time=np.datetime64('2006-01-03 10:00'),
-                        end_time=np.datetime64('2006-01-03 18:00')
+                        start_time=np.datetime64("2006-01-03 10:00"),
+                        end_time=np.datetime64("2006-01-03 18:00")
                     )
             ),
         ]
@@ -342,12 +338,16 @@ class TestOrbitPolynomialFinder:
     def test_get_orbit_polynomial(self, orbit_polynomials, time,
                                   orbit_polynomial_exp):
         """Test getting the satellite locator."""
+        import warnings
         finder = OrbitPolynomialFinder(orbit_polynomials)
-        orbit_polynomial = finder.get_orbit_polynomial(time=time)
+        with warnings.catch_warnings():
+            # There's no exact polynomial time match, filter the warning
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"No orbit polynomial valid")
+            orbit_polynomial = finder.get_orbit_polynomial(time=time)
         assert orbit_polynomial == orbit_polynomial_exp
 
     @pytest.mark.parametrize(
-        ('orbit_polynomials', 'time'),
+        ("orbit_polynomials", "time"),
         [
             # No interval enclosing the given timestamp and closest interval
             # too far away
@@ -360,23 +360,24 @@ class TestOrbitPolynomialFinder:
         """Test exceptions thrown while getting the satellite locator."""
         finder = OrbitPolynomialFinder(orbit_polynomials)
         with pytest.raises(NoValidOrbitParams):
-            finder.get_orbit_polynomial(time=time)
+            with pytest.warns(UserWarning, match=r"No orbit polynomial valid"):
+                finder.get_orbit_polynomial(time=time)
 
 
 class TestMeirinkSlope:
     """Unit tests for the slope of Meirink calibration."""
 
-    @pytest.mark.parametrize('platform_id', [321, 322, 323, 324])
-    @pytest.mark.parametrize('channel_name', ['VIS006', 'VIS008', 'IR_016'])
+    @pytest.mark.parametrize("platform_id", [321, 322, 323, 324])
+    @pytest.mark.parametrize("channel_name", ["VIS006", "VIS008", "IR_016"])
     def test_get_meirink_slope_epoch(self, platform_id, channel_name):
         """Test the value of the slope of the Meirink calibration on 2000-01-01."""
-        coefs = {'coefs': {}}
-        coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
-        coefs['coefs']['EXTERNAL'] = {}
-        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2023', MEIRINK_EPOCH)
-        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS['2023'][platform_id][channel_name][0]/1000.
+        coefs = {"coefs": {}}
+        coefs["coefs"]["NOMINAL"] = {"gain": -1, "offset": -1}
+        coefs["coefs"]["EXTERNAL"] = {}
+        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, "MEIRINK-2023", MEIRINK_EPOCH)
+        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS["2023"][platform_id][channel_name][0]/1000.
 
-    @pytest.mark.parametrize('platform_id,time,expected', (
+    @pytest.mark.parametrize(("platform_id", "time", "expected"), [
         (321, datetime(2005, 1, 18, 0, 0), [0.0250354716, 0.0315626684, 0.022880986]),
         (321, datetime(2010, 12, 31, 0, 0), [0.0258479563, 0.0322386887, 0.022895110500000003]),
         (322, datetime(2010, 1, 18, 0, 0), [0.021964051999999998, 0.027548445, 0.021576766]),
@@ -385,12 +386,12 @@ class TestMeirinkSlope:
         (323, datetime(2010, 12, 31, 0, 0), [0.022181355200000002, 0.0280103379, 0.0229511138]),
         (324, datetime(2010, 1, 18, 0, 0), [0.0218362, 0.027580748, 0.022285370999999998]),
         (324, datetime(2015, 6, 1, 0, 0), [0.0225418, 0.028530172, 0.022248718999999997]),
-    ))
+    ])
     def test_get_meirink_slope_2020(self, platform_id, time, expected):
         """Test the value of the slope of the Meirink calibration."""
-        coefs = {'coefs': {}}
-        coefs['coefs']['NOMINAL'] = {'gain': -1, 'offset': -1}
-        coefs['coefs']['EXTERNAL'] = {}
-        for i, channel_name in enumerate(['VIS006', 'VIS008', 'IR_016']):
-            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, 'MEIRINK-2023', time)
+        coefs = {"coefs": {}}
+        coefs["coefs"]["NOMINAL"] = {"gain": -1, "offset": -1}
+        coefs["coefs"]["EXTERNAL"] = {}
+        for i, channel_name in enumerate(["VIS006", "VIS008", "IR_016"]):
+            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, "MEIRINK-2023", time)
             assert abs(calibration_handler.get_gain_offset()[0] - expected[i]) < 1e-6

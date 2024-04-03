@@ -18,6 +18,7 @@
 """Interface to MiRS product."""
 
 import datetime
+import importlib
 import logging
 import os
 from collections import Counter
@@ -34,13 +35,12 @@ CHUNK_SIZE = get_legacy_chunk_size()
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-try:
-    # try getting setuptools/distribute's version of resource retrieval first
-    from pkg_resources import resource_string as get_resource_string
-except ImportError:
-    from pkgutil import get_data as get_resource_string  # type: ignore
 
-#
+def get_resource_string(mod_part, file_part):
+    """Read resource string."""
+    ref = importlib.resources.files(mod_part).joinpath(file_part)
+    return ref.read_bytes()
+
 
 # 'Polo' variable in MiRS files use these values for H/V polarization
 POLO_V = 2
@@ -50,6 +50,10 @@ amsu = "amsu-mhs"
 PLATFORMS = {"n18": "NOAA-18",
              "n19": "NOAA-19",
              "np": "NOAA-19",
+             "n20": "NOAA-20",
+             "n21": "NOAA-21",
+             "n22": "NOAA-22",
+             "n23": "NOAA-23",
              "m2": "MetOp-A",
              "m1": "MetOp-B",
              "m3": "MetOp-C",
@@ -60,11 +64,14 @@ PLATFORMS = {"n18": "NOAA-18",
              "f17": "DMSP-F17",
              "f18": "DMSP-F18",
              "gpm": "GPM",
-             "n20": "NOAA-20",
              }
 SENSOR = {"n18": amsu,
           "n19": amsu,
-          "n20": 'atms',
+          "n20": "atms",
+          "n21": "atms",
+          "n22": "atms",
+          "n23": "atms",
+          "n24": "atms",
           "np": amsu,
           "m1": amsu,
           "m2": amsu,
@@ -173,11 +180,11 @@ def get_coeff_by_sfc(coeff_fn, bt_data, idx):
 
 def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
     """Gather data needed for limb correction."""
-    idx = ds_info['channel_index']
+    idx = ds_info["channel_index"]
     LOG.info("Starting ATMS Limb Correction...")
 
-    sea_bt = get_coeff_by_sfc(coeff_fns['sea'], bt_data, idx)
-    land_bt = get_coeff_by_sfc(coeff_fns['land'], bt_data, idx)
+    sea_bt = get_coeff_by_sfc(coeff_fns["sea"], bt_data, idx)
+    land_bt = get_coeff_by_sfc(coeff_fns["land"], bt_data, idx)
 
     LOG.info("Finishing limb correction")
     is_sea = (surf_type_mask == 0)
@@ -217,8 +224,8 @@ class MiRSL2ncHandler(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   decode_coords=True,
-                                  chunks={'Field_of_view': CHUNK_SIZE,
-                                          'Scanline': CHUNK_SIZE})
+                                  chunks={"Field_of_view": CHUNK_SIZE,
+                                          "Scanline": CHUNK_SIZE})
         # y,x is used in satpy, bands rather than channel using in xrimage
         self.nc = self.nc.rename_dims({"Scanline": "y",
                                        "Field_of_view": "x"})
@@ -232,13 +239,13 @@ class MiRSL2ncHandler(BaseFileHandler):
     @property
     def platform_shortname(self):
         """Get platform shortname."""
-        return self.filename_info['platform_shortname']
+        return self.filename_info["platform_shortname"]
 
     @property
     def _get_platform_name(self):
         """Get platform name."""
         try:
-            res = PLATFORMS[self.filename_info['platform_shortname'].lower()]
+            res = PLATFORMS[self.filename_info["platform_shortname"].lower()]
         except KeyError:
             res = "mirs"
         return res.lower()
@@ -296,13 +303,14 @@ class MiRSL2ncHandler(BaseFileHandler):
     @property
     def _get_coeff_filenames(self):
         """Retrieve necessary files for coefficients if needed."""
-        coeff_fn = {'sea': None, 'land': None}
-        if self.platform_name == "noaa-20":
-            coeff_fn['land'] = retrieve("readers/limbcoef_atmsland_noaa20.txt")
-            coeff_fn['sea'] = retrieve("readers/limbcoef_atmssea_noaa20.txt")
-        if self.platform_name == 'npp':
-            coeff_fn['land'] = retrieve("readers/limbcoef_atmsland_snpp.txt")
-            coeff_fn['sea'] = retrieve("readers/limbcoef_atmssea_snpp.txt")
+        coeff_fn = {"sea": None, "land": None}
+        if self.platform_name.startswith("noaa"):
+            suffix = self.platform_name[-2:]
+            coeff_fn["land"] = retrieve(f"readers/limbcoef_atmsland_noaa{suffix}.txt")
+            coeff_fn["sea"] = retrieve(f"readers/limbcoef_atmssea_noaa{suffix}.txt")
+        if self.platform_name == "npp":
+            coeff_fn["land"] = retrieve("readers/limbcoef_atmsland_snpp.txt")
+            coeff_fn["sea"] = retrieve("readers/limbcoef_atmssea_snpp.txt")
 
         return coeff_fn
 
@@ -311,10 +319,10 @@ class MiRSL2ncHandler(BaseFileHandler):
         metadata = {}
         metadata.update(ds_info)
         metadata.update({
-            'sensor': self.sensor,
-            'platform_name': self.platform_name,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
+            "sensor": self.sensor,
+            "platform_name": self.platform_name,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
         })
         return metadata
 
@@ -325,22 +333,24 @@ class MiRSL2ncHandler(BaseFileHandler):
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
         if np.issubdtype(data_arr_dtype, np.timedelta64):
-            return np.timedelta64('NaT')
+            return np.timedelta64("NaT")
         if np.issubdtype(data_arr_dtype, np.datetime64):
-            return np.datetime64('NaT')
-        return np.nan
+            return np.datetime64("NaT")
+        return np.float32(np.nan)
 
     @staticmethod
     def _scale_data(data_arr, scale_factor, add_offset):
         """Scale data, if needed."""
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
-            data_arr = data_arr * scale_factor + add_offset
+            data_arr = data_arr * np.float32(scale_factor) + np.float32(add_offset)
         return data_arr
 
     def _fill_data(self, data_arr, fill_value, scale_factor, add_offset):
         """Fill missing data with NaN."""
         if fill_value is not None:
+            # NOTE: Sfc_type and other category products are not detected or handled properly
+            #   and will be converted from integers to 32-bit floats in this step
             fill_value = self._scale_data(fill_value, scale_factor, add_offset)
             fill_out = self._nan_for_dtype(data_arr.dtype)
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
@@ -365,7 +375,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         """
         try:
-            global_attr_fill = self.nc.missing_value
+            global_attr_fill = self.nc.attrs["missing_value"]
         except AttributeError:
             global_attr_fill = 1.0
 
@@ -375,19 +385,19 @@ class MiRSL2ncHandler(BaseFileHandler):
         ds_info.update(data.attrs)
 
         # special cases
-        if ds_info['name'] in ["latitude", "longitude"]:
+        if ds_info["name"] in ["latitude", "longitude"]:
             ds_info["standard_name"] = ds_info.get("standard_name",
-                                                   ds_info['name'])
+                                                   ds_info["name"])
 
         # try to assign appropriate units (if "Kelvin" covert to K)
         units_convert = {"Kelvin": "K"}
-        data_unit = ds_info.get('units', None)
-        ds_info['units'] = units_convert.get(data_unit, data_unit)
+        data_unit = ds_info.get("units", None)
+        ds_info["units"] = units_convert.get(data_unit, data_unit)
 
-        scale = ds_info.pop('scale_factor', 1.0)
-        offset = ds_info.pop('add_offset', 0.)
+        scale = ds_info.pop("scale_factor", 1.0)
+        offset = ds_info.pop("add_offset", 0.)
         fill_value = ds_info.pop("_FillValue", global_attr_fill)
-        valid_range = ds_info.pop('valid_range', None)
+        valid_range = ds_info.pop("valid_range", None)
 
         data = self._scale_data(data, scale, offset)
         data = self._fill_data(data, fill_value, scale, offset)
@@ -399,14 +409,14 @@ class MiRSL2ncHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
-        if 'dependencies' in ds_info.keys():
-            idx = ds_info['channel_index']
-            data = self['BT']
+        if "dependencies" in ds_info.keys():
+            idx = ds_info["channel_index"]
+            data = self["BT"]
             data = data.rename(new_name_or_name_dict=ds_info["name"])
             data, ds_info = self.apply_attributes(data, ds_info)
 
             if self.sensor.lower() == "atms" and self.limb_correction:
-                sfc_type_mask = self['Sfc_type']
+                sfc_type_mask = self["Sfc_type"]
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,
                                             ds_info)
@@ -416,7 +426,7 @@ class MiRSL2ncHandler(BaseFileHandler):
                 LOG.info("No Limb Correction applied.")
                 data = data[:, :, idx]
         else:
-            data = self[ds_id['name']]
+            data = self[ds_id["name"]]
             data, ds_info = self.apply_attributes(data, ds_info)
 
         data.attrs = self.update_metadata(ds_info)
@@ -440,24 +450,24 @@ class MiRSL2ncHandler(BaseFileHandler):
                 continue
 
             yaml_info = {}
-            if self.file_type_matches(ds_info['file_type']):
-                handled_vars.add(ds_info['name'])
+            if self.file_type_matches(ds_info["file_type"]):
+                handled_vars.add(ds_info["name"])
                 yaml_info = ds_info
-            if ds_info['name'] == 'BT':
+            if ds_info["name"] == "BT":
                 yield from self._available_btemp_datasets(yaml_info)
             yield True, ds_info
         yield from self._available_new_datasets(handled_vars)
 
     def _count_channel_repeat_number(self):
         """Count channel/polarization pair repetition."""
-        freq = self.nc.coords.get('Freq', self.nc.get('Freq'))
-        polo = self.nc['Polo']
+        freq = self.nc.coords.get("Freq", self.nc.get("Freq"))
+        polo = self.nc["Polo"]
 
         chn_total = Counter()
         normals = []
         for idx, (f, p) in enumerate(zip(freq, polo)):
             normal_f = str(int(f))
-            normal_p = 'v' if p == POLO_V else 'h'
+            normal_p = "v" if p == POLO_V else "h"
             chn_total[normal_f + normal_p] += 1
             normals.append((idx, f, p, normal_f, normal_p))
 
@@ -471,7 +481,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         for idx, _f, _p, normal_f, normal_p in normals:
             chn_cnt[normal_f + normal_p] += 1
             p_count = str(chn_cnt[normal_f + normal_p]
-                          if chn_total[normal_f + normal_p] > 1 else '')
+                          if chn_total[normal_f + normal_p] > 1 else "")
 
             new_name = "btemp_{}{}{}".format(normal_f, normal_p, p_count)
 
@@ -479,22 +489,22 @@ class MiRSL2ncHandler(BaseFileHandler):
             desc_bt = desc_bt.format(idx, normal_f, normal_p, p_count)
             ds_info = yaml_info.copy()
             ds_info.update({
-                'file_type': self.filetype_info['file_type'],
-                'name': new_name,
-                'description': desc_bt,
-                'channel_index': idx,
-                'frequency': "{}GHz".format(normal_f),
-                'polarization': normal_p,
-                'dependencies': ('BT', 'Sfc_type'),
-                'coordinates': ['longitude', 'latitude']
+                "file_type": self.filetype_info["file_type"],
+                "name": new_name,
+                "description": desc_bt,
+                "channel_index": idx,
+                "frequency": "{}GHz".format(normal_f),
+                "polarization": normal_p,
+                "dependencies": ("BT", "Sfc_type"),
+                "coordinates": ["longitude", "latitude"]
             })
             yield True, ds_info
 
     def _get_ds_info_for_data_arr(self, var_name):
         ds_info = {
-            'file_type': self.filetype_info['file_type'],
-            'name': var_name,
-            'coordinates': ["longitude", "latitude"]
+            "file_type": self.filetype_info["file_type"],
+            "name": var_name,
+            "coordinates": ["longitude", "latitude"]
         }
         return ds_info
 
@@ -524,7 +534,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         data = self.nc[item]
 
         # 'Freq' dimension causes issues in other processing
-        if 'Freq' in data.coords:
-            data = data.drop_vars('Freq')
+        if "Freq" in data.coords:
+            data = data.drop_vars("Freq")
 
         return data

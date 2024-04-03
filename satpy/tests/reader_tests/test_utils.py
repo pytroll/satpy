@@ -45,11 +45,11 @@ class TestHelpers(unittest.TestCase):
         lon_0 = 0
         h = 35785831.00
         geos_area.crs = CRS({
-            'a': 6378169.00,
-            'b': 6356583.80,
-            'h': h,
-            'lon_0': lon_0,
-            'proj': 'geos'})
+            "a": 6378169.00,
+            "b": 6356583.80,
+            "h": h,
+            "lon_0": lon_0,
+            "proj": "geos"})
 
         proj = pyproj.Proj(geos_area.crs)
         expected = proj(0, 0, inverse=True)
@@ -77,12 +77,12 @@ class TestHelpers(unittest.TestCase):
         geos_area = mock.MagicMock()
         lon_0 = 0
         geos_area.crs = CRS({
-            'proj': 'geos',
-            'lon_0': lon_0,
-            'a': 6378169.00,
-            'b': 6356583.80,
-            'h': 35785831.00,
-            'units': 'm'})
+            "proj": "geos",
+            "lon_0": lon_0,
+            "a": 6378169.00,
+            "b": 6356583.80,
+            "h": 35785831.00,
+            "units": "m"})
         geos_area.area_extent = [-5500000., -5500000., 5500000., 5500000.]
 
         lon, lat = hf.get_geostationary_bounding_box(geos_area, 20)
@@ -107,21 +107,21 @@ class TestHelpers(unittest.TestCase):
         """Get max geostationary angles."""
         geos_area = mock.MagicMock()
         proj_dict = {
-            'proj': 'geos',
-            'sweep': 'x',
-            'lon_0': -89.5,
-            'a': 6378169.00,
-            'b': 6356583.80,
-            'h': 35785831.00,
-            'units': 'm'}
+            "proj": "geos",
+            "sweep": "x",
+            "lon_0": -89.5,
+            "a": 6378169.00,
+            "b": 6356583.80,
+            "h": 35785831.00,
+            "units": "m"}
         geos_area.crs = CRS(proj_dict)
         expected = (0.15185342867090912, 0.15133555510297725)
         np.testing.assert_allclose(expected,
                                    hf.get_geostationary_angle_extent(geos_area))
 
-        proj_dict['a'] = 1000.0
-        proj_dict['b'] = 1000.0
-        proj_dict['h'] = np.sqrt(2) * 1000.0 - 1000.0
+        proj_dict["a"] = 1000.0
+        proj_dict["b"] = 1000.0
+        proj_dict["h"] = np.sqrt(2) * 1000.0 - 1000.0
         geos_area.reset_mock()
         geos_area.crs = CRS(proj_dict)
         expected = (np.deg2rad(45), np.deg2rad(45))
@@ -129,12 +129,12 @@ class TestHelpers(unittest.TestCase):
                                    hf.get_geostationary_angle_extent(geos_area))
 
         proj_dict = {
-            'proj': 'geos',
-            'sweep': 'x',
-            'lon_0': -89.5,
-            'ellps': 'GRS80',
-            'h': 35785831.00,
-            'units': 'm'}
+            "proj": "geos",
+            "sweep": "x",
+            "lon_0": -89.5,
+            "ellps": "GRS80",
+            "h": 35785831.00,
+            "units": "m"}
         geos_area.crs = CRS(proj_dict)
         expected = (0.15185277703584374, 0.15133971368991794)
         np.testing.assert_allclose(expected,
@@ -144,15 +144,15 @@ class TestHelpers(unittest.TestCase):
         """Test geostationary mask."""
         # Compute mask of a very elliptical earth
         area = pyresample.geometry.AreaDefinition(
-            'FLDK',
-            'Full Disk',
-            'geos',
-            {'a': '6378169.0',
-             'b': '3000000.0',
-             'h': '35785831.0',
-             'lon_0': '145.0',
-             'proj': 'geos',
-             'units': 'm'},
+            "FLDK",
+            "Full Disk",
+            "geos",
+            {"a": "6378169.0",
+             "b": "3000000.0",
+             "h": "35785831.0",
+             "lon_0": "145.0",
+             "proj": "geos",
+             "units": "m"},
             101,
             101,
             (-6498000.088960204, -6498000.088960204,
@@ -162,63 +162,65 @@ class TestHelpers(unittest.TestCase):
 
         # Check results along a couple of lines
         # a) Horizontal
-        self.assertTrue(np.all(mask[50, :8] == 0))
-        self.assertTrue(np.all(mask[50, 8:93] == 1))
-        self.assertTrue(np.all(mask[50, 93:] == 0))
+        assert np.all(mask[50, :8] == 0)
+        assert np.all(mask[50, 8:93] == 1)
+        assert np.all(mask[50, 93:] == 0)
 
         # b) Vertical
-        self.assertTrue(np.all(mask[:31, 50] == 0))
-        self.assertTrue(np.all(mask[31:70, 50] == 1))
-        self.assertTrue(np.all(mask[70:, 50] == 0))
+        assert np.all(mask[:31, 50] == 0)
+        assert np.all(mask[31:70, 50] == 1)
+        assert np.all(mask[70:, 50] == 0)
 
         # c) Top left to bottom right
-        self.assertTrue(np.all(mask[range(33), range(33)] == 0))
-        self.assertTrue(np.all(mask[range(33, 68), range(33, 68)] == 1))
-        self.assertTrue(np.all(mask[range(68, 101), range(68, 101)] == 0))
+        assert np.all(mask[range(33), range(33)] == 0)
+        assert np.all(mask[range(33, 68), range(33, 68)] == 1)
+        assert np.all(mask[range(68, 101), range(68, 101)] == 0)
 
         # d) Bottom left to top right
-        self.assertTrue(np.all(mask[range(101-1, 68-1, -1), range(33)] == 0))
-        self.assertTrue(np.all(mask[range(68-1, 33-1, -1), range(33, 68)] == 1))
-        self.assertTrue(np.all(mask[range(33-1, -1, -1), range(68, 101)] == 0))
+        assert np.all(mask[range(101 - 1, 68 - 1, -1), range(33)] == 0)
+        assert np.all(mask[range(68 - 1, 33 - 1, -1), range(33, 68)] == 1)
+        assert np.all(mask[range(33 - 1, -1, -1), range(68, 101)] == 0)
 
-    @mock.patch('satpy.readers.utils.AreaDefinition')
+    @mock.patch("satpy.readers.utils.AreaDefinition")
     def test_sub_area(self, adef):
         """Sub area slicing."""
         area = mock.MagicMock()
         area.pixel_size_x = 1.5
         area.pixel_size_y = 1.5
         area.pixel_upper_left = (0, 0)
-        area.area_id = 'fakeid'
-        area.name = 'fake name'
-        area.proj_id = 'fakeproj'
-        area.crs = 'some_crs'
+        area.area_id = "fakeid"
+        area.name = "fake name"
+        area.proj_id = "fakeproj"
+        area.crs = "some_crs"
 
         hf.get_sub_area(area, slice(1, 4), slice(0, 3))
-        adef.assert_called_once_with('fakeid', 'fake name', 'fakeproj',
-                                     'some_crs',
+        adef.assert_called_once_with("fakeid", "fake name", "fakeproj",
+                                     "some_crs",
                                      3, 3,
                                      (0.75, -3.75, 5.25, 0.75))
 
     def test_np2str(self):
         """Test the np2str function."""
         # byte object
-        npbytes = np.bytes_('hej')
-        self.assertEqual(hf.np2str(npbytes), 'hej')
+        npbytes = np.bytes_("hej")
+        assert hf.np2str(npbytes) == "hej"
 
         # single element numpy array
         np_arr = np.array([npbytes])
-        self.assertEqual(hf.np2str(np_arr), 'hej')
+        assert hf.np2str(np_arr) == "hej"
 
         # scalar numpy array
         np_arr = np.array(npbytes)
-        self.assertEqual(hf.np2str(np_arr), 'hej')
+        assert hf.np2str(np_arr) == "hej"
 
         # multi-element array
         npbytes = np.array([npbytes, npbytes])
-        self.assertRaises(ValueError, hf.np2str, npbytes)
+        with pytest.raises(ValueError, match="Array is not a string type or is larger than 1"):
+            hf.np2str(npbytes)
 
         # non-array
-        self.assertRaises(ValueError, hf.np2str, 5)
+        with pytest.raises(ValueError, match="Array is not a string type or is larger than 1"):
+            hf.np2str(5)
 
     def test_get_earth_radius(self):
         """Test earth radius computation."""
@@ -236,51 +238,51 @@ class TestHelpers(unittest.TestCase):
             return n * np.sqrt((1 - e2)**2 * np.sin(lat)**2 + np.cos(lat)**2)
 
         for lon in (0, 180, 270):
-            self.assertEqual(hf.get_earth_radius(lon=lon, lat=0., a=a, b=b), a)
+            assert hf.get_earth_radius(lon=lon, lat=0.0, a=a, b=b) == a
         for lat in (90, -90):
-            self.assertEqual(hf.get_earth_radius(lon=0., lat=lat, a=a, b=b), b)
-        self.assertTrue(np.isclose(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.)))
+            assert hf.get_earth_radius(lon=0.0, lat=lat, a=a, b=b) == b
+        assert np.isclose(hf.get_earth_radius(lon=123, lat=45.0, a=a, b=b), re(45.0))
 
     def test_reduce_mda(self):
         """Test metadata size reduction."""
-        mda = {'a': 1,
-               'b': np.array([1, 2, 3]),
-               'c': np.array([1, 2, 3, 4]),
-               'd': {'a': 1,
-                     'b': np.array([1, 2, 3]),
-                     'c': np.array([1, 2, 3, 4]),
-                     'd': {'a': 1,
-                           'b': np.array([1, 2, 3]),
-                           'c': np.array([1, 2, 3, 4])}}}
-        exp = {'a': 1,
-               'b': np.array([1, 2, 3]),
-               'd': {'a': 1,
-                     'b': np.array([1, 2, 3]),
-                     'd': {'a': 1,
-                           'b': np.array([1, 2, 3])}}}
+        mda = {"a": 1,
+               "b": np.array([1, 2, 3]),
+               "c": np.array([1, 2, 3, 4]),
+               "d": {"a": 1,
+                     "b": np.array([1, 2, 3]),
+                     "c": np.array([1, 2, 3, 4]),
+                     "d": {"a": 1,
+                           "b": np.array([1, 2, 3]),
+                           "c": np.array([1, 2, 3, 4])}}}
+        exp = {"a": 1,
+               "b": np.array([1, 2, 3]),
+               "d": {"a": 1,
+                     "b": np.array([1, 2, 3]),
+                     "d": {"a": 1,
+                           "b": np.array([1, 2, 3])}}}
         numpy.testing.assert_equal(hf.reduce_mda(mda, max_size=3), exp)
 
         # Make sure, reduce_mda() doesn't modify the original dictionary
-        self.assertIn('c', mda)
-        self.assertIn('c', mda['d'])
-        self.assertIn('c', mda['d']['d'])
+        assert "c" in mda
+        assert "c" in mda["d"]
+        assert "c" in mda["d"]["d"]
 
-    @mock.patch('satpy.readers.utils.bz2.BZ2File')
-    @mock.patch('satpy.readers.utils.Popen')
+    @mock.patch("satpy.readers.utils.bz2.BZ2File")
+    @mock.patch("satpy.readers.utils.Popen")
     def test_unzip_file(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
-        attrs = {'communicate.return_value': (b'output', b'error'),
-                 'returncode': 0}
+        attrs = {"communicate.return_value": (b"output", b"error"),
+                 "returncode": 0}
         process_mock.configure_mock(**attrs)
         mock_popen.return_value = process_mock
 
         bz2_mock = mock.MagicMock()
-        bz2_mock.__enter__.return_value.read.return_value = b'TEST'
+        bz2_mock.__enter__.return_value.read.return_value = b"TEST"
         mock_bz2.return_value = bz2_mock
 
-        filename = 'tester.DAT.bz2'
-        whichstr = 'satpy.readers.utils.which'
+        filename = "tester.DAT.bz2"
+        whichstr = "satpy.readers.utils.which"
         segment = 3
         segmentstr = str(segment).zfill(2)
         # no pbzip2 installed with prefix
@@ -294,7 +296,7 @@ class TestHelpers(unittest.TestCase):
                 os.remove(new_fname)
         # pbzip2 installed without prefix
         with mock.patch(whichstr) as whichmock:
-            whichmock.return_value = '/usr/bin/pbzip2'
+            whichmock.return_value = "/usr/bin/pbzip2"
             new_fname = hf.unzip_file(filename)
             assert mock_popen.called
             assert os.path.exists(new_fname)
@@ -302,21 +304,21 @@ class TestHelpers(unittest.TestCase):
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
-        filename = 'tester.DAT'
+        filename = "tester.DAT"
         new_fname = hf.unzip_file(filename)
         assert new_fname is None
 
-    @mock.patch('bz2.BZ2File')
+    @mock.patch("bz2.BZ2File")
     def test_generic_open_BZ2File(self, bz2_mock):
         """Test the generic_open method with bz2 filename input."""
         mock_bz2_open = mock.MagicMock()
-        mock_bz2_open.read.return_value = b'TEST'
+        mock_bz2_open.read.return_value = b"TEST"
         bz2_mock.return_value = mock_bz2_open
 
-        filename = 'tester.DAT.bz2'
+        filename = "tester.DAT.bz2"
         with hf.generic_open(filename) as file_object:
             data = file_object.read()
-            assert data == b'TEST'
+            assert data == b"TEST"
 
         assert mock_bz2_open.read.called
 
@@ -328,27 +330,27 @@ class TestHelpers(unittest.TestCase):
         fsf = FSFile(mem_file)
         with hf.generic_open(fsf) as file_object:
             data = file_object.read()
-            assert data == b'TEST'
+            assert data == b"TEST"
 
-    @mock.patch('satpy.readers.utils.open')
+    @mock.patch("satpy.readers.utils.open")
     def test_generic_open_filename(self, open_mock):
         """Test the generic_open method with filename (str)."""
         mock_fn_open = mock.MagicMock()
-        mock_fn_open.read.return_value = b'TEST'
+        mock_fn_open.read.return_value = b"TEST"
         open_mock.return_value = mock_fn_open
 
         filename = "test.DAT"
         with hf.generic_open(filename) as file_object:
             data = file_object.read()
-            assert data == b'TEST'
+            assert data == b"TEST"
 
         assert mock_fn_open.read.called
 
-    @mock.patch('bz2.decompress', return_value=b'TEST_DECOMPRESSED')
+    @mock.patch("bz2.decompress", return_value=b"TEST_DECOMPRESSED")
     def test_unzip_FSFile(self, bz2_mock):
         """Test the FSFile bz2 file unzipping techniques."""
         mock_bz2_decompress = mock.MagicMock()
-        mock_bz2_decompress.return_value = b'TEST_DECOMPRESSED'
+        mock_bz2_decompress.return_value = b"TEST_DECOMPRESSED"
 
         segment = 3
         segmentstr = str(segment).zfill(2)
@@ -382,14 +384,14 @@ class TestHelpers(unittest.TestCase):
             os.remove(new_fname)
 
     @mock.patch("os.remove")
-    @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
+    @mock.patch("satpy.readers.utils.unzip_file", return_value="dummy.txt")
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
         """Test the bz2 file unzipping context manager."""
-        filename = 'dummy.txt.bz2'
+        filename = "dummy.txt.bz2"
         expected_filename = filename[:-4]
 
         with hf.unzip_context(filename) as new_filename:
-            self.assertEqual(new_filename, expected_filename)
+            assert new_filename == expected_filename
 
         fake_unzip_file.assert_called_with(filename)
         fake_remove.assert_called_with(expected_filename)
@@ -403,24 +405,24 @@ class TestHelpers(unittest.TestCase):
 
     def test_get_user_calibration_factors(self):
         """Test the retrieval of user-supplied calibration factors."""
-        radcor_dict = {'WV063': {'slope': 1.015,
-                                 'offset': -0.0556},
-                       'IR108': {'slo': 1.015,
-                                 'off': -0.0556}}
+        radcor_dict = {"WV063": {"slope": 1.015,
+                                 "offset": -0.0556},
+                       "IR108": {"slo": 1.015,
+                                 "off": -0.0556}}
         # Test that correct values are returned from the dict
-        slope, offset = hf.get_user_calibration_factors('WV063', radcor_dict)
-        self.assertEqual(slope, 1.015)
-        self.assertEqual(offset, -0.0556)
+        slope, offset = hf.get_user_calibration_factors("WV063", radcor_dict)
+        assert slope == 1.015
+        assert offset == -0.0556
 
         # Test that channels not present in dict return 1.0, 0.0
         with self.assertWarns(UserWarning):
-            slope, offset = hf.get_user_calibration_factors('IR097', radcor_dict)
-        self.assertEqual(slope, 1.)
-        self.assertEqual(offset, 0.)
+            slope, offset = hf.get_user_calibration_factors("IR097", radcor_dict)
+        assert slope == 1.0
+        assert offset == 0.0
 
         # Check that incorrect dict keys throw an error
-        with self.assertRaises(KeyError):
-            hf.get_user_calibration_factors('IR108', radcor_dict)
+        with pytest.raises(KeyError):
+            hf.get_user_calibration_factors("IR108", radcor_dict)
 
 
 class TestSunEarthDistanceCorrection:
@@ -431,15 +433,15 @@ class TestSunEarthDistanceCorrection:
         self.test_date = datetime(2020, 8, 15, 13, 0, 40)
 
         raw_refl = xr.DataArray(da.from_array([10., 20., 40., 1., 98., 50.]),
-                                attrs={'start_time': self.test_date,
-                                       'scheduled_time': self.test_date})
+                                attrs={"start_time": self.test_date,
+                                       "scheduled_time": self.test_date})
 
         corr_refl = xr.DataArray(da.from_array([
             10.25484833, 20.50969667,
             41.01939333, 1.02548483,
             100.49751367, 51.27424167]),
-            attrs={'start_time': self.test_date,
-                   'scheduled_time': self.test_date},
+            attrs={"start_time": self.test_date,
+                   "scheduled_time": self.test_date},
         )
         self.raw_refl = raw_refl
         self.corr_refl = corr_refl
@@ -448,13 +450,13 @@ class TestSunEarthDistanceCorrection:
         """Test the retrieval of scene time from a dataset."""
         # First check correct time is returned with 'start_time'
         tmp_array = self.raw_refl.copy()
-        del tmp_array.attrs['scheduled_time']
+        del tmp_array.attrs["scheduled_time"]
         utc_time = hf.get_array_date(tmp_array, None)
         assert utc_time == self.test_date
 
         # Now check correct time is returned with 'scheduled_time'
         tmp_array = self.raw_refl.copy()
-        del tmp_array.attrs['start_time']
+        del tmp_array.attrs["start_time"]
         utc_time = hf.get_array_date(tmp_array, None)
         assert utc_time == self.test_date
 
@@ -466,8 +468,8 @@ class TestSunEarthDistanceCorrection:
 
         # Finally, ensure error is raised if no datetime is available
         tmp_array = self.raw_refl.copy()
-        del tmp_array.attrs['scheduled_time']
-        del tmp_array.attrs['start_time']
+        del tmp_array.attrs["scheduled_time"]
+        del tmp_array.attrs["start_time"]
         with pytest.raises(KeyError):
             hf.get_array_date(tmp_array, None)
 
@@ -475,37 +477,37 @@ class TestSunEarthDistanceCorrection:
         """Test the correction of reflectances with sun-earth distance."""
         out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
         np.testing.assert_allclose(out_refl, self.corr_refl)
-        assert out_refl.attrs['sun_earth_distance_correction_applied']
+        assert out_refl.attrs["sun_earth_distance_correction_applied"]
         assert isinstance(out_refl.data, da.Array)
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
         out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
         np.testing.assert_allclose(out_refl, self.raw_refl)
-        assert not out_refl.attrs['sun_earth_distance_correction_applied']
+        assert not out_refl.attrs["sun_earth_distance_correction_applied"]
         assert isinstance(out_refl.data, da.Array)
 
 
-@pytest.mark.parametrize("data, filename, mode",
+@pytest.mark.parametrize(("data", "filename", "mode"),
                          [(b"Hello", "dummy.dat", "b"),
                           ("Hello", "dummy.txt", "t")])
 def test_generic_open_binary(tmp_path, data, filename, mode):
     """Test the bz2 file unzipping context manager using dummy binary data."""
     dummy_data = data
     dummy_filename = os.fspath(tmp_path / filename)
-    with open(dummy_filename, 'w' + mode) as f:
+    with open(dummy_filename, "w" + mode) as f:
         f.write(dummy_data)
 
-    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+    with hf.generic_open(dummy_filename, "r" + mode) as f:
         read_binary_data = f.read()
 
     assert read_binary_data == dummy_data
 
-    dummy_filename = os.fspath(tmp_path / (filename + '.bz2'))
-    with hf.bz2.open(dummy_filename, 'w' + mode) as f:
+    dummy_filename = os.fspath(tmp_path / (filename + ".bz2"))
+    with hf.bz2.open(dummy_filename, "w" + mode) as f:
         f.write(dummy_data)
 
-    with hf.generic_open(dummy_filename, 'r' + mode) as f:
+    with hf.generic_open(dummy_filename, "r" + mode) as f:
         read_binary_data = f.read()
 
     assert read_binary_data == dummy_data

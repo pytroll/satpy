@@ -13,4 +13,5 @@ include satpy/version.py
 include pyproject.toml
 include setup.py
 include setup.cfg
+include satpy/py.typed
 global-exclude *.py[cod]

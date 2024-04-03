@@ -54,7 +54,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
-EXPECTED_DATA_AREA = 'Full Disk'
+EXPECTED_DATA_AREA = "Full Disk"
 
 
 class HIML2NCFileHandler(BaseFileHandler):
@@ -69,39 +69,39 @@ class HIML2NCFileHandler(BaseFileHandler):
                                   chunks={"xc": "auto", "yc": "auto"})
 
         # Check that file is a full disk scene, we don't know the area for anything else
-        if self.nc.attrs['cdm_data_type'] != EXPECTED_DATA_AREA:
-            raise ValueError('File is not a full disk scene')
+        if self.nc.attrs["cdm_data_type"] != EXPECTED_DATA_AREA:
+            raise ValueError("File is not a full disk scene")
 
-        self.sensor = self.nc.attrs['instrument_name'].lower()
-        self.nlines = self.nc.dims['Columns']
-        self.ncols = self.nc.dims['Rows']
-        self.platform_name = self.nc.attrs['satellite_name']
-        self.platform_shortname = filename_info['platform']
+        self.sensor = self.nc.attrs["instrument_name"].lower()
+        self.nlines = self.nc.sizes["Columns"]
+        self.ncols = self.nc.sizes["Rows"]
+        self.platform_name = self.nc.attrs["satellite_name"]
+        self.platform_shortname = filename_info["platform"]
         self._meta = None
 
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        dt = self.nc.attrs['time_coverage_start']
-        return datetime.strptime(dt, '%Y-%m-%dT%H:%M:%SZ')
+        dt = self.nc.attrs["time_coverage_start"]
+        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_time(self):
         """End timestamp of the dataset."""
-        dt = self.nc.attrs['time_coverage_end']
-        return datetime.strptime(dt, '%Y-%m-%dT%H:%M:%SZ')
+        dt = self.nc.attrs["time_coverage_end"]
+        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        var = info['file_key']
-        logger.debug('Reading in get_dataset %s.', var)
+        var = info["file_key"]
+        logger.debug("Reading in get_dataset %s.", var)
         variable = self.nc[var]
 
         # Data has 'Latitude' and 'Longitude' coords, these must be replaced.
-        variable = variable.rename({'Rows': 'y', 'Columns': 'x'})
+        variable = variable.rename({"Rows": "y", "Columns": "x"})
 
-        variable = variable.drop('Latitude')
-        variable = variable.drop('Longitude')
+        variable = variable.drop_vars("Latitude")
+        variable = variable.drop_vars("Longitude")
 
         variable.attrs.update(key.to_dict())
         return variable
@@ -117,20 +117,20 @@ class HIML2NCFileHandler(BaseFileHandler):
         return self.area
 
     def _get_area_def(self):
-        logger.info('The AHI L2 cloud products do not have the metadata required to produce an area definition.'
-                    ' Assuming standard Himawari-8/9 full disk projection.')
+        logger.info("The AHI L2 cloud products do not have the metadata required to produce an area definition."
+                    " Assuming standard Himawari-8/9 full disk projection.")
 
         # Basic check to ensure we're processing a full disk (2km) scene.n
         if self.nlines != 5500 or self.ncols != 5500:
             raise ValueError("Input L2 file is not a full disk Himawari scene. Only full disk data is supported.")
 
-        pdict = {'cfac': 20466275, 'lfac': 20466275, 'coff': 2750.5, 'loff': 2750.5, 'a': 6378137.0, 'h': 35785863.0,
-                 'b': 6356752.3, 'ssp_lon': 140.7, 'nlines': self.nlines, 'ncols': self.ncols, 'scandir': 'N2S'}
+        pdict = {"cfac": 20466275, "lfac": 20466275, "coff": 2750.5, "loff": 2750.5, "a": 6378137.0, "h": 35785863.0,
+                 "b": 6356752.3, "ssp_lon": 140.7, "nlines": self.nlines, "ncols": self.ncols, "scandir": "N2S"}
 
         aex = get_area_extent(pdict)
 
-        pdict['a_name'] = 'Himawari_Area'
-        pdict['a_desc'] = "AHI Full Disk area"
-        pdict['p_id'] = f'geos{self.platform_shortname}'
+        pdict["a_name"] = "Himawari_Area"
+        pdict["a_desc"] = "AHI Full Disk area"
+        pdict["p_id"] = f"geos{self.platform_shortname}"
 
         return get_area_definition(pdict, aex)

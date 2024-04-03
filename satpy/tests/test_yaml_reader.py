@@ -37,47 +37,47 @@ from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, Freq
 from satpy.tests.utils import make_dataid
 
 MHS_YAML_READER_DICT = {
-    'reader': {'name': 'mhs_l1c_aapp',
-               'description': 'AAPP l1c Reader for AMSU-B/MHS data',
-               'sensors': ['mhs'],
-               'default_channels': [1, 2, 3, 4, 5],
-               'data_identification_keys': {'name': {'required': True},
-                                            'frequency_double_sideband':
-                                                {'type': FrequencyDoubleSideBand},
-                                            'frequency_range': {'type': FrequencyRange},
-                                            'resolution': None,
-                                            'polarization': {'enum': ['H', 'V']},
-                                            'calibration': {'enum': ['brightness_temperature'], 'transitive': True},
-                                            'modifiers': {'required': True,
-                                                          'default': [],
-                                                          'type': ModifierTuple}},
-               'config_files': ('satpy/etc/readers/mhs_l1c_aapp.yaml',)},
-    'datasets': {'1': {'name': '1',
-                       'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
-                       'polarization': 'V',
-                       'resolution': 16000,
-                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
-                       'coordinates': ['longitude', 'latitude'],
-                       'file_type': 'mhs_aapp_l1c'},
-                 '2': {'name': '2',
-                       'frequency_range': {'central': 157.0, 'bandwidth': 2.8, 'unit': 'GHz'},
-                       'polarization': 'V',
-                       'resolution': 16000,
-                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
-                       'coordinates': ['longitude', 'latitude'],
-                       'file_type': 'mhs_aapp_l1c'},
-                 '3': {'name': '3',
-                       'frequency_double_sideband': {'unit': 'GHz',
-                                                     'central': 183.31,
-                                                     'side': 1.0,
-                                                     'bandwidth': 1.0},
-                       'polarization': 'V',
-                       'resolution': 16000,
-                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
-                       'coordinates': ['longitude', 'latitude'],
-                       'file_type': 'mhs_aapp_l1c'}},
-    'file_types': {'mhs_aapp_l1c': {'file_reader': BaseFileHandler,
-                                    'file_patterns': [
+    "reader": {"name": "mhs_l1c_aapp",
+               "description": "AAPP l1c Reader for AMSU-B/MHS data",
+               "sensors": ["mhs"],
+               "default_channels": [1, 2, 3, 4, 5],
+               "data_identification_keys": {"name": {"required": True},
+                                            "frequency_double_sideband":
+                                                {"type": FrequencyDoubleSideBand},
+                                            "frequency_range": {"type": FrequencyRange},
+                                            "resolution": None,
+                                            "polarization": {"enum": ["H", "V"]},
+                                            "calibration": {"enum": ["brightness_temperature"], "transitive": True},
+                                            "modifiers": {"required": True,
+                                                          "default": [],
+                                                          "type": ModifierTuple}},
+               "config_files": ("satpy/etc/readers/mhs_l1c_aapp.yaml",)},
+    "datasets": {"1": {"name": "1",
+                       "frequency_range": {"central": 89.0, "bandwidth": 2.8, "unit": "GHz"},
+                       "polarization": "V",
+                       "resolution": 16000,
+                       "calibration": {"brightness_temperature": {"standard_name": "toa_brightness_temperature"}},
+                       "coordinates": ["longitude", "latitude"],
+                       "file_type": "mhs_aapp_l1c"},
+                 "2": {"name": "2",
+                       "frequency_range": {"central": 157.0, "bandwidth": 2.8, "unit": "GHz"},
+                       "polarization": "V",
+                       "resolution": 16000,
+                       "calibration": {"brightness_temperature": {"standard_name": "toa_brightness_temperature"}},
+                       "coordinates": ["longitude", "latitude"],
+                       "file_type": "mhs_aapp_l1c"},
+                 "3": {"name": "3",
+                       "frequency_double_sideband": {"unit": "GHz",
+                                                     "central": 183.31,
+                                                     "side": 1.0,
+                                                     "bandwidth": 1.0},
+                       "polarization": "V",
+                       "resolution": 16000,
+                       "calibration": {"brightness_temperature": {"standard_name": "toa_brightness_temperature"}},
+                       "coordinates": ["longitude", "latitude"],
+                       "file_type": "mhs_aapp_l1c"}},
+    "file_types": {"mhs_aapp_l1c": {"file_reader": BaseFileHandler,
+                                    "file_patterns": [
                                         'mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']}}}  # noqa
 
 
@@ -91,7 +91,7 @@ class FakeFH(BaseFileHandler):
         self._end_time = end_time
         self.get_bounding_box = MagicMock()
         fake_ds = MagicMock()
-        fake_ds.return_value.dims = ['x', 'y']
+        fake_ds.return_value.dims = ["x", "y"]
         self.get_dataset = fake_ds
         self.combine_info = MagicMock()
 
@@ -111,39 +111,39 @@ class TestUtils(unittest.TestCase):
 
     def test_get_filebase(self):
         """Check the get_filebase function."""
-        base_dir = os.path.join(os.path.expanduser('~'), 'data',
-                                'satellite', 'Sentinel-3')
-        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
-                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(os.path.expanduser("~"), "data",
+                                "satellite", "Sentinel-3")
+        base_data = ("S3A_OL_1_EFR____20161020T081224_20161020T081524_"
+                     "20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3")
         base_dir = os.path.join(base_dir, base_data)
-        pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
-                   '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
-                   'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
-                   've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
-                   '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        pattern = os.path.join(*pattern.split('/'))
-        filename = os.path.join(base_dir, 'Oa05_radiance.nc')
-        expected = os.path.join(base_data, 'Oa05_radiance.nc')
-        self.assertEqual(yr._get_filebase(filename, pattern), expected)
+        pattern = ("{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s"
+                   "}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre"
+                   "ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati"
+                   "ve_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:"
+                   "2s}_{collection:3s}.SEN3/geo_coordinates.nc")
+        pattern = os.path.join(*pattern.split("/"))
+        filename = os.path.join(base_dir, "Oa05_radiance.nc")
+        expected = os.path.join(base_data, "Oa05_radiance.nc")
+        assert yr._get_filebase(filename, pattern) == expected
 
     def test_match_filenames(self):
         """Check that matching filenames works."""
         # just a fake path for testing that doesn't have to exist
-        base_dir = os.path.join(os.path.expanduser('~'), 'data',
-                                'satellite', 'Sentinel-3')
-        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
-                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(os.path.expanduser("~"), "data",
+                                "satellite", "Sentinel-3")
+        base_data = ("S3A_OL_1_EFR____20161020T081224_20161020T081524_"
+                     "20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3")
         base_dir = os.path.join(base_dir, base_data)
-        pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
-                   '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
-                   'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
-                   've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
-                   '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        pattern = os.path.join(*pattern.split('/'))
-        filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
-                     os.path.join(base_dir, 'geo_coordinates.nc')]
-        expected = os.path.join(base_dir, 'geo_coordinates.nc')
-        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
+        pattern = ("{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s"
+                   "}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre"
+                   "ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati"
+                   "ve_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:"
+                   "2s}_{collection:3s}.SEN3/geo_coordinates.nc")
+        pattern = os.path.join(*pattern.split("/"))
+        filenames = [os.path.join(base_dir, "Oa05_radiance.nc"),
+                     os.path.join(base_dir, "geo_coordinates.nc")]
+        expected = os.path.join(base_dir, "geo_coordinates.nc")
+        assert yr._match_filenames(filenames, pattern) == {expected}
 
     def test_match_filenames_windows_forward_slash(self):
         """Check that matching filenames works on Windows with forward slashes.
@@ -152,28 +152,27 @@ class TestUtils(unittest.TestCase):
 
         """
         # just a fake path for testing that doesn't have to exist
-        base_dir = os.path.join(os.path.expanduser('~'), 'data',
-                                'satellite', 'Sentinel-3')
-        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
-                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(os.path.expanduser("~"), "data",
+                                "satellite", "Sentinel-3")
+        base_data = ("S3A_OL_1_EFR____20161020T081224_20161020T081524_"
+                     "20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3")
         base_dir = os.path.join(base_dir, base_data)
-        pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
-                   '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
-                   'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
-                   've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
-                   '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        pattern = os.path.join(*pattern.split('/'))
-        filenames = [os.path.join(base_dir, 'Oa05_radiance.nc').replace(os.sep, '/'),
-                     os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')]
-        expected = os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')
-        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
+        pattern = ("{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s"
+                   "}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre"
+                   "ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati"
+                   "ve_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:"
+                   "2s}_{collection:3s}.SEN3/geo_coordinates.nc")
+        pattern = os.path.join(*pattern.split("/"))
+        filenames = [os.path.join(base_dir, "Oa05_radiance.nc").replace(os.sep, "/"),
+                     os.path.join(base_dir, "geo_coordinates.nc").replace(os.sep, "/")]
+        expected = os.path.join(base_dir, "geo_coordinates.nc").replace(os.sep, "/")
+        assert yr._match_filenames(filenames, pattern) == {expected}
 
     def test_listify_string(self):
         """Check listify_string."""
-        self.assertEqual(yr.listify_string(None), [])
-        self.assertEqual(yr.listify_string('some string'), ['some string'])
-        self.assertEqual(yr.listify_string(['some', 'string']),
-                         ['some', 'string'])
+        assert yr.listify_string(None) == []
+        assert yr.listify_string("some string") == ["some string"]
+        assert yr.listify_string(["some", "string"]) == ["some", "string"]
 
 
 class DummyReader(BaseFileHandler):
@@ -203,59 +202,59 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
-        patterns = ['a{something:3s}.bla',
-                    'a0{something:2s}.bla']
-        res_dict = {'reader': {'name': 'fake',
-                               'sensors': ['canon']},
-                    'file_types': {'ftype1': {'name': 'ft1',
-                                              'file_patterns': patterns,
-                                              'file_reader': DummyReader}},
-                    'datasets': {'ch1': {'name': 'ch01',
-                                         'wavelength': [0.5, 0.6, 0.7],
-                                         'calibration': 'reflectance',
-                                         'file_type': 'ftype1',
-                                         'coordinates': ['lons', 'lats']},
-                                 'ch2': {'name': 'ch02',
-                                         'wavelength': [0.7, 0.75, 0.8],
-                                         'calibration': 'counts',
-                                         'file_type': 'ftype1',
-                                         'coordinates': ['lons', 'lats']},
-                                 'lons': {'name': 'lons',
-                                          'file_type': 'ftype2'},
-                                 'lats': {'name': 'lats',
-                                          'file_type': 'ftype2'}}}
+        patterns = ["a{something:3s}.bla",
+                    "a0{something:2s}.bla"]
+        res_dict = {"reader": {"name": "fake",
+                               "sensors": ["canon"]},
+                    "file_types": {"ftype1": {"name": "ft1",
+                                              "file_patterns": patterns,
+                                              "file_reader": DummyReader}},
+                    "datasets": {"ch1": {"name": "ch01",
+                                         "wavelength": [0.5, 0.6, 0.7],
+                                         "calibration": "reflectance",
+                                         "file_type": "ftype1",
+                                         "coordinates": ["lons", "lats"]},
+                                 "ch2": {"name": "ch02",
+                                         "wavelength": [0.7, 0.75, 0.8],
+                                         "calibration": "counts",
+                                         "file_type": "ftype1",
+                                         "coordinates": ["lons", "lats"]},
+                                 "lons": {"name": "lons",
+                                          "file_type": "ftype2"},
+                                 "lats": {"name": "lats",
+                                          "file_type": "ftype2"}}}
 
         self.config = res_dict
         self.reader = yr.FileYAMLReader(self.config,
                                         filter_parameters={
-                                            'start_time': datetime(2000, 1, 1),
-                                            'end_time': datetime(2000, 1, 2)})
+                                            "start_time": datetime(2000, 1, 1),
+                                            "end_time": datetime(2000, 1, 2)})
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
-        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+        filelist = ["a001.bla", "a002.bla", "abcd.bla", "k001.bla", "a003.bli"]
 
         res = self.reader.select_files_from_pathnames(filelist)
-        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
-            self.assertIn(expected, res)
-        self.assertEqual(len(res), 3)
+        for expected in ["a001.bla", "a002.bla", "abcd.bla"]:
+            assert expected in res
+        assert len(res) == 3
 
     def test_fn_items_for_ft(self):
         """Check filename_items_for_filetype."""
-        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
-        ft_info = self.config['file_types']['ftype1']
+        filelist = ["a001.bla", "a002.bla", "abcd.bla", "k001.bla", "a003.bli"]
+        ft_info = self.config["file_types"]["ftype1"]
         fiter = self.reader.filename_items_for_filetype(filelist, ft_info)
 
         filenames = dict(fname for fname in fiter)
-        self.assertEqual(len(filenames.keys()), 3)
+        assert len(filenames.keys()) == 3
 
     def test_create_filehandlers(self):
         """Check create_filehandlers."""
-        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
-                    'abcd.bla', 'k001.bla', 'a003.bli']
+        filelist = ["a001.bla", "a002.bla", "a001.bla", "a002.bla",
+                    "abcd.bla", "k001.bla", "a003.bli"]
 
         self.reader.create_filehandlers(filelist)
-        self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
+        assert len(self.reader.file_handlers["ftype1"]) == 3
 
     def test_serializable(self):
         """Check that a reader is serializable by dask.
@@ -264,8 +263,8 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         readers.
         """
         from distributed.protocol import deserialize, serialize
-        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
-                    'abcd.bla', 'k001.bla', 'a003.bli']
+        filelist = ["a001.bla", "a002.bla", "a001.bla", "a002.bla",
+                    "abcd.bla", "k001.bla", "a003.bli"]
 
         self.reader.create_filehandlers(filelist)
         cloned_reader = deserialize(*serialize(self.reader))
@@ -281,8 +280,8 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
         self.config = MHS_YAML_READER_DICT
         self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
                                         filter_parameters={
-                                            'start_time': datetime(2000, 1, 1),
-                                            'end_time': datetime(2000, 1, 2),
+                                            "start_time": datetime(2000, 1, 1),
+                                            "end_time": datetime(2000, 1, 2),
                                         })
 
     def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
@@ -298,73 +297,68 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
-        patterns = ['a{something:3s}.bla']
-        res_dict = {'reader': {'name': 'fake',
-                               'sensors': ['canon']},
-                    'file_types': {'ftype1': {'name': 'ft1',
-                                              'file_reader': BaseFileHandler,
-                                              'file_patterns': patterns}},
-                    'datasets': {'ch1': {'name': 'ch01',
-                                         'wavelength': [0.5, 0.6, 0.7],
-                                         'calibration': 'reflectance',
-                                         'file_type': 'ftype1',
-                                         'coordinates': ['lons', 'lats']},
-                                 'ch2': {'name': 'ch02',
-                                         'wavelength': [0.7, 0.75, 0.8],
-                                         'calibration': 'counts',
-                                         'file_type': 'ftype1',
-                                         'coordinates': ['lons', 'lats']},
-                                 'lons': {'name': 'lons',
-                                          'file_type': 'ftype2'},
-                                 'lats': {'name': 'lats',
-                                          'file_type': 'ftype2'}}}
+        patterns = ["a{something:3s}.bla"]
+        res_dict = {"reader": {"name": "fake",
+                               "sensors": ["canon"]},
+                    "file_types": {"ftype1": {"name": "ft1",
+                                              "file_reader": BaseFileHandler,
+                                              "file_patterns": patterns}},
+                    "datasets": {"ch1": {"name": "ch01",
+                                         "wavelength": [0.5, 0.6, 0.7],
+                                         "calibration": "reflectance",
+                                         "file_type": "ftype1",
+                                         "coordinates": ["lons", "lats"]},
+                                 "ch2": {"name": "ch02",
+                                         "wavelength": [0.7, 0.75, 0.8],
+                                         "calibration": "counts",
+                                         "file_type": "ftype1",
+                                         "coordinates": ["lons", "lats"]},
+                                 "lons": {"name": "lons",
+                                          "file_type": "ftype2"},
+                                 "lats": {"name": "lats",
+                                          "file_type": "ftype2"}}}
 
         self.config = res_dict
         self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
-                                            'start_time': datetime(2000, 1, 1),
-                                            'end_time': datetime(2000, 1, 2),
+                                            "start_time": datetime(2000, 1, 1),
+                                            "end_time": datetime(2000, 1, 2),
                                         })
 
     def test_deprecated_passing_config_files(self):
         """Test that we get an exception when config files are passed to inti."""
-        self.assertRaises(ValueError, yr.FileYAMLReader, '/path/to/some/file.yaml')
+        with pytest.raises(ValueError,
+                           match="Passing config files to create a Reader is deprecated.*"):
+            yr.FileYAMLReader("/path/to/some/file.yaml")
 
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
         for dataid in self.reader.all_dataset_ids:
-            name = dataid['name'].replace('0', '')
-            assert self.config['datasets'][name]['name'] == dataid['name']
-            if 'wavelength' in self.config['datasets'][name]:
-                assert self.config['datasets'][name]['wavelength'] == list(dataid['wavelength'])[:3]
-            if 'calibration' in self.config['datasets'][name]:
-                assert self.config['datasets'][name]['calibration'] == dataid['calibration']
+            name = dataid["name"].replace("0", "")
+            assert self.config["datasets"][name]["name"] == dataid["name"]
+            if "wavelength" in self.config["datasets"][name]:
+                assert self.config["datasets"][name]["wavelength"] == list(dataid["wavelength"])[:3]
+            if "calibration" in self.config["datasets"][name]:
+                assert self.config["datasets"][name]["calibration"] == dataid["calibration"]
 
     def test_all_dataset_names(self):
         """Get all dataset names."""
-        self.assertSetEqual(self.reader.all_dataset_names,
-                            set(['ch01', 'ch02', 'lons', 'lats']))
+        assert self.reader.all_dataset_names == set(["ch01", "ch02", "lons", "lats"])
 
     def test_available_dataset_ids(self):
         """Get ids of the available datasets."""
-        loadables = self.reader.select_files_from_pathnames(['a001.bla'])
+        loadables = self.reader.select_files_from_pathnames(["a001.bla"])
         self.reader.create_filehandlers(loadables)
-        self.assertSetEqual(set(self.reader.available_dataset_ids),
-                            {make_dataid(name='ch02',
-                                         wavelength=(0.7, 0.75, 0.8),
-                                         calibration='counts',
-                                         modifiers=()),
-                             make_dataid(name='ch01',
-                                         wavelength=(0.5, 0.6, 0.7),
-                                         calibration='reflectance',
-                                         modifiers=())})
+        assert set(self.reader.available_dataset_ids) == {make_dataid(name="ch02", wavelength=(0.7, 0.75, 0.8),
+                                                                      calibration="counts", modifiers=()),
+                                                          make_dataid(name="ch01", wavelength=(0.5, 0.6, 0.7),
+                                                                      calibration="reflectance", modifiers=())}
 
     def test_available_dataset_names(self):
         """Get ids of the available datasets."""
-        loadables = self.reader.select_files_from_pathnames(['a001.bla'])
+        loadables = self.reader.select_files_from_pathnames(["a001.bla"])
         self.reader.create_filehandlers(loadables)
-        self.assertSetEqual(set(self.reader.available_dataset_names),
-                            set(["ch01", "ch02"]))
+        assert set(self.reader.available_dataset_names) == set(["ch01", "ch02"])
 
     def test_filter_fh_by_time(self):
         """Check filtering filehandlers by time."""
@@ -383,49 +377,45 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, fh.end_time)
             # only the first one should be false
-            self.assertEqual(res, idx not in [0, 4])
+            assert res == (idx not in [0, 4])
 
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, None)
-            self.assertEqual(res, idx not in [0, 1, 4, 5])
+            assert res == (idx not in [0, 1, 4, 5])
 
-    @patch('satpy.readers.yaml_reader.get_area_def')
-    @patch('satpy.readers.yaml_reader.AreaDefBoundary')
-    @patch('satpy.readers.yaml_reader.Boundary')
+    @patch("satpy.readers.yaml_reader.get_area_def")
+    @patch("satpy.readers.yaml_reader.AreaDefBoundary")
+    @patch("satpy.readers.yaml_reader.Boundary")
     def test_file_covers_area(self, bnd, adb, gad):
         """Test that area coverage is checked properly."""
         file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
                               datetime(2000, 1, 3, 12, 30))
 
-        self.reader.filter_parameters['area'] = True
+        self.reader.filter_parameters["area"] = True
         bnd.return_value.contour_poly.intersection.return_value = True
         adb.return_value.contour_poly.intersection.return_value = True
         res = self.reader.check_file_covers_area(file_handler, True)
-        self.assertTrue(res)
+        assert res
 
         bnd.return_value.contour_poly.intersection.return_value = False
         adb.return_value.contour_poly.intersection.return_value = False
         res = self.reader.check_file_covers_area(file_handler, True)
-        self.assertFalse(res)
+        assert not res
 
         file_handler.get_bounding_box.side_effect = NotImplementedError()
-        self.reader.filter_parameters['area'] = True
+        self.reader.filter_parameters["area"] = True
         res = self.reader.check_file_covers_area(file_handler, True)
-        self.assertTrue(res)
+        assert res
 
     def test_start_end_time(self):
         """Check start and end time behaviours."""
         self.reader.file_handlers = {}
 
-        def get_start_time():
-            return self.reader.start_time
+        with pytest.raises(RuntimeError):
+            self.reader.start_time
 
-        self.assertRaises(RuntimeError, get_start_time)
-
-        def get_end_time():
-            return self.reader.end_time
-
-        self.assertRaises(RuntimeError, get_end_time)
+        with pytest.raises(RuntimeError):
+            self.reader.end_time
 
         fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
                      datetime(1999, 12, 31, 0, 0))
@@ -441,40 +431,39 @@ class TestFileFileYAMLReader(unittest.TestCase):
                      datetime(2000, 1, 3, 12, 30))
 
         self.reader.file_handlers = {
-            '0': [fh1, fh2, fh3, fh4, fh5],
-            '1': [fh0, fh1, fh2, fh3, fh4, fh5],
-            '2': [fh2, fh3],
+            "0": [fh1, fh2, fh3, fh4, fh5],
+            "1": [fh0, fh1, fh2, fh3, fh4, fh5],
+            "2": [fh2, fh3],
         }
 
-        self.assertEqual(self.reader.start_time, datetime(1999, 12, 30, 0, 0))
-        self.assertEqual(self.reader.end_time, datetime(2000, 1, 3, 12, 30))
+        assert self.reader.start_time == datetime(1999, 12, 30, 0, 0)
+        assert self.reader.end_time == datetime(2000, 1, 3, 12, 30)
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
-        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+        filelist = ["a001.bla", "a002.bla", "abcd.bla", "k001.bla", "a003.bli"]
 
         res = self.reader.select_files_from_pathnames(filelist)
-        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
-            self.assertIn(expected, res)
+        for expected in ["a001.bla", "a002.bla", "abcd.bla"]:
+            assert expected in res
 
-        self.assertEqual(0, len(self.reader.select_files_from_pathnames([])))
+        assert 0 == len(self.reader.select_files_from_pathnames([]))
 
     def test_select_from_directory(self):
         """Check select_files_from_directory."""
-        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+        filelist = ["a001.bla", "a002.bla", "abcd.bla", "k001.bla", "a003.bli"]
         dpath = mkdtemp()
         for fname in filelist:
-            with open(os.path.join(dpath, fname), 'w'):
+            with open(os.path.join(dpath, fname), "w"):
                 pass
 
         res = self.reader.select_files_from_directory(dpath)
-        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
-            self.assertIn(os.path.join(dpath, expected), res)
+        for expected in ["a001.bla", "a002.bla", "abcd.bla"]:
+            assert os.path.join(dpath, expected) in res
 
         for fname in filelist:
             os.remove(os.path.join(dpath, fname))
-        self.assertEqual(0,
-                         len(self.reader.select_files_from_directory(dpath)))
+        assert 0 == len(self.reader.select_files_from_directory(dpath))
         os.rmdir(dpath)
 
         from fsspec.implementations.local import LocalFileSystem
@@ -484,16 +473,14 @@ class TestFileFileYAMLReader(unittest.TestCase):
                 return ["/grocery/apricot.nc", "/grocery/aubergine.nc"]
 
         res = self.reader.select_files_from_directory(dpath, fs=Silly())
-        self.assertEqual(
-            res,
-            {"/grocery/apricot.nc", "/grocery/aubergine.nc"})
+        assert res == {"/grocery/apricot.nc", "/grocery/aubergine.nc"}
 
     def test_supports_sensor(self):
         """Check supports_sensor."""
-        self.assertTrue(self.reader.supports_sensor('canon'))
-        self.assertFalse(self.reader.supports_sensor('nikon'))
+        assert self.reader.supports_sensor("canon")
+        assert not self.reader.supports_sensor("nikon")
 
-    @patch('satpy.readers.yaml_reader.StackedAreaDefinition')
+    @patch("satpy.readers.yaml_reader.StackedAreaDefinition")
     def test_load_area_def(self, sad):
         """Test loading the area def for the reader."""
         dataid = MagicMock()
@@ -502,61 +489,59 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for _i in range(items):
             file_handlers.append(MagicMock())
         final_area = self.reader._load_area_def(dataid, file_handlers)
-        self.assertEqual(final_area, sad.return_value.squeeze.return_value)
+        assert final_area == sad.return_value.squeeze.return_value
 
         args, kwargs = sad.call_args
-        self.assertEqual(len(args), items)
+        assert len(args) == items
 
     def test_preferred_filetype(self):
         """Test finding the preferred filetype."""
-        self.reader.file_handlers = {'a': 'a', 'b': 'b', 'c': 'c'}
-        self.assertEqual(self.reader._preferred_filetype(['c', 'a']), 'c')
-        self.assertEqual(self.reader._preferred_filetype(['a', 'c']), 'a')
-        self.assertEqual(self.reader._preferred_filetype(['d', 'e']), None)
+        self.reader.file_handlers = {"a": "a", "b": "b", "c": "c"}
+        assert self.reader._preferred_filetype(["c", "a"]) == "c"
+        assert self.reader._preferred_filetype(["a", "c"]) == "a"
+        assert self.reader._preferred_filetype(["d", "e"]) is None
 
     def test_get_coordinates_for_dataset_key(self):
         """Test getting coordinates for a key."""
-        ds_q = DataQuery(name='ch01', wavelength=(0.5, 0.6, 0.7, 'µm'),
-                         calibration='reflectance', modifiers=())
+        ds_q = DataQuery(name="ch01", wavelength=(0.5, 0.6, 0.7, "µm"),
+                         calibration="reflectance", modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_q)
-        self.assertListEqual(res,
-                             [make_dataid(name='lons'),
-                              make_dataid(name='lats')])
+        assert res == [make_dataid(name="lons"), make_dataid(name="lats")]
 
     def test_get_coordinates_for_dataset_key_without(self):
         """Test getting coordinates for a key without coordinates."""
-        ds_id = make_dataid(name='lons',
+        ds_id = make_dataid(name="lons",
                             modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_id)
-        self.assertListEqual(res, [])
+        assert res == []
 
     def test_get_coordinates_for_dataset_keys(self):
         """Test getting coordinates for keys."""
-        ds_id1 = make_dataid(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                             calibration='reflectance', modifiers=())
-        ds_id2 = make_dataid(name='ch02', wavelength=(0.7, 0.75, 0.8),
-                             calibration='counts', modifiers=())
-        lons = make_dataid(name='lons', modifiers=())
-        lats = make_dataid(name='lats', modifiers=())
+        ds_id1 = make_dataid(name="ch01", wavelength=(0.5, 0.6, 0.7),
+                             calibration="reflectance", modifiers=())
+        ds_id2 = make_dataid(name="ch02", wavelength=(0.7, 0.75, 0.8),
+                             calibration="counts", modifiers=())
+        lons = make_dataid(name="lons", modifiers=())
+        lats = make_dataid(name="lats", modifiers=())
 
         res = self.reader._get_coordinates_for_dataset_keys([ds_id1, ds_id2,
                                                              lons])
         expected = {ds_id1: [lons, lats], ds_id2: [lons, lats], lons: []}
 
-        self.assertDictEqual(res, expected)
+        assert res == expected
 
     def test_get_file_handlers(self):
         """Test getting filehandler to load a dataset."""
-        ds_id1 = make_dataid(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                             calibration='reflectance', modifiers=())
-        self.reader.file_handlers = {'ftype1': 'bla'}
+        ds_id1 = make_dataid(name="ch01", wavelength=(0.5, 0.6, 0.7),
+                             calibration="reflectance", modifiers=())
+        self.reader.file_handlers = {"ftype1": "bla"}
 
-        self.assertEqual(self.reader._get_file_handlers(ds_id1), 'bla')
+        assert self.reader._get_file_handlers(ds_id1) == "bla"
 
-        lons = make_dataid(name='lons', modifiers=())
-        self.assertEqual(self.reader._get_file_handlers(lons), None)
+        lons = make_dataid(name="lons", modifiers=())
+        assert self.reader._get_file_handlers(lons) is None
 
-    @patch('satpy.readers.yaml_reader.xr')
+    @patch("satpy.readers.yaml_reader.xr")
     def test_load_entire_dataset(self, xarray):
         """Check loading an entire dataset."""
         file_handlers = [FakeFH(None, None), FakeFH(None, None),
@@ -564,7 +549,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         proj = self.reader._load_dataset(None, {}, file_handlers)
 
-        self.assertIs(proj, xarray.concat.return_value)
+        assert proj is xarray.concat.return_value
 
 
 class TestFileYAMLReaderLoading(unittest.TestCase):
@@ -572,69 +557,69 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
-        patterns = ['a{something:3s}.bla']
-        res_dict = {'reader': {'name': 'fake',
-                               'sensors': ['canon']},
-                    'file_types': {'ftype1': {'name': 'ft1',
-                                              'file_reader': BaseFileHandler,
-                                              'file_patterns': patterns}},
-                    'datasets': {'ch1': {'name': 'ch01',
-                                         'wavelength': [0.5, 0.6, 0.7],
-                                         'calibration': 'reflectance',
-                                         'file_type': 'ftype1'},
+        patterns = ["a{something:3s}.bla"]
+        res_dict = {"reader": {"name": "fake",
+                               "sensors": ["canon"]},
+                    "file_types": {"ftype1": {"name": "ft1",
+                                              "file_reader": BaseFileHandler,
+                                              "file_patterns": patterns}},
+                    "datasets": {"ch1": {"name": "ch01",
+                                         "wavelength": [0.5, 0.6, 0.7],
+                                         "calibration": "reflectance",
+                                         "file_type": "ftype1"},
                                  }}
 
         self.config = res_dict
         self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
-                                            'start_time': datetime(2000, 1, 1),
-                                            'end_time': datetime(2000, 1, 2),
+                                            "start_time": datetime(2000, 1, 1),
+                                            "end_time": datetime(2000, 1, 2),
                                         })
         fake_fh = FakeFH(None, None)
         self.lons = xr.DataArray(np.ones((2, 2)) * 2,
-                                 dims=['y', 'x'],
-                                 attrs={'standard_name': 'longitude',
-                                        'name': 'longitude'})
+                                 dims=["y", "x"],
+                                 attrs={"standard_name": "longitude",
+                                        "name": "longitude"})
         self.lats = xr.DataArray(np.ones((2, 2)) * 2,
-                                 dims=['y', 'x'],
-                                 attrs={'standard_name': 'latitude',
-                                        'name': 'latitude'})
+                                 dims=["y", "x"],
+                                 attrs={"standard_name": "latitude",
+                                        "name": "latitude"})
         self.data = None
 
         def _assign_array(dsid, *_args, **_kwargs):
-            if dsid['name'] == 'longitude':
+            if dsid["name"] == "longitude":
                 return self.lons
-            if dsid['name'] == 'latitude':
+            if dsid["name"] == "latitude":
                 return self.lats
             return self.data
 
         fake_fh.get_dataset.side_effect = _assign_array
-        self.reader.file_handlers = {'ftype1': [fake_fh]}
+        self.reader.file_handlers = {"ftype1": [fake_fh]}
 
     def test_load_dataset_with_builtin_coords(self):
         """Test loading a dataset with builtin coordinates."""
         self.data = xr.DataArray(np.ones((2, 2)),
-                                 coords={'longitude': self.lons,
-                                         'latitude': self.lats},
-                                 dims=['y', 'x'])
+                                 coords={"longitude": self.lons,
+                                         "latitude": self.lats},
+                                 dims=["y", "x"])
 
         self._check_area_for_ch01()
 
     def test_load_dataset_with_builtin_coords_in_wrong_order(self):
         """Test loading a dataset with builtin coordinates in the wrong order."""
         self.data = xr.DataArray(np.ones((2, 2)),
-                                 coords={'latitude': self.lats,
-                                         'longitude': self.lons},
-                                 dims=['y', 'x'])
+                                 coords={"latitude": self.lats,
+                                         "longitude": self.lons},
+                                 dims=["y", "x"])
 
         self._check_area_for_ch01()
 
     def _check_area_for_ch01(self):
-        res = self.reader.load(['ch01'])
-        assert 'area' in res['ch01'].attrs
-        np.testing.assert_array_equal(res['ch01'].attrs['area'].lons, self.lons)
-        np.testing.assert_array_equal(res['ch01'].attrs['area'].lats, self.lats)
-        assert res['ch01'].attrs.get("reader") == "fake"
+        res = self.reader.load(["ch01"])
+        assert "area" in res["ch01"].attrs
+        np.testing.assert_array_equal(res["ch01"].attrs["area"].lons, self.lons)
+        np.testing.assert_array_equal(res["ch01"].attrs["area"].lats, self.lats)
+        assert res["ch01"].attrs.get("reader") == "fake"
 
 
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
@@ -648,36 +633,36 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         #
         # For test completeness add one channel (ch3) which is only available
         # in ftype1.
-        patterns1 = ['a.nc']
-        patterns2 = ['b.nc']
-        patterns3 = ['geo.nc']
-        res_dict = {'reader': {'name': 'fake',
-                               'sensors': ['canon']},
-                    'file_types': {'ftype1': {'name': 'ft1',
-                                              'file_patterns': patterns1},
-                                   'ftype2': {'name': 'ft2',
-                                              'file_patterns': patterns2},
-                                   'ftype3': {'name': 'ft3',
-                                              'file_patterns': patterns3}},
-                    'datasets': {'ch1': {'name': 'ch01',
-                                         'wavelength': [0.5, 0.6, 0.7],
-                                         'calibration': 'reflectance',
-                                         'file_type': ['ftype1', 'ftype2'],
-                                         'coordinates': ['lons', 'lats']},
-                                 'ch2': {'name': 'ch02',
-                                         'wavelength': [0.7, 0.75, 0.8],
-                                         'calibration': 'counts',
-                                         'file_type': ['ftype1', 'ftype2'],
-                                         'coordinates': ['lons', 'lats']},
-                                 'ch3': {'name': 'ch03',
-                                         'wavelength': [0.8, 0.85, 0.9],
-                                         'calibration': 'counts',
-                                         'file_type': 'ftype1',
-                                         'coordinates': ['lons', 'lats']},
-                                 'lons': {'name': 'lons',
-                                          'file_type': ['ftype1', 'ftype3']},
-                                 'lats': {'name': 'lats',
-                                          'file_type': ['ftype1', 'ftype3']}}}
+        patterns1 = ["a.nc"]
+        patterns2 = ["b.nc"]
+        patterns3 = ["geo.nc"]
+        res_dict = {"reader": {"name": "fake",
+                               "sensors": ["canon"]},
+                    "file_types": {"ftype1": {"name": "ft1",
+                                              "file_patterns": patterns1},
+                                   "ftype2": {"name": "ft2",
+                                              "file_patterns": patterns2},
+                                   "ftype3": {"name": "ft3",
+                                              "file_patterns": patterns3}},
+                    "datasets": {"ch1": {"name": "ch01",
+                                         "wavelength": [0.5, 0.6, 0.7],
+                                         "calibration": "reflectance",
+                                         "file_type": ["ftype1", "ftype2"],
+                                         "coordinates": ["lons", "lats"]},
+                                 "ch2": {"name": "ch02",
+                                         "wavelength": [0.7, 0.75, 0.8],
+                                         "calibration": "counts",
+                                         "file_type": ["ftype1", "ftype2"],
+                                         "coordinates": ["lons", "lats"]},
+                                 "ch3": {"name": "ch03",
+                                         "wavelength": [0.8, 0.85, 0.9],
+                                         "calibration": "counts",
+                                         "file_type": "ftype1",
+                                         "coordinates": ["lons", "lats"]},
+                                 "lons": {"name": "lons",
+                                          "file_type": ["ftype1", "ftype3"]},
+                                 "lats": {"name": "lats",
+                                          "file_type": ["ftype1", "ftype3"]}}}
 
         self.config = res_dict
         self.reader = yr.FileYAMLReader(self.config)
@@ -687,13 +672,13 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         from functools import partial
         orig_ids = self.reader.all_ids
 
-        for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
+        for ftype, resol in zip(("ftype1", "ftype2"), (1, 2)):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
             with patch.dict(self.reader.all_ids, _orig_ids, clear=True), \
                     patch.dict(self.reader.available_ids, {}, clear=True):
                 # Add a file handler with resolution property
-                fh = MagicMock(filetype_info={'file_type': ftype},
+                fh = MagicMock(filetype_info={"file_type": ftype},
                                resolution=resol)
                 fh.available_datasets = partial(available_datasets, fh)
                 fh.file_type_matches = partial(file_type_matches, fh)
@@ -707,11 +692,11 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                 # Make sure the resolution property has been transferred
                 # correctly from the file handler to the dataset ID
                 for ds_id, ds_info in self.reader.all_ids.items():
-                    file_types = ds_info['file_type']
+                    file_types = ds_info["file_type"]
                     if not isinstance(file_types, list):
                         file_types = [file_types]
                     if ftype in file_types:
-                        self.assertEqual(resol, ds_id['resolution'])
+                        assert resol == ds_id["resolution"]
 
 
 # Test methods
@@ -725,10 +710,10 @@ def available_datasets(self, configured_datasets=None):
         if is_avail is not None:
             yield is_avail, ds_info
 
-        matches = self.file_type_matches(ds_info['file_type'])
-        if matches and ds_info.get('resolution') != res:
+        matches = self.file_type_matches(ds_info["file_type"])
+        if matches and ds_info.get("resolution") != res:
             new_info = ds_info.copy()
-            new_info['resolution'] = res
+            new_info["resolution"] = res
             yield True, new_info
         elif is_avail is None:
             yield is_avail, ds_info
@@ -736,9 +721,9 @@ def available_datasets(self, configured_datasets=None):
 
 def file_type_matches(self, ds_ftype):
     """Fake file_type_matches for testing multiple file types."""
-    if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+    if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info["file_type"]:
         return True
-    if self.filetype_info['file_type'] in ds_ftype:
+    if self.filetype_info["file_type"] in ds_ftype:
         return True
     return None
 
@@ -764,94 +749,94 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         original_array = np.arange(6).reshape((2, 3))
 
         area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            {'proj': 'geos',
-             'h': 35785831,
-             'type': 'crs'},
+            "test",
+            "test",
+            "test",
+            {"proj": "geos",
+             "h": 35785831,
+             "type": "crs"},
             3,
             2,
             original_area_extent,
         )
 
         dummy_ds_xr = xr.DataArray(original_array,
-                                   coords={'y': np.arange(2),
-                                           'x': np.arange(3),
-                                           'time': ("y", np.arange(2))},
-                                   attrs={'area': area_def},
-                                   dims=('y', 'x'))
+                                   coords={"y": np.arange(2),
+                                           "x": np.arange(3),
+                                           "time": ("y", np.arange(2))},
+                                   attrs={"area": area_def},
+                                   dims=("y", "x"))
         # assign the dummy xr as return for the super _load_dataset_with_area method
         ldwa.return_value = dummy_ds_xr
 
         # check no input, nothing should change
         res = reader._load_dataset_with_area(dsid, coords)
         np.testing.assert_equal(res.values, original_array)
-        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
-        np.testing.assert_equal(res.coords['y'], np.arange(2))
-        np.testing.assert_equal(res.coords['x'], np.arange(3))
-        np.testing.assert_equal(res.coords['time'], np.arange(2))
+        np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords["y"], np.arange(2))
+        np.testing.assert_equal(res.coords["x"], np.arange(3))
+        np.testing.assert_equal(res.coords["time"], np.arange(2))
 
         # check wrong input
-        with self.assertRaises(ValueError):
-            _ = reader._load_dataset_with_area(dsid, coords, 'wronginput')
+        with pytest.raises(ValueError, match="Target orientation for Dataset unknown_name not recognized.*"):
+            _ = reader._load_dataset_with_area(dsid, coords, "wronginput")
 
         # check native orientation, nothing should change
-        res = reader._load_dataset_with_area(dsid, coords, 'native')
+        res = reader._load_dataset_with_area(dsid, coords, "native")
         np.testing.assert_equal(res.values, original_array)
-        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
-        np.testing.assert_equal(res.coords['y'], np.arange(2))
-        np.testing.assert_equal(res.coords['x'], np.arange(3))
-        np.testing.assert_equal(res.coords['time'], np.arange(2))
+        np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords["y"], np.arange(2))
+        np.testing.assert_equal(res.coords["x"], np.arange(3))
+        np.testing.assert_equal(res.coords["time"], np.arange(2))
 
         # check upright orientation, nothing should change since area is already upright
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, original_array)
-        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
-        np.testing.assert_equal(res.coords['y'], np.arange(2))
-        np.testing.assert_equal(res.coords['x'], np.arange(3))
-        np.testing.assert_equal(res.coords['time'], np.arange(2))
+        np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords["y"], np.arange(2))
+        np.testing.assert_equal(res.coords["x"], np.arange(3))
+        np.testing.assert_equal(res.coords["time"], np.arange(2))
 
         # check that left-right image is flipped correctly
-        dummy_ds_xr.attrs['area'] = area_def.copy(area_extent=(1500, -1000, -1500, 1000))
+        dummy_ds_xr.attrs["area"] = area_def.copy(area_extent=(1500, -1000, -1500, 1000))
         ldwa.return_value = dummy_ds_xr.copy()
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, np.fliplr(original_array))
-        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
-        np.testing.assert_equal(res.coords['y'], np.arange(2))
-        np.testing.assert_equal(res.coords['x'], np.flip(np.arange(3)))
-        np.testing.assert_equal(res.coords['time'], np.arange(2))
+        np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords["y"], np.arange(2))
+        np.testing.assert_equal(res.coords["x"], np.flip(np.arange(3)))
+        np.testing.assert_equal(res.coords["time"], np.arange(2))
 
         # check that upside down image is flipped correctly
-        dummy_ds_xr.attrs['area'] = area_def.copy(area_extent=(-1500, 1000, 1500, -1000))
+        dummy_ds_xr.attrs["area"] = area_def.copy(area_extent=(-1500, 1000, 1500, -1000))
         ldwa.return_value = dummy_ds_xr.copy()
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, np.flipud(original_array))
-        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
-        np.testing.assert_equal(res.coords['y'], np.flip(np.arange(2)))
-        np.testing.assert_equal(res.coords['x'], np.arange(3))
-        np.testing.assert_equal(res.coords['time'], np.flip(np.arange(2)))
+        np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords["y"], np.flip(np.arange(2)))
+        np.testing.assert_equal(res.coords["x"], np.arange(3))
+        np.testing.assert_equal(res.coords["time"], np.flip(np.arange(2)))
 
         # check different projection than geos, nothing should be changed
         area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            {'proj': 'lcc',
-             'lat_1': 25.0,
-             'type': 'crs'},
+            "test",
+            "test",
+            "test",
+            {"proj": "lcc",
+             "lat_1": 25.0,
+             "type": "crs"},
             3,
             2,
             original_area_extent,
         )
 
         dummy_ds_xr = xr.DataArray(original_array,
-                                   dims=('y', 'x'),
-                                   attrs={'area': area_def})
+                                   dims=("y", "x"),
+                                   attrs={"area": area_def})
         ldwa.return_value = dummy_ds_xr
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, original_array)
-        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
@@ -871,12 +856,12 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         original_array = np.arange(12).reshape((4, 3))
 
         area_def0 = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            {'proj': 'geos',
-             'h': 35785831,
-             'type': 'crs'},
+            "test",
+            "test",
+            "test",
+            {"proj": "geos",
+             "h": 35785831,
+             "type": "crs"},
             3,
             2,
             original_area_extents[0],
@@ -884,36 +869,36 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         area_def1 = area_def0.copy(area_extent=original_area_extents[1])
 
         dummy_ds_xr = xr.DataArray(original_array,
-                                   dims=('y', 'x'),
-                                   coords={'y': np.arange(4),
-                                           'x': np.arange(3),
-                                           'time': ("y", np.arange(4))},
-                                   attrs={'area': StackedAreaDefinition(area_def0, area_def1)})
+                                   dims=("y", "x"),
+                                   coords={"y": np.arange(4),
+                                           "x": np.arange(3),
+                                           "time": ("y", np.arange(4))},
+                                   attrs={"area": StackedAreaDefinition(area_def0, area_def1)})
 
         # check that left-right image is flipped correctly
-        dummy_ds_xr.attrs['area'].defs[0] = area_def0.copy(area_extent=(1500, -1000, -1500, 1000))
-        dummy_ds_xr.attrs['area'].defs[1] = area_def1.copy(area_extent=(7000, 5000, 3000, 8000))
+        dummy_ds_xr.attrs["area"].defs[0] = area_def0.copy(area_extent=(1500, -1000, -1500, 1000))
+        dummy_ds_xr.attrs["area"].defs[1] = area_def1.copy(area_extent=(7000, 5000, 3000, 8000))
         ldwa.return_value = dummy_ds_xr.copy()
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, np.fliplr(original_array))
-        np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[0])
-        np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[1])
-        np.testing.assert_equal(res.coords['y'], np.arange(4))
-        np.testing.assert_equal(res.coords['x'], np.flip(np.arange(3)))
-        np.testing.assert_equal(res.coords['time'], np.arange(4))
+        np.testing.assert_equal(res.attrs["area"].defs[0].area_extent, original_area_extents[0])
+        np.testing.assert_equal(res.attrs["area"].defs[1].area_extent, original_area_extents[1])
+        np.testing.assert_equal(res.coords["y"], np.arange(4))
+        np.testing.assert_equal(res.coords["x"], np.flip(np.arange(3)))
+        np.testing.assert_equal(res.coords["time"], np.arange(4))
 
         # check that upside down image is flipped correctly
-        dummy_ds_xr.attrs['area'].defs[0] = area_def0.copy(area_extent=(-1500, 1000, 1500, -1000))
-        dummy_ds_xr.attrs['area'].defs[1] = area_def1.copy(area_extent=(3000, 8000, 7000, 5000))
+        dummy_ds_xr.attrs["area"].defs[0] = area_def0.copy(area_extent=(-1500, 1000, 1500, -1000))
+        dummy_ds_xr.attrs["area"].defs[1] = area_def1.copy(area_extent=(3000, 8000, 7000, 5000))
         ldwa.return_value = dummy_ds_xr.copy()
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, np.flipud(original_array))
         # note that the order of the stacked areadefs is flipped here, as expected
-        np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[0])
-        np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[1])
-        np.testing.assert_equal(res.coords['y'], np.flip(np.arange(4)))
-        np.testing.assert_equal(res.coords['x'], np.arange(3))
-        np.testing.assert_equal(res.coords['time'], np.flip(np.arange(4)))
+        np.testing.assert_equal(res.attrs["area"].defs[1].area_extent, original_area_extents[0])
+        np.testing.assert_equal(res.attrs["area"].defs[0].area_extent, original_area_extents[1])
+        np.testing.assert_equal(res.coords["y"], np.flip(np.arange(4)))
+        np.testing.assert_equal(res.coords["x"], np.arange(3))
+        np.testing.assert_equal(res.coords["time"], np.flip(np.arange(4)))
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
@@ -936,15 +921,15 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
 
         swath_def = SwathDefinition(lons, lats)
         dummy_ds_xr = xr.DataArray(original_array,
-                                   coords={'y': dim},
-                                   attrs={'area': swath_def},
-                                   dims=('y',))
+                                   coords={"y": dim},
+                                   attrs={"area": swath_def},
+                                   dims=("y",))
 
         # assign the dummy xr as return for the super _load_dataset_with_area method
         ldwa.return_value = dummy_ds_xr
 
         # returned dataset should be unchanged since datasets with a swath definition are not flippable
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, original_array)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
@@ -963,21 +948,21 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         dim = np.arange(3)
 
         dummy_ds_xr = xr.DataArray(original_array,
-                                   coords={'y': dim},
+                                   coords={"y": dim},
                                    attrs={},
-                                   dims=('y',))
+                                   dims=("y",))
 
         # assign the dummy xr as return for the super _load_dataset_with_area method
         ldwa.return_value = dummy_ds_xr
 
         # returned dataset should be unchanged since datasets without area information are not flippable
-        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, original_array)
 
 
 def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info):
     seg_area = MagicMock()
-    seg_area.crs = 'some_crs'
+    seg_area.crs = "some_crs"
     seg_area.area_extent = aex
     seg_area.shape = ashape
     get_area_def = MagicMock()
@@ -986,10 +971,11 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
     get_segment_position_info = MagicMock()
     get_segment_position_info.return_value = chk_pos_info
 
-    fh = MagicMock()
-    filetype_info = {'expected_segments': expected_segments,
-                     'file_type': 'filetype1'}
-    filename_info = {'segment': segment}
+    filetype_info = {"expected_segments": expected_segments,
+                     "file_type": "filetype1"}
+    filename_info = {"segment": segment}
+
+    fh = _create_mocked_basic_fh()
     fh.filetype_info = filetype_info
     fh.filename_info = filename_info
     fh.get_area_def = get_area_def
@@ -997,6 +983,12 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
 
     return fh, seg_area
 
+
+def _create_mocked_basic_fh():
+    fake_fh = MagicMock()
+    fake_fh.filename_info = {}
+    fake_fh.filetype_info = {}
+    return fake_fh
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
@@ -1008,47 +1000,67 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
-        fake_fh = MagicMock()
-        fake_fh.filename_info = {}
-        fake_fh.filetype_info = {}
-        cfh.return_value = {'ft1': [fake_fh]}
+        fake_fh = _create_mocked_basic_fh()
+        cfh.return_value = {"ft1": [fake_fh]}
 
         # default (1)
-        created_fhs = reader.create_filehandlers(['fake.nc'])
-        es = created_fhs['ft1'][0].filetype_info['expected_segments']
-        self.assertEqual(es, 1)
+        created_fhs = reader.create_filehandlers(["fake.nc"])
+        es = created_fhs["ft1"][0].filetype_info["expected_segments"]
+        assert es == 1
 
         # YAML defined for each file type
-        fake_fh.filetype_info['expected_segments'] = 2
-        created_fhs = reader.create_filehandlers(['fake.nc'])
-        es = created_fhs['ft1'][0].filetype_info['expected_segments']
-        self.assertEqual(es, 2)
+        fake_fh.filetype_info["expected_segments"] = 2
+        created_fhs = reader.create_filehandlers(["fake.nc"])
+        es = created_fhs["ft1"][0].filetype_info["expected_segments"]
+        assert es == 2
 
         # defined both in the filename and the YAML metadata
         # YAML has priority
-        fake_fh.filename_info = {'total_segments': 3}
-        fake_fh.filetype_info = {'expected_segments': 2}
-        created_fhs = reader.create_filehandlers(['fake.nc'])
-        es = created_fhs['ft1'][0].filetype_info['expected_segments']
-        self.assertEqual(es, 2)
+        fake_fh.filename_info = {"total_segments": 3}
+        fake_fh.filetype_info = {"expected_segments": 2}
+        created_fhs = reader.create_filehandlers(["fake.nc"])
+        es = created_fhs["ft1"][0].filetype_info["expected_segments"]
+        assert es == 2
 
         # defined in the filename
-        fake_fh.filename_info = {'total_segments': 3}
+        fake_fh.filename_info = {"total_segments": 3}
         fake_fh.filetype_info = {}
-        created_fhs = reader.create_filehandlers(['fake.nc'])
-        es = created_fhs['ft1'][0].filetype_info['expected_segments']
-        self.assertEqual(es, 3)
+        created_fhs = reader.create_filehandlers(["fake.nc"])
+        es = created_fhs["ft1"][0].filetype_info["expected_segments"]
+        assert es == 3
 
         # check correct FCI segment (aka chunk in the FCI world) number reading into segment
-        fake_fh.filename_info = {'count_in_repeat_cycle': 5}
-        created_fhs = reader.create_filehandlers(['fake.nc'])
-        es = created_fhs['ft1'][0].filename_info['segment']
-        self.assertEqual(es, 5)
+        fake_fh.filename_info = {"count_in_repeat_cycle": 5}
+        created_fhs = reader.create_filehandlers(["fake.nc"])
+        es = created_fhs["ft1"][0].filename_info["segment"]
+        assert es == 5
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
-    @patch('satpy.readers.yaml_reader.xr')
-    @patch('satpy.readers.yaml_reader._find_missing_segments')
+    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    def test_segments_sorting(self, cfh):
+        """Test that segment filehandlers are sorted by segment number."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
+        # create filehandlers with different segment numbers
+        fake_fh_1 = _create_mocked_basic_fh()
+        fake_fh_1.filename_info["segment"] = 1
+        fake_fh_2 = _create_mocked_basic_fh()
+        fake_fh_2.filename_info["segment"] = 2
+        fake_fh_3 = _create_mocked_basic_fh()
+        fake_fh_3.filename_info["segment"] = 3
+
+        # put the filehandlers in an unsorted order
+        reader.file_handlers = {"ft1": [fake_fh_1, fake_fh_3, fake_fh_2]}
+
+        # check that the created filehandlers are sorted by segment number
+        reader.create_filehandlers(["fake.nc"])
+        assert [fh.filename_info["segment"] for fh in reader.file_handlers["ft1"]] == [1, 2, 3]
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")
+    @patch("satpy.readers.yaml_reader.xr")
+    @patch("satpy.readers.yaml_reader._find_missing_segments")
     def test_load_dataset(self, mss, xr, parent_load_dataset):
         """Test _load_dataset()."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
@@ -1056,17 +1068,17 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
         # Projectable is None
         mss.return_value = [0, 0, 0, False, None]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             res = reader._load_dataset(None, None, None)
         # Failure is True
         mss.return_value = [0, 0, 0, True, 0]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             res = reader._load_dataset(None, None, None)
 
         # Setup input, and output of mocked functions
         counter = 9
         expected_segments = 8
-        seg = MagicMock(dims=['y', 'x'])
+        seg = MagicMock(dims=["y", "x"])
         slice_list = expected_segments * [seg, ]
         failure = False
         projectable = MagicMock()
@@ -1082,8 +1094,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
         # No missing segments
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(res.attrs is file_handlers[0].combine_info.return_value)
-        self.assertTrue(empty_segment not in slice_list)
+        assert res.attrs is file_handlers[0].combine_info.return_value
+        assert empty_segment not in slice_list
 
         # One missing segment in the middle
         slice_list[4] = None
@@ -1091,7 +1103,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[4] is empty_segment)
+        assert slice_list[4] is empty_segment
 
         # The last segment is missing
         slice_list = expected_segments * [seg, ]
@@ -1100,7 +1112,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[-1] is empty_segment)
+        assert slice_list[-1] is empty_segment
 
         # The last two segments are missing
         slice_list = expected_segments * [seg, ]
@@ -1109,8 +1121,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[-1] is empty_segment)
-        self.assertTrue(slice_list[-2] is empty_segment)
+        assert slice_list[-1] is empty_segment
+        assert slice_list[-2] is empty_segment
 
         # The first segment is missing
         slice_list = expected_segments * [seg, ]
@@ -1119,7 +1131,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[0] is empty_segment)
+        assert slice_list[0] is empty_segment
 
         # The first two segments are missing
         slice_list = expected_segments * [seg, ]
@@ -1129,8 +1141,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
         res = reader._load_dataset(dataid, ds_info, file_handlers)
-        self.assertTrue(slice_list[0] is empty_segment)
-        self.assertTrue(slice_list[1] is empty_segment)
+        assert slice_list[0] is empty_segment
+        assert slice_list[1] is empty_segment
 
         # Disable padding
         res = reader._load_dataset(dataid, ds_info, file_handlers,
@@ -1139,10 +1151,10 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                                                     file_handlers)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch('satpy.readers.yaml_reader._load_area_def')
-    @patch('satpy.readers.yaml_reader._stack_area_defs')
-    @patch('satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_earlier_segments_area')
-    @patch('satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_later_segments_area')
+    @patch("satpy.readers.yaml_reader._load_area_def")
+    @patch("satpy.readers.yaml_reader._stack_area_defs")
+    @patch("satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_earlier_segments_area")
+    @patch("satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_later_segments_area")
     def test_load_area_def(self, pesa, plsa, sad, parent_load_area_def):
         """Test _load_area_def()."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
@@ -1160,7 +1172,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         parent_load_area_def.assert_called_once_with(dataid, file_handlers)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    @patch("satpy.readers.yaml_reader.AreaDefinition")
     def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area()."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
@@ -1172,16 +1184,16 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         ashape = [200, 500]
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, None)
         file_handlers = [fh_1]
-        dataid = 'dataid'
+        dataid = "dataid"
         res = reader._pad_later_segments_area(file_handlers, dataid)
-        self.assertEqual(len(res), 2)
+        assert len(res) == 2
         seg2_extent = (0, 1500, 200, 1000)
-        expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
+        expected_call = ("fill", "fill", "fill", "some_crs", 500, 200,
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    @patch("satpy.readers.yaml_reader.AreaDefinition")
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
@@ -1194,12 +1206,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fh_2, seg2_area = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, None)
 
         file_handlers = [fh_2]
-        dataid = 'dataid'
+        dataid = "dataid"
         area_defs = {2: seg2_area}
         res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
-        self.assertEqual(len(res), 2)
+        assert len(res) == 2
         seg1_extent = (0, 500, 200, 0)
-        expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
+        expected_call = ("fill", "fill", "fill", "some_crs", 500, 200,
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -1208,46 +1220,46 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _find_missing_segments as fms
 
         # Dataset with only one segment
-        filename_info = {'segment': 1}
+        filename_info = {"segment": 1}
         fh_seg1 = MagicMock(filename_info=filename_info)
-        projectable = 'projectable'
+        projectable = "projectable"
         get_dataset = MagicMock()
         get_dataset.return_value = projectable
         fh_seg1.get_dataset = get_dataset
         file_handlers = [fh_seg1]
-        ds_info = {'file_type': []}
-        dataid = 'dataid'
+        ds_info = {"file_type": []}
+        dataid = "dataid"
         res = fms(file_handlers, ds_info, dataid)
         counter, expected_segments, slice_list, failure, proj = res
-        self.assertEqual(counter, 2)
-        self.assertEqual(expected_segments, 1)
-        self.assertTrue(projectable in slice_list)
-        self.assertFalse(failure)
-        self.assertTrue(proj is projectable)
+        assert counter == 2
+        assert expected_segments == 1
+        assert projectable in slice_list
+        assert failure is False
+        assert proj is projectable
 
         # Three expected segments, first and last missing
-        filename_info = {'segment': 2}
-        filetype_info = {'expected_segments': 3,
-                         'file_type': 'foo'}
+        filename_info = {"segment": 2}
+        filetype_info = {"expected_segments": 3,
+                         "file_type": "foo"}
         fh_seg2 = MagicMock(filename_info=filename_info,
                             filetype_info=filetype_info)
-        projectable = 'projectable'
+        projectable = "projectable"
         get_dataset = MagicMock()
         get_dataset.return_value = projectable
         fh_seg2.get_dataset = get_dataset
         file_handlers = [fh_seg2]
-        ds_info = {'file_type': ['foo']}
-        dataid = 'dataid'
+        ds_info = {"file_type": ["foo"]}
+        dataid = "dataid"
         res = fms(file_handlers, ds_info, dataid)
         counter, expected_segments, slice_list, failure, proj = res
-        self.assertEqual(counter, 3)
-        self.assertEqual(expected_segments, 3)
-        self.assertEqual(slice_list, [None, projectable, None])
-        self.assertFalse(failure)
-        self.assertTrue(proj is projectable)
+        assert counter == 3
+        assert expected_segments == 3
+        assert slice_list == [None, projectable, None]
+        assert failure is False
+        assert proj is projectable
 
 
-@pytest.fixture
+@pytest.fixture()
 @patch.object(yr.GEOVariableSegmentYAMLReader, "__init__", lambda x: None)
 def GVSYReader():
     """Get a fixture of the GEOVariableSegmentYAMLReader."""
@@ -1258,31 +1270,31 @@ def GVSYReader():
     return reader
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_geswh():
     """Get a fixture of the patched _get_empty_segment_with_height."""
-    with patch('satpy.readers.yaml_reader._get_empty_segment_with_height') as geswh:
+    with patch("satpy.readers.yaml_reader._get_empty_segment_with_height") as geswh:
         yield geswh
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_xr():
     """Get a fixture of the patched xarray."""
-    with patch('satpy.readers.yaml_reader.xr') as xr:
+    with patch("satpy.readers.yaml_reader.xr") as xr:
         yield xr
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_mss():
     """Get a fixture of the patched _find_missing_segments."""
-    with patch('satpy.readers.yaml_reader._find_missing_segments') as mss:
+    with patch("satpy.readers.yaml_reader._find_missing_segments") as mss:
         yield mss
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_adef():
     """Get a fixture of the patched AreaDefinition."""
-    with patch('satpy.readers.yaml_reader.AreaDefinition') as adef:
+    with patch("satpy.readers.yaml_reader.AreaDefinition") as adef:
         yield adef
 
 
@@ -1293,14 +1305,14 @@ class TestGEOVariableSegmentYAMLReader:
         """Test execution of (overridden) get_empty_segment inside _load_dataset."""
         # Setup input, and output of mocked functions for first segment missing
         chk_pos_info = {
-            '1km': {'start_position_row': 0,
-                    'end_position_row': 0,
-                    'segment_height': 0,
-                    'grid_width': 11136},
-            '2km': {'start_position_row': 140,
-                    'end_position_row': None,
-                    'segment_height': 278,
-                    'grid_width': 5568}
+            "1km": {"start_position_row": 0,
+                    "end_position_row": 0,
+                    "segment_height": 0,
+                    "grid_width": 11136},
+            "2km": {"start_position_row": 140,
+                    "end_position_row": None,
+                    "segment_height": 278,
+                    "grid_width": 5568}
         }
         expected_segments = 2
         segment = 2
@@ -1308,10 +1320,10 @@ class TestGEOVariableSegmentYAMLReader:
         ashape = [278, 5568]
         fh_2, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        GVSYReader.file_handlers = {'filetype1': [fh_2]}
+        GVSYReader.file_handlers = {"filetype1": [fh_2]}
 
         counter = 2
-        seg = MagicMock(dims=['y', 'x'])
+        seg = MagicMock(dims=["y", "x"])
         slice_list = [None, seg]
         failure = False
         projectable = MagicMock()
@@ -1325,20 +1337,20 @@ class TestGEOVariableSegmentYAMLReader:
                                  failure, projectable)
         GVSYReader._load_dataset(dataid, ds_info, [fh_2])
         # the return of get_empty_segment
-        fake_geswh.assert_called_once_with(empty_segment, 139, dim='y')
+        fake_geswh.assert_called_once_with(empty_segment, 139, dim="y")
 
     def test_pad_earlier_segments_area(self, GVSYReader, fake_adef):
         """Test _pad_earlier_segments_area() for the variable segment case."""
         # setting to 0 or None values that shouldn't be relevant
         chk_pos_info = {
-            '1km': {'start_position_row': 0,
-                    'end_position_row': 0,
-                    'segment_height': 0,
-                    'grid_width': 11136},
-            '2km': {'start_position_row': 140,
-                    'end_position_row': None,
-                    'segment_height': 278,
-                    'grid_width': 5568}
+            "1km": {"start_position_row": 0,
+                    "end_position_row": 0,
+                    "segment_height": 0,
+                    "grid_width": 11136},
+            "2km": {"start_position_row": 140,
+                    "end_position_row": None,
+                    "segment_height": 278,
+                    "grid_width": 5568}
         }
         expected_segments = 2
         segment = 2
@@ -1346,8 +1358,8 @@ class TestGEOVariableSegmentYAMLReader:
         ashape = [278, 5568]
         fh_2, seg2_area = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        GVSYReader.file_handlers = {'filetype1': [fh_2]}
-        dataid = 'dataid'
+        GVSYReader.file_handlers = {"filetype1": [fh_2]}
+        dataid = "dataid"
         area_defs = {2: seg2_area}
         res = GVSYReader._pad_earlier_segments_area([fh_2], dataid, area_defs)
         assert len(res) == 2
@@ -1358,29 +1370,29 @@ class TestGEOVariableSegmentYAMLReader:
         # half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 500-250=250
         seg1_extent = (0, 500, 200, 250)
-        expected_call = ('fill', 'fill', 'fill', 'some_crs', 5568, 139,
+        expected_call = ("fill", "fill", "fill", "some_crs", 5568, 139,
                          seg1_extent)
         fake_adef.assert_called_once_with(*expected_call)
 
     def test_pad_later_segments_area(self, GVSYReader, fake_adef):
         """Test _pad_later_segments_area() in the variable padding case."""
         chk_pos_info = {
-            '1km': {'start_position_row': None,
-                    'end_position_row': 11136 - 278,
-                    'segment_height': 556,
-                    'grid_width': 11136},
-            '2km': {'start_position_row': 0,
-                    'end_position_row': 0,
-                    'segment_height': 0,
-                    'grid_width': 5568}}
+            "1km": {"start_position_row": None,
+                    "end_position_row": 11136 - 278,
+                    "segment_height": 556,
+                    "grid_width": 11136},
+            "2km": {"start_position_row": 0,
+                    "end_position_row": 0,
+                    "segment_height": 0,
+                    "grid_width": 5568}}
 
         expected_segments = 2
         segment = 1
         aex = [0, 1000, 200, 500]
         ashape = [556, 11136]
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
-        GVSYReader.file_handlers = {'filetype1': [fh_1]}
-        dataid = 'dataid'
+        GVSYReader.file_handlers = {"filetype1": [fh_1]}
+        dataid = "dataid"
         res = GVSYReader._pad_later_segments_area([fh_1], dataid)
         assert len(res) == 2
 
@@ -1389,7 +1401,7 @@ class TestGEOVariableSegmentYAMLReader:
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 1000+250=1250
         seg2_extent = (0, 1250, 200, 1000)
-        expected_call = ('fill', 'fill', 'fill', 'some_crs', 11136, 278,
+        expected_call = ("fill", "fill", "fill", "some_crs", 11136, 278,
                          seg2_extent)
         fake_adef.assert_called_once_with(*expected_call)
 
@@ -1406,45 +1418,45 @@ class TestGEOVariableSegmentYAMLReader:
         fake_adef.side_effect = side_effect_areadef
 
         chk_pos_info = {
-            '1km': {'start_position_row': 11136 - 600 - 100 + 1,
-                    'end_position_row': 11136 - 600,
-                    'segment_height': 100,
-                    'grid_width': 11136},
-            '2km': {'start_position_row': 0,
-                    'end_position_row': 0,
-                    'segment_height': 0,
-                    'grid_width': 5568}}
+            "1km": {"start_position_row": 11136 - 600 - 100 + 1,
+                    "end_position_row": 11136 - 600,
+                    "segment_height": 100,
+                    "grid_width": 11136},
+            "2km": {"start_position_row": 0,
+                    "end_position_row": 0,
+                    "segment_height": 0,
+                    "grid_width": 5568}}
         expected_segments = 8
         segment = 1
         aex = [0, 1000, 200, 500]
         ashape = [100, 11136]
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
         chk_pos_info = {
-            '1km': {'start_position_row': 11136 - 300 - 100 + 1,
-                    'end_position_row': 11136 - 300,
-                    'segment_height': 100,
-                    'grid_width': 11136},
-            '2km': {'start_position_row': 0,
-                    'end_position_row': 0,
-                    'segment_height': 0,
-                    'grid_width': 5568}}
+            "1km": {"start_position_row": 11136 - 300 - 100 + 1,
+                    "end_position_row": 11136 - 300,
+                    "segment_height": 100,
+                    "grid_width": 11136},
+            "2km": {"start_position_row": 0,
+                    "end_position_row": 0,
+                    "segment_height": 0,
+                    "grid_width": 5568}}
         segment = 4
         fh_4, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
         chk_pos_info = {
-            '1km': {'start_position_row': 11136 - 100 + 1,
-                    'end_position_row': None,
-                    'segment_height': 100,
-                    'grid_width': 11136},
-            '2km': {'start_position_row': 0,
-                    'end_position_row': 0,
-                    'segment_height': 0,
-                    'grid_width': 5568}}
+            "1km": {"start_position_row": 11136 - 100 + 1,
+                    "end_position_row": None,
+                    "segment_height": 100,
+                    "grid_width": 11136},
+            "2km": {"start_position_row": 0,
+                    "end_position_row": 0,
+                    "segment_height": 0,
+                    "grid_width": 5568}}
         segment = 8
         fh_8, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        GVSYReader.file_handlers = {'filetype1': [fh_1, fh_4, fh_8]}
-        dataid = 'dataid'
+        GVSYReader.file_handlers = {"filetype1": [fh_1, fh_4, fh_8]}
+        dataid = "dataid"
         res = GVSYReader._pad_later_segments_area([fh_1, fh_4, fh_8], dataid)
         assert len(res) == 8
 
@@ -1473,15 +1485,15 @@ class TestGEOVariableSegmentYAMLReader:
         # The second padded segment has 67px height -> 500*67/100=335 area extent height ->1330+335=1665
         # The first padded segment has 67px height -> 500*67/100=335 area extent height ->1665+335=2000
         assert fake_adef.call_count == 5
-        expected_call1 = ('fill', 'fill', 'fill', 'some_crs', 11136, 100,
+        expected_call1 = ("fill", "fill", "fill", "some_crs", 11136, 100,
                           (0, 1500.0, 200, 1000))
-        expected_call2 = ('fill', 'fill', 'fill', 'some_crs', 11136, 100,
+        expected_call2 = ("fill", "fill", "fill", "some_crs", 11136, 100,
                           (0, 2000.0, 200, 1500))
-        expected_call3 = ('fill', 'fill', 'fill', 'some_crs', 11136, 66,
+        expected_call3 = ("fill", "fill", "fill", "some_crs", 11136, 66,
                           (0, 1330.0, 200, 1000))
-        expected_call4 = ('fill', 'fill', 'fill', 'some_crs', 11136, 67,
+        expected_call4 = ("fill", "fill", "fill", "some_crs", 11136, 67,
                           (0, 1665.0, 200, 1330.0))
-        expected_call5 = ('fill', 'fill', 'fill', 'some_crs', 11136, 67,
+        expected_call5 = ("fill", "fill", "fill", "some_crs", 11136, 67,
                           (0, 2000.0, 200, 1665.0))
 
         fake_adef.side_effect = None
@@ -1496,22 +1508,22 @@ class TestGEOVariableSegmentYAMLReader:
         """Test _get_empty_segment_with_height()."""
         from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
 
-        dim = 'y'
+        dim = "y"
 
         # check expansion of empty segment
-        empty_segment = xr.DataArray(np.ones((139, 5568)), dims=['y', 'x'])
+        empty_segment = xr.DataArray(np.ones((139, 5568)), dims=["y", "x"])
         new_height = 140
         new_empty_segment = geswh(empty_segment, new_height, dim)
         assert new_empty_segment.shape == (140, 5568)
 
         # check reduction of empty segment
-        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
+        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=["y", "x"])
         new_height = 139
         new_empty_segment = geswh(empty_segment, new_height, dim)
         assert new_empty_segment.shape == (139, 5568)
 
         # check that empty segment is not modified if it has the right height already
-        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
+        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=["y", "x"])
         new_height = 140
         new_empty_segment = geswh(empty_segment, new_height, dim)
         assert new_empty_segment is empty_segment

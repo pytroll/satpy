@@ -49,12 +49,12 @@ def fake_dataset():
     nobs = xr.DataArray(
         [[5, 118, 5, 100], [0, 15, 0, 1]],
         dims=("lat", "lon"),
-        attrs={'_FillValue': 0}
+        attrs={"_FillValue": 0}
     )
     nobs_filt = xr.DataArray(
         [[5, 118, 5, 100], [np.nan, 15, np.nan, 1]],
         dims=("lat", "lon"),
-        attrs={'_FillValue': 0}
+        attrs={"_FillValue": 0}
     )
     watcls = xr.DataArray(
         [[12.2, 0.01, 6.754, 5.33], [12.5, 101.5, 103.5, 204.]],
@@ -83,50 +83,50 @@ def fake_dataset():
     )
 
 
-ds_dict = {'adg_490': 'adg_490',
-           'water_class10': 'water_class10',
-           'seawifs_nobs_sum': 'test_nobs',
-           'kd_490': 'kd_490',
-           'atot_665': 'atot_665'}
+ds_dict = {"adg_490": "adg_490",
+           "water_class10": "water_class10",
+           "seawifs_nobs_sum": "test_nobs",
+           "kd_490": "kd_490",
+           "atot_665": "atot_665"}
 
-ds_list_all = ['adg_490', 'water_class10', 'seawifs_nobs_sum', 'kd_490', 'atot_665']
-ds_list_iop = ['adg_490', 'water_class10', 'seawifs_nobs_sum', 'atot_665']
-ds_list_kd = ['kd_490', 'water_class10', 'seawifs_nobs_sum']
+ds_list_all = ["adg_490", "water_class10", "seawifs_nobs_sum", "kd_490", "atot_665"]
+ds_list_iop = ["adg_490", "water_class10", "seawifs_nobs_sum", "atot_665"]
+ds_list_kd = ["kd_490", "water_class10", "seawifs_nobs_sum"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_file_dict(fake_dataset, tmp_path):
     """Write a fake dataset to file."""
     fdict = {}
     filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-10M_MONTHLY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['bad_month'] = filename
+    fdict["bad_month"] = filename
 
     filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-2D_DAILY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['bad_day'] = filename
+    fdict["bad_day"] = filename
 
     filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-1M_MONTHLY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['ocprod_1m'] = filename
+    fdict["ocprod_1m"] = filename
 
     filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-5D_DAILY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['ocprod_5d'] = filename
+    fdict["ocprod_5d"] = filename
 
     filename = tmp_path / "ESACCI-OC-L3S-IOP-MERGED-8D_DAILY_4km_GEO_PML_RRS-20211117-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['iop_8d'] = filename
+    fdict["iop_8d"] = filename
 
     filename = tmp_path / "ESACCI-OC-L3S-IOP-MERGED-1D_DAILY_4km_GEO_PML_OCx-202112-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['iop_1d'] = filename
+    fdict["iop_1d"] = filename
 
     filename = tmp_path / "ESACCI-OC-L3S-K_490-MERGED-1D_DAILY_4km_GEO_PML_RRS-20210113-fv5.0.nc"
     fake_dataset.to_netcdf(filename)
-    fdict['k490_1d'] = filename
+    fdict["k490_1d"] = filename
 
-    yield fdict
+    return fdict
 
 
 class TestOCCCIReader:
@@ -137,7 +137,7 @@ class TestOCCCIReader:
         from satpy._config import config_search_paths
 
         self.yaml_file = "oceancolorcci_l3_nc.yaml"
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     def _create_reader_for_resolutions(self, filename):
         from satpy.readers import load_reader
@@ -149,10 +149,10 @@ class TestOCCCIReader:
         assert reader.file_handlers
         return reader
 
-    @pytest.fixture
+    @pytest.fixture()
     def area_exp(self):
         """Get expected area definition."""
-        proj_dict = {'datum': 'WGS84', 'no_defs': 'None', 'proj': 'longlat', 'type': 'crs'}
+        proj_dict = {"datum": "WGS84", "no_defs": "None", "proj": "longlat", "type": "crs"}
 
         return AreaDefinition(
             area_id="gridded_occci",
@@ -166,87 +166,94 @@ class TestOCCCIReader:
 
     def test_get_area_def(self, area_exp, fake_file_dict):
         """Test area definition."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_1m']])
+        import warnings
+
+        reader = self._create_reader_for_resolutions([fake_file_dict["ocprod_1m"]])
         res = reader.load([ds_list_all[0]])
-        area = res[ds_list_all[0]].attrs['area']
+        area = res[ds_list_all[0]].attrs["area"]
 
         assert area.area_id == area_exp.area_id
         assert area.area_extent == area_exp.area_extent
         assert area.width == area_exp.width
         assert area.height == area_exp.height
-        assert area.proj_dict == area_exp.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            # The corresponding CRS objects do not match even if the proj dicts match, so use the dicts
+            assert area.proj_dict == area_exp.proj_dict
 
     def test_bad_fname(self, fake_dataset, fake_file_dict):
         """Test case where an incorrect composite period is given."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['bad_month']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["bad_month"]])
         res = reader.load([ds_list_all[0]])
         assert len(res) == 0
-        reader = self._create_reader_for_resolutions([fake_file_dict['bad_day']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["bad_day"]])
         res = reader.load([ds_list_all[0]])
         assert len(res) == 0
 
     def test_get_dataset_monthly_allprods(self, fake_dataset, fake_file_dict):
         """Test dataset loading."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_1m']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["ocprod_1m"]])
         # Check how many datasets are available. This file contains all of them.
         assert len(list(reader.available_dataset_names)) == 94
         res = reader.load(ds_list_all)
         assert len(res) == len(ds_list_all)
         for curds in ds_list_all:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs['sensor'] == 'merged'
-            assert res[curds].attrs['composite_period'] == 'monthly'
+            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["composite_period"] == "monthly"
 
     def test_get_dataset_8d_iopprods(self, fake_dataset, fake_file_dict):
         """Test dataset loading."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['iop_8d']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["iop_8d"]])
         # Check how many datasets are available. This file contains all of them.
         assert len(list(reader.available_dataset_names)) == 70
         res = reader.load(ds_list_iop)
         assert len(res) == len(ds_list_iop)
         for curds in ds_list_iop:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs['sensor'] == 'merged'
-            assert res[curds].attrs['composite_period'] == '8-day'
+            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["composite_period"] == "8-day"
 
     def test_get_dataset_1d_kprods(self, fake_dataset, fake_file_dict):
         """Test dataset loading."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['k490_1d']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["k490_1d"]])
         # Check how many datasets are available. This file contains all of them.
         assert len(list(reader.available_dataset_names)) == 25
         res = reader.load(ds_list_kd)
         assert len(res) == len(ds_list_kd)
         for curds in ds_list_kd:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs['sensor'] == 'merged'
-            assert res[curds].attrs['composite_period'] == 'daily'
+            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["composite_period"] == "daily"
 
     def test_get_dataset_5d_allprods(self, fake_dataset, fake_file_dict):
         """Test dataset loading."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_5d']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["ocprod_5d"]])
         # Check how many datasets are available. This file contains all of them.
         assert len(list(reader.available_dataset_names)) == 94
         res = reader.load(ds_list_all)
         assert len(res) == len(ds_list_all)
         for curds in ds_list_all:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs['sensor'] == 'merged'
-            assert res[curds].attrs['composite_period'] == '5-day'
+            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["composite_period"] == "5-day"
 
     def test_start_time(self, fake_file_dict):
         """Test start time property."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['k490_1d']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["k490_1d"]])
         assert reader.start_time == datetime(2021, 8, 1, 0, 0, 0)
 
     def test_end_time(self, fake_file_dict):
         """Test end time property."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['iop_8d']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["iop_8d"]])
         assert reader.end_time == datetime(2021, 8, 31, 23, 59, 0)
 
     def test_correct_dimnames(self, fake_file_dict):
         """Check that the loaded dimension names are correct."""
-        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_5d']])
+        reader = self._create_reader_for_resolutions([fake_file_dict["ocprod_5d"]])
         res = reader.load(ds_list_all)
         for dsname in ds_list_all:
-            assert res[dsname].dims[0] == 'y'
-            assert res[dsname].dims[1] == 'x'
+            assert res[dsname].dims[0] == "y"
+            assert res[dsname].dims[1] == "x"

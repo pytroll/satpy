@@ -34,16 +34,15 @@ LOG = logging.getLogger(__name__)
 
 
 def gerb_get_dataset(ds, ds_info):
-    """
-    Load a GERB dataset in memory from a HDF5 file or HDF5FileHandler.
+    """Load a GERB dataset in memory from a HDF5 file or HDF5FileHandler.
 
     The routine takes into account the quantisation factor and fill values.
     """
     ds_attrs = ds.attrs
-    ds_fill = ds_info['fill_value']
+    ds_fill = ds_info["fill_value"]
     fill_mask = ds != ds_fill
-    if 'Quantisation Factor' in ds_attrs and 'Unit' in ds_attrs:
-        ds = ds*ds_attrs['Quantisation Factor']
+    if "Quantisation Factor" in ds_attrs and "Unit" in ds_attrs:
+        ds = ds*ds_attrs["Quantisation Factor"]
     else:
         ds = ds*1.
     ds = ds.where(fill_mask)
@@ -61,17 +60,17 @@ class GERB_HR_FileHandler(HDF5FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['sensing_time']
+        return self.filename_info["sensing_time"]
 
     def get_dataset(self, ds_id, ds_info):
         """Read a HDF5 file into an xarray DataArray."""
-        ds_name = ds_id['name']
-        if ds_name not in ['Solar Flux', 'Thermal Flux', 'Solar Radiance', 'Thermal Radiance']:
+        ds_name = ds_id["name"]
+        if ds_name not in ["Solar Flux", "Thermal Flux", "Solar Radiance", "Thermal Radiance"]:
             raise KeyError(f"{ds_name} is an unknown dataset for this reader.")
 
-        ds = gerb_get_dataset(self[f'Radiometry/{ds_name}'], ds_info)
+        ds = gerb_get_dataset(self[f"Radiometry/{ds_name}"], ds_info)
 
-        ds.attrs.update({'start_time': self.start_time, 'data_time': self.start_time, 'end_time': self.end_time})
+        ds.attrs.update({"start_time": self.start_time, "data_time": self.start_time, "end_time": self.end_time})
 
         return ds
 

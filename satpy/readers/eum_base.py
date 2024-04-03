@@ -22,10 +22,10 @@ from datetime import datetime, timedelta
 import numpy as np
 
 # 6 bytes, 8 bytes, 10 bytes
-time_cds_short = [('Days', '>u2'), ('Milliseconds', '>u4')]
-time_cds = time_cds_short + [('Microseconds', '>u2')]
-time_cds_expanded = time_cds + [('Nanoseconds', '>u2')]
-issue_revision = [('Issue', np.uint16), ('Revision', np.uint16)]
+time_cds_short = [("Days", ">u2"), ("Milliseconds", ">u4")]
+time_cds = time_cds_short + [("Microseconds", ">u2")]
+time_cds_expanded = time_cds + [("Nanoseconds", ">u2")]
+issue_revision = [("Issue", np.uint16), ("Revision", np.uint16)]
 
 
 def timecds2datetime(tcds):
@@ -33,14 +33,14 @@ def timecds2datetime(tcds):
 
     Works both with a dictionary and a numpy record_array.
     """
-    days = int(tcds['Days'])
-    milliseconds = int(tcds['Milliseconds'])
+    days = int(tcds["Days"].item())
+    milliseconds = int(tcds["Milliseconds"].item())
     try:
-        microseconds = int(tcds['Microseconds'])
+        microseconds = int(tcds["Microseconds"].item())
     except (KeyError, ValueError):
         microseconds = 0
     try:
-        microseconds += int(tcds['Nanoseconds']) / 1000.
+        microseconds += int(tcds["Nanoseconds"].item()) / 1000.
     except (KeyError, ValueError):
         pass
 
@@ -71,14 +71,14 @@ def recarray2dict(arr):
         else:
             if data.size == 1:
                 data = data[0]
-                if ntype[:2] == '|S':
+                if ntype[:2] == "|S":
                     # Python2 and Python3 handle strings differently
                     try:
                         data = data.decode()
                     except ValueError:
                         data = None
                     else:
-                        data = data.split(':')[0].strip()
+                        data = data.split(":")[0].strip()
                 res[key] = data
             else:
                 res[key] = data.squeeze()
@@ -88,15 +88,15 @@ def recarray2dict(arr):
 
 def get_service_mode(instrument_name, ssp_lon):
     """Get information about service mode for a given instrument and subsatellite longitude."""
-    service_modes = {'seviri': {'0.0':  {'service_name': 'fes', 'service_desc': 'Full Earth Scanning service'},
-                                '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},
-                                '41.5': {'service_name': 'iodc', 'service_desc': 'Indian Ocean Data Coverage service'},
-                                '45.5': {'service_name': 'iodc', 'service_desc': 'Indian Ocean Data Coverage service'}
+    service_modes = {"seviri": {"0.0": {"service_name": "fes", "service_desc": "Full Earth Scanning service"},
+                                "9.5": {"service_name": "rss", "service_desc": "Rapid Scanning Service"},
+                                "41.5": {"service_name": "iodc", "service_desc": "Indian Ocean Data Coverage service"},
+                                "45.5": {"service_name": "iodc", "service_desc": "Indian Ocean Data Coverage service"}
                                 },
-                     'fci':    {'0.0':  {'service_name': 'fdss', 'service_desc': 'Full Disk Scanning Service'},
-                                '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},
-                                },
+                     "fci": {"0.0": {"service_name": "fdss", "service_desc": "Full Disk Scanning Service"},
+                             "9.5": {"service_name": "rss", "service_desc": "Rapid Scanning Service"},
+                             },
                      }
-    unknown_modes = {'service_name': 'unknown', 'service_desc': 'unknown'}
+    unknown_modes = {"service_name": "unknown", "service_desc": "unknown"}
 
-    return service_modes.get(instrument_name, unknown_modes).get('{:.1f}'.format(ssp_lon), unknown_modes)
+    return service_modes.get(instrument_name, unknown_modes).get("{:.1f}".format(ssp_lon), unknown_modes)
