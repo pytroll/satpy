@@ -255,7 +255,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         arr = self.get_array(dataset_info["key"])
 
         if self.with_adef:
-            xarr = self.get_dataset_with_area_def(arr, dataset_id, dataset_info["resolution"])
+            xarr = self.get_dataset_with_area_def(arr, dataset_id)
             # coordinates are not relevant when returning data with an AreaDefinition
             if "coordinates" in dataset_info.keys():
                 del dataset_info["coordinates"]
@@ -268,14 +268,14 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         self._add_attributes(xarr, dataset_info)
         return xarr
 
-    def get_dataset_with_area_def(self, arr, dataset_id, resolution):
+    def get_dataset_with_area_def(self, arr, dataset_id):
         """Get dataset with an AreaDefinition."""
         if dataset_id["name"] in ["latitude", "longitude"]:
             self.__setattr__(dataset_id["name"], arr)
             xarr = xr.DataArray(arr, dims=["y"])
         else:
             lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
-            self._area_def = self._construct_area_def(dataset_id, resolution)
+            self._area_def = self._construct_area_def(dataset_id)
             icol, irow = self._area_def.get_array_indices_from_lonlat(lons_1d, lats_1d)
 
             data_2d = np.empty(self._area_def.shape)
@@ -292,7 +292,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
         return xarr
 
-    def _construct_area_def(self, dataset_id, resolution):
+    def _construct_area_def(self, dataset_id):
         """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
 
         Returns:
@@ -301,7 +301,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """
         area_naming_input_dict = {"platform_name": self.platform_name[:3].lower(),
                                   "instrument_name": self.sensor_name,
-                                  "resolution": resolution,
+                                  "resolution": dataset_id["resolution"],
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
