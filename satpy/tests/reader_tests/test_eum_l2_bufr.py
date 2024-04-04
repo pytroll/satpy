@@ -73,7 +73,7 @@ AREA_DEF_FCI_FES = geometry.AreaDefinition(
      "h": 35786400., "proj": "geos", "units": "m"},
     348,
     348,
-    (-5567999.998550739, -5567999.998550739, 5567999.994203017,  5567999.994203017)
+    (-5567999.998550739, -5567999.998550739, 5567999.994203017, 5567999.994203017)
 )
 
 
@@ -184,7 +184,7 @@ class L2BufrData:
 
         self.m = mock.mock_open()
 
-        FILETYPE_INFO = {"file_type":  TEST_DATA[filename]["file_type"]}
+        FILETYPE_INFO = {"file_type": TEST_DATA[filename]["file_type"]}
 
         # only our offline product contain MPEF product headers so we get the metadata from there
         if ("BUFRProd" in filename):

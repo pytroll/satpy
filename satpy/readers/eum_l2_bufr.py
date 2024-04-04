@@ -51,7 +51,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 SSP_DEFAULT = 0.0
 BUFR_FILL_VALUE = -1.e+100
 
-data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56:  {"ssp": "E0455", "name": "MSG2"},
+data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "name": "MSG2"},
                     57: {"ssp": "E0095", "name": "MSG3"}, 70: {"ssp": "E0000", "name": "MSG4"},
                     71: {"ssp": "E0000", "name": "MTGi1"}}
 
