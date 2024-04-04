@@ -138,7 +138,7 @@ datasets:
     resolution: none
     file_type: fci_l2_bufr_amv
     key: '#1#extendedHeightAssignmentMethod'
-    units: None
+    units: ""
     fill_value: -1.0e+100
     coordinates:
       - longitude
@@ -151,7 +151,7 @@ datasets:
     resolution: none
     file_type: fci_l2_bufr_amv
     key: 'satelliteDerivedWindComputationMethod'
-    units: None
+    units: ""
     fill_value: -1.0e+100
     coordinates:
       - longitude
