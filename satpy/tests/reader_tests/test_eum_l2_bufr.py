@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unittesting the SEVIRI L2 BUFR reader."""
+"""Unittesting the EUMETSAT L2 BUFR reader."""
 
 import os
 import sys
@@ -254,11 +254,11 @@ class L2BufrData:
 
 @pytest.mark.parametrize("input_file", TEST_FILES)
 class TestL2BufrReader:
-    """Test SEVIRI L2 BUFR Reader."""
+    """Test EUMETSAT L2 BUFR Reader."""
 
     @staticmethod
     def test_lonslats(input_file):
-        """Test reading of longitude and latitude data with SEVIRI L2 BUFR reader."""
+        """Test reading of longitude and latitude data with EUMETSAT L2 BUFR reader."""
         bufr_obj = L2BufrData(input_file)
         zlat = bufr_obj.get_data("latitude", "#1#latitude", coordinates=False)
         zlon = bufr_obj.get_data("longitude", "#1#longitude", coordinates=False)
@@ -372,7 +372,7 @@ class AMVBufrData:
 
 
 class TestAMVBufrReader:
-    """Test SEVIRI L2 BUFR Reader for AMV data."""
+    """Test EUMETSAT L2 BUFR Reader for AMV data."""
 
     @staticmethod
     def test_amv_with_area_def():
