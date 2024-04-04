@@ -62,12 +62,6 @@ seg_size_dict = {"seviri_l2_bufr_asr": 16, "seviri_l2_bufr_cla": 16,
                  "seviri_l2_bufr_amv": None,
                  "fci_l2_bufr_asr": 32, "fci_l2_bufr_amv": None}
 
-# This is the physical size of the segment, in meters
-resolution_dict = {"seviri_l2_bufr_asr": 48000, "seviri_l2_bufr_cla": 48000,
-                   "seviri_l2_bufr_csr": 48000, "seviri_l2_bufr_gii": 9000,
-                   "seviri_l2_bufr_thu": 48000, "seviri_l2_bufr_toz": 9000,
-                   "seviri_l2_bufr_amv": None,
-                   "fci_l2_bufr_asr": 32000, "fci_l2_bufr_amv": None}
 
 # List of variables that are returned by eccodes as array, but we want as single value
 deprecate_to_single_value = ["satelliteIdentifier"]
