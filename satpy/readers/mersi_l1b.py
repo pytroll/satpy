@@ -36,7 +36,7 @@ N_TOT_IR_CHANS_LL = 6
 
 
 class MERSIL1B(HDF5FileHandler):
-    """MERSI-2/MERSI-LL L1B file reader."""
+    """MERSI-2/MERSI-LL/MERSI-RM L1B file reader."""
 
     def _strptime(self, date_attr, time_attr):
         """Parse date/time strings."""
@@ -63,8 +63,17 @@ class MERSIL1B(HDF5FileHandler):
         sensor = {
             "MERSI": "mersi-2",
             "MERSI LL": "mersi-ll",
+            "MERSI RM": "mersi-rm",
         }.get(file_sensor, file_sensor)
         return sensor
+
+    def get_refl_mult(self):
+        """Get reflectance multiplier."""
+        if self.sensor_name == "mersi-rm":
+            # MERSI-RM has reflectance in the range 0-1, so we need to convert
+            return 100.
+        else:
+            return 1.
 
     def _get_single_slope_intercept(self, slope, intercept, cal_index):
         try:
@@ -103,7 +112,7 @@ class MERSIL1B(HDF5FileHandler):
         slope = attrs.pop("Slope", None)
         intercept = attrs.pop("Intercept", None)
         if slope is not None and dataset_id.get("calibration") != "counts":
-            if band_index is not None:
+            if band_index is not None and slope.size > 1:
                 slope = slope[band_index]
                 intercept = intercept[band_index]
             data = data * slope + intercept
@@ -112,12 +121,12 @@ class MERSIL1B(HDF5FileHandler):
             coeffs = self._get_coefficients(ds_info["calibration_key"],
                                             ds_info["calibration_index"])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
+            data = data * self.get_refl_mult()
         elif dataset_id.get("calibration") == "brightness_temperature":
             calibration_index = ds_info["calibration_index"]
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
             wave_number = 1. / (dataset_id["wavelength"][1] / 1e6)
-
             data = self._get_bt_dataset(data, calibration_index, wave_number)
 
         data.attrs = attrs
@@ -195,6 +204,9 @@ class MERSIL1B(HDF5FileHandler):
                 corr_coeff_b = coeffs[calibration_index + N_TOT_IR_CHANS_LL]
             except KeyError:
                 return data
+        else:
+            # MERSI-RM has no correction coefficients
+            corr_coeff_a = 0
 
         if corr_coeff_a != 0:
             data = (data - corr_coeff_b) / corr_coeff_a

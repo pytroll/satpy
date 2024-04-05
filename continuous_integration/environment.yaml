@@ -47,6 +47,7 @@ dependencies:
   - pytest-cov
   - pytest-lazy-fixture
   - fsspec
+  - botocore>=1.33
   - s3fs
   - python-geotiepoints
   - pooch
@@ -59,6 +60,6 @@ dependencies:
   - bokeh
   - pip:
     - trollsift
-    - trollimage>=1.20
+    - trollimage>=1.23
     - pyspectral
     - pyorbital

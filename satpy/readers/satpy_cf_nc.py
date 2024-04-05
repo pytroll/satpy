@@ -177,12 +177,12 @@ Output:
 
 """
 import itertools
-import json
 import logging
 
 import xarray as xr
 from pyresample import AreaDefinition
 
+import satpy.cf.decoding
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -311,9 +311,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         if name != ds_id["name"]:
             data = data.rename(ds_id["name"])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
-        if "orbital_parameters" in data.attrs:
-            data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
-
+        data.attrs = satpy.cf.decoding.decode_attrs(data.attrs)
         return data
 
     def get_area_def(self, dataset_id):
@@ -327,10 +325,3 @@ class SatpyCFFileHandler(BaseFileHandler):
             # with the yaml_reader NotImplementedError is raised.
             logger.debug("No AreaDefinition to load from nc file. Falling back to SwathDefinition.")
             raise NotImplementedError
-
-
-def _str2dict(val):
-    """Convert string to dictionary."""
-    if isinstance(val, str):
-        val = json.loads(val)
-    return val

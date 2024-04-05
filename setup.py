@@ -23,7 +23,7 @@ from glob import glob
 from setuptools import find_packages, setup
 
 requires = ["numpy >=1.21", "pillow", "pyresample >=1.24.0", "trollsift",
-            "trollimage >=1.20", "pykdtree", "pyyaml >=5.1", "xarray >=0.14.1",
+            "trollimage >=1.23", "pykdtree", "pyyaml >=5.1", "xarray >=0.14.1",
             "dask[array] >=0.17.1", "pyproj>=2.2", "zarr", "donfig", "appdirs",
             "packaging", "pooch", "pyorbital"]
 
@@ -35,6 +35,7 @@ test_requires = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
 
 extras_require = {
     # Readers:
+    "avhrr_l1b_eps": ["defusedxml"],
     "avhrr_l1b_gaclac": ["pygac >= 1.3.0"],
     "modis_l1b": ["pyhdf", "python-geotiepoints >= 1.1.7"],
     "geocat": ["pyhdf"],
@@ -47,7 +48,7 @@ extras_require = {
     "amsr2_l1b": ["h5py >= 2.7.0"],
     "hrpt": ["pyorbital >= 1.3.1", "pygac", "python-geotiepoints >= 1.1.7"],
     "hrit_msg": ["pytroll-schedule"],
-    "msi_safe": ["rioxarray", "bottleneck", "python-geotiepoints"],
+    "msi_safe": ["rioxarray", "bottleneck", "python-geotiepoints", "defusedxml"],
     "nc_nwcsaf_msg": ["netCDF4 >= 1.1.8"],
     "sar_c": ["python-geotiepoints >= 1.1.7", "rasterio", "rioxarray", "defusedxml"],
     "abi_l1b": ["h5netcdf"],
