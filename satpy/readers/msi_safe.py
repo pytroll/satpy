@@ -27,8 +27,16 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader='msi_safe',
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
-
-L1B format description for the files read here:
+MSI data typically have the same start time across multiple tiles, which can cause
+problems if iterating over multiple tiles, as the saved imagery from one tile
+may be overwritten by the next tile.
+To overcome this, the user can specify `use_tile_time`, which will determine the start
+time from the tile metadata rather than from the filename::
+    scene = satpy.Scene(filenames,
+                        reader='msi_safe',
+                        reader_kwargs={'use_tile_time': True})
+    scene.load(['B01'])
+L1C format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
 
@@ -37,6 +45,7 @@ L1B format description for the files read here:
 import logging
 
 import dask.array as da
+from datetime import datetime
 import defusedxml.ElementTree as ET
 import numpy as np
 import xarray as xr
@@ -58,17 +67,21 @@ PLATFORMS = {"S2A": "Sentinel-2A",
 class SAFEMSIL1C(BaseFileHandler):
     """File handler for SAFE MSI files (jp2)."""
 
-    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=True):
+    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=True, use_tile_time=False):
         """Initialize the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
         del mask_saturated
-        self._start_time = filename_info["observation_time"]
-        self._end_time = filename_info["observation_time"]
         self._channel = filename_info["band_name"]
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
+
+        if use_tile_time:
+            self._start_time = self._tile_mda.start_time()
+        else:
+            self._start_time = filename_info["observation_time"]
+        self._end_time = filename_info["observation_time"]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -266,6 +279,12 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         rows = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NROWS').text)
         cols = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NCOLS').text)
         return cols, rows
+
+    def start_time(self):
+        """Get the observation time from the tile metadata."""
+        timestr = self.root.find('.//SENSING_TIME').text
+        return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%fZ")
+
 
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):
