@@ -285,7 +285,6 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         timestr = self.root.find('.//SENSING_TIME').text
         return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
-
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):
         interp_points2 = np.vstack((ycoord.ravel(), xcoord.ravel()))
