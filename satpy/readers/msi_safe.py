@@ -43,9 +43,9 @@ L1C format description for the files read here:
 """
 
 import logging
+from datetime import datetime
 
 import dask.array as da
-from datetime import datetime
 import defusedxml.ElementTree as ET
 import numpy as np
 import xarray as xr
@@ -123,7 +123,7 @@ class SAFEMSIL1C(BaseFileHandler):
 class SAFEMSIXMLMetadata(BaseFileHandler):
     """Base class for SAFE MSI XML metadata filehandlers."""
 
-    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, use_tile_time=False):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info)
         self._start_time = filename_info["observation_time"]
@@ -239,7 +239,7 @@ def _fill_swath_edges(angles):
 class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     """File handle for sentinel 2 safe XML tile metadata."""
 
-    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, use_tile_time=False):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info, mask_saturated)
         self.geocoding = self.root.find(".//Tile_Geocoding")
@@ -282,7 +282,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
 
     def start_time(self):
         """Get the observation time from the tile metadata."""
-        timestr = self.root.find('.//SENSING_TIME').text
+        timestr = self.root.find(".//SENSING_TIME").text
         return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @staticmethod
