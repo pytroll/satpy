@@ -27,15 +27,18 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader='msi_safe',
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
+
 MSI data typically have the same start time across multiple tiles, which can cause
 problems if iterating over multiple tiles, as the saved imagery from one tile
 may be overwritten by the next tile.
 To overcome this, the user can specify `use_tile_time`, which will determine the start
 time from the tile metadata rather than from the filename::
+
     scene = satpy.Scene(filenames,
                         reader='msi_safe',
                         reader_kwargs={'use_tile_time': True})
     scene.load(['B01'])
+
 L1C format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
