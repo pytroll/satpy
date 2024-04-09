@@ -146,11 +146,15 @@ AUX_DATA = {
 HIGH_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "500m",
                                        "grid_width": 22272},
                       "fci_l1c_fdhsi": {"grid_type": "1km",
+                                        "grid_width": 11136},
+                      "fci_l1c_af":  {"grid_type": "1km",
                                         "grid_width": 11136}}
 LOW_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "1km",
                                       "grid_width": 11136},
                      "fci_l1c_fdhsi": {"grid_type": "2km",
-                                       "grid_width": 5568}}
+                                       "grid_width": 5568},
+                     "fci_l1c_af":{"grid_type": "3km",
+                                   "grid_width":3712}}
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -218,7 +222,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         As RSS is not yet implemeted and error will be raised if RSS are to be read
         """
-        if not self.filename_info["coverage"] == "FD":
+        if self.filename_info["coverage"] not in ["FD","AF"]:
             raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
             return 2.5
         return 10
@@ -263,39 +267,62 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         return measured_group_path
 
     def get_segment_position_info(self):
-        """Get information about the size and the position of the segment inside the final image array.
+     """Get information about the size and the position of the segment inside the final image array.
 
-        As the final array is composed by stacking segments vertically, the position of a segment
-        inside the array is defined by the numbers of the start (lowest) and end (highest) row of the segment.
-        The row numbering is assumed to start with 1.
-        This info is used in the GEOVariableSegmentYAMLReader to compute optimal segment sizes for missing segments.
+     As the final array is composed by stacking segments vertically, the position of a segment
+     inside the array is defined by the numbers of the start (lowest) and end (highest) row of the segment.
+     The row numbering is assumed to start with 1.
+     This info is used in the GEOVariableSegmentYAMLReader to compute optimal segment sizes for missing segments.
 
-        Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
-        of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
-        """
-        vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
-        ir_105_measured_path = self.get_channel_measured_group_path("ir_105")
+     Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
+     of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
+     """
+     file_type = self.filetype_info["file_type"]
+     if self.filename_info["coverage"] == "AF":
+         channel_data = [key for key in self.file_content.keys()
+                         if ((key.startswith("data/vis") or
+                              key.startswith("data/ir") or
+                              key.startswith("data/hrv") or
+                              key.startswith("data/nir") or
+                              key.startswith("data/wv"))
+                             and key.endswith("measured"))][0]
+         segment_position_info = {
+             HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
+                 "start_position_row": self.get_and_cache_npxr(f"{channel_data}/start_position_row").item(),
+                 "end_position_row": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item(),
+                 "segment_height": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item() -
+                 self.get_and_cache_npxr(f"{channel_data}/start_position_row").item() + 1,
+                 "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
+             },
+             LOW_RES_GRID_INFO[file_type]["grid_type"]: {
+                 "start_position_row": self.get_and_cache_npxr(f"{channel_data}/start_position_row").item(),
+                 "end_position_row": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item(),
+                 "segment_height": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item() -
+                 self.get_and_cache_npxr(f"{channel_data}/start_position_row").item() + 1,
+                 "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
+             }
+         }
+     else:
+         vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
+         ir_105_measured_path = self.get_channel_measured_group_path("ir_105")
+         segment_position_info = {
+             HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
+                 "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
+                 "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
+                 "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
+                 self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
+                 "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
+             },
+             LOW_RES_GRID_INFO[file_type]["grid_type"]: {
+                 "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
+                 "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
+                 "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
+                 self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
+                 "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
+             }
+         }
 
-        file_type = self.filetype_info["file_type"]
-
-        segment_position_info = {
-            HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
-                "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
-                "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
-                "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
-                self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
-                "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
-            },
-            LOW_RES_GRID_INFO[file_type]["grid_type"]: {
-                "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
-                "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
-                "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
-                self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
-                "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
-            }
-        }
-
-        return segment_position_info
+     return segment_position_info
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
@@ -397,9 +424,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
-        nominal_and_proj_subsat_lon = float(
-            self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
-        nominal_and_proj_subsat_lat = 0
+        try :
+            nominal_and_proj_subsat_lon = float(
+                self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        except ValueError:
+            nominal_and_proj_subsat_lon = 0.0
+        nominal_and_proj_subsat_lat = 0.0
         nominal_and_proj_sat_alt = float(
             self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
 
@@ -551,7 +581,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
         h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
         rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
-        lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        try:
+            lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        except ValueError:
+            lon_0 = 0.0
         sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)

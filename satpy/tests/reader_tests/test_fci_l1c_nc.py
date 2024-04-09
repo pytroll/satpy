@@ -57,6 +57,12 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
         "scale_factor": 5.58871526031607e-05,
         "add_offset": 1.55617776423501e-01,
     },
+    "3km": {
+        "nrows": 66,
+        "ncols": 3712,
+        "scale_factor":  8.38307287956433e-05,
+        "add_offset": 0.155631748009112,
+    },
 }
 
 
@@ -366,6 +372,10 @@ class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
     }
 
 
+class FakeFCIFileHandlerAF(FakeFCIFileHandlerBase):
+    """Mock AF data."""
+    chan_patterns = {}
+
 # ----------------------------------------------------
 # Fixtures preparation -------------------------------
 # ----------------------------------------------------
@@ -394,18 +404,25 @@ def clear_cache(reader):
         for fh in fhs:
             fh.cached_file_content = {}
 
+list_channel_solar = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
+                          "nir_13", "nir_16", "nir_22"]
+list_channel_terran = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
+                           "ir_123", "ir_133"]
+list_total_channel = list_channel_solar + list_channel_terran
+list_resolution = ["1km","3km"]
 
-_chans_fdhsi = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
-                          "nir_13", "nir_16", "nir_22"],
+_chans_fdhsi = {"solar": list_channel_solar,
                 "solar_grid_type": ["1km"] * 8,
-                "terran": ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
-                           "ir_123", "ir_133"],
+                "terran": list_channel_terran,
                 "terran_grid_type": ["2km"] * 8}
 
 _chans_hrfi = {"solar": ["vis_06", "nir_22"],
                "solar_grid_type": ["500m"] * 2,
                "terran": ["ir_38", "ir_105"],
                "terran_grid_type": ["1km"] * 2}
+
+_chans_af = {}
+
 
 _test_filenames = {"fdhsi": [
     "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -419,6 +436,20 @@ _test_filenames = {"fdhsi": [
     ]
 }
 
+for channel in list_total_channel:
+    for resol in list_resolution:
+        chann_upp = channel.replace("_","").upper()
+        _test_filenames[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
+                                                    f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
+                                                    f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
+        if channel.split("_")[0] in ["vis","nir"]:
+            _chans_af[f"{channel}_{resol}"] = {"solar":[channel],
+                                               "solar_grid_type": [resol]}
+        elif channel.split("_")[0] in ["ir","wv"]:
+            _chans_af[f"{channel}_{resol}"] = {"terran":[channel],
+                                               "terran_grid_type": [resol]}
+
+#W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD-1KM-AF-VIS06-x-x---NC4E_C_EUMT_20240125144647_DT_OPE_20240109080007_20240109080924_N_JLS_T_0049_0000.nc
 
 @contextlib.contextmanager
 def mocked_basefilehandler(filehandler):
@@ -452,6 +483,19 @@ def FakeFCIFileHandlerHRFI_fixture():
         }
         yield param_dict
 
+@pytest.fixture()
+def FakeFCIFileHandlerAF_fixture(channel,resolution):
+    """Get a fixture for the fake AF filehandler, including channel and file names."""
+    chan_patterns = {channel.split("_")[0]+"_{:>02d}": {"channels": [int(channel.split("_")[1])],
+                           "grid_type": f"{resolution}"},}
+    FakeFCIFileHandlerAF.chan_patterns = chan_patterns
+    with mocked_basefilehandler(FakeFCIFileHandlerAF):
+        param_dict = {
+            "filetype": f"fci_l1c_af_{channel}",
+            "channels": _chans_af[f"{channel}_{resolution}"],
+            "filenames": _test_filenames[f"af_{channel}_{resolution}"],
+        }
+        yield param_dict
 
 # ----------------------------------------------------
 # Tests ----------------------------------------------
@@ -466,7 +510,7 @@ class TestFCIL1cNCReader:
                              "fdhsi": {"channels": _chans_fdhsi,
                                        "filenames": _test_filenames["fdhsi"]}}
 
-    @pytest.mark.parametrize("filenames", [_test_filenames["fdhsi"], _test_filenames["hrfi"]])
+    @pytest.mark.parametrize("filenames", [_test_filenames[filename] for filename in _test_filenames.keys()])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""
         from satpy.readers import load_reader
@@ -509,6 +553,34 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_equal(res[ch], 1)
 
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_load_counts_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test loading with counts for AF files."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([make_dataid(name=name, calibration="counts")
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param["channels"][type_ter],
+                                 fh_param["channels"][f"{type_ter}_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+            assert res[ch].dtype == np.uint16
+            assert res[ch].attrs["calibration"] == "counts"
+            assert res[ch].attrs["units"] == "count"
+            if ch == "ir_38":
+                numpy.testing.assert_array_equal(res[ch][-1], 1)
+                numpy.testing.assert_array_equal(res[ch][0], 5000)
+            else:
+                numpy.testing.assert_array_equal(res[ch], 1)
+
+
     @pytest.mark.parametrize(("fh_param", "expected_res_n"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), 16),
                                                               (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), 4)])
     def test_load_radiance(self, reader_configs, fh_param,
@@ -534,6 +606,35 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_equal(res[ch], 15)
 
+
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_load_radiance_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test loading with radiance for AF files."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([make_dataid(name=name, calibration="radiance")
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param["channels"][type_ter],
+                                 fh_param["channels"][f"{type_ter}_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+            assert res[ch].dtype == np.float32
+            assert res[ch].attrs["calibration"] == "radiance"
+            assert res[ch].attrs["units"] == "mW m-2 sr-1 (cm-1)-1"
+            assert res[ch].attrs["radiance_unit_conversion_coefficient"].values == np.float32(1234.56)
+            if ch == "ir_38":
+                numpy.testing.assert_array_equal(res[ch][-1], 15)
+                numpy.testing.assert_array_equal(res[ch][0], 9700)
+            else:
+                numpy.testing.assert_array_equal(res[ch], 15)
+
     @pytest.mark.parametrize(("fh_param", "expected_res_n"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), 8),
                                                               (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), 2)])
     def test_load_reflectance(self, reader_configs, fh_param,
@@ -545,6 +646,29 @@ class TestFCIL1cNCReader:
              fh_param["channels"]["solar"]], pad_data=False)
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"]["solar"], fh_param["channels"]["solar_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+            assert res[ch].dtype == np.float32
+            assert res[ch].attrs["calibration"] == "reflectance"
+            assert res[ch].attrs["units"] == "%"
+            numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
+
+    @pytest.mark.parametrize("channel",list_channel_solar)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_load_reflectance_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test loading with reflectance for AF files."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([make_dataid(name=name, calibration="reflectance")
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param["channels"][type_ter],
+                                 fh_param["channels"][f"{type_ter}_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             assert res[ch].dtype == np.float32
@@ -577,6 +701,37 @@ class TestFCIL1cNCReader:
             else:
                 numpy.testing.assert_array_almost_equal(res[ch], np.float32(209.68275))
 
+
+    @pytest.mark.parametrize("channel",list_channel_terran)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_load_bt_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution,caplog):
+        """Test loading with brightness_temperature for AF files."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        with caplog.at_level(logging.WARNING):
+            res = reader.load([make_dataid(name=name, calibration="brightness_temperature")
+                    for name in fh_param["channels"][type_ter]], pad_data=False)
+            assert caplog.text == ""
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param["channels"][type_ter],
+                                 fh_param["channels"][f"{type_ter}_grid_type"]):
+            assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+            assert res[ch].dtype == np.float32
+            assert res[ch].attrs["calibration"] == "brightness_temperature"
+            assert res[ch].attrs["units"] == "K"
+
+            if ch == "ir_38":
+                numpy.testing.assert_array_almost_equal(res[ch][-1], np.float32(209.68275))
+                numpy.testing.assert_array_almost_equal(res[ch][0], np.float32(1888.8513))
+            else:
+                numpy.testing.assert_array_almost_equal(res[ch], np.float32(209.68275))
+
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
     def test_orbital_parameters_attr(self, reader_configs, fh_param):
@@ -587,6 +742,33 @@ class TestFCIL1cNCReader:
              fh_param["channels"]["solar"] + fh_param["channels"]["terran"]], pad_data=False)
 
         for ch in fh_param["channels"]["solar"] + fh_param["channels"]["terran"]:
+            assert res[ch].attrs["orbital_parameters"] == {
+                "satellite_actual_longitude": np.mean(np.arange(6000)),
+                "satellite_actual_latitude": np.mean(np.arange(6000)),
+                "satellite_actual_altitude": np.mean(np.arange(6000)),
+                "satellite_nominal_longitude": 0.0,
+                "satellite_nominal_latitude": 0,
+                "satellite_nominal_altitude": 35786400.0,
+                "projection_longitude": 0.0,
+                "projection_latitude": 0,
+                "projection_altitude": 35786400.0,
+            }
+
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_orbital_parameters_attr_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test the orbital parametters for AF data."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([make_dataid(name=name)
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch in fh_param["channels"][type_ter]:
             assert res[ch].attrs["orbital_parameters"] == {
                 "satellite_actual_longitude": np.mean(np.arange(6000)),
                 "satellite_actual_latitude": np.mean(np.arange(6000)),
@@ -645,6 +827,26 @@ class TestFCIL1cNCReader:
                                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             numpy.testing.assert_array_equal(res[ch + "_index_map"][1, 1], 110)
 
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_load_index_map_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test loading with index_map for AF files."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([f"{name}_index_map"
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param["channels"][type_ter],
+                                 fh_param["channels"][f"{type_ter}_grid_type"]):
+            assert res[f"{ch}_index_map"].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+            numpy.testing.assert_array_equal(res[f"{ch}_index_map"][1, 1], 110)
+
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
     def test_load_aux_data(self, reader_configs, fh_param):
@@ -679,6 +881,27 @@ class TestFCIL1cNCReader:
             numpy.testing.assert_array_equal(res[ch + "_pixel_quality"][1, 1], 3)
             assert res[ch + "_pixel_quality"].attrs["name"] == ch + "_pixel_quality"
 
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_load_quality_only_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test loading with quality works for AF files."""
+        expected_res_n = 1
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([f"{name}_pixel_quality"
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        assert expected_res_n == len(res)
+        for ch, grid_type in zip(fh_param["channels"][type_ter],
+                                 fh_param["channels"][f"{type_ter}_grid_type"]):
+            assert res[f"{ch}_pixel_quality"].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+            numpy.testing.assert_array_equal(res[f"{ch}_pixel_quality"][1, 1], 3)
+            assert res[f"{ch}_pixel_quality"].attrs["name"] == f"{ch}_pixel_quality"
+
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
     def test_platform_name(self, reader_configs, fh_param):
@@ -690,6 +913,21 @@ class TestFCIL1cNCReader:
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         res = reader.load(["vis_06"], pad_data=False)
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
+
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_platform_name_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test that platform name is exposed for AF file."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if channel.split("_")[0] in ["vis","nir"]:
+            type_ter = "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            type_ter = "terran"
+        res = reader.load([f"{name}"
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        for ch in fh_param["channels"][type_ter]:
+            assert res[ch].attrs["platform_name"] == "MTG-I1"
 
     @pytest.mark.parametrize(("fh_param", "expected_area"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), ["mtg_fci_fdss_1km", "mtg_fci_fdss_2km"]),
@@ -730,6 +968,19 @@ class TestFCIL1cNCReader:
         with pytest.raises(ValueError, match="unknown invalid value for <enum 'calibration'>"):
             reader.file_handlers[fh_param["filetype"]][0].get_dataset(
                 make_dataid(name="ir_123", calibration="unknown"),
+                {"units": "unknown"})
+
+    @pytest.mark.parametrize("channel",list_total_channel)
+    @pytest.mark.parametrize("resolution",list_resolution)
+    def test_excs_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+        """Test exceptions for AF files."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        with pytest.raises(ValueError, match="Unknown dataset key, not a channel, quality or auxiliary data: invalid"):
+            reader.file_handlers[fh_param["filetype"]][0].get_dataset(make_dataid(name="invalid"), {})
+        with pytest.raises(ValueError, match="unknown invalid value for <enum 'calibration'>"):
+            reader.file_handlers[fh_param["filetype"]][0].get_dataset(
+                make_dataid(name=f"{channel}", calibration="unknown"),
                 {"units": "unknown"})
 
     def test_load_composite(self):
