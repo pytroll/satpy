@@ -60,7 +60,7 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
     "3km": {
         "nrows": 66,
         "ncols": 3712,
-        "scale_factor":  8.38307287956433e-05,
+        "scale_factor": 8.38307287956433e-05,
         "add_offset": 0.155631748009112,
     },
 }
@@ -510,6 +510,22 @@ class TestFCIL1cNCReader:
                              "fdhsi": {"channels": _chans_fdhsi,
                                        "filenames": _test_filenames["fdhsi"]}}
 
+    def _get_type_ter_AF(self,channel):
+        """Get the type_ter."""
+        if channel.split("_")[0] in ["vis","nir"]:
+            return "solar"
+        elif channel.split("_")[0] in ["wv","ir"]:
+            return "terran"
+
+
+    def _get_res_AF(self,channel,fh_param,calibration,reader_configs):
+        """Load the reader for AF data."""
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        type_ter = self._get_type_ter_AF(channel)
+        res = reader.load([make_dataid(name=name, calibration=calibration)
+                for name in fh_param["channels"][type_ter]], pad_data=False)
+        return res
+
     @pytest.mark.parametrize("filenames", [_test_filenames[filename] for filename in _test_filenames.keys()])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""
@@ -559,20 +575,16 @@ class TestFCIL1cNCReader:
         """Test loading with counts for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
-        res = reader.load([make_dataid(name=name, calibration="counts")
-                for name in fh_param["channels"][type_ter]], pad_data=False)
+        type_ter = self._get_type_ter_AF(channel)
+        calibration = "counts"
+        res = self._get_res_AF(channel,fh_param,calibration,reader_configs)
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             assert res[ch].dtype == np.uint16
-            assert res[ch].attrs["calibration"] == "counts"
+            assert res[ch].attrs["calibration"] == calibration
             assert res[ch].attrs["units"] == "count"
             if ch == "ir_38":
                 numpy.testing.assert_array_equal(res[ch][-1], 1)
@@ -613,20 +625,16 @@ class TestFCIL1cNCReader:
         """Test loading with radiance for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
-        res = reader.load([make_dataid(name=name, calibration="radiance")
-                for name in fh_param["channels"][type_ter]], pad_data=False)
+        type_ter = self._get_type_ter_AF(channel)
+        calibration = "radiance"
+        res = self._get_res_AF(channel,fh_param,calibration,reader_configs)
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             assert res[ch].dtype == np.float32
-            assert res[ch].attrs["calibration"] == "radiance"
+            assert res[ch].attrs["calibration"] == calibration
             assert res[ch].attrs["units"] == "mW m-2 sr-1 (cm-1)-1"
             assert res[ch].attrs["radiance_unit_conversion_coefficient"].values == np.float32(1234.56)
             if ch == "ir_38":
@@ -659,20 +667,16 @@ class TestFCIL1cNCReader:
         """Test loading with reflectance for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
-        res = reader.load([make_dataid(name=name, calibration="reflectance")
-                for name in fh_param["channels"][type_ter]], pad_data=False)
+        type_ter = self._get_type_ter_AF(channel)
+        calibration = "reflectance"
+        res = self._get_res_AF(channel,fh_param,calibration,reader_configs)
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
             assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             assert res[ch].dtype == np.float32
-            assert res[ch].attrs["calibration"] == "reflectance"
+            assert res[ch].attrs["calibration"] == calibration
             assert res[ch].attrs["units"] == "%"
             numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
@@ -709,10 +713,7 @@ class TestFCIL1cNCReader:
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
+        type_ter = self._get_type_ter_AF(channel)
         with caplog.at_level(logging.WARNING):
             res = reader.load([make_dataid(name=name, calibration="brightness_temperature")
                     for name in fh_param["channels"][type_ter]], pad_data=False)
@@ -761,10 +762,7 @@ class TestFCIL1cNCReader:
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
+        type_ter = self._get_type_ter_AF(channel)
         res = reader.load([make_dataid(name=name)
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         assert expected_res_n == len(res)
@@ -834,10 +832,7 @@ class TestFCIL1cNCReader:
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
+        type_ter = self._get_type_ter_AF(channel)
         res = reader.load([f"{name}_index_map"
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         assert expected_res_n == len(res)
@@ -888,10 +883,7 @@ class TestFCIL1cNCReader:
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
+        type_ter = self._get_type_ter_AF(channel)
         res = reader.load([f"{name}_pixel_quality"
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         assert expected_res_n == len(res)
@@ -920,10 +912,7 @@ class TestFCIL1cNCReader:
         """Test that platform name is exposed for AF file."""
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        if channel.split("_")[0] in ["vis","nir"]:
-            type_ter = "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
-            type_ter = "terran"
+        type_ter = self._get_type_ter_AF(channel)
         res = reader.load([f"{name}"
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         for ch in fh_param["channels"][type_ter]:
