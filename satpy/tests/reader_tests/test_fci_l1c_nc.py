@@ -571,7 +571,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_total_channel)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_load_counts_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_load_counts_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test loading with counts for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
@@ -621,7 +621,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_total_channel)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_load_radiance_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_load_radiance_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test loading with radiance for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
@@ -663,7 +663,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_channel_solar)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_load_reflectance_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_load_reflectance_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test loading with reflectance for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
@@ -708,15 +708,14 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_channel_terran)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_load_bt_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution,caplog):
+    def test_load_bt_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,caplog):
         """Test loading with brightness_temperature for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         type_ter = self._get_type_ter_AF(channel)
+        calibration = "brightness_temperature"
         with caplog.at_level(logging.WARNING):
-            res = reader.load([make_dataid(name=name, calibration="brightness_temperature")
-                    for name in fh_param["channels"][type_ter]], pad_data=False)
+            res = self._get_res_AF(channel,fh_param,calibration,reader_configs)
             assert caplog.text == ""
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
@@ -757,7 +756,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_total_channel)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_orbital_parameters_attr_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_orbital_parameters_attr_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test the orbital parametters for AF data."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
@@ -827,7 +826,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_total_channel)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_load_index_map_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_load_index_map_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test loading with index_map for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
@@ -878,7 +877,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_total_channel)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_load_quality_only_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_load_quality_only_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test loading with quality works for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
@@ -961,7 +960,7 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("channel",list_total_channel)
     @pytest.mark.parametrize("resolution",list_resolution)
-    def test_excs_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_excs_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel):
         """Test exceptions for AF files."""
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
