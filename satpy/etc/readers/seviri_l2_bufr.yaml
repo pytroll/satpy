@@ -1172,7 +1172,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: degrees
+    units: degrees_north
     file_type: seviri_l2_bufr_gii
     fill_value: 0
 
@@ -1259,10 +1259,23 @@ datasets:
        - longitude
        - latitude
 
+  oca_pressure:
+    name: oca_pressure
+    long_name: Air Pressure at Wind Level feature from OCA hight assignment
+    standard_name: air_pressure_at_wind_level
+    resolution: none
+    file_type: fci_l2_bufr_amv
+    key: '#3#pressure'
+    units: Pa
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
   temperature:
     name: temperature
     long_name: Temperature of AMV feature
-    standard_name: temperature_at_wind_level
+    standard_name: air_temperature_at_wind_level
     resolution: none
     file_type: seviri_l2_bufr_amv
     key: '#1#airTemperature'
@@ -1292,7 +1305,7 @@ datasets:
     resolution: none
     file_type: seviri_l2_bufr_amv
     key: '#1#windDirection'
-    units: deg
+    units: degrees_north
     fill_value: -1.e+100
     coordinates:
        - longitude
@@ -1397,6 +1410,19 @@ datasets:
     file_type: seviri_l2_bufr_amv
     key: '#4#percentConfidence'
     units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+    - longitude
+    - latitude
+
+  channel_id:
+    name: channel_id
+    long_name: Channel Id
+    standard_name: channel_id
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    key: '#1#channelNumber'
+    units: ""
     fill_value: -1.0e+100
     coordinates:
     - longitude

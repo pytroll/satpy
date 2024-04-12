@@ -43,7 +43,7 @@ datasets:
   pressure:
     name: pressure
     long_name: Pressure of AMV feature
-    standard_name: pressure_at_wind_level
+    standard_name: air_pressure_at_wind_level
     resolution: none
     file_type: fci_l2_bufr_amv
     key: '#1#pressure'
@@ -56,7 +56,7 @@ datasets:
   temperature:
     name: temperature
     long_name: Temperature of AMV feature
-    standard_name: temperature_at_wind_level
+    standard_name: air_temperature_at_wind_level
     resolution: none
     file_type: fci_l2_bufr_amv
     key: '#1#airTemperature'
@@ -182,6 +182,19 @@ datasets:
     coordinates:
       - longitude
       - latitude
+
+  channel_id:
+    name: channel_id
+    long_name: Channel Id
+    standard_name: channel_id
+    resolution: none
+    file_type: fci_l2_bufr_amv
+    key: '#1#channelNumber'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+    - longitude
+    - latitude
 
   # ---- ASR products ------------
   bt_mean_all_ir38:
