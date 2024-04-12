@@ -105,8 +105,8 @@ datasets:
       - longitude
       - latitude
 
-  u:
-    name: u
+  speed_u_component:
+    name: speed_u_component
     long_name: Speed U component of AMV
     standard_name: wind_speed_horizontal_component
     resolution: none
@@ -118,8 +118,8 @@ datasets:
       - longitude
       - latitude
 
-  v:
-    name: v
+  speed_v_component:
+    name: speed_v_component
     long_name: Speed V component of AMV
     standard_name: wind_speed_vertival_component
     resolution: none
