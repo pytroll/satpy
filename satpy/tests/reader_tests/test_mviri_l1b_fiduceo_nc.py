@@ -26,8 +26,8 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyproj import CRS
 from pyresample.geometry import AreaDefinition
-from pyresample.utils import proj4_radius_parameters
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
@@ -61,10 +61,10 @@ attrs_refl_exp.update(
     {"sun_earth_distance_correction_applied": True,
      "sun_earth_distance_correction_factor": 1.}
 )
-acq_time_vis_exp = [np.datetime64("1970-01-01 00:30"),
-                    np.datetime64("1970-01-01 00:30"),
-                    np.datetime64("1970-01-01 02:30"),
-                    np.datetime64("1970-01-01 02:30")]
+acq_time_vis_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+                    np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+                    np.datetime64("1970-01-01 02:30").astype("datetime64[ns]"),
+                    np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 vis_counts_exp = xr.DataArray(
     np.array(
         [[0., 17., 34., 51.],
@@ -124,8 +124,8 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
-acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30"),
-                      np.datetime64("1970-01-01 02:30")]
+acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+                      np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
     np.array(
         [[0, 85],
@@ -232,17 +232,12 @@ sza_ir_wv_exp = xr.DataArray(
     dims=("y", "x"),
     attrs=attrs_exp
 )
+projection = CRS(f"+proj=geos +lon_0=57.0 +h={ALTITUDE} +a={EQUATOR_RADIUS} +b={POLE_RADIUS}")
 area_vis_exp = AreaDefinition(
     area_id="geos_mviri_4x4",
     proj_id="geos_mviri_4x4",
     description="MVIRI Geostationary Projection",
-    projection={
-        "proj": "geos",
-        "lon_0": 57.0,
-        "h": ALTITUDE,
-        "a": EQUATOR_RADIUS,
-        "b": POLE_RADIUS
-    },
+    projection=projection,
     width=4,
     height=4,
     area_extent=[5621229.74392, 5621229.74392, -5621229.74392, -5621229.74392]
@@ -277,7 +272,8 @@ def fixture_fake_dataset():
             dtype=np.uint8
         )
     )
-    time = np.arange(4).astype("datetime64[h]").reshape(2, 2)
+    time = np.arange(4) * 60 * 60 * 1e9
+    time = time.astype("datetime64[ns]").reshape(2, 2)
     ds = xr.Dataset(
         data_vars={
             "count_vis": (("y", "x"), count_vis),
@@ -502,14 +498,8 @@ class TestFiduceoMviriFileHandlers:
         """Test getting area definitions."""
         dataset_id = make_dataid(name=name, resolution=resolution)
         area = file_handler.get_area_def(dataset_id)
-        a, b = proj4_radius_parameters(area.proj_dict)
-        a_exp, b_exp = proj4_radius_parameters(area_exp.proj_dict)
-        assert a == a_exp
-        assert b == b_exp
-        assert area.width == area_exp.width
-        assert area.height == area_exp.height
-        for key in ["h", "lon_0", "proj", "units"]:
-            assert area.proj_dict[key] == area_exp.proj_dict[key]
+
+        assert area.crs == area_exp.crs
         np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
 
     def test_calib_exceptions(self, file_handler):

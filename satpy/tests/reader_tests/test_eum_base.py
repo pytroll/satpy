@@ -39,17 +39,18 @@ class TestMakeTimeCdsDictionary(unittest.TestCase):
     def test_fun(self):
         """Test function for TestMakeTimeCdsDictionary."""
         # time_cds_short
-        tcds = {"Days": 1, "Milliseconds": 2}
+        tcds = {"Days": np.array(1), "Milliseconds": np.array(2)}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
         assert timecds2datetime(tcds) == expected
 
         # time_cds
-        tcds = {"Days": 1, "Milliseconds": 2, "Microseconds": 3}
+        tcds = {"Days": np.array(1), "Milliseconds": np.array(2), "Microseconds": np.array(3)}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
         assert timecds2datetime(tcds) == expected
 
         # time_cds_expanded
-        tcds = {"Days": 1, "Milliseconds": 2, "Microseconds": 3, "Nanoseconds": 4}
+        tcds = {"Days": np.array(1), "Milliseconds": np.array(2), "Microseconds": np.array(3),
+                "Nanoseconds": np.array(4)}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
         assert timecds2datetime(tcds) == expected
 

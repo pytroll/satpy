@@ -29,7 +29,7 @@ import dask.array as da
 import numpy as np
 import pytest
 
-from satpy.readers.ahi_hsd import AHIHSDFileHandler
+from satpy.readers.ahi_hsd import AHIHSDFileHandler, _NominalTimeCalculator
 from satpy.readers.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
@@ -40,7 +40,7 @@ FAKE_BASIC_INFO: InfoDict = {
     "satellite": "Himawari-8",
     "observation_area": "FLDK",
     "observation_start_time": 58413.12523839,
-    "observation_end_time": 58413.12562439,
+    "observation_end_time": 58413.132182834444,
     "observation_timeline": "0300",
 }
 FAKE_DATA_INFO: InfoDict = {
@@ -105,7 +105,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch("satpy.readers.ahi_hsd.np.fromfile")
     def test_region(self, fromfile, np2str):
         """Test region navigation."""
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
+
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch("satpy.readers.ahi_hsd.open", m, create=True):
@@ -140,14 +141,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            proj_dict = area_def.proj_dict
-            a, b = proj4_radius_parameters(proj_dict)
-            assert a == 6378137.0
-            assert b == 6356752.3
-            assert proj_dict["h"] == 35785863.0
-            assert proj_dict["lon_0"] == 140.7
-            assert proj_dict["proj"] == "geos"
-            assert proj_dict["units"] == "m"
+            expected_crs = CRS.from_dict(dict(a=6378137.0, b=6356752.3, h= 35785863.0,
+                                              lon_0=140.7, proj="geos", units="m"))
+            assert area_def.crs == expected_crs
             np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
                                                               1592000.0102878273, 5132000.033164027))
 
@@ -155,7 +151,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch("satpy.readers.ahi_hsd.np.fromfile")
     def test_segment(self, fromfile, np2str):
         """Test segment navigation."""
-        from pyresample.utils import proj4_radius_parameters
+        from pyproj import CRS
+
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch("satpy.readers.ahi_hsd.open", m, create=True):
@@ -188,14 +185,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             "spare": ""}
 
             area_def = fh.get_area_def(None)
-            proj_dict = area_def.proj_dict
-            a, b = proj4_radius_parameters(proj_dict)
-            assert a == 6378137.0
-            assert b == 6356752.3
-            assert proj_dict["h"] == 35785863.0
-            assert proj_dict["lon_0"] == 140.7
-            assert proj_dict["proj"] == "geos"
-            assert proj_dict["units"] == "m"
+            expected_crs = CRS.from_dict(dict(a=6378137.0, b=6356752.3, h= 35785863.0,
+                                              lon_0=140.7, proj="geos", units="m"))
+            assert area_def.crs == expected_crs
             np.testing.assert_allclose(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
                                                               5500000.035542117, -2200000.0142168473))
 
@@ -323,7 +315,10 @@ class TestAHIHSDFileHandler:
         with _fake_hsd_handler() as fh:
             fh.data_info["number_of_columns"] = ncols
             fh.data_info["number_of_lines"] = nrows
-            im = fh.read_band(mock.MagicMock(), mock.MagicMock())
+            with warnings.catch_warnings():
+                # The header isn't valid
+                warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                im = fh.read_band(mock.MagicMock(), mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
@@ -346,9 +341,9 @@ class TestAHIHSDFileHandler:
 
             time_params_exp = {
                 "nominal_start_time": datetime(2018, 10, 22, 3, 0, 0, 0),
-                "nominal_end_time": datetime(2018, 10, 22, 3, 0, 0, 0),
+                "nominal_end_time": datetime(2018, 10, 22, 3, 10, 0, 0),
                 "observation_start_time": datetime(2018, 10, 22, 3, 0, 20, 596896),
-                "observation_end_time": datetime(2018, 10, 22, 3, 0, 53, 947296),
+                "observation_end_time": datetime(2018, 10, 22, 3, 10, 20, 596896),
             }
             actual_time_params = im.attrs["time_parameters"]
             for key, value in time_params_exp.items():
@@ -358,7 +353,10 @@ class TestAHIHSDFileHandler:
             # Test if masking space pixels disables with appropriate flag
             fh.mask_space = False
             with mock.patch("satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space") as mask_space:
-                fh.read_band(mock.MagicMock(), mock.MagicMock())
+                with warnings.catch_warnings():
+                    # The header isn't valid
+                    warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                    fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
     def test_read_band_from_actual_file(self, hsd_file_jp01):
@@ -369,14 +367,17 @@ class TestAHIHSDFileHandler:
         key = {"name": "B01", "calibration": "counts", "resolution": 1000}
         import dask
         with dask.config.set({"array.chunk-size": "32MiB"}):
-            data = fh.read_band(
-                key,
-                {
-                    "units": "%",
-                    "standard_name": "toa_bidirectional_reflectance",
-                    "wavelength": 2,
-                    "resolution": 1000,
-                })
+            with warnings.catch_warnings():
+                # The header isn't valid
+                warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                data = fh.read_band(
+                    key,
+                    {
+                        "units": "%",
+                        "standard_name": "toa_bidirectional_reflectance",
+                        "wavelength": 2,
+                        "resolution": 1000,
+                    })
             assert data.chunks == ((1100,) * 10, (1100,) * 10)
             assert data.dtype == data.compute().dtype
             assert data.dtype == np.float32
@@ -398,7 +399,10 @@ class TestAHIHSDFileHandler:
                 fh.data_info["number_of_columns"] = ncols
                 fh.data_info["number_of_lines"] = nrows
                 scn = Scene(reader="ahi_hsd", filenames=["HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT"])
-                scn.load(["B07"])
+                with warnings.catch_warnings():
+                    # The header isn't valid
+                    warnings.filterwarnings("ignore", category=UserWarning, message=r"Actual .* header size")
+                    scn.load(["B07"])
                 im = scn["B07"]
 
                 # Make sure space masking worked
@@ -413,30 +417,11 @@ class TestAHIHSDFileHandler:
         """Test start/end/scheduled time properties."""
         with _fake_hsd_handler() as fh:
             assert fh.start_time == datetime(2018, 10, 22, 3, 0)
-            assert fh.end_time == datetime(2018, 10, 22, 3, 0)
+            assert fh.end_time == datetime(2018, 10, 22, 3, 10)
             assert fh.observation_start_time == datetime(2018, 10, 22, 3, 0, 20, 596896)
-            assert fh.observation_end_time == datetime(2018, 10, 22, 3, 0, 53, 947296)
+            assert fh.observation_end_time == datetime(2018, 10, 22, 3, 10, 20, 596896)
             assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-
-    def test_scanning_frequencies(self):
-        """Test scanning frequencies."""
-        with _fake_hsd_handler() as fh:
-            fh.observation_area = "JP04"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            fh.observation_area = "R304"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            fh.observation_area = "R420"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            fh.observation_area = "R520"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            fh.observation_area = "FLDK"
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 10, 0, 0)
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
@@ -453,26 +438,8 @@ class TestAHIHSDFileHandler:
 
             # Expected and actual blocklength do not match
             fp_.tell.return_value = 100
-            with warnings.catch_warnings(record=True) as w:
+            with pytest.warns(UserWarning, match=r"Actual .* header size does not match expected"):
                 fh._check_fpos(fp_, fpos, 0, "header 1")
-                assert len(w) > 0
-
-    def test_is_valid_time(self):
-        """Test that valid times are correctly identified."""
-        assert AHIHSDFileHandler._is_valid_timeline(FAKE_BASIC_INFO["observation_timeline"])
-        assert not AHIHSDFileHandler._is_valid_timeline("65526")
-
-    def test_time_rounding(self):
-        """Test rounding of the nominal time."""
-        mocker = mock.MagicMock()
-        in_date = datetime(2020, 1, 1, 12, 0, 0)
-
-        with mock.patch("satpy.readers.ahi_hsd.AHIHSDFileHandler._is_valid_timeline", mocker):
-            with _fake_hsd_handler() as fh:
-                mocker.return_value = True
-                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
-                mocker.return_value = False
-                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
 
 class TestAHICalibration(unittest.TestCase):
@@ -664,3 +631,111 @@ def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, 
     assert in_fname != fh.filename
     assert str(filename_info["segment"]).zfill(2) == fh.filename[0:2]
     return fh
+
+
+class TestNominalTimeCalculator:
+    """Test case for nominal timestamp computation."""
+
+    @pytest.mark.parametrize(
+        ("timeline", "expected"),
+        [
+            ("0300", datetime(2020, 1, 1, 3, 0, 0)),
+            ("65526", datetime(2020, 1, 1, 12, 0, 0))
+        ]
+    )
+    def test_invalid_timeline(self, timeline, expected):
+        """Test handling of invalid timeline."""
+        calc = _NominalTimeCalculator(timeline, "FLDK")
+        res = calc.get_nominal_start_time(datetime(2020, 1, 1, 12, 0, 0))
+        assert res == expected
+
+    @pytest.mark.parametrize(
+        ("area", "expected"),
+        [
+            (
+                "JP01",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 2, 30)}
+            ),
+            (
+                "JP04",
+                {"tstart": datetime(2018, 10, 22, 3, 7, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+            (
+                "R301",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 2, 30)}
+            ),
+            (
+                "R304",
+                {"tstart": datetime(2018, 10, 22, 3, 7, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+            (
+                "R401",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 0, 30)}
+            ),
+            (
+                "R420",
+                {"tstart": datetime(2018, 10, 22, 3, 9, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+            (
+                "R501",
+                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": datetime(2018, 10, 22, 3, 0, 30)}
+            ),
+            (
+                "R520",
+                {"tstart": datetime(2018, 10, 22, 3, 9, 30, 0),
+                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+            ),
+        ]
+    )
+    def test_areas(self, area, expected):
+        """Test nominal timestamps for multiple areas."""
+        obs_start_time = datetime(2018, 10, 22, 3, 0, 20, 596896)
+        calc = _NominalTimeCalculator("0300", area)
+        nom_start_time = calc.get_nominal_start_time(obs_start_time)
+        nom_end_time = calc.get_nominal_end_time(nom_start_time)
+        assert nom_start_time == expected["tstart"]
+        assert nom_end_time == expected["tend"]
+
+    @pytest.mark.parametrize(
+        ("timeline", "obs_start_time", "expected"),
+        [
+            (
+                "2350",
+                datetime(2022, 12, 31, 23, 50, 1),
+                {"tstart": datetime(2022, 12, 31, 23, 50, 0),
+                 "tend": datetime(2023, 1, 1, 0, 0, 0)}
+            ),
+            (
+                "2350",
+                datetime(2022, 12, 31, 23, 49, 59),
+                {"tstart": datetime(2022, 12, 31, 23, 50, 0),
+                 "tend": datetime(2023, 1, 1, 0, 0, 0)}
+            ),
+            (
+                "0000",
+                datetime(2023, 1, 1, 0, 0, 1),
+                {"tstart": datetime(2023, 1, 1, 0, 0, 0),
+                 "tend": datetime(2023, 1, 1, 0, 10, 0)}
+            ),
+            (
+                "0000",
+                datetime(2022, 12, 31, 23, 59, 59),
+                {"tstart": datetime(2023, 1, 1, 0, 0, 0),
+                 "tend": datetime(2023, 1, 1, 0, 10, 0)}
+            ),
+        ]
+    )
+    def test_timelines(self, timeline, obs_start_time, expected):
+        """Test nominal timestamps for multiple timelines."""
+        calc = _NominalTimeCalculator(timeline, "FLDK")
+        nom_start_time = calc.get_nominal_start_time(obs_start_time)
+        nom_end_time = calc.get_nominal_end_time(nom_start_time)
+        assert nom_start_time == expected["tstart"]
+        assert nom_end_time == expected["tend"]

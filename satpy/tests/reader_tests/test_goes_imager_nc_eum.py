@@ -52,7 +52,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
 
         xr_.open_dataset.return_value = xr.Dataset(
             {"data": xr.DataArray(data=self.radiance, dims=("time", "yc", "xc")),
-             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ms]"),
+             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ns]"),
                                   dims=("time",)),
              "bands": xr.DataArray(data=np.array([1]))},
             attrs={"Satellite Sensor": "G-15"})
@@ -139,7 +139,7 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
 
         xr_.open_dataset.return_value = xr.Dataset(
             {"data": xr.DataArray(data=self.reflectance, dims=("time", "yc", "xc")),
-             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ms]"),
+             "time": xr.DataArray(data=np.array([0], dtype="datetime64[ns]"),
                                   dims=("time",)),
              "bands": xr.DataArray(data=np.array([1]))},
             attrs={"Satellite Sensor": "G-15"})

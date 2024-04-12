@@ -2,7 +2,7 @@ name: CI
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#concurrency
 # https://docs.github.com/en/developers/webhooks-and-events/events/github-event-types#pullrequestevent
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.type }}
+  group: ${{ github.workflow }}-${{ github.event.number || github.event.ref }}-${{ github.event.type }}
   cancel-in-progress: true
 
 on: [push, pull_request]
@@ -18,10 +18,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.11", "3.12"]
         experimental: [false]
         include:
-          - python-version: "3.11"
+          - python-version: "3.12"
             os: "ubuntu-latest"
             experimental: true
 
@@ -51,7 +51,7 @@ jobs:
           CONDA_PREFIX=$(python -c "import sys; print(sys.prefix)")
           echo "CONDA_PREFIX=$CONDA_PREFIX" >> $GITHUB_ENV
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CONDA_PREFIX }}
           key: ${{ matrix.os }}-${{matrix.python-version}}-conda-${{ hashFiles('continuous_integration/environment.yaml') }}-${{ env.DATE }}-${{matrix.experimental}}-${{ env.CACHE_NUMBER }}
@@ -110,7 +110,7 @@ jobs:
           pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           flags: unittests
           file: ./coverage.xml
@@ -131,7 +131,7 @@ jobs:
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           flags: behaviourtests
           file: ./coverage.xml

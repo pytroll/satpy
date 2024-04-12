@@ -170,6 +170,6 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         description = "SMOS L2 Wind Equirectangular Projection"
         area_id = "smos_eqc"
         proj_id = "equirectangular"
-        proj_dict = {"init": self["/attr/geospatial_bounds_vertical_crs"]}
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
+        proj_str = self["/attr/geospatial_bounds_vertical_crs"]
+        area_def = AreaDefinition(area_id, description, proj_id, proj_str, width, height, area_extent, )
         return area_def
