@@ -17,3 +17,44 @@ enhancements:
         kwargs:
           palettes:
             - { colors: greys, min_value: 190, max_value: 295 }
+
+  fire_temperature_fci:
+    standard_name: fire_temperature_fci
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273.15, 0.0, 0.0]
+          max_stretch: [333.15, 100.0, 75.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [0.4, 1, 1]
+
+  fire_temperature_fci_38refl:
+    standard_name: fire_temperature_fci_38refl
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0.0, 0.0]
+          max_stretch: [50, 100.0, 75.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1, 1, 1]
+
+  fire_temperature_fci_rad:
+    standard_name: fire_temperature_fci_rad
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [3.5, 35., 85.]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
