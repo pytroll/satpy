@@ -2,6 +2,7 @@ sensor_name: visir/fci
 
 
 composites:
+### L2
   binary_cloud_mask:
     # This will set all clear pixels to '0', all pixels with cloudy features (meteorological/dust/ash clouds) to '1' and
     # missing/undefined pixels to 'nan'. This can be used for the official EUMETSAT cloud mask product (CLM).
@@ -11,7 +12,7 @@ composites:
     lut: [ .nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan ]
     standard_name: binary_cloud_mask
 
-# Green corrections
+### Green Corrections
   ndvi_hybrid_green:
     description: >
       The FCI green band at 0.51 µm deliberately misses the chlorophyll band, such that
@@ -57,7 +58,7 @@ composites:
         modifiers: [ sunz_corrected ]
     standard_name: toa_bidirectional_reflectance
 
-# True Color
+### True Color
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     description: >
@@ -107,6 +108,28 @@ composites:
       - true_color
       - night_ir105
 
+  true_color_with_night_ir:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 73
+    lim_high: 82
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+      -
+  true_color_with_night_ir_hires:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 73
+    lim_high: 82
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+
   true_color_reproduction:
     # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
@@ -138,14 +161,37 @@ composites:
       - name: vis_04
     standard_name: true_color_reproduction_color_stretch
 
-# Night Layers
+### Night Layers
   night_ir105:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
       - name: ir_105
     standard_name: night_ir105
 
-# GeoColor
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - name: ir_38
+      - name: ir_105
+      - name: ir_123
+      - name: ir_105
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires
+
+### GeoColor
   geo_color:
    compositor: !!python/name:satpy.composites.DayNightCompositor
    description: >
@@ -162,7 +208,6 @@ composites:
      - true_color
      - geo_color_night
 
-  # GeoColor Night-time
   geo_color_high_clouds:
    standard_name: geo_color_high_clouds
    compositor: !!python/name:satpy.composites.HighCloudCompositor
@@ -201,6 +246,7 @@ composites:
      - geo_color_high_clouds
      - geo_color_background_with_low_clouds
 
+### IR-Sandwich
   ir_sandwich:
     compositor: !!python/name:satpy.composites.SandwichCompositor
     standard_name: ir_sandwich
@@ -224,6 +270,7 @@ composites:
       - ir_sandwich
       - colorized_ir_clouds
 
+### other RGBs
   cloud_type:
     description: >
       Equal to cimss_cloud_type, but with additional sunz_reducer modifier to avoid saturation at the terminator.
@@ -255,4 +302,3 @@ composites:
       - name: vis_06
         modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: cloud_phase
-
