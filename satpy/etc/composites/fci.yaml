@@ -2,6 +2,16 @@ sensor_name: visir/fci
 
 
 composites:
+  binary_cloud_mask:
+    # This will set all clear pixels to '0', all pixels with cloudy features (meteorological/dust/ash clouds) to '1' and
+    # missing/undefined pixels to 'nan'. This can be used for the official EUMETSAT cloud mask product (CLM).
+    compositor: !!python/name:satpy.composites.CategoricalDataCompositor
+    prerequisites:
+      - name: 'cloud_state'
+    lut: [ .nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan ]
+    standard_name: binary_cloud_mask
+
+# Green corrections
   ndvi_hybrid_green:
     description: >
       The FCI green band at 0.51 µm deliberately misses the chlorophyll band, such that
@@ -47,6 +57,7 @@ composites:
         modifiers: [ sunz_corrected ]
     standard_name: toa_bidirectional_reflectance
 
+# True Color
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     description: >
@@ -85,6 +96,17 @@ composites:
       - name: vis_04
     standard_name: true_color_raw
 
+  true_color_with_night_ir105:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 73
+    lim_high: 82
+    prerequisites:
+      - true_color
+      - night_ir105
+
   true_color_reproduction:
     # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
@@ -116,7 +138,14 @@ composites:
       - name: vis_04
     standard_name: true_color_reproduction_color_stretch
 
-  # GeoColor
+# Night Layers
+  night_ir105:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: ir_105
+    standard_name: night_ir105
+
+# GeoColor
   geo_color:
    compositor: !!python/name:satpy.composites.DayNightCompositor
    description: >
@@ -227,11 +256,3 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: cloud_phase
 
-  binary_cloud_mask:
-    # This will set all clear pixels to '0', all pixels with cloudy features (meteorological/dust/ash clouds) to '1' and
-    # missing/undefined pixels to 'nan'. This can be used for the official EUMETSAT cloud mask product (CLM).
-    compositor: !!python/name:satpy.composites.CategoricalDataCompositor
-    prerequisites:
-      - name: 'cloud_state'
-    lut: [ .nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan ]
-    standard_name: binary_cloud_mask
