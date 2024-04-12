@@ -118,7 +118,7 @@ composites:
     prerequisites:
       - true_color
       - night_ir_with_background
-      -
+
   true_color_with_night_ir_hires:
     description: >
       True Color during daytime, and a simple IR105 layer during nighttime.
