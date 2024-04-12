@@ -52,7 +52,7 @@ file_types:
         - '{spacecraft:s}-SEVI-MSGTOZN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_amv:
-    file_reader: !!python/name:satpy.readers.eum_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'AMVBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGAMVE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
