@@ -286,7 +286,7 @@ composites:
         modifiers: [ sunz_corrected, sunz_reduced ]
     standard_name: cimss_cloud_type
 
-  cloud_type_with_night_ir1ß5:
+  cloud_type_with_night_ir105:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
     lim_low: 78
