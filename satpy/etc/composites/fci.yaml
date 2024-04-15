@@ -131,8 +131,8 @@ composites:
       True Color during daytime, and a simple IR105 layer during nighttime.
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     prerequisites:
       - true_color
       - night_ir105
@@ -142,8 +142,8 @@ composites:
       True Color during daytime, and a simple IR105 layer during nighttime.
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     prerequisites:
       - true_color
       - night_ir_with_background
@@ -153,8 +153,8 @@ composites:
       True Color during daytime, and a simple IR105 layer during nighttime.
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     prerequisites:
       - true_color
       - night_ir_with_background_hires
@@ -164,8 +164,8 @@ composites:
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_reproduction
-    lim_low: 73.
-    lim_high: 85.
+    lim_low: 73
+    lim_high: 85
     prerequisites:
       - true_color_reproduction_corr
       - true_color_reproduction_uncorr
@@ -263,8 +263,8 @@ composites:
   ir_sandwich_with_night_colorized_ir_clouds:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     prerequisites:
       - ir_sandwich
       - colorized_ir_clouds
@@ -289,8 +289,8 @@ composites:
   cloud_type_with_night_ir1ß5:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     prerequisites:
       - cloud_type
       - night_ir105
@@ -314,8 +314,8 @@ composites:
   cloud_phase_with_night_ir105:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
-    lim_low: 73
-    lim_high: 82
+    lim_low: 78
+    lim_high: 88
     prerequisites:
       - cloud_phase
       - night_ir105
