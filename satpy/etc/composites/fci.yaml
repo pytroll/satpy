@@ -1,6 +1,5 @@
 sensor_name: visir/fci
 
-
 composites:
 ### L2
   binary_cloud_mask:
@@ -329,7 +328,7 @@ composites:
       from low temperature fires. Small low temperature fires will only show up at 3.9 μm and
       appear red. With the increasing intensity and temperature the fires will also be detected
       by the 2.2 μm and 1.6 μm bands resulting very intense fires in white.
-      Note: the EUM, CIRA and AWIPS recipes are identical (apart from neglectable 0.15K difference due to 
+      Note: the EUM, CIRA and AWIPS recipes are identical (apart from neglectable 0.15K difference due to
       unprecise C->K conversion)
     references:
       Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
@@ -369,3 +368,17 @@ composites:
         calibration: radiance
       - name: nir_16
         calibration: radiance
+
+  snow:
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: vis_08
+      modifiers: [sunz_corrected]
+    - name: nir_16
+      modifiers: [sunz_corrected]
+    - name: ir_38
+      modifiers: [nir_reflectance]
+    standard_name: snow
