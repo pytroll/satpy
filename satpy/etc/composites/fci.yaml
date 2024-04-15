@@ -287,6 +287,8 @@ composites:
     standard_name: cimss_cloud_type
 
   cloud_type_with_night_ir105:
+    description: >
+      Combines the cloud_type during daytime with the simple 10.5µm night_ir105 layer during nighttime
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
     lim_low: 78
@@ -312,6 +314,8 @@ composites:
     standard_name: cloud_phase
 
   cloud_phase_with_night_ir105:
+    description: >
+      Combines the cloud_phase during daytime with the simple 10.5µm night_ir105 layer during nighttime
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
     lim_low: 78
