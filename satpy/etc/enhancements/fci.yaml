@@ -49,12 +49,14 @@ enhancements:
   fire_temperature_fci_rad:
     standard_name: fire_temperature_fci_rad
     operations:
+    # note: the stretch parameters have been converted to wavelength units
+    # compared to e.g. the VIIRS recipe
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
-        max_stretch: [3.5, 35., 85.]
+        max_stretch: [5.1, 17.7, 22.0]
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
