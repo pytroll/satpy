@@ -445,8 +445,14 @@ class TestIciL1bNCFileHandler:
         """Test interpolate geographic coordinates."""
         shape = (N_SCAN, N_SUBS, N_HORNS)
         dims = ("n_scan", "n_subs", "n_horns")
+        sub_pos = np.append(
+            np.arange(0, N_SAMPLES, np.ceil(N_SAMPLES / N_SUBS)),
+            N_SAMPLES - 1
+        )
         longitude = xr.DataArray(
-            2. * np.ones(shape),
+            np.tile( # longitudes between 0 and 10
+                10 * sub_pos / sub_pos[-1], (N_SCAN, N_HORNS, 1)
+            ).swapaxes(1, 2),
             dims=dims,
             coords={
                 "n_horns": np.arange(N_HORNS),
@@ -462,7 +468,9 @@ class TestIciL1bNCFileHandler:
         expect_shape = (N_SCAN, N_SAMPLES, N_HORNS)
         assert lon.shape == expect_shape
         assert lat.shape == expect_shape
-        np.testing.assert_allclose(lon, 2.0)
+        np.testing.assert_allclose(lon[:, 0, :], 0.)
+        np.testing.assert_allclose(lon[:, -1, :], 10.)
+        np.testing.assert_allclose(np.diff(lon[0, :, 0]), 10 / (N_SAMPLES - 1))
         np.testing.assert_allclose(lat, 1.0)
 
     def test_interpolate_viewing_angle(self, reader):
