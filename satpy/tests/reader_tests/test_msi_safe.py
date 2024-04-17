@@ -988,7 +988,8 @@ class TestSAFEMSIL1C:
     @pytest.mark.parametrize(("mask_saturated", "calibration", "expected"),
                              [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
                               (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
-                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])
+                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]]),
+                              (False, "counts", [[np.nan, 1], [65534, np.inf]])])
     def test_calibration_and_masking(self, mask_saturated, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
         from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
