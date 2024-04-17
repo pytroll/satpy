@@ -38,7 +38,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B02:
@@ -55,7 +55,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B03:
@@ -72,7 +72,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B04:
@@ -89,7 +89,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B05:
@@ -106,7 +106,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B06:
@@ -123,7 +123,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B07:
@@ -140,7 +140,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B08:
@@ -157,7 +157,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B8A:
@@ -174,7 +174,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B09:
@@ -191,7 +191,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B10:
@@ -208,7 +208,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B11:
@@ -225,7 +225,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
   B12:
@@ -242,7 +242,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-        units: "1"        
+        units: "1"
     file_type: safe_granule
 
 
