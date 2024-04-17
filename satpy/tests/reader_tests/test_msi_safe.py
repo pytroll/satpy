@@ -920,6 +920,15 @@ class TestMTDXML:
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
                                              [0.04 - 10, 0, 655.34 - 10, np.inf]]])
 
+    def test_xml_calibration_to_counts(self):
+        """Test the calibration to counts."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh._sanitize_data(fake_data)
+        np.testing.assert_allclose(result, [[[np.nan, 1, 2, 3],
+                                             [4, 1000, 65534, np.inf]]])
+
     def test_xml_calibration_unmasked_saturated(self):
         """Test the calibration with radiometric offset but unmasked saturated pixels."""
         from satpy.readers.msi_safe import SAFEMSIMDXML
