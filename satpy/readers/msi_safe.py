@@ -105,6 +105,8 @@ class SAFEMSIL1C(BaseFileHandler):
             return self._mda.calibrate_to_reflectances(proj, self._channel)
         if key["calibration"] == "radiance":
             return self._mda.calibrate_to_radiances(proj, self._channel)
+        if key["calibration"] == "counts":
+            return self._mda._sanitize_data(proj)
 
     @property
     def start_time(self):

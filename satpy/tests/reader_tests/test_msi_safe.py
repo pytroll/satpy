@@ -929,6 +929,15 @@ class TestMTDXML:
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
                                              [0.04 - 10, 0, 655.34 - 10, np.inf]]])
 
+    def test_xml_calibration_to_counts(self):
+        """Test the calibration to counts."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh._sanitize_data(fake_data)
+        np.testing.assert_allclose(result, [[[np.nan, 1, 2, 3],
+                                             [4, 1000, 65534, np.inf]]])
+
     def test_xml_calibration_unmasked_saturated(self):
         """Test the calibration with radiometric offset but unmasked saturated pixels."""
         from satpy.readers.msi_safe import SAFEMSIMDXML
@@ -989,7 +998,8 @@ class TestSAFEMSIL1C:
     @pytest.mark.parametrize(("mask_saturated", "calibration", "expected"),
                              [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
                               (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
-                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])
+                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]]),
+                              (False, "counts", [[np.nan, 1], [65534, 65535]])])
     def test_calibration_and_masking(self, mask_saturated, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
         from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML

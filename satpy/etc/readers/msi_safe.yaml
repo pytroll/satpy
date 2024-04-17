@@ -26,7 +26,7 @@ datasets:
 
   B01:
     name: B01
-    sensor: MSI
+    sensor: msi
     wavelength: [0.415, 0.443, 0.470]
     resolution: 60
     calibration:
@@ -36,11 +36,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B02:
     name: B02
-    sensor: MSI
+    sensor: msi
     wavelength: [0.440, 0.490, 0.540]
     resolution: 10
     calibration:
@@ -50,11 +53,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B03:
     name: B03
-    sensor: MSI
+    sensor: msi
     wavelength: [0.540, 0.560, 0.580]
     resolution: 10
     calibration:
@@ -64,11 +70,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B04:
     name: B04
-    sensor: MSI
+    sensor: msi
     wavelength: [0.645, 0.665, 0.685]
     resolution: 10
     calibration:
@@ -78,11 +87,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B05:
     name: B05
-    sensor: MSI
+    sensor: msi
     wavelength: [0.695, 0.705, 0.715]
     resolution: 20
     calibration:
@@ -92,11 +104,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B06:
     name: B06
-    sensor: MSI
+    sensor: msi
     wavelength: [0.731, 0.740, 0.749]
     resolution: 20
     calibration:
@@ -106,11 +121,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B07:
     name: B07
-    sensor: MSI
+    sensor: msi
     wavelength: [0.764, 0.783, 0.802]
     resolution: 20
     calibration:
@@ -120,11 +138,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B08:
     name: B08
-    sensor: MSI
+    sensor: msi
     wavelength: [0.780, 0.842, 0.905]
     resolution: 10
     calibration:
@@ -134,11 +155,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B8A:
     name: B8A
-    sensor: MSI
+    sensor: msi
     wavelength: [0.855, 0.865, 0.875]
     resolution: 20
     calibration:
@@ -148,11 +172,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B09:
     name: B09
-    sensor: MSI
+    sensor: msi
     wavelength: [0.935, 0.945, 0.955]
     resolution: 60
     calibration:
@@ -162,11 +189,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B10:
     name: B10
-    sensor: MSI
+    sensor: msi
     wavelength: [1.365, 1.375, 1.385]
     resolution: 60
     calibration:
@@ -176,11 +206,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B11:
     name: B11
-    sensor: MSI
+    sensor: msi
     wavelength: [1.565, 1.610, 1.655]
     resolution: 20
     calibration:
@@ -190,11 +223,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
   B12:
     name: B12
-    sensor: MSI
+    sensor: msi
     wavelength: [2.100, 2.190, 2.280]
     resolution: 20
     calibration:
@@ -204,6 +240,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: safe_granule_l1c
 
 
