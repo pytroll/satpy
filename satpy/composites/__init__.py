@@ -1670,7 +1670,28 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
 
 class BackgroundCompositor(GenericCompositor):
-    """A compositor that overlays one composite on top of another."""
+    """A compositor that overlays one composite on top of another.
+
+    The output image mode will be determined by both foreground and background. Generally, when the background has
+    an alpha band, the output image will also have one.
+        # L/L -> L
+        # L/LA -> LA
+        # L/RGB -> RGB
+        # L/RGBA -> RGBA
+        # LA/L -> L
+        # LA/LA -> LA
+        # LA/RGB -> RGB
+        # LA/RGBA -> RGBA
+        # RGB/L -> RGB
+        # RGB/LA -> RGBA
+        # RGB/RGB -> RGB
+        # RGB/RGBA -> RGBA
+        # RGBA/L -> RGB
+        # RGBA/LA -> RGBA
+        # RGBA/RGB -> RGB
+        # RGBA/RGBA -> RGBA
+
+    """
 
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
@@ -1681,15 +1702,12 @@ class BackgroundCompositor(GenericCompositor):
         background = enhance2dataset(projectables[1], convert_p=True)
         before_bg_mode = background.attrs["mode"]
 
-        # Adjust bands so that they match
-        # L/RGB -> RGB/RGB
-        # LA/RGB -> RGBA/RGBA
-        # RGB/RGBA -> RGBA/RGBA
+        # Adjust bands so that they have the same mode
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
 
-        # It's important to judge whether the alpha band of background is initially generated, e.g. by CloudCompositor
-        # The result will be used to decide the output image mode
+        # It's important whether the alpha band of background is initially generated, e.g. by CloudCompositor
+        # The result will be used to determine the output image mode
         initial_bg_alpha = "A" in before_bg_mode
 
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
@@ -1723,22 +1741,7 @@ class BackgroundCompositor(GenericCompositor):
                                background: xr.DataArray,
                                initial_bg_alpha: bool,
                                ) -> list[xr.DataArray]:
-        def _get_alpha(dataset: xr.DataArray):
-            # If the dataset contains an alpha channel, just use it
-            # If not, we still need one. So build it and fill it with 1
-            if "A" in dataset.attrs["mode"]:
-                alpha = dataset.sel(bands="A")
-            else:
-                first_band = dataset.isel(bands=0)
-                alpha = xr.full_like(first_band, 1)
-                alpha["bands"] = "A"
-
-            # There could be Nans in the alpha
-            # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
-            alpha = xr.where(alpha.isnull(), 0, alpha)
-
-            return alpha
-
+        # For more info about alpha compositing please review https://en.wikipedia.org/wiki/Alpha_compositing
         alpha_fore = _get_alpha(foreground)
         alpha_back = _get_alpha(background)
         new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
@@ -1748,23 +1751,14 @@ class BackgroundCompositor(GenericCompositor):
         # Pass the image data (alpha band will be dropped temporally) to the writer
         output_mode = background.attrs["mode"].replace("A", "")
 
-        # For more info about alpha compositing please review https://en.wikipedia.org/wiki/Alpha_compositing
-        # Whether there's no initial alpha band, or it has been dropped, we're actually asking the writer for decision
-        # So first, we must fill the transparent areas in the image with np.nan
-        # The best way is through a modified version of new alpha
-        new_alpha_nan = xr.where(alpha_fore + alpha_back == 0, np.nan, new_alpha) if "A" not in output_mode \
-            else new_alpha
-
         for band in output_mode:
             fg_band = foreground.sel(bands=band)
             bg_band = background.sel(bands=band)
-
-            chan = (fg_band * alpha_fore +
-                    bg_band * alpha_back * (1 - alpha_fore)) / new_alpha_nan
-
+            # Do the alpha compositing
+            chan = (fg_band * alpha_fore + bg_band * alpha_back * (1 - alpha_fore)) / new_alpha
+            # Fill the NaN area with background
             chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
             chan["bands"] = band
-
             data.append(chan)
 
         # If background has an initial alpha band, it will also be passed to the writer
@@ -1784,6 +1778,22 @@ class BackgroundCompositor(GenericCompositor):
         data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
 
         return data
+
+
+def _get_alpha(dataset: xr.DataArray):
+    # If the dataset contains an alpha channel, just use it
+    if "A" in dataset.attrs["mode"]:
+        alpha = dataset.sel(bands="A")
+        # There could be NaNs in the alpha
+        # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
+        alpha = xr.where(alpha.isnull(), 0, alpha)
+    # If not, we still need one. So build it and fill it with 1
+    else:
+        first_band = dataset.isel(bands=0)
+        alpha = xr.full_like(first_band, 1)
+        alpha["bands"] = "A"
+
+    return alpha
 
 
 class MaskingCompositor(GenericCompositor):
