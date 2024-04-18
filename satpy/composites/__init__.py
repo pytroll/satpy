@@ -1781,17 +1781,15 @@ class BackgroundCompositor(GenericCompositor):
 
 
 def _get_alpha(dataset: xr.DataArray):
-    # If the dataset contains an alpha channel, just use it
-    if "A" in dataset.attrs["mode"]:
-        alpha = dataset.sel(bands="A")
-        # There could be NaNs in the alpha
-        # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
-        alpha = xr.where(alpha.isnull(), 0, alpha)
-    # If not, we still need one. So build it and fill it with 1
-    else:
-        first_band = dataset.isel(bands=0)
-        alpha = xr.full_like(first_band, 1)
-        alpha["bands"] = "A"
+    # 1. This function is only used by _get_merged_image_data
+    # 2. Both foreground and background have been through add_bands, so they have the same mode
+    # 3. If none of them has alpha band, they will be passed directly to _simple_overlay not _get_merged_image_data
+    # So any dataset(whether foreground or background) passed to this function has an alpha band for certain
+    # We will use it directly
+    alpha = dataset.sel(bands="A")
+    # There could be NaNs in the alpha
+    # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
+    alpha = xr.where(alpha.isnull(), 0, alpha)
 
     return alpha
 
