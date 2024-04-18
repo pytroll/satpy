@@ -310,7 +310,7 @@ datasets:
     name: B08_L2A
     sensor: msi
     wavelength: [0.780, 0.842, 0.905]
-    resolution: 
+    resolution:
       10: {file_type: l2a_safe_granule_10m}
     calibration:
       reflectance:
@@ -341,10 +341,10 @@ datasets:
     file_type: l1c_safe_granule
 
   B8A_L2A:
-    name: B8A
+    name: B8A_L2A
     sensor: msi
     wavelength: [0.855, 0.865, 0.875]
-    resolution: 
+    resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
     calibration:
@@ -379,7 +379,7 @@ datasets:
     name: B09_L2A
     sensor: msi
     wavelength: [0.935, 0.945, 0.955]
-    resolution: 
+    resolution:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
@@ -409,11 +409,28 @@ datasets:
         units: "1"
     file_type: l1c_safe_granule
 
+  B11:
+    name: B11
+    sensor: msi
+    wavelength: [1.565, 1.610, 1.655]
+    resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
+
   B11_L2A:
     name: B11_L2A
     sensor: msi
     wavelength: [1.565, 1.610, 1.655]
-    resolution: 
+    resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
     calibration:
@@ -448,7 +465,7 @@ datasets:
     name: B12_L2A
     sensor: msi
     wavelength: [2.100, 2.190, 2.280]
-    resolution: 
+    resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
     calibration:
@@ -458,6 +475,47 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  AOT_L2A:
+    name: AOT_L2A
+    sensor: msi
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      aerosol_thickness:
+        standard_name: aerosol_optical_thickness
+        units: "1"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  WVP_L2A:
+    name: WVP_L2A
+    sensor: msi
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      water_vapor:
+        standard_name: water_vapor
+        units: cm
+      counts:
+        standard_name: counts
+        units: "1"
+
+  SCL_L2A:
+    name: SCL_L2A
+    sensor: msi
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
       counts:
         standard_name: counts
         units: "1"
@@ -485,5 +543,31 @@ datasets:
     name: satellite_zenith_angle
     resolution: [10, 20, 60]
     file_type: l1c_safe_tile_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Zenith
+
+  solar_zenith_angle_l2a:
+    name: solar_zenith_angle_l2a
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Sun_Angles_Grid/Zenith
+
+  solar_azimuth_angle_l2a:
+    name: solar_azimuth_angle_l2a
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Sun_Angles_Grid/Azimuth
+
+  satellite_azimuth_angle_l2a:
+    name: satellite_azimuth_angle_l2a
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Azimuth
+
+  satellite_zenith_angle_l2a:
+    name: satellite_zenith_angle_l2a
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
     xml_item: Zenith

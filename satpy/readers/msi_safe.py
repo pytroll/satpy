@@ -28,9 +28,12 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
 
-L1B format description for the files read here:
+L1C/L2A format description for the files read here:
 
-  https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
+  https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
+
+Please note: for L2A datasets, the band name has been fixed with a "_L2A" suffix. Do not change it in the YAML file or
+the reader can't recogonize it and nothing will be loaded.
 
 """
 
@@ -69,13 +72,19 @@ class SAFEMSIL1C(BaseFileHandler):
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
+        self.process_level = "L2A" if "MSIL2A" in filename else "L1C"
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._channel != key["name"]:
-            return
+        if self.process_level == "L1C":
+            if self._channel != key["name"]:
+                return
+        else:
+            if self._channel + "_L2A" != key["name"]:
+                return
 
         logger.debug("Reading %s.", key["name"])
+
         proj = self._read_from_file(key)
         proj.attrs = info.copy()
         proj.attrs["units"] = "%"
@@ -91,6 +100,8 @@ class SAFEMSIL1C(BaseFileHandler):
             return self._mda.calibrate_to_radiances(proj, self._channel)
         if key["calibration"] == "counts":
             return self._mda._sanitize_data(proj)
+        if key["calibration"] in ["aerosol_thickness", "water_vapor"]:
+            return self._mda.calibrate_to_atmospheric(proj, self._channel)
 
     @property
     def start_time(self):
@@ -104,8 +115,13 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area def."""
-        if self._channel != dsid["name"]:
-            return
+        if self.process_level == "L1C":
+            if self._channel != dsid["name"]:
+                return
+        else:
+            if self._channel + "_L2A" != dsid["name"]:
+                return
+
         return self._tile_mda.get_area_def(dsid)
 
 
@@ -145,6 +161,16 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
             int(self.root.find(".//BOA_QUANTIFICATION_VALUE").text)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / quantification * 100
+
+    def calibrate_to_atmospheric(self, data, band_name):
+        """Calibrate L2A AOT/WVP product."""
+        atmospheric_products = ["AOT", "WVP"]
+        if self.process_level == "L1C" or (self.process_level == "L2A" and band_name not in atmospheric_products):
+            return
+
+        quantification = float(self.root.find(f".//{band_name}_QUANTIFICATION_VALUE").text)
+        data = self._sanitize_data(data)
+        return data / quantification
 
     def _sanitize_data(self, data):
         data = data.where(data != self.no_data)
@@ -298,9 +324,11 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find(".//Tile_Angles")
-        if key["name"] in ["solar_zenith_angle", "solar_azimuth_angle"]:
+        if key["name"] in ["solar_zenith_angle", "solar_azimuth_angle",
+                           "solar_zenith_angle_l2a", "solar_azimuth_angle_l2a"]:
             angles = self._get_solar_angles(angles, info)
-        elif key["name"] in ["satellite_zenith_angle", "satellite_azimuth_angle"]:
+        elif key["name"] in ["satellite_zenith_angle", "satellite_azimuth_angle",
+                             "satellite_zenith_angle_l2a", "satellite_azimuth_angle_l2a"]:
             angles = self._get_satellite_angles(angles, info)
         else:
             angles = None
