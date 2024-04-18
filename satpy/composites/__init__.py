@@ -1783,7 +1783,7 @@ class BackgroundCompositor(GenericCompositor):
 def _get_alpha(dataset: xr.DataArray):
     # 1. This function is only used by _get_merged_image_data
     # 2. Both foreground and background have been through add_bands, so they have the same mode
-    # 3. If none of them has alpha band, they will be passed directly to _simple_overlay not _get_merged_image_data
+    # 3. If none of them has alpha band, they will be passed to _simple_overlay not _get_merged_image_data
     # So any dataset(whether foreground or background) passed to this function has an alpha band for certain
     # We will use it directly
     alpha = dataset.sel(bands="A")
