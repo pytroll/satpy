@@ -40,7 +40,6 @@ file_types:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
         file_patterns: ['{fmission_id:3s}_MSIL2A_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL2A.xml']
 
-
 datasets:
   B01:
     name: B01
