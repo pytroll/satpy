@@ -29,7 +29,8 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI) and High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    (FDHSI) ,High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    The african case ("AF") scanning mode has been added.
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
     Satpy will automatically read the channels from the source with the finest resolution,
     i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
@@ -154,7 +155,7 @@ LOW_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "1km",
                      "fci_l1c_fdhsi": {"grid_type": "2km",
                                        "grid_width": 5568},
                      "fci_l1c_af":{"grid_type": "3km",
-                                   "grid_width":3712}}
+                                   "grid_width": 3712}}
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -266,8 +267,19 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         return measured_group_path
 
-    def _get_segment_position_info_FD(self):
-        """get_position_info applied for FD."""
+    def get_segment_position_info(self):
+        """Get information about the size and the position of the segment inside the final image array.
+
+        As the final array is composed by stacking segments vertically, the position of a segment
+        inside the array is defined by the numbers of the start (lowest) and end (highest) row of the segment.
+        The row numbering is assumed to start with 1.
+        This info is used in the GEOVariableSegmentYAMLReader to compute optimal segment sizes for missing segments.
+
+        Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
+        of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
+
+        Note: This function is not used for the African data as it contains only one segment.
+        """
         file_type = self.filetype_info["file_type"]
         vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
         ir_105_measured_path = self.get_channel_measured_group_path("ir_105")
@@ -288,51 +300,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
              }
          }
         return segment_position_info
-
-
-    def _get_segment_position_info_AF(self):
-        """get_position_info applied for AF."""
-        file_type = self.filetype_info["file_type"]
-        channel_data = [key for key in self.file_content.keys()
-                         if ((key.startswith("data/vis") or
-                              key.startswith("data/ir") or
-                              key.startswith("data/hrv") or
-                              key.startswith("data/nir") or
-                              key.startswith("data/wv"))
-                             and key.endswith("measured"))][0]
-        segment_position_info = {
-             HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
-                 "start_position_row": self.get_and_cache_npxr(f"{channel_data}/start_position_row").item(),
-                 "end_position_row": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item(),
-                 "segment_height": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item() -
-                 self.get_and_cache_npxr(f"{channel_data}/start_position_row").item() + 1,
-                 "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
-             },
-             LOW_RES_GRID_INFO[file_type]["grid_type"]: {
-                 "start_position_row": self.get_and_cache_npxr(f"{channel_data}/start_position_row").item(),
-                 "end_position_row": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item(),
-                 "segment_height": self.get_and_cache_npxr(f"{channel_data}/end_position_row").item() -
-                 self.get_and_cache_npxr(f"{channel_data}/start_position_row").item() + 1,
-                 "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
-             }
-         }
-        return segment_position_info
-
-    def get_segment_position_info(self):
-     """Get information about the size and the position of the segment inside the final image array.
-
-     As the final array is composed by stacking segments vertically, the position of a segment
-     inside the array is defined by the numbers of the start (lowest) and end (highest) row of the segment.
-     The row numbering is assumed to start with 1.
-     This info is used in the GEOVariableSegmentYAMLReader to compute optimal segment sizes for missing segments.
-
-     Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
-     of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
-     """
-     if self.filename_info["coverage"] == "AF":
-         return self._get_segment_position_info_AF()
-     else :
-         return self._get_segment_position_info_FD()
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
@@ -434,6 +401,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        # The "try" is a temporary part of the code as long as the AF data are not modified
         try :
             nominal_and_proj_subsat_lon = float(
                 self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
@@ -591,6 +559,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
         h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
         rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
+        # The "try" is a temporary part of the code as long as the AF data are not modified
         try:
             lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
         except ValueError:

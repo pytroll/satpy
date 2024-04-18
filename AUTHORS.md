@@ -88,3 +88,4 @@ The following people have made contributions to this project:
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
+- [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
