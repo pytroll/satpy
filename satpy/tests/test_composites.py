@@ -1496,6 +1496,10 @@ class TestBackgroundCompositor:
         ("foreground_bands", "background_bands", "exp_bands", "exp_result"),
         [
             ("L", "L", "L", np.array([[1., 0.5], [0., 1.]])),
+            ("L", "RGB", "RGB", np.array([
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]]])),
             ("LA", "LA", "LA", np.array([
                 [[1., 0.75], [0.5, 1.]],
                 [[1., 1.], [1., 1.]]])),
