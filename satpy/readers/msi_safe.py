@@ -121,6 +121,7 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
         self.tile = filename_info["dtile_number"]
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
         self.mask_saturated = mask_saturated
+        self.process_level = "L2A" if "MSIL2A" in filename else "L1C"
         import bottleneck  # noqa
         import geotiepoints  # noqa
 
@@ -140,7 +141,8 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
     def calibrate_to_reflectances(self, data, band_name):
         """Calibrate *data* using the radiometric information for the metadata."""
-        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text)
+        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text) if self.process_level == "L1C" else \
+            int(self.root.find(".//BOA_QUANTIFICATION_VALUE").text)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / quantification * 100
 
@@ -172,7 +174,8 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def band_offsets(self):
         """Get the band offsets from the metadata."""
-        offsets = self.root.find(".//Radiometric_Offset_List")
+        offsets = self.root.find(".//Radiometric_Offset_List") if self.process_level == "L1C" else \
+            self.root.find(".//BOA_ADD_OFFSET_VALUES_LIST")
         if offsets is not None:
             band_offsets = {int(off.attrib["band_id"]): float(off.text) for off in offsets}
         else:
