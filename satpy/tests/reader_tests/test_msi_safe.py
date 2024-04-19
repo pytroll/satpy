@@ -864,6 +864,7 @@ mtd_l1c_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 class TestTileXML:
     """Test the SAFE TILE XML file handler.
     Since L1C/L2A share almost the same Tile XML, we just need to test L1C.
+
     """
 
     def setup_method(self):
@@ -918,6 +919,7 @@ class TestTileXML:
                               ("moon_zenith_angle", "Sun_Angles_Grid", "Zenith", None)
                               ])
     def test_angles(self, angle_name, angle_block, angle_type, expected):
+        """Test reading angles array."""
         info = dict(xml_tag=angle_block, xml_item=angle_type) if "satellite" in angle_name else \
             dict(xml_tag=angle_block + "/" + angle_type)
 
