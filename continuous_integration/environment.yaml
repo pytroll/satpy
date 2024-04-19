@@ -47,6 +47,7 @@ dependencies:
   - pytest-cov
   - pytest-lazy-fixture
   - fsspec
+  - botocore>=1.33
   - s3fs
   - python-geotiepoints
   - pooch

@@ -929,6 +929,7 @@ enhancements:
                          [252, 254, 254], [253, 254, 254], [253, 254, 254], [
                              253, 254, 254], [253, 254, 254],
                          [254, 254, 254], [254, 254, 254], [254, 254, 254], [254, 254, 254], [255, 255, 255]]
+
   night_microphysics_default:
     standard_name: night_microphysics
     operations:
@@ -938,6 +939,21 @@ enhancements:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 10, 293]
+
+  24h_microphysics_default:
+    standard_name: 24h_microphysics
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 248]
+        max_stretch: [2, 6, 303]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [ 1, 1.2, 1 ]
+
   ir_overview_default:
     standard_name: ir_overview
     operations:
