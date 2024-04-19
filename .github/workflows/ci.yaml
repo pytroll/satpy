@@ -77,11 +77,12 @@ jobs:
           numpy \
           pandas \
           scipy
-          conda remove --force-remove -y pykdtree pyresample pyhdf netcdf4 h5py cftime
+          conda remove --force-remove -y pykdtree pyresample python-geotiepoints pyhdf netcdf4 h5py cftime
           python -m pip install --upgrade --no-deps --pre --no-build-isolation \
           git+https://github.com/storpipfugl/pykdtree \
           git+https://github.com/pytroll/pyresample \
           git+https://github.com/pytroll/trollimage \
+          git+https://github.com/pytroll/python-geotiepoints \
           git+https://github.com/fhs/pyhdf \
           git+https://github.com/h5py/h5py \
           git+https://github.com/h5netcdf/h5netcdf \
