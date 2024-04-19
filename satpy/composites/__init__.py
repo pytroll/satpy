@@ -1674,22 +1674,22 @@ class BackgroundCompositor(GenericCompositor):
 
     The output image mode will be determined by both foreground and background. Generally, when the background has
     an alpha band, the output image will also have one.
-        # L/L -> L
-        # L/LA -> LA
-        # L/RGB -> RGB
-        # L/RGBA -> RGBA
-        # LA/L -> L
-        # LA/LA -> LA
-        # LA/RGB -> RGB
-        # LA/RGBA -> RGBA
-        # RGB/L -> RGB
-        # RGB/LA -> RGBA
-        # RGB/RGB -> RGB
-        # RGB/RGBA -> RGBA
-        # RGBA/L -> RGB
-        # RGBA/LA -> RGBA
-        # RGBA/RGB -> RGB
-        # RGBA/RGBA -> RGBA
+    # L/L -> L
+    # L/LA -> LA
+    # L/RGB -> RGB
+    # L/RGBA -> RGBA
+    # LA/L -> L
+    # LA/LA -> LA
+    # LA/RGB -> RGB
+    # LA/RGBA -> RGBA
+    # RGB/L -> RGB
+    # RGB/LA -> RGBA
+    # RGB/RGB -> RGB
+    # RGB/RGBA -> RGBA
+    # RGBA/L -> RGB
+    # RGBA/LA -> RGBA
+    # RGBA/RGB -> RGB
+    # RGBA/RGBA -> RGBA
 
     """
 
