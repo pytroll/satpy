@@ -1515,9 +1515,20 @@ class TestTileXML:
 #         l2a_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L2A")
 #         self.l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), l1c_filename_info, mock.MagicMock())
 #         self.l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), l1c_filename_info, mock.MagicMock(), mask_saturated=True)
-#         self.l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l1c_filename_info, mock.MagicMock(), mask_saturated=True)
+#         self.l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l2a_filename_info, mock.MagicMock(), mask_saturated=True)
+#         self.fake_data = xr.DataArray([[[0, 1, 2, 3],
+#                                         [4, 1000, 65534, 65535]]],
+#                                       dims=["band", "x", "y"])
 #
-#     def test_calibration_and_masking(self, process_level, calibration):
+#     def test_old_xml_calibration(self):
+#         """Test the calibration of older data formats (no offset)."""
+#         fake_data = xr.DataArray([[[0, 1, 2, 3],
+#                                    [4, 1000, 65534, 65535]]],
+#                                  dims=["band", "x", "y"])
+#         result = self.l1c_old_xml_fh.calibrate_to_reflectances(fake_data, "B01")
+#         np.testing.assert_allclose(result, [[[np.nan, 0.01, 0.02, 0.03],
+#                                              [0.04, 10, 655.34, np.inf]]])
+
 
 
 
