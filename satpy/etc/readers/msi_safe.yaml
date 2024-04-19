@@ -11,34 +11,34 @@ reader:
 
 file_types:
   l1c_safe_granule:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
-        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSI{process_level:3s}
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/{process_level:3s}_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
         requires: [l1c_safe_metadata, l1c_safe_tile_metadata]
   l1c_safe_tile_metadata:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSITileMDXML
-        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/{process_level:3s}_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
   l1c_safe_metadata:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
-        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL1C.xml']
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSI{process_level:3s}.xml']
 
   l2a_safe_granule_10m:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
-        file_patterns: ['{fmission_id:3s}_MSIL2A_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R10m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_10m.jp2']
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSI{process_level:3s}
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/{process_level:3s}_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R10m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_10m.jp2']
         requires: [l2a_safe_metadata, l2a_safe_tile_metadata]
   l2a_safe_granule_20m:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
-        file_patterns: ['{fmission_id:3s}_MSIL2A_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R20m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_20m.jp2']
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSI{process_level:3s}
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/{process_level:3s}_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R20m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_20m.jp2']
         requires: [l2a_safe_metadata, l2a_safe_tile_metadata]
   l2a_safe_granule_60m:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
-        file_patterns: ['{fmission_id:3s}_MSIL2A_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R60m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_60m.jp2']
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSI{process_level:3s}
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/{process_level:3s}_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R60m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_60m.jp2']
         requires: [l2a_safe_metadata, l2a_safe_tile_metadata]
   l2a_safe_tile_metadata:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSITileMDXML
-        file_patterns: ['{fmission_id:3s}_MSIL2A_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/{process_level:3s}_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
   l2a_safe_metadata:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
-        file_patterns: ['{fmission_id:3s}_MSIL2A_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL2A.xml']
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSI{process_level:3s}.xml']
 
 datasets:
   B01:
