@@ -862,15 +862,17 @@ mtd_l1c_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
 
 class TestTileXML:
-    """Test the SAFE TILE XML file handler."""
+    """Test the SAFE TILE XML file handler.
+    Since L1C/L2A share almost the same Tile XML, we just need to test L1C.
+    """
 
     def setup_method(self):
         """Set up the test case."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
+        from satpy.readers.msi_safe import SAFEMSITileMDXML
         filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
         self.l1c_xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_l1c_tile_xml), filename_info, mock.MagicMock())
 
-    @pytest.mark.parametrize(("angles_name", "angle_block", "angle_type", "expected"),
+    @pytest.mark.parametrize(("angle_name", "angle_block", "angle_type", "expected"),
                              [("satellite_zenith_angle", "Viewing_Incidence_Angles_Grids", "Zenith",
                                   [[11.7128, 11.18397802, 10.27667671, 9.35384969, 8.42850504,
                                    7.55445611, 6.65475545, 5.66517232, 4.75893757, 4.04976844],
@@ -892,35 +894,12 @@ class TestTileXML:
                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]]),
-                              ("satellite_zenith_angle_l2a", "Viewing_Incidence_Angles_Grids", "Zenith",
-                                 [[11.7128, 11.18397802, 10.27667671, 9.35384969, 8.42850504,
-                                   7.55445611, 6.65475545, 5.66517232, 4.75893757, 4.04976844],
-                                  [11.88606009, 10.9799713, 10.07083278, 9.14571825, 8.22607131,
-                                   7.35181457, 6.44647222, 5.46144173, 4.56625547, 3.86638233],
-                                  [11.6823579, 10.7763071, 9.86302106, 8.93879112, 8.04005637,
-                                   7.15028077, 6.21461062, 5.25780953, 4.39876601, 3.68620793],
-                                  [11.06724679, 10.35723901, 9.63958896, 8.73072512, 7.83680864,
-                                   6.94792574, 5.9889201, 5.05445872, 4.26089708, 3.50984272],
-                                  [6.28411038, 6.28411038, 6.28411038, 6.28411038, 6.28411038,
-                                   5.99769643, 5.62586167, 4.85165966, 4.13238314, 3.33781401],
-                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]]),
                               ])
-    def test_angles(self, angles_name, angle_block, angle_type, expected):
+    def test_angles(self, angle_name, angle_block, angle_type, expected):
         info = dict(xml_tag=angle_block, xml_item=angle_type)
-        res = self.l1c_xml_tile_fh.get_dataset(make_dataid(name=angles_name,
+        res = self.l1c_xml_tile_fh.get_dataset(make_dataid(name=angle_name,
                                                            resolution=60), info)[::200, ::200]
         np.testing.assert_allclose(res, expected)
-
-
 
 
 class TestMTDXML:
