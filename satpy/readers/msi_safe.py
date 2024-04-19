@@ -69,10 +69,10 @@ class SAFEMSIL1C(BaseFileHandler):
         self._start_time = filename_info["observation_time"]
         self._end_time = filename_info["observation_time"]
         self._channel = filename_info["band_name"]
+        self.process_level = filename_info["process_level"]
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
-        self.process_level = "L2A" if "MSIL2A" in filename else "L1C"
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -135,9 +135,9 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
         self._end_time = filename_info["observation_time"]
         self.root = ET.parse(self.filename)
         self.tile = filename_info["dtile_number"]
+        self.process_level = filename_info["process_level"]
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
         self.mask_saturated = mask_saturated
-        self.process_level = "L2A" if "MSIL2A" in filename else "L1C"
         import bottleneck  # noqa
         import geotiepoints  # noqa
 
