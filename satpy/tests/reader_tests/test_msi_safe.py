@@ -863,6 +863,7 @@ mtd_l1c_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
 class TestTileXML:
     """Test the SAFE TILE XML file handler.
+    
     Since L1C/L2A share almost the same Tile XML, we just need to test L1C.
 
     """
