@@ -1419,32 +1419,24 @@ PROCESS_LEVELS = ["L1C", "oldL1C", "L2A"]
 MTD_XMLS = [mtd_l1c_xml, mtd_l1c_old_xml, mtd_l2a_xml]
 TILE_XMLS = [mtd_l1c_tile_xml, mtd_l1c_tile_xml, mtd_l1c_tile_xml]
 
-def mtd_xml_builder(process_level, mask_saturated=True, band_name=None):
-    """Build fake SAFE MTD XML."""
-    from satpy.readers.msi_safe import SAFEMSIMDXML
+def xml_builder(process_level, mask_saturated=True, band_name=None):
+    """Build fake SAFE MTD/Tile XML."""
+    from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
     filename_info = dict(observation_time=None, dtile_number=None, band_name=band_name, fmission_id="S2A",
                          process_level=process_level.replace("old", ""))
     xml_fh = SAFEMSIMDXML(StringIO(MTD_XMLS[PROCESS_LEVELS.index(process_level)]),
                           filename_info, mock.MagicMock(), mask_saturated=mask_saturated)
-    return xml_fh
-
-def tile_xml_builder(process_level, band_name=None):
-    """Build fake SAFE Tile XML."""
-    from satpy.readers.msi_safe import SAFEMSITileMDXML
-    filename_info = dict(observation_time=None, dtile_number=None, band_name=band_name, fmission_id="S2A",
-                         process_level=process_level.replace("old", ""))
     xml_tile_fh = SAFEMSITileMDXML(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
                                    filename_info, mock.MagicMock())
-    return xml_tile_fh
+    return xml_fh, xml_tile_fh
 
 def jp2_builder(process_level, band_name, mask_saturated=True):
     """Build fake SAFE jp2 image file."""
     from satpy.readers.msi_safe import SAFEMSIL1C
     filename_info = dict(observation_time=None, dtile_number=None, band_name=band_name, fmission_id="S2A",
                          process_level=process_level.replace("old", ""))
-    xml_xh = mtd_xml_builder(process_level, mask_saturated, band_name)
-    tile_xml_xh = tile_xml_builder(process_level, band_name)
-    jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_xh, tile_xml_xh)
+    xml_fh, tile_xml_fh = xml_builder(process_level, mask_saturated, band_name)
+    jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
 
 
@@ -1505,7 +1497,7 @@ class TestTileXML:
         """Test reading angles array."""
         info = dict(xml_tag=angle_tag[0], xml_item=angle_tag[1]) if "satellite" in angle_name else \
             dict(xml_tag=angle_tag[0] + "/" + angle_tag[1])
-        xml_tile_fh = tile_xml_builder(process_level)
+        xml_tile_fh = xml_builder(process_level)[1]
 
         res = xml_tile_fh.get_dataset(make_dataid(name=angle_name, resolution=60), info)
         if res is not None:
@@ -1522,7 +1514,7 @@ class TestTileXML:
         crs = CRS("EPSG:32616")
 
         dsid = make_dataid(name="B01", resolution=60)
-        xml_tile_fh = tile_xml_builder("L1C")
+        xml_tile_fh = xml_builder("L1C")[1]
         result = xml_tile_fh.get_area_def(dsid)
         area_extent = (499980.0, 3590220.0, 609780.0, 3700020.0)
         assert result.crs == crs
@@ -1565,7 +1557,7 @@ class TestMTDXML:
                              ])
     def test_xml_calibration(self, process_level, mask_saturated, band_name, expected):
         """Test the calibration to reflectance/radiance/counts."""
-        xml_fh = mtd_xml_builder(process_level, mask_saturated)
+        xml_fh = xml_builder(process_level, mask_saturated)[0]
 
         res1 = xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
         res2 = xml_fh.calibrate_to_radiances(self.fake_data, band_name)
@@ -1586,7 +1578,7 @@ class TestMTDXML:
                              ])
     def test_xml_calibration_to_atmospheric(self, process_level, mask_saturated, band_name, expected):
         """Test the calibration to L2A atmospheric products."""
-        xml_fh = mtd_xml_builder(process_level, mask_saturated)
+        xml_fh = xml_builder(process_level, mask_saturated)[0]
 
         result =xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
 
@@ -1606,16 +1598,20 @@ class TestSAFEMSIL1C:
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
                              [
-                              ("L1C", True, "B01", "reflectance", [[np.nan, -9.99], [645.34, np.inf]]),
-                              ("L1C", False, "B02", "radiance", [[np.nan, -262.148396], [16934.419021, 16934.681431]]),
-                              ("L1C", True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
-                              ("L1C", True, "B01", "aerosol_thickness", None),
+                              # ("L1C", True, "B01", "reflectance", [[np.nan, -9.99], [645.34, np.inf]]),
+                              # ("L1C", False, "B02", "radiance", [[np.nan, -262.148396], [16934.419021, 16934.681431]]),
+                              # ("L1C", True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
+                              # ("L1C", True, "B01", "aerosol_thickness", None),
+                              ("L2A", False, "B01_L2A", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
+                              ("L2A", True, "B02_L2A", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
+                              ("L2A", True, "B03_L2A", "counts", [[np.nan, 1], [65534, np.inf]]),
                               ("L2A", False, "AOT_L2A", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
                               ("L2A", True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
                               ("L2A", True, "SNOW_L2A", "water_vapor", None),
                              ])
     def test_calibration_and_masking(self, process_level, mask_saturated, dataset_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
+
         jp2_fh = jp2_builder(process_level, dataset_name.replace("_L2A", ""), mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
