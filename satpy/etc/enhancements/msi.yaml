@@ -1,0 +1,58 @@
+enhancements:
+  aot_msi:
+    standard_name: aot_msi
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - colors: oranges
+          min_value: 0
+          max_value: 1
+
+  wvp_msi:
+    standard_name: wvp_msi
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - colors: pubu
+          min_value: 0
+          max_value: 4
+
+  scl_msi:
+    # The palette is defined by Sentinel-2 Products Specification Document V14.9, page 319
+    # Please review https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
+    standard_name: scl_msi
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+        - values: [
+                   0, #Nodata
+                   1, #Saturated_defective
+                   2, #Topograhic_shadow
+                   3, #Cloud_shadow
+                   4, #Vegetation
+                   5, #Not_vegetated
+                   6, #Water
+                   7, #Unclassified
+                   8, #Cloud_medium_probability
+                   9, #Cloud_high_probability
+                   10, #Thin_cirrus
+                   11, #Snow/ice
+                   ] 
+          colors: [[0, 0, 0],
+                   [255, 0, 0],
+                   [89, 89, 89],
+                   [148, 54, 52],
+                   [0, 176, 80],
+                   [255, 255, 0],
+                   [0, 112, 192],
+                   [128, 128, 128],
+                   [191, 191, 191],
+                   [255, 255, 255],
+                   [146, 205, 220],
+                   [112, 48, 160]]

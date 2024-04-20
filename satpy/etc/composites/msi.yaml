@@ -145,3 +145,78 @@ composites:
     - name: 'B02'
       #modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
+
+  urban_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B12'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B11'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B04'
+      modifiers: [effective_solar_pathlength_corrected]
+    standard_name: natural_color
+
+  false_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B08'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B04'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B03'
+      modifiers: [effective_solar_pathlength_corrected]
+    standard_name: natural_color
+
+  true_color_l2a:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B04_L2A'
+    - name: 'B03_L2A'
+    - name: 'B02_L2A'
+    standard_name: true_color
+
+  natural_color_l2a:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B11_L2A'
+    - name: 'B08_L2A'
+    - name: 'B04_L2A'
+    standard_name: natural_color
+
+  urban_color_l2a:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B12_L2A'
+    - name: 'B11_L2A'
+    - name: 'B04_L2A'
+    standard_name: natural_color
+
+  false_color_l2a:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B08_L2A'
+    - name: 'B04_L2A'
+    - name: 'B03_L2A'
+    standard_name: natural_color
+
+  aerosol_optical_thickness:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: AOT_L2A
+        calibration: aerosol_thickness
+    standard_name: aot_msi
+
+  water_vapor_map:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: WVP_L2A
+        calibration: water_vapor
+    standard_name: wvp_msi    
+
+  scene_class:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: SCL_L2A
+    standard_name: scl_msi
+
