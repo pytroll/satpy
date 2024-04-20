@@ -86,6 +86,8 @@ class SAFEMSIL1C(BaseFileHandler):
         logger.debug("Reading %s.", key["name"])
 
         proj = self._read_from_file(key)
+        if proj is None:
+            return
         proj.attrs = info.copy()
         proj.attrs["units"] = "%"
         proj.attrs["platform_name"] = self.platform_name
@@ -164,8 +166,8 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
     def calibrate_to_atmospheric(self, data, band_name):
         """Calibrate L2A AOT/WVP product."""
-        atmospheric_products = ["AOT", "WVP"]
-        if self.process_level == "L1C" or (self.process_level == "L2A" and band_name not in atmospheric_products):
+        atmospheric_bands = ["AOT", "WVP"]
+        if self.process_level == "L1C" or (self.process_level == "L2A" and band_name not in atmospheric_bands):
             return
 
         quantification = float(self.root.find(f".//{band_name}_QUANTIFICATION_VALUE").text)

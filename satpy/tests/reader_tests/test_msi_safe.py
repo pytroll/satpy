@@ -1615,26 +1615,69 @@ class TestSAFEMSIL1C:
 
     def setup_method(self):
         """Set up the test."""
-        from satpy.readers.msi_safe import SAFEMSITileMDXML
-        self.filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None,
-                                  process_level="L1C")
         self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
-        self.tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml),
-                                                               self.filename_info, mock.MagicMock())
 
-    @pytest.mark.parametrize(("mask_saturated", "calibration", "expected"),
-                             [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
-                              (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
-                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]]),
-                              (False, "counts", [[np.nan, 1], [65534, 65535]])])
-    def test_calibration_and_masking(self, mask_saturated, calibration, expected):
+
+    @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "calibration", "expected"),
+                             [
+                              ("L1C", True, "B01", "reflectance", [[np.nan, -9.99], [645.34, np.inf]]),
+                              ("L1C", False, "B02", "radiance", [[np.nan, -262.148396], [16934.419021, 16934.681431]]),
+                              ("L1C", True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
+                              ("L1C", True, "B01", "aerosol_thickness", None),
+                              ("L2A", False, "AOT_L2A", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
+                              ("L2A", True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
+                              ("L2A", True, "SNOW_L2A", "water_vapor", None),
+                             ])
+    def test_calibration_and_masking(self, process_level, mask_saturated, band_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
-        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
+        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
+        l1c_filename_info = dict(observation_time=None, fmission_id="S2A", band_name=band_name, dtile_number=None,
+                                      process_level="L1C")
+        l2a_filename_info = dict(observation_time=None, fmission_id="S2A", band_name=band_name.replace("_L2A", ""),
+                                 dtile_number=None, process_level="L2A")
+        l1c_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l1c_filename_info,
+                                                              mock.MagicMock())
+        l2a_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l2a_filename_info,
+                                                              mock.MagicMock())
+        l1c_mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), l1c_filename_info, mock.MagicMock(),
+                               mask_saturated=mask_saturated)
+        l2a_mda = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l2a_filename_info, mock.MagicMock(),
+                               mask_saturated=mask_saturated)
 
-        mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.filename_info, mock.MagicMock(),
-                           mask_saturated=mask_saturated)
-        self.jp2_fh = SAFEMSIL1C("somefile", self.filename_info, mock.MagicMock(), mda, self.tile_mda)
+        if process_level == "L1C":
+            jp2_fh = SAFEMSIL1C("somefile", l1c_filename_info, mock.MagicMock(), l1c_mda, l1c_tile_mda)
+        else:
+            jp2_fh = SAFEMSIL1C("somefile", l2a_filename_info, mock.MagicMock(), l2a_mda, l2a_tile_mda)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            res = self.jp2_fh.get_dataset(make_dataid(name="B01", calibration=calibration), info=dict())
-            np.testing.assert_allclose(res, expected)
+            res = jp2_fh.get_dataset(make_dataid(name=band_name, calibration=calibration), info=dict())
+            if res is not None:
+                np.testing.assert_allclose(res, expected)
+            else:
+                assert res is expected
+
+    def test_filename_dsname_mismatch(self):
+        """Test when satpy's dataset name and file's band name mismatch, the data and its area definition should
+         both be None.
+
+         """
+        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
+        l1c_filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None,
+                                 process_level="L1C")
+        l2a_filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B10", dtile_number=None,
+                                 process_level="L2A")
+        l1c_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l1c_filename_info,
+                                                              mock.MagicMock())
+        l2a_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l2a_filename_info,
+                                                              mock.MagicMock())
+        l1c_mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), l1c_filename_info, mock.MagicMock(), mask_saturated=True)
+        l2a_mda = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l2a_filename_info, mock.MagicMock(), mask_saturated=True)
+        l1c_jp2_fh = SAFEMSIL1C("somefile", l1c_filename_info, mock.MagicMock(), l1c_mda, l1c_tile_mda)
+        l2a_jp2_fh = SAFEMSIL1C("somefile", l2a_filename_info, mock.MagicMock(), l2a_mda, l2a_tile_mda)
+
+        with mock.patch("xarray.open_dataset", return_value=self.fake_data):
+            res1 = l1c_jp2_fh.get_dataset(make_dataid(name="B02"), info=dict())
+            res2 = l1c_jp2_fh.get_dataset(make_dataid(name="B10_L2A"), info=dict())
+            res3 = l1c_jp2_fh.get_area_def(make_dataid(name="B02"))
+            res4 = l1c_jp2_fh.get_area_def(make_dataid(name="B10_L2A"))
+            assert res1 is None and res2 is None and res3 is None and res4 is None
