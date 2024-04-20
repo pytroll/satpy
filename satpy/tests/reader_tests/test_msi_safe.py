@@ -1611,7 +1611,6 @@ class TestMTDXML:
                                              [4, 1000, 65534, np.inf]]])
 
 
-
 class TestSAFEMSIL1C:
     """Test case for image reading (jp2k)."""
 
