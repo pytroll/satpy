@@ -1640,4 +1640,3 @@ class TestSAFEMSIL1C:
 
             assert res1 is None
             assert res2 is None
-
