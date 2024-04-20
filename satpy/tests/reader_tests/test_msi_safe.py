@@ -1657,10 +1657,7 @@ class TestSAFEMSIL1C:
                 assert res is expected
 
     def test_filename_dsname_mismatch(self):
-        """Test when satpy's dataset name and file's band name mismatch, the data and its area definition should
-         both be None.
-
-         """
+        """Test when dataset name and file name mismatch, the data and its area definition should both be None."""
         from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
         l1c_filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None,
                                  process_level="L1C")
@@ -1675,9 +1672,13 @@ class TestSAFEMSIL1C:
         l1c_jp2_fh = SAFEMSIL1C("somefile", l1c_filename_info, mock.MagicMock(), l1c_mda, l1c_tile_mda)
         l2a_jp2_fh = SAFEMSIL1C("somefile", l2a_filename_info, mock.MagicMock(), l2a_mda, l2a_tile_mda)
 
-        with mock.patch("xarray.open_dataset", return_value=self.fake_data):
+        with (mock.patch("xarray.open_dataset", return_value=self.fake_data)):
             res1 = l1c_jp2_fh.get_dataset(make_dataid(name="B02"), info=dict())
-            res2 = l1c_jp2_fh.get_dataset(make_dataid(name="B10_L2A"), info=dict())
+            res2 = l2a_jp2_fh.get_dataset(make_dataid(name="B11_L2A"), info=dict())
             res3 = l1c_jp2_fh.get_area_def(make_dataid(name="B02"))
-            res4 = l1c_jp2_fh.get_area_def(make_dataid(name="B10_L2A"))
-            assert res1 is None and res2 is None and res3 is None and res4 is None
+            res4 = l2a_jp2_fh.get_area_def(make_dataid(name="B11_L2A"))
+            assert res1 is None
+            assert res2 is None
+            assert res3 is None
+            assert res4 is None
+                        
