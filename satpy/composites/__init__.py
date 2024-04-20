@@ -1709,7 +1709,6 @@ class BackgroundCompositor(GenericCompositor):
     RGBA          RGB           RGB
     ------------  ------------  --------
     RGBA          RGBA          RGBA
-    ------------  ------------  --------
     ============  ============  ========
 
     """
