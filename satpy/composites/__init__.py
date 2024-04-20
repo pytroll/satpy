@@ -1674,8 +1674,9 @@ class BackgroundCompositor(GenericCompositor):
 
     The output image mode will be determined by both foreground and background. Generally, when the background has
     an alpha band, the output image will also have one.
+
     ============  ============  ========
-     Foreground    Background    Result
+    Foreground     Background    Result
     ============  ============  ========
          L             L           L
     ------------------------------------
