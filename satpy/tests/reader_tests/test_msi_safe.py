@@ -1681,4 +1681,3 @@ class TestSAFEMSIL1C:
             assert res2 is None
             assert res3 is None
             assert res4 is None
-                        
