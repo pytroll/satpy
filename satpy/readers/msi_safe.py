@@ -167,7 +167,9 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     def calibrate_to_atmospheric(self, data, band_name):
         """Calibrate L2A AOT/WVP product."""
         atmospheric_bands = ["AOT", "WVP"]
-        if self.process_level == "L1C" or (self.process_level == "L2A" and band_name not in atmospheric_bands):
+        if self.process_level == "L1C":
+            return
+        elif self.process_level == "L2A" and band_name not in atmospheric_bands:
             return
 
         quantification = float(self.root.find(f".//{band_name}_QUANTIFICATION_VALUE").text)

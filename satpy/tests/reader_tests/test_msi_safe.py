@@ -1596,23 +1596,18 @@ class TestSAFEMSIL1C:
         self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
 
 
-    @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
+    @pytest.mark.parametrize(("mask_saturated", "dataset_name", "calibration", "expected"),
                              [
-                              # ("L1C", True, "B01", "reflectance", [[np.nan, -9.99], [645.34, np.inf]]),
-                              # ("L1C", False, "B02", "radiance", [[np.nan, -262.148396], [16934.419021, 16934.681431]]),
-                              # ("L1C", True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
-                              # ("L1C", True, "B01", "aerosol_thickness", None),
-                              ("L2A", False, "B01_L2A", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
-                              ("L2A", True, "B02_L2A", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
-                              ("L2A", True, "B03_L2A", "counts", [[np.nan, 1], [65534, np.inf]]),
-                              ("L2A", False, "AOT_L2A", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
-                              ("L2A", True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
-                              ("L2A", True, "SNOW_L2A", "water_vapor", None),
+                              (False, "B01_L2A", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
+                              (True, "B02_L2A", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
+                              (True, "B03_L2A", "counts", [[np.nan, 1], [65534, np.inf]]),
+                              (False, "AOT_L2A", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
+                              (True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
+                              (True, "SNOW_L2A", "water_vapor", None),
                              ])
-    def test_calibration_and_masking(self, process_level, mask_saturated, dataset_name, calibration, expected):
+    def test_calibration_and_masking(self, mask_saturated, dataset_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
-
-        jp2_fh = jp2_builder(process_level, dataset_name.replace("_L2A", ""), mask_saturated)
+        jp2_fh = jp2_builder("L2A", dataset_name.replace("_L2A", ""), mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
             res = jp2_fh.get_dataset(make_dataid(name=dataset_name, calibration=calibration), info=dict())
