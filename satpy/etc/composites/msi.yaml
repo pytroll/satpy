@@ -212,11 +212,10 @@ composites:
     prerequisites:
       - name: WVP_L2A
         calibration: water_vapor
-    standard_name: wvp_msi    
+    standard_name: wvp_msi
 
   scene_class:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
       - name: SCL_L2A
     standard_name: scl_msi
-

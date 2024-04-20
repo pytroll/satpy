@@ -43,7 +43,7 @@ enhancements:
                    9, #Cloud_high_probability
                    10, #Thin_cirrus
                    11, #Snow/ice
-                   ] 
+                   ]
           colors: [[0, 0, 0],
                    [255, 0, 0],
                    [89, 89, 89],
