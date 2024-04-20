@@ -1596,7 +1596,6 @@ class TestMTDXML:
             result = l2a_xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
 
         if result is not None:
-            np.set_printoptions(suppress=True)
             np.testing.assert_allclose(result, expected)
         else:
             assert result is expected
