@@ -1419,7 +1419,7 @@ mtd_l2a_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 class TestTileXML:
     """Test the SAFE TILE XML file handler.
 
-    Since L1C/L2A share almost the same Tile XML, we only use L1C Tile here.
+    Since L1C/L2A share almost the same Tile XML structure, we only use L1C Tile here.
 
     """
 
@@ -1432,7 +1432,8 @@ class TestTileXML:
         self.l2a_xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_l1c_tile_xml), l2a_filename_info, mock.MagicMock())
 
     @pytest.mark.parametrize(("process_level","angle_name", "angle_block", "angle_type", "expected"),
-                             [("L1C", "satellite_zenith_angle", "Viewing_Incidence_Angles_Grids", "Zenith",
+                             [
+                              ("L1C", "satellite_zenith_angle", "Viewing_Incidence_Angles_Grids", "Zenith",
                                   [[11.7128, 11.18397802, 10.27667671, 9.35384969, 8.42850504,
                                    7.55445611, 6.65475545, 5.66517232, 4.75893757, 4.04976844],
                                   [11.88606009, 10.9799713, 10.07083278, 9.14571825, 8.22607131,
@@ -1505,102 +1506,110 @@ class TestTileXML:
         np.testing.assert_allclose(result.area_extent, area_extent)
 
 
-# class TestMTDXML:
-#     """Test the SAFE MTD XML file handler."""
-#
-#     def setup_method(self):
-#         """Set up the test case."""
-#         from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
-#         l1c_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
-#         l2a_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L2A")
-#         self.l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), l1c_filename_info, mock.MagicMock())
-#         self.l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), l1c_filename_info, mock.MagicMock(), mask_saturated=True)
-#         self.l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l2a_filename_info, mock.MagicMock(), mask_saturated=True)
-#         self.fake_data = xr.DataArray([[[0, 1, 2, 3],
-#                                         [4, 1000, 65534, 65535]]],
-#                                       dims=["band", "x", "y"])
-#
-#     def test_old_xml_calibration(self):
-#         """Test the calibration of older data formats (no offset)."""
-#         fake_data = xr.DataArray([[[0, 1, 2, 3],
-#                                    [4, 1000, 65534, 65535]]],
-#                                  dims=["band", "x", "y"])
-#         result = self.l1c_old_xml_fh.calibrate_to_reflectances(fake_data, "B01")
-#         np.testing.assert_allclose(result, [[[np.nan, 0.01, 0.02, 0.03],
-#                                              [0.04, 10, 655.34, np.inf]]])
-
-
-
-
 class TestMTDXML:
     """Test the SAFE MTD XML file handler."""
 
     def setup_method(self):
         """Set up the test case."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
-        filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
-        self.l1c_xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_l1c_tile_xml), filename_info, mock.MagicMock())
-        self.l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock())
-        self.l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=True)
+        self.l1c_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
+        self.l2a_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L2A")
+        self.fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                        [4, 1000, 65534, 65535]]],
+                                      dims=["band", "x", "y"])
 
-    def test_old_xml_calibration(self):
-        """Test the calibration of older data formats (no offset)."""
-        fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                   [4, 1000, 65534, 65535]]],
-                                 dims=["band", "x", "y"])
-        result = self.l1c_old_xml_fh.calibrate_to_reflectances(fake_data, "B01")
-        np.testing.assert_allclose(result, [[[np.nan, 0.01, 0.02, 0.03],
-                                             [0.04, 10, 655.34, np.inf]]])
+    @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
+                             [
+                              ("L1C", True, "B01", [[[np.nan, -9.99, -9.98, -9.97],
+                                                     [-9.96, 0, 645.34, np.inf]]]),
+                              ("L1C", False, "B10", [[[np.nan, -19.99, -19.98, -19.97],
+                                                      [-19.96, -10, 635.34, 635.35]]]),
+                              ("oldL1C", True, "B01", [[[np.nan, 0.01, 0.02, 0.03],
+                                                        [0.04, 10, 655.34, np.inf]]]),
+                              ("L2A", False, "B03", [[[np.nan, -9.99, -9.98, -9.97],
+                                                      [-9.96, 0, 645.34, 645.35]]]),
+                              ])
+    def test_xml_calibration_to_reflectance(self, process_level, mask_saturated, band_name, expected):
+        """Test the calibration to reflectance."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+        l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), self.l1c_filename_info, mock.MagicMock())
+        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
+                                       mask_saturated=mask_saturated)
+        l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), self.l2a_filename_info, mock.MagicMock(),
+                                       mask_saturated=mask_saturated)
 
-    def test_xml_calibration(self):
-        """Test the calibration with radiometric offset."""
-        fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                   [4, 1000, 65534, 65535]]],
-                                 dims=["band", "x", "y"])
-        result = self.l1c_xml_fh.calibrate_to_reflectances(fake_data, "B01")
-        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
-                                             [0.04 - 10, 0, 655.34 - 10, np.inf]]])
+        if process_level == "oldL1C":
+            result = l1c_old_xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
+        elif process_level == "L1C":
+            result = l1c_xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
+        else:
+            result = l2a_xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
+
+        np.testing.assert_allclose(result, expected)
+
+    @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
+                             [
+                              ("L1C", True, "B01", [[[np.nan, -251.584265, -251.332429, -251.080593],
+                                                     [-250.828757, 0., 16251.99095, np.inf]]]),
+                              ("L1C", False, "B10", [[[np.nan, -35.465976, -35.448234, -35.430493],
+                                                      [-35.412751, -17.741859, 1127.211275, 1127.229017]]]),
+                              ("oldL1C", True, "B01", [[[np.nan, 0.251836101, 0.503672202, 0.755508303],
+                                                        [1.00734440, 251.836101, 16503.8271, np.inf]]]),
+                              ("L2A", False, "B03", [[[np.nan, -238.571863, -238.333052, -238.094241],
+                                                      [-237.855431, 0, 15411.407995, 15411.646806]]]),
+                              ])
+    def test_xml_calibration_to_radiance(self, process_level, mask_saturated, band_name, expected):
+        """Test the calibration to reflectance."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+        l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), self.l1c_filename_info, mock.MagicMock())
+        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
+                                  mask_saturated=mask_saturated)
+        l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), self.l2a_filename_info, mock.MagicMock(),
+                                  mask_saturated=mask_saturated)
+        if process_level == "oldL1C":
+            result = l1c_old_xml_fh.calibrate_to_radiances(self.fake_data, band_name)
+        elif process_level == "L1C":
+            result = l1c_xml_fh.calibrate_to_radiances(self.fake_data, band_name)
+        else:
+            result = l2a_xml_fh.calibrate_to_radiances(self.fake_data, band_name)
+
+        np.testing.assert_allclose(result, expected)
+
+    @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
+                             [
+                                 ("L1C", True, "B01", None),
+                                 ("L2A", False, "AOT", [[[np.nan, 0.001, 0.002, 0.003],
+                                                         [0.004, 1., 65.534, 65.535]]]),
+                                 ("L2A", True, "WVP", [[[np.nan, 0.001, 0.002, 0.003],
+                                                         [0.004, 1., 65.534, np.inf]]]),
+                                 ("L2A", False, "CLOUD", None),
+                             ])
+    def test_xml_calibration_to_atmospheric(self, process_level, mask_saturated, band_name, expected):
+        """Test the calibration to L2A atmospheric products."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
+                                  mask_saturated=mask_saturated)
+        l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), self.l2a_filename_info, mock.MagicMock(),
+                                  mask_saturated=mask_saturated)
+        if process_level == "L1C":
+            result = l1c_xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
+        else:
+            result = l2a_xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
+
+        if result is not None:
+            np.set_printoptions(suppress=True)
+            np.testing.assert_allclose(result, expected)
+        else:
+            assert result is expected
 
     def test_xml_calibration_to_counts(self):
         """Test the calibration to counts."""
-        fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                   [4, 1000, 65534, 65535]]],
-                                 dims=["band", "x", "y"])
-        result = self.l1c_xml_fh._sanitize_data(fake_data)
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
+                                  mask_saturated=True)
+        result = l1c_xml_fh._sanitize_data(self.fake_data)
         np.testing.assert_allclose(result, [[[np.nan, 1, 2, 3],
                                              [4, 1000, 65534, np.inf]]])
 
-    def test_xml_calibration_unmasked_saturated(self):
-        """Test the calibration with radiometric offset but unmasked saturated pixels."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML
-        filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
-        self.l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=False)
-
-        fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                   [4, 1000, 65534, 65535]]],
-                                 dims=["band", "x", "y"])
-        result = self.l1c_xml_fh.calibrate_to_reflectances(fake_data, "B01")
-        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
-                                             [0.04 - 10, 0, 655.34 - 10, 655.35 - 10]]])
-
-    def test_xml_calibration_with_different_offset(self):
-        """Test the calibration with a different offset."""
-        fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                   [4, 1000, 65534, 65535]]],
-                                 dims=["band", "x", "y"])
-        result = self.l1c_xml_fh.calibrate_to_reflectances(fake_data, "B10")
-        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 20, 0.02 - 20, 0.03 - 20],
-                                             [0.04 - 20, -10, 655.34 - 20, np.inf]]])
-
-    def test_xml_calibration_to_radiance(self):
-        """Test the calibration with a different offset."""
-        fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                   [4, 1000, 65534, 65535]]],
-                                 dims=["band", "x", "y"])
-        result = self.l1c_xml_fh.calibrate_to_radiances(fake_data, "B01")
-        expected = np.array([[[np.nan, -251.584265, -251.332429, -251.080593],
-                              [-250.828757, 0., 16251.99095, np.inf]]])
-        np.testing.assert_allclose(result, expected)
 
 
 class TestSAFEMSIL1C:
