@@ -1415,6 +1415,38 @@ mtd_l2a_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 </n1:Level-2A_User_Product>
 """ # noqa
 
+PROCESS_LEVELS = ["L1C", "oldL1C", "L2A"]
+MTD_XMLS = [mtd_l1c_xml, mtd_l1c_old_xml, mtd_l2a_xml]
+TILE_XMLS = [mtd_l1c_tile_xml, mtd_l1c_tile_xml, mtd_l1c_tile_xml]
+
+def mtd_xml_builder(process_level, mask_saturated=True, band_name=None):
+    """Build fake SAFE MTD XML."""
+    from satpy.readers.msi_safe import SAFEMSIMDXML
+    filename_info = dict(observation_time=None, dtile_number=None, band_name=band_name, fmission_id="S2A",
+                         process_level=process_level.replace("old", ""))
+    xml_fh = SAFEMSIMDXML(StringIO(MTD_XMLS[PROCESS_LEVELS.index(process_level)]),
+                          filename_info, mock.MagicMock(), mask_saturated=mask_saturated)
+    return xml_fh
+
+def tile_xml_builder(process_level, band_name=None):
+    """Build fake SAFE Tile XML."""
+    from satpy.readers.msi_safe import SAFEMSITileMDXML
+    filename_info = dict(observation_time=None, dtile_number=None, band_name=band_name, fmission_id="S2A",
+                         process_level=process_level.replace("old", ""))
+    xml_tile_fh = SAFEMSITileMDXML(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
+                                   filename_info, mock.MagicMock())
+    return xml_tile_fh
+
+def jp2_builder(process_level, band_name, mask_saturated=True):
+    """Build fake SAFE jp2 image file."""
+    from satpy.readers.msi_safe import SAFEMSIL1C
+    filename_info = dict(observation_time=None, dtile_number=None, band_name=band_name, fmission_id="S2A",
+                         process_level=process_level.replace("old", ""))
+    xml_xh = mtd_xml_builder(process_level, mask_saturated, band_name)
+    tile_xml_xh = tile_xml_builder(process_level, band_name)
+    jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_xh, tile_xml_xh)
+    return jp2_fh
+
 
 class TestTileXML:
     """Test the SAFE TILE XML file handler.
@@ -1423,17 +1455,9 @@ class TestTileXML:
 
     """
 
-    def setup_method(self):
-        """Set up the test case."""
-        from satpy.readers.msi_safe import SAFEMSITileMDXML
-        l1c_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
-        l2a_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L2A")
-        self.l1c_xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_l1c_tile_xml), l1c_filename_info, mock.MagicMock())
-        self.l2a_xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_l1c_tile_xml), l2a_filename_info, mock.MagicMock())
-
-    @pytest.mark.parametrize(("process_level","angle_name", "angle_block", "angle_type", "expected"),
+    @pytest.mark.parametrize(("process_level","angle_name", "angle_tag", "expected"),
                              [
-                              ("L1C", "satellite_zenith_angle", "Viewing_Incidence_Angles_Grids", "Zenith",
+                              ("L1C", "satellite_zenith_angle", ("Viewing_Incidence_Angles_Grids", "Zenith"),
                                   [[11.7128, 11.18397802, 10.27667671, 9.35384969, 8.42850504,
                                    7.55445611, 6.65475545, 5.66517232, 4.75893757, 4.04976844],
                                   [11.88606009, 10.9799713, 10.07083278, 9.14571825, 8.22607131,
@@ -1454,7 +1478,7 @@ class TestTileXML:
                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]]),
-                              ("L2A", "solar_zenith_angle_l2a", "Sun_Angles_Grid", "Zenith",
+                              ("L2A", "solar_zenith_angle_l2a", ("Sun_Angles_Grid", "Zenith"),
                                [[39.8824, 39.83721367, 39.79230847, 39.74758442, 39.7030415,
                                  39.65867687, 39.61455566, 39.57061558, 39.52685664, 39.48331372],
                                 [39.78150175, 39.73629896, 39.69128852, 39.64643679, 39.6018404,
@@ -1475,17 +1499,15 @@ class TestTileXML:
                                  38.84936063, 38.80464763, 38.76011645, 38.7157479, 38.67164839],
                                 [38.97531575, 38.92950771, 38.88389967, 38.83852091, 38.7933053,
                                  38.74831897, 38.7034912, 38.65891427, 38.61446851, 38.57030388]]),
-                              ("L1C", "moon_zenith_angle", "Sun_Angles_Grid", "Zenith", None)
+                              ("L1C", "moon_zenith_angle", ("Sun_Angles_Grid", "Zenith"), None)
                               ])
-    def test_angles(self, process_level, angle_name, angle_block, angle_type, expected):
+    def test_angles(self, process_level, angle_name, angle_tag, expected):
         """Test reading angles array."""
-        info = dict(xml_tag=angle_block, xml_item=angle_type) if "satellite" in angle_name else \
-            dict(xml_tag=angle_block + "/" + angle_type)
+        info = dict(xml_tag=angle_tag[0], xml_item=angle_tag[1]) if "satellite" in angle_name else \
+            dict(xml_tag=angle_tag[0] + "/" + angle_tag[1])
+        xml_tile_fh = tile_xml_builder(process_level)
 
-        if process_level == "L1C":
-            res = self.l1c_xml_tile_fh.get_dataset(make_dataid(name=angle_name, resolution=60), info)
-        else:
-            res = self.l2a_xml_tile_fh.get_dataset(make_dataid(name=angle_name, resolution=60), info)
+        res = xml_tile_fh.get_dataset(make_dataid(name=angle_name, resolution=60), info)
         if res is not None:
             res = res[::200, ::200]
 
@@ -1500,7 +1522,8 @@ class TestTileXML:
         crs = CRS("EPSG:32616")
 
         dsid = make_dataid(name="B01", resolution=60)
-        result = self.l1c_xml_tile_fh.get_area_def(dsid)
+        xml_tile_fh = tile_xml_builder("L1C")
+        result = xml_tile_fh.get_area_def(dsid)
         area_extent = (499980.0, 3590220.0, 609780.0, 3700020.0)
         assert result.crs == crs
         np.testing.assert_allclose(result.area_extent, area_extent)
@@ -1511,68 +1534,45 @@ class TestMTDXML:
 
     def setup_method(self):
         """Set up the test case."""
-        self.l1c_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L1C")
-        self.l2a_filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A", process_level="L2A")
-        self.fake_data = xr.DataArray([[[0, 1, 2, 3],
-                                        [4, 1000, 65534, 65535]]],
-                                      dims=["band", "x", "y"])
+        self.fake_data = xr.DataArray([[[0, 1, 2, 3], [4, 1000, 65534, 65535]]], dims=["band", "x", "y"])
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
                              [
-                              ("L1C", True, "B01", [[[np.nan, -9.99, -9.98, -9.97],
-                                                     [-9.96, 0, 645.34, np.inf]]]),
-                              ("L1C", False, "B10", [[[np.nan, -19.99, -19.98, -19.97],
-                                                      [-19.96, -10, 635.34, 635.35]]]),
-                              ("oldL1C", True, "B01", [[[np.nan, 0.01, 0.02, 0.03],
-                                                        [0.04, 10, 655.34, np.inf]]]),
-                              ("L2A", False, "B03", [[[np.nan, -9.99, -9.98, -9.97],
-                                                      [-9.96, 0, 645.34, 645.35]]]),
-                              ])
-    def test_xml_calibration_to_reflectance(self, process_level, mask_saturated, band_name, expected):
-        """Test the calibration to reflectance."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML
-        l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), self.l1c_filename_info, mock.MagicMock())
-        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
-                                       mask_saturated=mask_saturated)
-        l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), self.l2a_filename_info, mock.MagicMock(),
-                                       mask_saturated=mask_saturated)
+                                 ("L1C", True, "B01", ([[[np.nan, -9.99, -9.98, -9.97],
+                                                         [-9.96, 0, 645.34, np.inf]]],
+                                                       [[[np.nan, -251.584265, -251.332429, -251.080593],
+                                                         [-250.828757, 0., 16251.99095, np.inf]]],
+                                                       [[[np.nan, 1, 2, 3],
+                                                         [4, 1000, 65534, np.inf]]])),
+                                 ("L1C", False, "B10", ([[[np.nan, -19.99, -19.98, -19.97],
+                                                         [-19.96, -10, 635.34, 635.35]]],
+                                                        [[[np.nan, -35.465976, -35.448234, -35.430493],
+                                                          [-35.412751, -17.741859, 1127.211275, 1127.229017]]],
+                                                        [[[np.nan, 1, 2, 3],
+                                                          [4, 1000, 65534, 65535]]])),
+                                 ("oldL1C", True, "B01", ([[[np.nan, 0.01, 0.02, 0.03],
+                                                           [0.04, 10, 655.34, np.inf]]],
+                                                          [[[np.nan, 0.251836101, 0.503672202, 0.755508303],
+                                                            [1.00734440, 251.836101, 16503.8271, np.inf]]],
+                                                          [[[np.nan, 1, 2, 3],
+                                                            [4, 1000, 65534, np.inf]]])),
+                                 ("L2A", False, "B03", ([[[np.nan, -9.99, -9.98, -9.97],
+                                                         [-9.96, 0, 645.34, 645.35]]],
+                                                        [[[np.nan, -238.571863, -238.333052, -238.094241],
+                                                          [-237.855431, 0, 15411.407995, 15411.646806]]],
+                                                        [[[np.nan, 1, 2, 3],
+                                                          [4, 1000, 65534, 65535]]])),
+                             ])
+    def test_xml_calibration(self, process_level, mask_saturated, band_name, expected):
+        """Test the calibration to reflectance/radiance/counts."""
+        xml_fh = mtd_xml_builder(process_level, mask_saturated)
 
-        if process_level == "oldL1C":
-            result = l1c_old_xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
-        elif process_level == "L1C":
-            result = l1c_xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
-        else:
-            result = l2a_xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
+        res1 = xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
+        res2 = xml_fh.calibrate_to_radiances(self.fake_data, band_name)
+        res3 = xml_fh._sanitize_data(self.fake_data)
 
-        np.testing.assert_allclose(result, expected)
-
-    @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
-                             [
-                              ("L1C", True, "B01", [[[np.nan, -251.584265, -251.332429, -251.080593],
-                                                     [-250.828757, 0., 16251.99095, np.inf]]]),
-                              ("L1C", False, "B10", [[[np.nan, -35.465976, -35.448234, -35.430493],
-                                                      [-35.412751, -17.741859, 1127.211275, 1127.229017]]]),
-                              ("oldL1C", True, "B01", [[[np.nan, 0.251836101, 0.503672202, 0.755508303],
-                                                        [1.00734440, 251.836101, 16503.8271, np.inf]]]),
-                              ("L2A", False, "B03", [[[np.nan, -238.571863, -238.333052, -238.094241],
-                                                      [-237.855431, 0, 15411.407995, 15411.646806]]]),
-                              ])
-    def test_xml_calibration_to_radiance(self, process_level, mask_saturated, band_name, expected):
-        """Test the calibration to reflectance."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML
-        l1c_old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), self.l1c_filename_info, mock.MagicMock())
-        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
-                                  mask_saturated=mask_saturated)
-        l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), self.l2a_filename_info, mock.MagicMock(),
-                                  mask_saturated=mask_saturated)
-        if process_level == "oldL1C":
-            result = l1c_old_xml_fh.calibrate_to_radiances(self.fake_data, band_name)
-        elif process_level == "L1C":
-            result = l1c_xml_fh.calibrate_to_radiances(self.fake_data, band_name)
-        else:
-            result = l2a_xml_fh.calibrate_to_radiances(self.fake_data, band_name)
-
-        np.testing.assert_allclose(result, expected)
+        results = (res1, res2, res3)
+        np.testing.assert_allclose(results, expected)
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
                              [
@@ -1582,32 +1582,18 @@ class TestMTDXML:
                                  ("L2A", True, "WVP", [[[np.nan, 0.001, 0.002, 0.003],
                                                          [0.004, 1., 65.534, np.inf]]]),
                                  ("L2A", False, "CLOUD", None),
+                                 ("L2A", False, "B10", None),
                              ])
     def test_xml_calibration_to_atmospheric(self, process_level, mask_saturated, band_name, expected):
         """Test the calibration to L2A atmospheric products."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML
-        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
-                                  mask_saturated=mask_saturated)
-        l2a_xml_fh = SAFEMSIMDXML(StringIO(mtd_l2a_xml), self.l2a_filename_info, mock.MagicMock(),
-                                  mask_saturated=mask_saturated)
-        if process_level == "L1C":
-            result = l1c_xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
-        else:
-            result = l2a_xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
+        xml_fh = mtd_xml_builder(process_level, mask_saturated)
+
+        result =xml_fh.calibrate_to_atmospheric(self.fake_data, band_name)
 
         if result is not None:
             np.testing.assert_allclose(result, expected)
         else:
             assert result is expected
-
-    def test_xml_calibration_to_counts(self):
-        """Test the calibration to counts."""
-        from satpy.readers.msi_safe import SAFEMSIMDXML
-        l1c_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.l1c_filename_info, mock.MagicMock(),
-                                  mask_saturated=True)
-        result = l1c_xml_fh._sanitize_data(self.fake_data)
-        np.testing.assert_allclose(result, [[[np.nan, 1, 2, 3],
-                                             [4, 1000, 65534, np.inf]]])
 
 
 class TestSAFEMSIL1C:
@@ -1618,7 +1604,7 @@ class TestSAFEMSIL1C:
         self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
 
 
-    @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "calibration", "expected"),
+    @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
                              [
                               ("L1C", True, "B01", "reflectance", [[np.nan, -9.99], [645.34, np.inf]]),
                               ("L1C", False, "B02", "radiance", [[np.nan, -262.148396], [16934.419021, 16934.681431]]),
@@ -1628,56 +1614,30 @@ class TestSAFEMSIL1C:
                               ("L2A", True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
                               ("L2A", True, "SNOW_L2A", "water_vapor", None),
                              ])
-    def test_calibration_and_masking(self, process_level, mask_saturated, band_name, calibration, expected):
+    def test_calibration_and_masking(self, process_level, mask_saturated, dataset_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
-        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
-        l1c_filename_info = dict(observation_time=None, fmission_id="S2A", band_name=band_name, dtile_number=None,
-                                      process_level="L1C")
-        l2a_filename_info = dict(observation_time=None, fmission_id="S2A", band_name=band_name.replace("_L2A", ""),
-                                 dtile_number=None, process_level="L2A")
-        l1c_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l1c_filename_info,
-                                                              mock.MagicMock())
-        l2a_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l2a_filename_info,
-                                                              mock.MagicMock())
-        l1c_mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), l1c_filename_info, mock.MagicMock(),
-                               mask_saturated=mask_saturated)
-        l2a_mda = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l2a_filename_info, mock.MagicMock(),
-                               mask_saturated=mask_saturated)
-
-        if process_level == "L1C":
-            jp2_fh = SAFEMSIL1C("somefile", l1c_filename_info, mock.MagicMock(), l1c_mda, l1c_tile_mda)
-        else:
-            jp2_fh = SAFEMSIL1C("somefile", l2a_filename_info, mock.MagicMock(), l2a_mda, l2a_tile_mda)
+        jp2_fh = jp2_builder(process_level, dataset_name.replace("_L2A", ""), mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            res = jp2_fh.get_dataset(make_dataid(name=band_name, calibration=calibration), info=dict())
+            res = jp2_fh.get_dataset(make_dataid(name=dataset_name, calibration=calibration), info=dict())
             if res is not None:
                 np.testing.assert_allclose(res, expected)
             else:
                 assert res is expected
 
-    def test_filename_dsname_mismatch(self):
-        """Test when dataset name and file name mismatch, the data and its area definition should both be None."""
-        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
-        l1c_filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None,
-                                 process_level="L1C")
-        l2a_filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B10", dtile_number=None,
-                                 process_level="L2A")
-        l1c_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l1c_filename_info,
-                                                              mock.MagicMock())
-        l2a_tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_l1c_tile_xml), l2a_filename_info,
-                                                              mock.MagicMock())
-        l1c_mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), l1c_filename_info, mock.MagicMock(), mask_saturated=True)
-        l2a_mda = SAFEMSIMDXML(StringIO(mtd_l2a_xml), l2a_filename_info, mock.MagicMock(), mask_saturated=True)
-        l1c_jp2_fh = SAFEMSIL1C("somefile", l1c_filename_info, mock.MagicMock(), l1c_mda, l1c_tile_mda)
-        l2a_jp2_fh = SAFEMSIL1C("somefile", l2a_filename_info, mock.MagicMock(), l2a_mda, l2a_tile_mda)
+    @pytest.mark.parametrize(("process_level", "band_name", "dataset_name"),
+                             [
+                                 ("L1C", "B01", "B03"),
+                                 ("L2A", "B02", "B03_L2A"),
+                             ])
+    def test_filename_dsname_mismatch(self, process_level, band_name, dataset_name):
+        """Test when dataset name and file band name mismatch, the data and its area definition should both be None."""
+        jp2_fh = jp2_builder(process_level, band_name)
 
-        with (mock.patch("xarray.open_dataset", return_value=self.fake_data)):
-            res1 = l1c_jp2_fh.get_dataset(make_dataid(name="B02"), info=dict())
-            res2 = l2a_jp2_fh.get_dataset(make_dataid(name="B11_L2A"), info=dict())
-            res3 = l1c_jp2_fh.get_area_def(make_dataid(name="B02"))
-            res4 = l2a_jp2_fh.get_area_def(make_dataid(name="B11_L2A"))
+        with mock.patch("xarray.open_dataset", return_value=self.fake_data):
+            res1 = jp2_fh.get_dataset(make_dataid(name=dataset_name), info=dict())
+            res2 = jp2_fh.get_area_def(make_dataid(name=dataset_name))
+
             assert res1 is None
             assert res2 is None
-            assert res3 is None
-            assert res4 is None
+
