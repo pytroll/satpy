@@ -1,8 +1,6 @@
 sensor_name: visir/msi
 
-
 modifiers:
-
   rayleigh_corrected:
     modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
@@ -168,6 +166,22 @@ composites:
       modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
 
+  ndvi:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B08
+        - name: B04
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B08
+        - name: B04
+    standard_name: ndvi_msi
+
   true_color_l2a:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -219,3 +233,19 @@ composites:
     prerequisites:
       - name: SCL_L2A
     standard_name: scl_msi
+
+  ndvi_l2a:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B08_L2A
+        - name: B04_L2A
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B08_L2A
+        - name: B04_L2A
+    standard_name: ndvi_msi

@@ -1,4 +1,38 @@
 enhancements:
+  ndvi_msi:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
+    standard_name: ndvi_msi
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+        - min_value: -1
+          max_value: 1
+          values: [-1, -0.5, -0.2, -0.1, 0, 0.025, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 1]
+          colors: [[12, 12, 12],
+                   [12, 12, 12],
+                   [191, 191, 191],
+                   [219, 219, 219],
+                   [234, 234, 234],
+                   [255, 249, 204],
+                   [237, 232, 181],
+                   [221, 216, 155],                   
+                   [204, 198, 130],
+                   [188, 183, 107],
+                   [175, 193, 96],
+                   [163, 204, 89],                   
+                   [145, 191, 81],
+                   [127, 178, 71],
+                   [112, 163, 63],
+                   [96, 150, 53],
+                   [79, 137, 45],
+                   [63, 124, 35],
+                   [48, 109, 28],
+                   [33, 96, 17],
+                   [15, 84, 10],
+                   [0, 68, 0]]          
+
   aot_msi:
     standard_name: aot_msi
     operations:
