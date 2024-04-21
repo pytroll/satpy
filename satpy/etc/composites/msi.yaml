@@ -182,6 +182,66 @@ composites:
         - name: B04
     standard_name: ndvi_msi
 
+  ndmi:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndmi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B08
+        - name: B11
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B08
+        - name: B11
+    standard_name: ndmi_msi
+
+  ndwi:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B03
+        - name: B08
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B03
+        - name: B08
+    standard_name: ndwi_msi
+
+  ndsi:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - name: B11
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B03
+        - name: B11
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B03
+        - name: B11
+    conditions:
+    - method: less_equal
+      value: 0.42
+      transparency: 100
+    standard_name: ndsi_msi
+
+  ndsi_with_true_color:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    prerequisites:
+    - name: ndsi
+    - name: true_color
+    standard_name: no_enhancement
+
   true_color_l2a:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -249,3 +309,63 @@ composites:
         - name: B08_L2A
         - name: B04_L2A
     standard_name: ndvi_msi
+
+  ndmi_l2a:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B8A_L2A
+        - name: B11_L2A
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B8A_L2A
+        - name: B11_L2A
+    standard_name: ndmi_msi
+
+  ndwi_l2a:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B03_L2A
+        - name: B08_L2A
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B03_L2A
+        - name: B08_L2A
+    standard_name: ndwi_msi
+
+  ndsi_l2a:
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - name: B11_L2A
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - name: B03_L2A
+        - name: B11_L2A
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+        - name: B03_L2A
+        - name: B11_L2A
+    conditions:
+    - method: less_equal
+      value: 0.42
+      transparency: 100
+    standard_name: ndsi_msi
+
+  ndsi_l2a_with_true_color_l2a:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    prerequisites:
+    - name: ndsi_l2a
+    - name: true_color_l2a
+    standard_name: no_enhancement
