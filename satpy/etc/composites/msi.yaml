@@ -167,6 +167,7 @@ composites:
     standard_name: natural_color
 
   ndvi:
+    # Normalized Difference Vegetation Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
@@ -183,6 +184,7 @@ composites:
     standard_name: ndvi_msi
 
   ndmi:
+    # Normalized Difference Moisture Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndmi/
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
@@ -199,6 +201,7 @@ composites:
     standard_name: ndmi_msi
 
   ndwi:
+    # Normalized Difference Water Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
@@ -215,6 +218,7 @@ composites:
     standard_name: ndwi_msi
 
   ndsi:
+    # Normalized Difference Snow Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
     compositor: !!python/name:satpy.composites.MaskingCompositor
     prerequisites:
@@ -295,6 +299,7 @@ composites:
     standard_name: scl_msi
 
   ndvi_l2a:
+    # Normalized Difference Vegetation Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
@@ -311,6 +316,7 @@ composites:
     standard_name: ndvi_msi
 
   ndmi_l2a:
+    # Normalized Difference Moisture Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
@@ -327,6 +333,7 @@ composites:
     standard_name: ndmi_msi
 
   ndwi_l2a:
+    # Normalized Difference Water Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
@@ -343,6 +350,7 @@ composites:
     standard_name: ndwi_msi
 
   ndsi_l2a:
+    # Normalized Difference Snow Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
     compositor: !!python/name:satpy.composites.MaskingCompositor
     prerequisites:
