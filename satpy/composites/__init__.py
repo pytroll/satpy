@@ -1033,8 +1033,10 @@ class RealisticColors(GenericCompositor):
 class CloudCompositor(GenericCompositor):
     """Detect clouds based on thresholding and use it as a mask for compositing."""
 
+    _supported_modes = ["LA", "RGBA"]
+
     def __init__(self, name, transition_min=258.15, transition_max=298.15,  # noqa: D417
-                 transition_gamma=3.0, invert_alpha=False, **kwargs):
+                 transition_gamma=3.0, invert_alpha=False, mode="LA", **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1045,12 +1047,17 @@ class CloudCompositor(GenericCompositor):
             transition_gamma (float): Gamma correction to apply at the end
             invert_alpha (bool): Invert the alpha channel to make low data values transparent
                                  and high data values opaque.
+            mode (str, optional): Image mode to return.
+                                  This shall be "LA" (default) or "RGBA".
 
         """
         self.transition_min = transition_min
         self.transition_max = transition_max
         self.transition_gamma = transition_gamma
         self.invert_alpha = invert_alpha
+        if mode not in self._supported_modes:
+            raise ValueError(f"Invalid mode {mode!s}.  Supported modes: " + ", ".join(self._supported_modes))
+        self.mode = mode
         super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -1077,7 +1084,10 @@ class CloudCompositor(GenericCompositor):
 
         # gamma adjustment
         alpha **= gamma
-        res = super(CloudCompositor, self).__call__((data, alpha), **kwargs)
+        if self.mode == "LA":
+            res = super(CloudCompositor, self).__call__((data, alpha), **kwargs)
+        else:
+            res = super(CloudCompositor, self).__call__((data, data,data, alpha), **kwargs)
         return res
 
 
