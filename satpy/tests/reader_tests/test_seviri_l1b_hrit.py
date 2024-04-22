@@ -15,10 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The HRIT msg reader tests package."""
 
+import datetime as dt
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -47,7 +48,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing HRV."""
-        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
+        self.observation_start_time = dt.datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.reader = setup.get_fake_file_handler(
             observation_start_time=self.observation_start_time,
@@ -139,7 +140,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing."""
-        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
+        self.observation_start_time = dt.datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.ncols = 3712
         self.projection_longitude = 9.5
@@ -214,13 +215,13 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             setup.get_attrs_exp(self.projection_longitude)
         )
         # testing start/end time
-        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == self.reader.observation_start_time
-        assert datetime(2006, 1, 1, 12, 15) == self.reader.start_time
+        assert dt.datetime(2006, 1, 1, 12, 15, 9, 304888) == self.reader.observation_start_time
+        assert dt.datetime(2006, 1, 1, 12, 15) == self.reader.start_time
         assert self.reader.start_time == self.reader.nominal_start_time
 
-        assert datetime(2006, 1, 1, 12, 27, 39) == self.reader.observation_end_time
+        assert dt.datetime(2006, 1, 1, 12, 27, 39) == self.reader.observation_end_time
         assert self.reader.end_time == self.reader.nominal_end_time
-        assert datetime(2006, 1, 1, 12, 30) == self.reader.end_time
+        assert dt.datetime(2006, 1, 1, 12, 30) == self.reader.end_time
         # test repeat cycle duration
         assert 15 == self.reader._repeat_cycle_duration
         # Change the reducescan scenario to test the repeat cycle duration handling
@@ -292,7 +293,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     def setUp(self, *mocks):
         """Set up the test case."""
         fh = setup.get_fake_file_handler(
-            observation_start_time=datetime(2016, 3, 3, 0, 0),
+            observation_start_time=dt.datetime(2016, 3, 3, 0, 0),
             nlines=464,
             ncols=3712,
         )

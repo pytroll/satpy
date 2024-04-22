@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Nowcasting SAF common PPS&MSG NetCDF/CF format reader.
 
 References:
@@ -22,11 +23,11 @@ References:
 
 """
 
+import datetime as dt
 import functools
 import logging
 import os
 from contextlib import suppress
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -435,9 +436,9 @@ def read_nwcsaf_time(time_value):
     try:
         # MSG:
         try:
-            return datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%SZ")
+            return dt.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%SZ")
         except TypeError:  # Remove this in summer 2024 (this is not needed since h5netcdf 0.14)
-            return datetime.strptime(time_value.astype(str), "%Y-%m-%dT%H:%M:%SZ")
+            return dt.datetime.strptime(time_value.astype(str), "%Y-%m-%dT%H:%M:%SZ")
     except ValueError:
         # PPS:
-        return datetime.strptime(time_value, "%Y%m%dT%H%M%S%fZ")
+        return dt.datetime.strptime(time_value, "%Y%m%dT%H%M%S%fZ")

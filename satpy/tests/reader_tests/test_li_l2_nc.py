@@ -12,9 +12,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Unit tests on the LI L2 reader using the conventional mock constructed context."""
+
+import datetime as dt
 import os
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -405,7 +407,7 @@ class TestLIL2():
         assert dset.values.dtype == np.dtype("datetime64[ns]")
 
         # The default epoch_time should be 1.234 seconds after epoch:
-        ref_time = np.datetime64(datetime(2000, 1, 1, 0, 0, 1, 234000))
+        ref_time = np.datetime64(dt.datetime(2000, 1, 1, 0, 0, 1, 234000))
         assert np.all(dset.values == ref_time)
 
         # Check time_offset:

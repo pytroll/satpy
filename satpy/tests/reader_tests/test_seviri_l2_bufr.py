@@ -17,9 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the SEVIRI L2 BUFR reader."""
 
+import datetime as dt
 import sys
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -37,7 +37,7 @@ FILENAME_INFO2 = {"start_time": "20191112000000",
                   "spacecraft": "MSG2",
                   "server": "TESTSERVER"}
 MPEF_PRODUCT_HEADER = {
-    "NominalTime": datetime(2019, 11, 6, 18, 0),
+    "NominalTime": dt.datetime(2019, 11, 6, 18, 0),
     "SpacecraftName": "09",
     "RectificationLongitude": "E0455"
 }

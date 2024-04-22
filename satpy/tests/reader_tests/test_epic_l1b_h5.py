@@ -89,11 +89,11 @@ class TestEPICL1bReader:
 
     def test_times(self, setup_hdf5_file):
         """Test start and end times load properly."""
-        from datetime import datetime
+        import datetime as dt
 
         test_reader = self._setup_h5(setup_hdf5_file)
-        assert test_reader.start_time == datetime(2015, 6, 13, 12, 0, 37)
-        assert test_reader.end_time == datetime(2015, 6, 13, 12, 5, 1)
+        assert test_reader.start_time == dt.datetime(2015, 6, 13, 12, 0, 37)
+        assert test_reader.end_time == dt.datetime(2015, 6, 13, 12, 5, 1)
 
     def test_counts_calibration(self, setup_hdf5_file):
         """Test that data is correctly calibrated."""

@@ -21,8 +21,8 @@ Note: This is adapted from the test_slstr_l2.py code.
 """
 from __future__ import annotations
 
+import datetime as dt
 import shutil
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -40,8 +40,8 @@ I_COLS = 6400
 I_ROWS = 32  # one scan
 M_COLS = 3200
 M_ROWS = 16  # one scan
-START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
-END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
+START_TIME = dt.datetime(2023, 5, 30, 17, 55, 41, 0)
+END_TIME = dt.datetime(2023, 5, 30, 17, 57, 5, 0)
 QF1_FLAG_MEANINGS = """
 \tBits are listed from the MSB (bit 7) to the LSB (bit 0):
 \tBit    Description
@@ -78,7 +78,7 @@ def surface_reflectance_file(tmp_path_factory: TempPathFactory) -> Path:
 @pytest.fixture(scope="module")
 def surface_reflectance_file2(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file."""
-    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + dt.timedelta(minutes=5),
                                             include_veg_indices=False)
 
 
@@ -97,7 +97,7 @@ def surface_reflectance_with_veg_indices_file(tmp_path_factory: TempPathFactory)
 @pytest.fixture(scope="module")
 def surface_reflectance_with_veg_indices_file2(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file with vegetation indexes included."""
-    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + dt.timedelta(minutes=5),
                                             include_veg_indices=True)
 
 
@@ -110,7 +110,7 @@ def multiple_surface_reflectance_files_with_veg_indices(surface_reflectance_with
 
 def _create_surface_reflectance_file(
         tmp_path_factory: TempPathFactory,
-        start_time: datetime,
+        start_time: dt.datetime,
         include_veg_indices: bool = False,
 ) -> Path:
     fn = f"SurfRefl_v1r2_npp_s{start_time:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"

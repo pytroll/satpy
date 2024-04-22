@@ -15,8 +15,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reading VIIRS VGAC data."""
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -68,20 +68,20 @@ class VGACFileHandler(BaseFileHandler):
     def set_time_attrs(self, data):
         """Set time from attributes."""
         if "StartTime" in data.attrs:
-            data.attrs["start_time"] = datetime.strptime(data.attrs["StartTime"], "%Y-%m-%dT%H:%M:%S")
-            data.attrs["end_time"] = datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
+            data.attrs["start_time"] = dt.datetime.strptime(data.attrs["StartTime"], "%Y-%m-%dT%H:%M:%S")
+            data.attrs["end_time"] = dt.datetime.strptime(data.attrs["EndTime"], "%Y-%m-%dT%H:%M:%S")
             self._end_time = data.attrs["end_time"]
             self._start_time = data.attrs["start_time"]
 
     def dt64_to_datetime(self, dt64):
         """Conversion of numpy.datetime64 to datetime objects."""
         if isinstance(dt64, np.datetime64):
-            return dt64.astype(datetime)
+            return dt64.astype(dt.datetime)
         return dt64
 
     def extract_time_data(self, data, nc):
         """Decode time data."""
-        reference_time = np.datetime64(datetime.strptime(nc["proj_time0"].attrs["units"],
+        reference_time = np.datetime64(dt.datetime.strptime(nc["proj_time0"].attrs["units"],
                                                          "days since %d/%m/%YT%H:%M:%S"))
         delta_part_of_day, delta_full_days = np.modf(nc["proj_time0"].values)
         delta_full_days = np.timedelta64(delta_full_days.astype(np.int64), "D").astype("timedelta64[us]")

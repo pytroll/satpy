@@ -16,11 +16,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.mirs module."""
+
 from __future__ import annotations
 
+import datetime as dt
 import os
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -45,7 +47,7 @@ N_FOV = 96
 N_SCANLINE = 100
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_2D_SHAPE = (N_SCANLINE, N_FOV)
-DEFAULT_DATE = datetime(2019, 6, 19, 13, 0)
+DEFAULT_DATE = dt.datetime(2019, 6, 19, 13, 0)
 DEFAULT_LAT = np.linspace(23.09356, 36.42844, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_LON = np.linspace(127.6879, 144.5284, N_SCANLINE * N_FOV,
@@ -71,8 +73,8 @@ DEFAULT_UNITS = {"btemp_88v": "K", "btemp_165h": "K",
 PLATFORM = {"M2": "metop-a", "NPP": "npp", "GPM": "gpm"}
 SENSOR = {"m2": "amsu-mhs", "npp": "atms", "gpm": "GPI"}
 
-START_TIME = datetime(2017, 2, 6, 16, 1, 0)
-END_TIME = datetime(2017, 2, 6, 16, 7, 0)
+START_TIME = dt.datetime(2017, 2, 6, 16, 1, 0)
+END_TIME = dt.datetime(2017, 2, 6, 16, 7, 0)
 
 
 def fake_coeff_from_fn(fn):

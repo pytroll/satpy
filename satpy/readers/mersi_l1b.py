@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for the FY-3D MERSI-2 L1B file format.
 
 The files for this reader are HDF5 and come in four varieties; band data
@@ -24,7 +25,8 @@ This reader was tested on FY-3D MERSI-2 data, but should work on future
 platforms as well assuming no file format changes.
 
 """
-from datetime import datetime
+
+import datetime as dt
 
 import dask.array as da
 import numpy as np
@@ -44,7 +46,7 @@ class MERSIL1B(HDF5FileHandler):
         time = self[time_attr]  # "18:27:39.720"
         # cuts off microseconds because of unknown meaning
         # is .720 == 720 microseconds or 720000 microseconds
-        return datetime.strptime(date + " " + time.split(".")[0], "%Y-%m-%d %H:%M:%S")
+        return dt.datetime.strptime(date + " " + time.split(".")[0], "%Y-%m-%d %H:%M:%S")
 
     @property
     def start_time(self):

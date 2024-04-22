@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """CF decoding."""
+
 import copy
+import datetime as dt
 import json
-from datetime import datetime
 
 
 def decode_attrs(attrs):
@@ -69,6 +71,6 @@ def _datetime_parser_json(json_dict):
 def _str2datetime(string):
     """Convert string to datetime object."""
     try:
-        return datetime.fromisoformat(string)
+        return dt.datetime.fromisoformat(string)
     except (TypeError, ValueError):
         return None

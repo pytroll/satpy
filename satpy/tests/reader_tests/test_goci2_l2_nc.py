@@ -15,8 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.goci2_l2_nc module."""
-from datetime import datetime
+
+import datetime as dt
 
 import numpy as np
 import pytest
@@ -30,8 +32,8 @@ from satpy import Scene
 # - tmp_path_factory
 
 
-start_time = datetime(2024, 2, 14, 2, 32, 27)
-end_time = datetime(2024, 2, 14, 2, 33, 31)
+start_time = dt.datetime(2024, 2, 14, 2, 32, 27)
+end_time = dt.datetime(2024, 2, 14, 2, 33, 31)
 
 global_attrs = {
     "observation_start_time": start_time.strftime("%Y%m%d_%H%M%S"),

@@ -14,7 +14,7 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Common utility modules used for LI mock-oriented unit tests."""
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import xarray as xr
@@ -127,8 +127,8 @@ def l2_le_schema(settings=None):
 
 def l2_lef_schema(settings=None):
     """Define schema for LI L2 LEF product."""
-    epoch_ts = datetime(2000, 1, 1, 0, 0, 0, 0)
-    start_time = datetime.now()
+    epoch_ts = dt.datetime(2000, 1, 1, 0, 0, 0, 0)
+    start_time = dt.datetime.now()
     start_ts = (start_time - epoch_ts).total_seconds()
 
     settings = settings or {}
@@ -287,9 +287,9 @@ def l2_lfl_schema(settings=None):
     settings = settings or {}
 
     nobs = settings.get("num_obs", 1234)
-    epoch = datetime(2000, 1, 1)
-    stime = (datetime(2019, 1, 1) - epoch).total_seconds()
-    etime = (datetime(2019, 1, 2) - epoch).total_seconds()
+    epoch = dt.datetime(2000, 1, 1)
+    stime = (dt.datetime(2019, 1, 1) - epoch).total_seconds()
+    etime = (dt.datetime(2019, 1, 2) - epoch).total_seconds()
 
     return {
         "providers": settings.get("providers", {}),

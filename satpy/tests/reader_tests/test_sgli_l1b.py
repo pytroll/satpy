@@ -1,6 +1,7 @@
 """Tests for the SGLI L1B backend."""
+
+import datetime as dt
 import sys
-from datetime import datetime, timedelta
 
 import dask
 import h5py
@@ -9,8 +10,8 @@ import pytest
 
 from satpy.readers.sgli_l1b import HDF5SGLI
 
-START_TIME = datetime.now()
-END_TIME = START_TIME + timedelta(minutes=5)
+START_TIME = dt.datetime.now()
+END_TIME = START_TIME + dt.timedelta(minutes=5)
 FULL_KM_ARRAY = np.arange(1955 * 1250, dtype=np.uint16).reshape((1955, 1250))
 MASK = 16383
 LON_LAT_ARRAY = np.arange(197 * 126, dtype=np.float32).reshape((197, 126))
@@ -168,14 +169,14 @@ def test_start_time(sgli_vn_file):
     """Test that the start time is extracted."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     microseconds = START_TIME.microsecond % 1000
-    assert handler.start_time == START_TIME - timedelta(microseconds=microseconds)
+    assert handler.start_time == START_TIME - dt.timedelta(microseconds=microseconds)
 
 
 def test_end_time(sgli_vn_file):
     """Test that the end time is extracted."""
     handler = HDF5SGLI(sgli_vn_file, {"resolution": "L"}, {})
     microseconds = END_TIME.microsecond % 1000
-    assert handler.end_time == END_TIME - timedelta(microseconds=microseconds)
+    assert handler.end_time == END_TIME - dt.timedelta(microseconds=microseconds)
 
 def test_get_dataset_counts(sgli_vn_file):
     """Test that counts can be extracted from a file."""

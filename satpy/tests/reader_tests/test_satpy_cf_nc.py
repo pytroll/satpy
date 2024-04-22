@@ -15,9 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for the CF reader."""
+
+import datetime as dt
 import warnings
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -66,8 +68,8 @@ def _create_test_netcdf(filename, resolution=742):
         "solar_zenith_angle": solar_zenith_angle_i
     }
 
-    tstart = datetime(2019, 4, 1, 12, 0)
-    tend = datetime(2019, 4, 1, 12, 15)
+    tstart = dt.datetime(2019, 4, 1, 12, 0)
+    tend = dt.datetime(2019, 4, 1, 12, 15)
     common_attrs = {
         "start_time": tstart,
         "end_time": tend,
@@ -107,12 +109,12 @@ def area():
 def common_attrs(area):
     """Get common dataset attributes."""
     return {
-        "start_time": datetime(2019, 4, 1, 12, 0, 0, 123456),
-        "end_time": datetime(2019, 4, 1, 12, 15),
+        "start_time": dt.datetime(2019, 4, 1, 12, 0, 0, 123456),
+        "end_time": dt.datetime(2019, 4, 1, 12, 15),
         "platform_name": "tirosn",
         "orbit_number": 99999,
         "area": area,
-        "my_timestamp": datetime(2000, 1, 1)
+        "my_timestamp": dt.datetime(2000, 1, 1)
     }
 
 
@@ -263,7 +265,7 @@ def cf_scene(datasets, common_attrs):
 @pytest.fixture()
 def nc_filename(tmp_path):
     """Create an nc filename for viirs m band."""
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-mband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
 
@@ -271,7 +273,7 @@ def nc_filename(tmp_path):
 @pytest.fixture()
 def nc_filename_i(tmp_path):
     """Create an nc filename for viirs i band."""
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-iband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
 

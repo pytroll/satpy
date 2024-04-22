@@ -15,9 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for modifiers in modifiers/__init__.py."""
+
+import datetime as dt
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -57,7 +59,7 @@ def _sunz_stacked_area_def():
 
 def _shared_sunz_attrs(area_def):
     attrs = {"area": area_def,
-             "start_time": datetime(2018, 1, 1, 18),
+             "start_time": dt.datetime(2018, 1, 1, 18),
              "modifiers": tuple(),
              "name": "test_vis"}
     return attrs
@@ -591,7 +593,7 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         lats[1, 1] = np.inf
         lats = da.from_array(lats, chunks=5)
         area = SwathDefinition(lons, lats)
-        stime = datetime(2020, 1, 1, 12, 0, 0)
+        stime = dt.datetime(2020, 1, 1, 12, 0, 0)
         orb_params = {
             "satellite_actual_altitude": 12345678,
             "nadir_longitude": 0.0,
