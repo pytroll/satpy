@@ -13,18 +13,36 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""MTG Lighting Imager (LI) L2 unified reader.
+"""MTG Lightning Imager (LI) L2 unified reader.
 
 This reader supports reading all the products from the LI L2
 processing level:
 
-  * L2-LE
-  * L2-LGR
-  * L2-AFA
-  * L2-LEF
-  * L2-LFL
-  * L2-AF
-  * L2-AFR
+  * L2-LE Lightning Events
+  * L2-LEF Lightning Events Filtered
+  * L2-LFL Lightning Flashes
+  * L2-LGR Lightning Groups
+  * L2-AF Accumulated Flashes
+  * L2-AFA Accumulated Flash Area
+  * L2-AFR Accumulated Flash Radiance
+
+Point-based products (LE, LEF, LFL, LGR) are provided as 1-D arrays, with a ``pyresample.geometry.SwathDefinition`` area
+attribute containing the points lat-lon coordinates.
+
+Accumulated products (AF, AFA, AFR) are provided as 2-D arrays in the FCI 2km grid as per intended usage,
+with a ``pyresample.geometry.AreaDefinition`` area attribute containing the grid geolocation information.
+In this way, the products can directly be overlaid to FCI data.
+If needed, the products can still be accessed as 1-d array by setting the reader kwarg ``with_area_definition=False``,
+eg::
+
+  scn = Scene(filenames=filenames, reader="li_l2_nc", reader_kwargs={'with_area_definition': False})
+
+The lat-lon coordinates of the points/grid pixels can be accessed using e.g.
+``scn['dataset_name'].attrs['area'].get_lonlats()``.
+
+See the LI L2 Product User Guide `PUG`_ for more information on the products.
+
+.. _PUG: https://www-dr.eumetsat.int/media/49348
 
 """
 
