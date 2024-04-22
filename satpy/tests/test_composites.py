@@ -978,7 +978,7 @@ class TestCloudCompositor:
         """Test that errors are raised for invalid settings."""
         from satpy.composites import CloudCompositor
         with pytest.raises(ValueError, match="Invalid mode RGB.  Supported modes: LA, RGBA"):
-            res = CloudCompositor("test", mode="RGB")
+            _ = CloudCompositor("test", mode="RGB")
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
