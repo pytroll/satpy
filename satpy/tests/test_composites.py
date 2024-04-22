@@ -952,6 +952,35 @@ class TestCloudCompositorCommonMask:
         np.testing.assert_raises(ValueError, self.colormap_composite, [data])
 
 
+class TestCloudCompositor:
+    """Test CloudCompositor."""
+
+    def setup_method(self):
+        """Create test data."""
+        self.data = xr.DataArray(da.from_array(np.array([[260, 290, 300], [250, 280, 300]])), dims=("y", "x"))
+
+    @pytest.mark.parametrize(
+        ("invert_alpha", "mode", "expected_alpha"),
+        [
+            (False, "LA", np.array([[0.8675683, 0.0084585, 0.0], [1.0, 0.0934222, 0.0]])),
+            (True, "RGBA", np.array([[0.0000989, 0.5048337, 1.0], [0.0, 0.162995, 1.0]]))
+        ]
+    )
+    def test_cloud_compositor(self, invert_alpha, mode, expected_alpha):
+        """Test general default functionality of compositor."""
+        from satpy.composites import CloudCompositor
+        comp = CloudCompositor(name="test", invert_alpha=invert_alpha, mode=mode)
+        res = comp([self.data])
+        assert res.attrs["mode"] == mode
+        np.testing.assert_almost_equal(res.values[len(mode) - 1], expected_alpha)
+
+    def test_cloud_compositor_validity_checks(self):
+        """Test that errors are raised for invalid settings."""
+        from satpy.composites import CloudCompositor
+        with pytest.raises(ValueError, match="Invalid mode RGB.  Supported modes: LA, RGBA"):
+            res = CloudCompositor("test", mode="RGB")
+
+
 class TestPrecipCloudsCompositor(unittest.TestCase):
     """Test the PrecipClouds compositor."""
 
