@@ -46,7 +46,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 class LIL2NCFileHandler(LINCFileHandler):
     """Implementation class for the unified LI L2 satpy reader."""
 
-    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False):
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=True):
         """Initialize LIL2NCFileHandler."""
         super(LIL2NCFileHandler, self).__init__(filename, filename_info, filetype_info)
 
