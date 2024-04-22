@@ -1484,10 +1484,10 @@ class TestBackgroundCompositor:
                 [[1., 0.5], [0., np.nan]],
                 [[1., 0.5], [0., np.nan]]]),
             "RGBA": np.array([
-                [[1.0, 0.5], [0.0, np.nan]],
-                [[1.0, 0.5], [0.0, np.nan]],
-                [[1.0, 0.5], [0.0, np.nan]],
-                [[0.5, 0.5], [0.5, 0.5]]]),
+                [[1., 0.5], [0., np.nan]],
+                [[1., 0.5], [0., np.nan]],
+                [[1., 0.5], [0., np.nan]],
+                [[0.5, 0.5], [0., 0.5]]]),
         }
         cls.foreground_data = foreground_data
 
@@ -1495,20 +1495,41 @@ class TestBackgroundCompositor:
     @pytest.mark.parametrize(
         ("foreground_bands", "background_bands", "exp_bands", "exp_result"),
         [
-            ("L", "L", "L", np.array([[1.0, 0.5], [0.0, 1.0]])),
-            ("LA", "LA", "L", np.array([[1.0, 0.75], [0.5, 1.0]])),
+            ("L", "L", "L", np.array([[1., 0.5], [0., 1.]])),
+            ("L", "RGB", "RGB", np.array([
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]]])),
+            ("LA", "LA", "LA", np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 1.], [1., 1.]]])),
+            ("LA", "RGB", "RGB", np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]]])),
             ("RGB", "RGB", "RGB", np.array([
                 [[1., 0.5], [0., 1.]],
                 [[1., 0.5], [0., 1.]],
                 [[1., 0.5], [0., 1.]]])),
-            ("RGBA", "RGBA", "RGB", np.array([
-                [[1., 0.75], [0.5, 1.]],
-                [[1., 0.75], [0.5, 1.]],
-                [[1., 0.75], [0.5, 1.]]])),
+            ("RGB", "LA", "RGBA", np.array([
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 1.], [1., 1.]]])),
+            ("RGB", "RGBA", "RGBA", np.array([
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 1.], [1., 1.]]])),
+            ("RGBA", "RGBA", "RGBA", np.array([
+                [[1., 0.75], [1., 1.]],
+                [[1., 0.75], [1., 1.]],
+                [[1., 0.75], [1., 1.]],
+                [[1., 1.], [1., 1.]]])),
             ("RGBA", "RGB", "RGB", np.array([
-                [[1., 0.75], [0.5, 1.]],
-                [[1., 0.75], [0.5, 1.]],
-                [[1., 0.75], [0.5, 1.]]])),
+                [[1., 0.75], [1., 1.]],
+                [[1., 0.75], [1., 1.]],
+                [[1., 0.75], [1., 1.]]])),
         ]
     )
     def test_call(self, foreground_bands, background_bands, exp_bands, exp_result):
@@ -1518,6 +1539,7 @@ class TestBackgroundCompositor:
 
         # L mode images
         foreground_data = self.foreground_data[foreground_bands]
+
         attrs = {"mode": foreground_bands, "area": "foo"}
         foreground = xr.DataArray(da.from_array(foreground_data),
                                   dims=("bands", "y", "x"),
@@ -1527,7 +1549,9 @@ class TestBackgroundCompositor:
         background = xr.DataArray(da.ones((len(background_bands), 2, 2)), dims=("bands", "y", "x"),
                                   coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs)
+
         res = comp([foreground, background])
+
         assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, exp_result)
         assert res.attrs["mode"] == exp_bands
