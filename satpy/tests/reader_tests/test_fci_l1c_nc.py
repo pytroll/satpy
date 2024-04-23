@@ -433,7 +433,7 @@ expected_pos_info_for_filetype = {
                           "grid_width": 3712
                           },
                     },
-        "fci_af_vis_06" :  {"3km": {"start_position_row": 1,
+        "fci_af_vis_06" : {"3km": {"start_position_row": 1,
                           "end_position_row": 67,
                           "segment_height": 67,
                           "grid_width": 3712
@@ -742,7 +742,7 @@ class TestFCIL1cNCReader:
     @mock.patch("satpy.readers.yaml_reader.GEOVariableSegmentYAMLReader")
     @pytest.mark.parametrize(("channel", "resolution"), generate_parameters("radiance"))
     def test_not_get_segment_info_called_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
-        """Test that checks that the get_segment_position_info has not be called for AF data."""
+        """Test that checks that the get_segment_position_info has not been called for AF data."""
         with mock.patch("satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info") as gspi:
             fh_param = FakeFCIFileHandlerAF_fixture
             reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)

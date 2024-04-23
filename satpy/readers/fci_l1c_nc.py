@@ -30,7 +30,9 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 .. note::
     This reader currently supports Full Disk High Spectral Resolution Imagery
     (FDHSI) ,High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
-    The african case ("AF") scanning mode has been added.
+    In addition it also supports the L1C format for the African dissemination ("AF"), where each file
+    contains the masked full-dic of a single channel
+    (https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf)
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
     Satpy will automatically read the channels from the source with the finest resolution,
     i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
@@ -148,14 +150,12 @@ HIGH_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "500m",
                                        "grid_width": 22272},
                       "fci_l1c_fdhsi": {"grid_type": "1km",
                                         "grid_width": 11136},
-                      "fci_l1c_af": {"grid_type": "1km",
-                                        "grid_width": 11136}}
+                      }
 LOW_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "1km",
                                       "grid_width": 11136},
                      "fci_l1c_fdhsi": {"grid_type": "2km",
                                        "grid_width": 5568},
-                     "fci_l1c_af":{"grid_type": "3km",
-                                   "grid_width": 3712}}
+                     }
 
 
 def _get_aux_data_name_from_dsname(dsname):
