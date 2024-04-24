@@ -24,8 +24,7 @@ Coding guidelines
 =================
 
 Satpy is part of `Pytroll <http://pytroll.github.io/>`_,
-and all code should follow the
-`Pytroll coding guidelines and best
+and all code should follow the `Pytroll coding guidelines and best
 practices <http://pytroll.github.io/guidelines.html>`_.
 
 Satpy is now Python 3 only and it is no longer needed to support Python 2.
