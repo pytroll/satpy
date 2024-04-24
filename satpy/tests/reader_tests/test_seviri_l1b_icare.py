@@ -133,8 +133,8 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         datasets = r.load(["VIS008"])
         assert len(datasets) == 1
         for v in datasets.values():
-            dt = dt.datetime(2004, 12, 29, 12, 27, 44)
-            assert v.attrs["end_time"] == dt
+            date = dt.datetime(2004, 12, 29, 12, 27, 44)
+            assert v.attrs["end_time"] == date
             assert v.attrs["calibration"] == "reflectance"
 
     def test_load_dataset_ir(self):
