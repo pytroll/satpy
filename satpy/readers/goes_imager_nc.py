@@ -731,15 +731,15 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        date = self.nc["time"].dt
-        return dt.datetime(
-            year=int(date.year.item()),
-            month=int(date.month.item()),
-            day=int(date.day.item()),
-            hour=int(date.hour.item()),
-            minute=int(date.minute.item()),
-            second=int(date.second.item()),
-            microsecond=int(date.microsecond.item()))
+        timestamp = self.nc["time"].dt
+        return dt.timestamptime(
+            year=int(timestamp.year.item()),
+            month=int(timestamp.month.item()),
+            day=int(timestamp.day.item()),
+            hour=int(timestamp.hour.item()),
+            minute=int(timestamp.minute.item()),
+            second=int(timestamp.second.item()),
+            microsecond=int(timestamp.microsecond.item()))
 
     @property
     def end_time(self):

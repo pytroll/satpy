@@ -66,14 +66,14 @@ class GOCI2L2NCFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        date = self.attrs["observation_start_time"]
-        return dt.datetime.strptime(date, "%Y%m%d_%H%M%S")
+        date_str = self.attrs["observation_start_time"]
+        return dt.datetime.strptime(date_str, "%Y%m%d_%H%M%S")
 
     @property
     def end_time(self):
         """End timestamp of the dataset."""
-        date = self.attrs["observation_end_time"]
-        return dt.datetime.strptime(date, "%Y%m%d_%H%M%S")
+        date_str = self.attrs["observation_end_time"]
+        return dt.datetime.strptime(date_str, "%Y%m%d_%H%M%S")
 
     def get_dataset(self, key, info):
         """Load a dataset."""

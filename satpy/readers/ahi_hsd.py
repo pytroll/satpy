@@ -794,8 +794,8 @@ class _NominalTimeCalculator:
             )
             return observation_time
         timeline = self._get_closest_timeline(observation_time)
-        date = self._get_offset_relative_to_timeline()
-        return timeline + dt.timedelta(minutes=date//60, seconds=date % 60)
+        offset = self._get_offset_relative_to_timeline()
+        return timeline + dt.timedelta(minutes=offset//60, seconds=offset % 60)
 
     def _get_closest_timeline(self, observation_time):
         """Find the closest timeline for the given observation time.

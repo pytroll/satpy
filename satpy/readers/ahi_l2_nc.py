@@ -83,14 +83,14 @@ class HIML2NCFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        date = self.nc.attrs["time_coverage_start"]
-        return dt.datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+        date_str = self.nc.attrs["time_coverage_start"]
+        return dt.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_time(self):
         """End timestamp of the dataset."""
-        date = self.nc.attrs["time_coverage_end"]
-        return dt.datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+        date_str = self.nc.attrs["time_coverage_end"]
+        return dt.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
 
     def get_dataset(self, key, info):
         """Load a dataset."""
