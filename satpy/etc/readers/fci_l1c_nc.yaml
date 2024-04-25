@@ -13,6 +13,35 @@ reader:
 
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]
 # https://www.eumetsat.int/media/45923
+required_netcdf_variables: &required-variables
+  - attr/platform
+  - data/{channel_name}/measured/start_position_row
+  - data/{channel_name}/measured/end_position_row
+  - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
+  - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
+  - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
+  - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
+  - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
+  - data/{channel_name}/measured/radiance_unit_conversion_coefficient
+  - data/{channel_name}/measured/channel_effective_solar_irradiance
+  - data/{channel_name}/measured/effective_radiance
+  - data/{channel_name}/measured/x
+  - data/{channel_name}/measured/y
+  - data/{channel_name}/measured/pixel_quality
+  - data/{channel_name}/measured/index_map
+  - data/mtg_geos_projection
+  - data/swath_direction
+  - data/swath_number
+  - index
+  - state/celestial/earth_sun_distance
+  - state/celestial/subsolar_latitude
+  - state/celestial/subsolar_longitude
+  - state/celestial/sun_satellite_distance
+  - state/platform/platform_altitude
+  - state/platform/subsatellite_latitude
+  - state/platform/subsatellite_longitude
+  - time
+
 file_types:
   fci_l1c_fdhsi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
@@ -21,34 +50,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 40
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_04
@@ -74,34 +76,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-HRFI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 40
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_06_hr
@@ -116,34 +91,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-1KM-{coverage}-VIS06-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_06
@@ -154,34 +102,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS04-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_04
@@ -192,34 +113,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS05-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_05
@@ -230,34 +124,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS08-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_08
@@ -268,34 +135,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS09-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - vis_09
@@ -306,34 +146,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-NIR13-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - nir_13
@@ -344,34 +157,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-NIR16-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - nir_16
@@ -382,34 +168,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-NIR22-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - nir_22
@@ -420,34 +179,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR38-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - ir_38
@@ -458,34 +190,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-WV63-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - wv_63
@@ -496,34 +201,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-WV73-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - wv_73
@@ -534,34 +212,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR87-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - ir_87
@@ -572,34 +223,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR97-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - ir_97
@@ -610,34 +234,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR105-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - ir_105
@@ -648,34 +245,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR123-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - ir_123
@@ -686,34 +256,7 @@ file_types:
         "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR133-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc",
       ]
     expected_segments: 1
-    required_netcdf_variables:
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+    required_netcdf_variables: *required-variables
     variable_name_replacements:
       channel_name:
         - ir_133

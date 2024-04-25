@@ -65,7 +65,127 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
     },
 }
 
+list_channel_solar = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
+                          "nir_13", "nir_16", "nir_22"]
+list_channel_terran = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
+                           "ir_123", "ir_133"]
+list_total_channel = list_channel_solar + list_channel_terran
+list_resolution_v06 = ["1km","3km"]
+list_resolution = ["3km"]
+expected_pos_info_for_filetype = {
+        "fdhsi": {"1km": {"start_position_row": 1,
+                          "end_position_row": 200,
+                          "segment_height": 200,
+                          "grid_width": 11136},
+                  "2km": {"start_position_row": 1,
+                          "end_position_row": 100,
+                          "segment_height": 100,
+                          "grid_width": 5568}},
+        "hrfi": {"500m": {"start_position_row": 1,
+                          "end_position_row": 400,
+                          "segment_height": 400,
+                          "grid_width": 22272},
+                 "1km": {"start_position_row": 1,
+                         "end_position_row": 200,
+                         "grid_width": 11136,
+                         "segment_height": 200}},
+        "fci_af" : {"3km": {"start_position_row": 1,
+                          "end_position_row": 67,
+                          "segment_height": 67,
+                          "grid_width": 3712
+                          },
+                    },
+        "fci_af_vis_06" : {"3km": {"start_position_row": 1,
+                          "end_position_row": 67,
+                          "segment_height": 67,
+                          "grid_width": 3712
+                          },
+                        "1km": {"start_position_row": 1,
+                         "end_position_row": 200,
+                         "grid_width": 11136,
+                         "segment_height": 200}
+                    }
+    }
 
+_chans_fdhsi = {"solar": list_channel_solar,
+                "solar_grid_type": ["1km"] * 8,
+                "terran": list_channel_terran,
+                "terran_grid_type": ["2km"] * 8}
+
+_chans_hrfi = {"solar": ["vis_06", "nir_22"],
+               "solar_grid_type": ["500m"] * 2,
+               "terran": ["ir_38", "ir_105"],
+               "terran_grid_type": ["1km"] * 2}
+
+dict_calibration = { "radiance" : {"dtype": np.float32,
+                      "value_1": 15,
+                      "value_0":9700,
+                      "attrs_dict":{"calibration":"radiance",
+                                       "units":"mW m-2 sr-1 (cm-1)-1",
+                                      "radiance_unit_conversion_coefficient": np.float32(1234.56)
+                                    },
+                    },
+
+                    "reflectance" : {"dtype": np.float32,
+                                    "attrs_dict":{"calibration":"reflectance",
+                                       "units":"%"
+                                    },
+                    },
+
+                 "counts" : {"dtype": np.uint16,
+                    "value_1": 1,
+                    "value_0": 5000,
+                    "attrs_dict":{"calibration":"counts",
+                                       "units":"count",
+                                    },
+                    },
+
+            "brightness_temperature" : {"dtype": np.float32,
+                "value_1": np.float32(209.68275),
+                "value_0": np.float32(1888.8513),
+                "attrs_dict":{"calibration":"brightness_temperature",
+                                "units":"K",
+                                      },
+                },
+}
+_test_filenames = {"fdhsi": [
+    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+    "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+    "20170410113925_20170410113934_N__C_0070_0067.nc"
+],
+    "hrfi": [
+        "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+        "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+        "20170410113925_20170410113934_N__C_0070_0067.nc"
+    ]
+}
+
+def resolutions(channel):
+    """Get the resolutions."""
+    if channel == "vis_06":
+        return list_resolution_v06
+    else:
+        return list_resolution
+
+def fill_chans_af():
+    """Fill the dict _chans_af with the right channel and resolution."""
+    _chans_af = {}
+    for channel in list_total_channel:
+        list_resol = resolutions(channel)
+        for resol in list_resol:
+            chann_upp = channel.replace("_","").upper()
+            _test_filenames[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
+                                                        f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
+                                                        f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
+            if channel.split("_")[0] in ["vis","nir"]:
+                _chans_af[f"{channel}_{resol}"] = {"solar":[channel],
+                                                   "solar_grid_type": [resol]}
+            elif channel.split("_")[0] in ["ir","wv"]:
+                _chans_af[f"{channel}_{resol}"] = {"terran":[channel],
+                                                   "terran_grid_type": [resol]}
+    return _chans_af
+
+_chans_af = fill_chans_af()
 # ----------------------------------------------------
 # Filehandlers preparation ---------------------------
 # ----------------------------------------------------
@@ -403,56 +523,6 @@ def clear_cache(reader):
         for fh in fhs:
             fh.cached_file_content = {}
 
-list_channel_solar = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
-                          "nir_13", "nir_16", "nir_22"]
-list_channel_terran = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
-                           "ir_123", "ir_133"]
-list_total_channel = list_channel_solar + list_channel_terran
-list_resolution_v06 = ["1km","3km"]
-list_resolution = ["3km"]
-expected_pos_info_for_filetype = {
-        "fdhsi": {"1km": {"start_position_row": 1,
-                          "end_position_row": 200,
-                          "segment_height": 200,
-                          "grid_width": 11136},
-                  "2km": {"start_position_row": 1,
-                          "end_position_row": 100,
-                          "segment_height": 100,
-                          "grid_width": 5568}},
-        "hrfi": {"500m": {"start_position_row": 1,
-                          "end_position_row": 400,
-                          "segment_height": 400,
-                          "grid_width": 22272},
-                 "1km": {"start_position_row": 1,
-                         "end_position_row": 200,
-                         "grid_width": 11136,
-                         "segment_height": 200}},
-        "fci_af" : {"3km": {"start_position_row": 1,
-                          "end_position_row": 67,
-                          "segment_height": 67,
-                          "grid_width": 3712
-                          },
-                    },
-        "fci_af_vis_06" : {"3km": {"start_position_row": 1,
-                          "end_position_row": 67,
-                          "segment_height": 67,
-                          "grid_width": 3712
-                          },
-                        "1km": {"start_position_row": 1,
-                         "end_position_row": 200,
-                         "grid_width": 11136,
-                         "segment_height": 200}
-                    }
-    }
-
-
-def resolutions(channel):
-    """Get the resolutions."""
-    if channel == "vis_06":
-        return list_resolution_v06
-    else:
-        return list_resolution
-
 def get_list_channel_calibration(calibration):
     """Get the channel's list according the calibration."""
     if calibration == "reflectance":
@@ -467,79 +537,6 @@ def generate_parameters(calibration):
     for channel in get_list_channel_calibration(calibration):
         for resolution in resolutions(channel):
             yield (channel, resolution)
-
-_chans_fdhsi = {"solar": list_channel_solar,
-                "solar_grid_type": ["1km"] * 8,
-                "terran": list_channel_terran,
-                "terran_grid_type": ["2km"] * 8}
-
-_chans_hrfi = {"solar": ["vis_06", "nir_22"],
-               "solar_grid_type": ["500m"] * 2,
-               "terran": ["ir_38", "ir_105"],
-               "terran_grid_type": ["1km"] * 2}
-
-dict_calibration = { "radiance" : {"dtype": np.float32,
-                      "value_1": 15,
-                      "value_0":9700,
-                      "attrs_dict":{"calibration":"radiance",
-                                       "units":"mW m-2 sr-1 (cm-1)-1",
-                                      "radiance_unit_conversion_coefficient": np.float32(1234.56)
-                                    },
-                    },
-
-                    "reflectance" : {"dtype": np.float32,
-                                    "attrs_dict":{"calibration":"reflectance",
-                                       "units":"%"
-                                    },
-                    },
-
-                 "counts" : {"dtype": np.uint16,
-                    "value_1": 1,
-                    "value_0": 5000,
-                    "attrs_dict":{"calibration":"counts",
-                                       "units":"count",
-                                    },
-                    },
-
-            "brightness_temperature" : {"dtype": np.float32,
-                "value_1": np.float32(209.68275),
-                "value_0": np.float32(1888.8513),
-                "attrs_dict":{"calibration":"brightness_temperature",
-                                "units":"K",
-                                      },
-                },
-}
-_test_filenames = {"fdhsi": [
-    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-    "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-    "20170410113925_20170410113934_N__C_0070_0067.nc"
-],
-    "hrfi": [
-        "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
-        "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-        "20170410113925_20170410113934_N__C_0070_0067.nc"
-    ]
-}
-
-def fill_chans_af():
-    """Fill the dict _chans_af with the right channel and resolution."""
-    _chans_af = {}
-    for channel in list_total_channel:
-        list_resol = resolutions(channel)
-        for resol in list_resol:
-            chann_upp = channel.replace("_","").upper()
-            _test_filenames[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
-                                                        f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
-                                                        f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
-            if channel.split("_")[0] in ["vis","nir"]:
-                _chans_af[f"{channel}_{resol}"] = {"solar":[channel],
-                                                   "solar_grid_type": [resol]}
-            elif channel.split("_")[0] in ["ir","wv"]:
-                _chans_af[f"{channel}_{resol}"] = {"terran":[channel],
-                                                   "terran_grid_type": [resol]}
-    return _chans_af
-
-_chans_af = fill_chans_af()
 
 @contextlib.contextmanager
 def mocked_basefilehandler(filehandler):

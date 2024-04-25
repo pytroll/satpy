@@ -31,8 +31,7 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
     This reader currently supports Full Disk High Spectral Resolution Imagery
     (FDHSI) ,High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
     In addition it also supports the L1C format for the African dissemination ("AF"), where each file
-    contains the masked full-dic of a single channel
-    (https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf)
+    contains the masked full-dic of a single channel see `AF PUG`_.
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
     Satpy will automatically read the channels from the source with the finest resolution,
     i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
@@ -107,6 +106,7 @@ All auxiliary data can be obtained by prepending the channel name such as
     If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
     at the top of your script.
 
+.. _AF PUG: https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
 .. _test data releases: https://www.eumetsat.int/mtg-test-data
