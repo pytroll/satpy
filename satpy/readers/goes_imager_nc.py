@@ -732,7 +732,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     def start_time(self):
         """Start timestamp of the dataset."""
         timestamp = self.nc["time"].dt
-        return dt.timestamptime(
+        return dt.datetime(
             year=int(timestamp.year.item()),
             month=int(timestamp.month.item()),
             day=int(timestamp.day.item()),
