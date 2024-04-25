@@ -1253,3 +1253,16 @@ enhancements:
          stretch: crude
          min_stretch: [0,0,0]
          max_stretch: [1,1,1]
+         
+  instantaneous_rainfall_rate:
+    standard_name: instantaneous_rainfall_rate
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+             - {colors: 'spectral',
+                reverse: true,
+                min_value: 0.0,
+                max_value: 65.0,
+               }
