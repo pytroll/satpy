@@ -65,14 +65,14 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
     },
 }
 
-list_channel_solar = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
+LIST_CHANNEL_SOLAR = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
                           "nir_13", "nir_16", "nir_22"]
-list_channel_terran = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
+LIST_CHANNEL_TERRAN = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
                            "ir_123", "ir_133"]
-list_total_channel = list_channel_solar + list_channel_terran
-list_resolution_v06 = ["1km","3km"]
-list_resolution = ["3km"]
-expected_pos_info_for_filetype = {
+LIST_TOTAL_CHANNEL = LIST_CHANNEL_SOLAR + LIST_CHANNEL_TERRAN
+LIST_RESOLUTION_V06 = ["1km","3km"]
+LIST_RESOLUTION = ["3km"]
+EXPECTED_POS_INFO_FOR_FILETYPE = {
         "fdhsi": {"1km": {"start_position_row": 1,
                           "end_position_row": 200,
                           "segment_height": 200,
@@ -107,17 +107,17 @@ expected_pos_info_for_filetype = {
                     }
     }
 
-_chans_fdhsi = {"solar": list_channel_solar,
+_CHANS_FDHSI = {"solar": LIST_CHANNEL_SOLAR,
                 "solar_grid_type": ["1km"] * 8,
-                "terran": list_channel_terran,
+                "terran": LIST_CHANNEL_TERRAN,
                 "terran_grid_type": ["2km"] * 8}
 
-_chans_hrfi = {"solar": ["vis_06", "nir_22"],
+_CHANS_HRFI = {"solar": ["vis_06", "nir_22"],
                "solar_grid_type": ["500m"] * 2,
                "terran": ["ir_38", "ir_105"],
                "terran_grid_type": ["1km"] * 2}
 
-dict_calibration = { "radiance" : {"dtype": np.float32,
+DICT_CALIBRATION = { "radiance" : {"dtype": np.float32,
                       "value_1": 15,
                       "value_0":9700,
                       "attrs_dict":{"calibration":"radiance",
@@ -163,14 +163,14 @@ _test_filenames = {"fdhsi": [
 def resolutions(channel):
     """Get the resolutions."""
     if channel == "vis_06":
-        return list_resolution_v06
+        return LIST_RESOLUTION_V06
     else:
-        return list_resolution
+        return LIST_RESOLUTION
 
 def fill_chans_af():
-    """Fill the dict _chans_af with the right channel and resolution."""
-    _chans_af = {}
-    for channel in list_total_channel:
+    """Fill the dict _CHANS_AF and the list _test_filenames with the right channel and resolution."""
+    _CHANS_AF = {}
+    for channel in LIST_TOTAL_CHANNEL:
         list_resol = resolutions(channel)
         for resol in list_resol:
             chann_upp = channel.replace("_","").upper()
@@ -178,14 +178,14 @@ def fill_chans_af():
                                                         f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
                                                         f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
             if channel.split("_")[0] in ["vis","nir"]:
-                _chans_af[f"{channel}_{resol}"] = {"solar":[channel],
+                _CHANS_AF[f"{channel}_{resol}"] = {"solar":[channel],
                                                    "solar_grid_type": [resol]}
             elif channel.split("_")[0] in ["ir","wv"]:
-                _chans_af[f"{channel}_{resol}"] = {"terran":[channel],
+                _CHANS_AF[f"{channel}_{resol}"] = {"terran":[channel],
                                                    "terran_grid_type": [resol]}
-    return _chans_af
+    return _CHANS_AF,_test_filenames
 
-_chans_af = fill_chans_af()
+_CHANS_AF,_test_filenames = fill_chans_af()
 # ----------------------------------------------------
 # Filehandlers preparation ---------------------------
 # ----------------------------------------------------
@@ -526,11 +526,11 @@ def clear_cache(reader):
 def get_list_channel_calibration(calibration):
     """Get the channel's list according the calibration."""
     if calibration == "reflectance":
-        return list_channel_solar
+        return LIST_CHANNEL_SOLAR
     elif calibration == "brightness_temperature":
-        return list_channel_terran
+        return LIST_CHANNEL_TERRAN
     else:
-        return list_total_channel
+        return LIST_TOTAL_CHANNEL
 
 def generate_parameters(calibration):
     """Generate dinamicaly the parameters."""
@@ -553,7 +553,7 @@ def FakeFCIFileHandlerFDHSI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": _chans_fdhsi,
+            "channels": _CHANS_FDHSI,
             "filenames": _test_filenames["fdhsi"]
         }
         yield param_dict
@@ -565,7 +565,7 @@ def FakeFCIFileHandlerHRFI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
         param_dict = {
             "filetype": "fci_l1c_hrfi",
-            "channels": _chans_hrfi,
+            "channels": _CHANS_HRFI,
             "filenames": _test_filenames["hrfi"]
         }
         yield param_dict
@@ -579,7 +579,7 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
     with mocked_basefilehandler(FakeFCIFileHandlerAF):
         param_dict = {
             "filetype": "fci_l1c_af",
-            "channels": _chans_af[f"{channel}_{resolution}"],
+            "channels": _CHANS_AF[f"{channel}_{resolution}"],
             "filenames": _test_filenames[f"af_{channel}_{resolution}"],
         }
         yield param_dict
@@ -592,9 +592,9 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
 class TestFCIL1cNCReader:
     """Test FCI L1c NetCDF reader with nominal data."""
 
-    fh_param_for_filetype = {"hrfi": {"channels": _chans_hrfi,
+    fh_param_for_filetype = {"hrfi": {"channels": _CHANS_HRFI,
                                       "filenames": _test_filenames["hrfi"]},
-                             "fdhsi": {"channels": _chans_fdhsi,
+                             "fdhsi": {"channels": _CHANS_FDHSI,
                                        "filenames": _test_filenames["fdhsi"]}}
 
     def _get_type_ter_AF(self,channel):
@@ -682,7 +682,7 @@ class TestFCIL1cNCReader:
         assert expected_res_n[res_type] == len(res)
         for ch, grid_type in zip(list_chan,
                                  list_grid):
-            self._get_assert_load(res,ch,grid_type,dict_calibration[calibration])
+            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
     (calibration, channel, resolution)
@@ -700,7 +700,7 @@ class TestFCIL1cNCReader:
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
-            self._get_assert_load(res,ch,grid_type,dict_calibration[calibration])
+            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration])
 
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
@@ -726,8 +726,8 @@ class TestFCIL1cNCReader:
             }
 
     @pytest.mark.parametrize(("fh_param", "expected_pos_info"), [
-        (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), expected_pos_info_for_filetype["fdhsi"]),
-        (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), expected_pos_info_for_filetype["hrfi"])
+        (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"]),
+        (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"])
     ])
     def test_get_segment_position_info(self, reader_configs, fh_param, expected_pos_info):
         """Test the segment position info method."""
