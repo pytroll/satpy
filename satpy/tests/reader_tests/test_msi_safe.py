@@ -1012,14 +1012,12 @@ class TestSAFEMSIL1C:
             res = self.jp2_fh.get_dataset(make_dataid(name="B01", calibration=calibration), info=dict())
             np.testing.assert_allclose(res, expected)
 
-    @pytest.mark.parametrize(("use_obs_time", "expected"),
-                             [(True, tilemd_dt),
-                              (False, fname_dt)])
-    def test_start_time(self, use_obs_time, expected):
+
+    def test_start_time(self):
         """Test that the correct start time is returned."""
         from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
 
         mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.filename_info, mock.MagicMock())
         self.jp2_fh = SAFEMSIL1C("somefile", self.filename_info, mock.MagicMock(),
-                                 mda, self.tile_mda, use_tile_time=use_obs_time)
-        assert expected == self.jp2_fh.start_time
+                                 mda, self.tile_mda)
+        assert tilemd_dt == self.jp2_fh.start_time

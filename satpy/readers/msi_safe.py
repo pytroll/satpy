@@ -28,17 +28,6 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
 
-MSI data typically have the same start time across multiple tiles, which can cause
-problems if iterating over multiple tiles, as the saved imagery from one tile
-may be overwritten by the next tile.
-To overcome this, the user can specify `use_tile_time`, which will determine the start
-time from the tile metadata rather than from the filename::
-
-    scene = satpy.Scene(filenames,
-                        reader='msi_safe',
-                        reader_kwargs={'use_tile_time': True})
-    scene.load(['B01'])
-
 L1C format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
@@ -70,7 +59,7 @@ PLATFORMS = {"S2A": "Sentinel-2A",
 class SAFEMSIL1C(BaseFileHandler):
     """File handler for SAFE MSI files (jp2)."""
 
-    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=True, use_tile_time=False):
+    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=True):
         """Initialize the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
@@ -80,10 +69,7 @@ class SAFEMSIL1C(BaseFileHandler):
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
 
-        if use_tile_time:
-            self._start_time = self._tile_mda.start_time()
-        else:
-            self._start_time = filename_info["observation_time"]
+        self._start_time = self._tile_mda.start_time()
         self._end_time = filename_info["observation_time"]
 
     def get_dataset(self, key, info):
@@ -128,7 +114,7 @@ class SAFEMSIL1C(BaseFileHandler):
 class SAFEMSIXMLMetadata(BaseFileHandler):
     """Base class for SAFE MSI XML metadata filehandlers."""
 
-    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, use_tile_time=False):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info)
         self._start_time = filename_info["observation_time"]
@@ -244,7 +230,7 @@ def _fill_swath_edges(angles):
 class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     """File handle for sentinel 2 safe XML tile metadata."""
 
-    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, use_tile_time=False):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info, mask_saturated)
         self.geocoding = self.root.find(".//Tile_Geocoding")
