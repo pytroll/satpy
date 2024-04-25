@@ -1,3 +1,49 @@
+## Version 0.48.0 (2024/04/22)
+
+### Issues Closed
+
+* [Issue 2782](https://github.com/pytroll/satpy/issues/2782) - Documentation points to missing setup.py ([PR 2786](https://github.com/pytroll/satpy/pull/2786) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 2771](https://github.com/pytroll/satpy/issues/2771) - Load data in another datatype rather than float64
+* [Issue 2759](https://github.com/pytroll/satpy/issues/2759) - 'defusedxml' missing in "msi_safe" extras ([PR 2761](https://github.com/pytroll/satpy/pull/2761) by [@fwfichtner](https://github.com/fwfichtner))
+* [Issue 2749](https://github.com/pytroll/satpy/issues/2749) - [Question] Resample of mesoscale data gives blank data
+* [Issue 2747](https://github.com/pytroll/satpy/issues/2747) - Cannot load from MTG FCI L1C data
+* [Issue 2729](https://github.com/pytroll/satpy/issues/2729) - Add Viirs L2 Reader + Enhancments ([PR 2740](https://github.com/pytroll/satpy/pull/2740) by [@wjsharpe](https://github.com/wjsharpe))
+* [Issue 2695](https://github.com/pytroll/satpy/issues/2695) - Improvements for BackgroundCompositor ([PR 2696](https://github.com/pytroll/satpy/pull/2696) by [@yukaribbba](https://github.com/yukaribbba))
+
+In this release 7 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2786](https://github.com/pytroll/satpy/pull/2786) - Remove doc references to setup.py ([2782](https://github.com/pytroll/satpy/issues/2782))
+* [PR 2779](https://github.com/pytroll/satpy/pull/2779) - Convert Sentinel-2 MSI sensor name to lowercase in the reader YAML config file and add support for "counts" calibration
+* [PR 2774](https://github.com/pytroll/satpy/pull/2774) - Fix the viirs EDR tests for newer xarray
+* [PR 2761](https://github.com/pytroll/satpy/pull/2761) - Add missing defusedxml ([2759](https://github.com/pytroll/satpy/issues/2759))
+* [PR 2754](https://github.com/pytroll/satpy/pull/2754) - Bugfix vgac reader
+* [PR 2701](https://github.com/pytroll/satpy/pull/2701) - Ici reader tiepoints bugfix
+* [PR 2696](https://github.com/pytroll/satpy/pull/2696) - Add double alpha channel support and improve metadata behaviours for BackgroundCompositor ([2695](https://github.com/pytroll/satpy/issues/2695))
+
+#### Features added
+
+* [PR 2780](https://github.com/pytroll/satpy/pull/2780) - Add new (Eumetrain) FCI RGB composites
+* [PR 2767](https://github.com/pytroll/satpy/pull/2767) - Use flags from file when available in OLCI NC reader
+* [PR 2763](https://github.com/pytroll/satpy/pull/2763) - Replace setup with pyproject.toml
+* [PR 2762](https://github.com/pytroll/satpy/pull/2762) - Add support for EO-SIP AVHRR LAC data
+* [PR 2753](https://github.com/pytroll/satpy/pull/2753) - Add fsspec support to `li_l2_nc` reader
+* [PR 2740](https://github.com/pytroll/satpy/pull/2740) - Add VIIRS L2 Reader ([2729](https://github.com/pytroll/satpy/issues/2729))
+* [PR 2696](https://github.com/pytroll/satpy/pull/2696) - Add double alpha channel support and improve metadata behaviours for BackgroundCompositor ([2695](https://github.com/pytroll/satpy/issues/2695))
+* [PR 2595](https://github.com/pytroll/satpy/pull/2595) - VGAC decode the time variable
+
+#### Documentation changes
+
+* [PR 2786](https://github.com/pytroll/satpy/pull/2786) - Remove doc references to setup.py ([2782](https://github.com/pytroll/satpy/issues/2782))
+* [PR 2766](https://github.com/pytroll/satpy/pull/2766) - Add Data Store to EUMETSAT part
+* [PR 2750](https://github.com/pytroll/satpy/pull/2750) - Add missing `h` docstring information to _geos_area.py
+
+In this release 18 pull requests were closed.
+
+
 ## Version 0.47.0 (2024/02/21)
 
 ### Issues Closed
