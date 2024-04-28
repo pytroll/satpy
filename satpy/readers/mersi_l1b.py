@@ -118,7 +118,6 @@ class MERSIL1B(HDF5FileHandler):
         file_key = ds_info.get("file_key", dataset_id["name"])
         band_index = ds_info.get("band_index")
         data = self[file_key]
-
         if band_index is not None:
             data = data[band_index]
         if data.ndim >= 2:
