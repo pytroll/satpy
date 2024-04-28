@@ -113,7 +113,7 @@ class MERSIL1B(HDF5FileHandler):
             coeffs = coeffs[band_index]
         return coeffs
 
-    def _get_dn_corrections(self, data ,band_index, dataset_id, attrs):
+    def _get_dn_corrections(self, data, band_index, dataset_id, attrs):
         """Use slope and intercept to get DN corrections."""
         slope = attrs.pop("Slope", None)
         intercept = attrs.pop("Intercept", None)
