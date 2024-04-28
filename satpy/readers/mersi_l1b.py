@@ -113,6 +113,20 @@ class MERSIL1B(HDF5FileHandler):
             coeffs = coeffs[band_index]
         return coeffs
 
+    def _get_dn_corrections(self, data ,band_index, dataset_id, attrs):
+        """Use slope and intercept to get DN corrections."""
+        slope = attrs.pop("Slope", None)
+        intercept = attrs.pop("Intercept", None)
+        if slope is not None and dataset_id.get("calibration") != "counts":
+            if band_index is not None and slope.size > 1:
+                slope = slope[band_index]
+                intercept = intercept[band_index]
+            # There's a bug in the slope for MERSI-1 11.25(5)
+            if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and slope in [100, 1]:
+                slope = 0.01
+            data = data * slope + intercept
+        return data
+
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
         file_key = ds_info.get("file_key", dataset_id["name"])
@@ -128,17 +142,7 @@ class MERSIL1B(HDF5FileHandler):
             attrs.setdefault("rows_per_scan", self.filetype_info["rows_per_scan"])
 
         data = self._mask_data(data, dataset_id, attrs)
-
-        slope = attrs.pop("Slope", None)
-        intercept = attrs.pop("Intercept", None)
-        if slope is not None and dataset_id.get("calibration") != "counts":
-            if band_index is not None and slope.size > 1:
-                slope = slope[band_index]
-                intercept = intercept[band_index]
-            # There's a bug in the slope for MERSI-1 11.25(5)
-            if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and slope in [100, 1]:
-                slope = 0.01
-            data = data * slope + intercept
+        data = self._get_dn_corrections(data, band_index, dataset_id, attrs)
 
         if dataset_id.get("calibration") == "reflectance":
             # Only FY-3A/B stores VIS calibration coefficients in attributes
