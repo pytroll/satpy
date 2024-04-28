@@ -90,7 +90,7 @@ class MERSIL1B(HDF5FileHandler):
             return slope[cal_index], intercept[cal_index]
 
     def _get_coefficients(self, cal_key, cal_index):
-        """Get VIS calibration coeffs from calibration datasets"""
+        """Get VIS calibration coeffs from calibration datasets."""
         coeffs = self[cal_key][cal_index]
         slope = coeffs.attrs.pop("Slope", None)
         intercept = coeffs.attrs.pop("Intercept", None)
@@ -101,7 +101,7 @@ class MERSIL1B(HDF5FileHandler):
         return coeffs
 
     def _get_coefficients_mersi1(self, band_index):
-        """Get VIS calibration coeffs from attributes. Only for MERSI-1 on FY-3A/B"""
+        """Get VIS calibration coeffs from attributes. Only for MERSI-1 on FY-3A/B."""
         try:
             # This is found in the actual file.
             coeffs = self["/attr/VIR_Cal_Coeff"]
