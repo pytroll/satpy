@@ -33,10 +33,17 @@ from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 N_TOT_IR_CHANS_LL = 6
+PLATFORMS_INSTRUMENTS = {"FY-3A": "mersi-1",
+                         "FY-3B": "mersi-1",
+                         "FY-3C": "mersi-1",
+                         "FY-3D": "mersi-2",
+                         "FY-3E": "mersi-ll",
+                         "FY-3F": "mersi-3",
+                         "FY-3G": "mersi-rm"}
 
 
 class MERSIL1B(HDF5FileHandler):
-    """MERSI-2/MERSI-LL/MERSI-RM L1B file reader."""
+    """MERSI-1/MERSI-2/MERSI-LL/MERSI-RM L1B file reader."""
 
     def _strptime(self, date_attr, time_attr):
         """Parse date/time strings."""
@@ -59,13 +66,12 @@ class MERSIL1B(HDF5FileHandler):
     @property
     def sensor_name(self):
         """Map sensor name to Satpy 'standard' sensor names."""
-        file_sensor = self["/attr/Sensor Identification Code"]
-        sensor = {
-            "MERSI": "mersi-2",
-            "MERSI LL": "mersi-ll",
-            "MERSI RM": "mersi-rm",
-        }.get(file_sensor, file_sensor)
-        return sensor
+        return PLATFORMS_INSTRUMENTS.get(self.platform_name)
+
+    @property
+    def platform_name(self):
+        """Platform name."""
+        return self["/attr/Satellite Name"]
 
     def get_refl_mult(self):
         """Get reflectance multiplier."""
@@ -84,6 +90,7 @@ class MERSIL1B(HDF5FileHandler):
             return slope[cal_index], intercept[cal_index]
 
     def _get_coefficients(self, cal_key, cal_index):
+        """Get VIS calibration coeffs from calibration datasets"""
         coeffs = self[cal_key][cal_index]
         slope = coeffs.attrs.pop("Slope", None)
         intercept = coeffs.attrs.pop("Intercept", None)
@@ -93,11 +100,25 @@ class MERSIL1B(HDF5FileHandler):
             coeffs = coeffs * slope + intercept
         return coeffs
 
+    def _get_coefficients_mersi1(self, band_index):
+        """Get VIS calibration coeffs from attributes. Only for MERSI-1 on FY-3A/B"""
+        try:
+            # This is found in the actual file.
+            coeffs = self["/attr/VIR_Cal_Coeff"]
+        except KeyError:
+            # This is in the official manual.
+            coeffs = self["/attr/VIS_Cal_Coeff"]
+        coeffs = coeffs.reshape(19, 3)
+        if band_index is not None:
+            coeffs = coeffs[band_index]
+        return coeffs
+
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
         file_key = ds_info.get("file_key", dataset_id["name"])
         band_index = ds_info.get("band_index")
         data = self[file_key]
+
         if band_index is not None:
             data = data[band_index]
         if data.ndim >= 2:
@@ -115,18 +136,26 @@ class MERSIL1B(HDF5FileHandler):
             if band_index is not None and slope.size > 1:
                 slope = slope[band_index]
                 intercept = intercept[band_index]
+            # There's a bug in the slope for MERSI-1 11.25(5)
+            if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and slope in [100, 1]:
+                slope = 0.01
             data = data * slope + intercept
 
         if dataset_id.get("calibration") == "reflectance":
-            coeffs = self._get_coefficients(ds_info["calibration_key"],
-                                            ds_info["calibration_index"])
+            # Only FY-3A/B stores VIS calibration coefficients in attributes
+            coeffs = self._get_coefficients_mersi1(band_index) if self.platform_name in ["FY-3A", "FY-3B"] else \
+                self._get_coefficients(ds_info["calibration_key"],
+                                       ds_info["calibration_index"])
+
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
             data = data * self.get_refl_mult()
+
         elif dataset_id.get("calibration") == "brightness_temperature":
-            calibration_index = ds_info["calibration_index"]
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
             wave_number = 1. / (dataset_id["wavelength"][1] / 1e6)
+            # MERSI-1 doesn't have additional corrections
+            calibration_index = None if self.sensor_name == "mersi-1" else ds_info["calibration_index"]
             data = self._get_bt_dataset(data, calibration_index, wave_number)
 
         data.attrs = attrs
@@ -137,7 +166,7 @@ class MERSIL1B(HDF5FileHandler):
                 data.attrs[key] = val.decode("utf8")
 
         data.attrs.update({
-            "platform_name": self["/attr/Satellite Name"],
+            "platform_name": self.platform_name,
             "sensor": self.sensor_name,
         })
 
@@ -145,7 +174,8 @@ class MERSIL1B(HDF5FileHandler):
 
     def _mask_data(self, data, dataset_id, attrs):
         """Mask the data using fill_value and valid_range attributes."""
-        fill_value = attrs.pop("FillValue", np.nan)  # covered by valid_range
+        fill_value = attrs.pop("_FillValue", np.nan) if self.platform_name in ["FY-3A", "FY-3B"] else \
+            attrs.pop("FillValue", np.nan) # covered by valid_range
         valid_range = attrs.pop("valid_range", None)
         if dataset_id.get("calibration") == "counts":
             # preserve integer type of counts if possible
@@ -156,8 +186,13 @@ class MERSIL1B(HDF5FileHandler):
         if valid_range is not None:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.
-            if dataset_id["name"] in ["24", "25"] and valid_range[1] == 4095:
-                valid_range[1] = 25000
+            if self.sensor_name == "mersi-2":
+                if dataset_id["name"] in ["24", "25"] and valid_range[1] == 4095:
+                    valid_range[1] = 25000
+            # Similar bug also found in MERSI-1
+            elif self.sensor_name == "mersi-1":
+                if dataset_id["name"] == "5" and valid_range[1] == 4095:
+                    valid_range[1] = 25000
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
