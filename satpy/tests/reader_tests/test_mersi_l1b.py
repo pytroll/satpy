@@ -86,6 +86,45 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols):
     }
     return data
 
+def _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, old_form=False):
+    # Set some default attributes
+    def_attrs = {"FillValue": 65535,
+                 "valid_range": [0, 4095],
+                 "Slope": np.array([1.] * 1), "Intercept": np.array([0.] * 1)
+                 }
+    nounits_attrs = {**def_attrs, **{"units": "NO"}}
+    # Old form from FY-3A/B
+    prefix = "" if old_form else "Data/"
+
+    data = {
+        f"{prefix}EV_250_RefSB_b1":
+            xr.DataArray(
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
+                dims=("_rows", "_cols")),
+        f"{prefix}EV_250_RefSB_b2":
+            xr.DataArray(
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
+                dims=("_rows", "_cols")),
+        f"{prefix}EV_250_RefSB_b3":
+            xr.DataArray(
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
+                dims=("_rows", "_cols")),
+        f"{prefix}EV_250_RefSB_b4":
+            xr.DataArray(
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=nounits_attrs,
+                dims=("_rows", "_cols")),
+        f"{prefix}EV_250_Emissive":
+            xr.DataArray(
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs=radunits_attrs,
+                dims=("_rows", "_cols")),
+    }
+    return data
+
 
 def _get_500m_data(num_scans, rows_per_scan, num_cols):
     data = {
@@ -278,7 +317,19 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         return test_content
 
     def _set_sensor_attrs(self, global_attrs):
-        if "mersi2_l1b" in self.filetype_info["file_type"]:
+        if "fy3a_mersi1" in self.filetype_info["file_type"]:
+            global_attrs["/attr/Satellite Name"] = "FY-3A"
+            global_attrs["/attr/Sensor Identification Code"] = "MERSI"
+            ftype = "VIS"
+        elif "fy3b_mersi1" in self.filetype_info["file_type"]:
+            global_attrs["/attr/Satellite Name"] = "FY-3B"
+            global_attrs["/attr/Sensor Identification Code"] = "MERSI"
+            ftype = "VIS"
+        elif "fy3c_mersi1" in self.filetype_info["file_type"]:
+            global_attrs["/attr/Satellite Name"] = "FY-3C"
+            global_attrs["/attr/Sensor Identification Code"] = "MERSI"
+            ftype = "VIS"
+        elif "mersi2_l1b" in self.filetype_info["file_type"]:
             global_attrs["/attr/Satellite Name"] = "FY-3D"
             global_attrs["/attr/Sensor Identification Code"] = "MERSI"
             ftype = "VIS"
@@ -308,11 +359,20 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         num_cols = self._num_cols_for_file_type
         num_scans = self.num_scans
         rows_per_scan = self._rows_per_scan
+        is_fy3a_mersi1 = self.filetype_info["file_type"].startswith("fy3a_mersi1")
+        is_fy3b_mersi1 = self.filetype_info["file_type"].startswith("fy3b_mersi1")
+        is_fy3c_mersi1 = self.filetype_info["file_type"].startswith("fy3c_mersi1")
         is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
         is_mersill = self.filetype_info["file_type"].startswith("mersi_ll")
         is_1km = "_1000" in self.filetype_info["file_type"]
         if is_1km:
             data_func = _get_1km_data
+        elif is_fy3a_mersi1:
+            data_func = _get_mersi1_250m_data(old_form=True)
+        elif is_fy3b_mersi1:
+            data_func = _get_mersi1_250m_data(old_form=True)
+        elif is_fy3c_mersi1:
+            data_func = _get_mersi1_250m_data
         elif is_mersi2:
             data_func = _get_250m_data
         elif is_mersill:
