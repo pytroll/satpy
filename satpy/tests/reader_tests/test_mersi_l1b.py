@@ -440,9 +440,9 @@ class MERSI1L1BTester(MERSIL1BTester):
     """Test MERSI1 L1B Reader."""
 
     yaml_file = ""
-    filenames_1000m = []
-    filenames_250m = []
-    filenames_all = []
+    filenames_1000m: list= []
+    filenames_250m: list = []
+    filenames_all: list = []
 
     def test_all_resolutions(self):
         """Test loading data when all resolutions are available."""
