@@ -36,6 +36,7 @@ References:
 
 import functools
 import logging
+import warnings
 from collections import defaultdict
 from datetime import timezone as tz
 from functools import cached_property
@@ -714,14 +715,13 @@ class SAFESARReader(GenericYAMLReader):
     def load(self, dataset_keys, **kwargs):
         """Load some data."""
         if kwargs:
-            raise NotImplementedError(f"Don't know how to handle kwargs {kwargs}")
+            warnings.warn(f"Don't know how to handle kwargs {kwargs}")
         datasets = DatasetDict()
         for key in dataset_keys:
             for handler in self.storage_items.values():
                 val = handler.get_dataset(key, info=dict())
                 if val is not None:
                     val.attrs["start_time"] = handler.start_time
-                    # val.attrs["footprint"] = self.footprint
                     if key["name"] not in ["longitude", "latitude"]:
                         lonlats = self.load([DataID(self._id_keys, name="longitude", polarization=key["polarization"]),
                                              DataID(self._id_keys, name="latitude", polarization=key["polarization"])])
