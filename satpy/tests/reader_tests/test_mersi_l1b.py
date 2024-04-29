@@ -304,11 +304,13 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Observing Ending Time": "18:38:36.728",
         }
         fy3a_attrs = {
-            "/attr/VIR_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
-        } # noqa
+            "/attr/VIR_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+            " 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+        }
         fy3b_attrs = {
-            "/attr/VIS_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
-        } # noqa
+            "/attr/VIS_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 "
+            "0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+        }
 
         global_attrs, ftype = self._set_sensor_attrs(global_attrs)
         self._add_tbb_coefficients(global_attrs)
