@@ -346,8 +346,6 @@ class GenericYAMLReader(AbstractYAMLReader):
         self.filter_parameters = filter_parameters or {}
         self.filter_filenames = self.info.get("filter_filenames", filter_filenames)
 
-
-
     def filter_selected_filenames(self, filenames):
         """Filter provided files based on metadata in the filename."""
         if not isinstance(filenames, set):
