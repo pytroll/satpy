@@ -20,8 +20,8 @@
 The files for this reader are HDF5 and come in four varieties; band data
 and geolocation data, both at 250m and 1000m resolution.
 
-This reader was tested on FY-3D MERSI-2 data, but should work on future
-platforms as well assuming no file format changes.
+This reader was tested on FY-3A/B/C MERSI-1, FY-3D MERSI-2, FY-3E MERSI-LL and FY-3G MERSI-RM data,
+but should work on future platforms as well assuming no file format changes.
 
 """
 from datetime import datetime
@@ -100,7 +100,7 @@ class MERSIL1B(HDF5FileHandler):
             coeffs = coeffs * slope + intercept
         return coeffs
 
-    def _get_coefficients_mersi1(self, band_index):
+    def _get_coefficients_mersi1(self, cal_index):
         """Get VIS calibration coeffs from attributes. Only for MERSI-1 on FY-3A/B."""
         try:
             # This is found in the actual file.
@@ -109,8 +109,7 @@ class MERSIL1B(HDF5FileHandler):
             # This is in the official manual.
             coeffs = self["/attr/VIS_Cal_Coeff"]
         coeffs = coeffs.reshape(19, 3)
-        if band_index is not None:
-            coeffs = coeffs[band_index]
+        coeffs = coeffs[cal_index].tolist()
         return coeffs
 
     def _get_dn_corrections(self, data, band_index, dataset_id, attrs):
@@ -146,10 +145,8 @@ class MERSIL1B(HDF5FileHandler):
 
         if dataset_id.get("calibration") == "reflectance":
             # Only FY-3A/B stores VIS calibration coefficients in attributes
-            coeffs = self._get_coefficients_mersi1(band_index) if self.platform_name in ["FY-3A", "FY-3B"] else \
-                self._get_coefficients(ds_info["calibration_key"],
-                                       ds_info["calibration_index"])
-
+            coeffs = self._get_coefficients_mersi1(ds_info["calibration_index"]) if self.platform_name in ["FY-3A",
+                "FY-3B"] else self._get_coefficients(ds_info["calibration_key"], ds_info["calibration_index"])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
             data = data * self.get_refl_mult()
 
