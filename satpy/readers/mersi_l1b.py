@@ -185,13 +185,11 @@ class MERSIL1B(HDF5FileHandler):
         if valid_range is not None:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.
-            if self.sensor_name == "mersi-2":
-                if dataset_id["name"] in ["24", "25"] and valid_range[1] == 4095:
-                    valid_range[1] = 25000
+            valid_range[1] = 25000 if self.sensor_name == "mersi-2" and dataset_id["name"] in ["24", "25"] and \
+                    valid_range[1] == 4095 else valid_range[1]
             # Similar bug also found in MERSI-1
-            elif self.sensor_name == "mersi-1":
-                if dataset_id["name"] == "5" and valid_range[1] == 4095:
-                    valid_range[1] = 25000
+            valid_range[1] = 25000 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and \
+                    valid_range[1] == 4095 else valid_range[1]
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
