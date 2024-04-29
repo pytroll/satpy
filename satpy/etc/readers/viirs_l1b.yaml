@@ -481,7 +481,7 @@ datasets:
     resolution: 743
     coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
-    file_key: geolocation_data/solar_zenith
+    file_key: geolocation_data/sensor_zenith
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
