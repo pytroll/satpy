@@ -116,14 +116,17 @@ class MERSIL1B(HDF5FileHandler):
         """Use slope and intercept to get DN corrections."""
         slope = attrs.pop("Slope", None)
         intercept = attrs.pop("Intercept", None)
-        if slope is not None and dataset_id.get("calibration") != "counts":
-            new_slope = slope[band_index] if (band_index is not None and slope.size > 1) else slope
-            new_intercept = intercept[band_index] if (band_index is not None and slope.size > 1) else intercept
+        try:
+            new_slope = slope[band_index]
+            new_intercept = intercept[band_index]
             # There's a bug in the slope for MERSI-1 11.25(5)
             new_slope = 0.01 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and new_slope in [100, 1] \
                 else new_slope
             data = data * new_slope + new_intercept
-        return data
+            return data
+
+        except TypeError:
+            return data
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
