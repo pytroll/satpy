@@ -155,7 +155,7 @@ def _get_500m_data(num_scans, rows_per_scan, num_cols):
     return data
 
 
-def _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/"):
+def _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/", radunits="mW/ (m2 cm-1 sr)"):
     data = {
         f"{key_prefix}EV_1KM_LL":
             xr.DataArray(
@@ -214,7 +214,7 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/"):
                 attrs={
                     "Slope": np.array([1.] * 2), "Intercept": np.array([0.] * 2),
                     "FillValue": 65535,
-                    "units": "mW/ (m2 cm-1 sr)",
+                    "units": radunits,
                     "valid_range": [0, 4095],
                     "long_name": b"250m Emissive Bands Earth View "
                                  b"Science Data Aggregated to 1 km"
@@ -308,8 +308,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             " 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
         }
         fy3b_attrs = {
-            "/attr/VIS_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 "
-            "0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+            "/attr/VIS_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+            " 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
         }
 
         global_attrs, ftype = self._set_sensor_attrs(global_attrs)
@@ -375,11 +375,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
         is_mersill = self.filetype_info["file_type"].startswith("mersi_ll")
         is_fy3ab_1km = "_1000" in self.filetype_info["file_type"] and is_fy3ab_mersi1
+        is_fy3c_1km = "_1000" in self.filetype_info["file_type"] and is_fy3c_mersi1
         is_1km = "_1000" in self.filetype_info["file_type"] and not is_fy3ab_1km
         if is_1km:
             data_func = _get_1km_data
         elif is_fy3ab_1km:
-            data_func = _get_1km_data(key_prefix="")
+            data_func = _get_1km_data(key_prefix="", radunits="NO")
+        elif is_fy3c_1km:
+            data_func = _get_1km_data(radunits="NO")
         elif is_fy3ab_mersi1:
             data_func = _get_mersi1_250m_data(key_prefix="")
         elif is_fy3c_mersi1:
