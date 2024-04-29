@@ -185,19 +185,21 @@ class MERSIL1B(HDF5FileHandler):
             new_fill = data.dtype.type(fill_value)
         else:
             new_fill = np.nan
-        if valid_range is not None:
+        try:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.
             valid_range[1] = 25000 if self.sensor_name == "mersi-2" and dataset_id["name"] in ["24", "25"] and \
-                    valid_range[1] == 4095 else valid_range[1]
+                                      valid_range[1] == 4095 else valid_range[1]
             # Similar bug also found in MERSI-1
             valid_range[1] = 25000 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and \
-                    valid_range[1] == 4095 else valid_range[1]
+                                      valid_range[1] == 4095 else valid_range[1]
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
                               (data <= valid_range[1]), new_fill)
-        return data
+            return data
+        except TypeError:
+            return data
 
     def _get_bt_dataset(self, data, calibration_index, wave_number):
         """Get the dataset as brightness temperature.
