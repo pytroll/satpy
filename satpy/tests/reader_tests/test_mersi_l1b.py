@@ -118,7 +118,7 @@ def _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/"
         f"{key_prefix}EV_250_Emissive":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs=radunits_attrs,
+                attrs=nounits_attrs,
                 dims=("_rows", "_cols")),
     }
     return data
