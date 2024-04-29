@@ -86,38 +86,36 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols):
     }
     return data
 
-def _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, old_form=False):
+def _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/"):
     # Set some default attributes
     def_attrs = {"FillValue": 65535,
                  "valid_range": [0, 4095],
                  "Slope": np.array([1.] * 1), "Intercept": np.array([0.] * 1)
                  }
     nounits_attrs = {**def_attrs, **{"units": "NO"}}
-    # Old form from FY-3A/B
-    prefix = "" if old_form else "Data/"
 
     data = {
-        f"{prefix}EV_250_RefSB_b1":
+        f"{key_prefix}EV_250_RefSB_b1":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
                 attrs=nounits_attrs,
                 dims=("_rows", "_cols")),
-        f"{prefix}EV_250_RefSB_b2":
+        f"{key_prefix}EV_250_RefSB_b2":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
                 attrs=nounits_attrs,
                 dims=("_rows", "_cols")),
-        f"{prefix}EV_250_RefSB_b3":
+        f"{key_prefix}EV_250_RefSB_b3":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
                 attrs=nounits_attrs,
                 dims=("_rows", "_cols")),
-        f"{prefix}EV_250_RefSB_b4":
+        f"{key_prefix}EV_250_RefSB_b4":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
                 attrs=nounits_attrs,
                 dims=("_rows", "_cols")),
-        f"{prefix}EV_250_Emissive":
+        f"{key_prefix}EV_250_Emissive":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
                 attrs=radunits_attrs,
@@ -157,9 +155,9 @@ def _get_500m_data(num_scans, rows_per_scan, num_cols):
     return data
 
 
-def _get_1km_data(num_scans, rows_per_scan, num_cols):
+def _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/"):
     data = {
-        "Data/EV_1KM_LL":
+        f"{key_prefix}EV_1KM_LL":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
@@ -171,7 +169,7 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols):
                     "long_name": b"1km Earth View Science Data",
                 },
                 dims=("_rows", "_cols")),
-        "Data/EV_1KM_RefSB":
+        f"{key_prefix}EV_1KM_RefSB":
             xr.DataArray(
                 da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
@@ -183,7 +181,7 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols):
                     "long_name": b"1km Earth View Science Data",
                 },
                 dims=("_ref_bands", "_rows", "_cols")),
-        "Data/EV_1KM_Emissive":
+        f"{key_prefix}EV_1KM_Emissive":
             xr.DataArray(
                 da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
@@ -196,7 +194,7 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols):
                                  b"Science Data",
                 },
                 dims=("_ir_bands", "_rows", "_cols")),
-        "Data/EV_250_Aggr.1KM_RefSB":
+        f"{key_prefix}EV_250_Aggr.1KM_RefSB":
             xr.DataArray(
                 da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
@@ -209,7 +207,7 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols):
                                  b"Science Data Aggregated to 1 km"
                 },
                 dims=("_ref250_bands", "_rows", "_cols")),
-        "Data/EV_250_Aggr.1KM_Emissive":
+        f"{key_prefix}EV_250_Aggr.1KM_Emissive":
             xr.DataArray(
                 da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
@@ -305,6 +303,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Observing Beginning Time": "18:27:39.720",
             "/attr/Observing Ending Time": "18:38:36.728",
         }
+        fy3a_attrs = {
+            "/attr/VIR_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+        } # noqa
+        fy3b_attrs = {
+            "/attr/VIS_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+        } # noqa
 
         global_attrs, ftype = self._set_sensor_attrs(global_attrs)
         self._add_tbb_coefficients(global_attrs)
@@ -313,7 +317,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         test_content = {}
         test_content.update(global_attrs)
         test_content.update(data)
-        test_content.update(_get_calibration(self.num_scans, ftype))
+        if "fy3a_mersi1" in self.filetype_info["file_type"]:
+            test_content.update(fy3a_attrs)
+        elif "fy3b_mersi1" in self.filetype_info["file_type"]:
+            test_content.update(fy3b_attrs)
+        if not self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1")):
+            test_content.update(_get_calibration(self.num_scans, ftype))
         return test_content
 
     def _set_sensor_attrs(self, global_attrs):
@@ -359,18 +368,18 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         num_cols = self._num_cols_for_file_type
         num_scans = self.num_scans
         rows_per_scan = self._rows_per_scan
-        is_fy3a_mersi1 = self.filetype_info["file_type"].startswith("fy3a_mersi1")
-        is_fy3b_mersi1 = self.filetype_info["file_type"].startswith("fy3b_mersi1")
+        is_fy3ab_mersi1 = self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1"))
         is_fy3c_mersi1 = self.filetype_info["file_type"].startswith("fy3c_mersi1")
         is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
         is_mersill = self.filetype_info["file_type"].startswith("mersi_ll")
-        is_1km = "_1000" in self.filetype_info["file_type"]
+        is_fy3ab_1km = "_1000" in self.filetype_info["file_type"] and is_fy3ab_mersi1
+        is_1km = "_1000" in self.filetype_info["file_type"] and not is_fy3ab_1km
         if is_1km:
             data_func = _get_1km_data
-        elif is_fy3a_mersi1:
-            data_func = _get_mersi1_250m_data(old_form=True)
-        elif is_fy3b_mersi1:
-            data_func = _get_mersi1_250m_data(old_form=True)
+        elif is_fy3ab_1km:
+            data_func = _get_1km_data(key_prefix="")
+        elif is_fy3ab_mersi1:
+            data_func = _get_mersi1_250m_data(key_prefix="")
         elif is_fy3c_mersi1:
             data_func = _get_mersi1_250m_data
         elif is_mersi2:
@@ -398,12 +407,15 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     @property
     def _geo_prefix_for_file_type(self):
-        if "1000" in self.filetype_info["file_type"]:
-            return "Geolocation/"
-        elif "500" in self.filetype_info["file_type"]:
-            return "Geolocation/"
-        else:
+        if self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1")):
             return ""
+        else:
+            if "1000" in self.filetype_info["file_type"]:
+                return "Geolocation/"
+            elif "500" in self.filetype_info["file_type"]:
+                return "Geolocation/"
+            else:
+                return ""
 
 
 def _test_helper(res):
