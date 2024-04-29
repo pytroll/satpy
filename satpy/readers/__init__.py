@@ -638,9 +638,6 @@ def _get_reader_kwargs(reader, reader_kwargs):
     """
     reader_kwargs = reader_kwargs or {}
 
-    if isinstance(reader, str):
-        reader = [reader]
-
     # ensure one reader_kwargs per reader, None if not provided
     if reader is None:
         reader_kwargs = {None: reader_kwargs}
