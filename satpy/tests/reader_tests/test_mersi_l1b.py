@@ -194,7 +194,7 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, old_fy3ab_form=False, mers
                     "long_name": b"250m Emissive Bands Earth View "
                                  b"Science Data Aggregated to 1 km"
                 },
-                dims=("_rows", "_cols")) if mersi1 else \
+                dims=("_rows", "_cols")) if mersi1 else
                 xr.DataArray(
                     da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
