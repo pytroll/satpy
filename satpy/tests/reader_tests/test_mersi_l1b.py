@@ -86,7 +86,7 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols):
     }
     return data
 
-def _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/"):
+def _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, key_prefix):
     # Set some default attributes
     def_attrs = {"FillValue": 65535,
                  "valid_range": [0, 4095],
@@ -155,7 +155,7 @@ def _get_500m_data(num_scans, rows_per_scan, num_cols):
     return data
 
 
-def _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix="Data/", radunits="mW/ (m2 cm-1 sr)"):
+def _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix, radunits):
     data = {
         f"{key_prefix}EV_1KM_LL":
             xr.DataArray(
@@ -304,12 +304,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Observing Ending Time": "18:38:36.728",
         }
         fy3a_attrs = {
-            "/attr/VIR_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
-            " 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+            "/attr/VIR_Cal_Coeff": "0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 "
+                                   "0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0",
         }
         fy3b_attrs = {
-            "/attr/VIS_Cal_Coeff: 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
-            " 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0"
+            "/attr/VIS_Cal_Coeff": "0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 "
+                                   "0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0",
         }
 
         global_attrs, ftype = self._set_sensor_attrs(global_attrs)
@@ -371,29 +371,28 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         num_scans = self.num_scans
         rows_per_scan = self._rows_per_scan
         is_fy3ab_mersi1 = self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1"))
-        is_fy3c_mersi1 = self.filetype_info["file_type"].startswith("fy3c_mersi1")
+        is_mersi1 = self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1", "fy3c_mersi1"))
         is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
         is_mersill = self.filetype_info["file_type"].startswith("mersi_ll")
-        is_fy3ab_1km = "_1000" in self.filetype_info["file_type"] and is_fy3ab_mersi1
-        is_fy3c_1km = "_1000" in self.filetype_info["file_type"] and is_fy3c_mersi1
-        is_1km = "_1000" in self.filetype_info["file_type"] and not is_fy3ab_1km
+        is_1km = "_1000" in self.filetype_info["file_type"]
+        is_250m = "_250" in self.filetype_info["file_type"]
+
+        key_prefix = "" if is_fy3ab_mersi1 else "Data/"
+        radunits = "NO" if is_mersi1 else "mW/ (m2 cm-1 sr)"
+
         if is_1km:
-            data_func = _get_1km_data
-        elif is_fy3ab_1km:
-            data_func = _get_1km_data(key_prefix="", radunits="NO")
-        elif is_fy3c_1km:
-            data_func = _get_1km_data(radunits="NO")
-        elif is_fy3ab_mersi1:
-            data_func = _get_mersi1_250m_data(key_prefix="")
-        elif is_fy3c_mersi1:
-            data_func = _get_mersi1_250m_data
-        elif is_mersi2:
-            data_func = _get_250m_data
-        elif is_mersill:
-            data_func = _get_250m_ll_data
+            return _get_1km_data(num_scans, rows_per_scan, num_cols, key_prefix, radunits)
+        elif is_250m:
+            if is_mersi1:
+                return _get_mersi1_250m_data(num_scans, rows_per_scan, num_cols, key_prefix)
+            elif is_mersi2:
+                return _get_250m_data(num_scans, rows_per_scan, num_cols)
+            elif is_mersill:
+                return _get_250m_ll_data(num_scans, rows_per_scan, num_cols)
+            else:
+                return
         else:
-            data_func = _get_500m_data
-        return data_func(num_scans, rows_per_scan, num_cols)
+            return _get_500m_data(num_scans, rows_per_scan, num_cols)
 
     def _add_tbb_coefficients(self, global_attrs):
         if not self.filetype_info["file_type"].startswith("mersi2_"):
@@ -455,6 +454,32 @@ class MERSIL1BTester:
     def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
+
+
+class TestFY3AMERSI1L1B(MERSIL1BTester):
+    """Test the FY3A MERSI1 L1B reader."""
+
+    yaml_file = "fy3a_mersi1_l1b.yaml"
+    filenames_1000m = ["FY3A_MERSI_GBAL_L1_20090601_1200_1000M_MS.hdf"]
+    filenames_250m = ["FY3A_MERSI_GBAL_L1_20090601_1200_0250M_MS.hdf"]
+    filenames_all = filenames_1000m + filenames_250m
+
+    def test_all_resolutions(self):
+        """Test loading data when all resolutions are available."""
+        from satpy.dataset.data_dict import get_key
+        from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
+        filenames = self.filenames_all
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        assert 2 == len(files)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        assert reader.file_handlers
+
+
+
+
 
 
 class TestMERSI2L1B(MERSIL1BTester):
