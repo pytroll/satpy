@@ -473,13 +473,13 @@ class MERSI1L1BTester(MERSIL1BTester):
         assert reader.file_handlers
 
         ds_ids = []
-        for band_name in ["1", "2", "3", "4", "5", "6", "19", "20"]:
+        for band_name in ["1", "5", "16", "19", "20"]:
             ds_ids.append(make_dataid(name=band_name, calibration="counts"))
         ds_ids.append(make_dataid(name="satellite_zenith_angle"))
         res = reader.load(ds_ids)
-        assert len(res) == 9
-        _test_helper(res, ["1", "2", "3", "4", "5"], ("counts", "1", (2 * 40, 2048 * 2)))
-        _test_helper(res, ["6", "19", "20"], ("counts", "1", (2 * 10, 2048)))
+        assert len(res) == 6
+        _test_helper(res, ["1", "5"], ("counts", "1", (2 * 40, 2048 * 2)))
+        _test_helper(res, ["16", "19", "20"], ("counts", "1", (2 * 10, 2048)))
 
     def test_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
@@ -498,7 +498,7 @@ class MERSI1L1BTester(MERSIL1BTester):
         #     - Bands 1-4 (visible)
         #     - Bands 5 (IR)
         available_datasets = reader.available_dataset_ids
-        for band_name in ("1", "2", "3", "4", "5"):
+        for band_name in ("3", "5", "9", "14", "17"):
             num_results = 2
             ds_id = make_dataid(name=band_name, resolution=250)
             with pytest.raises(KeyError):
@@ -508,9 +508,9 @@ class MERSI1L1BTester(MERSIL1BTester):
                           num_results=num_results, best=False)
             assert num_results == len(res)
 
-        res = reader.load(["1", "2", "3", "4", "5", "6", "7", "8"])
-        assert len(res) == 8
-        _test_helper(res, ["1", "2", "3", "4", "6", "7", "8"], ("reflectance", "%", (2 * 10, 2048)))
+        res = reader.load(["2", "4", "5", "12", "15", "18"])
+        assert len(res) == 6
+        _test_helper(res, ["2", "4", "12", "15", "18"], ("reflectance", "%", (2 * 10, 2048)))
         assert res["5"].shape == (2 * 10, 2048)
         assert res["5"].attrs["calibration"] == "brightness_temperature"
         assert res["5"].attrs["units"] == "K"
@@ -532,7 +532,7 @@ class MERSI1L1BTester(MERSIL1BTester):
         #     - Bands 1-4 (visible)
         #     - Bands 5 (IR)
         available_datasets = reader.available_dataset_ids
-        for band_name in ("1", "2", "3", "4", "5"):
+        for band_name in ("2", "3", "4", "5"):
             num_results = 2
             ds_id = make_dataid(name=band_name, resolution=250)
             res = get_key(ds_id, available_datasets,
@@ -542,13 +542,13 @@ class MERSI1L1BTester(MERSIL1BTester):
             with pytest.raises(KeyError):
                 get_key(ds_id, available_datasets, num_results=num_results, best=False)
 
-        res = reader.load(["1", "2", "3", "4", "5", "6", "7"])
-        assert len(res) == 5
+        res = reader.load(["1", "2", "4", "5", "11", "13", "15"])
+        assert len(res) == 4
         with pytest.raises(KeyError):
             res.__getitem__("6")
         with pytest.raises(KeyError):
             res.__getitem__("7")
-        _test_helper(res, ["1", "2", "3", "4"], ("reflectance", "%", (2 * 40, 2048 * 2)))
+        _test_helper(res, ["1", "2", "4"], ("reflectance", "%", (2 * 40, 2048 * 2)))
         assert res["5"].shape == (2 * 40, 2048 * 2)
         assert res["5"].attrs["calibration"] == "brightness_temperature"
         assert res["5"].attrs["units"] == "K"
@@ -755,7 +755,7 @@ class TestMERSI2L1B(MERSIL1BTester):
             res.__getitem__("5")
         with pytest.raises(KeyError):
             res.__getitem__("20")
-        # _test_helper(res)
+        _test_helper(res, ["1", "2", "3", "4"], ("reflectance", "%", (2 * 40, 2048 * 2)))
         assert res["24"].shape == (2 * 40, 2048 * 2)
         assert res["24"].attrs["calibration"] == "brightness_temperature"
         assert res["24"].attrs["units"] == "K"
