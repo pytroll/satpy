@@ -445,14 +445,16 @@ class MERSIL1BTester:
 class MERSI1L1BTester(MERSIL1BTester):
     """Test MERSI1 L1B Reader."""
 
-    yaml_file = ""
+    yaml_file: str = ""
     filenames_1000m: list= []
     filenames_250m: list = []
     filenames_all: list = []
-    vis_250_bands = ["1", "2", "3", "4"]
-    ir_250_bands = ["5"]
-    vis_1000_bands = ["6", "7", "8", "11", "15", "19", "20"]
-    ir_1000_bands = []
+    vis_250_bands: list = []
+    ir_250_bands: list = []
+    vis_1000_bands: list = []
+    ir_1000_bands: list = []
+    bands_1000: list = []
+    bands_250: list = []
 
     def test_all_resolutions(self):
         """Test loading data when all resolutions or specific one are available."""
@@ -460,8 +462,6 @@ class MERSI1L1BTester(MERSIL1BTester):
 
         resolution_list = ["all", "250", "1000"]
         file_list = [self.filenames_all, self.filenames_250m, self.filenames_1000m]
-        bands_1000 = self.vis_1000_bands + self.ir_1000_bands
-        bands_250 = self.vis_250_bands + self.ir_250_bands
 
         for resolution in resolution_list:
             filenames = file_list[resolution_list.index(resolution)]
@@ -472,14 +472,14 @@ class MERSI1L1BTester(MERSIL1BTester):
             #     - Bands 5 (IR)
             available_datasets = reader.available_dataset_ids
             num_results = 2  # ("reflectance"/"brightness temperature" and "coutns")
-            _test_multi_resolutions(available_datasets, bands_250, resolution, num_results)
+            _test_multi_resolutions(available_datasets, self.bands_250, resolution, num_results)
 
-            res = reader.load(bands_1000 + bands_250)
+            res = reader.load(self.bands_1000 + self.bands_250)
             if resolution != "250":
-                assert len(res) == len(bands_1000 + bands_250)
+                assert len(res) == len(self.bands_1000 + self.bands_250)
             else:
-                assert len(res) == len(bands_250)
-                for band in bands_1000:
+                assert len(res) == len(self.bands_250)
+                for band in self.bands_1000:
                     with pytest.raises(KeyError):
                         res.__getitem__(band)
 
@@ -503,13 +503,13 @@ class MERSI1L1BTester(MERSIL1BTester):
         reader = _test_find_files_and_readers(self.reader_configs, filenames)
 
         ds_ids = []
-        for band_name in ["1", "5", "16", "19", "20"]:
+        for band_name in self.bands_1000 + self.bands_250:
             ds_ids.append(make_dataid(name=band_name, calibration="counts"))
         ds_ids.append(make_dataid(name="satellite_zenith_angle"))
         res = reader.load(ds_ids)
-        assert len(res) == 6
-        _test_helper(res, ["1", "5"], ("counts", "1", (2 * 40, 2048 * 2)))
-        _test_helper(res, ["16", "19", "20"], ("counts", "1", (2 * 10, 2048)))
+        assert len(res) == len(self.bands_1000) + len(self.bands_250) + 1
+        _test_helper(res, self.bands_250, ("counts", "1", (2 * 40, 2048 * 2)))
+        _test_helper(res, self.bands_1000, ("counts", "1", (2 * 10, 2048)))
 
 
 class TestFY3AMERSI1L1B(MERSI1L1BTester):
@@ -519,6 +519,12 @@ class TestFY3AMERSI1L1B(MERSI1L1BTester):
     filenames_1000m = ["FY3A_MERSI_GBAL_L1_20090601_1200_1000M_MS.hdf"]
     filenames_250m = ["FY3A_MERSI_GBAL_L1_20090601_1200_0250M_MS.hdf"]
     filenames_all = filenames_1000m + filenames_250m
+    vis_250_bands = ["1", "2", "3", "4"]
+    ir_250_bands = ["5"]
+    vis_1000_bandst = ["6", "7", "8", "11", "15", "19", "20"]
+    ir_1000_bands = []
+    bands_1000 = vis_1000_bandst + ir_1000_bands
+    bands_250 = vis_250_bands + ir_250_bands
 
 
 class TestFY3BMERSI1L1B(MERSI1L1BTester):
@@ -528,6 +534,12 @@ class TestFY3BMERSI1L1B(MERSI1L1BTester):
     filenames_1000m = ["FY3B_MERSI_GBAL_L1_20110824_1850_1000M_MS.hdf"]
     filenames_250m = ["FY3B_MERSI_GBAL_L1_20110824_1850_0250M_MS.hdf", "FY3B_MERSI_GBAL_L1_20110824_1850_GEOXX_MS.hdf"]
     filenames_all = filenames_1000m + filenames_250m
+    vis_250_bands = ["1", "2", "3", "4"]
+    ir_250_bands = ["5"]
+    vis_1000_bandst = ["6", "7", "8", "11", "15", "19", "20"]
+    ir_1000_bands = []
+    bands_1000 = vis_1000_bandst + ir_1000_bands
+    bands_250 = vis_250_bands + ir_250_bands
 
 
 class TestFY3CMERSI1L1B(MERSI1L1BTester):
@@ -537,6 +549,12 @@ class TestFY3CMERSI1L1B(MERSI1L1BTester):
     filenames_1000m = ["FY3C_MERSI_GBAL_L1_20131002_1835_1000M_MS.hdf", "FY3C_MERSI_GBAL_L1_20131002_1835_GEO1K_MS.hdf"]
     filenames_250m = ["FY3C_MERSI_GBAL_L1_20131002_1835_0250M_MS.hdf", "FY3C_MERSI_GBAL_L1_20131002_1835_GEOQK_MS.hdf"]
     filenames_all = filenames_1000m + filenames_250m
+    vis_250_bands = ["1", "2", "3", "4"]
+    ir_250_bands = ["5"]
+    vis_1000_bandst = ["6", "7", "8", "11", "15", "19", "20"]
+    ir_1000_bands = []
+    bands_1000 = vis_1000_bandst + ir_1000_bands
+    bands_250 = vis_250_bands + ir_250_bands
 
 
 
