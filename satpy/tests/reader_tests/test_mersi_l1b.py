@@ -403,6 +403,26 @@ def _test_find_files_and_readers(reader_config, filenames):
     return files, reader
 
 
+def _test_multi_resolutions(available_datasets, band_name, test_resolution, cal_results_number):
+    from satpy.dataset.data_dict import get_key
+    from satpy.tests.utils import make_dataid
+    ds_id = make_dataid(name=band_name, resolution=250)
+    if test_resolution == "1000":
+        with pytest.raises(KeyError):
+            get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+    else:
+        res = get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+        assert len(res) == cal_results_number
+
+    ds_id = make_dataid(name=band_name, resolution=1000)
+    if test_resolution == "250":
+        with pytest.raises(KeyError):
+            get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+    else:
+        res = get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+        assert len(res) == cal_results_number
+
+
 class MERSIL1BTester:
     """Test MERSI1/2/LL/RM L1B Reader."""
 
@@ -459,22 +479,7 @@ class MERSI1L1BTester(MERSIL1BTester):
             available_datasets = reader.available_dataset_ids
             for band_name in bands_250:
                 num_results = 2 # ("reflectance"/"brightness temperature" and "coutns")
-
-                ds_id = make_dataid(name=band_name, resolution=250)
-                if resolution == "1000":
-                    with pytest.raises(KeyError):
-                        get_key(ds_id, available_datasets, num_results=num_results, best=False)
-                else:
-                    res = get_key(ds_id, available_datasets, num_results=num_results, best=False)
-                    assert num_results == len(res)
-
-                ds_id = make_dataid(name=band_name, resolution=1000)
-                if resolution == "250":
-                    with pytest.raises(KeyError):
-                        get_key(ds_id, available_datasets, num_results=num_results, best=False)
-                else:
-                    res = get_key(ds_id, available_datasets, num_results=num_results, best=False)
-                    assert num_results == len(res)
+                _test_multi_resolutions(available_datasets, band_name, resolution, num_results)
 
             res = reader.load(bands_1000 + bands_250)
             if resolution != "250":
@@ -500,7 +505,6 @@ class MERSI1L1BTester(MERSIL1BTester):
 
     def test_counts_calib(self):
         """Test loading data at counts calibration."""
-        from satpy.dataset.data_dict import get_key
         from satpy.tests.utils import make_dataid
         filenames = self.filenames_all
         files, reader = _test_find_files_and_readers(self.reader_configs, filenames)
