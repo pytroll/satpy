@@ -400,27 +400,28 @@ def _test_find_files_and_readers(reader_config, filenames):
     reader.create_filehandlers(files)
     assert len(files) == len(filenames)
     assert reader.file_handlers
-    return files, reader
+    return reader
 
 
-def _test_multi_resolutions(available_datasets, band_name, test_resolution, cal_results_number):
-    from satpy.dataset.data_dict import get_key
-    from satpy.tests.utils import make_dataid
-    ds_id = make_dataid(name=band_name, resolution=250)
-    if test_resolution == "1000":
-        with pytest.raises(KeyError):
-            get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
-    else:
-        res = get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
-        assert len(res) == cal_results_number
+def _test_multi_resolutions(available_datasets, band_list, test_resolution, cal_results_number):
+    for band_name in band_list:
+        from satpy.dataset.data_dict import get_key
+        from satpy.tests.utils import make_dataid
+        ds_id = make_dataid(name=band_name, resolution=250)
+        if test_resolution == "1000":
+            with pytest.raises(KeyError):
+                get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+        else:
+            res = get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+            assert len(res) == cal_results_number
 
-    ds_id = make_dataid(name=band_name, resolution=1000)
-    if test_resolution == "250":
-        with pytest.raises(KeyError):
-            get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
-    else:
-        res = get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
-        assert len(res) == cal_results_number
+        ds_id = make_dataid(name=band_name, resolution=1000)
+        if test_resolution == "250":
+            with pytest.raises(KeyError):
+                get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+        else:
+            res = get_key(ds_id, available_datasets, num_results=cal_results_number, best=False)
+            assert len(res) == cal_results_number
 
 
 class MERSIL1BTester:
@@ -448,38 +449,30 @@ class MERSI1L1BTester(MERSIL1BTester):
     filenames_1000m: list= []
     filenames_250m: list = []
     filenames_all: list = []
+    vis_250_bands = ["1", "2", "3", "4"]
+    ir_250_bands = ["5"]
+    vis_1000_bands = ["6", "7", "8", "11", "15", "19", "20"]
+    ir_1000_bands = []
 
     def test_all_resolutions(self):
         """Test loading data when all resolutions or specific one are available."""
-        from satpy.dataset.data_dict import get_key
-        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         resolution_list = ["all", "250", "1000"]
         file_list = [self.filenames_all, self.filenames_250m, self.filenames_1000m]
-        vis_250_bands = ["1", "2", "3", "4"]
-        ir_250_bands = ["5"]
-        vis_1000_bands = ["6", "7", "8", "11", "15", "19", "20"]
-        ir_1000_bands = []
-        bands_1000 = vis_1000_bands + ir_1000_bands
-        bands_250 = vis_250_bands + ir_250_bands
+        bands_1000 = self.vis_1000_bands + self.ir_1000_bands
+        bands_250 = self.vis_250_bands + self.ir_250_bands
 
         for resolution in resolution_list:
             filenames = file_list[resolution_list.index(resolution)]
-            reader = load_reader(self.reader_configs)
-            files = reader.select_files_from_pathnames(filenames)
-            assert len(files) == len(filenames)
-            reader.create_filehandlers(files)
-            # Make sure we have some files
-            assert reader.file_handlers
+            reader = _test_find_files_and_readers(self.reader_configs, filenames)
 
             # Verify that we have multiple resolutions for:
             #     - Bands 1-4 (visible)
             #     - Bands 5 (IR)
             available_datasets = reader.available_dataset_ids
-            for band_name in bands_250:
-                num_results = 2 # ("reflectance"/"brightness temperature" and "coutns")
-                _test_multi_resolutions(available_datasets, band_name, resolution, num_results)
+            num_results = 2  # ("reflectance"/"brightness temperature" and "coutns")
+            _test_multi_resolutions(available_datasets, bands_250, resolution, num_results)
 
             res = reader.load(bands_1000 + bands_250)
             if resolution != "250":
@@ -491,23 +484,23 @@ class MERSI1L1BTester(MERSIL1BTester):
                         res.__getitem__(band)
 
             if resolution in ["all", "250"]:
-                _test_helper(res, vis_250_bands, ("reflectance", "%", (2 * 40, 2048 * 2)))
-                _test_helper(res, ir_250_bands, ("brightness_temperature", "K", (2 * 40, 2048 * 2)))
+                _test_helper(res, self.vis_250_bands, ("reflectance", "%", (2 * 40, 2048 * 2)))
+                _test_helper(res, self.ir_250_bands, ("brightness_temperature", "K", (2 * 40, 2048 * 2)))
 
                 if resolution == "all":
-                    _test_helper(res, vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
-                    _test_helper(res, ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
+                    _test_helper(res, self.vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
+                    _test_helper(res, self.ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
             else:
-                _test_helper(res, vis_250_bands, ("reflectance", "%", (2 * 10, 2048)))
-                _test_helper(res, vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
-                _test_helper(res, ir_250_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
-                _test_helper(res, ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
+                _test_helper(res, self.vis_250_bands, ("reflectance", "%", (2 * 10, 2048)))
+                _test_helper(res, self.vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
+                _test_helper(res, self.ir_250_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
+                _test_helper(res, self.ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
 
     def test_counts_calib(self):
         """Test loading data at counts calibration."""
         from satpy.tests.utils import make_dataid
         filenames = self.filenames_all
-        files, reader = _test_find_files_and_readers(self.reader_configs, filenames)
+        reader = _test_find_files_and_readers(self.reader_configs, filenames)
 
         ds_ids = []
         for band_name in ["1", "5", "16", "19", "20"]:
@@ -528,22 +521,22 @@ class TestFY3AMERSI1L1B(MERSI1L1BTester):
     filenames_all = filenames_1000m + filenames_250m
 
 
-# class TestFY3BMERSI1L1B(MERSI1L1BTester):
-#     """Test the FY3A MERSI1 L1B reader."""
-#
-#     yaml_file = "fy3b_mersi1_l1b.yaml"
-#     filenames_1000m = ["FY3B_MERSI_GBAL_L1_20110824_1850_1000M_MS.hdf"]
-#     filenames_250m = ["FY3B_MERSI_GBAL_L1_20110824_1850_0250M_MS.hdf", "FY3B_MERSI_GBAL_L1_20110824_1850_GEOXX_MS.hdf"]
-#     filenames_all = filenames_1000m + filenames_250m
-#
-#
-# class TestFY3CMERSI1L1B(MERSI1L1BTester):
-#     """Test the FY3A MERSI1 L1B reader."""
-#
-#     yaml_file = "fy3c_mersi1_l1b.yaml"
-#     filenames_1000m = ["FY3C_MERSI_GBAL_L1_20131002_1835_1000M_MS.hdf", "FY3C_MERSI_GBAL_L1_20131002_1835_GEO1K_MS.hdf"]
-#     filenames_250m = ["FY3C_MERSI_GBAL_L1_20131002_1835_0250M_MS.hdf", "FY3C_MERSI_GBAL_L1_20131002_1835_GEOQK_MS.hdf"]
-#     filenames_all = filenames_1000m + filenames_250m
+class TestFY3BMERSI1L1B(MERSI1L1BTester):
+    """Test the FY3A MERSI1 L1B reader."""
+
+    yaml_file = "fy3b_mersi1_l1b.yaml"
+    filenames_1000m = ["FY3B_MERSI_GBAL_L1_20110824_1850_1000M_MS.hdf"]
+    filenames_250m = ["FY3B_MERSI_GBAL_L1_20110824_1850_0250M_MS.hdf", "FY3B_MERSI_GBAL_L1_20110824_1850_GEOXX_MS.hdf"]
+    filenames_all = filenames_1000m + filenames_250m
+
+
+class TestFY3CMERSI1L1B(MERSI1L1BTester):
+    """Test the FY3A MERSI1 L1B reader."""
+
+    yaml_file = "fy3c_mersi1_l1b.yaml"
+    filenames_1000m = ["FY3C_MERSI_GBAL_L1_20131002_1835_1000M_MS.hdf", "FY3C_MERSI_GBAL_L1_20131002_1835_GEO1K_MS.hdf"]
+    filenames_250m = ["FY3C_MERSI_GBAL_L1_20131002_1835_0250M_MS.hdf", "FY3C_MERSI_GBAL_L1_20131002_1835_GEOQK_MS.hdf"]
+    filenames_all = filenames_1000m + filenames_250m
 
 
 
