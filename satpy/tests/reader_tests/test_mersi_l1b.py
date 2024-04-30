@@ -340,7 +340,6 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         num_scans = self.num_scans
         rows_per_scan = self._rows_per_scan
         is_mersi1 = self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1", "fy3c_mersi1"))
-        is_fy3ab_mersi1 = self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1"))
         is_mersi2 = self.filetype_info["file_type"].startswith("mersi2_")
         is_mersill = self.filetype_info["file_type"].startswith("mersi_ll")
         is_1km = "_1000" in self.filetype_info["file_type"]
