@@ -43,10 +43,12 @@ def _get_calibration(num_scans, ftype):
     return calibration
 
 
-def _get_250m_data(num_scans, rows_per_scan, num_cols, old_fy3ab_form=False):
+def _get_250m_data(num_scans, rows_per_scan, num_cols, filetype_info):
     # Set some default attributes
-    fill_value_name = "_FillValue" if old_fy3ab_form else "FillValue"
-    key_prefix = "" if old_fy3ab_form else "Data/"
+    is_fy3ab_mersi1 = filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1"))
+
+    fill_value_name = "_FillValue" if is_fy3ab_mersi1 else "FillValue"
+    key_prefix = "" if is_fy3ab_mersi1 else "Data/"
 
     def_attrs = {fill_value_name: 65535,
                  "valid_range": [0, 4095],
@@ -126,88 +128,62 @@ def _get_500m_data(num_scans, rows_per_scan, num_cols):
     return data
 
 
-def _get_1km_data(num_scans, rows_per_scan, num_cols, old_fy3ab_form=False, mersi1=False):
-    fill_value_name = "_FillValue" if old_fy3ab_form else "FillValue"
-    key_prefix = "" if old_fy3ab_form else "Data/"
-    radunits = "NO" if mersi1 else "mW/ (m2 cm-1 sr)"
+def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
+    is_mersi1 = filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1", "fy3c_mersi1"))
+    is_fy3ab_mersi1 = filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1"))
 
-    data = {
-        "Data/EV_1KM_LL":
-            xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    "Slope": np.array([1.]), "Intercept": np.array([0.]),
-                    "FillValue": 65535,
-                    "units": "NO",
-                    "valid_range": [0, 4095],
-                    "long_name": b"1km Earth View Science Data",
-                },
+    fill_value_name = "_FillValue" if is_fy3ab_mersi1 else "FillValue"
+    key_prefix = "" if is_fy3ab_mersi1 else "Data/"
+    radunits = "NO" if is_mersi1 else "mW/ (m2 cm-1 sr)"
+
+    data = {"Data/EV_1KM_LL":
+            xr.DataArray(da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs={"Slope": np.array([1.]), "Intercept": np.array([0.]),
+                       "FillValue": 65535,
+                       "units": "NO",
+                       "valid_range": [0, 4095],
+                       "long_name": b"1km Earth View Science Data"},
                 dims=("_rows", "_cols")),
-        f"{key_prefix}EV_1KM_RefSB":
-            xr.DataArray(
-                da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    "Slope": np.array([1.] * 15), "Intercept": np.array([0.] * 15),
-                    fill_value_name: 65535,
-                    "units": "NO",
-                    "valid_range": [0, 4095],
-                    "long_name": b"1km Earth View Science Data",
-                },
+            f"{key_prefix}EV_1KM_RefSB":
+            xr.DataArray(da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs={"Slope": np.array([1.] * 15), "Intercept": np.array([0.] * 15),
+                       fill_value_name: 65535,
+                       "units": "NO",
+                       "valid_range": [0, 4095],
+                       "long_name": b"1km Earth View Science Data"},
                 dims=("_ref_bands", "_rows", "_cols")),
         "Data/EV_1KM_Emissive":
-            xr.DataArray(
-                da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    "Slope": np.array([1.] * 4), "Intercept": np.array([0.] * 4),
-                    "FillValue": 65535,
-                    "units": "mW/ (m2 cm-1 sr)",
-                    "valid_range": [0, 25000],
-                    "long_name": b"1km Emissive Bands Earth View "
-                                 b"Science Data",
-                },
+            xr.DataArray(da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs={"Slope": np.array([1.] * 4), "Intercept": np.array([0.] * 4),
+                       "FillValue": 65535,
+                       "units": "mW/ (m2 cm-1 sr)",
+                       "valid_range": [0, 25000],
+                       "long_name": b"1km Emissive Bands Earth View Science Data"},
                 dims=("_ir_bands", "_rows", "_cols")),
         f"{key_prefix}EV_250_Aggr.1KM_RefSB":
-            xr.DataArray(
-                da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    "Slope": np.array([1.] * 4), "Intercept": np.array([0.] * 4),
-                    fill_value_name: 65535,
-                    "units": "NO",
-                    "valid_range": [0, 4095],
-                    "long_name": b"250m Reflective Bands Earth View "
-                                 b"Science Data Aggregated to 1 km"
-                },
+            xr.DataArray(da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs={"Slope": np.array([1.] * 4), "Intercept": np.array([0.] * 4),
+                       fill_value_name: 65535,
+                       "units": "NO",
+                       "valid_range": [0, 4095],
+                       "long_name": b"250m Reflective Bands Earth View Science Data Aggregated to 1 km"},
                 dims=("_ref250_bands", "_rows", "_cols")),
         f"{key_prefix}EV_250_Aggr.1KM_Emissive":
-            xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
-                        dtype=np.uint16),
-                attrs={
-                    "Slope": np.array([1.]), "Intercept": np.array([0.]),
-                    fill_value_name: 65535,
-                    "units": radunits,
-                    "valid_range": [0, 4095],
-                    "long_name": b"250m Emissive Bands Earth View "
-                                 b"Science Data Aggregated to 1 km"
-                },
-                dims=("_rows", "_cols")) if mersi1 else
-                xr.DataArray(
-                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
-                            dtype=np.uint16),
-                    attrs={
-                        "Slope": np.array([1.] * 2), "Intercept": np.array([0.] * 2),
-                        "FillValue": 65535,
-                        "units": "mW/ (m2 cm-1 sr)",
-                        "valid_range": [0, 4095],
-                        "long_name": b"250m Emissive Bands Earth View "
-                                     b"Science Data Aggregated to 1 km"
-                    },
+            xr.DataArray(da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                attrs={"Slope": np.array([1.]), "Intercept": np.array([0.]),
+                       fill_value_name: 65535,
+                       "units": radunits,
+                       "valid_range": [0, 4095],
+                       "long_name": b"250m Emissive Bands Earth View Science Data Aggregated to 1 km"},
+                dims=("_rows", "_cols")) if is_mersi1 else
+                xr.DataArray(da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
+                    attrs={"Slope": np.array([1.] * 2), "Intercept": np.array([0.] * 2),
+                           "FillValue": 65535,
+                           "units": "mW/ (m2 cm-1 sr)",
+                           "valid_range": [0, 4095],
+                           "long_name": b"250m Emissive Bands Earth View Science Data Aggregated to 1 km"},
                     dims=("_ir250_bands", "_rows", "_cols"))
-    }
+            }
     return data
 
 
@@ -371,10 +347,10 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         is_250m = "_250" in self.filetype_info["file_type"]
 
         if is_1km:
-            return _get_1km_data(num_scans, rows_per_scan, num_cols, old_fy3ab_form=is_fy3ab_mersi1, mersi1=is_mersi1)
+            return _get_1km_data(num_scans, rows_per_scan, num_cols, self.filetype_info)
         elif is_250m:
             if is_mersi1 or is_mersi2:
-                return _get_250m_data(num_scans, rows_per_scan, num_cols, old_fy3ab_form=is_fy3ab_mersi1)
+                return _get_250m_data(num_scans, rows_per_scan, num_cols, self.filetype_info)
             elif is_mersill:
                 return _get_250m_ll_data(num_scans, rows_per_scan, num_cols)
             else:
@@ -410,8 +386,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 return ""
 
 
-def _test_helper(res, band_list, exp_cal, exp_unit, exp_shape):
+def _test_helper(res, band_list, exp_result):
     """Remove test code duplication."""
+    exp_cal = exp_result[0]
+    exp_unit = exp_result[1]
+    exp_shape = exp_result[2]
     for band in band_list:
         assert res[band].attrs["calibration"] == exp_cal
         assert res[band].attrs["units"] == exp_unit
@@ -474,7 +453,7 @@ class MERSI1L1BTester(MERSIL1BTester):
 
         res = reader.load(["1", "2", "3", "4", "5", "6", "7", "8"])
         assert len(res) == 8
-        _test_helper(res, ["1", "2", "3", "4"], "reflectance", "%", (2 * 40, 2048 * 2))
+        _test_helper(res, ["1", "2", "3", "4"], ("reflectance", "%", (2 * 40, 2048 * 2)))
         assert res["5"].shape == (2 * 40, 2048 * 2)
         assert res["5"].attrs["calibration"] == "brightness_temperature"
         assert res["5"].attrs["units"] == "K"
@@ -500,8 +479,8 @@ class MERSI1L1BTester(MERSIL1BTester):
         ds_ids.append(make_dataid(name="satellite_zenith_angle"))
         res = reader.load(ds_ids)
         assert len(res) == 9
-        _test_helper(res, ["1", "2", "3", "4", "5"], "counts", "1", (2 * 40, 2048 * 2))
-        _test_helper(res, ["6", "19", "20"], "counts", "1", (2 * 10, 2048))
+        _test_helper(res, ["1", "2", "3", "4", "5"], ("counts", "1", (2 * 40, 2048 * 2)))
+        _test_helper(res, ["6", "19", "20"], ("counts", "1", (2 * 10, 2048)))
 
     def test_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
@@ -532,7 +511,7 @@ class MERSI1L1BTester(MERSIL1BTester):
 
         res = reader.load(["1", "2", "3", "4", "5", "6", "7", "8"])
         assert len(res) == 8
-        _test_helper(res, ["1", "2", "3", "4", "6", "7", "8"], "reflectance", "%", (2 * 10, 2048))
+        _test_helper(res, ["1", "2", "3", "4", "6", "7", "8"], ("reflectance", "%", (2 * 10, 2048)))
         assert res["5"].shape == (2 * 10, 2048)
         assert res["5"].attrs["calibration"] == "brightness_temperature"
         assert res["5"].attrs["units"] == "K"
@@ -570,7 +549,7 @@ class MERSI1L1BTester(MERSIL1BTester):
             res.__getitem__("6")
         with pytest.raises(KeyError):
             res.__getitem__("7")
-        _test_helper(res, ["1", "2", "3", "4"], "reflectance", "%", (2 * 40, 2048 * 2))
+        _test_helper(res, ["1", "2", "3", "4"], ("reflectance", "%", (2 * 40, 2048 * 2)))
         assert res["5"].shape == (2 * 40, 2048 * 2)
         assert res["5"].attrs["calibration"] == "brightness_temperature"
         assert res["5"].attrs["units"] == "K"
@@ -646,8 +625,8 @@ class TestMERSI2L1B(MERSIL1BTester):
 
         res = reader.load(["1", "2", "3", "4", "5", "20", "24", "25"])
         assert len(res) == 8
-        _test_helper(res, ["1", "2", "3", "4"], "reflectance", "%", (2 * 40, 2048 * 2))
-        _test_helper(res, ["24", "25"], "brightness_temperature", "K", (2 * 40, 2048 * 2))
+        _test_helper(res, ["1", "2", "3", "4"], ("reflectance", "%", (2 * 40, 2048 * 2)))
+        _test_helper(res, ["24", "25"], ("brightness_temperature", "K", (2 * 40, 2048 * 2)))
         assert res["5"].shape == (2 * 10, 2048)
         assert res["5"].attrs["calibration"] == "reflectance"
         assert res["5"].attrs["units"] == "%"
@@ -673,8 +652,8 @@ class TestMERSI2L1B(MERSIL1BTester):
         ds_ids.append(make_dataid(name="satellite_zenith_angle"))
         res = reader.load(ds_ids)
         assert len(res) == 9
-        _test_helper(res, ["1", "2", "3", "4", "24", "25"], "counts", "1", (2 * 40, 2048 * 2))
-        _test_helper(res, ["5", "20"], "counts", "1", (2 * 10, 2048))
+        _test_helper(res, ["1", "2", "3", "4", "24", "25"], ("counts", "1", (2 * 40, 2048 * 2)))
+        _test_helper(res, ["5", "20"], ("counts", "1", (2 * 10, 2048)))
 
     def test_rad_calib(self):
         """Test loading data at radiance calibration."""
@@ -693,7 +672,7 @@ class TestMERSI2L1B(MERSIL1BTester):
             ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
         res = reader.load(ds_ids)
         assert len(res) == 5
-        _test_helper(res, ["1", "2", "3", "4"], "radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2))
+        _test_helper(res, ["1", "2", "3", "4"], ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
         assert res["5"].shape == (2 * 10, 2048)
         assert res["5"].attrs["calibration"] == "radiance"
         assert res["5"].attrs["units"] == "mW/ (m2 cm-1 sr)"
@@ -731,8 +710,8 @@ class TestMERSI2L1B(MERSIL1BTester):
 
         res = reader.load(["1", "2", "3", "4", "5", "20", "24", "25"])
         assert len(res) == 8
-        _test_helper(res, ["1", "2", "3", "4"], "reflectance", "%", (2 * 10, 2048))
-        _test_helper(res, ["24", "25"], "brightness_temperature", "K", (2 * 10, 2048))
+        _test_helper(res, ["1", "2", "3", "4"], ("reflectance", "%", (2 * 10, 2048)))
+        _test_helper(res, ["24", "25"], ("brightness_temperature", "K", (2 * 10, 2048)))
         assert res["5"].shape == (2 * 10, 2048)
         assert res["5"].attrs["calibration"] == "reflectance"
         assert res["5"].attrs["units"] == "%"
@@ -851,8 +830,8 @@ class TestMERSILLL1B(MERSIL1BTester):
             ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
         res = reader.load(ds_ids)
         assert len(res) == 5
-        _test_helper(res, ["1", "3", "4"], "radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048))
-        _test_helper(res, ["6", "7"], "radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2))
+        _test_helper(res, ["1", "3", "4"], ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
+        _test_helper(res, ["6", "7"], ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
 
     def test_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
@@ -893,7 +872,7 @@ class TestMERSILLL1B(MERSIL1BTester):
         assert res["1"].shape == (2 * 10, 2048)
         assert res["1"].attrs["calibration"] == "radiance"
         assert res["1"].attrs["units"] == "mW/ (m2 cm-1 sr)"
-        _test_helper(res, ["2", "3", "5", "6", "7"], "brightness_temperature", "K", (2 * 10, 2048))
+        _test_helper(res, ["2", "3", "5", "6", "7"], ("brightness_temperature", "K", (2 * 10, 2048)))
 
     def test_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
