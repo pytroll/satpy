@@ -350,10 +350,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         elif is_250m:
             if is_mersi1 or is_mersi2:
                 return _get_250m_data(num_scans, rows_per_scan, num_cols, self.filetype_info)
-            elif is_mersill:
-                return _get_250m_ll_data(num_scans, rows_per_scan, num_cols)
             else:
-                return
+                return _get_250m_ll_data(num_scans, rows_per_scan, num_cols)
         else:
             return _get_500m_data(num_scans, rows_per_scan, num_cols)
 
