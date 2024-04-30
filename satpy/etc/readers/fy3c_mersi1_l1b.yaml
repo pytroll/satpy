@@ -145,6 +145,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts

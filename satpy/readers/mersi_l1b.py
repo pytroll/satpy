@@ -152,6 +152,9 @@ class MERSIL1B(HDF5FileHandler):
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
             data = data * self.get_refl_mult()
 
+        elif dataset_id.get("calibration") == "radiance":
+            data = data
+
         elif dataset_id.get("calibration") == "brightness_temperature":
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
