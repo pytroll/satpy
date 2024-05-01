@@ -34,6 +34,16 @@ def _get_calibration(num_scans, ftype):
                 da.ones((19, 3), chunks=1024),
                 attrs={"Slope": np.array([1.] * 19), "Intercept": np.array([0.] * 19)},
                 dims=("_bands", "_coeffs")),
+        "Calibration/Solar_Irradiance":
+            xr.DataArray(
+                da.ones((19, ), chunks=1024),
+                attrs={"Slope": np.array([1.] * 19), "Intercept": np.array([0.] * 19)},
+                dims=("_bands")),
+        "Calibration/Solar_Irradiance_LL":
+            xr.DataArray(
+                da.ones((1, ), chunks=1024),
+                attrs={"Slope": np.array([1.]), "Intercept": np.array([0.])},
+                dims=("_bands")),
         "Calibration/IR_Cal_Coeff":
             xr.DataArray(
                 da.ones((6, 4, num_scans), chunks=1024),
@@ -272,6 +282,9 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         fy3b_attrs = {
             "/attr/VIS_Cal_Coeff": np.array([0.0, 1.0, 0.0] * 19),
         }
+        fy3d_attrs = {
+            "/attr/Solar_Irradiance": np.array([1.0] * 19),
+        }
 
         global_attrs, ftype = self._set_sensor_attrs(global_attrs)
         self._add_tbb_coefficients(global_attrs)
@@ -288,6 +301,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             test_content.update(fy3a_attrs)
         elif "fy3b_mersi1" in self.filetype_info["file_type"]:
             test_content.update(fy3b_attrs)
+        elif "mersi2" in self.filetype_info["file_type"]:
+            test_content.update(fy3d_attrs)
         if not self.filetype_info["file_type"].startswith(("fy3a_mersi1", "fy3b_mersi1")):
             test_content.update(_get_calibration(self.num_scans, ftype))
         return test_content
@@ -393,6 +408,7 @@ def _test_helper(res, band_list, exp_result):
 
 
 def _test_find_files_and_readers(reader_config, filenames):
+    """Test file and reader search."""
     from satpy.readers import load_reader
     reader = load_reader(reader_config)
     files = reader.select_files_from_pathnames(filenames)
@@ -404,6 +420,7 @@ def _test_find_files_and_readers(reader_config, filenames):
 
 
 def _test_multi_resolutions(available_datasets, band_list, test_resolution, cal_results_number):
+    """Test some bands have multiple resolutions."""
     for band_name in band_list:
         from satpy.dataset.data_dict import get_key
         from satpy.tests.utils import make_dataid
@@ -468,10 +485,17 @@ class MERSI12llL1BTester(MERSIL1BTester):
             reader = _test_find_files_and_readers(self.reader_configs, filenames)
 
             # Verify that we have multiple resolutions for:
+            # ---------MERSI-1---------
             #     - Bands 1-4 (visible)
             #     - Bands 5 (IR)
+            # ---------MERSI-2---------
+            #     - Bands 1-4 (visible)
+            #     - Bands 24-25 (IR)
+            # ---------MERSI-LL---------
+            #     - Bands 6-7 (IR)
             available_datasets = reader.available_dataset_ids
-            vis_num_results = 3 if "mersi2" in self.yaml_file else 2 # Only MERSI-2 VIS has radiance calibration
+            # Only MERSI-2/LL VIS has radiance calibration
+            vis_num_results = 3 if self.yaml_file in ["mersi2_l1b.yaml", "mersi_ll_l1b.yaml"] else 2
             ir_num_results = 3
             _test_multi_resolutions(available_datasets, self.vis_250_bands, resolution, vis_num_results)
             _test_multi_resolutions(available_datasets, self.ir_250_bands, resolution, ir_num_results)
@@ -514,20 +538,20 @@ class MERSI12llL1BTester(MERSIL1BTester):
         _test_helper(res, self.bands_1000, ("counts", "1", (2 * 10, 2048)))
 
     def test_rad_calib(self):
-        """Test loading data at radiance calibration. For MERSI-2 VIS/IR and MERSI-1/LL IR"""
+        """Test loading data at radiance calibration. For MERSI-2/LL VIS/IR and MERSI-1 IR."""
         from satpy.tests.utils import make_dataid
         filenames = self.filenames_all
         reader = _test_find_files_and_readers(self.reader_configs, filenames)
 
         ds_ids = []
-        test_bands = self.bands_1000 + self.bands_250 if "mersi2" in self.yaml_file else \
-            self.ir_250_bands + self.ir_1000_bands
+        test_bands = self.bands_1000 + self.bands_250 if self.yaml_file in ["mersi2_l1b.yaml", "mersi_ll_l1b.yaml"] \
+            else self.ir_250_bands + self.ir_1000_bands
 
         for band_name in test_bands:
             ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
         res = reader.load(ds_ids)
         assert len(res) == len(test_bands)
-        if "mersi2" in self.yaml_file:
+        if self.yaml_file in ["mersi2_l1b.yaml", "mersi_ll_l1b.yaml"]:
             _test_helper(res, self.bands_250, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
             _test_helper(res, self.bands_1000, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
         else:
@@ -580,7 +604,7 @@ class TestFY3CMERSI1L1B(MERSI12llL1BTester):
     bands_250 = vis_250_bands + ir_250_bands
 
 
-class TestFYDCMERSI2L1B(MERSI12llL1BTester):
+class TestFY3DMERSI2L1B(MERSI12llL1BTester):
     """Test the FY3D MERSI2 L1B reader."""
 
     yaml_file = "mersi2_l1b.yaml"
@@ -660,6 +684,6 @@ class TestMERSIRML1B(MERSIL1BTester):
         res = reader.load(ds_ids)
         assert len(res) == 5
         for band_name in band_names:
-          assert res[band_name].shape == (20, 4096)
-          assert res[band_name].attrs["calibration"] == "radiance"
-          assert res[band_name].attrs["units"] == "mW/ (m2 cm-1 sr)"
+            assert res[band_name].shape == (20, 4096)
+            assert res[band_name].attrs["calibration"] == "radiance"
+            assert res[band_name].attrs["units"] == "mW/ (m2 cm-1 sr)"

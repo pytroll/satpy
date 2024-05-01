@@ -91,7 +91,8 @@ class MERSIL1B(HDF5FileHandler):
 
     def _get_coefficients(self, cal_key, cal_index):
         """Get VIS calibration coeffs from calibration datasets."""
-        coeffs = self[cal_key][cal_index]
+        # Only one VIS band for MERSI-LL
+        coeffs = self[cal_key][cal_index] if self.sensor_name != "mersi-ll" else self[cal_key]
         slope = coeffs.attrs.pop("Slope", None)
         intercept = coeffs.attrs.pop("Intercept", None)
         if slope is not None:
@@ -116,17 +117,12 @@ class MERSIL1B(HDF5FileHandler):
         """Use slope and intercept to get DN corrections."""
         slope = attrs.pop("Slope", None)
         intercept = attrs.pop("Intercept", None)
-        try:
-            new_slope = slope[band_index]
-            new_intercept = intercept[band_index]
-            # There's a bug in the slope for MERSI-1 11.25(5)
-            new_slope = 0.01 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and new_slope in [100, 1] \
-                else new_slope
-            data = data * new_slope + new_intercept
-            return data
-
-        except TypeError:
-            return data
+        if slope is not None and dataset_id.get("calibration") != "counts":
+            if band_index is not None and slope.size > 1:
+                slope = slope[band_index]
+                intercept = intercept[band_index]
+            data = data * slope + intercept
+        return data
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
@@ -146,14 +142,10 @@ class MERSIL1B(HDF5FileHandler):
         data = self._get_dn_corrections(data, band_index, dataset_id, attrs)
 
         if dataset_id.get("calibration") == "reflectance":
-            # Only FY-3A/B stores VIS calibration coefficients in attributes
-            coeffs = self._get_coefficients_mersi1(ds_info["calibration_index"]) if self.platform_name in ["FY-3A",
-                "FY-3B"] else self._get_coefficients(ds_info["calibration_key"], ds_info["calibration_index"])
-            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
-            data = data * self.get_refl_mult()
+            data = self._get_ref_dataset(data, ds_info)
 
         elif dataset_id.get("calibration") == "radiance":
-            data = data
+            data = self._get_rad_dataset(data, ds_info, dataset_id)
 
         elif dataset_id.get("calibration") == "brightness_temperature":
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
@@ -201,8 +193,60 @@ class MERSIL1B(HDF5FileHandler):
             data = data.where((data >= valid_range[0]) &
                               (data <= valid_range[1]), new_fill)
             return data
+        # valid_range could be None
         except TypeError:
             return data
+
+    def _get_ref_dataset(self, data, ds_info):
+        """Get the dataset as reflectance.
+
+        For MERSI-1/2/RM, coefficients will be as::
+
+            Reflectance = coeffs_1 + coeffs_2 * DN + coeffs_3 * DN ** 2
+
+        For MERSI-LL, the DN value is in radiance and the reflectance could be calculated by::
+
+            Reflectance = Rad * pi / E0 * 100
+
+        Here E0 represents the solar irradiance of the specific band and is the coefficient.
+
+        """
+        # Only FY-3A/B stores VIS calibration coefficients in attributes
+        coeffs = self._get_coefficients_mersi1(ds_info["calibration_index"]) if self.platform_name in ["FY-3A",
+            "FY-3B"] else self._get_coefficients(ds_info["calibration_key"], ds_info.get("calibration_index", None))
+        data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2 if self.sensor_name != "mersi-ll" else \
+            data * np.pi / coeffs[0] * 100
+
+        data = data * self.get_refl_mult()
+        return data
+
+    def _get_rad_dataset(self, data, ds_info, datset_id):
+        """Get the dataset as radiance.
+
+        For MERSI-2/RM VIS bands, this could be calculated by::
+
+            Rad = Reflectance / 100 * E0 / pi
+
+        For MERSI-2, E0 is in the attribute "Solar_Irradiance".
+        For MERSI-RM, E0 is in the calibration dataset "Solar_Irradiance".
+        However we can't find the way to retrieve this value from MERSI-1.
+
+        For MERSI-LL VIS band, it has already been stored in DN values.
+        After applying slope and intercept, we just get it. And Same way for IR bands, no matter which sensor it is.
+
+        """
+        mersi_2_vis = [str(i) for i in range(1, 20)]
+        mersi_rm_vis = [str(i) for i in range(1, 6)]
+
+        if self.sensor_name == "mersi-2" and datset_id["name"] in mersi_2_vis:
+            E0 = self["/attr/Solar_Irradiance"]
+            rad = self._get_ref_dataset(data, ds_info) / 100 * E0[mersi_2_vis.index(datset_id["name"])] / np.pi
+        elif self.sensor_name == "mersi-rm" and datset_id["name"] in mersi_rm_vis:
+            E0 = self._get_coefficients("Calibration/Solar_Irradiance", mersi_rm_vis.index(datset_id["name"]))
+            rad = self._get_ref_dataset(data, ds_info) / 100 * E0 / np.pi
+        else:
+            rad = data
+        return rad
 
     def _get_bt_dataset(self, data, calibration_index, wave_number):
         """Get the dataset as brightness temperature.
