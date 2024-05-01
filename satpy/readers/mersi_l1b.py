@@ -121,6 +121,8 @@ class MERSIL1B(HDF5FileHandler):
             if band_index is not None and slope.size > 1:
                 slope = slope[band_index]
                 intercept = intercept[band_index]
+            # There's a bug in slope for MERSI-1 IR band
+            slope = 0.01 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" else slope
             data = data * slope + intercept
         return data
 
