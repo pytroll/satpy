@@ -43,7 +43,7 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: '1'
         modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: true_color    
+    standard_name: true_color
 
   true_color_uncorr:
     compositor: !!python/name:satpy.composites.GenericCompositor
