@@ -279,7 +279,11 @@ class MERSIL1B(HDF5FileHandler):
         data = data.where(data != 0)
 
         # additional corrections from the file
-        if self.sensor_name == "mersi-2":
+        if self.sensor_name == "mersi-1":
+        # https://img.nsmc.org.cn/PORTAL/NSMC/DATASERVICE/SRF/FY3C/FY3C_MERSI_SRF.rar
+            corr_coeff_a = 1.0047
+            corr_coeff_b = -0.8549
+        elif self.sensor_name == "mersi-2":
             corr_coeff_a = float(self["/attr/TBB_Trans_Coefficient_A"][calibration_index])
             corr_coeff_b = float(self["/attr/TBB_Trans_Coefficient_B"][calibration_index])
         elif self.sensor_name == "mersi-ll":
@@ -295,7 +299,8 @@ class MERSIL1B(HDF5FileHandler):
             corr_coeff_a = 0
 
         if corr_coeff_a != 0:
-            data = (data - corr_coeff_b) / corr_coeff_a
+            data = (data - corr_coeff_b) / corr_coeff_a if self.sensor_name != "mersi-1" else \
+                data * corr_coeff_a + corr_coeff_b
         # some bands have 0 counts for the first N columns and
         # seem to be invalid data points
         data = data.where(data != 0)

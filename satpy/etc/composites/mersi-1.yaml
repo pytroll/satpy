@@ -14,10 +14,10 @@ modifiers:
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
 
-  # sunz_corrected:
-    # modifier: !!python/name:satpy.modifiers.SunZenithCorrector
-    # prerequisites:
-      # - solar_zenith_angle
+  sunz_corrected:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+    prerequisites:
+      - name: solar_zenith_angle
 
   nir_reflectance:
     modifier: !!python/name:satpy.modifiers.NIRReflectance
@@ -33,6 +33,17 @@ composites:
     prerequisites:
       - name: '5'
     standard_name: colorized_ir_clouds
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '2'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '1'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color    
 
   true_color_uncorr:
     compositor: !!python/name:satpy.composites.GenericCompositor
