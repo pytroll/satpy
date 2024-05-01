@@ -194,7 +194,16 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
                            "units": "mW/ (m2 cm-1 sr)",
                            "valid_range": [0, 4095],
                            "long_name": b"250m Emissive Bands Earth View Science Data Aggregated to 1 km"},
-                    dims=("_ir250_bands", "_rows", "_cols"))
+                    dims=("_ir250_bands", "_rows", "_cols")),
+        f"{key_prefix}SensorZenith":
+                xr.DataArray(
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    attrs={
+                        "Slope": np.array([.01] * 1), "Intercept": np.array([0.] * 1),
+                        "units": "degree",
+                        "valid_range": [0, 28000],
+                    },
+                    dims=("_rows", "_cols")),
             }
     return data
 

@@ -423,7 +423,7 @@ datasets:
     standard_name: solar_zenith_angle
     resolution: 1000
     coordinates: [longitude, latitude]
-    file_type: fy3b_mersi1_l1b_geo
+    file_type: fy3b_mersi1_l1b_1000
     file_key: SolarZenith
 
   solar_azimuth_angle:
@@ -432,7 +432,7 @@ datasets:
     standard_name: solar_azimuth_angle
     resolution: 1000
     coordinates: [longitude, latitude]
-    file_type: fy3b_mersi1_l1b_geo
+    file_type: fy3b_mersi1_l1b_1000
     file_key: SolarAzimuth
 
   satellite_zenith_angle:
@@ -441,7 +441,7 @@ datasets:
     standard_name: sensor_zenith_angle
     resolution: 1000
     coordinates: [longitude, latitude]
-    file_type: fy3b_mersi1_l1b_geo
+    file_type: fy3b_mersi1_l1b_1000
     file_key: SensorZenith
 
   satellite_azimuth_angle:
@@ -450,5 +450,5 @@ datasets:
     standard_name: sensor_azimuth_angle
     resolution: 1000
     coordinates: [longitude, latitude]
-    file_type: fy3b_mersi1_l1b_geo
+    file_type: fy3b_mersi1_l1b_1000
     file_key: SensorAzimuth
