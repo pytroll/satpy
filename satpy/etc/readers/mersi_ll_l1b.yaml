@@ -61,7 +61,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
-        standard_name: toa_outgoing_radiance_per_unit_wavelength        
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
