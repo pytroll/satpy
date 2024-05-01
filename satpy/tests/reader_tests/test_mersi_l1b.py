@@ -66,6 +66,8 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols, filetype_info):
                  }
     nounits_attrs = {**def_attrs, **{"units": "NO"}}
     radunits_attrs = {**def_attrs, **{"units": "mW/ (m2 cm-1 sr)"}}
+    valid_range_none_attrs = radunits_attrs.copy()
+    valid_range_none_attrs["valid_range"] = None
 
     data = {
         f"{key_prefix}EV_250_RefSB_b1":
@@ -91,7 +93,7 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols, filetype_info):
         f"{key_prefix}EV_250_Emissive_b24":
             xr.DataArray(
                 da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs=radunits_attrs,
+                attrs=valid_range_none_attrs,
                 dims=("_rows", "_cols")),
         f"{key_prefix}EV_250_Emissive_b25":
             xr.DataArray(
