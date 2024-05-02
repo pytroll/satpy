@@ -1,0 +1,15 @@
+reader:
+  name: mcd12q1
+  short_name: MCD12Q1
+  long_name: MODIS Level 3 (mcd12Q1) data in HDF-EOS format
+  description: MODIS HDF-EOS MCD12Q1 L3 Reader
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis]
+
+file_types:
+  modis_mcd12q1_hdf_eos:
+    file_patterns: ['MCD12Q1.A{start_time:%Y%j}.{tile_id}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf']
+    file_reader: !!python/name:satpy.readers.mcd12q1.MCD12Q1HDFFileHandler
+
