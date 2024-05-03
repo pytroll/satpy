@@ -104,15 +104,15 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
         """End timestamp of the dataset."""
         dt = self.attrs["observation_end_time"]
         return datetime.strptime(dt, "%Y%m%d_%H%M%S")
-    
+
 
     def _calibrate(self, data, bname):
         """Convert raw radiances into reflectance."""
-        from pyorbital.astronomy import sun_earth_distance_correction
         import numpy as np
+        from pyorbital.astronomy import sun_earth_distance_correction
 
         esd = sun_earth_distance_correction(self.start_time)
-        
+
         factor = np.pi * esd * esd / GOCI2_SOLAR_IRRAD[bname]
 
         print(np.nanmax(data))
@@ -147,7 +147,7 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
         variable.attrs.update({"platform_name": self.attrs['platform'],
                                "sensor": "goci2"})
 
-        # The data lists "0" as the valid minimum, but this is also used for fill values 
+        # The data lists "0" as the valid minimum, but this is also used for fill values
         # at the edge of the image extent. If required, filter these.
         if self.mask_zeros:
             variable = variable.where(variable != 0)
