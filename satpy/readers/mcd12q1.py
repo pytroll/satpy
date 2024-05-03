@@ -122,17 +122,19 @@ class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
 
         This is fixed, but not defined in the file. So we must
         generate it ourselves with some assumptions.
+
+        The proj_param string comes from https://lpdaac.usgs.gov/documents/101/MCD12_User_Guide_V6.pdf
         """
-        proj_param = "EPSG:4326"
-        proj_param = "World_Sinusoidal"
+        proj_param = "proj=sinu +a=6371007.181 +b=6371007.181 +units=m"
+
         # Get the size of the dataset
         nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
         ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
 
         # Construct the area definition
-        area = geometry.AreaDefinition("SIN MODIS",
+        area = geometry.AreaDefinition("SIN MODIS Tiled",
                                        "A gridded L3 MODIS area",
-                                       "sinu",
+                                       "SIN MODIS",
                                        proj_param,
                                        ncols,
                                        nrows,
