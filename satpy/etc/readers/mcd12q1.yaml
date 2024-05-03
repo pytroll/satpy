@@ -13,3 +13,9 @@ file_types:
     file_patterns: ['MCD12Q1.A{start_time:%Y%j}.{tile_id}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf']
     file_reader: !!python/name:satpy.readers.mcd12q1.MCD12Q1HDFFileHandler
 
+datasets:
+  LC_Prop1:
+    name: LC_Prop1
+    resolution: 500
+    file_type: modis_mcd12q1_hdf_eos
+

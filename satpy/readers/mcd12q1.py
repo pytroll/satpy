@@ -103,8 +103,8 @@ class MCD12Q1HDFFileHandler(HDFEOSGeoReader):
         """Get DataArray for specified dataset."""
         dataset_name = dataset_id["name"]
         # xxx 
-        dataset = self.sd.select(dataset_name)
-        #dataset = self.load_dataset(dataset_name, dataset_info.pop("category", False))
+        dataset = self.load_dataset(dataset_name, dataset_info.pop("category", False))
+
         self._add_satpy_metadata(dataset_id, dataset)
 
         return dataset
