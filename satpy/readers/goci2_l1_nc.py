@@ -26,9 +26,9 @@ from pyspectral.utils import convert2wavenumber, get_central_wave
 from pyspectral.rsr_reader import RelativeSpectralResponse
 from pyspectral.solar import SolarIrradianceSpectrum
 
-goci2 = RelativeSpectralResponse('GK-2B', 'goci2')
+goci2 = RelativeSpectralResponse("GK-2B", "goci2")
 rsr, info = convert2wavenumber(goci2.rsr)
-solar_irr = SolarIrradianceSpectrum(dlambda=0.0005, wavespace='wavenumber')
+solar_irr = SolarIrradianceSpectrum(dlambda=0.0005, wavespace="wavenumber")
 for band in goci2.band_names:
     print(f"Solar Irradiance (GOCI2 band {band}) = {solar_irr.inband_solarirradiance(rsr[band]):12.6f}")
 ```
@@ -115,17 +115,12 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
 
         factor = np.pi * esd * esd / GOCI2_SOLAR_IRRAD[bname]
 
-        print(np.nanmax(data))
-        print(factor, GOCI2_SOLAR_IRRAD[bname])
-
         res = data * np.float32(factor)
 
         # Convert from 0-1 range to 0-100
         res = 100 * res
 
         res.attrs = data.attrs
-        print(np.nanmax(res))
-        print("")
 
         res.attrs["units"] = "1"
         res.attrs["long_name"] = "Bidirectional Reflectance"
@@ -144,7 +139,7 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
         # Some products may miss lon/lat standard_name, use name as base name if it is not already present
         if variable.attrs.get("standard_name", None) is None:
             variable.attrs.update({"standard_name": variable.name})
-        variable.attrs.update({"platform_name": self.attrs['platform'],
+        variable.attrs.update({"platform_name": self.attrs["platform"],
                                "sensor": "goci2"})
 
         # The data lists "0" as the valid minimum, but this is also used for fill values
@@ -156,8 +151,8 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
         if "calibration" in key:
             if key["calibration"] == "reflectance":
                 variable = self._calibrate(variable, info["name"])
-            elif key["calibration"] is not "radiance":
-                raise ValueError(f"Calibration type {key['calibration']} not supported.")
+            elif key["calibration"] != "radiance":
+                raise ValueError(f"Calibration type {key["calibration"]} not supported.")
 
         variable.attrs.update(key.to_dict())
 
@@ -166,6 +161,6 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
             "satellite_nominal_latitude": 0.,
             "projection_longitude": self.attrs["longitude_of_projection_origin"],
             "projection_latitude": self.attrs["latitude_of_projection_origin"],
-            "projection_altitude": self.attrs['perspective_point_height']
+            "projection_altitude": self.attrs["perspective_point_height"]
         }
         return variable
