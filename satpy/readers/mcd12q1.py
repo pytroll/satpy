@@ -35,12 +35,12 @@ from typing import Iterable
 
 from pyresample import geometry
 
-from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
 
 logger = logging.getLogger(__name__)
 
 
-class MCD12Q1HDFFileHandler(HDFEOSGeoReader):
+class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
     """File handler for MCD12Q1 HDF-EOS 500m granules."""
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
@@ -124,7 +124,7 @@ class MCD12Q1HDFFileHandler(HDFEOSGeoReader):
         generate it ourselves with some assumptions.
         """
         proj_param = "EPSG:4326"
-
+        proj_param = "World_Sinusoidal"
         # Get the size of the dataset
         nrows = self.metadata["GridStructure"]["GRID_1"]["YDim"]
         ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
