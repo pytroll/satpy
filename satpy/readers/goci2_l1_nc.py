@@ -149,10 +149,10 @@ class GOCI2L1NCFileHandler(NetCDF4FileHandler):
 
         # If required, convert raw radiances to reflectance
         if "calibration" in key:
-            if key["calibration"] == "reflectance":
+            if key["calibration"].name == "reflectance":
                 variable = self._calibrate(variable, info["name"])
-            elif key["calibration"] != "radiance":
-                raise ValueError(f"Calibration type {key["calibration"]} not supported.")
+            elif key["calibration"].name != "radiance":
+                raise ValueError(f"Calibration type {key["calibration"].name} not supported.")
 
         variable.attrs.update(key.to_dict())
 
