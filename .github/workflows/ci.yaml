@@ -34,8 +34,6 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-        run: |
-          git config --global --add safe.directory /github/workspace
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v3
@@ -103,6 +101,7 @@ jobs:
       - name: Install satpy
         shell: bash -l {0}
         run: |
+          git config --global --add safe.directory /github/workspace
           python -m pip install --no-deps -e .
 
       - name: Run unit tests
