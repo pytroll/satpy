@@ -102,6 +102,7 @@ jobs:
         shell: bash -l {0}
         run: |
           git config --global --add safe.directory /github/workspace
+          git config --local --add safe.directory /github/workspace
           python -m pip install --no-deps -e .
 
       - name: Run unit tests
