@@ -121,6 +121,7 @@ jobs:
         with:
           flag-name: run-${{ matrix.test_number }}
           parallel: true
+          debug: true
         if: runner.os == 'Linux'
 
       - name: Run behaviour tests
