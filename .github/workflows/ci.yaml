@@ -101,8 +101,6 @@ jobs:
       - name: Install satpy
         shell: bash -l {0}
         run: |
-          git config --global --add safe.directory /github/workspace
-          git config --local --add safe.directory /github/workspace
           python -m pip install --no-deps -e .
 
       - name: Run unit tests
@@ -119,12 +117,10 @@ jobs:
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Coveralls Parallel
-#        uses: AndreMiras/coveralls-python-action@develop
-        uses: djhoese/coveralls-python-action@git-safe-dir
+        uses: AndreMiras/coveralls-python-action@develop
         with:
           flag-name: run-${{ matrix.test_number }}
           parallel: true
-          debug: true
         if: runner.os == 'Linux'
 
       - name: Run behaviour tests
@@ -146,7 +142,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-#        uses: AndreMiras/coveralls-python-action@develop
-        uses: djhoese/coveralls-python-action@git-safe-dir
+        uses: AndreMiras/coveralls-python-action@develop
         with:
           parallel-finished: true
