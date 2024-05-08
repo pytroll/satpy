@@ -24,6 +24,11 @@ The ``mcd12q1`` reader reads MCD12Q1 products in HDF-EOS format.
 
 The 500m product is provided  on a sinusoidal grid.
 
+Reference documents and links:
+    - MODIS land products grid: https://modis-land.gsfc.nasa.gov/MODLAND_grid.html
+    - User guide: https://lpdaac.usgs.gov/documents/101/MCD12_User_Guide_V6.pdf
+    - MCD12Q1 v061: MODIS/Terra+Aqua Land Cover Type Yearly L3 Global 500 m SIN Grid
+
 The reader has been tested with:
     - MCD12Q1: Land cover data.
 
