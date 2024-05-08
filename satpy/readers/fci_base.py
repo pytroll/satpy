@@ -22,7 +22,7 @@ from __future__ import annotations
 def calculate_area_extent(area_dict):
         """Calculate the area extent seen by MTG FCI instrument.
 
-        Since the center of the FCI L2 grid is located at the interface between the pixels, there are equally many
+        Since the center of the FCI grids is located at the interface between the pixels, there are equally many
         pixels (e.g. 5568/2 = 2784 for 2km grid) in each direction from the center points. Hence, the area extent
         can be easily computed by simply adding and subtracting half the width and height from teh centre point (=0).
 
