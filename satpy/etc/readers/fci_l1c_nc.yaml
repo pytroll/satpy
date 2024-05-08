@@ -83,7 +83,7 @@ file_types:
         - ir_38_hr
         - ir_105_hr
   # Note: In The current file the 'MTI1-FCI-1C' which is a part of the file will be replaced by MTI1+FCI-1C, patterns have been added
-  # to maanage this issue
+  # to maanage this
   fci_l1c_af_vis_06:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
     file_patterns:
