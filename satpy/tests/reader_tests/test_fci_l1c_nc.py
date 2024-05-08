@@ -107,12 +107,12 @@ EXPECTED_POS_INFO_FOR_FILETYPE = {
                     }
     }
 
-_CHANS_FDHSI = {"solar": LIST_CHANNEL_SOLAR,
+CHANS_FHDSI = {"solar": LIST_CHANNEL_SOLAR,
                 "solar_grid_type": ["1km"] * 8,
                 "terran": LIST_CHANNEL_TERRAN,
                 "terran_grid_type": ["2km"] * 8}
 
-_CHANS_HRFI = {"solar": ["vis_06", "nir_22"],
+CHANS_HRFI = {"solar": ["vis_06", "nir_22"],
                "solar_grid_type": ["500m"] * 2,
                "terran": ["ir_38", "ir_105"],
                "terran_grid_type": ["1km"] * 2}
@@ -148,7 +148,7 @@ DICT_CALIBRATION = { "radiance" : {"dtype": np.float32,
                                       },
                 },
 }
-_test_filenames = {"fdhsi": [
+TEST_FILENAMES = {"fdhsi": [
     "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
     "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
     "20170410113925_20170410113934_N__C_0070_0067.nc"
@@ -168,24 +168,24 @@ def resolutions(channel):
         return LIST_RESOLUTION
 
 def fill_chans_af():
-    """Fill the dict _CHANS_AF and the list _test_filenames with the right channel and resolution."""
-    _CHANS_AF = {}
+    """Fill the dict CHANS_AF and the list TEST_FILENAMES with the right channel and resolution."""
+    CHANS_AF = {}
     for channel in LIST_TOTAL_CHANNEL:
         list_resol = resolutions(channel)
         for resol in list_resol:
             chann_upp = channel.replace("_","").upper()
-            _test_filenames[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
+            TEST_FILENAMES[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
                                                         f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
                                                         f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
             if channel.split("_")[0] in ["vis","nir"]:
-                _CHANS_AF[f"{channel}_{resol}"] = {"solar":[channel],
+                CHANS_AF[f"{channel}_{resol}"] = {"solar":[channel],
                                                    "solar_grid_type": [resol]}
             elif channel.split("_")[0] in ["ir","wv"]:
-                _CHANS_AF[f"{channel}_{resol}"] = {"terran":[channel],
+                CHANS_AF[f"{channel}_{resol}"] = {"terran":[channel],
                                                    "terran_grid_type": [resol]}
-    return _CHANS_AF,_test_filenames
+    return CHANS_AF,TEST_FILENAMES
 
-_CHANS_AF,_test_filenames = fill_chans_af()
+CHANS_AF,TEST_FILENAMES = fill_chans_af()
 # ----------------------------------------------------
 # Filehandlers preparation ---------------------------
 # ----------------------------------------------------
@@ -553,8 +553,8 @@ def FakeFCIFileHandlerFDHSI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": _CHANS_FDHSI,
-            "filenames": _test_filenames["fdhsi"]
+            "channels": CHANS_FHDSI,
+            "filenames": TEST_FILENAMES["fdhsi"]
         }
         yield param_dict
 
@@ -565,8 +565,8 @@ def FakeFCIFileHandlerHRFI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
         param_dict = {
             "filetype": "fci_l1c_hrfi",
-            "channels": _CHANS_HRFI,
-            "filenames": _test_filenames["hrfi"]
+            "channels": CHANS_HRFI,
+            "filenames": TEST_FILENAMES["hrfi"]
         }
         yield param_dict
 
@@ -579,8 +579,8 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
     with mocked_basefilehandler(FakeFCIFileHandlerAF):
         param_dict = {
             "filetype": "fci_l1c_af",
-            "channels": _CHANS_AF[f"{channel}_{resolution}"],
-            "filenames": _test_filenames[f"af_{channel}_{resolution}"],
+            "channels": CHANS_AF[f"{channel}_{resolution}"],
+            "filenames": TEST_FILENAMES[f"af_{channel}_{resolution}"],
         }
         yield param_dict
 
@@ -592,10 +592,10 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
 class TestFCIL1cNCReader:
     """Test FCI L1c NetCDF reader with nominal data."""
 
-    fh_param_for_filetype = {"hrfi": {"channels": _CHANS_HRFI,
-                                      "filenames": _test_filenames["hrfi"]},
-                             "fdhsi": {"channels": _CHANS_FDHSI,
-                                       "filenames": _test_filenames["fdhsi"]}}
+    fh_param_for_filetype = {"hrfi": {"channels": CHANS_HRFI,
+                                      "filenames": TEST_FILENAMES["hrfi"]},
+                             "fdhsi": {"channels": CHANS_FHDSI,
+                                       "filenames": TEST_FILENAMES["fdhsi"]}}
 
     def _get_type_ter_AF(self,channel):
         """Get the type_ter."""
@@ -632,7 +632,7 @@ class TestFCIL1cNCReader:
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         return res
 
-    @pytest.mark.parametrize("filenames", [_test_filenames[filename] for filename in _test_filenames.keys()])
+    @pytest.mark.parametrize("filenames", [TEST_FILENAMES[filename] for filename in TEST_FILENAMES.keys()])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""
         from satpy.readers import load_reader
@@ -641,8 +641,8 @@ class TestFCIL1cNCReader:
         files = reader.select_files_from_pathnames(filenames)
         assert len(files) == 1
 
-    @pytest.mark.parametrize("filenames", [_test_filenames["fdhsi"][0].replace("BODY", "TRAIL"),
-                                           _test_filenames["hrfi"][0].replace("BODY", "TRAIL")])
+    @pytest.mark.parametrize("filenames", [TEST_FILENAMES["fdhsi"][0].replace("BODY", "TRAIL"),
+                                           TEST_FILENAMES["hrfi"][0].replace("BODY", "TRAIL")])
     def test_file_pattern_for_TRAIL_file(self, reader_configs, filenames):
         """Test file pattern matching for TRAIL files, which should not be picked up."""
         from satpy.readers import load_reader
@@ -880,7 +880,7 @@ class TestFCIL1cNCReaderBadData:
     def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad IR data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
-            reader = _get_reader_with_filehandlers(_test_filenames["fdhsi"], reader_configs)
+            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
             with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="ir_105",
@@ -890,7 +890,7 @@ class TestFCIL1cNCReaderBadData:
     def test_handling_bad_data_vis(self, reader_configs, caplog):
         """Test handling of bad VIS data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
-            reader = _get_reader_with_filehandlers(_test_filenames["fdhsi"], reader_configs)
+            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
             with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="vis_06",
@@ -904,7 +904,7 @@ class TestFCIL1cNCReaderBadDataFromIDPF:
     def test_handling_bad_earthsun_distance(self, reader_configs):
         """Test handling of bad earth-sun distance data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
-            reader = _get_reader_with_filehandlers(_test_filenames["fdhsi"], reader_configs)
+            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
             res = reader.load([make_dataid(name=["vis_06"], calibration="reflectance")], pad_data=False)
 
             numpy.testing.assert_array_almost_equal(res["vis_06"], 100 * 15 * 1 * np.pi / 50)
@@ -912,7 +912,7 @@ class TestFCIL1cNCReaderBadDataFromIDPF:
     def test_bad_xy_coords(self, reader_configs):
         """Test that the geolocation computation is correct."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
-            reader = _get_reader_with_filehandlers(_test_filenames["fdhsi"], reader_configs)
+            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
             res = reader.load(["vis_06"], pad_data=False)
 
             area_def = res["vis_06"].attrs["area"]
