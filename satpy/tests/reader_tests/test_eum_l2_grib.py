@@ -70,6 +70,41 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
         ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
         self.ec_ = ec_
 
+    def common_checks(self, mock_file, dataset_id):
+        """Commmon checks for fci and seviri data."""
+         # Checks that the codes_grib_multi_support_on function has been called
+        self.ec_.codes_grib_multi_support_on.assert_called()
+
+        # Restarts the id generator and clears the call history
+        fake_gid_generator = (i for i in FAKE_GID)
+        self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+        self.ec_.codes_grib_new_from_file.reset_mock()
+        self.ec_.codes_release.reset_mock()
+
+        # Checks the correct execution of the get_dataset function with a valid parameter_number
+        valid_dataset = self.reader.get_dataset(dataset_id, {"parameter_number": 30})
+        # Checks the correct file open call
+        mock_file.assert_called_with("test.grib", "rb")
+        # Checks that the dataset has been created as a DataArray object
+        assert valid_dataset._extract_mock_name() == "xr.DataArray()"
+        # Checks that codes_release has been called after each codes_grib_new_from_file call
+        # (except after the last one which has returned a None)
+        assert self.ec_.codes_grib_new_from_file.call_count == self.ec_.codes_release.call_count + 1
+
+        # Restarts the id generator and clears the call history
+        fake_gid_generator = (i for i in FAKE_GID)
+        self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+        self.ec_.codes_grib_new_from_file.reset_mock()
+        self.ec_.codes_release.reset_mock()
+
+        # Checks the correct execution of the get_dataset function with an invalid parameter_number
+        invalid_dataset = self.reader.get_dataset(dataset_id, {"parameter_number": 50})
+        # Checks that the function returns None
+        assert invalid_dataset is None
+        # Checks that codes_release has been called after each codes_grib_new_from_file call
+        # (except after the last one which has returned a None)
+        assert self.ec_.codes_grib_new_from_file.call_count == self.ec_.codes_release.call_count + 1
+
     @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     @mock.patch("satpy.readers.eum_l2_grib.xr")
     @mock.patch("satpy.readers.eum_l2_grib.da")
@@ -97,38 +132,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
 
                 dataset_id = make_dataid(name="dummmy", resolution=3000)
 
-                # Checks that the codes_grib_multi_support_on function has been called
-                self.ec_.codes_grib_multi_support_on.assert_called()
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with a valid parameter_number
-                valid_dataset = self.reader.get_dataset(dataset_id, {"parameter_number": 30})
-                # Checks the correct file open call
-                mock_file.assert_called_with("test.grib", "rb")
-                # Checks that the dataset has been created as a DataArray object
-                assert valid_dataset._extract_mock_name() == "xr.DataArray()"
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                # (except after the last one which has returned a None)
-                assert self.ec_.codes_grib_new_from_file.call_count == self.ec_.codes_release.call_count + 1
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with an invalid parameter_number
-                invalid_dataset = self.reader.get_dataset(dataset_id, {"parameter_number": 50})
-                # Checks that the function returns None
-                assert invalid_dataset is None
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                # (except after the last one which has returned a None)
-                assert self.ec_.codes_grib_new_from_file.call_count == self.ec_.codes_release.call_count + 1
+                self.common_checks(mock_file, dataset_id)
 
                 # Checks the basic data reading
                 assert REPEAT_CYCLE_DURATION == 15
@@ -224,38 +228,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
 
                 dataset_id = make_dataid(name="dummmy", resolution=2000)
 
-                # Checks that the codes_grib_multi_support_on function has been called
-                self.ec_.codes_grib_multi_support_on.assert_called()
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with a valid parameter_number
-                valid_dataset = self.reader.get_dataset(dataset_id, {"parameter_number": 30})
-                # Checks the correct file open call
-                mock_file.assert_called_with("test.grib", "rb")
-                # Checks that the dataset has been created as a DataArray object
-                assert valid_dataset._extract_mock_name() == "xr.DataArray()"
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                # (except after the last one which has returned a None)
-                assert self.ec_.codes_grib_new_from_file.call_count == self.ec_.codes_release.call_count + 1
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with an invalid parameter_number
-                invalid_dataset = self.reader.get_dataset(dataset_id, {"parameter_number": 50})
-                # Checks that the function returns None
-                assert invalid_dataset is None
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                # (except after the last one which has returned a None)
-                assert self.ec_.codes_grib_new_from_file.call_count == self.ec_.codes_release.call_count + 1
+                self.common_checks(mock_file, dataset_id)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 attributes = self.reader._get_attributes()
