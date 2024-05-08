@@ -23,7 +23,6 @@ References:
 """
 
 import logging
-from datetime import timedelta
 
 import dask.array as da
 import numpy as np
@@ -33,7 +32,7 @@ from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.fci_base import calculate_area_extent as fci_calculate_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import PLATFORM_DICT, REPEAT_CYCLE_DURATION
+from satpy.readers.seviri_base import PLATFORM_DICT, REPEAT_CYCLE_DURATION, REPEAT_CYCLE_DURATION_RSS
 from satpy.readers.seviri_base import calculate_area_extent as seviri_calculate_area_extent
 from satpy.utils import get_legacy_chunk_size
 
@@ -75,10 +74,8 @@ class EUML2GribFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Return the sensing end time."""
-        if self.sensor == "seviri":
-            return self.start_time + timedelta(minutes=REPEAT_CYCLE_DURATION)
-        elif self.sensor == "fci":
-            return self.filename_info["end_time"]
+        delta = REPEAT_CYCLE_DURATION_RSS if self._ssp_lon == 9.5 else REPEAT_CYCLE_DURATION
+        return self.start_time + delta
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
@@ -249,10 +246,9 @@ class EUML2GribFileHandler(BaseFileHandler):
     def _scale_earth_axis(data):
         """Scale Earth axis data to make sure the value matched the expected unit [m].
 
-        The earthMinorAxis value stored in the aerosol over sea product is scaled incorrectly by a factor of 1e8. This
-        method provides a flexible temporarily workaraound by making sure that all earth axis values are scaled such
-        that they are on the order of millions of meters as expected by the reader. As soon as the scaling issue has
-        been resolved by EUMETSAT this workaround can be removed.
+        The earthMinorAxis value stored in the MPEF aerosol over sea product prior to December 12, 2022 has the wrong
+        unit and this method provides a flexible work-around by making sure that all earth axis values are scaled such
+        that they are on the order of millions of meters as expected by the reader.
 
         """
         scale_factor = 10 ** np.ceil(np.log10(1e6/data))
