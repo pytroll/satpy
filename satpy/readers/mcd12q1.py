@@ -76,7 +76,7 @@ class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
         yield from self._dynamic_variables_from_file(handled_var_names)
 
     def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
-        res = 500 # TODO
+        res = self._get_res()
         for var_name in self.sd.datasets().keys():
             if var_name in handled_var_names:
                 # skip variables that YAML had configured
@@ -93,16 +93,12 @@ class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
         if "MCD12Q1" not in gridname:
             raise ValueError("Only MCD12Q1 grids are supported")
 
-        # Get the grid resolution from the grid name
-        pos = gridname.rfind("_") + 1
-        pos2 = gridname.rfind("Deg")
-
-        # Initialise number of rows and columns
-        # Some products don't have resolution listed.
-        if pos < 0 or pos2 < 0:
-            return 360. / self.metadata["GridStructure"]["GRID_1"]["XDim"]
+        resolution_string = self.metadata["ARCHIVEDMETADATA"]["NADIRDATARESOLUTION"]["VALUE"]
+        if resolution_string[-1] == 'm':
+            return int(resolution_string.removesuffix('m'))
         else:
-            return float(gridname[pos:pos2])
+            raise ValueError("Cannot parse resolution of MCD12Q1 grid")
+
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
@@ -137,9 +133,9 @@ class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
         ncols = self.metadata["GridStructure"]["GRID_1"]["XDim"]
 
         # Construct the area definition
-        area = geometry.AreaDefinition("SIN MODIS Tiled",
-                                       "A gridded L3 MODIS area",
-                                       "SIN MODIS",
+        area = geometry.AreaDefinition("sinusoidal_modis",
+                                       "Tiled sinusoidal L3 MODIS area",
+                                       "sinusoidal",
                                        proj_param,
                                        ncols,
                                        nrows,
