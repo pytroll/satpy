@@ -117,7 +117,7 @@ jobs:
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Coveralls Parallel
-        uses: djhoese/coveralls-python-action@git-safe-dir
+        uses: AndreaMiras/coveralls-python-action@develop
         with:
           flag-name: run-${{ matrix.test_number }}
           parallel: true
@@ -143,6 +143,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: djhoese/coveralls-python-action@git-safe-dir
+        uses: AndreMiras/coveralls-python-action@develop
         with:
           parallel-finished: true
