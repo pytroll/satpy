@@ -117,7 +117,7 @@ jobs:
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Coveralls Parallel
-        uses: AndreaMiras/coveralls-python-action@develop
+        uses: AndreMiras/coveralls-python-action@develop
         with:
           flag-name: run-${{ matrix.test_number }}
           parallel: true
