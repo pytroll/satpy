@@ -131,10 +131,9 @@ class MERSIL1B(HDF5FileHandler):
         file_key = ds_info.get("file_key", dataset_id["name"])
         band_index = ds_info.get("band_index")
         data = self[file_key]
-        if band_index is not None:
-            data = data[band_index]
-        if data.ndim >= 2:
-            data = data.rename({data.dims[-2]: "y", data.dims[-1]: "x"})
+        data = data[band_index] if band_index is not None else data
+        data = data.rename({data.dims[-2]: "y", data.dims[-1]: "x"}) if data.ndim >= 2 else data
+
         attrs = data.attrs.copy()  # avoid contaminating other band loading
         attrs.update(ds_info)
         if "rows_per_scan" in self.filetype_info:
@@ -267,12 +266,10 @@ class MERSIL1B(HDF5FileHandler):
         """
         # pass the dask array
         bt_data = rad2temp(wave_number, data.data * 1e-5)  # brightness temperature
-        if isinstance(bt_data, np.ndarray):
-            # old versions of pyspectral produce numpy arrays
-            data.data = da.from_array(bt_data, chunks=data.data.chunks)
-        else:
-            # new versions of pyspectral can do dask arrays
-            data.data = bt_data
+
+        # old versions of pyspectral produce numpy arrays
+        # new versions of pyspectral can do dask arrays
+        data.data = da.from_array(bt_data, chunks=data.data.chunks) if isinstance(bt_data, np.ndarray) else bt_data
 
         # Some BT bands seem to have 0 in the first 10 columns
         # and it is an invalid measurement, so let's mask
