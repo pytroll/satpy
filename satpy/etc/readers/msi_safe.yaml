@@ -1,8 +1,6 @@
 reader:
   name: msi_safe
-  short_name: MSI SAFE L1C
-  long_name: Sentinel-2 A and B MSI L1C data in SAFE format
-  description: SAFE Reader for MSI L1C data (Sentinel-2)
+
   status: Nominal
   supports_fsspec: false
   sensors: [msi]
@@ -10,16 +8,7 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-  l1c_safe_granule:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
-        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
-        requires: [l1c_safe_metadata, l1c_safe_tile_metadata]
-  l1c_safe_tile_metadata:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSITileMDXML
-        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
-  l1c_safe_metadata:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
-        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL1C.xml']
+
 
 datasets:
   B01:
@@ -37,7 +26,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B02:
     name: B02
@@ -54,7 +43,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B03:
     name: B03
@@ -71,7 +60,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B04:
     name: B04
@@ -88,7 +77,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B05:
     name: B05
@@ -105,7 +94,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B06:
     name: B06
@@ -122,7 +111,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B07:
     name: B07
@@ -139,7 +128,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B08:
     name: B08
@@ -156,7 +145,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B8A:
     name: B8A
@@ -173,7 +162,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B09:
     name: B09
@@ -190,7 +179,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B10:
     name: B10
@@ -207,7 +196,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B11:
     name: B11
@@ -224,7 +213,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   B12:
     name: B12
@@ -241,7 +230,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: l1c_safe_granule
+
 
   solar_zenith_angle:
     name: solar_zenith_angle

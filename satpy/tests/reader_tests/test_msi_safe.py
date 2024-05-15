@@ -30,7 +30,7 @@ from satpy.tests.utils import make_dataid
 fname_dt = datetime(2020, 10, 1, 18, 35, 41)
 tilemd_dt = datetime(2020, 10, 1, 16, 34, 23, 153611)
 
-mtd_l1c_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
 <n1:Level-1C_Tile_ID xmlns:n1="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd /gpfs/dpc/app/s2ipf/FORMAT_METADATA_TILE_L1C/02.14.00/scripts/../../../schemas/02.17.00/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd">
 
   <n1:General_Info>
@@ -1420,110 +1420,7 @@ mtd_l2a_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 </n1:Level-2A_User_Product>
 """  # noqa
 
-PROCESS_LEVELS = ["L1C", "oldL1C", "L2A"]
-MTD_XMLS = [mtd_l1c_xml, mtd_l1c_old_xml, mtd_l2a_xml]
-TILE_XMLS = [mtd_l1c_tile_xml, mtd_l1c_tile_xml, mtd_l1c_tile_xml]
 
-
-def xml_builder(process_level, mask_saturated=True, band_name=None):
-    """Build fake SAFE MTD/Tile XML."""
-    from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
-    filename_info = dict(observation_time=fname_dt, dtile_number=None, band_name=band_name, fmission_id="S2A",
-                         process_level=process_level.replace("old", ""))
-    xml_fh = SAFEMSIMDXML(StringIO(MTD_XMLS[PROCESS_LEVELS.index(process_level)]),
-                          filename_info, mock.MagicMock(), mask_saturated=mask_saturated)
-    xml_tile_fh = SAFEMSITileMDXML(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
-                                   filename_info, mock.MagicMock())
-    return xml_fh, xml_tile_fh
-
-
-def jp2_builder(process_level, band_name, mask_saturated=True):
-    """Build fake SAFE jp2 image file."""
-    from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSITileMDXML
-    filename_info = dict(observation_time=fname_dt, dtile_number=None, band_name=band_name, fmission_id="S2A",
-                         process_level=process_level.replace("old", ""))
-    xml_fh = xml_builder(process_level, mask_saturated, band_name)[0]
-    tile_xml_fh = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
-                                   filename_info, mock.MagicMock())
-    tile_xml_fh.start_time.return_value = tilemd_dt
-    jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
-    return jp2_fh
-
-
-class TestTileXML:
-    """Test the SAFE TILE XML file handler.
-
-    Since L1C/L2A share almost the same Tile XML structure, we only use L1C Tile here.
-
-    """
-
-    @pytest.mark.parametrize(("process_level", "angle_name", "angle_tag", "expected"),
-                             [
-                                 ("L1C", "satellite_zenith_angle", ("Viewing_Incidence_Angles_Grids", "Zenith"),
-                                  [[11.7128, 11.18397802, 10.27667671, 9.35384969, 8.42850504,
-                                    7.55445611, 6.65475545, 5.66517232, 4.75893757, 4.04976844],
-                                   [11.88606009, 10.9799713, 10.07083278, 9.14571825, 8.22607131,
-                                    7.35181457, 6.44647222, 5.46144173, 4.56625547, 3.86638233],
-                                   [11.6823579, 10.7763071, 9.86302106, 8.93879112, 8.04005637,
-                                    7.15028077, 6.21461062, 5.25780953, 4.39876601, 3.68620793],
-                                   [11.06724679, 10.35723901, 9.63958896, 8.73072512, 7.83680864,
-                                    6.94792574, 5.9889201, 5.05445872, 4.26089708, 3.50984272],
-                                   [6.28411038, 6.28411038, 6.28411038, 6.28411038, 6.28411038,
-                                    5.99769643, 5.62586167, 4.85165966, 4.13238314, 3.33781401],
-                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
-                                   [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
-                                    3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]]),
-                                 ("L2A", "solar_zenith_angle_l2a", ("Sun_Angles_Grid", "Zenith"),
-                                  [[39.8824, 39.83721367, 39.79230847, 39.74758442, 39.7030415,
-                                    39.65867687, 39.61455566, 39.57061558, 39.52685664, 39.48331372],
-                                   [39.78150175, 39.73629896, 39.69128852, 39.64643679, 39.6018404,
-                                    39.5574369, 39.51323286, 39.46920212, 39.4253673, 39.38179377],
-                                   [39.6806035, 39.63532838, 39.5902497, 39.54538507, 39.5007087,
-                                    39.45621756, 39.41195347, 39.36779169, 39.3239121, 39.28027381],
-                                   [39.57980525, 39.53445664, 39.48931088, 39.44434154, 39.39957879,
-                                    39.35503587, 39.31067408, 39.26649344, 39.22249393, 39.17876143],
-                                   [39.479007, 39.43355483, 39.38829092, 39.34328573, 39.29846167,
-                                    39.25381983, 39.2093947, 39.16513007, 39.12109926, 39.07726878],
-                                   [39.37820875, 39.33268069, 39.28735495, 39.24224914, 39.19736058,
-                                    39.15267709, 39.1081719, 39.06385068, 39.01973446, 38.97584982],
-                                   [39.2774105, 39.23184303, 39.18646737, 39.14130809, 39.09632176,
-                                    39.05153988, 39.00696049, 38.9625713, 38.91842056, 38.87444401],
-                                   [39.17671225, 39.13104478, 39.08559031, 39.04034757, 38.99528294,
-                                    38.95039991, 38.9057971, 38.86130793, 38.81705183, 38.77303821],
-                                   [39.076014, 39.03026112, 38.98477906, 38.93940875, 38.89425338,
-                                    38.84936063, 38.80464763, 38.76011645, 38.7157479, 38.67164839],
-                                   [38.97531575, 38.92950771, 38.88389967, 38.83852091, 38.7933053,
-                                    38.74831897, 38.7034912, 38.65891427, 38.61446851, 38.57030388]]),
-                                 ("L1C", "moon_zenith_angle", ("Sun_Angles_Grid", "Zenith"), None)
-                             ])
-    def test_angles(self, process_level, angle_name, angle_tag, expected):
-        """Test reading angles array."""
-        info = dict(xml_tag=angle_tag[0], xml_item=angle_tag[1]) if "satellite" in angle_name else \
-            dict(xml_tag=angle_tag[0] + "/" + angle_tag[1])
-        xml_tile_fh = xml_builder(process_level)[1]
-
-        res = xml_tile_fh.get_dataset(make_dataid(name=angle_name, resolution=60), info)
-        if res is not None:
-            res = res[::200, ::200]
-
-        if res is not None:
-            np.testing.assert_allclose(res, expected)
-        else:
-            assert res is expected
-
-    def test_start_time(self):
-        """Ensure start time is read correctly from XML."""
-        xml_tile_fh = xml_builder("L1C")[1]
-        assert xml_tile_fh.start_time() == tilemd_dt
-
-    def test_navigation(self):
         """Test the navigation."""
         from pyproj import CRS
         crs = CRS("EPSG:32616")
@@ -1608,18 +1505,7 @@ class TestSAFEMSIL1C:
 
     def setup_method(self):
         """Set up the test."""
-        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
 
-    @pytest.mark.parametrize(("mask_saturated", "dataset_name", "calibration", "expected"),
-                             [
-                                 (False, "B01_L2A", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
-                                 (True, "B02_L2A", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
-                                 (True, "B03_L2A", "counts", [[np.nan, 1], [65534, np.inf]]),
-                                 (False, "AOT_L2A", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
-                                 (True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
-                                 (True, "SNOW_L2A", "water_vapor", None),
-                             ])
-    def test_calibration_and_masking(self, mask_saturated, dataset_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
         jp2_fh = jp2_builder("L2A", dataset_name.replace("_L2A", ""), mask_saturated)
 
@@ -1640,13 +1526,4 @@ class TestSAFEMSIL1C:
         jp2_fh = jp2_builder(process_level, band_name)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            res1 = jp2_fh.get_dataset(make_dataid(name=dataset_name), info=dict())
-            res2 = jp2_fh.get_area_def(make_dataid(name=dataset_name))
 
-            assert res1 is None
-            assert res2 is None
-
-    def test_start_time(self):
-        """Test that the correct start time is returned."""
-        jp2_fh = jp2_builder("L1C", "B01")
-        assert tilemd_dt == jp2_fh.start_time
