@@ -28,7 +28,7 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
 
-
+L1C/L2A format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
 
@@ -72,9 +72,6 @@ class SAFEMSIL1C(BaseFileHandler):
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
-        self._start_time = self._tile_mda.start_time()
-        self._end_time = filename_info["observation_time"]
-
         self._start_time = self._tile_mda.start_time()
         self._end_time = filename_info["observation_time"]
 
