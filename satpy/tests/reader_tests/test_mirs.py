@@ -31,6 +31,7 @@ from satpy._config import config_search_paths
 from satpy.dataset import DataID
 from satpy.readers import load_reader
 from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.tests.utils import RANDOM_GEN
 
 METOP_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
 NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s201702061601000_e201702061607000_c202012201658410.nc"
@@ -77,7 +78,7 @@ END_TIME = datetime(2017, 2, 6, 16, 7, 0)
 
 def fake_coeff_from_fn(fn):
     """Create Fake Coefficients."""
-    ameans = np.random.uniform(261, 267, N_CHANNEL)
+    ameans = RANDOM_GEN.uniform(261, 267, N_CHANNEL)
     locations = [
         [1, 2],
         [1, 2],
@@ -117,7 +118,7 @@ def fake_coeff_from_fn(fn):
             str_coeff = "  ".join([str(x) for x in random_coeff])
             random_means = np.zeros(all_nchx[nx])
             str_means = " ".join([str(x) for x in random_means])
-            error_val = np.random.uniform(0, 4)
+            error_val = RANDOM_GEN.uniform(0, 4)
             coeffs_line = " {:>2} {:>2}  {} {}   {}\n".format(idx, fov,
                                                               str_coeff,
                                                               str_means,
@@ -138,7 +139,7 @@ def _get_datasets_with_attributes(**kwargs):
                              "_FillValue": -999,
                              "valid_range": [0, 50000]},
                       dims=("Scanline", "Field_of_view", "Channel"))
-    rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV), dtype=np.int16),
+    rr = xr.DataArray(RANDOM_GEN.integers(100, 500, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                       attrs={"long_name": "Rain Rate (mm/hr)",
                              "units": "mm/hr",
                              "coordinates": "Longitude Latitude",
@@ -146,7 +147,7 @@ def _get_datasets_with_attributes(**kwargs):
                              "_FillValue": -999,
                              "valid_range": [0, 1000]},
                       dims=("Scanline", "Field_of_view"))
-    sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV), dtype=np.int16),
+    sfc_type = xr.DataArray(RANDOM_GEN.integers(0, 4, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                             attrs={"description": "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow",
                                    "units": "1",
@@ -187,12 +188,12 @@ def _get_datasets_with_less_attributes():
                       attrs={"long_name": "Channel Temperature (K)",
                              "scale_factor": 0.01},
                       dims=("Scanline", "Field_of_view", "Channel"))
-    rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV), dtype=np.int16),
+    rr = xr.DataArray(RANDOM_GEN.integers(100, 500, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                       attrs={"long_name": "Rain Rate (mm/hr)",
                              "scale_factor": 0.1},
                       dims=("Scanline", "Field_of_view"))
 
-    sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV), dtype=np.int16),
+    sfc_type = xr.DataArray(RANDOM_GEN.integers(0, 4, size=(N_SCANLINE, N_FOV), dtype=np.int16),
                             attrs={"description": "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow"},
                             dims=("Scanline", "Field_of_view"))

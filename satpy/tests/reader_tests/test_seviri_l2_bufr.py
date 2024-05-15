@@ -27,7 +27,7 @@ import numpy as np
 import pytest
 from pyresample import geometry
 
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 FILETYPE_INFO = {"file_type": "seviri_l2_bufr_asr"}
 
@@ -109,9 +109,9 @@ TEST_FILES = [
 ]
 
 # Test data
-DATA = np.random.uniform(low=250, high=350, size=(128,))
-LAT = np.random.uniform(low=-80, high=80, size=(128,))
-LON = np.random.uniform(low=-38.5, high=121.5, size=(128,))
+DATA = RANDOM_GEN.uniform(low=250, high=350, size=(128,))
+LAT = RANDOM_GEN.uniform(low=-80, high=80, size=(128,))
+LON = RANDOM_GEN.uniform(low=-38.5, high=121.5, size=(128,))
 
 
 class SeviriL2BufrData:
