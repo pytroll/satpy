@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 from unittest import mock
 
@@ -61,8 +62,8 @@ attrs_refl_exp.update(
     {"sun_earth_distance_correction_applied": True,
      "sun_earth_distance_correction_factor": 1.}
 )
-acq_time_vis_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
-                    np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+acq_time_vis_exp = [np.datetime64("NaT").astype("datetime64[ns]"),
+                    np.datetime64("NaT").astype("datetime64[ns]"),
                     np.datetime64("1970-01-01 02:30").astype("datetime64[ns]"),
                     np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 vis_counts_exp = xr.DataArray(
@@ -124,7 +125,7 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
-acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+acq_time_ir_wv_exp = [np.datetime64("NaT").astype("datetime64[ns]"),
                       np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
     np.array(
@@ -272,8 +273,13 @@ def fixture_fake_dataset():
             dtype=np.uint8
         )
     )
-    time = np.arange(4) * 60 * 60 * 1e9
-    time = time.astype("datetime64[ns]").reshape(2, 2)
+    time = np.arange(4) * 60 * 60
+    timeFillValue=4294967295
+    timeAddOffset=0
+    time[0] = timeFillValue
+    time[1] = timeFillValue
+    time = time.reshape(2,2)
+
     ds = xr.Dataset(
         data_vars={
             "count_vis": (("y", "x"), count_vis),
@@ -317,6 +323,10 @@ def fixture_fake_dataset():
     )
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
+
+    ds["time_ir_wv"].attrs["_FillValue"] = timeFillValue
+    ds["time_ir_wv"].attrs["add_offset"] = timeAddOffset
+
     return ds
 
 

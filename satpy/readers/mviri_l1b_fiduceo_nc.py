@@ -153,10 +153,12 @@ References:
 """
 
 import abc
+import datetime
 import functools
 import warnings
 
 import dask.array as da
+import numpy
 import numpy as np
 import xarray as xr
 
@@ -513,11 +515,20 @@ class DatasetWrapper:
         """Get time coordinate.
 
         Variable is sometimes named "time" and sometimes "time_ir_wv".
+        FillValues in time are set to NaT.
         """
+
         try:
-            return self["time_ir_wv"]
+            time = self["time_ir_wv"]
         except KeyError:
-            return self["time"]
+            time = self["time"]
+
+        timeOffset = time.attrs["add_offset"]
+        condition = time == time.attrs["_FillValue"]
+
+        time = xr.where(condition, numpy.nan, time + timeOffset)
+        time = (time*1e9).astype("datetime64[ns]")
+        return time
 
     def get_xy_coords(self, resolution):
         """Get x and y coordinates for the given resolution."""
@@ -555,11 +566,14 @@ class FiduceoMviriBase(BaseFileHandler):
         self.mask_bad_quality = mask_bad_quality
         nc_raw = xr.open_dataset(
             filename,
-            chunks={"x": CHUNK_SIZE,
-                    "y": CHUNK_SIZE,
-                    "x_ir_wv": CHUNK_SIZE,
-                    "y_ir_wv": CHUNK_SIZE}
+            # chunks={"x": CHUNK_SIZE,
+            #         "y": CHUNK_SIZE,
+            #         "x_ir_wv": CHUNK_SIZE,
+            #         "y_ir_wv": CHUNK_SIZE},
+            decode_times=False,
+            decode_cf=False
         )
+
         self.nc = DatasetWrapper(nc_raw)
 
         # Projection longitude is not provided in the file, read it from the
