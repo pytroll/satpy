@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import datetime
 import os
 from unittest import mock
 
