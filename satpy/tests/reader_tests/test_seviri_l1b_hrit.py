@@ -31,7 +31,7 @@ import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
-from satpy.tests.utils import assert_attrs_equal, make_dataid
+from satpy.tests.utils import RANDOM_GEN, assert_attrs_equal, make_dataid
 
 
 class TestHRITMSGBase(unittest.TestCase):
@@ -64,9 +64,9 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     def test_read_hrv_band(self, memmap):
         """Test reading the hrv band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
-        memmap.return_value = np.random.randint(0, 256,
-                                                size=int((464 * 5568 * nbits) / 8),
-                                                dtype=np.uint8)
+        memmap.return_value = RANDOM_GEN.integers(0, 256,
+                                                  size=int((464 * 5568 * nbits) / 8),
+                                                  dtype=np.uint8)
         res = self.reader.read_band("HRV", None)
         assert res.shape == (464, 5568)
 
@@ -181,9 +181,9 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     def test_read_band(self, memmap):
         """Test reading a band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
-        memmap.return_value = np.random.randint(0, 256,
-                                                size=int((464 * 3712 * nbits) / 8),
-                                                dtype=np.uint8)
+        memmap.return_value = RANDOM_GEN.integers(0, 256,
+                                                  size=int((464 * 3712 * nbits) / 8),
+                                                  dtype=np.uint8)
         res = self.reader.read_band("VIS006", None)
         assert res.shape == (464, 3712)
 

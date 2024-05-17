@@ -30,7 +30,7 @@ import xarray as xr
 from pyresample import AreaDefinition
 
 import satpy
-from satpy.tests.utils import CustomScheduler
+from satpy.tests.utils import RANDOM_GEN, CustomScheduler
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -701,10 +701,10 @@ class TestSandwichCompositor:
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
-        rgb_arr = da.from_array(np.random.random(input_shape), chunks=2)
+        rgb_arr = da.from_array(RANDOM_GEN.random(input_shape), chunks=2)
         rgb = xr.DataArray(rgb_arr, dims=["bands", "y", "x"],
                            coords={"bands": bands})
-        lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
+        lum_arr = da.from_array(100 * RANDOM_GEN.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=["y", "x"])
 
         # Make enhance2dataset return unmodified dataset

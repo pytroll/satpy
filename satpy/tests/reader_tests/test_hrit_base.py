@@ -30,6 +30,7 @@ import pytest
 
 from satpy.readers import FSFile
 from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
+from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -145,9 +146,9 @@ def create_stub_hrit(filename, open_fun=open, meta=mda):
     lines = meta["number_of_lines"]
     cols = meta["number_of_columns"]
     total_bits = lines * cols * nbits
-    arr = np.random.randint(0, 256,
-                            size=int(total_bits / 8),
-                            dtype=np.uint8)
+    arr = RANDOM_GEN.integers(0, 256,
+                              size=int(total_bits / 8),
+                              dtype=np.uint8)
     with open_fun(filename, mode="wb") as fd:
         fd.write(b" " * meta["total_header_length"])
         bytes_data = arr.tobytes()
