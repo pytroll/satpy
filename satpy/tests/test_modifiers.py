@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.tests.utils import RANDOM_GEN
 

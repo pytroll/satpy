@@ -34,7 +34,7 @@ import pytest
 import xarray as xr
 from pyresample import SwathDefinition
 from pytest import TempPathFactory  # noqa: PT013
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.tests.utils import RANDOM_GEN
 
