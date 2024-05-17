@@ -153,7 +153,6 @@ References:
 """
 
 import abc
-import datetime
 import functools
 import warnings
 
@@ -517,7 +516,6 @@ class DatasetWrapper:
         Variable is sometimes named "time" and sometimes "time_ir_wv".
         FillValues in time are set to NaT.
         """
-
         try:
             time = self["time_ir_wv"]
         except KeyError:
