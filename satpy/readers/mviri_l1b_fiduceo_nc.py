@@ -524,7 +524,7 @@ class DatasetWrapper:
         condition = time == time.attrs["_FillValue"]
 
         time = xr.where(condition, np.nan, time + time_offset)
-        time = (time*1e9).astype("datetime64[ns]")
+        time = time.astype("datetime64[s]").astype("datetime64[ns]")
         return time
 
     def get_xy_coords(self, resolution):
