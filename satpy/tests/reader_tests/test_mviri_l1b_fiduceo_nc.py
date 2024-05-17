@@ -273,11 +273,11 @@ def fixture_fake_dataset():
         )
     )
     time = np.arange(4) * 60 * 60
-    timeFillValue=4294967295
-    timeAddOffset=0
-    time[0] = timeFillValue
-    time[1] = timeFillValue
-    time = time.reshape(2,2)
+    time_fill_value = 4294967295
+    time_add_offset = 0
+    time[0] = time_fill_value
+    time[1] = time_fill_value
+    time = time.reshape(2, 2)
 
     ds = xr.Dataset(
         data_vars={
@@ -323,8 +323,8 @@ def fixture_fake_dataset():
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
 
-    ds["time_ir_wv"].attrs["_FillValue"] = timeFillValue
-    ds["time_ir_wv"].attrs["add_offset"] = timeAddOffset
+    ds["time_ir_wv"].attrs["_FillValue"] = time_fill_value
+    ds["time_ir_wv"].attrs["add_offset"] = time_add_offset
 
     return ds
 

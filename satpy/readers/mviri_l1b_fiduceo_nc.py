@@ -157,7 +157,6 @@ import functools
 import warnings
 
 import dask.array as da
-import numpy
 import numpy as np
 import xarray as xr
 
@@ -521,10 +520,10 @@ class DatasetWrapper:
         except KeyError:
             time = self["time"]
 
-        timeOffset = time.attrs["add_offset"]
+        time_offset = time.attrs["add_offset"]
         condition = time == time.attrs["_FillValue"]
 
-        time = xr.where(condition, numpy.nan, time + timeOffset)
+        time = xr.where(condition, np.nan, time + time_offset)
         time = (time*1e9).astype("datetime64[ns]")
         return time
 
