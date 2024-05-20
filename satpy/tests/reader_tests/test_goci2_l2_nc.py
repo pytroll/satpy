@@ -21,7 +21,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 import xarray as xr
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import Scene
 from satpy.tests.utils import RANDOM_GEN
