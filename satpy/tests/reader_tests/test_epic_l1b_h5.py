@@ -25,14 +25,15 @@ import numpy as np
 import pytest
 
 from satpy.readers.epic_l1b_h5 import CALIB_COEFS
+from satpy.tests.utils import RANDOM_GEN
 
-b317_data = np.random.uniform(low=0, high=5200, size=(100, 100))
-b688_data = np.random.uniform(low=0, high=5200, size=(100, 100))
-sza_data = np.random.uniform(low=0, high=100, size=(100, 100))
-vaa_data = np.random.uniform(low=-180, high=180, size=(100, 100))
-lon_data = np.random.uniform(low=-90, high=90, size=(100, 100))
-lat_data = np.random.uniform(low=-180, high=180, size=(100, 100))
-mas_data = np.random.choice([0, 1], size=(100, 100))
+b317_data = RANDOM_GEN.uniform(low=0, high=5200, size=(100, 100))
+b688_data = RANDOM_GEN.uniform(low=0, high=5200, size=(100, 100))
+sza_data = RANDOM_GEN.uniform(low=0, high=100, size=(100, 100))
+vaa_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
+lon_data = RANDOM_GEN.uniform(low=-90, high=90, size=(100, 100))
+lat_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
+mas_data = RANDOM_GEN.choice([0, 1], size=(100, 100))
 
 
 @pytest.fixture()

@@ -197,7 +197,10 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         n_subs = longitude.n_subs
         lons = da.zeros((n_scan.size, n_samples, horns.size))
         lats = da.zeros((n_scan.size, n_samples, horns.size))
-        n_subs = np.linspace(0, n_samples - 1, n_subs.size).astype(int)
+        n_subs = np.append(
+            np.arange(0, n_samples, np.ceil(n_samples / n_subs.size)),
+            n_samples - 1
+        ).astype(int)
         for horn in horns.values:
             satint = GeoInterpolator(
                 (longitude.values[:, :, horn], latitude.values[:, :, horn]),

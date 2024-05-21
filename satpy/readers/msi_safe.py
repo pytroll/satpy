@@ -28,13 +28,14 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
 
-L1B format description for the files read here:
+L1C format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
 
 """
 
 import logging
+from datetime import datetime
 
 import dask.array as da
 import defusedxml.ElementTree as ET
@@ -63,12 +64,13 @@ class SAFEMSIL1C(BaseFileHandler):
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
         del mask_saturated
-        self._start_time = filename_info["observation_time"]
-        self._end_time = filename_info["observation_time"]
         self._channel = filename_info["band_name"]
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
+
+        self._start_time = self._tile_mda.start_time()
+        self._end_time = filename_info["observation_time"]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -89,6 +91,8 @@ class SAFEMSIL1C(BaseFileHandler):
             return self._mda.calibrate_to_reflectances(proj, self._channel)
         if key["calibration"] == "radiance":
             return self._mda.calibrate_to_radiances(proj, self._channel)
+        if key["calibration"] == "counts":
+            return self._mda._sanitize_data(proj)
 
     @property
     def start_time(self):
@@ -266,6 +270,11 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         rows = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NROWS').text)
         cols = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NCOLS').text)
         return cols, rows
+
+    def start_time(self):
+        """Get the observation time from the tile metadata."""
+        timestr = self.root.find(".//SENSING_TIME").text
+        return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):

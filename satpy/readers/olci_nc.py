@@ -70,17 +70,27 @@ class BitFlags:
     def __init__(self, value, flag_list=None):
         """Init the flags."""
         self._value = value
-        flag_list = flag_list or ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
-                                  "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT",
-                                  "HISOLZEN", "SATURATED", "MEGLINT", "HIGHGLINT",
-                                  "WHITECAPS", "ADJAC", "WV_FAIL", "PAR_FAIL",
-                                  "AC_FAIL", "OC4ME_FAIL", "OCNN_FAIL",
-                                  "Extra_1",
-                                  "KDM_FAIL",
-                                  "Extra_2",
-                                  "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON", "WHITE_SCATT",
-                                  "LOWRW", "HIGHRW"]
-        self.meaning = {f: i for i, f in enumerate(flag_list)}
+
+        if flag_list is None:
+            try:
+                meanings = value.attrs["flag_meanings"].split()
+                masks = value.attrs["flag_masks"]
+            except (AttributeError, KeyError):
+                meanings = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
+                            "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT",
+                            "HISOLZEN", "SATURATED", "MEGLINT", "HIGHGLINT",
+                            "WHITECAPS", "ADJAC", "WV_FAIL", "PAR_FAIL",
+                            "AC_FAIL", "OC4ME_FAIL", "OCNN_FAIL",
+                            "Extra_1",
+                            "KDM_FAIL",
+                            "Extra_2",
+                            "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON", "WHITE_SCATT",
+                            "LOWRW", "HIGHRW"]
+                self.meaning = {meaning: mask for mask, meaning in enumerate(meanings)}
+            else:
+                self.meaning = {meaning: int(np.log2(mask)) for meaning, mask in zip(meanings, masks)}
+        else:
+            self.meaning = {meaning: mask for mask, meaning in enumerate(flag_list)}
 
     def __getitem__(self, item):
         """Get the item."""

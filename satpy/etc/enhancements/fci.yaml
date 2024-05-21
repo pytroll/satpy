@@ -1,0 +1,62 @@
+enhancements:
+  fci_day_night_blend:
+    standard_name: fci_day_night_blend
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,0,0 ]
+          max_stretch: [ 1,1,1 ]
+
+  night_ir105:
+    standard_name: night_ir105
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - { colors: greys, min_value: 190, max_value: 295 }
+
+  fire_temperature_fci:
+    standard_name: fire_temperature_fci
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273.15, 0.0, 0.0]
+          max_stretch: [333.15, 100.0, 75.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [0.4, 1, 1]
+
+  fire_temperature_fci_38refl:
+    standard_name: fire_temperature_fci_38refl
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0.0, 0.0]
+          max_stretch: [50, 100.0, 75.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1, 1, 1]
+
+  fire_temperature_fci_rad:
+    standard_name: fire_temperature_fci_rad
+    operations:
+    # note: the stretch parameters have been converted to wavelength units
+    # compared to e.g. the VIIRS recipe
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [5.1, 17.7, 22.0]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
