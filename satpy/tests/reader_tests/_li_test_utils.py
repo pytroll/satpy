@@ -521,9 +521,13 @@ def accumulation_dimensions(nacc, nobs):
 
 def fci_grid_definition(axis, nobs):
     """FCI grid definition on X or Y axis."""
+    scale_factor = 5.58871526031607e-5
+    add_offset = -0.15561777642350116
     if axis == "X":
         long_name = "azimuth angle encoded as column"
         standard_name = "projection_x_coordinate"
+        scale_factor *= -1
+        add_offset *= -1
     else:
         long_name = "zenith angle encoded as row"
         standard_name = "projection_y_coordinate"
@@ -531,10 +535,10 @@ def fci_grid_definition(axis, nobs):
     return {
         "format": "i2",
         "shape": ("pixels",),
-        "add_offset": -0.155619516,
+        "add_offset": add_offset,
         "axis": axis,
         "long_name": long_name,
-        "scale_factor": 5.58878e-5,
+        "scale_factor": scale_factor,
         "standard_name": standard_name,
         "units": "radian",
         "valid_range": np.asarray([1, 5568]),
@@ -548,12 +552,12 @@ def mtg_geos_projection():
         "format": "i4",
         "shape": ("accumulations",),
         "grid_mapping_name": "geostationary",
-        "inverse_flattening": 298.2572221,
+        "inverse_flattening": 298.257223563,
         "latitude_of_projection_origin": 0,
         "longitude_of_projection_origin": 0,
-        "perspective_point_height": 42164000,
-        "semi_major_axis": 6378169,
-        "semi_minor_axis": 6356583.8,
+        "perspective_point_height": 3.57864e7,
+        "semi_major_axis": 6378137.0,
+        "semi_minor_axis": 6356752.31424518,
         "sweep_angle_axis": "y",
         "long_name": "MTG geostationary projection",
         "default_data": lambda: -2147483647
