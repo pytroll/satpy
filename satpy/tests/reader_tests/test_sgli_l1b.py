@@ -8,14 +8,15 @@ import numpy as np
 import pytest
 
 from satpy.readers.sgli_l1b import HDF5SGLI
+from satpy.tests.utils import RANDOM_GEN
 
 START_TIME = datetime.now()
 END_TIME = START_TIME + timedelta(minutes=5)
 FULL_KM_ARRAY = np.arange(1955 * 1250, dtype=np.uint16).reshape((1955, 1250))
 MASK = 16383
 LON_LAT_ARRAY = np.arange(197 * 126, dtype=np.float32).reshape((197, 126))
-AZI_ARRAY = np.random.randint(-180 * 100, 180 * 100, size=(197, 126), dtype=np.int16)
-ZEN_ARRAY = np.random.randint(0, 180 * 100, size=(197, 126), dtype=np.int16)
+AZI_ARRAY = RANDOM_GEN.integers(-180 * 100, 180 * 100, size=(197, 126), dtype=np.int16)
+ZEN_ARRAY = RANDOM_GEN.integers(0, 180 * 100, size=(197, 126), dtype=np.int16)
 
 
 @pytest.fixture(scope="module")

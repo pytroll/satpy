@@ -16,7 +16,7 @@ from satpy.readers.insat3d_img_l1b_h5 import (
     open_dataset,
     open_datatree,
 )
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -30,10 +30,10 @@ rad_units = "mW.cm-2.sr-1.micron-1"
 alb_units = "%"
 temp_units = "K"
 chunks_1km = (1, 46, 1126)
-values_1km = np.random.randint(0, 1000, shape_1km, dtype=np.uint16)
+values_1km = RANDOM_GEN.integers(0, 1000, shape_1km, dtype=np.uint16)
 values_1km[0, 0, 0] = 0
-values_4km = np.random.randint(0, 1000, shape_4km, dtype=np.uint16)
-values_8km = np.random.randint(0, 1000, shape_8km, dtype=np.uint16)
+values_4km = RANDOM_GEN.integers(0, 1000, shape_4km, dtype=np.uint16)
+values_8km = RANDOM_GEN.integers(0, 1000, shape_8km, dtype=np.uint16)
 
 values_by_resolution = {1000: values_1km,
                         4000: values_4km,

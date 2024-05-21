@@ -28,7 +28,7 @@ import numpy.testing
 import pytest
 import xarray as xr
 from netCDF4 import default_fillvals
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
