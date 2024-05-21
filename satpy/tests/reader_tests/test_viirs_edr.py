@@ -34,7 +34,9 @@ import pytest
 import xarray as xr
 from pyresample import SwathDefinition
 from pytest import TempPathFactory  # noqa: PT013
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
+
+from satpy.tests.utils import RANDOM_GEN
 
 I_COLS = 6400
 I_ROWS = 32  # one scan
@@ -135,8 +137,8 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     sr_attrs = {"units": "unitless", "_FillValue": -9999,
                 "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
-    i_data = np.random.random_sample((I_ROWS, I_COLS)).astype(np.float32)
-    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    i_data = RANDOM_GEN.random((I_ROWS, I_COLS)).astype(np.float32)
+    m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     lon_i_data = (i_data * 360) - 180.0
     lon_m_data = (m_data * 360) - 180.0
     lat_i_data = (i_data * 180) - 90.0
@@ -261,7 +263,7 @@ def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataA
     cont_attrs = {"units": "Kelvin", "_FillValue": -9999,
                   "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
-    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     data_arrs = {
         "Longitude": xr.DataArray(m_data, dims=dims, attrs=lon_attrs),
         "Latitude": xr.DataArray(m_data, dims=dims, attrs=lat_attrs),
