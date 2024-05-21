@@ -627,6 +627,7 @@ class TestLIL2():
             projection = Proj(proj_dict)
             azimuth_vals = azimuth.values * point_height
             elevation_vals = elevation.values * point_height
+            azimuth_vals *= -1
             lon_ref, lat_ref = projection(azimuth_vals, elevation_vals, inverse=True)
             # Convert to float32:
             lon_ref = lon_ref.astype(np.float32)
