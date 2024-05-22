@@ -63,10 +63,8 @@ class MSIECL1CFileHandler(HDF5FileHandler):
         data.attrs.update({"units": ds_info.get("units")})
         # VIS/SWIR data can have radiance or reflectance calibration.
         if "calibration" in ds_info:
-            if ds_info["calibration"].name == "reflectance":
-                data = self._calibrate(data, band_index)
-            elif ds_info["calibration"].name not in ["radiance", "brightness_temperature"]:
-                raise ValueError(f"Unknown calibration type:{ds_info['calibration'].name}")
+            cal_type = ds_info["calibration"].name
+            data = self._calibrate(data, band_index, cal_type)
 
         # Rename dimensions, as some have incorrect names (notably the pixel value data).
         if "dim_1" in data.dims:
@@ -76,21 +74,31 @@ class MSIECL1CFileHandler(HDF5FileHandler):
         # when making a copy of the data. This sorts out the dimensions and sets them correctly
         # following the process done in the OMPS reader.
         if "DIMENSION_LIST" in data.attrs:
-            data.attrs.pop("DIMENSION_LIST")
-            dimensions = self.get_reference(file_key, "DIMENSION_LIST")
-            dim_dict = {}
-            # We have to loop over dimensions to match dim sizes as the pixel data is 3d rather than 2d.
-            for i in range(0, len(data.dims)):
-                c_dim = data.dims[i]
-                for r_dim in dimensions:
-                    if data.shape[i] == r_dim[0].shape[0]:
-                        dim_dict[c_dim] = r_dim[0]
-            data.assign_coords(dim_dict)
+            data = self._fix_dims(data, file_key)
+
         return data
 
-    def _calibrate(self, chan_data, band_index):
+    def _fix_dims(self, data, file_key):
+        """The pixel data has badly named coordinates, this fixes them."""
+        data.attrs.pop("DIMENSION_LIST")
+        dimensions = self.get_reference(file_key, "DIMENSION_LIST")
+        dim_dict = {}
+        # We have to loop over dimensions to match dim sizes as the pixel data is 3d rather than 2d.
+        for i in range(0, len(data.dims)):
+            c_dim = data.dims[i]
+            for r_dim in dimensions:
+                if data.shape[i] == r_dim[0].shape[0]:
+                    dim_dict[c_dim] = r_dim[0]
+        data.assign_coords(dim_dict)
+        return data
+
+    def _calibrate(self, chan_data, band_index, cal_type):
         """Calibrate the data."""
-        sol_irrad = self["NonStandard/solar_irradiance"]
-        chan_data.data = chan_data.data * 100. * np.pi / float(sol_irrad[band_index])
+        if cal_type == "reflectance":
+            sol_irrad = self["NonStandard/solar_irradiance"]
+            chan_data.data = chan_data.data * 100. * np.pi / float(sol_irrad[band_index])
+            return chan_data
+        elif cal_type not in ["radiance", "brightness_temperature"]:
+            raise ValueError(f"Unknown calibration type:{cal_type}")
 
         return chan_data
