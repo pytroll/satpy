@@ -37,6 +37,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 FAKE_FILEHANDLER_START = datetime(2020, 1, 1, 0, 0, 0)
 FAKE_FILEHANDLER_END = datetime(2020, 1, 1, 1, 0, 0)
 
+RANDOM_GEN = np.random.default_rng()
+
 
 def make_dataid(**items):
     """Make a DataID with default keys."""

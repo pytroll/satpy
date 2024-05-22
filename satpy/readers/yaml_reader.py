@@ -337,7 +337,125 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         return id_kwargs
 
 
-class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
+class GenericYAMLReader(AbstractYAMLReader):
+    """A Generic YAML-based reader."""
+
+    def __init__(self, config_dict, filter_parameters=None, filter_filenames=True):
+        """Set up the yaml reader."""
+        super().__init__(config_dict)
+        self.filter_parameters = filter_parameters or {}
+        self.filter_filenames = self.info.get("filter_filenames", filter_filenames)
+
+    def filter_selected_filenames(self, filenames):
+        """Filter provided files based on metadata in the filename."""
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
+        for _, filetype_info in self.sorted_filetype_items():
+            filename_iter = self.filename_items_for_filetype(filenames,
+                                                             filetype_info)
+            if self.filter_filenames:
+                filename_iter = self.filter_filenames_by_info(filename_iter)
+
+            for fn, _ in filename_iter:
+                yield fn
+
+    def sorted_filetype_items(self):
+        """Sort the instance's filetypes in using order."""
+        processed_types = []
+        file_type_items = deque(self.config["file_types"].items())
+        while len(file_type_items):
+            filetype, filetype_info = file_type_items.popleft()
+
+            requirements = filetype_info.get("requires")
+            if requirements is not None:
+                # requirements have not been processed yet -> wait
+                missing = [req for req in requirements
+                           if req not in processed_types]
+                if missing:
+                    file_type_items.append((filetype, filetype_info))
+                    continue
+
+            processed_types.append(filetype)
+            yield filetype, filetype_info
+
+    @staticmethod
+    def filename_items_for_filetype(filenames, filetype_info):
+        """Iterate over the filenames matching *filetype_info*."""
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
+        for pattern in filetype_info["file_patterns"]:
+            matched_files = set()
+            matches = _match_filenames(filenames, pattern)
+            for filename in matches:
+                try:
+                    filename_info = parse(
+                        pattern, _get_filebase(filename, pattern))
+                except ValueError:
+                    logger.debug("Can't parse %s with %s.", filename, pattern)
+                    continue
+                matched_files.add(filename)
+                yield filename, filename_info
+            filenames -= matched_files
+
+    def filter_filenames_by_info(self, filename_items):
+        """Filter out file using metadata from the filenames.
+
+        Currently only uses start and end time. If only start time is available
+        from the filename, keep all the filename that have a start time before
+        the requested end time.
+        """
+        for filename, filename_info in filename_items:
+            fend = filename_info.get("end_time")
+            fstart = filename_info.setdefault("start_time", fend)
+            if fend and fend < fstart:
+                # correct for filenames with 1 date and 2 times
+                fend = fend.replace(year=fstart.year,
+                                    month=fstart.month,
+                                    day=fstart.day)
+                filename_info["end_time"] = fend
+            if self.metadata_matches(filename_info):
+                yield filename, filename_info
+
+    def metadata_matches(self, sample_dict, file_handler=None):
+        """Check that file metadata matches filter_parameters of this reader."""
+        # special handling of start/end times
+        if not self.time_matches(
+                sample_dict.get("start_time"), sample_dict.get("end_time")):
+            return False
+        for key, val in self.filter_parameters.items():
+            if key != "area" and key not in sample_dict:
+                continue
+
+            if key in ["start_time", "end_time"]:
+                continue
+            elif key == "area" and file_handler:
+                if not self.check_file_covers_area(file_handler, val):
+                    logger.info("Filtering out %s based on area",
+                                file_handler.filename)
+                    break
+            elif key in sample_dict and val != sample_dict[key]:
+                # don't use this file
+                break
+        else:
+            # all the metadata keys are equal
+            return True
+        return False
+
+    def time_matches(self, fstart, fend):
+        """Check that a file's start and end time mtach filter_parameters of this reader."""
+        start_time = self.filter_parameters.get("start_time")
+        end_time = self.filter_parameters.get("end_time")
+        fend = fend or fstart
+        if start_time and fend and fend < start_time:
+            return False
+        if end_time and fstart and fstart > end_time:
+            return False
+        return True
+
+
+class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
     """Primary reader base class that is configured by a YAML file.
 
     This class uses the idea of per-file "file handler" objects to read file
@@ -359,12 +477,10 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                  filter_filenames=True,
                  **kwargs):
         """Set up initial internal storage for loading file data."""
-        super(FileYAMLReader, self).__init__(config_dict)
+        super().__init__(config_dict, filter_parameters, filter_filenames)
 
         self.file_handlers = {}
         self.available_ids = {}
-        self.filter_filenames = self.info.get("filter_filenames", filter_filenames)
-        self.filter_parameters = filter_parameters or {}
         self.register_data_files()
 
     @property
@@ -450,45 +566,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                     # filetype!
         return req_fh
 
-    def sorted_filetype_items(self):
-        """Sort the instance's filetypes in using order."""
-        processed_types = []
-        file_type_items = deque(self.config["file_types"].items())
-        while len(file_type_items):
-            filetype, filetype_info = file_type_items.popleft()
-
-            requirements = filetype_info.get("requires")
-            if requirements is not None:
-                # requirements have not been processed yet -> wait
-                missing = [req for req in requirements
-                           if req not in processed_types]
-                if missing:
-                    file_type_items.append((filetype, filetype_info))
-                    continue
-
-            processed_types.append(filetype)
-            yield filetype, filetype_info
-
-    @staticmethod
-    def filename_items_for_filetype(filenames, filetype_info):
-        """Iterate over the filenames matching *filetype_info*."""
-        if not isinstance(filenames, set):
-            # we perform set operations later on to improve performance
-            filenames = set(filenames)
-        for pattern in filetype_info["file_patterns"]:
-            matched_files = set()
-            matches = _match_filenames(filenames, pattern)
-            for filename in matches:
-                try:
-                    filename_info = parse(
-                        pattern, _get_filebase(filename, pattern))
-                except ValueError:
-                    logger.debug("Can't parse %s with %s.", filename, pattern)
-                    continue
-                matched_files.add(filename)
-                yield filename, filename_info
-            filenames -= matched_files
-
     def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
         requirements = filetype_info.get("requires")
@@ -512,61 +589,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
 
-    def time_matches(self, fstart, fend):
-        """Check that a file's start and end time mtach filter_parameters of this reader."""
-        start_time = self.filter_parameters.get("start_time")
-        end_time = self.filter_parameters.get("end_time")
-        fend = fend or fstart
-        if start_time and fend and fend < start_time:
-            return False
-        if end_time and fstart and fstart > end_time:
-            return False
-        return True
-
-    def metadata_matches(self, sample_dict, file_handler=None):
-        """Check that file metadata matches filter_parameters of this reader."""
-        # special handling of start/end times
-        if not self.time_matches(
-                sample_dict.get("start_time"), sample_dict.get("end_time")):
-            return False
-        for key, val in self.filter_parameters.items():
-            if key != "area" and key not in sample_dict:
-                continue
-
-            if key in ["start_time", "end_time"]:
-                continue
-            elif key == "area" and file_handler:
-                if not self.check_file_covers_area(file_handler, val):
-                    logger.info("Filtering out %s based on area",
-                                file_handler.filename)
-                    break
-            elif key in sample_dict and val != sample_dict[key]:
-                # don't use this file
-                break
-        else:
-            # all the metadata keys are equal
-            return True
-        return False
-
-    def filter_filenames_by_info(self, filename_items):
-        """Filter out file using metadata from the filenames.
-
-        Currently only uses start and end time. If only start time is available
-        from the filename, keep all the filename that have a start time before
-        the requested end time.
-        """
-        for filename, filename_info in filename_items:
-            fend = filename_info.get("end_time")
-            fstart = filename_info.setdefault("start_time", fend)
-            if fend and fend < fstart:
-                # correct for filenames with 1 date and 2 times
-                fend = fend.replace(year=fstart.year,
-                                    month=fstart.month,
-                                    day=fstart.day)
-                filename_info["end_time"] = fend
-            if self.metadata_matches(filename_info):
-                yield filename, filename_info
-
     def filter_fh_by_metadata(self, filehandlers):
         """Filter out filehandlers using provide filter parameters."""
         for filehandler in filehandlers:
@@ -574,20 +596,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
             filehandler.metadata["end_time"] = filehandler.end_time
             if self.metadata_matches(filehandler.metadata, filehandler):
                 yield filehandler
-
-    def filter_selected_filenames(self, filenames):
-        """Filter provided files based on metadata in the filename."""
-        if not isinstance(filenames, set):
-            # we perform set operations later on to improve performance
-            filenames = set(filenames)
-        for _, filetype_info in self.sorted_filetype_items():
-            filename_iter = self.filename_items_for_filetype(filenames,
-                                                             filetype_info)
-            if self.filter_filenames:
-                filename_iter = self.filter_filenames_by_info(filename_iter)
-
-            for fn, _ in filename_iter:
-                yield fn
 
     def _new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
         """Create filehandlers for a given filetype."""
@@ -602,6 +610,11 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                                                            fh_kwargs=fh_kwargs)
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
+
+
+    def create_storage_items(self, files, **kwargs):
+        """Create the storage items."""
+        return self.create_filehandlers(files, **kwargs)
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Organize the filenames into file types and create file handlers."""
