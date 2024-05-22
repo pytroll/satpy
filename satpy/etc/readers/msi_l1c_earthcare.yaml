@@ -204,7 +204,7 @@ datasets:
     file_key: ScienceData/latitude
   solar_azimuth_angle:
     name: solar_azimuth_angle
-    units: degree
+    units: degrees
     standard_name: solar_azimuth_angle
     resolution: 500
     coordinates: [longitude, latitude]
@@ -212,7 +212,7 @@ datasets:
     file_key: ScienceData/solar_azimuth_angle
   sensor_azimuth_angle:
     name: sensor_azimuth_angle
-    units: degree
+    units: degrees
     standard_name: sensor_azimuth_angle
     resolution: 500
     coordinates: [longitude, latitude]
@@ -220,7 +220,7 @@ datasets:
     file_key: ScienceData/sensor_azimuth_angle
   sensor_view_angle:
     name: sensor_zenith_angle
-    units: degree
+    units: degrees
     standard_name: sensor_zenith_angle
     resolution: 500
     coordinates: [longitude, latitude]
@@ -228,7 +228,7 @@ datasets:
     file_key: NonStandard/sensor_view_angle
   solar_zenith_angle:
     name: solar_zenith_angle
-    units: degree
+    units: degrees
     standard_name: solar_zenith_angle
     resolution: 500
     coordinates: [longitude, latitude]
