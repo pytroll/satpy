@@ -9,42 +9,44 @@ import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
+N_BANDS = 7
+N_SCANS = 20
+N_COLS = 2048
 SHAPE_SC = (300, 6000)
 SOL_IRRAD = [30.9, 19.59, 14.77, 8.25, 0., 0., 0.]
+DIMLIST = np.ones((N_BANDS, N_SCANS, N_COLS))
+
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
-    n_bands = 7
-    num_scans = 20
-    num_cols = 2048
 
-    def _setup_test_data(self, n_bands, num_scans, num_cols):
+    def _setup_test_data(self, N_BANDS, N_SCANS, N_COLS):
         # Set some default attributes
         data = {
             "ScienceData/pixel_values":
                 xr.DataArray(
-                    da.ones((n_bands, num_scans, num_cols), chunks=1024, dtype=np.float32),
-                    attrs={"units": "Wm-2 sr-1 or K"},
-                    dims=("band", "along_track", "across_track")),
+                    da.ones((N_BANDS, N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
+                    attrs={"units": "Wm-2 sr-1 or K", "DIMENSION_LIST": DIMLIST},
+                    dims=("band", "dim_2", "dim_1")),
             "ScienceData/land_flag":
                 xr.DataArray(
-                    da.ones((num_scans, num_cols), chunks=1024, dtype=np.uint16),
+                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.uint16),
                     attrs={"units": ""},
                     dims=("along_track", "across_track")),
             "ScienceData/solar_azimuth_angle":
                 xr.DataArray(
-                    da.ones((num_scans, num_cols), chunks=1024, dtype=np.float32),
+                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
                     attrs={"units": "degrees"},
                     dims=("along_track", "across_track")),
             "ScienceData/longitude":
                 xr.DataArray(
-                    da.ones((num_scans, num_cols), chunks=1024, dtype=np.float32),
+                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
                     attrs={"units": "degrees"},
                     dims=("along_track", "across_track")),
             "ScienceData/latitude":
                 xr.DataArray(
-                    da.ones((num_scans, num_cols), chunks=1024, dtype=np.float32),
+                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
                     attrs={"units": "degrees"},
                     dims=("along_track", "across_track")),
             "NonStandard/solar_irradiance":
@@ -58,10 +60,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        test_content = self._setup_test_data(self.n_bands, self.num_scans, self.num_cols)
+        test_content = self._setup_test_data(N_BANDS, N_SCANS, N_COLS)
         return test_content
-
-
 
 
 class ECMSIL1CTester:
@@ -89,9 +89,13 @@ class TestECMSIL1C(ECMSIL1CTester):
     filename = "ECA_EXAA_MSI_RGR_1C_20250625T005649Z_20250625T024013Z_42043E.h5"
 
 
-    def test_get_pixvalues(self):
+    @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
+    @mock.patch("h5py.File")
+    def test_get_pixvalues(self, mock_h5py_file, mock_hdf5_utils_get_reference):
         """Test loadingpixel values from file."""
         from satpy.readers import load_reader
+        mock_h5py_file.return_value = mock.MagicMock()
+        mock_hdf5_utils_get_reference.return_value = DIMLIST
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames([self.filename])
         assert 1 == len(files)
@@ -126,11 +130,15 @@ class TestECMSIL1C(ECMSIL1CTester):
         assert res["land_water_mask"].dtype == np.uint16
 
 
-
-    def test_calibration(self):
+    @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
+    @mock.patch("h5py.File")
+    def test_calibration(self, mock_h5py_file, mock_hdf5_utils_get_reference):
         """Test loadingpixel values from file."""
         from satpy.readers import load_reader
         from satpy.tests.utils import make_dataid
+
+        mock_h5py_file.return_value = mock.MagicMock()
+        mock_hdf5_utils_get_reference.return_value = DIMLIST
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames([self.filename])
