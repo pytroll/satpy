@@ -18,6 +18,8 @@
 """A reader for Level 1C data produced by the MSI instrument aboard EarthCARE."""
 import logging
 
+import numpy as np
+
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -59,7 +61,6 @@ class MSIECL1CFileHandler(HDF5FileHandler):
         # The dataset has incorrect units attribute (due to storing multiple types). Fix it here.
         data.attrs.update(ds_info)
         data.attrs.update({"units": ds_info.get("units")})
-
         # VIS/SWIR data can have radiance or reflectance calibration.
         if "calibration" in ds_info:
             if ds_info["calibration"].name == "reflectance":
@@ -87,8 +88,9 @@ class MSIECL1CFileHandler(HDF5FileHandler):
             data.assign_coords(dim_dict)
         return data
 
-    def _calibrate(self, data, band_index):
+    def _calibrate(self, chan_data, band_index):
         """Calibrate the data."""
         sol_irrad = self["NonStandard/solar_irradiance"]
+        chan_data.data = chan_data.data * 100. * np.pi / float(sol_irrad[band_index])
 
-        return 100 * data / sol_irrad[band_index]
+        return chan_data
