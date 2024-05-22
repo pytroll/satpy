@@ -651,7 +651,7 @@ class TestLIL2():
         cols = x.astype(int) - 1
         rows = (LI_GRID_SHAPE[0] - y.astype(int))
 
-        # compute lonlat from 1-d coords generation
+        # compute lonlat from 1-d coords generation (called when with_area_definition==False)
         handler.generate_coords_from_scan_angles()
         lon = handler.internal_variables["longitude"].values
         lat = handler.internal_variables["latitude"].values
