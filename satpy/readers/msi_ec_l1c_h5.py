@@ -98,7 +98,5 @@ class MSIECL1CFileHandler(HDF5FileHandler):
             sol_irrad = self["NonStandard/solar_irradiance"]
             chan_data.data = chan_data.data * 100. * np.pi / float(sol_irrad[band_index])
             return chan_data
-        elif cal_type not in ["radiance", "brightness_temperature"]:
-            raise ValueError(f"Unknown calibration type:{cal_type}")
 
         return chan_data
