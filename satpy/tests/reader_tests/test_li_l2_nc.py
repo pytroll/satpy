@@ -600,10 +600,11 @@ class TestLIL2():
             handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, prod))
 
             # Get azimuth/elevation arrays from handler
-            x = handler.get_measured_variable(handler.swath_coordinates["azimuth"])
-            azimuth = handler.apply_use_rescaling(x)
-            y = handler.get_measured_variable(handler.swath_coordinates["elevation"])
-            elevation = handler.apply_use_rescaling(y)
+            azimuth = handler.get_measured_variable(handler.swath_coordinates["azimuth"])
+            azimuth = handler.apply_use_rescaling(azimuth)
+
+            elevation = handler.get_measured_variable(handler.swath_coordinates["elevation"])
+            elevation = handler.apply_use_rescaling(elevation)
 
             # Initialize proj_dict
             proj_var = handler.swath_coordinates["projection"]
