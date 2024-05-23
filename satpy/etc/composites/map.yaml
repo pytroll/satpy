@@ -1,0 +1,41 @@
+sensor_name: visir/map
+modifiers:
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+      - wavelength: 0.67
+        modifiers: [ sunz_corrected ]
+    optional_prerequisites:
+      - name: 'observation_azimuth_20'
+      - name: 'observation_zenith_20'
+      - name: 'solar_azimuth_20'
+      - name: 'solar_zenith_20'
+
+composites:
+  true_color_uncorrected:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'map_670_20_I'
+        #modifiers: [ sunz_corrected ]
+      - name: 'map_555_20_I'
+        #modifiers: [ sunz_corrected ]
+      - name: 'map_443_20_I'
+        #modifiers: [ sunz_corrected ]
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'map_670_20_I'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        #modifiers: [ rayleigh_corrected ]
+      - name: 'map_555_20_I'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        #modifiers: [ rayleigh_corrected ]
+      - name: 'map_443_20_1'
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        #modifiers: [ rayleigh_corrected ]
+    standard_name: true_color
+
