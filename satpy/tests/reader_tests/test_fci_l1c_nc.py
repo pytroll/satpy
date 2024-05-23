@@ -682,7 +682,7 @@ class TestFCIL1cNCReader:
         assert expected_res_n[res_type] == len(res)
         for ch, grid_type in zip(list_chan,
                                  list_grid):
-            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._get_assert_load(res, ch, grid_type, DICT_CALIBRATION[calibration])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
     (calibration, channel, resolution)
