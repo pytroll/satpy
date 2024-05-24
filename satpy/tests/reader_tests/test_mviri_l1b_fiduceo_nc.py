@@ -79,6 +79,7 @@ vis_counts_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
+
 vis_rad_exp = xr.DataArray(
     np.array(
         [[np.nan, 18.56, 38.28, 58.],
@@ -272,11 +273,11 @@ def fixture_fake_dataset():
             dtype=np.uint8
         )
     )
-    time = np.arange(4) * 60 * 60
-    time_fill_value = 4294967295
-    time_add_offset = 0
-    time[0] = time_fill_value
-    time[1] = time_fill_value
+
+    cov = da.from_array([[1, 2], [3, 4]])
+    time = np.arange(4) * 60 * 60.
+    time[0] = np.nan
+    time[1] = np.nan
     time = time.reshape(2, 2)
 
     ds = xr.Dataset(
@@ -308,6 +309,7 @@ def fixture_fake_dataset():
             "sub_satellite_longitude_end": np.nan,
             "sub_satellite_latitude_start": np.nan,
             "sub_satellite_latitude_end": 0.1,
+            "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), cov),
         },
         coords={
             "y": [1, 2, 3, 4],
@@ -322,9 +324,7 @@ def fixture_fake_dataset():
     )
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
-
-    ds["time_ir_wv"].attrs["_FillValue"] = time_fill_value
-    ds["time_ir_wv"].attrs["add_offset"] = time_add_offset
+    ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
 
     return ds
 
