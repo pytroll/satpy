@@ -1449,7 +1449,7 @@ def jp2_builder(process_level, band_name, mask_saturated=True):
 
 def make_alt_dataid(**items):
     """Make a DataID with modified keys."""
-    from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
+    from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
     modified_id_keys_config = {
         "name": {
             "required": True,
