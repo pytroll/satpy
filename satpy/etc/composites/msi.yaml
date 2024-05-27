@@ -8,7 +8,7 @@ modifiers:
     prerequisites:
       - name: 'B04'
         modifiers: [sunz_corrected]
-    optional_prerequisites:    
+    optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
       - name: solar_azimuth_angle
