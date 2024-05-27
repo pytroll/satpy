@@ -9,6 +9,15 @@ reader:
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
+data_identification_keys:
+  calibration:
+    enum:
+      - reflectance
+      - radiance
+      - counts
+      - aerosol_thickness
+      - water_vapor
+
 file_types:
   l2a_safe_granule_10m:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C

@@ -1449,6 +1449,39 @@ def jp2_builder(process_level, band_name, mask_saturated=True):
     jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
 
+def make_dataid(**items):
+    """Make a DataID with modified keys."""
+    from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
+    modified_id_keys_config = {
+        "name": {
+            "required": True,
+        },
+        "wavelength": {
+            "type": WavelengthRange,
+        },
+        "resolution": {
+            "transitive": False,
+        },
+        "calibration": {
+            "enum": [
+                "reflectance",
+                "brightness_temperature",
+                "radiance",
+                "radiance_wavenumber",
+                "counts",
+                "aerosol_thickness",
+                "water_vapor"
+            ],
+            "transitive": True,
+        },
+        "modifiers": {
+            "default": ModifierTuple(),
+            "type": ModifierTuple,
+        },
+    }
+
+    return DataID(modified_id_keys_config, **items)
+
 
 class TestTileXML:
     """Test the SAFE TILE XML file handler.

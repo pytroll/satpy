@@ -255,8 +255,6 @@ default_id_keys_config = {"name": {
                                   "radiance",
                                   "radiance_wavenumber",
                                   "counts",
-                                  "aerosol_thickness",
-                                  "water_vapor"
                                   ],
                               "transitive": True,
                           },
