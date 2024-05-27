@@ -24,8 +24,6 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.utils import make_dataid
-
 # Datetimes used for checking start time is correctly set.
 fname_dt = datetime(2020, 10, 1, 18, 35, 41)
 tilemd_dt = datetime(2020, 10, 1, 16, 34, 23, 153611)
@@ -1449,7 +1447,7 @@ def jp2_builder(process_level, band_name, mask_saturated=True):
     jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
 
-def make_dataid(**items):
+def make_alt_dataid(**items):
     """Make a DataID with modified keys."""
     from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
     modified_id_keys_config = {
@@ -1542,7 +1540,7 @@ class TestTileXML:
             dict(xml_tag=angle_tag[0] + "/" + angle_tag[1])
         xml_tile_fh = xml_builder(process_level)[1]
 
-        res = xml_tile_fh.get_dataset(make_dataid(name=angle_name, resolution=60), info)
+        res = xml_tile_fh.get_dataset(make_alt_dataid(name=angle_name, resolution=60), info)
         if res is not None:
             res = res[::200, ::200]
 
@@ -1561,7 +1559,7 @@ class TestTileXML:
         from pyproj import CRS
         crs = CRS("EPSG:32616")
 
-        dsid = make_dataid(name="B01", resolution=60)
+        dsid = make_alt_dataid(name="B01", resolution=60)
         xml_tile_fh = xml_builder("L1C")[1]
         result = xml_tile_fh.get_area_def(dsid)
         area_extent = (499980.0, 3590220.0, 609780.0, 3700020.0)
@@ -1657,7 +1655,7 @@ class TestSAFEMSIL1C:
         jp2_fh = jp2_builder("L2A", dataset_name.replace("_L2A", ""), mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            res = jp2_fh.get_dataset(make_dataid(name=dataset_name, calibration=calibration), info=dict())
+            res = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name, calibration=calibration), info=dict())
             if res is not None:
                 np.testing.assert_allclose(res, expected)
             else:
@@ -1673,8 +1671,8 @@ class TestSAFEMSIL1C:
         jp2_fh = jp2_builder(process_level, band_name)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            res1 = jp2_fh.get_dataset(make_dataid(name=dataset_name), info=dict())
-            res2 = jp2_fh.get_area_def(make_dataid(name=dataset_name))
+            res1 = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name), info=dict())
+            res2 = jp2_fh.get_area_def(make_alt_dataid(name=dataset_name))
 
             assert res1 is None
             assert res2 is None
