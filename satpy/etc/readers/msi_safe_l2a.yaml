@@ -8,15 +8,24 @@ reader:
   sensors: [msi]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-
-data_identification_keys:
-  calibration:
-    enum:
-      - reflectance
-      - radiance
-      - counts
-      - aerosol_thickness
-      - water_vapor
+  data_identification_keys:
+    name:
+      required: true
+    wavelength:
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+        - reflectance
+        - radiance
+        - counts
+        - aerosol_thickness
+        - water_vapor
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
 file_types:
   l2a_safe_granule_10m:
