@@ -26,6 +26,7 @@ import pyproj
 import xarray as xr
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
+import satpy
 from satpy.readers import open_file_or_filename
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
@@ -91,7 +92,7 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  calib_mode="PYSPECTRAL", allow_conditional_pixels=False,
-                 user_calibration=None):
+                 user_calibration=None, clip_negative_radiances=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(AMIL1bNetCDF, self).__init__(filename, filename_info, filetype_info)
         f_obj = open_file_or_filename(self.filename)
@@ -113,6 +114,10 @@ class AMIL1bNetCDF(BaseFileHandler):
 
         self.calib_mode = calib_mode.upper()
         self.user_calibration = user_calibration
+
+        if clip_negative_radiances is None:
+            clip_negative_radiances = satpy.config.get("readers.clip_negative_radiances")
+        self.clip_negative_radiances = clip_negative_radiances
 
     @property
     def start_time(self):
@@ -178,6 +183,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         }
         return orbital_parameters
 
+
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
         file_key = ds_info.get("file_key", dataset_id["name"])
@@ -201,11 +207,12 @@ class AMIL1bNetCDF(BaseFileHandler):
         data = data.where(qf == 0)
 
         # Calibration values from file, fall back to built-in if unavailable
-        gain = self.nc.attrs["DN_to_Radiance_Gain"]
-        offset = self.nc.attrs["DN_to_Radiance_Offset"]
+        self.gain = self.nc.attrs["DN_to_Radiance_Gain"]
+        self.offset = self.nc.attrs["DN_to_Radiance_Offset"]
 
         if dataset_id["calibration"] in ("radiance", "reflectance", "brightness_temperature"):
-            data = gain * data + offset
+            data = self.gain * data + self.offset
+            data = self._clip_negative_radiance(data)
             if self.calib_mode == "GSICS":
                 data = self._apply_gsics_rad_correction(data)
             elif isinstance(self.user_calibration, dict):
@@ -229,6 +236,20 @@ class AMIL1bNetCDF(BaseFileHandler):
         attrs["sensor"] = self.sensor
         data.attrs = attrs
         return data
+
+
+    def _clip_negative_radiance(self, data):
+        """If requested, clip negative radiance from Rad DataArray."""
+        if self.clip_negative_radiances:
+            count_zero_rad = - self.offset / self.gain
+            # We need floor here as the scale factor for AMI is negative (unlike ABI)
+            count_pos = np.floor(count_zero_rad)
+            min_rad = count_pos * self.gain + self.offset
+            data = data.clip(min=min_rad)
+            return data
+        else:
+            return data
+
 
     def _calibrate_ir(self, dataset_id, data):
         """Calibrate radiance data to BTs using either pyspectral or in-file coefficients."""

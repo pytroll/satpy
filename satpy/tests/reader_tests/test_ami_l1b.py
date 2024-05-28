@@ -58,14 +58,25 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
     @mock.patch("satpy.readers.ami_l1b.xr")
-    def setUp(self, xr_, counts=None):
+    def setUp(self, xr_, counts=None, irtest=False):
         """Create a fake dataset using the given counts data."""
         from satpy.readers.ami_l1b import AMIL1bNetCDF
+        if irtest:
+            dn_to_Radiance_Gain = -0.00108296517282724
+            dn_to_Radiance_Offset = 17.699987411499
+            bpp = 14
+        else:
+            dn_to_Radiance_Gain = -0.0144806550815701
+            dn_to_Radiance_Offset = 118.050903320312
+            bpp = 12
 
         if counts is None:
             rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
             rad_data = (rad_data + 1.) / 0.5
             rad_data = rad_data.astype(np.uint16)
+            if irtest:
+                # If testing IR clipping, set one pixel to negative radiance
+                rad_data[0, 0] = 16364
             counts = xr.DataArray(
                 da.from_array(rad_data, chunks="auto"),
                 dims=("y", "x"),
@@ -80,7 +91,7 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
                     "stddev_pixel_value": 13621.130386551,
                     "number_of_total_bits_per_pixel": 16,
                     "number_of_data_quality_flag_bits_per_pixel": 2,
-                    "number_of_valid_bits_per_pixel": 12,
+                    "number_of_valid_bits_per_pixel": bpp,
                     "data_quality_flag_meaning":
                         "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
                     "ground_sample_distance_ew": 1.4e-05,
@@ -115,8 +126,8 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
                 "observation_mode": "FD",
                 "channel_spatial_resolution": "0.5",
                 "Radiance_to_Albedo_c": 1,
-                "DN_to_Radiance_Gain": -0.0144806550815701,
-                "DN_to_Radiance_Offset": 118.050903320312,
+                "DN_to_Radiance_Gain": dn_to_Radiance_Gain,
+                "DN_to_Radiance_Offset": dn_to_Radiance_Offset,
                 "Teff_to_Tbb_c0": -0.141418528203155,
                 "Teff_to_Tbb_c1": 1.00052232906885,
                 "Teff_to_Tbb_c2": -0.00000036287276076109,
@@ -125,10 +136,9 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
                 "Plank_constant_h": 6.6260695700E-34,
             }
         )
-
         self.reader = AMIL1bNetCDF("filename",
                                    {"platform_shortname": "gk2a"},
-                                   {"file_type": "ir087"},)
+                                   {"file_type": "ir087"})
 
 
 class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
@@ -178,7 +188,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         assert self.reader.end_time == datetime(2019, 9, 30, 3, 9, 35, 606133)
 
     def test_get_dataset(self):
-        """Test gettting radiance data."""
+        """Test getting radiance data."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name="VI006", calibration="radiance")
         res = self.reader.get_dataset(key, {
@@ -349,3 +359,32 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
         assert res.attrs["standard_name"] == "toa_brightness_temperature"
+
+
+
+class TestAMIL1bNetCDFIRClip(TestAMIL1bNetCDFBase):
+    """Test IR specific things about the AMI reader."""
+
+    def setUp(self):
+        """Create test data for IR calibration tests."""
+        from satpy.tests.utils import make_dataid
+
+        self.ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
+                                 calibration="radiance")
+        self.ds_info = {
+            "file_key": "image_pixel_values",
+            "wavelength": [8.415, 8.59, 8.765],
+            "standard_name": "toa_brightness_temperature",
+            "units": "K",
+        }
+        super(TestAMIL1bNetCDFIRClip, self).setUp(irtest=True)
+
+    def test_clipneg(self):
+        """Test that negative radiances are clipped."""
+        self.reader.clip_negative_radiances = True
+        res = np.array(self.reader.get_dataset(self.ds_id, self.ds_info))
+        assert np.isclose(res[0, 0], 4.6268106e-06)
+
+        self.reader.clip_negative_radiances = False
+        res = np.array(self.reader.get_dataset(self.ds_id, self.ds_info))
+        assert res[0, 0] < 0
