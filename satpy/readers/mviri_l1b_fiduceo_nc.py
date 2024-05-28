@@ -456,20 +456,27 @@ class DatasetWrapper:
     def __init__(self, nc):
         """Wrap the given dataset."""
         self.nc = nc
-        self._fix_duplicate_dimensions(nc)
-        self.nc = self._chunk(nc)
+
+        # remove time before decoding and add again.
+        raw_time = nc["time_ir_wv"]
+        self.nc = self.nc.drop_vars(["time_ir_wv"])
+        self.nc = xr.decode_cf(self.nc)
+        self.nc["time_ir_wv"] = raw_time
+
+        self._fix_duplicate_dimensions(self.nc)
+        self.nc = self._chunk(self.nc)
 
     def _fix_duplicate_dimensions(self, nc):
         nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
 
     def _chunk(self, nc):
 
-        (CHUNK_SIZE, CHUNK_SIZE) = nc.variables["quality_pixel_bitmask"].encoding["chunksizes"]
+        (chunk_size, chunk_size) = nc.variables["quality_pixel_bitmask"].encoding["chunksizes"]
         chunks = {
-            "x": CHUNK_SIZE,
-            "y": CHUNK_SIZE,
-            "x_ir_wv": CHUNK_SIZE,
-            "y_ir_wv": CHUNK_SIZE
+            "x": chunk_size,
+            "y": chunk_size,
+            "x_ir_wv": chunk_size,
+            "y_ir_wv": chunk_size
         }
         return nc.chunk(chunks)
 
@@ -527,14 +534,16 @@ class DatasetWrapper:
         """Get time coordinate.
 
         Variable is sometimes named "time" and sometimes "time_ir_wv".
-        FillValues in time are set to NaT.
+        FillValues in time are set to NaT, others converted to datetime64.
         """
         try:
             time = self["time_ir_wv"]
         except KeyError:
             time = self["time"]
 
-        time = (time*1e9).astype("datetime64[ns]")
+        time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
+                        (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
+
         return time
 
     def get_xy_coords(self, resolution):
@@ -573,8 +582,9 @@ class FiduceoMviriBase(BaseFileHandler):
         self.mask_bad_quality = mask_bad_quality
         nc_raw = xr.open_dataset(
             filename,
-            decode_cf=True,
-            decode_times=False
+            decode_cf=False,
+            decode_times=False,
+            mask_and_scale=False
         )
 
         self.nc = DatasetWrapper(nc_raw)

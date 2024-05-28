@@ -28,6 +28,7 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
+from pytest_lazyfixture import lazy_fixture
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
@@ -36,6 +37,7 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     DatasetWrapper,
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
+    Interpolator,
 )
 from satpy.tests.utils import make_dataid
 
@@ -125,7 +127,7 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
-acq_time_ir_wv_exp = [np.datetime64("NaT").astype("datetime64[ns]"),
+acq_time_ir_wv_exp = [np.datetime64("NaT"),
                       np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
     np.array(
@@ -275,9 +277,9 @@ def fixture_fake_dataset():
     )
 
     cov = da.from_array([[1, 2], [3, 4]])
-    time = np.arange(4) * 60 * 60.
-    time[0] = np.nan
-    time[1] = np.nan
+    time = np.arange(4) * 60 * 60
+    time[0] = 4294967295
+    time[1] = 4294967295
     time = time.reshape(2, 2)
 
     ds = xr.Dataset(
@@ -325,6 +327,8 @@ def fixture_fake_dataset():
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
     ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
+    ds["time_ir_wv"].attrs["_FillValue"] = 4294967295
+    ds["time_ir_wv"].attrs["add_offset"] = 0
 
     return ds
 
@@ -412,6 +416,7 @@ class TestFiduceoMviriFileHandlers:
             xr.testing.assert_allclose(ds, expected)
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
+            assert True
 
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
@@ -600,3 +605,63 @@ class TestDatasetWrapper:
         ds = DatasetWrapper(nc)
         foo = ds["foo"]
         xr.testing.assert_equal(foo, foo_exp)
+
+class TestInterpolator:
+    """Unit tests for Interpolator class."""
+    @pytest.fixture(name="time_ir_wv")
+    def fixture_time_ir_wv(self):
+        """Returns time_ir_wv."""
+        return xr.DataArray(
+            [
+              [np.datetime64("1970-01-01 01:00"), np.datetime64("1970-01-01 02:00")],
+              [np.datetime64("1970-01-01 03:00"), np.datetime64("1970-01-01 04:00")],
+              [np.datetime64("NaT"), np.datetime64("1970-01-01 06:00")],
+              [np.datetime64("NaT"), np.datetime64("NaT")],
+            ],
+            dims=("y", "x"),
+            coords={"y": [1, 3, 5, 7]}
+        )
+
+    @pytest.fixture(name="acq_time_vis_exp")
+    def fixture_acq_time_vis_exp(self):
+        """Returns acq_time_vis_exp."""
+        return xr.DataArray(
+            [
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("NaT"),
+                np.datetime64("NaT")
+            ],
+            dims="y",
+            coords={"y": [1, 2, 3, 4, 5, 6, 7, 8]}
+        )
+
+    @pytest.fixture(name="acq_time_ir_exp")
+    def fixture_acq_time_ir_exp(self):
+        """Returns acq_time_ir_exp."""
+        return xr.DataArray(
+            [
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("NaT"),
+            ],
+            dims="y",
+            coords={"y": [1, 3, 5, 7]}
+        )
+
+    @pytest.mark.parametrize(
+        "acq_time_exp",
+        [
+            lazy_fixture("acq_time_ir_exp"),
+            lazy_fixture("acq_time_vis_exp")
+        ]
+    )
+    def test_interp_acq_time(self, time_ir_wv, acq_time_exp):
+        """Tests time interpolation."""
+        res = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp.coords["y"])
+        xr.testing.assert_allclose(res, acq_time_exp)
