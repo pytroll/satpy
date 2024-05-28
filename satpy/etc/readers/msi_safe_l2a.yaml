@@ -52,6 +52,7 @@ datasets:
     name: B01_L2A
     sensor: msi
     wavelength: [0.415, 0.443, 0.470]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
@@ -70,6 +71,7 @@ datasets:
     name: B02_L2A
     sensor: msi
     wavelength: [0.440, 0.490, 0.540]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     resolution:
       10: {file_type: l2a_safe_granule_10m}
       20: {file_type: l2a_safe_granule_20m}
@@ -89,6 +91,7 @@ datasets:
     name: B03_L2A
     sensor: msi
     wavelength: [0.540, 0.560, 0.580]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     resolution:
       10: {file_type: l2a_safe_granule_10m}
       20: {file_type: l2a_safe_granule_20m}
@@ -108,6 +111,7 @@ datasets:
     name: B04_L2A
     sensor: msi
     wavelength: [0.645, 0.665, 0.685]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     resolution:
       10: {file_type: l2a_safe_granule_10m}
       20: {file_type: l2a_safe_granule_20m}
@@ -127,6 +131,7 @@ datasets:
     name: B05_L2A
     sensor: msi
     wavelength: [0.695, 0.705, 0.715]
+    modifiers: [esa_sunz_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
@@ -145,6 +150,7 @@ datasets:
     name: B06_L2A
     sensor: msi
     wavelength: [0.731, 0.740, 0.749]
+    modifiers: [esa_sunz_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
@@ -163,6 +169,7 @@ datasets:
     name: B07_L2A
     sensor: msi
     wavelength: [0.764, 0.783, 0.802]
+    modifiers: [esa_sunz_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
@@ -181,6 +188,7 @@ datasets:
     name: B08_L2A
     sensor: msi
     wavelength: [0.780, 0.842, 0.905]
+    modifiers: [esa_sunz_corrected]
     resolution:
       10: {file_type: l2a_safe_granule_10m}
     calibration:
@@ -198,6 +206,7 @@ datasets:
     name: B8A_L2A
     sensor: msi
     wavelength: [0.855, 0.865, 0.875]
+    modifiers: [esa_sunz_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
@@ -216,6 +225,7 @@ datasets:
     name: B09_L2A
     sensor: msi
     wavelength: [0.935, 0.945, 0.955]
+    modifiers: [esa_sunz_corrected]
     resolution:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
@@ -233,6 +243,7 @@ datasets:
     name: B11_L2A
     sensor: msi
     wavelength: [1.565, 1.610, 1.655]
+    modifiers: [esa_sunz_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}
@@ -251,6 +262,7 @@ datasets:
     name: B12_L2A
     sensor: msi
     wavelength: [2.100, 2.190, 2.280]
+    modifiers: [esa_sunz_corrected]
     resolution:
       20: {file_type: l2a_safe_granule_20m}
       60: {file_type: l2a_safe_granule_60m}

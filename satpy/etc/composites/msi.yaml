@@ -146,17 +146,6 @@ modifiers:
 
 
 composites:
-  natural_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: 'B11'
-      modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B08'
-      modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B04'
-      modifiers: [effective_solar_pathlength_corrected]
-    standard_name: natural_color
-
   true_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -292,34 +281,45 @@ composites:
   true_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B04'
-      #modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B03'
-      #modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B02'
-      #modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B04'
+        # modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B03'
+        # modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B02'
+        # modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B11'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B08'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B04'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: natural_color
 
   urban_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B12'
-      modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B11'
-      modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B04'
-      modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B12'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B11'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B04'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: natural_color
 
   false_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B08'
-      modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B04'
-      modifiers: [effective_solar_pathlength_corrected]
-    - name: 'B03'
-      modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B08'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B04'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      - name: 'B03'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: natural_color
 
   ndvi:
@@ -331,12 +331,16 @@ composites:
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B08
-        - name: B04
+          - name: B08
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: B04
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B08
-        - name: B04
+          - name: B08
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: B04
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: ndvi_msi
 
   ndmi:
@@ -348,12 +352,16 @@ composites:
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B08
-        - name: B11
+          - name: B08
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: B11
+            modifiers: [effective_solar_pathlength_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B08
-        - name: B11
+          - name: B08
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: B11
+            modifiers: [effective_solar_pathlength_corrected]
     standard_name: ndmi_msi
 
   ndwi:
@@ -365,12 +373,16 @@ composites:
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B03
-        - name: B08
+          - name: B03
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: B08
+            modifiers: [effective_solar_pathlength_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B03
-        - name: B08
+          - name: B03
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: B08
+            modifiers: [effective_solar_pathlength_corrected]
     standard_name: ndwi_msi
 
   ndsi:
@@ -379,59 +391,78 @@ composites:
     compositor: !!python/name:satpy.composites.MaskingCompositor
     prerequisites:
     - name: B11
+      modifiers: [effective_solar_pathlength_corrected]
     - compositor: !!python/name:satpy.composites.RatioCompositor
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B03
-        - name: B11
+          - name: B03
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: B11
+            modifiers: [effective_solar_pathlength_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B03
-        - name: B11
+          - name: B03
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: B11
+            modifiers: [effective_solar_pathlength_corrected]
     conditions:
     - method: less_equal
       value: 0.42
+      transparency: 100
+    - method: isnan
       transparency: 100
     standard_name: ndsi_msi
 
   ndsi_with_true_color:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     prerequisites:
-    - name: ndsi
-    - name: true_color
+      - name: ndsi
+      - name: true_color
     standard_name: no_enhancement
 
   true_color_l2a:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B04_L2A'
-    - name: 'B03_L2A'
-    - name: 'B02_L2A'
+      - name: 'B04_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+      - name: 'B03_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+      - name: 'B02_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     standard_name: true_color
 
   natural_color_l2a:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B11_L2A'
-    - name: 'B08_L2A'
-    - name: 'B04_L2A'
+      - name: 'B11_L2A'
+        modifiers: [esa_sunz_corrected]
+      - name: 'B08_L2A'
+        modifiers: [esa_sunz_corrected]
+      - name: 'B04_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     standard_name: natural_color
 
   urban_color_l2a:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B12_L2A'
-    - name: 'B11_L2A'
-    - name: 'B04_L2A'
+      - name: 'B12_L2A'
+        modifiers: [esa_sunz_corrected]
+      - name: 'B11_L2A'
+        modifiers: [esa_sunz_corrected]
+      - name: 'B04_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     standard_name: natural_color
 
   false_color_l2a:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'B08_L2A'
-    - name: 'B04_L2A'
-    - name: 'B03_L2A'
+      - name: 'B08_L2A'
+        modifiers: [esa_sunz_corrected]
+      - name: 'B04_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+      - name: 'B03_L2A'
+        modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     standard_name: natural_color
 
   aerosol_optical_thickness:
@@ -463,12 +494,16 @@ composites:
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B08_L2A
-        - name: B04_L2A
+          - name: B08_L2A
+            modifiers: [esa_sunz_corrected]
+          - name: B04_L2A
+            modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B08_L2A
-        - name: B04_L2A
+          - name: B08_L2A
+            modifiers: [esa_sunz_corrected]
+          - name: B04_L2A
+            modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
     standard_name: ndvi_msi
 
   ndmi_l2a:
@@ -480,12 +515,16 @@ composites:
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B8A_L2A
-        - name: B11_L2A
+          - name: B8A_L2A
+            modifiers: [esa_sunz_corrected]
+          - name: B11_L2A
+            modifiers: [esa_sunz_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B8A_L2A
-        - name: B11_L2A
+          - name: B8A_L2A
+            modifiers: [esa_sunz_corrected]
+          - name: B11_L2A
+            modifiers: [esa_sunz_corrected]
     standard_name: ndmi_msi
 
   ndwi_l2a:
@@ -497,12 +536,16 @@ composites:
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B03_L2A
-        - name: B08_L2A
+          - name: B03_L2A
+            modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+          - name: B08_L2A
+            modifiers: [esa_sunz_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B03_L2A
-        - name: B08_L2A
+          - name: B03_L2A
+            modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+          - name: B08_L2A
+            modifiers: [esa_sunz_corrected]
     standard_name: ndwi_msi
 
   ndsi_l2a:
@@ -511,25 +554,32 @@ composites:
     compositor: !!python/name:satpy.composites.MaskingCompositor
     prerequisites:
     - name: B11_L2A
+      modifiers: [esa_sunz_corrected]
     - compositor: !!python/name:satpy.composites.RatioCompositor
       prerequisites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
-        - name: B03_L2A
-        - name: B11_L2A
+          - name: B03_L2A
+            modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+          - name: B11_L2A
+            modifiers: [esa_sunz_corrected]
       - compositor: !!python/name:satpy.composites.SumCompositor
         prerequisites:
-        - name: B03_L2A
-        - name: B11_L2A
+          - name: B03_L2A
+            modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+          - name: B11_L2A
+            modifiers: [esa_sunz_corrected]
     conditions:
     - method: less_equal
       value: 0.42
+      transparency: 100
+    - method: isnan
       transparency: 100
     standard_name: ndsi_msi
 
   ndsi_l2a_with_true_color_l2a:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     prerequisites:
-    - name: ndsi_l2a
-    - name: true_color_l2a
+      - name: ndsi_l2a
+      - name: true_color_l2a
     standard_name: no_enhancement
