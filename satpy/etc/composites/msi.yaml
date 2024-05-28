@@ -150,6 +150,7 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: 'B11'
+      modifiers: [effective_solar_pathlength_corrected]
     - name: 'B08'
       modifiers: [effective_solar_pathlength_corrected]
     - name: 'B04'
