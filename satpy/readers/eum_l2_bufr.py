@@ -55,12 +55,8 @@ data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "
                     57: {"ssp": "E0095", "name": "MSG3"}, 70: {"ssp": "E0000", "name": "MSG4"},
                     71: {"ssp": "E0000", "name": "MTGi1"}}
 
-# This is the size number of pixels making a segment
-seg_size_dict = {"seviri_l2_bufr_asr": 16, "seviri_l2_bufr_cla": 16,
-                 "seviri_l2_bufr_csr": 16, "seviri_l2_bufr_gii": 3,
-                 "seviri_l2_bufr_thu": 16, "seviri_l2_bufr_toz": 3,
-                 "seviri_l2_bufr_amv": None,
-                 "fci_l2_bufr_asr": 32, "fci_l2_bufr_amv": None}
+# sensor resolution (pixel size in m)
+resolution_dict = {"fci": 1000, "seviri": 3000}
 
 
 # List of variables that are returned by eccodes as array, but we want as single value
@@ -124,12 +120,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             self.bufr_header["RectificationLongitude"] = f"E{int(rectification_longitude * 10):04d}"
 
         self.filetype = filetype_info["file_type"]
-        self.seg_size = seg_size_dict[self.filetype]
-        if self.seg_size:
-            # make this keyword not usable for non-grided products
-            self.with_adef = with_area_definition
-        else:
-            self.with_adef = False
+        self.with_adef = with_area_definition
 
     @property
     def start_time(self):
@@ -254,7 +245,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """
         arr = self.get_array(dataset_info["key"])
 
-        if self.with_adef:
+        if self.with_adef and not isinstance(dataset_id["resolution"],str):
             xarr = self.get_dataset_with_area_def(arr, dataset_id)
             # coordinates are not relevant when returning data with an AreaDefinition
             if "coordinates" in dataset_info.keys():
@@ -309,7 +300,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
         # Datasets with a segment size of 3 pixels extend outside the original SEVIRI 3km grid (with 1238 x 1238
         # segments a 3 pixels). Hence, we need to use corresponding area defintions in areas.yaml
-        if self.seg_size == 3:
+        if self.sensor_name=="seviri" and round(dataset_id["resolution"])==9001:
             area_naming["area_id"] += "_ext"
             area_naming["description"] += " (extended outside original 3km grid)"
 
@@ -323,5 +314,9 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         xarr.attrs["sensor"] = self.sensor_name.upper()
         xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs["ssp_lon"] = self.ssp_lon
-        xarr.attrs["seg_size"] = self.seg_size
+        if isinstance(dataset_info["resolution"],str):
+            xarr.attrs["seg_size"] = "none"
+        else:
+            xarr.attrs["seg_size"] = round(dataset_info["resolution"]/resolution_dict[self.sensor_name])
+
         xarr.attrs.update(dataset_info)

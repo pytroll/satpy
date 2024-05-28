@@ -3,7 +3,7 @@ reader:
   short_name: FCI l2 BUFR
   long_name: MTGi Level 2 products in BUFR format
   description: FCI L2 BUFR Product Reader
-  status: Alpha, AMV BUFR products not supported yet
+  status: Alpha
   supports_fsspec: false
   sensors: [fci]
   default_channels: []
@@ -24,8 +24,8 @@ datasets:
   latitude:
     name: latitude
     key: '#1#latitude'
-    resolution: [32000, none]
-    file_type: [fci_l2_bufr_asr, fci_l2_bufr_amv]
+    resolution: [32000, 0]
+    file_type: [fci_l2_bufr_asr]
     standard_name: latitude
     units: degree_north
     fill_value: -1.e+100
@@ -33,13 +33,32 @@ datasets:
   longitude:
     name: longitude
     key: '#1#longitude'
-    resolution: [32000, none]
-    file_type: [fci_l2_bufr_asr, fci_l2_bufr_amv]
+    resolution: [32000, 0]
+    file_type: [fci_l2_bufr_asr]
     standard_name: longitude
     units: degree_east
     fill_value: -1.e+100
 
+
   # ---- AMV products ------------
+  latitude_amv:
+    name: latitude_amv
+    key: '#1#latitude'
+    resolution: none
+    file_type: fci_l2_bufr_amv
+    standard_name: latitude
+    units: degree_north
+    fill_value: -1.e+100
+
+  longitude_amv:
+    name: longitude_amv
+    key: '#1#longitude'
+    resolution: none
+    file_type: fci_l2_bufr_amv
+    standard_name: longitude
+    units: degree_east
+    fill_value: -1.e+100
+
   pressure:
     name: pressure
     long_name: Pressure of AMV feature
@@ -50,8 +69,8 @@ datasets:
     units: Pa
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   temperature:
     name: temperature
@@ -63,8 +82,8 @@ datasets:
     units: K
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   height:
     name: height
@@ -76,8 +95,8 @@ datasets:
     units: m
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   direction:
     name: direction
@@ -89,8 +108,8 @@ datasets:
     units: degree_north
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   speed:
     name: speed
@@ -102,8 +121,8 @@ datasets:
     units: m/s
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   speed_u_component:
     name: speed_u_component
@@ -115,8 +134,8 @@ datasets:
     units: m/s
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   speed_v_component:
     name: speed_v_component
@@ -128,8 +147,8 @@ datasets:
     units: m/s
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   target_type:
     name: target_type
@@ -141,8 +160,8 @@ datasets:
     units: ""
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   wind_method:
     name: wind_method
@@ -154,8 +173,8 @@ datasets:
     units: ""
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   qi:
     name: qi
@@ -167,8 +186,8 @@ datasets:
     units: '%'
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   qi_excl_fcst:
     name: qi_excl_fcst
@@ -180,8 +199,8 @@ datasets:
     units: '%'
     fill_value: -1.0e+100
     coordinates:
-      - longitude
-      - latitude
+      - longitude_amv
+      - latitude_amv
 
   channel_id:
     name: channel_id
@@ -193,8 +212,8 @@ datasets:
     units: ""
     fill_value: -1.0e+100
     coordinates:
-    - longitude
-    - latitude
+      - longitude_amv
+      - latitude_amv
 
   # ---- ASR products ------------
   bt_mean_all_ir38:

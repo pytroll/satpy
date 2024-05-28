@@ -106,7 +106,7 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "seg_size": 3,
                 "file_type": "seviri_l2_bufr_gii",
                 "key": "#1#brightnessTemperature",
-                "resolution": 9000},
+                "resolution": 9001},
              "ASRBUFRProd_20231022224500Z_00_OMPEFS03_MET10_FES_E0000": {
                 "platform_name": "MSG3",
                 "spacecraft_number": "10",
@@ -116,17 +116,17 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "seg_size": 16,
                 "file_type": "seviri_l2_bufr_asr",
                 "key": "#1#brightnessTemperature",
-                "resolution": 48000},
+                "resolution": 48006},
              "AMVBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455": {
                 "platform_name": "MSG2",
                 "spacecraft_number": "9",
                 "RectificationLongitude": "E0455",
                 "area": AREA_DEF_MSG_IODC,
                 "ssp_lon": 45.5,
-                "seg_size": None,
+                "seg_size": "none",
                 "file_type": "seviri_l2_bufr_amv",
                 "key": "#1#brightnessTemperature",
-                "resolution": 72009.675979608},
+                "resolution": "none"},
              "MSG2-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr": {
                 "platform_name": "MSG2",
                 "spacecraft_number": "9",
@@ -136,7 +136,7 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "seg_size": 16,
                 "file_type": "seviri_l2_bufr_asr",
                 "key": "#1#brightnessTemperature",
-                "resolution": 48000},
+                "resolution": 48006},
              """W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-ASR--FD------BUFR_C_EUMT_
              20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin""": {
                 "platform_name": "MTGi1",
@@ -155,10 +155,10 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "RectificationLongitude": "E0000",
                 "area": AREA_DEF_FCI_FES,
                 "ssp_lon": 0.0,
-                "seg_size": None,
+                "seg_size": "none",
                 "file_type": "fci_l2_bufr_amv",
                 "key": "#1#brightnessTemperature",
-                "resolution": "null"}}
+                "resolution": "none"}}
 
 TEST_FILES = list(TEST_DATA.keys())
 
@@ -300,7 +300,7 @@ class TestL2BufrReader:
 
     def test_data_with_area_definition(self, input_file):
         """Test data loaded with an area definition."""
-        if TEST_DATA[input_file]["seg_size"] is None:
+        if TEST_DATA[input_file]["seg_size"] == "none":
             # Skip this test
             return
 
@@ -311,6 +311,7 @@ class TestL2BufrReader:
         z = bufr_obj.get_data(dataset_name="TestData", key=TEST_DATA[input_file]["key"], coordinates=True)
 
         ad = bufr_obj.fh.get_area_def(None)
+
         assert ad == TEST_DATA[input_file]["area"]
         data_1d = np.concatenate((DATA, DATA), axis=0)
 
@@ -327,7 +328,7 @@ class TestL2BufrReader:
 
     def test_data_with_rect_lon(self, input_file):
         """Test data loaded with an area definition and a rectification longitude."""
-        if TEST_DATA[input_file]["seg_size"] is None:
+        if TEST_DATA[input_file]["seg_size"] == "none":
             # Skip this test
             return
 
@@ -377,10 +378,14 @@ class TestAMVBufrReader:
     @staticmethod
     def test_amv_with_area_def():
         """Test that AMV data can not be loaded with an area definition."""
-        bufr_obj = AMVBufrData("AMVBUFRProd_20231023044500Z_00_OMPEFS02_MET09_FES_E0455")
-        assert bufr_obj.fh.with_adef is False
+        # The way to test this is to try load a variable with with_adef=True
+        # The reader shall ignore this flag and return a 1D array, not a 2D
 
         input_file = """W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-AMV--FD------BUFR_C_EUMT_
 20230623092246_L2PF_IV_20170410170000_20170410171000_V__C_0103_0000.bin"""
-        bufr_obj = AMVBufrData(input_file)
-        assert bufr_obj.fh.with_adef is False
+        bufr_obj = L2BufrData(input_file, with_adef=True)
+        _ = bufr_obj.get_data("latitude", "#1#latitude", coordinates=False)
+        _ = bufr_obj.get_data("longitude", "#1#longitude", coordinates=False)
+        z = bufr_obj.get_data(dataset_name="TestData", key=TEST_DATA[input_file]["key"], coordinates=True)
+
+        assert len(z.dims) == 1

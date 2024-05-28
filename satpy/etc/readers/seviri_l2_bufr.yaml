@@ -66,7 +66,7 @@ datasets:
     long_name: Latitude
     standard_name: latitude
     resolution: [48006.450653072,9001.209497451,72009.675979608]
-    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
+    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
     units: degree_north
     fill_value: -1.e+100
 
@@ -74,7 +74,7 @@ datasets:
     name: longitude
     key: '#1#longitude'
     resolution: [48006.450653072,9001.209497451,72009.675979608]
-    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
+    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
     long_name: Longitude
     standard_name: longitude
     units: degree_east
@@ -1246,6 +1246,24 @@ datasets:
     flag_meanings: ['not processed', 'first guess', 'high cloud (not processed)', 'successful retrieval', 'bad retrieval']
 
   # ---- AMV products ------------
+  latitude_amv:
+    name: latitude_amv
+    key: '#1#latitude'
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    standard_name: latitude
+    units: degree_north
+    fill_value: -1.e+100
+
+  longitude_amv:
+    name: longitude_amv
+    key: '#1#longitude'
+    resolution: none
+    file_type: seviri_l2_bufr_amv
+    standard_name: longitude
+    units: degree_east
+    fill_value: -1.e+100
+
   pressure:
     name: pressure
     long_name: Air Pressure at Wind Level
