@@ -56,7 +56,7 @@ data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "
                     71: {"ssp": "E0000", "name": "MTGi1"}}
 
 # sensor resolution (pixel size in m)
-resolution_dict = {"fci": 1000, "seviri": 3000}
+resolution_dict = {"fci": 2000, "seviri": 3000}
 
 
 # List of variables that are returned by eccodes as array, but we want as single value
@@ -245,7 +245,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """
         arr = self.get_array(dataset_info["key"])
 
-        if self.with_adef and not isinstance(dataset_id["resolution"],str):
+        if self.with_adef and "resolution" in dataset_id:
             xarr = self.get_dataset_with_area_def(arr, dataset_id)
             # coordinates are not relevant when returning data with an AreaDefinition
             if "coordinates" in dataset_info.keys():
@@ -314,8 +314,9 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         xarr.attrs["sensor"] = self.sensor_name.upper()
         xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs["ssp_lon"] = self.ssp_lon
-        if isinstance(dataset_info["resolution"],str):
-            xarr.attrs["seg_size"] = "none"
+        if ("resolution" not in dataset_info) or (dataset_info["resolution"] is None):
+            xarr.attrs["seg_size"] = None
+            xarr.attrs["resolution"] = None
         else:
             xarr.attrs["seg_size"] = round(dataset_info["resolution"]/resolution_dict[self.sensor_name])
 

@@ -123,10 +123,10 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "RectificationLongitude": "E0455",
                 "area": AREA_DEF_MSG_IODC,
                 "ssp_lon": 45.5,
-                "seg_size": "none",
+                "seg_size": None,
                 "file_type": "seviri_l2_bufr_amv",
                 "key": "#1#brightnessTemperature",
-                "resolution": "none"},
+                "resolution": None},
              "MSG2-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr": {
                 "platform_name": "MSG2",
                 "spacecraft_number": "9",
@@ -144,7 +144,7 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "RectificationLongitude": "E0000",
                 "area": AREA_DEF_FCI_FES,
                 "ssp_lon": 0.0,
-                "seg_size": 32,
+                "seg_size": 16,
                 "file_type": "fci_l2_bufr_asr",
                 "key": "#1#brightnessTemperature",
                 "resolution": 32000},
@@ -155,10 +155,10 @@ TEST_DATA = {"GIIBUFRProduct_20231027140000Z_00_OMPEFS03_MET10_FES_E0000": {
                 "RectificationLongitude": "E0000",
                 "area": AREA_DEF_FCI_FES,
                 "ssp_lon": 0.0,
-                "seg_size": "none",
+                "seg_size": None,
                 "file_type": "fci_l2_bufr_amv",
                 "key": "#1#brightnessTemperature",
-                "resolution": "none"}}
+                "resolution": None}}
 
 TEST_FILES = list(TEST_DATA.keys())
 
@@ -300,7 +300,7 @@ class TestL2BufrReader:
 
     def test_data_with_area_definition(self, input_file):
         """Test data loaded with an area definition."""
-        if TEST_DATA[input_file]["seg_size"] == "none":
+        if TEST_DATA[input_file]["seg_size"] is None:
             # Skip this test
             return
 
@@ -328,7 +328,7 @@ class TestL2BufrReader:
 
     def test_data_with_rect_lon(self, input_file):
         """Test data loaded with an area definition and a rectification longitude."""
-        if TEST_DATA[input_file]["seg_size"] == "none":
+        if TEST_DATA[input_file]["seg_size"] is None:
             # Skip this test
             return
 
