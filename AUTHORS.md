@@ -90,3 +90,4 @@ The following people have made contributions to this project:
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
+- [Sara Hörnquist (shornqui)](https://github.com/shornqui)
