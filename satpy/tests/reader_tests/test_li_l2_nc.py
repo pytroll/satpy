@@ -598,7 +598,6 @@ class TestLIL2():
 
     def test_coords_generation(self, filetype_infos):
         """Compare daskified coords generation results with non-daskified."""
-        # Prepare dummy (but somewhat realistic) arrays of azimuth/elevation values.
         products = ["li_l2_af_nc",
                     "li_l2_afr_nc",
                     "li_l2_afa_nc"]
@@ -633,6 +632,7 @@ class TestLIL2():
             projection = Proj(proj_dict)
             azimuth_vals = azimuth.values * point_height
             elevation_vals = elevation.values * point_height
+            azimuth_vals *= -1
             lon_ref, lat_ref = projection(azimuth_vals, elevation_vals, inverse=True)
             # Convert to float32:
             lon_ref = lon_ref.astype(np.float32)
@@ -645,6 +645,30 @@ class TestLIL2():
             # Compare the arrays, should be the same:
             np.testing.assert_equal(lon, lon_ref)
             np.testing.assert_equal(lat, lat_ref)
+
+    def test_coords_and_grid_consistency(self, filetype_infos):
+        """Compare computed latlon coords for 1-d version with latlon from areadef as for the gridded version."""
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
+                                    with_area_definition=True)
+
+        # Get cols/rows arrays from handler
+        x = handler.get_measured_variable(handler.swath_coordinates["azimuth"])
+        y = handler.get_measured_variable(handler.swath_coordinates["elevation"])
+        cols = x.astype(int) - 1
+        rows = (LI_GRID_SHAPE[0] - y.astype(int))
+
+        # compute lonlat from 1-d coords generation (called when with_area_definition==False)
+        handler.generate_coords_from_scan_angles()
+        lon = handler.internal_variables["longitude"].values
+        lat = handler.internal_variables["latitude"].values
+
+        # compute lonlat from 2-d areadef
+        dsid = make_dataid(name="flash_accumulation")
+        area_def = handler.get_area_def(dsid)
+        lon_areadef, lat_areadef = area_def.get_lonlat_from_array_coordinates(cols, rows)
+
+        np.testing.assert_allclose(lon, lon_areadef, rtol=1e-3)
+        np.testing.assert_allclose(lat, lat_areadef, rtol=1e-3)
 
     def test_get_area_def_acc_products(self, filetype_infos):
         """Test retrieval of area def for accumulated products."""

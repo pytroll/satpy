@@ -107,7 +107,7 @@ class LIL2NCFileHandler(LINCFileHandler):
         if var_with_swath_coord and self.with_area_def:
             return get_area_def("mtg_fci_fdss_2km")
 
-        raise NotImplementedError("Area definition is not supported for accumulated products.")
+        raise NotImplementedError("Area definition is not supported for non-accumulated products.")
 
     def is_var_with_swath_coord(self, dsid):
         """Check if the variable corresponding to this dataset is listed as variable with swath coordinates."""
