@@ -405,7 +405,6 @@ class Interpolator:
         """
         # Compute mean timestamp per scanline
         time = time2d.mean(dim="x")
-
         # If required, repeat timestamps in y-direction to obtain higher
         # resolution
         y = time.coords["y"].values
@@ -453,30 +452,36 @@ def is_high_resol(resolution):
 class DatasetWrapper:
     """Helper class for accessing the dataset."""
 
-    def __init__(self, nc):
+    def __init__(self, nc, decode_nc=True):
         """Wrap the given dataset."""
         self.nc = nc
 
-        # remove time before decoding and add again.
-        raw_time = nc["time_ir_wv"]
-        self.nc = self.nc.drop_vars(["time_ir_wv"])
-        self.nc = xr.decode_cf(self.nc)
-        self.nc["time_ir_wv"] = raw_time
+        if decode_nc is True:
+            self._decode_cf()
+            self._fix_duplicate_dimensions(self.nc)
+            self.nc = self._chunk(self.nc)
 
-        self._fix_duplicate_dimensions(self.nc)
-        self.nc = self._chunk(self.nc)
+    def _decode_cf(self):
+        # remove time before decoding and add again.
+        time = self.get_time()
+        time_dims = self.nc["time_ir_wv"].dims
+        time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
+                        (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
+        self.nc = self.nc.drop_vars(time.name)
+        self.nc = xr.decode_cf(self.nc)
+        self.nc[time.name] = (time_dims, time.values)
 
     def _fix_duplicate_dimensions(self, nc):
         nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
 
     def _chunk(self, nc):
 
-        (chunk_size, chunk_size) = nc.variables["quality_pixel_bitmask"].encoding["chunksizes"]
+        (chunk_size_y, chunk_size_x) = nc.variables["quality_pixel_bitmask"].encoding["chunksizes"]
         chunks = {
-            "x": chunk_size,
-            "y": chunk_size,
-            "x_ir_wv": chunk_size,
-            "y_ir_wv": chunk_size
+            "x": chunk_size_x,
+            "y": chunk_size_y,
+            "x_ir_wv": chunk_size_x,
+            "y_ir_wv": chunk_size_y
         }
         return nc.chunk(chunks)
 
@@ -534,17 +539,11 @@ class DatasetWrapper:
         """Get time coordinate.
 
         Variable is sometimes named "time" and sometimes "time_ir_wv".
-        FillValues in time are set to NaT, others converted to datetime64.
         """
         try:
-            time = self["time_ir_wv"]
+            return self["time_ir_wv"]
         except KeyError:
-            time = self["time"]
-
-        time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
-                        (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
-
-        return time
+            return self["time"]
 
     def get_xy_coords(self, resolution):
         """Get x and y coordinates for the given resolution."""

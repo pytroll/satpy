@@ -28,7 +28,7 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
@@ -329,7 +329,6 @@ def fixture_fake_dataset():
     ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
     ds["time_ir_wv"].attrs["_FillValue"] = 4294967295
     ds["time_ir_wv"].attrs["add_offset"] = 0
-
     return ds
 
 
@@ -416,7 +415,6 @@ class TestFiduceoMviriFileHandlers:
             xr.testing.assert_allclose(ds, expected)
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
-            assert True
 
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
@@ -602,7 +600,7 @@ class TestDatasetWrapper:
                 "x": [.3, .4]
             }
         )
-        ds = DatasetWrapper(nc)
+        ds = DatasetWrapper(nc, decode_nc=False)
         foo = ds["foo"]
         xr.testing.assert_equal(foo, foo_exp)
 
