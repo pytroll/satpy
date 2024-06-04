@@ -32,14 +32,14 @@ class TestGenericImage(unittest.TestCase):
 
     def setUp(self):
         """Create temporary images to test on."""
+        import datetime as dt
         import tempfile
-        from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
 
         from satpy.scene import Scene
 
-        self.date = datetime(2018, 1, 1)
+        self.date = dt.datetime(2018, 1, 1)
 
         # Create area definition
         pcs_id = "ETRS89 / LAEA Europe"

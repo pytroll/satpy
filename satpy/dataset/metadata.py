@@ -15,11 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Utilities for merging metadata from various sources."""
 
+import datetime as dt
 import warnings
 from collections.abc import Collection
-from datetime import datetime
 from functools import partial, reduce
 from operator import eq, is_
 
@@ -135,7 +136,7 @@ def _combine_time_parameters(values):
 
 def _filter_time_values(values):
      """Remove values that are not datetime objects."""
-     return [v for v in values if isinstance(v, datetime)]
+     return [v for v in values if isinstance(v, dt.datetime)]
 
 
 def average_datetimes(datetime_list):
@@ -152,8 +153,8 @@ def average_datetimes(datetime_list):
     Returns: Average datetime as a datetime object
 
     """
-    total = [datetime.timestamp(dt) for dt in datetime_list]
-    return datetime.fromtimestamp(sum(total) / len(total))
+    total = [dt.datetime.timestamp(d) for d in datetime_list]
+    return dt.datetime.fromtimestamp(sum(total) / len(total))
 
 
 def _are_values_combinable(values):

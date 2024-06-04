@@ -29,8 +29,8 @@ http://www.tropomi.eu/data-products/level-2-products
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -65,12 +65,12 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
     @property
     def time_coverage_start(self):
         """Get time_coverage_start."""
-        return datetime.strptime(self["/attr/time_coverage_start"], DATE_FMT)
+        return dt.datetime.strptime(self["/attr/time_coverage_start"], DATE_FMT)
 
     @property
     def time_coverage_end(self):
         """Get time_coverage_end."""
-        return datetime.strptime(self["/attr/time_coverage_end"], DATE_FMT)
+        return dt.datetime.strptime(self["/attr/time_coverage_end"], DATE_FMT)
 
     @property
     def sensor(self):

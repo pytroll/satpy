@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """File handler for DSCOVR EPIC L1B data in hdf5 format.
 
 The ``epic_l1b_h5`` reader reads and calibrates EPIC L1B image data in hdf5 format.
@@ -37,8 +38,8 @@ By default, channel data is loaded as calibrated reflectances, but counts data i
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -74,13 +75,13 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        start_time = datetime.strptime(self.file_content["/attr/begin_time"], "%Y-%m-%d %H:%M:%S")
+        start_time = dt.datetime.strptime(self.file_content["/attr/begin_time"], "%Y-%m-%d %H:%M:%S")
         return start_time
 
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.strptime(self.file_content["/attr/end_time"], "%Y-%m-%d %H:%M:%S")
+        end_time = dt.datetime.strptime(self.file_content["/attr/end_time"], "%Y-%m-%d %H:%M:%S")
         return end_time
 
     @staticmethod

@@ -15,15 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Shared objects of the various reader classes."""
+
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import os
 import pathlib
 import pickle  # nosec B403
 import warnings
-from datetime import datetime, timedelta
 from functools import total_ordering
 
 import yaml
@@ -213,7 +215,7 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
     # interest of sorting
     flat_keys = ((v[0], rn, v[1]) for (rn, vL) in all_file_keys.items() for v in vL)
     prev_key = None
-    threshold = timedelta(seconds=time_threshold)
+    threshold = dt.timedelta(seconds=time_threshold)
     # file_groups is sorted, because dictionaries are sorted by insertion
     # order in Python 3.7+
     file_groups = {}
@@ -222,7 +224,7 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
         if prev_key is None:
             is_new_group = True
             prev_key = gk
-        elif isinstance(gk[0], datetime):
+        elif isinstance(gk[0], dt.datetime):
             # datetimes within threshold difference are "the same time"
             is_new_group = (gk[0] - prev_key[0]) > threshold
         else:
