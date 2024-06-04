@@ -15,12 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Unittesting the ASCAT SCATTEROMETER SOIL MOISTURE BUFR reader."""
 
+import datetime as dt
 import os
 import sys
 import unittest
-from datetime import datetime
 
 import numpy as np
 
@@ -152,8 +153,8 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         fname = os.path.join(self.base_dir, FILENAME)
         scn = Scene(reader="ascat_l2_soilmoisture_bufr", filenames=[fname])
         assert "scatterometer" in scn.sensor_names
-        assert datetime(2020, 12, 21, 9, 33, 0) == scn.start_time
-        assert datetime(2020, 12, 21, 9, 33, 59) == scn.end_time
+        assert dt.datetime(2020, 12, 21, 9, 33, 0) == scn.start_time
+        assert dt.datetime(2020, 12, 21, 9, 33, 59) == scn.end_time
 
     @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):

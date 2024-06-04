@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reading and calibrating GAC and LAC AVHRR data.
 
 Uses Pygac under the hood. See the `Pygac Documentation`_ for supported data
@@ -29,8 +30,8 @@ formats as well as calibration and navigation methods.
     https://pygac.readthedocs.io/en/stable
 """
 
+import datetime as dt
 import logging
-from datetime import date, datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -93,14 +94,14 @@ class GACLACFile(BaseFileHandler):
         self.first_valid_lat = None
         self.last_valid_lat = None
         self._start_time = filename_info["start_time"]
-        self._end_time = datetime.combine(filename_info["start_time"].date(),
-                                          filename_info["end_time"].time())
+        self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
+                                             filename_info["end_time"].time())
         if self._end_time < self._start_time:
-            self._end_time += timedelta(days=1)
+            self._end_time += dt.timedelta(days=1)
         self.platform_id = filename_info["platform_id"]
 
         if len(self.platform_id) == 3:
-            self.reader_kwargs["header_date"] = date(2000, 1, 1)
+            self.reader_kwargs["header_date"] = dt.date(2000, 1, 1)
 
         if self._is_avhrr3():
             if filename_info.get("transfer_mode") == "GHRR":
@@ -184,8 +185,8 @@ class GACLACFile(BaseFileHandler):
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
-        self._start_time = times[0].astype(datetime)
-        self._end_time = times[-1].astype(datetime)
+        self._start_time = times[0].astype(dt.datetime)
+        self._end_time = times[-1].astype(dt.datetime)
 
         # Select user-defined scanlines and/or strip invalid coordinates
         if (self.start_line is not None or self.end_line is not None
@@ -223,8 +224,8 @@ class GACLACFile(BaseFileHandler):
         """
         sliced = self._slice(data)
         times = self._slice(times)
-        self._start_time = times[0].astype(datetime)
-        self._end_time = times[-1].astype(datetime)
+        self._start_time = times[0].astype(dt.datetime)
+        self._end_time = times[-1].astype(dt.datetime)
         return sliced, times
 
     def _slice(self, data):

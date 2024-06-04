@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the native msg reader."""
 
+import datetime as dt
 import unittest
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -110,7 +110,7 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
         """Set up the SEVIRI Calibration algorithm for testing."""
         self.algo = SEVIRICalibrationAlgorithm(
             platform_id=PLATFORM_ID,
-            scan_time=datetime(2020, 8, 15, 13, 0, 40)
+            scan_time=dt.datetime(2020, 8, 15, 13, 0, 40)
         )
 
     def test_convert_to_radiance(self):
@@ -212,7 +212,7 @@ class TestFileHandlerCalibrationBase:
     gains_gsics = [0, 0, 0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 0]
     offsets_gsics = [0, 0, 0, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1.0, -1.1, 0]
     radiance_types = 2 * np.ones(12)
-    scan_time = datetime(2020, 1, 1)
+    scan_time = dt.datetime(2020, 1, 1)
     external_coefs = {
         "VIS006": {"gain": 10, "offset": -10},
         "IR_108": {"gain": 20, "offset": -20},

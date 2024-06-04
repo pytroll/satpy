@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.msi_safe module."""
 import unittest.mock as mock
+from datetime import datetime
 from io import BytesIO, StringIO
 
 import numpy as np
@@ -24,6 +25,10 @@ import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
+
+# Datetimes used for checking start time is correctly set.
+fname_dt = datetime(2020, 10, 1, 18, 35, 41)
+tilemd_dt = datetime(2020, 10, 1, 16, 34, 23, 153611)
 
 mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <n1:Level-1C_Tile_ID xmlns:n1="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd /gpfs/dpc/app/s2ipf/FORMAT_METADATA_TILE_L1C/02.14.00/scripts/../../../schemas/02.17.00/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd">
@@ -873,6 +878,10 @@ class TestMTDXML:
         self.old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock())
         self.xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=True)
 
+    def test_start_time(self):
+        """Ensure start time is read correctly from XML."""
+        assert self.xml_tile_fh.start_time() == tilemd_dt
+
     def test_satellite_zenith_array(self):
         """Test reading the satellite zenith array."""
         info = dict(xml_tag="Viewing_Incidence_Angles_Grids", xml_item="Zenith")
@@ -919,6 +928,15 @@ class TestMTDXML:
         result = self.xml_fh.calibrate_to_reflectances(fake_data, "B01")
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
                                              [0.04 - 10, 0, 655.34 - 10, np.inf]]])
+
+    def test_xml_calibration_to_counts(self):
+        """Test the calibration to counts."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh._sanitize_data(fake_data)
+        np.testing.assert_allclose(result, [[[np.nan, 1, 2, 3],
+                                             [4, 1000, 65534, np.inf]]])
 
     def test_xml_calibration_unmasked_saturated(self):
         """Test the calibration with radiometric offset but unmasked saturated pixels."""
@@ -971,15 +989,17 @@ class TestSAFEMSIL1C:
     def setup_method(self):
         """Set up the test."""
         from satpy.readers.msi_safe import SAFEMSITileMDXML
-        self.filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
+        self.filename_info = dict(observation_time=fname_dt, fmission_id="S2A", band_name="B01", dtile_number=None)
         self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
         self.tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml),
                                                                self.filename_info, mock.MagicMock())
+        self.tile_mda.start_time.return_value = tilemd_dt
 
     @pytest.mark.parametrize(("mask_saturated", "calibration", "expected"),
                              [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
                               (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
-                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])
+                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]]),
+                              (False, "counts", [[np.nan, 1], [65534, 65535]])])
     def test_calibration_and_masking(self, mask_saturated, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
         from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
@@ -991,3 +1011,13 @@ class TestSAFEMSIL1C:
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
             res = self.jp2_fh.get_dataset(make_dataid(name="B01", calibration=calibration), info=dict())
             np.testing.assert_allclose(res, expected)
+
+
+    def test_start_time(self):
+        """Test that the correct start time is returned."""
+        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
+
+        mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.filename_info, mock.MagicMock())
+        self.jp2_fh = SAFEMSIL1C("somefile", self.filename_info, mock.MagicMock(),
+                                 mda, self.tile_mda)
+        assert tilemd_dt == self.jp2_fh.start_time

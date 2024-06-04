@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Interface to MTG-FCI L1c NetCDF files.
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
@@ -111,8 +112,8 @@ All auxiliary data can be obtained by prepending the channel name such as
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import datetime as dt
 import logging
-from datetime import timedelta
 from functools import cached_property
 
 import dask.array as da
@@ -227,12 +228,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def nominal_start_time(self):
         """Get nominal start time."""
         rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        return rc_date + timedelta(minutes=(self.filename_info["repeat_cycle_in_day"]-1)*self.rc_period_min)
+        return rc_date + dt.timedelta(
+            minutes=(self.filename_info["repeat_cycle_in_day"]-1)*self.rc_period_min)
 
     @property
     def nominal_end_time(self):
         """Get nominal end time."""
-        return self.nominal_start_time + timedelta(minutes=self.rc_period_min)
+        return self.nominal_start_time + dt.timedelta(minutes=self.rc_period_min)
 
     @property
     def observation_start_time(self):

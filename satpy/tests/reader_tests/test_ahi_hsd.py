@@ -15,13 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The ahi_hsd reader tests package."""
+
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import unittest
 import warnings
-from datetime import datetime
 from typing import Any, Dict
 from unittest import mock
 
@@ -340,10 +342,10 @@ class TestAHIHSDFileHandler:
                 np.testing.assert_allclose(value, actual_obs_params[key])
 
             time_params_exp = {
-                "nominal_start_time": datetime(2018, 10, 22, 3, 0, 0, 0),
-                "nominal_end_time": datetime(2018, 10, 22, 3, 10, 0, 0),
-                "observation_start_time": datetime(2018, 10, 22, 3, 0, 20, 596896),
-                "observation_end_time": datetime(2018, 10, 22, 3, 10, 20, 596896),
+                "nominal_start_time": dt.datetime(2018, 10, 22, 3, 0, 0, 0),
+                "nominal_end_time": dt.datetime(2018, 10, 22, 3, 10, 0, 0),
+                "observation_start_time": dt.datetime(2018, 10, 22, 3, 0, 20, 596896),
+                "observation_end_time": dt.datetime(2018, 10, 22, 3, 10, 20, 596896),
             }
             actual_time_params = im.attrs["time_parameters"]
             for key, value in time_params_exp.items():
@@ -416,12 +418,12 @@ class TestAHIHSDFileHandler:
     def test_time_properties(self):
         """Test start/end/scheduled time properties."""
         with _fake_hsd_handler() as fh:
-            assert fh.start_time == datetime(2018, 10, 22, 3, 0)
-            assert fh.end_time == datetime(2018, 10, 22, 3, 10)
-            assert fh.observation_start_time == datetime(2018, 10, 22, 3, 0, 20, 596896)
-            assert fh.observation_end_time == datetime(2018, 10, 22, 3, 10, 20, 596896)
-            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 10, 0, 0)
+            assert fh.start_time == dt.datetime(2018, 10, 22, 3, 0)
+            assert fh.end_time == dt.datetime(2018, 10, 22, 3, 10)
+            assert fh.observation_start_time == dt.datetime(2018, 10, 22, 3, 0, 20, 596896)
+            assert fh.observation_end_time == dt.datetime(2018, 10, 22, 3, 10, 20, 596896)
+            assert fh.nominal_start_time == dt.datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == dt.datetime(2018, 10, 22, 3, 10, 0, 0)
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
@@ -639,14 +641,14 @@ class TestNominalTimeCalculator:
     @pytest.mark.parametrize(
         ("timeline", "expected"),
         [
-            ("0300", datetime(2020, 1, 1, 3, 0, 0)),
-            ("65526", datetime(2020, 1, 1, 12, 0, 0))
+            ("0300", dt.datetime(2020, 1, 1, 3, 0, 0)),
+            ("65526", dt.datetime(2020, 1, 1, 12, 0, 0))
         ]
     )
     def test_invalid_timeline(self, timeline, expected):
         """Test handling of invalid timeline."""
         calc = _NominalTimeCalculator(timeline, "FLDK")
-        res = calc.get_nominal_start_time(datetime(2020, 1, 1, 12, 0, 0))
+        res = calc.get_nominal_start_time(dt.datetime(2020, 1, 1, 12, 0, 0))
         assert res == expected
 
     @pytest.mark.parametrize(
@@ -654,49 +656,49 @@ class TestNominalTimeCalculator:
         [
             (
                 "JP01",
-                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
-                 "tend": datetime(2018, 10, 22, 3, 2, 30)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 2, 30)}
             ),
             (
                 "JP04",
-                {"tstart": datetime(2018, 10, 22, 3, 7, 30, 0),
-                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 7, 30, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 10, 0, 0)}
             ),
             (
                 "R301",
-                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
-                 "tend": datetime(2018, 10, 22, 3, 2, 30)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 2, 30)}
             ),
             (
                 "R304",
-                {"tstart": datetime(2018, 10, 22, 3, 7, 30, 0),
-                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 7, 30, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 10, 0, 0)}
             ),
             (
                 "R401",
-                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
-                 "tend": datetime(2018, 10, 22, 3, 0, 30)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 0, 30)}
             ),
             (
                 "R420",
-                {"tstart": datetime(2018, 10, 22, 3, 9, 30, 0),
-                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 9, 30, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 10, 0, 0)}
             ),
             (
                 "R501",
-                {"tstart": datetime(2018, 10, 22, 3, 0, 0),
-                 "tend": datetime(2018, 10, 22, 3, 0, 30)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 0, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 0, 30)}
             ),
             (
                 "R520",
-                {"tstart": datetime(2018, 10, 22, 3, 9, 30, 0),
-                 "tend": datetime(2018, 10, 22, 3, 10, 0, 0)}
+                {"tstart": dt.datetime(2018, 10, 22, 3, 9, 30, 0),
+                 "tend": dt.datetime(2018, 10, 22, 3, 10, 0, 0)}
             ),
         ]
     )
     def test_areas(self, area, expected):
         """Test nominal timestamps for multiple areas."""
-        obs_start_time = datetime(2018, 10, 22, 3, 0, 20, 596896)
+        obs_start_time = dt.datetime(2018, 10, 22, 3, 0, 20, 596896)
         calc = _NominalTimeCalculator("0300", area)
         nom_start_time = calc.get_nominal_start_time(obs_start_time)
         nom_end_time = calc.get_nominal_end_time(nom_start_time)
@@ -708,27 +710,27 @@ class TestNominalTimeCalculator:
         [
             (
                 "2350",
-                datetime(2022, 12, 31, 23, 50, 1),
-                {"tstart": datetime(2022, 12, 31, 23, 50, 0),
-                 "tend": datetime(2023, 1, 1, 0, 0, 0)}
+                dt.datetime(2022, 12, 31, 23, 50, 1),
+                {"tstart": dt.datetime(2022, 12, 31, 23, 50, 0),
+                 "tend": dt.datetime(2023, 1, 1, 0, 0, 0)}
             ),
             (
                 "2350",
-                datetime(2022, 12, 31, 23, 49, 59),
-                {"tstart": datetime(2022, 12, 31, 23, 50, 0),
-                 "tend": datetime(2023, 1, 1, 0, 0, 0)}
+                dt.datetime(2022, 12, 31, 23, 49, 59),
+                {"tstart": dt.datetime(2022, 12, 31, 23, 50, 0),
+                 "tend": dt.datetime(2023, 1, 1, 0, 0, 0)}
             ),
             (
                 "0000",
-                datetime(2023, 1, 1, 0, 0, 1),
-                {"tstart": datetime(2023, 1, 1, 0, 0, 0),
-                 "tend": datetime(2023, 1, 1, 0, 10, 0)}
+                dt.datetime(2023, 1, 1, 0, 0, 1),
+                {"tstart": dt.datetime(2023, 1, 1, 0, 0, 0),
+                 "tend": dt.datetime(2023, 1, 1, 0, 10, 0)}
             ),
             (
                 "0000",
-                datetime(2022, 12, 31, 23, 59, 59),
-                {"tstart": datetime(2023, 1, 1, 0, 0, 0),
-                 "tend": datetime(2023, 1, 1, 0, 10, 0)}
+                dt.datetime(2022, 12, 31, 23, 59, 59),
+                {"tstart": dt.datetime(2023, 1, 1, 0, 0, 0),
+                 "tend": dt.datetime(2023, 1, 1, 0, 10, 0)}
             ),
         ]
     )

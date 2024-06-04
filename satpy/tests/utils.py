@@ -16,8 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
+import datetime as dt
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Any
 from unittest import mock
 
@@ -34,8 +34,10 @@ from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_co
 from satpy.modifiers import ModifierBase
 from satpy.readers.file_handlers import BaseFileHandler
 
-FAKE_FILEHANDLER_START = datetime(2020, 1, 1, 0, 0, 0)
-FAKE_FILEHANDLER_END = datetime(2020, 1, 1, 1, 0, 0)
+FAKE_FILEHANDLER_START = dt.datetime(2020, 1, 1, 0, 0, 0)
+FAKE_FILEHANDLER_END = dt.datetime(2020, 1, 1, 1, 0, 0)
+
+RANDOM_GEN = np.random.default_rng()
 
 
 def make_dataid(**items):

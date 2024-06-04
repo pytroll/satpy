@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """GCOM-W1 AMSR2 Level 2 files from the GAASP software.
 
 GAASP output files are in the NetCDF4 format. Software is provided by NOAA
@@ -36,8 +37,8 @@ dynamically discovered from the provided files.
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 from typing import Tuple
 
 import numpy as np
@@ -94,7 +95,7 @@ class GAASPFileHandler(BaseFileHandler):
             return self.filename_info["start_time"]
         except KeyError:
             time_str = self.nc.attrs["time_coverage_start"]
-            return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return dt.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
@@ -103,7 +104,7 @@ class GAASPFileHandler(BaseFileHandler):
             return self.filename_info["end_time"]
         except KeyError:
             time_str = self.nc.attrs["time_coverage_end"]
-            return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return dt.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def sensor_names(self):

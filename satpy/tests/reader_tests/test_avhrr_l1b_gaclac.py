@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Pygac interface."""
 
-from datetime import date, datetime
+import datetime as dt
 from unittest import TestCase, mock
 
 import dask.array as da
@@ -190,7 +191,7 @@ class TestGACLACFile(GACLACFilePatcher):
                 fh = self._get_eosip_fh(filename, **kwargs)
                 assert fh.start_time < fh.end_time
                 assert fh.reader_class is reader_cls
-                assert fh.reader_kwargs["header_date"] > date(1994, 11, 15)
+                assert fh.reader_kwargs["header_date"] > dt.date(1994, 11, 15)
 
     def test_read_raw_data(self):
         """Test raw data reading."""
@@ -456,8 +457,8 @@ class TestGACLACFile(GACLACFilePatcher):
         data_slc, times_slc = fh.slice(data, times)
         np.testing.assert_array_equal(data_slc, data[1:3])
         np.testing.assert_array_equal(times_slc, times[1:3])
-        assert fh.start_time == datetime(1970, 1, 1, 0, 0, 0, 2)
-        assert fh.end_time == datetime(1970, 1, 1, 0, 0, 0, 3)
+        assert fh.start_time == dt.datetime(1970, 1, 1, 0, 0, 0, 2)
+        assert fh.end_time == dt.datetime(1970, 1, 1, 0, 0, 0, 3)
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_qual_flags")
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._strip_invalid_lat")

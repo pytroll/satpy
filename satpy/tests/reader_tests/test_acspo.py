@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.acspo module."""
 
+import datetime as dt
 import os
-from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
@@ -43,7 +43,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        dt = filename_info.get("start_time", datetime(2016, 1, 1, 12, 0, 0))
+        date = filename_info.get("start_time", dt.datetime(2016, 1, 1, 12, 0, 0))
         sat, inst = {
             "VIIRS_NPP": ("NPP", "VIIRS"),
             "VIIRS_N20": ("N20", "VIIRS"),
@@ -53,8 +53,8 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             "/attr/platform": sat,
             "/attr/sensor": inst,
             "/attr/spatial_resolution": "742 m at nadir",
-            "/attr/time_coverage_start": dt.strftime("%Y%m%dT%H%M%SZ"),
-            "/attr/time_coverage_end": (dt + timedelta(minutes=6)).strftime("%Y%m%dT%H%M%SZ"),
+            "/attr/time_coverage_start": date.strftime("%Y%m%dT%H%M%SZ"),
+            "/attr/time_coverage_end": (date + dt.timedelta(minutes=6)).strftime("%Y%m%dT%H%M%SZ"),
         }
 
         file_content["lat"] = DEFAULT_LAT_DATA

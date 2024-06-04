@@ -25,14 +25,15 @@ import numpy as np
 import pytest
 
 from satpy.readers.epic_l1b_h5 import CALIB_COEFS
+from satpy.tests.utils import RANDOM_GEN
 
-b317_data = np.random.uniform(low=0, high=5200, size=(100, 100))
-b688_data = np.random.uniform(low=0, high=5200, size=(100, 100))
-sza_data = np.random.uniform(low=0, high=100, size=(100, 100))
-vaa_data = np.random.uniform(low=-180, high=180, size=(100, 100))
-lon_data = np.random.uniform(low=-90, high=90, size=(100, 100))
-lat_data = np.random.uniform(low=-180, high=180, size=(100, 100))
-mas_data = np.random.choice([0, 1], size=(100, 100))
+b317_data = RANDOM_GEN.uniform(low=0, high=5200, size=(100, 100))
+b688_data = RANDOM_GEN.uniform(low=0, high=5200, size=(100, 100))
+sza_data = RANDOM_GEN.uniform(low=0, high=100, size=(100, 100))
+vaa_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
+lon_data = RANDOM_GEN.uniform(low=-90, high=90, size=(100, 100))
+lat_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
+mas_data = RANDOM_GEN.choice([0, 1], size=(100, 100))
 
 
 @pytest.fixture()
@@ -89,11 +90,11 @@ class TestEPICL1bReader:
 
     def test_times(self, setup_hdf5_file):
         """Test start and end times load properly."""
-        from datetime import datetime
+        import datetime as dt
 
         test_reader = self._setup_h5(setup_hdf5_file)
-        assert test_reader.start_time == datetime(2015, 6, 13, 12, 0, 37)
-        assert test_reader.end_time == datetime(2015, 6, 13, 12, 5, 1)
+        assert test_reader.start_time == dt.datetime(2015, 6, 13, 12, 0, 37)
+        assert test_reader.end_time == dt.datetime(2015, 6, 13, 12, 5, 1)
 
     def test_counts_calibration(self, setup_hdf5_file):
         """Test that data is correctly calibrated."""

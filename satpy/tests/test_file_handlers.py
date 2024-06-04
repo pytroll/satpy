@@ -15,10 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """test file handler baseclass."""
 
+import datetime as dt
 import unittest
-from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
@@ -49,8 +50,8 @@ class TestBaseFileHandler(unittest.TestCase):
         """Set up the test."""
         self.fh = BaseFileHandler(
             "filename", {"filename_info": "bla"}, "filetype_info")
-        self.early_time = datetime(2024, 2, 12, 11, 00)
-        self.late_time = datetime(2024, 2, 12, 12, 00)
+        self.early_time = dt.datetime(2024, 2, 12, 11, 00)
+        self.late_time = dt.datetime(2024, 2, 12, 12, 00)
 
     def test_combine_times(self):
         """Combine times."""
@@ -161,13 +162,13 @@ class TestBaseFileHandler(unittest.TestCase):
     def test_combine_time_parameters(self):
         """Combine times in 'time_parameters."""
         time_params1 = {
-            "nominal_start_time": datetime(2020, 1, 1, 12, 0, 0),
-            "nominal_end_time": datetime(2020, 1, 1, 12, 2, 30),
-            "observation_start_time": datetime(2020, 1, 1, 12, 0, 2, 23821),
-            "observation_end_time": datetime(2020, 1, 1, 12, 2, 23, 12348),
+            "nominal_start_time": dt.datetime(2020, 1, 1, 12, 0, 0),
+            "nominal_end_time": dt.datetime(2020, 1, 1, 12, 2, 30),
+            "observation_start_time": dt.datetime(2020, 1, 1, 12, 0, 2, 23821),
+            "observation_end_time": dt.datetime(2020, 1, 1, 12, 2, 23, 12348),
         }
         time_params2 = {}
-        time_shift = timedelta(seconds=1.5)
+        time_shift = dt.timedelta(seconds=1.5)
         for key, value in time_params1.items():
             time_params2[key] = value + time_shift
         res = self.fh.combine_info([
@@ -175,10 +176,10 @@ class TestBaseFileHandler(unittest.TestCase):
             {"time_parameters": time_params2}
         ])
         res_time_params = res["time_parameters"]
-        assert res_time_params["nominal_start_time"] == datetime(2020, 1, 1, 12, 0, 0)
-        assert res_time_params["nominal_end_time"] == datetime(2020, 1, 1, 12, 2, 31, 500000)
-        assert res_time_params["observation_start_time"] == datetime(2020, 1, 1, 12, 0, 2, 23821)
-        assert res_time_params["observation_end_time"] == datetime(2020, 1, 1, 12, 2, 24, 512348)
+        assert res_time_params["nominal_start_time"] == dt.datetime(2020, 1, 1, 12, 0, 0)
+        assert res_time_params["nominal_end_time"] == dt.datetime(2020, 1, 1, 12, 2, 31, 500000)
+        assert res_time_params["observation_start_time"] == dt.datetime(2020, 1, 1, 12, 0, 2, 23821)
+        assert res_time_params["observation_end_time"] == dt.datetime(2020, 1, 1, 12, 2, 24, 512348)
 
     def test_file_is_kept_intact(self):
         """Test that the file object passed (string, path, or other) is kept intact."""

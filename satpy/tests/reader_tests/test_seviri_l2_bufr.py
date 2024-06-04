@@ -17,9 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the SEVIRI L2 BUFR reader."""
 
+import datetime as dt
 import sys
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -27,7 +27,7 @@ import numpy as np
 import pytest
 from pyresample import geometry
 
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 FILETYPE_INFO = {"file_type": "seviri_l2_bufr_asr"}
 
@@ -37,7 +37,7 @@ FILENAME_INFO2 = {"start_time": "20191112000000",
                   "spacecraft": "MSG2",
                   "server": "TESTSERVER"}
 MPEF_PRODUCT_HEADER = {
-    "NominalTime": datetime(2019, 11, 6, 18, 0),
+    "NominalTime": dt.datetime(2019, 11, 6, 18, 0),
     "SpacecraftName": "09",
     "RectificationLongitude": "E0455"
 }
@@ -109,9 +109,9 @@ TEST_FILES = [
 ]
 
 # Test data
-DATA = np.random.uniform(low=250, high=350, size=(128,))
-LAT = np.random.uniform(low=-80, high=80, size=(128,))
-LON = np.random.uniform(low=-38.5, high=121.5, size=(128,))
+DATA = RANDOM_GEN.uniform(low=250, high=350, size=(128,))
+LAT = RANDOM_GEN.uniform(low=-80, high=80, size=(128,))
+LON = RANDOM_GEN.uniform(low=-38.5, high=121.5, size=(128,))
 
 
 class SeviriL2BufrData:

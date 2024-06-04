@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for EUMETSAT satellite data."""
 
-from datetime import datetime, timedelta
+import datetime as dt
 
 import numpy as np
 
@@ -44,9 +44,9 @@ def timecds2datetime(tcds):
     except (KeyError, ValueError):
         pass
 
-    reference = datetime(1958, 1, 1)
-    delta = timedelta(days=days, milliseconds=milliseconds,
-                      microseconds=microseconds)
+    reference = dt.datetime(1958, 1, 1)
+    delta = dt.timedelta(days=days, milliseconds=milliseconds,
+                         microseconds=microseconds)
 
     return reference + delta
 

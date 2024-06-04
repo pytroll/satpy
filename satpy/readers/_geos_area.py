@@ -72,6 +72,7 @@ def get_area_extent(pdict):
             coff: Column offset factor
             loff: Line offset factor
             scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
+            h: Altitude of satellite above the Earth's surface (m)
 
     Returns:
         aex: An area extent for the scene

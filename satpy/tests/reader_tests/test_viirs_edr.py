@@ -21,8 +21,8 @@ Note: This is adapted from the test_slstr_l2.py code.
 """
 from __future__ import annotations
 
+import datetime as dt
 import shutil
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -34,14 +34,16 @@ import pytest
 import xarray as xr
 from pyresample import SwathDefinition
 from pytest import TempPathFactory  # noqa: PT013
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
+
+from satpy.tests.utils import RANDOM_GEN
 
 I_COLS = 6400
 I_ROWS = 32  # one scan
 M_COLS = 3200
 M_ROWS = 16  # one scan
-START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
-END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
+START_TIME = dt.datetime(2023, 5, 30, 17, 55, 41, 0)
+END_TIME = dt.datetime(2023, 5, 30, 17, 57, 5, 0)
 QF1_FLAG_MEANINGS = """
 \tBits are listed from the MSB (bit 7) to the LSB (bit 0):
 \tBit    Description
@@ -78,7 +80,7 @@ def surface_reflectance_file(tmp_path_factory: TempPathFactory) -> Path:
 @pytest.fixture(scope="module")
 def surface_reflectance_file2(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file."""
-    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + dt.timedelta(minutes=5),
                                             include_veg_indices=False)
 
 
@@ -97,7 +99,7 @@ def surface_reflectance_with_veg_indices_file(tmp_path_factory: TempPathFactory)
 @pytest.fixture(scope="module")
 def surface_reflectance_with_veg_indices_file2(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file with vegetation indexes included."""
-    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + dt.timedelta(minutes=5),
                                             include_veg_indices=True)
 
 
@@ -110,7 +112,7 @@ def multiple_surface_reflectance_files_with_veg_indices(surface_reflectance_with
 
 def _create_surface_reflectance_file(
         tmp_path_factory: TempPathFactory,
-        start_time: datetime,
+        start_time: dt.datetime,
         include_veg_indices: bool = False,
 ) -> Path:
     fn = f"SurfRefl_v1r2_npp_s{start_time:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
@@ -135,8 +137,8 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
     sr_attrs = {"units": "unitless", "_FillValue": -9999,
                 "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
-    i_data = np.random.random_sample((I_ROWS, I_COLS)).astype(np.float32)
-    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    i_data = RANDOM_GEN.random((I_ROWS, I_COLS)).astype(np.float32)
+    m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     lon_i_data = (i_data * 360) - 180.0
     lon_m_data = (m_data * 360) - 180.0
     lat_i_data = (i_data * 180) - 90.0
@@ -261,7 +263,7 @@ def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataA
     cont_attrs = {"units": "Kelvin", "_FillValue": -9999,
                   "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
-    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     data_arrs = {
         "Longitude": xr.DataArray(m_data, dims=dims, attrs=lon_attrs),
         "Latitude": xr.DataArray(m_data, dims=dims, attrs=lat_attrs),

@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Advanced Himawari Imager (AHI) standard format data reader.
 
 References:
@@ -58,10 +59,10 @@ in a way to produce as consistent a position between bands as possible.
 
 """
 
+import datetime as dt
 import logging
 import os
 import warnings
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -419,12 +420,12 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def observation_start_time(self):
         """Get the observation start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_start_time"].item()))
+        return dt.datetime(1858, 11, 17) + dt.timedelta(days=float(self.basic_info["observation_start_time"].item()))
 
     @property
     def observation_end_time(self):
         """Get the observation end time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info["observation_end_time"].item()))
+        return dt.datetime(1858, 11, 17) + dt.timedelta(days=float(self.basic_info["observation_end_time"].item()))
 
     @property
     def _timeline(self):
@@ -760,7 +761,7 @@ class _NominalTimeCalculator:
 
     def _parse_timeline(self, timeline):
         try:
-            return datetime.strptime(timeline, "%H%M").time()
+            return dt.datetime.strptime(timeline, "%H%M").time()
         except ValueError:
             return None
 
@@ -771,8 +772,8 @@ class _NominalTimeCalculator:
     def get_nominal_end_time(self, nominal_start_time):
         """Get nominal end time of the scan."""
         freq = self._observation_frequency
-        return nominal_start_time + timedelta(minutes=freq // 60,
-                                              seconds=freq % 60)
+        return nominal_start_time + dt.timedelta(minutes=freq // 60,
+                                                 seconds=freq % 60)
 
     def _modify_observation_time_for_nominal(self, observation_time):
         """Round observation time to a nominal time based on known observation frequency.
@@ -793,8 +794,8 @@ class _NominalTimeCalculator:
             )
             return observation_time
         timeline = self._get_closest_timeline(observation_time)
-        dt = self._get_offset_relative_to_timeline()
-        return timeline + timedelta(minutes=dt//60, seconds=dt % 60)
+        offset = self._get_offset_relative_to_timeline()
+        return timeline + dt.timedelta(minutes=offset//60, seconds=offset % 60)
 
     def _get_closest_timeline(self, observation_time):
         """Find the closest timeline for the given observation time.
@@ -808,11 +809,11 @@ class _NominalTimeCalculator:
         """
         delta_days = [-1, 0, 1]
         surrounding_dates = [
-            (observation_time + timedelta(days=delta)).date()
+            (observation_time + dt.timedelta(days=delta)).date()
             for delta in delta_days
         ]
         timelines = [
-            datetime.combine(date, self.timeline)
+            dt.datetime.combine(date, self.timeline)
             for date in surrounding_dates
         ]
         diffs = [

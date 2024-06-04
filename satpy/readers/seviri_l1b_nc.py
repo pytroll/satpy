@@ -17,9 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader."""
 
-import datetime
+import datetime as dt
 import logging
-from datetime import timedelta
 
 import numpy as np
 
@@ -67,7 +66,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self.mda = {}
-        self.reference = datetime.datetime(1958, 1, 1)
+        self.reference = dt.datetime(1958, 1, 1)
         self.get_metadata()
 
     @property
@@ -82,13 +81,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     def nominal_start_time(self):
         """Read the repeat cycle nominal start time from metadata and round it to expected nominal time slot."""
         tm = self.deltaSt
-        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+        return round_nom_time(tm, time_delta=dt.timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Read the repeat cycle nominal end time from metadata and round it to expected nominal time slot."""
         tm = self.deltaEnd
-        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+        return round_nom_time(tm, time_delta=dt.timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
@@ -146,11 +145,11 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         # self.mda['hrv_number_of_lines'] = int(self.nc.dims['num_rows_hrv'])
         # self.mda['hrv_number_of_columns'] = int(self.nc.dims['num_columns_hrv'])
 
-        self.deltaSt = self.reference + datetime.timedelta(
+        self.deltaSt = self.reference + dt.timedelta(
             days=int(self.nc.attrs["true_repeat_cycle_start_day"]),
             milliseconds=int(self.nc.attrs["true_repeat_cycle_start_mi_sec"]))
 
-        self.deltaEnd = self.reference + datetime.timedelta(
+        self.deltaEnd = self.reference + dt.timedelta(
             days=int(self.nc.attrs["planned_repeat_cycle_end_day"]),
             milliseconds=int(self.nc.attrs["planned_repeat_cycle_end_mi_sec"]))
 

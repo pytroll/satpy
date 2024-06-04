@@ -18,7 +18,6 @@ dependencies:
   - pooch
   - pyresample
   - pytest
-  - pytest-lazy-fixture
   - python-eccodes
   - python-geotiepoints
   - rasterio
@@ -34,4 +33,5 @@ dependencies:
   - xarray-datatree
   - pip:
     - graphviz
+    - pytest-lazy-fixtures
     - ..  # relative path to the satpy project
