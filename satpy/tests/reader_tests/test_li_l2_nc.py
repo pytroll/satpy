@@ -176,7 +176,8 @@ class TestLIL2():
                 "end_time": "1000"
             }
 
-            handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, ftype))
+            handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, ftype),
+                                        with_area_definition=False)
             ds_desc = handler.ds_desc
 
             # retrieve the schema that what used to generate the content for that product:
@@ -482,7 +483,8 @@ class TestLIL2():
 
     def test_coordinates_projection(self, filetype_infos):
         """Should automatically generate lat/lon coords from projection data."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
+                                    with_area_definition=False)
 
         dsid = make_dataid(name="flash_accumulation")
         dset = handler.get_dataset(dsid)
@@ -494,7 +496,8 @@ class TestLIL2():
         with pytest.raises(NotImplementedError):
             handler.get_area_def(dsid)
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afr_nc"))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afr_nc"),
+                                    with_area_definition=False)
 
         dsid = make_dataid(name="flash_radiance")
         dset = handler.get_dataset(dsid)
@@ -503,7 +506,8 @@ class TestLIL2():
         assert dset.attrs["coordinates"][0] == "longitude"
         assert dset.attrs["coordinates"][1] == "latitude"
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afa_nc"))
+        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afa_nc"),
+                                    with_area_definition=False)
 
         dsid = make_dataid(name="accumulated_flash_area")
         dset = handler.get_dataset(dsid)
