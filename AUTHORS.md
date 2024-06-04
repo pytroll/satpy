@@ -92,3 +92,4 @@ The following people have made contributions to this project:
 - [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
+- [Antonio Valentino](https://github.com/avalentino)
