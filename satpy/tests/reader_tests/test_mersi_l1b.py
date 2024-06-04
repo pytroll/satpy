@@ -407,7 +407,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 return ""
 
 
-def _test_helper(res, band_list, exp_result):
+def _assert_bands_mda_as_exp(res, band_list, exp_result):
     """Remove test code duplication."""
     exp_cal = exp_result[0]
     exp_unit = exp_result[1]
@@ -521,17 +521,17 @@ class MERSI12llL1BTester(MERSIL1BTester):
                         res.__getitem__(band)
 
             if resolution in ["all", "250"]:
-                _test_helper(res, self.vis_250_bands, ("reflectance", "%", (2 * 40, 2048 * 2)))
-                _test_helper(res, self.ir_250_bands, ("brightness_temperature", "K", (2 * 40, 2048 * 2)))
+                _assert_bands_mda_as_exp(res, self.vis_250_bands, ("reflectance", "%", (2 * 40, 2048 * 2)))
+                _assert_bands_mda_as_exp(res, self.ir_250_bands, ("brightness_temperature", "K", (2 * 40, 2048 * 2)))
 
                 if resolution == "all":
-                    _test_helper(res, self.vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
-                    _test_helper(res, self.ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
+                    _assert_bands_mda_as_exp(res, self.vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
+                    _assert_bands_mda_as_exp(res, self.ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
             else:
-                _test_helper(res, self.vis_250_bands, ("reflectance", "%", (2 * 10, 2048)))
-                _test_helper(res, self.vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
-                _test_helper(res, self.ir_250_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
-                _test_helper(res, self.ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
+                _assert_bands_mda_as_exp(res, self.vis_250_bands, ("reflectance", "%", (2 * 10, 2048)))
+                _assert_bands_mda_as_exp(res, self.vis_1000_bands, ("reflectance", "%", (2 * 10, 2048)))
+                _assert_bands_mda_as_exp(res, self.ir_250_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
+                _assert_bands_mda_as_exp(res, self.ir_1000_bands, ("brightness_temperature", "K", (2 * 10, 2048)))
 
     def test_counts_calib(self):
         """Test loading data at counts calibration."""
@@ -545,8 +545,8 @@ class MERSI12llL1BTester(MERSIL1BTester):
         ds_ids.append(make_dataid(name="satellite_zenith_angle"))
         res = reader.load(ds_ids)
         assert len(res) == len(self.bands_1000) + len(self.bands_250) + 1
-        _test_helper(res, self.bands_250, ("counts", "1", (2 * 40, 2048 * 2)))
-        _test_helper(res, self.bands_1000, ("counts", "1", (2 * 10, 2048)))
+        _assert_bands_mda_as_exp(res, self.bands_250, ("counts", "1", (2 * 40, 2048 * 2)))
+        _assert_bands_mda_as_exp(res, self.bands_1000, ("counts", "1", (2 * 10, 2048)))
 
     def test_rad_calib(self):
         """Test loading data at radiance calibration. For MERSI-2/LL VIS/IR and MERSI-1 IR."""
@@ -563,11 +563,11 @@ class MERSI12llL1BTester(MERSIL1BTester):
         res = reader.load(ds_ids)
         assert len(res) == len(test_bands)
         if self.yaml_file in ["mersi2_l1b.yaml", "mersi_ll_l1b.yaml"]:
-            _test_helper(res, self.bands_250, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
-            _test_helper(res, self.bands_1000, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
+            _assert_bands_mda_as_exp(res, self.bands_250, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
+            _assert_bands_mda_as_exp(res, self.bands_1000, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
         else:
-            _test_helper(res, self.ir_250_bands, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
-            _test_helper(res, self.ir_1000_bands, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
+            _assert_bands_mda_as_exp(res, self.ir_250_bands, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
+            _assert_bands_mda_as_exp(res, self.ir_1000_bands, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
 
 
 class TestFY3AMERSI1L1B(MERSI12llL1BTester):
