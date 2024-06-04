@@ -268,10 +268,10 @@ class TestBitFlags(unittest.TestCase):
                  "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
 
         mask = reduce(np.logical_or, [bflags[item] for item in items])
-        expected = np.array([True, False,  True,  True,  True,  True, False,
-                             False,  True, True, False, False, False, False,
-                             False, False, False,  True, False,  True, False,
-                             False, False,  True,  True, False, False, True,
+        expected = np.array([True, False, True, True, True, True, False,
+                             False, True, True, False, False, False, False,
+                             False, False, False, True, False, True, False,
+                             False, False, True, True, False, False, True,
                              False])
         assert all(mask == expected)
 
