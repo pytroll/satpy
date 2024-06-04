@@ -5,7 +5,7 @@ reader:
   description: SAFE Reader for MSI data (Sentinel-2)
   status: Nominal
   supports_fsspec: false
-  sensors: [msi]
+  sensors: [sen2_msi]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
