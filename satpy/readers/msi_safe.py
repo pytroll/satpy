@@ -32,9 +32,6 @@ L1C/L2A format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
 
-Please note: for L2A datasets, the band name has been fixed with a "_L2A" suffix. Do not change it in the YAML file or
-the reader can't recogonize it and nothing will be loaded.
-
 """
 
 import logging
@@ -77,12 +74,8 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.process_level == "L1C":
-            if self._channel != key["name"]:
-                return
-        else:
-            if self._channel + "_L2A" != key["name"]:
-                return
+        if self._channel != key["name"]:
+            return
 
         logger.debug("Reading %s.", key["name"])
 
@@ -118,12 +111,8 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area def."""
-        if self.process_level == "L1C":
-            if self._channel != dsid["name"]:
-                return
-        else:
-            if self._channel + "_L2A" != dsid["name"]:
-                return
+        if self._channel != dsid["name"]:
+            return
 
         return self._tile_mda.get_area_def(dsid)
 
@@ -334,11 +323,9 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find(".//Tile_Angles")
-        if key["name"] in ["solar_zenith_angle", "solar_azimuth_angle",
-                           "solar_zenith_angle_l2a", "solar_azimuth_angle_l2a"]:
+        if key["name"] in ["solar_zenith_angle", "solar_azimuth_angle"]:
             angles = self._get_solar_angles(angles, info)
-        elif key["name"] in ["satellite_zenith_angle", "satellite_azimuth_angle",
-                             "satellite_zenith_angle_l2a", "satellite_azimuth_angle_l2a"]:
+        elif key["name"] in ["satellite_zenith_angle", "satellite_azimuth_angle"]:
             angles = self._get_satellite_angles(angles, info)
         else:
             angles = None

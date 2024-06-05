@@ -1511,7 +1511,7 @@ class TestTileXML:
                                     3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
                                    [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
                                     3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]]),
-                                 ("L2A", "solar_zenith_angle_l2a", ("Sun_Angles_Grid", "Zenith"),
+                                 ("L2A", "solar_zenith_angle", ("Sun_Angles_Grid", "Zenith"),
                                   [[39.8824, 39.83721367, 39.79230847, 39.74758442, 39.7030415,
                                     39.65867687, 39.61455566, 39.57061558, 39.52685664, 39.48331372],
                                    [39.78150175, 39.73629896, 39.69128852, 39.64643679, 39.6018404,
@@ -1643,16 +1643,16 @@ class TestSAFEMSIL1C:
 
     @pytest.mark.parametrize(("mask_saturated", "dataset_name", "calibration", "expected"),
                              [
-                                 (False, "B01_L2A", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
-                                 (True, "B02_L2A", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
-                                 (True, "B03_L2A", "counts", [[np.nan, 1], [65534, np.inf]]),
-                                 (False, "AOT_L2A", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
-                                 (True, "WVP_L2A", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
-                                 (True, "SNOW_L2A", "water_vapor", None),
+                                 (False, "B01", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
+                                 (True, "B02", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
+                                 (True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
+                                 (False, "AOT", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
+                                 (True, "WVP", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
+                                 (True, "SNOW", "water_vapor", None),
                              ])
     def test_calibration_and_masking(self, mask_saturated, dataset_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
-        jp2_fh = jp2_builder("L2A", dataset_name.replace("_L2A", ""), mask_saturated)
+        jp2_fh = jp2_builder("L2A", dataset_name, mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
             res = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name, calibration=calibration), info=dict())
@@ -1664,7 +1664,7 @@ class TestSAFEMSIL1C:
     @pytest.mark.parametrize(("process_level", "band_name", "dataset_name"),
                              [
                                  ("L1C", "B01", "B03"),
-                                 ("L2A", "B02", "B03_L2A"),
+                                 ("L2A", "B02", "B03"),
                              ])
     def test_filename_dsname_mismatch(self, process_level, band_name, dataset_name):
         """Test when dataset name and file band name mismatch, the data and its area definition should both be None."""

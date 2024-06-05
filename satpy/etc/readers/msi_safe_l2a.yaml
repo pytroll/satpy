@@ -48,8 +48,8 @@ file_types:
         file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL2A.xml']
 
 datasets:
-  B01_L2A:
-    name: B01_L2A
+  B01:
+    name: B01
     sensor: msi
     wavelength: [0.415, 0.443, 0.470]
     modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
@@ -67,8 +67,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B02_L2A:
-    name: B02_L2A
+  B02:
+    name: B02
     sensor: msi
     wavelength: [0.440, 0.490, 0.540]
     modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
@@ -87,8 +87,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B03_L2A:
-    name: B03_L2A
+  B03:
+    name: B03
     sensor: msi
     wavelength: [0.540, 0.560, 0.580]
     modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
@@ -107,8 +107,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B04_L2A:
-    name: B04_L2A
+  B04:
+    name: B04
     sensor: msi
     wavelength: [0.645, 0.665, 0.685]
     modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
@@ -127,8 +127,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B05_L2A:
-    name: B05_L2A
+  B05:
+    name: B05
     sensor: msi
     wavelength: [0.695, 0.705, 0.715]
     modifiers: [esa_sunz_corrected]
@@ -146,8 +146,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B06_L2A:
-    name: B06_L2A
+  B06:
+    name: B06
     sensor: msi
     wavelength: [0.731, 0.740, 0.749]
     modifiers: [esa_sunz_corrected]
@@ -165,8 +165,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B07_L2A:
-    name: B07_L2A
+  B07:
+    name: B07
     sensor: msi
     wavelength: [0.764, 0.783, 0.802]
     modifiers: [esa_sunz_corrected]
@@ -184,8 +184,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B08_L2A:
-    name: B08_L2A
+  B08:
+    name: B08
     sensor: msi
     wavelength: [0.780, 0.842, 0.905]
     modifiers: [esa_sunz_corrected]
@@ -202,8 +202,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B8A_L2A:
-    name: B8A_L2A
+  B8A:
+    name: B8A
     sensor: msi
     wavelength: [0.855, 0.865, 0.875]
     modifiers: [esa_sunz_corrected]
@@ -221,8 +221,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B09_L2A:
-    name: B09_L2A
+  B09:
+    name: B09
     sensor: msi
     wavelength: [0.935, 0.945, 0.955]
     modifiers: [esa_sunz_corrected]
@@ -239,8 +239,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B11_L2A:
-    name: B11_L2A
+  B11:
+    name: B11
     sensor: msi
     wavelength: [1.565, 1.610, 1.655]
     modifiers: [esa_sunz_corrected]
@@ -258,8 +258,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  B12_L2A:
-    name: B12_L2A
+  B12:
+    name: B12
     sensor: msi
     wavelength: [2.100, 2.190, 2.280]
     modifiers: [esa_sunz_corrected]
@@ -277,8 +277,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  AOT_L2A:
-    name: AOT_L2A
+  AOT:
+    name: AOT
     sensor: msi
     resolution:
       10: {file_type: l2a_safe_granule_10m}
@@ -292,8 +292,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  WVP_L2A:
-    name: WVP_L2A
+  WVP:
+    name: WVP
     sensor: msi
     resolution:
       10: {file_type: l2a_safe_granule_10m}
@@ -307,8 +307,8 @@ datasets:
         standard_name: counts
         units: "1"
 
-  SCL_L2A:
-    name: SCL_L2A
+  SCL:
+    name: SCL
     sensor: msi
     resolution:
       20: {file_type: l2a_safe_granule_20m}
@@ -318,27 +318,27 @@ datasets:
         standard_name: counts
         units: "1"
 
-  solar_zenith_angle_l2a:
-    name: solar_zenith_angle_l2a
+  solar_zenith_angle:
+    name: solar_zenith_angle
     resolution: [10, 20, 60]
     file_type: l2a_safe_tile_metadata
     xml_tag: Sun_Angles_Grid/Zenith
 
-  solar_azimuth_angle_l2a:
-    name: solar_azimuth_angle_l2a
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
     resolution: [10, 20, 60]
     file_type: l2a_safe_tile_metadata
     xml_tag: Sun_Angles_Grid/Azimuth
 
-  satellite_azimuth_angle_l2a:
-    name: satellite_azimuth_angle_l2a
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
     resolution: [10, 20, 60]
     file_type: l2a_safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
     xml_item: Azimuth
 
-  satellite_zenith_angle_l2a:
-    name: satellite_zenith_angle_l2a
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
     resolution: [10, 20, 60]
     file_type: l2a_safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
