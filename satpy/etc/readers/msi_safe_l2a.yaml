@@ -58,10 +58,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -78,10 +78,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -98,10 +98,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -118,10 +118,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -137,10 +137,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -156,10 +156,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -175,10 +175,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -193,10 +193,10 @@ datasets:
       10: {file_type: l2a_safe_granule_10m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -212,10 +212,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -230,10 +230,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -249,10 +249,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
@@ -268,10 +268,10 @@ datasets:
       60: {file_type: l2a_safe_granule_60m}
     calibration:
       reflectance:
-        standard_name: toa_bidirectional_reflectance
+        standard_name: boa_bidirectional_reflectance
         units: "%"
       radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
