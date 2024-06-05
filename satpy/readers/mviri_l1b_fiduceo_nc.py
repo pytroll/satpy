@@ -473,6 +473,7 @@ class DatasetWrapper:
 
     def _fix_duplicate_dimensions(self, nc):
         nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
+        self.nc = nc.drop_dims("srf_size")
 
     def _chunk(self, nc):
 
@@ -583,7 +584,7 @@ class FiduceoMviriBase(BaseFileHandler):
             filename,
             decode_cf=False,
             decode_times=False,
-            mask_and_scale=False
+            mask_and_scale=False,
         )
 
         self.nc = DatasetWrapper(nc_raw)

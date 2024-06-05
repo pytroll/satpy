@@ -329,6 +329,7 @@ def fixture_fake_dataset():
     ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
     ds["time_ir_wv"].attrs["_FillValue"] = 4294967295
     ds["time_ir_wv"].attrs["add_offset"] = 0
+
     return ds
 
 
@@ -569,6 +570,30 @@ class TestFiduceoMviriFileHandlers:
 
 class TestDatasetWrapper:
     """Unit tests for DatasetWrapper class."""
+
+    def test_fix_duplicate_dimensions(self):
+        """Test the renaming of duplicate dimensions.
+
+        If duplicate dimensions are within the Dataset, opening the datasets with chunks throws an error.
+        Thus, the chunking needs to be done after opening the dataset and after the dimensions are renamed.
+        """
+        foo = xr.Dataset(
+            data_vars={"covariance_spectral_response_function_vis":
+                      (("srf_size", "srf_size"), [[1, 2], [3, 4]])}
+        )
+        foo_ds = DatasetWrapper(foo, decode_nc=False)
+        foo_ds._fix_duplicate_dimensions(foo_ds.nc)
+
+        foo_exp = xr.Dataset(
+            data_vars={"covariance_spectral_response_function_vis":
+                      (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]])}
+        )
+
+        try:
+            foo_ds.nc.chunk("auto")
+            xr.testing.assert_allclose(foo_ds.nc, foo_exp)
+        except ValueError:
+            pytest.fail("Chunking failed.")
 
     def test_reassign_coords(self):
         """Test reassigning of coordinates.
