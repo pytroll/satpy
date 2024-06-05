@@ -464,7 +464,7 @@ class DatasetWrapper:
     def _decode_cf(self):
         # remove time before decoding and add again.
         time = self.get_time()
-        time_dims = self.nc["time_ir_wv"].dims
+        time_dims = self.nc[time.name].dims
         time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
                         (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
         self.nc = self.nc.drop_vars(time.name)
