@@ -1,3 +1,54 @@
+## Version 0.49.0 (2024/06/05)
+
+### Issues Closed
+
+* [Issue 2790](https://github.com/pytroll/satpy/issues/2790) - VIIRS L1B DNB_SENZ file_key ([PR 2791](https://github.com/pytroll/satpy/pull/2791) by [@wjsharpe](https://github.com/wjsharpe))
+* [Issue 2781](https://github.com/pytroll/satpy/issues/2781) - [Question] Sun Zenith Correction
+* [Issue 2765](https://github.com/pytroll/satpy/issues/2765) - abi_l2_nc reader Key Error 'calibration' when trying to load Mask from fire Hot Spot ([PR 2794](https://github.com/pytroll/satpy/pull/2794) by [@djhoese](https://github.com/djhoese))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2804](https://github.com/pytroll/satpy/pull/2804) - Fix LI L2 accumulated products `'with_area_definition': False` 1-d coordinates computation
+* [PR 2794](https://github.com/pytroll/satpy/pull/2794) - Fix ABI L2 datasets when unitless and no calibration ([2765](https://github.com/pytroll/satpy/issues/2765))
+* [PR 2791](https://github.com/pytroll/satpy/pull/2791) - fixed DNB_SENZ file_key ([2790](https://github.com/pytroll/satpy/issues/2790))
+
+#### Features added
+
+* [PR 2807](https://github.com/pytroll/satpy/pull/2807) - Update the vii_l1b-reader, for new testdata format of VII
+* [PR 2801](https://github.com/pytroll/satpy/pull/2801) - Replace pytest-lazyfixture with pytest-lazy-fixtures
+* [PR 2800](https://github.com/pytroll/satpy/pull/2800) - Add numpy rules to ruff
+* [PR 2799](https://github.com/pytroll/satpy/pull/2799) - Add netcdf4 to goci2 optional dependency in `pyproject.toml`
+* [PR 2795](https://github.com/pytroll/satpy/pull/2795) - Add support for MERSI-1 on FY-3A/B/C
+* [PR 2789](https://github.com/pytroll/satpy/pull/2789) - Activate LI L2 accumulated products gridding by default
+* [PR 2787](https://github.com/pytroll/satpy/pull/2787) - Fix datetime imports
+* [PR 2778](https://github.com/pytroll/satpy/pull/2778) - Add the reader for the fci L1C Africa files
+* [PR 2776](https://github.com/pytroll/satpy/pull/2776) - Add option to choose start time to MSI SAFE reader
+* [PR 2727](https://github.com/pytroll/satpy/pull/2727) - Refactor Sentinel-1 SAR-C reader
+
+#### Documentation changes
+
+* [PR 2789](https://github.com/pytroll/satpy/pull/2789) - Activate LI L2 accumulated products gridding by default
+
+#### Backward incompatible changes
+
+* [PR 2789](https://github.com/pytroll/satpy/pull/2789) - Activate LI L2 accumulated products gridding by default
+
+#### Refactoring
+
+* [PR 2787](https://github.com/pytroll/satpy/pull/2787) - Fix datetime imports
+
+#### Clean ups
+
+* [PR 2797](https://github.com/pytroll/satpy/pull/2797) - Add missing coverage configuration section to pyproject.toml
+* [PR 2784](https://github.com/pytroll/satpy/pull/2784) - Fix various issues in unstable CI
+
+In this release 18 pull requests were closed.
+
+
 ## Version 0.48.0 (2024/04/22)
 
 ### Issues Closed
