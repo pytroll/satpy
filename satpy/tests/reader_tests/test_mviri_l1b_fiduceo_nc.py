@@ -560,12 +560,15 @@ class TestFiduceoMviriFileHandlers:
             "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc",
             "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
             "FIDUCEO_FCDR_L15_MVIRI_MET7-00.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+            "MVIRI_FCDR-EASY_L15_MET7-E0000_200607060600_200607060630_0200.nc",
+            "MVIRI_FCDR-EASY_L15_MET7-E5700_200607060600_200607060630_0200.nc",
+            "MVIRI_FCDR-FULL_L15_MET7-E0000_200607060600_200607060630_0200.nc",
             "abcde",
         ]
 
         files = reader.select_files_from_pathnames(filenames)
         # only 3 out of 4 above should match
-        assert len(files) == 3
+        assert len(files) == 6
 
 
 class TestDatasetWrapper:

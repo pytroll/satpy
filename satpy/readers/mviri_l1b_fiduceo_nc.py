@@ -464,7 +464,7 @@ class DatasetWrapper:
     def _decode_cf(self):
         # remove time before decoding and add again.
         time = self.get_time()
-        time_dims = self.nc["time_ir_wv"].dims
+        time_dims = self.nc[time.name].dims
         time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
                         (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
         self.nc = self.nc.drop_vars(time.name)
@@ -591,7 +591,12 @@ class FiduceoMviriBase(BaseFileHandler):
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
-        self.projection_longitude = float(filename_info["projection_longitude"])
+        if "." in str(filename_info["projection_longitude"]):
+            self.projection_longitude = float(filename_info["projection_longitude"])
+        else:
+            self.projection_longitude = (
+                float(filename_info["projection_longitude"][:2] + "." + filename_info["projection_longitude"][2:])
+            )
         self.calib_coefs = self._get_calib_coefs()
 
         self._get_angles = functools.lru_cache(maxsize=8)(
