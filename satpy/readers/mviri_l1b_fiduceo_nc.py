@@ -591,7 +591,12 @@ class FiduceoMviriBase(BaseFileHandler):
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
-        self.projection_longitude = float(filename_info["projection_longitude"])
+        if "." in str(filename_info["projection_longitude"]):
+            self.projection_longitude = float(filename_info["projection_longitude"])
+        else:
+            self.projection_longitude = (
+                float(filename_info["projection_longitude"][:2] + "." + filename_info["projection_longitude"][2:])
+            )
         self.calib_coefs = self._get_calib_coefs()
 
         self._get_angles = functools.lru_cache(maxsize=8)(
