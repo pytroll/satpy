@@ -1735,13 +1735,13 @@ def test_preloaded_instances_not_implemented(tmp_path, fake_gsyreader,
         list(g)
 
 
-def test_get_cache_filename(tmp_path):
-    """Test getting cache filename."""
+def test_get_cache_filename_segment_only(tmp_path):
+    """Test getting cache filename, segment only."""
     from satpy.readers.yaml_reader import GEOSegmentYAMLReader
 
     fn = tmp_path / "a-01.nc"
     fn_info = {"segment": 1}
-    ft_info_simple = {
+    ft_info = {
             "file_reader": BaseFileHandler,
             "file_patterns": ["a-{segment:>02d}.nc"],
             "segment_tag": "segment",
@@ -1751,8 +1751,8 @@ def test_get_cache_filename(tmp_path):
             {"reader": {
                 "name": "filicudi"},
              "file_types": {
-                 "m9g": ft_info_simple}}, preload=True)
-    fh = BaseFileHandler(fn, fn_info, ft_info_simple)
+                 "m9g": ft_info}}, preload=True)
+    fh = BaseFileHandler(fn, fn_info, ft_info)
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
         au.return_value = os.fspath(tmp_path / "cache")
@@ -1760,10 +1760,18 @@ def test_get_cache_filename(tmp_path):
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
             "BaseFileHandler" / "a-01.pkl")
 
+
+def test_get_cache_filename_cache_and_segment(tmp_path):
+    """Test getting the cache filename with segment and repeat cycle."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
     fn = tmp_path / "a-04-01.nc"
     fn_info = {"rc": 4, "segment": 1}
-    ft_info = ft_info_simple.copy()
-    ft_info["file_patterns"] = ["a-{rc:>02d}-{segment:>02d}.nc"]
+    ft_info = {
+            "file_reader": BaseFileHandler,
+            "file_patterns": ["a-{rc:>02d}-{segment:>02d}.nc"],
+            "segment_tag": "segment",
+            "expected_segments": 5}
 
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
@@ -1778,12 +1786,20 @@ def test_get_cache_filename(tmp_path):
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
             "BaseFileHandler" / "a-04-01.pkl")
 
+
+def test_get_cache_filename_including_time(tmp_path):
+    """Test getting the cache filename including a dummpy time."""
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+
     fn = tmp_path / "a-20421015234500-234600-04-01.nc"
-    fn_info = {"start_time": datetime(2042, 10, 15, 23, 45),
-               "end_time": datetime(2042, 10, 15, 23, 46), "rc": 4, "segment": 1}
-    ft_info = ft_info_simple.copy()
-    ft_info["file_patterns"] = ["a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%M%S}-{rc:>02d}-{segment:>02d}.nc"]
-    ft_info["time_tags"] = ["start_time", "end_time"]
+    fn_info = {"start_time": dt.datetime(2042, 10, 15, 23, 45),
+               "end_time": dt.datetime(2042, 10, 15, 23, 46), "rc": 4, "segment": 1}
+    ft_info = {
+            "file_reader": BaseFileHandler,
+            "file_patterns": ["a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%M%S}-{rc:>02d}-{segment:>02d}.nc"],
+            "segment_tag": "segment",
+            "expected_segments": 5,
+            "time_tags": ["start_time", "end_time"]}
 
     gsyr = GEOSegmentYAMLReader(
             {"reader": {
