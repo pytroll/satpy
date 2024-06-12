@@ -356,7 +356,7 @@ would wait for all needed segments to arrive, before they start processing
 any data by passing all segments to the :class:`~satpy.scene.Scene`.
 For a more timely imagery production, users can create the Scene, load the
 data, resample, and even call :meth:`~satpy.scene.Scene.save_datasets`
-(as long as ``compute=False``) before there the data are complete.
+(as long as ``compute=False``) before the data are complete.
 When they then trigger the computation, much of the overhead in Satpy
 internals has already been completed, and Satpy will process each segment
 as it comes in.
@@ -364,14 +364,15 @@ as it comes in.
 To do so, Satpy caches a selection of data and metadata between segments
 and between repeat cycles.  Caching between segments happens in-memory
 and needs no preparation from the user, but where data are cached
-between repeat cycles, the user needs to create this cache first::
+between repeat cycles, the user needs to create this cache first from
+a repeat cycle that is available completely::
 
   >>> from satpy.readers import create_preloadable_cache
   >>> create_preloadable_cache("fci_l1c_nc", fci_files)
 
-For one full disc of FDHSI or HRFI data.  This needs to be done only once, or
-possibly again if there is an unexpected change in the data that are cached
-between repeat cycles (as defined in the reader YAML file).
+This needs to be done only once as long as data or metadata cached
+between repeat cycles does not change (for example, the rows at which
+each repeat cycle starts and ends).
 To make use of eager processing, the Scene object should be called passing
 ``preload=True``, passing _only_ the path to the first segment::
 
@@ -389,10 +390,10 @@ Some limitations that may be resolved in the future:
 
 - Mixing different file types for the same reader is not yet supported.
   For FCI, that means it is not yet possible to mix FDHSI and HRFI data.
-- Only nominal case
+- Only the nominal case has been tested.  Missing segments are not yet supported.
 - Dask may not order the processing of the chunks optimally.  That means some
   dask workers may be waiting for chunks 33–40 as chunks 1–32 are coming in
-  and are not being processed.
+  and are not being processed.  A suboptimal workaround is to use 40 workers.
 - Currently, Satpy merely checks the existence of a file and not whether it
   has been completely written.  This may lead to incomplete files being read,
   which might lead to failures.
@@ -404,7 +405,7 @@ on how this could be extended to other readers, see
 :class:`~satpy.readers.netcdf_utils.Preloadable` and
 :class:`~satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
 
-.. versionadded:: 0.47
+.. versionadded:: 0.50
 
 Adding a Reader to Satpy
 ========================
