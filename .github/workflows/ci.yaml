@@ -93,7 +93,6 @@ jobs:
           git+https://github.com/Unidata/netcdf4-python \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
-          git+https://github.com/zarr-developers/zarr \
           git+https://github.com/Unidata/cftime \
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
