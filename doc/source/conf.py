@@ -93,9 +93,7 @@ area_dict = _read_yaml_area_file_content(area_file)
 area_table = [rst_table_header("Area Definitions", header=["Name", "Description", "Projection"],
                                widths="auto", class_name="area-table")]
 
-for i, (aname, params) in enumerate(area_dict.items()):
-    if i == 18:
-        break
+for aname, params in area_dict.items():
     area = _create_area_def_from_dict(aname, params)
     if not hasattr(area, "_repr_html_"):
         continue
