@@ -81,6 +81,11 @@ Documentation
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
 
+.. note::
+
+    Please note that the reader table that used to be placed here has moved to the "reading"
+    section here:  :ref:`reader_table`.
+
 Indices and tables
 ==================
 
