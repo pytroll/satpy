@@ -23,7 +23,9 @@ To return additional reader information use `available_readers(as_dict=True)`::
     >>> from satpy import available_readers
     >>> available_readers()
 
+
 .. _reader_table:
+
 Reader Table
 ------------
 
