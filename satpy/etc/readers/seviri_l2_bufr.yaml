@@ -65,7 +65,7 @@ datasets:
     key: '#1#latitude'
     long_name: Latitude
     standard_name: latitude
-    resolution: [48006.450653072,9001.209497451,72009.675979608]
+    resolution: [48006.450653072,48006.450653072,48006.450653072,9001.209497451,48006.450653072,9001.209497451,-1]
     file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
     units: degree_north
     fill_value: -1.e+100
@@ -73,7 +73,7 @@ datasets:
   longitude:
     name: longitude
     key: '#1#longitude'
-    resolution: [48006.450653072,9001.209497451,72009.675979608]
+    resolution: [48006.450653072,48006.450653072,48006.450653072,9001.209497451,48006.450653072,9001.209497451,-1]
     file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
     long_name: Longitude
     standard_name: longitude

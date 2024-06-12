@@ -251,6 +251,9 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             if "coordinates" in dataset_info.keys():
                 del dataset_info["coordinates"]
         else:
+            if self.with_adef:
+                logging.warning("Trying to use area definition with a dataset without resolution. "
+                                "The keyword will be ignored")
             xarr = xr.DataArray(arr, dims=["y"])
 
         if "fill_value" in dataset_info:

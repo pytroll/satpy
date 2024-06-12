@@ -24,7 +24,7 @@ datasets:
   latitude:
     name: latitude
     key: '#1#latitude'
-    resolution: [32000]
+    resolution: [32000, -1]
     file_type: [fci_l2_bufr_asr,fci_l2_bufr_amv]
     standard_name: latitude
     units: degree_north
@@ -33,7 +33,7 @@ datasets:
   longitude:
     name: longitude
     key: '#1#longitude'
-    resolution: [32000]
+    resolution: [32000, -1]
     file_type: [fci_l2_bufr_asr,fci_l2_bufr_amv]
     standard_name: longitude
     units: degree_east
