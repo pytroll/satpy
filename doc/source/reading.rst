@@ -402,7 +402,7 @@ Note that this uses the ``h5netcdf`` backend for opening NetCDF files.
 
 For more technical background reading including hints
 on how this could be extended to other readers, see
-:class:`~satpy.readers.netcdf_utils.Preloadable` and
+:class:`~satpy.readers.netcdf_utils.PreloadableSegments` and
 :class:`~satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
 
 .. versionadded:: 0.50

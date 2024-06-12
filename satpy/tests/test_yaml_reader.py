@@ -1633,8 +1633,8 @@ def fake_simple_nc_file(tmp_path):
 @pytest.fixture()
 def dummy_preloadable_handler():
     """Return a dummy preloadable netcdf4-based filehandler."""
-    from satpy.readers.netcdf_utils import NetCDF4FileHandler, Preloadable
-    class DummyPreloadableHandler(Preloadable, NetCDF4FileHandler):
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler, PreloadableSegments
+    class DummyPreloadableHandler(PreloadableSegments, NetCDF4FileHandler):
         pass
     return DummyPreloadableHandler
 

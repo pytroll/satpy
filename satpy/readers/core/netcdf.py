@@ -460,16 +460,17 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
         return super()._get_attr(obj, key)
 
 
-class Preloadable:
-    """Mixin class for pre-loading.
+class PreloadableSegments:
+    """Mixin class for pre-loading segments.
 
     This is a mixin class designed to use with file handlers that support
-    preloading.  Subclasses deriving from this mixin are expected to be
-    geo-segmentable file handlers, and can be created based on a glob pattern
-    for a non-existing file (as well as a path or glob pattern to an existing
-    file).  The first segment of a repeat cycle is always processed only after
-    the file exists.  For the remaining segments, metadata are collected as
-    much as possible before the file exists, from two possible sources:
+    preloading segments.  Subclasses deriving from this mixin are expected
+    to be geo-segmentable file handlers, and can be created based on
+    a glob pattern for a non-existing file (as well as a path or glob
+    pattern to an existing file).  The first segment of a repeat cycle
+    is always processed only after the file exists.  For the remaining
+    segments, metadata are collected as much as possible before the file
+    exists, from two possible sources:
 
     - From the first segment.  For some file formats, many pieces of metadata
       can be expected to be identical between segments.
