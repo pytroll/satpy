@@ -584,7 +584,7 @@ class TestCalibrationCoefficientSelector:
         """Test handling of missing coefficients."""
         calib_modes = {"reflective": "mode2"}
         s = CalibrationCoefficientSelector(coefs, calib_modes)
-        with pytest.raises(KeyError, match="No calibration *"):
+        with pytest.raises(KeyError, match="No mode2 calibration *"):
             s.get_coefs(ch1)
 
     def test_fallback_to_nominal(self, coefs, ch1):

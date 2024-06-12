@@ -545,7 +545,7 @@ class CalibrationCoefficientSelector:
         except KeyError:
             if self.fallback:
                 return self.coefs[self.fallback][ds_name]
-            raise KeyError(f"No calibration coefficients for {ds_name}")
+            raise KeyError(f"No {mode} calibration coefficients for {ds_name}")
 
     def _get_mode(self, dataset_id):
         try:
