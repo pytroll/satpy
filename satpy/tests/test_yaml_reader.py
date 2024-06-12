@@ -30,6 +30,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
+import satpy
 import satpy.readers.core.yaml_reader as yr
 from satpy._compat import cache
 from satpy.dataset import DataQuery
@@ -1567,11 +1568,12 @@ def test_predict_filename_info(tmp_path):
 def fake_gsyreader():
     """Create a fake GeoSegmentYAMLReader."""
     from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-    return GEOSegmentYAMLReader(
-            {"reader": {
-                "name": "alicudi"},
-             "file_types": {
-                 "m9g": _fake_filetype_info}}, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        return GEOSegmentYAMLReader(
+                {"reader": {
+                    "name": "alicudi"},
+                 "file_types": {
+                     "m9g": _fake_filetype_info}})
 
 
 def test_predict_filename(tmp_path, fake_gsyreader):
@@ -1669,33 +1671,34 @@ def test_preloaded_instances_works(
                 "{platform}-c-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
                 "{platform}-d-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"]}
 
-    gsyr = GEOSegmentYAMLReader(
-            {"reader": {
-                "name": "island-reader"},
-             "file_types": {
-                 "m9g": fake_filetype_info,
-                 "mag": ft_info_2}}, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(
+                {"reader": {
+                    "name": "island-reader"},
+                 "file_types": {
+                     "m9g": fake_filetype_info,
+                     "mag": ft_info_2}})
 
 
-    # filename info belonging to fake_simple_nc_file
+        # filename info belonging to fake_simple_nc_file
 
-    fn_info = {"platform": "M9a", "start_time": datetime(2100, 1, 1, 5, 30),
-               "end_time": datetime(2100, 1, 1, 5, 31), "segment": 1}
+        fn_info = {"platform": "M9a", "start_time": dt.datetime(2100, 1, 1, 5, 30),
+                   "end_time": dt.datetime(2100, 1, 1, 5, 31), "segment": 1}
 
-    with unittest.mock.patch("appdirs.user_cache_dir") as au:
-        au.return_value = os.fspath(tmp_path / "cache")
-        # prepare cache files
-        dph = dummy_preloadable_handler(os.fspath(fake_simple_nc_file),
-                                        fn_info, fake_filetype_info)
-        for i in range(2, 4):  # disk cache except for nr. 1
-            fn = (tmp_path / "cache" / "satpy" / "preloadable" /
-                  "DummyPreloadableHandler" /
-                  f"M9G-a-99991231235959-99991231235959-{i:>02d}.pkl")
-            fn.parent.mkdir(exist_ok=True, parents=True)
-            dph.store_cache(os.fspath(fn))
+        with unittest.mock.patch("appdirs.user_cache_dir") as au:
+            au.return_value = os.fspath(tmp_path / "cache")
+            # prepare cache files
+            dph = dummy_preloadable_handler(os.fspath(fake_simple_nc_file),
+                                            fn_info, fake_filetype_info)
+            for i in range(2, 4):  # disk cache except for nr. 1
+                fn = (tmp_path / "cache" / "satpy" / "preloadable" /
+                      "DummyPreloadableHandler" /
+                      f"M9G-a-99991231235959-99991231235959-{i:>02d}.pkl")
+                fn.parent.mkdir(exist_ok=True, parents=True)
+                dph.store_cache(os.fspath(fn))
 
-        fhs = gsyr.create_filehandlers([os.fspath(fake_simple_nc_file)])
-        assert len(fhs["m9g"]) == 3
+            fhs = gsyr.create_filehandlers([os.fspath(fake_simple_nc_file)])
+            assert len(fhs["m9g"]) == 3
 
 
 def test_preloaded_instances_requirement(
@@ -1707,11 +1710,12 @@ def test_preloaded_instances_requirement(
     ft_info = {**fake_filetype_info,
                "requires": ["pergola"]}
 
-    gsyr = GEOSegmentYAMLReader(
-            {"reader": {
-                "name": "alicudi"},
-             "file_types": {
-                 "m9g": ft_info}}, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(
+                {"reader": {
+                    "name": "alicudi"},
+                 "file_types": {
+                     "m9g": ft_info}})
     g = gsyr._new_filehandler_instances(
             ft_info,
             [(os.fspath(fake_simple_nc_file),
@@ -1747,11 +1751,12 @@ def test_get_cache_filename_segment_only(tmp_path):
             "segment_tag": "segment",
             "expected_segments": 5}
 
-    gsyr = GEOSegmentYAMLReader(
-            {"reader": {
-                "name": "filicudi"},
-             "file_types": {
-                 "m9g": ft_info}}, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(
+                {"reader": {
+                    "name": "filicudi"},
+                 "file_types": {
+                     "m9g": ft_info}})
     fh = BaseFileHandler(fn, fn_info, ft_info)
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
@@ -1773,11 +1778,12 @@ def test_get_cache_filename_cache_and_segment(tmp_path):
             "segment_tag": "segment",
             "expected_segments": 5}
 
-    gsyr = GEOSegmentYAMLReader(
-            {"reader": {
-                "name": "salina"},
-             "file_types": {
-                 "m9g": ft_info}}, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(
+                {"reader": {
+                    "name": "salina"},
+                 "file_types": {
+                     "m9g": ft_info}})
     fh = BaseFileHandler(fn, fn_info, ft_info)
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
@@ -1801,11 +1807,12 @@ def test_get_cache_filename_including_time(tmp_path):
             "expected_segments": 5,
             "time_tags": ["start_time", "end_time"]}
 
-    gsyr = GEOSegmentYAMLReader(
-            {"reader": {
-                "name": "salina"},
-             "file_types": {
-                 "m9g": ft_info}}, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(
+                {"reader": {
+                    "name": "salina"},
+                 "file_types": {
+                     "m9g": ft_info}})
     fh = BaseFileHandler(fn, fn_info, ft_info)
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:

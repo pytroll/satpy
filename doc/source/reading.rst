@@ -372,19 +372,21 @@ a repeat cycle that is available completely::
 
 This needs to be done only once as long as data or metadata cached
 between repeat cycles does not change (for example, the rows at which
-each repeat cycle starts and ends).
-To make use of eager processing, the Scene object should be called passing
-``preload=True``, passing _only_ the path to the first segment::
+each repeat cycle starts and ends).  To make use of eager processing, set
+the configuration variable ``readers.preload_segments``.  When creating
+the scene, pass only the path to the first segment::
 
+  >>> satpy.config.set({"readers.preload_segments": True})
   >>> sc = Scene(
   ...   filenames=[path_to_first_segment],
-  ...   reader="fci_l1c_nc",
-  ...   reader_kwargs={"preload": True})
+  ...   reader="fci_l1c_nc")
 
 Satpy will figure out the names of the remaining segments and find them as
 they come in.  If the data are already available, processing is similar to
 the regular case.  If the data are not yet available, Satpy will wait during
 the computation of the dask graphs until data become available.
+
+For additional configuration parameters, see :ref:`Settings`.
 
 Some limitations that may be resolved in the future:
 

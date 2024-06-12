@@ -612,7 +612,7 @@ class TestPreloadableHandler:
         with pytest.raises(TypeError, match="Expect reference filehandler"):
             FakePreloadableHandler("dummy", {}, fake_config, preload=True,
                                    rc_cache=cache_file)
-        with pytest.raises(TypeError, match="Expect cache file"):
+        with pytest.raises(TypeError, match="Expected cache file"):
             FakePreloadableHandler("dummy", {}, fake_config, preload=True,
                                    ref_fh=preloadable_false)
         fph = FakePreloadableHandler("dummy", {}, fake_config, preload=True,

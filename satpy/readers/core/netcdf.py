@@ -27,6 +27,7 @@ import netCDF4
 import numpy as np
 import xarray as xr
 
+import satpy
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.core.utils import np2str
@@ -490,20 +491,21 @@ class PreloadableSegments:
     Attributes (variable, global, and group), shapes, dtypes, and dimension names
     are assumed to be always shareable between repeat cycles.
 
-    To use preloading, pass ``preload=True`` to ``reader_kwargs`` when creating
-    the Scene.
+    To use preloading, set the satpy configuration variable
+    ``readers.preload_segments`` to True.  The initialisation parameter
+    for this filehandler might still be False, because the first segment (the
+    reference segment) of a repeat cycle is loaded normally.
 
     This feature is experimental.
 
-    .. versionadded:: 0.47
+    .. versionadded:: 0.50
     """
 
-    def __init__(self, *args, preload=False, preload_step=2, preload_tries=300,
-                 ref_fh=None, rc_cache=None, **kwargs):
+    def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
         """Store attributes needed for preloading to work."""
         self.preload = preload
-        self.preload_tries = preload_tries
-        self.preload_step = preload_step
+        self.preload_tries = satpy.config.get("readers.preload_tries")
+        self.preload_step = satpy.config.get("readers.preload_step")
         if preload:
             if not isinstance(ref_fh, BaseFileHandler):
                 raise TypeError(
@@ -512,7 +514,7 @@ class PreloadableSegments:
             self.ref_fh = ref_fh
             if not isinstance(rc_cache, (str, bytes, os.PathLike)):
                 raise TypeError(
-                    "Expect cache file when preloading, got "
+                    "Expected cache file when preloading, got "
                     f"{type(rc_cache)!s}")
             self.rc_cache = rc_cache
         super().__init__(*args, **kwargs)

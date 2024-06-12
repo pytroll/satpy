@@ -36,6 +36,8 @@ from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import Parser, globify, parse
 
+import satpy
+
 try:
     from yaml import CLoader as Loader
 except ImportError:
@@ -1170,8 +1172,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     field which will be used if ``expected_segments`` is not defined. This
     will default to 1 segment.
 
-    This reader uses an optional ``preload`` keyword argument that can be
-    passed to the :meth:`~satpy.scene.Scene` class upon instantiation.
+    This reader uses the ``readers.preload_segments`` configuration setting.
     This argument is intended for near real time processing.  When only
     one segment has arrived, the user can create a scene using this one
     segment and ``preload=True``, and Satpy will populate a scene based on
@@ -1183,13 +1184,11 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     (how many tries before giving up).
 
     This feature is experimental.  Use at your own risk.
-
-    .. versionadded:: 0.47
     """
 
     def __init__(self, *args, **kwargs):
         """Initialise object."""
-        self.preload = kwargs.pop("preload", False)
+        self.preload = satpy.config.get("readers.preload_segments")
         super().__init__(*args, **kwargs)
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
