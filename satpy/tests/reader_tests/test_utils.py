@@ -516,22 +516,24 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
     assert read_binary_data == dummy_data
 
 
-CALIB_COEFS = {
-    "nominal": {
-        "ch1": {"slope": 0.1, "offset": 1},
-        "ch2": {"slope": 0.2, "offset": 2}
-    },
-    "mode1": {
-        "ch1": {"slope": 0.3, "offset": 3},
-    },
-    "mode2": {
-        "ch2": {"slope": 0.5, "offset": 5},
-    }
-}
-
-
 class TestCalibrationCoefficientSelector:
     """Test selection of calibration coefficients."""
+
+    @pytest.fixture(name="coefs")
+    def fixture_coefs(self):
+        """Get fake coefficients."""
+        return {
+            "nominal": {
+                "ch1": "nominal_ch1",
+                "ch2": "nominal_ch2"
+            },
+            "mode1": {
+                "ch1": "mode1_ch1",
+            },
+            "mode2": {
+                "ch2": "mode2_ch2",
+            }
+        }
 
     @pytest.fixture(name="ch1")
     def fixture_ch1(self):
@@ -553,53 +555,43 @@ class TestCalibrationCoefficientSelector:
         [
             (
                 None,
-                CALIB_COEFS["nominal"]
+                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
             ),
             (
                 {"reflective": "mode1"},
-                {
-                    "ch1": CALIB_COEFS["mode1"]["ch1"],
-                    "ch2": CALIB_COEFS["nominal"]["ch2"]
-                }
+                {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
             ),
             (
                 {"reflective": "mode1", "emissive": "mode2"},
-                {
-                    "ch1": CALIB_COEFS["mode1"]["ch1"],
-                    "ch2": CALIB_COEFS["mode2"]["ch2"]
-                }
+                {"ch1": "mode1_ch1", "ch2": "mode2_ch2"}
             ),
             (
                 {"ch1": "mode1"},
-                {
-                    "ch1": CALIB_COEFS["mode1"]["ch1"],
-                    "ch2": CALIB_COEFS["nominal"]["ch2"]
-                }
+                {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
             ),
         ]
     )
-    def test_get_coefs(self, dataset_ids, calib_modes, expected):
+    def test_get_coefs(self, dataset_ids, coefs, calib_modes, expected):
         """Test getting calibration coefficients."""
-        s = CalibrationCoefficientSelector(CALIB_COEFS, calib_modes)
+        s = CalibrationCoefficientSelector(coefs, calib_modes)
         coefs = {
             dataset_id["name"]: s.get_coefs(dataset_id)
             for dataset_id in dataset_ids
         }
         assert coefs == expected
 
-    def test_missing_coefs(self, ch1):
+    def test_missing_coefs(self, coefs, ch1):
         """Test handling of missing coefficients."""
         calib_modes = {"reflective": "mode2"}
-        s = CalibrationCoefficientSelector(CALIB_COEFS, calib_modes)
+        s = CalibrationCoefficientSelector(coefs, calib_modes)
         with pytest.raises(KeyError, match="No calibration *"):
             s.get_coefs(ch1)
 
-    def test_fallback_to_nominal(self, ch1):
+    def test_fallback_to_nominal(self, coefs, ch1):
         """Test falling back to nominal coefficients."""
         calib_modes = {"reflective": "mode2"}
-        s = CalibrationCoefficientSelector(CALIB_COEFS, calib_modes, fallback="nominal")
-        coefs = s.get_coefs(ch1)
-        assert coefs == {"slope": 0.1, "offset": 1}
+        s = CalibrationCoefficientSelector(coefs, calib_modes, fallback="nominal")
+        assert s.get_coefs(ch1) == "nominal_ch1"
 
     def test_no_default_coefs(self):
         """Test initialization without default coefficients."""
