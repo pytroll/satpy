@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """ACSPO SST Reader.
 
 See the following page for more information:
@@ -22,8 +23,9 @@ See the following page for more information:
 https://podaac.jpl.nasa.gov/dataset/VIIRS_NPP-OSPO-L2P-v2.3
 
 """
+
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 
@@ -83,7 +85,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     @staticmethod
     def _parse_datetime(datestr):
-        return datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
+        return dt.datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
 
     @property
     def start_time(self):

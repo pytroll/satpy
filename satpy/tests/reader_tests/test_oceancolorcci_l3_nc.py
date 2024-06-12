@@ -16,10 +16,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.oceancolorcci_l3_nc module."""
 
+import datetime as dt
 import os
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -243,12 +244,12 @@ class TestOCCCIReader:
     def test_start_time(self, fake_file_dict):
         """Test start time property."""
         reader = self._create_reader_for_resolutions([fake_file_dict["k490_1d"]])
-        assert reader.start_time == datetime(2021, 8, 1, 0, 0, 0)
+        assert reader.start_time == dt.datetime(2021, 8, 1, 0, 0, 0)
 
     def test_end_time(self, fake_file_dict):
         """Test end time property."""
         reader = self._create_reader_for_resolutions([fake_file_dict["iop_8d"]])
-        assert reader.end_time == datetime(2021, 8, 31, 23, 59, 0)
+        assert reader.end_time == dt.datetime(2021, 8, 31, 23, 59, 0)
 
     def test_correct_dimnames(self, fake_file_dict):
         """Check that the loaded dimension names are correct."""

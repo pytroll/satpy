@@ -17,9 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.ghrsst_l2 module."""
 
+import datetime as dt
 import os
 import tarfile
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -124,7 +124,7 @@ class TestGHRSSTL2Reader:
 
     def test_get_sensor(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
-        dt_valid = datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
+        dt_valid = dt.datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
         filename_info = {"field_type": "NARSST", "generating_centre": "FRA_",
                          "satid": "NOAA20_", "valid_time": dt_valid}
 
@@ -136,9 +136,9 @@ class TestGHRSSTL2Reader:
 
     def test_get_start_and_end_times(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
-        dt_valid = datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
-        good_start_time = datetime(2022, 3, 21, 11, 26, 40)  # 20220321T112640Z
-        good_stop_time = datetime(2022, 3, 21, 14, 57, 11)  # 20220321T145711Z
+        dt_valid = dt.datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
+        good_start_time = dt.datetime(2022, 3, 21, 11, 26, 40)  # 20220321T112640Z
+        good_stop_time = dt.datetime(2022, 3, 21, 14, 57, 11)  # 20220321T145711Z
 
         filename_info = {"field_type": "NARSST", "generating_centre": "FRA_",
                          "satid": "NOAA20_", "valid_time": dt_valid}

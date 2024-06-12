@@ -19,8 +19,8 @@
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
 
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
@@ -213,18 +213,18 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     def start_time(self):
         """Get observation start time."""
         try:
-            start_time = datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y%m%d%H%M%S.%f")
+            start_time = dt.datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y%m%d%H%M%S.%f")
         except ValueError:
-            start_time = datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
+            start_time = dt.datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
         return start_time
 
     @property
     def end_time(self):
         """Get observation end time."""
         try:
-            end_time = datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y%m%d%H%M%S.%f")
+            end_time = dt.datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y%m%d%H%M%S.%f")
         except ValueError:
-            end_time = datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
+            end_time = dt.datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
         return end_time
 
     @property

@@ -14,7 +14,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """The abi_l2_nc reader tests package."""
+
 import contextlib
 from typing import Optional
 from unittest import mock
@@ -96,23 +98,36 @@ def _create_mcmip_dataset():
     return ds1
 
 
+def _create_aod_dataset():
+    ds1 = _create_cmip_dataset("AOD")
+    ds1["AOD"].attrs["units"] = "1"
+    return ds1
+
+
 class Test_NC_ABI_L2_get_dataset:
     """Test get dataset function of the NC_ABI_L2 reader."""
 
-    def test_get_dataset(self):
+    @pytest.mark.parametrize(
+        ("obs_type", "ds_func", "var_name", "var_attrs"),
+        [
+            ("ACHA", _create_cmip_dataset, "HT", {"units": "m"}),
+            ("AOD", _create_aod_dataset, "AOD", {"units": "1"}),
+        ]
+    )
+    def test_get_dataset(self, obs_type, ds_func, var_name, var_attrs):
         """Test basic L2 load."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name="HT")
-        with _create_reader_for_fake_data("ACHA", _create_cmip_dataset()) as reader:
-            res = reader.get_dataset(key, {"file_key": "HT"})
+        key = make_dataid(name=var_name)
+        with _create_reader_for_fake_data(obs_type, ds_func()) as reader:
+            res = reader.get_dataset(key, {"file_key": var_name})
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])
 
         exp_attrs = {"instrument_ID": None,
                      "modifiers": (),
-                     "name": "HT",
-                     "observation_type": "ACHA",
+                     "name": var_name,
+                     "observation_type": obs_type,
                      "orbital_slot": None,
                      "platform_name": "GOES-16",
                      "platform_shortname": "G16",
@@ -122,7 +137,8 @@ class Test_NC_ABI_L2_get_dataset:
                      "scene_id": None,
                      "sensor": "abi",
                      "timeline_ID": None,
-                     "units": "m"}
+                     }
+        exp_attrs.update(var_attrs)
 
         np.testing.assert_allclose(res.data, exp_data, equal_nan=True)
         _compare_subdict(res.attrs, exp_attrs)
@@ -151,7 +167,7 @@ class TestMCMIPReading:
     @mock.patch("satpy.readers.abi_base.xr")
     def test_mcmip_get_dataset(self, xr_, product, exp_metadata):
         """Test getting channel from MCMIP file."""
-        from datetime import datetime
+        import datetime as dt
 
         from pyresample.geometry import AreaDefinition
 
@@ -183,8 +199,8 @@ class TestMCMIPReading:
             "scene_id": None,
             "sensor": "abi",
             "timeline_ID": None,
-            "start_time": datetime(2017, 9, 20, 17, 30, 40, 800000),
-            "end_time": datetime(2017, 9, 20, 17, 41, 17, 500000),
+            "start_time": dt.datetime(2017, 9, 20, 17, 30, 40, 800000),
+            "end_time": dt.datetime(2017, 9, 20, 17, 41, 17, 500000),
             "ancillary_variables": [],
         }
         exp_attrs.update(exp_metadata)

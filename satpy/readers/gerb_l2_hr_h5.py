@@ -16,16 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-
 """GERB L2 HR HDF5 reader.
 
 A reader for the Top of Atmosphere outgoing fluxes from the Geostationary Earth Radiation
 Budget instrument aboard the Meteosat Second Generation satellites.
 """
 
-
+import datetime as dt
 import logging
-from datetime import timedelta
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.resample import get_area_def
@@ -55,7 +53,7 @@ class GERB_HR_FileHandler(HDF5FileHandler):
     @property
     def end_time(self):
         """Get end time."""
-        return self.start_time + timedelta(minutes=15)
+        return self.start_time + dt.timedelta(minutes=15)
 
     @property
     def start_time(self):

@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """MODIS L1b and L2 test fixtures."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import datetime as dt
 from typing import Optional
 
 import numpy as np
@@ -216,13 +218,13 @@ def _get_l1b_geo_variable_info(filename: str,
 
 def generate_nasa_l1b_filename(prefix):
     """Generate a filename that follows NASA MODIS L1b convention."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"{prefix}_A{now:%y%j_%H%M%S}_{now:%Y%j%H%M%S}.hdf"
 
 
 def generate_imapp_filename(suffix):
     """Generate a filename that follows IMAPP MODIS L1b convention."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"t1.{now:%y%j.%H%M}.{suffix}.hdf"
 
 
@@ -275,8 +277,8 @@ def _add_variable_to_file(h, var_name, var_info):
 
 
 def _create_core_metadata(file_shortname: str) -> str:
-    beginning_date = datetime.now()
-    ending_date = beginning_date + timedelta(minutes=5)
+    beginning_date = dt.datetime.now()
+    ending_date = beginning_date + dt.timedelta(minutes=5)
     core_metadata_header = "GROUP = INVENTORYMETADATA\nGROUPTYPE = MASTERGROUP\n\n" \
                            'GROUP = RANGEDATETIME\n\nOBJECT = RANGEBEGINNINGDATE\nNUM_VAL = 1\nVALUE = "{}"\n' \
                            "END_OBJECT = RANGEBEGINNINGDATE\n\nOBJECT = RANGEBEGINNINGTIME\n" \
@@ -593,7 +595,7 @@ def _get_mask_byte1_variable_info() -> dict:
 
 def generate_nasa_l2_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 35 L2 convention in a temporary directory."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"{prefix}_L2.A{now:%Y%j.%H%M}.061.{now:%Y%j%H%M%S}.hdf"
 
 
@@ -614,7 +616,7 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
 
 def generate_nasa_l3_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 09 L3 convention in a temporary directory."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"{prefix}.A{now:%Y%j}.061.{now:%Y%j%H%M%S}.hdf"
 
 

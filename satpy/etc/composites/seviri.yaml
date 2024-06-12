@@ -421,6 +421,7 @@ composites:
       - name: HRV
         modifiers: [sunz_corrected]
       - IR_108
+
   hrv_fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: hrv_fog

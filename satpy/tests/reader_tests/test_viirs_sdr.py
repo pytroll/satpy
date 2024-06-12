@@ -354,12 +354,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_start_time_beyond(self):
         """Test basic init with start_time after the provided files."""
-        from datetime import datetime
+        import datetime as dt
 
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
-                            "start_time": datetime(2012, 2, 26)
+                            "start_time": dt.datetime(2012, 2, 26)
                         })
         fhs = r.create_filehandlers([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -368,12 +368,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_end_time_beyond(self):
         """Test basic init with end_time before the provided files."""
-        from datetime import datetime
+        import datetime as dt
 
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
-                            "end_time": datetime(2012, 2, 24)
+                            "end_time": dt.datetime(2012, 2, 24)
                         })
         fhs = r.create_filehandlers([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -382,14 +382,14 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_start_end_time(self):
         """Test basic init with end_time before the provided files."""
-        from datetime import datetime
+        import datetime as dt
 
         from satpy.readers import load_reader
 
         r = load_reader(self.reader_configs,
                         filter_parameters={
-                            "start_time": datetime(2012, 2, 24),
-                            "end_time": datetime(2012, 2, 26)
+                            "start_time": dt.datetime(2012, 2, 24),
+                            "end_time": dt.datetime(2012, 2, 26)
                         })
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",

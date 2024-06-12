@@ -18,6 +18,7 @@
 import logging
 from contextlib import suppress
 
+import netCDF4
 import numpy as np
 import xarray as xr
 from pyresample import geometry
@@ -87,12 +88,44 @@ class FciL2CommonFunctions(object):
         else:
             xdim, ydim = "number_of_columns", "number_of_rows"
 
-        if dataset_info["file_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
-            variable = variable.rename({ydim: "y", xdim: "x"})
+        if dataset_info["nc_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
+            variable = variable.swap_dims({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
+        if "unit" in variable.attrs:
+            # Need to convert this attribute to the expected satpy entry
+            variable.attrs.update({"units": variable.attrs["unit"]})
+            del variable.attrs["unit"]
+
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
+
+        import_enum_information = dataset_info.get("import_enum_information", False)
+        if import_enum_information:
+            variable = self._add_flag_values_and_meanings(self.filename, dataset_info["nc_key"], variable)
+
+        if variable.attrs["units"] == "none":
+            variable.attrs.update({"units": None})
+
+        return variable
+
+    @staticmethod
+    def _add_flag_values_and_meanings(filename, key, variable):
+        """Build flag values and meaning from enum datatype."""
+        nc_dataset = netCDF4.Dataset(filename, "r")
+        # This currently assumes a flat netCDF file
+        data_type = nc_dataset.variables[key].datatype
+        if hasattr(data_type, "enum_dict"):
+            enum = data_type.enum_dict
+            flag_values = []
+            flag_meanings = []
+            for meaning, value in enum.items():
+                flag_values.append(value)
+                flag_meanings.append(meaning)
+
+            variable.attrs["flag_values"] = flag_values
+            variable.attrs["flag_meanings"] = flag_meanings
+            nc_dataset.close()
 
         return variable
 
@@ -154,7 +187,6 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self._projection = self.nc["mtg_geos_projection"]
         self.multi_dims = {"maximum_number_of_layers": "layer", "number_of_vis_channels": "vis_channel_id"}
 
-
     def get_area_def(self, key):
         """Return the area definition."""
         try:
@@ -163,8 +195,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
             raise NotImplementedError
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info["file_key"]
+        """Get dataset using the nc_key in dataset_info."""
+        var_key = dataset_info["nc_key"]
         par_name = dataset_info["name"]
         logger.debug("Reading in file to get dataset with key %s.", var_key)
 
@@ -196,7 +228,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
     @staticmethod
     def _decode_clm_test_data(variable, dataset_info):
-        if dataset_info["file_key"] != "cloud_mask_cmrt6_test_result":
+        if dataset_info["nc_key"] != "cloud_mask_cmrt6_test_result":
             variable = variable.astype("uint32")
             variable.values = (variable.values >> dataset_info["extract_byte"] << 31 >> 31).astype("int8")
 
@@ -237,9 +269,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         area_extent_pixel_center = make_ext(ll_x, ur_x, ll_y, ur_y, h)
 
         # Shift area extent by half a pixel to get the area extent w.r.t. the dataset/pixel corners
-        scale_factor = (x[1:]-x[0:-1]).values.mean()
+        scale_factor = (x[1:] - x[0:-1]).values.mean()
         res = abs(scale_factor) * h
-        area_extent = tuple(i + res/2 if i > 0 else i - res/2 for i in area_extent_pixel_center)
+        area_extent = tuple(i + res / 2 if i > 0 else i - res / 2 for i in area_extent_pixel_center)
 
         return area_extent
 
@@ -326,8 +358,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             raise NotImplementedError
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info["file_key"]
+        """Get dataset using the nc_key in dataset_info."""
+        var_key = dataset_info["nc_key"]
         logger.debug("Reading in file to get dataset with key %s.", var_key)
 
         try:
@@ -404,8 +436,10 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
         return area_extent
 
+
 class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
     """Reader class for FCI L2 AMV products in NetCDF4 format."""
+
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
@@ -439,13 +473,13 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             "spacecraft_name": self.spacecraft_name,
             "sensor": self.sensor_name,
             "platform_name": self.spacecraft_name,
-            "channel":self.filename_info["channel"]
+            "channel": self.filename_info["channel"]
         }
         return attributes
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info["file_key"]
+        """Get dataset using the nc_key in dataset_info."""
+        var_key = dataset_info["nc_key"]
         logger.debug("Reading in file to get dataset with key %s.", var_key)
 
         try:

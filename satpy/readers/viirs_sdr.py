@@ -28,10 +28,11 @@ Format documentation:
  - http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
 
 """
+
+import datetime as dt
 import logging
 import os.path
 from contextlib import suppress
-from datetime import datetime, timedelta
 from glob import glob
 
 import numpy as np
@@ -39,8 +40,8 @@ import numpy as np
 from satpy.readers.viirs_atms_sdr_base import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
+NO_DATE = dt.datetime(1958, 1, 1)
+EPSILON_TIME = dt.timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 

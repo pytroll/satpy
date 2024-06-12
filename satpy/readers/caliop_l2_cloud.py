@@ -16,12 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 # type: ignore
+
 """Interface to CALIOP L2 HDF4 cloud products."""
 
+import datetime as dt
 import logging
 import os.path
 import re
-from datetime import datetime
 
 from pyhdf.SD import SD, SDC
 
@@ -56,7 +57,7 @@ class HDF4BandReader(BaseFileHandler):
         mda_dict = self.filehandle.attributes()
         core_mda = mda_dict["coremetadata"]
         end_time_str = self.parse_metadata_string(core_mda)
-        self._end_time = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M:%SZ")
+        self._end_time = dt.datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M:%SZ")
 
     @staticmethod
     def parse_metadata_string(metadata_string):

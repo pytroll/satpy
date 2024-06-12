@@ -38,7 +38,7 @@ class TestPillowWriter(unittest.TestCase):
     @staticmethod
     def _get_test_datasets():
         """Create DataArray for testing."""
-        from datetime import datetime
+        import datetime as dt
 
         import dask.array as da
         import xarray as xr
@@ -46,7 +46,7 @@ class TestPillowWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow()}
+                   "start_time": dt.datetime.utcnow()}
         )
         return [ds1]
 

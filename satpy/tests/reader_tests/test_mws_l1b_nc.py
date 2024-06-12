@@ -19,8 +19,8 @@ This module tests the reading of the MWS l1b netCDF format data as per version v
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 from unittest.mock import patch
 
 import numpy as np
@@ -50,13 +50,13 @@ def reader(fake_file):
         filename=fake_file,
         filename_info={
             "start_time": (
-                datetime.fromisoformat("2000-01-01T01:00:00")
+                dt.datetime.fromisoformat("2000-01-01T01:00:00")
             ),
             "end_time": (
-                datetime.fromisoformat("2000-01-01T02:00:00")
+                dt.datetime.fromisoformat("2000-01-01T02:00:00")
             ),
             "creation_time": (
-                datetime.fromisoformat("2000-01-01T03:00:00")
+                dt.datetime.fromisoformat("2000-01-01T03:00:00")
             ),
         },
         filetype_info={
@@ -207,11 +207,11 @@ class TestMwsL1bNCFileHandler:
 
     def test_start_time(self, reader):
         """Test acquiring the start time."""
-        assert reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
+        assert reader.start_time == dt.datetime(2000, 1, 2, 3, 4, 5)
 
     def test_end_time(self, reader):
         """Test acquiring the end time."""
-        assert reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
+        assert reader.end_time == dt.datetime(2000, 1, 2, 4, 5, 6)
 
     def test_sensor(self, reader):
         """Test sensor."""
@@ -356,12 +356,12 @@ class TestMwsL1bNCFileHandler:
         attributes = reader._get_global_attributes()
         assert attributes == {
             "filename": reader.filename,
-            "start_time": datetime(2000, 1, 2, 3, 4, 5),
-            "end_time": datetime(2000, 1, 2, 4, 5, 6),
+            "start_time": dt.datetime(2000, 1, 2, 3, 4, 5),
+            "end_time": dt.datetime(2000, 1, 2, 4, 5, 6),
             "spacecraft_name": "Metop-SG-A1",
             "sensor": "MWS",
-            "filename_start_time": datetime(2000, 1, 1, 1, 0),
-            "filename_end_time": datetime(2000, 1, 1, 2, 0),
+            "filename_start_time": dt.datetime(2000, 1, 1, 1, 0),
+            "filename_end_time": dt.datetime(2000, 1, 1, 2, 0),
             "platform_name": "Metop-SG-A1",
             "quality_group": {
                 "duration_of_product": np.array(5944., dtype=np.float32),

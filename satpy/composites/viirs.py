@@ -15,12 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Composite classes for the VIIRS instrument."""
+
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import math
-from datetime import datetime
 
 import dask
 import dask.array as da
@@ -842,7 +844,7 @@ def _linear_normalization_from_0to1(
     data[mask] = data[mask] / theoretical_max
 
 
-def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: datetime) -> float:
+def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: dt.datetime) -> float:
     """Check if we have Moon phase as an input dataset and, if not, calculate it."""
     if moon_datasets:
         # convert to decimal instead of %

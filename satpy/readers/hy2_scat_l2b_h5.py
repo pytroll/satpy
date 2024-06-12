@@ -21,7 +21,7 @@ Distributed by Eumetsat in HDF5 format.
 Also handle the HDF5 files from NSOAS, based on a file example.
 """
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import xarray as xr
@@ -35,14 +35,14 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
     @property
     def start_time(self):
         """Time for first observation."""
-        return datetime.strptime(self["/attr/Range_Beginning_Time"],
-                                 "%Y%m%dT%H:%M:%S")
+        return dt.datetime.strptime(self["/attr/Range_Beginning_Time"],
+                                    "%Y%m%dT%H:%M:%S")
 
     @property
     def end_time(self):
         """Time for final observation."""
-        return datetime.strptime(self["/attr/Range_Ending_Time"],
-                                 "%Y%m%dT%H:%M:%S")
+        return dt.datetime.strptime(self["/attr/Range_Ending_Time"],
+                                    "%Y%m%dT%H:%M:%S")
 
     @property
     def platform_name(self):

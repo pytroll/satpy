@@ -1,0 +1,83 @@
+sensor_name: visir/mersi-1
+
+modifiers:
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: '3'
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
+
+  sunz_corrected:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+    prerequisites:
+      - name: solar_zenith_angle
+
+  nir_reflectance:
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
+    prerequisites:
+    - name: '24'
+    optional_prerequisites:
+    - solar_zenith_angle
+
+
+composites:
+  colorized_ir:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: '5'
+    standard_name: colorized_ir_clouds
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '2'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '1'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_uncorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'
+        modifiers: [sunz_corrected]
+      - name: '2'
+        modifiers: [sunz_corrected]
+      - name: '1'
+        modifiers: [sunz_corrected]
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: '6'
+        modifiers: [sunz_corrected]
+      - name: '16'
+        modifiers: [sunz_corrected]
+      - name: '3'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: '4'
+        modifiers: [sunz_corrected]
+    high_resolution_band: green
+    neutral_resolution_band: blue
+    standard_name: natural_color
+
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'
+        modifiers: [sunz_corrected]
+      - name: '4'
+        modifiers: [sunz_corrected]
+      - name: '5'
+    standard_name: overview

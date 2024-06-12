@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for VIIRS compositors."""
 
-from datetime import datetime
+import datetime as dt
 
 import dask.array as da
 import numpy as np
@@ -52,7 +53,7 @@ class TestVIIRSComposites:
         c01 = xr.DataArray(dnb,
                            dims=("y", "x"),
                            attrs={"name": "DNB", "area": area,
-                                  "start_time": datetime(2020, 1, 1, 12, 0, 0)})
+                                  "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)})
         return c01
 
     @pytest.fixture()
@@ -66,7 +67,7 @@ class TestVIIRSComposites:
         c02 = xr.DataArray(sza,
                            dims=("y", "x"),
                            attrs={"name": "solar_zenith_angle", "area": area,
-                                  "start_time": datetime(2020, 1, 1, 12, 0, 0)})
+                                  "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)})
         return c02
 
     @pytest.fixture()
@@ -79,7 +80,7 @@ class TestVIIRSComposites:
         c03 = xr.DataArray(lza,
                            dims=("y", "x"),
                            attrs={"name": "lunar_zenith_angle", "area": area,
-                                  "start_time": datetime(2020, 1, 1, 12, 0, 0)
+                                  "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)
                                   })
         return c03
 

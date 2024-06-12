@@ -37,7 +37,7 @@ import os
 import dask.array as da
 import numpy as np
 import xarray as xr
-from appdirs import AppDirs
+from platformdirs import AppDirs
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler

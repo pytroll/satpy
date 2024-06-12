@@ -103,11 +103,11 @@ class TestSCMIFileHandler(unittest.TestCase):
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
-        from datetime import datetime
+        import datetime as dt
 
         from satpy.tests.utils import make_dataid
-        assert self.reader.start_time == datetime(2017, 7, 29, 12, 0, 0, 0)
-        assert self.reader.end_time == datetime(2017, 7, 29, 12, 0, 0, 0)
+        assert self.reader.start_time == dt.datetime(2017, 7, 29, 12, 0, 0, 0)
+        assert self.reader.end_time == dt.datetime(2017, 7, 29, 12, 0, 0, 0)
         assert self.reader.get_shape(make_dataid(name="C05"), {}) == (2, 5)
 
     def test_data_load(self):

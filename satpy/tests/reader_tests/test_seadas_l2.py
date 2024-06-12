@@ -20,7 +20,7 @@
 import numpy as np
 import pytest
 from pyresample.geometry import SwathDefinition
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import Scene, available_readers
 

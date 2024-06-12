@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-from datetime import datetime
+import datetime as dt
 from unittest import mock
 
 import numpy as np
@@ -34,7 +34,7 @@ channel_keys_dict = {"VIS006": "ch1", "IR_108": "ch9"}
 
 def to_cds_time(time):
     """Convert datetime to (days, msecs) since 1958-01-01."""
-    if isinstance(time, datetime):
+    if isinstance(time, dt.datetime):
         time = np.datetime64(time)
     t0 = np.datetime64("1958-01-01 00:00")
     delta = time - t0
@@ -62,13 +62,13 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         line_validity = np.repeat([3, 3], 11).reshape(2, 11)
         line_geom_radio_quality = np.repeat([4, 4], 11).reshape(2, 11)
         orbit_poly_start_day, orbit_poly_start_msec = to_cds_time(
-            np.array([datetime(2019, 12, 31, 18),
-                      datetime(2019, 12, 31, 22)],
+            np.array([dt.datetime(2019, 12, 31, 18),
+                      dt.datetime(2019, 12, 31, 22)],
                      dtype="datetime64")
         )
         orbit_poly_end_day, orbit_poly_end_msec = to_cds_time(
-            np.array([datetime(2019, 12, 31, 22),
-                      datetime(2020, 1, 1, 2)],
+            np.array([dt.datetime(2019, 12, 31, 22),
+                      dt.datetime(2020, 1, 1, 2)],
                      dtype="datetime64")
         )
         counts = counts.rename({
@@ -325,10 +325,10 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 "projection_altitude": 35785831.0
             },
             "time_parameters": {
-                "nominal_start_time": datetime(2020, 1, 1, 0, 0),
-                "nominal_end_time": datetime(2020, 1, 1, 0, 0),
-                "observation_start_time": datetime(2020, 1, 1, 0, 0),
-                "observation_end_time": datetime(2020, 1, 1, 0, 0),
+                "nominal_start_time": dt.datetime(2020, 1, 1, 0, 0),
+                "nominal_end_time": dt.datetime(2020, 1, 1, 0, 0),
+                "observation_start_time": dt.datetime(2020, 1, 1, 0, 0),
+                "observation_end_time": dt.datetime(2020, 1, 1, 0, 0),
             },
             "georef_offset_corrected": True,
             "platform_name": "Meteosat-11",
@@ -352,13 +352,13 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
 
     def test_time(self, file_handler):
         """Test start/end nominal/observation time handling."""
-        assert datetime(2020, 1, 1, 0, 0) == file_handler.observation_start_time
-        assert datetime(2020, 1, 1, 0, 0) == file_handler.start_time
+        assert dt.datetime(2020, 1, 1, 0, 0) == file_handler.observation_start_time
+        assert dt.datetime(2020, 1, 1, 0, 0) == file_handler.start_time
         assert file_handler.start_time == file_handler.nominal_start_time
 
-        assert datetime(2020, 1, 1, 0, 0) == file_handler.observation_end_time
+        assert dt.datetime(2020, 1, 1, 0, 0) == file_handler.observation_end_time
         assert file_handler.end_time == file_handler.nominal_end_time
-        assert datetime(2020, 1, 1, 0, 0) == file_handler.end_time
+        assert dt.datetime(2020, 1, 1, 0, 0) == file_handler.end_time
 
     def test_repeat_cycle_duration(self, file_handler):
         """Test repeat cycle handling for FD or ReduscedScan."""

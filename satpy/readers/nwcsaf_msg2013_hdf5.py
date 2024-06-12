@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for the old NWCSAF/Geo (v2013 and earlier) cloud product format.
 
 References:
@@ -27,8 +28,8 @@ References:
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import h5py
 import numpy as np
@@ -127,7 +128,7 @@ class Hdf5NWCSAF(HDF5FileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        return datetime.strptime(self.file_content["/attr/IMAGE_ACQUISITION_TIME"], "%Y%m%d%H%M")
+        return dt.datetime.strptime(self.file_content["/attr/IMAGE_ACQUISITION_TIME"], "%Y%m%d%H%M")
 
 
 def get_area_extent(cfac, lfac, coff, loff, numcols, numlines):

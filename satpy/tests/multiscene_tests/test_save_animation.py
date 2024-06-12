@@ -15,17 +15,18 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Unit tests for saving animations using Multiscene."""
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
 
+import datetime as dt
 import os
 import shutil
 import tempfile
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -63,12 +64,12 @@ class TestMultiSceneSave(unittest.TestCase):
         scenes[1]["ds3"] = _create_test_dataset("ds3")
         # Add a start and end time
         for ds_id in ["ds1", "ds2", "ds3"]:
-            scenes[1][ds_id].attrs["start_time"] = datetime(2018, 1, 2)
-            scenes[1][ds_id].attrs["end_time"] = datetime(2018, 1, 2, 12)
+            scenes[1][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 2, 12)
             if ds_id == "ds3":
                 continue
-            scenes[0][ds_id].attrs["start_time"] = datetime(2018, 1, 1)
-            scenes[0][ds_id].attrs["end_time"] = datetime(2018, 1, 1, 12)
+            scenes[0][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 1, 12)
 
         mscn = MultiScene(scenes)
         fn = os.path.join(
@@ -125,12 +126,12 @@ class TestMultiSceneSave(unittest.TestCase):
         scenes[1]["ds3"] = _create_test_dataset("ds3")
         # Add a start and end time
         for ds_id in ["ds1", "ds2", "ds3"]:
-            scenes[1][ds_id].attrs["start_time"] = datetime(2018, 1, 2)
-            scenes[1][ds_id].attrs["end_time"] = datetime(2018, 1, 2, 12)
+            scenes[1][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 2, 12)
             if ds_id == "ds3":
                 continue
-            scenes[0][ds_id].attrs["start_time"] = datetime(2018, 1, 1)
-            scenes[0][ds_id].attrs["end_time"] = datetime(2018, 1, 1, 12)
+            scenes[0][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 1, 12)
 
         mscn = MultiScene(scenes)
         fn = os.path.join(
@@ -165,12 +166,12 @@ class TestMultiSceneSave(unittest.TestCase):
         scenes[1]["ds3"] = _create_test_dataset("ds3")
         # Add a start and end time
         for ds_id in ["ds1", "ds2", "ds3"]:
-            scenes[1][ds_id].attrs["start_time"] = datetime(2018, 1, 2)
-            scenes[1][ds_id].attrs["end_time"] = datetime(2018, 1, 2, 12)
+            scenes[1][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 2, 12)
             if ds_id == "ds3":
                 continue
-            scenes[0][ds_id].attrs["start_time"] = datetime(2018, 1, 1)
-            scenes[0][ds_id].attrs["end_time"] = datetime(2018, 1, 1, 12)
+            scenes[0][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 1, 12)
 
         mscn = MultiScene(scenes)
         client_mock = mock.MagicMock()
@@ -198,12 +199,12 @@ class TestMultiSceneSave(unittest.TestCase):
         scenes[1]["ds3"] = _create_test_dataset("ds3")
         # Add a start and end time
         for ds_id in ["ds1", "ds2", "ds3"]:
-            scenes[1][ds_id].attrs["start_time"] = datetime(2018, 1, 2)
-            scenes[1][ds_id].attrs["end_time"] = datetime(2018, 1, 2, 12)
+            scenes[1][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 2, 12)
             if ds_id == "ds3":
                 continue
-            scenes[0][ds_id].attrs["start_time"] = datetime(2018, 1, 1)
-            scenes[0][ds_id].attrs["end_time"] = datetime(2018, 1, 1, 12)
+            scenes[0][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 1, 12)
 
         mscn = MultiScene(scenes)
         client_mock = mock.MagicMock()
@@ -233,12 +234,12 @@ class TestMultiSceneSave(unittest.TestCase):
         scenes[1]["ds3"] = _create_test_dataset("ds3")
         # Add a start and end time
         for ds_id in ["ds1", "ds2", "ds3"]:
-            scenes[1][ds_id].attrs["start_time"] = datetime(2018, 1, 2)
-            scenes[1][ds_id].attrs["end_time"] = datetime(2018, 1, 2, 12)
+            scenes[1][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 2, 12)
             if ds_id == "ds3":
                 continue
-            scenes[0][ds_id].attrs["start_time"] = datetime(2018, 1, 1)
-            scenes[0][ds_id].attrs["end_time"] = datetime(2018, 1, 1, 12)
+            scenes[0][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 1, 12)
 
         mscn = MultiScene(scenes)
         client_mock = mock.MagicMock()
@@ -313,12 +314,12 @@ def test_save_mp4(smg, tmp_path):
     scenes[1]["ds3"] = _create_test_dataset("ds3")
     # Add a start and end time
     for ds_id in ["ds1", "ds2", "ds3"]:
-        scenes[1][ds_id].attrs["start_time"] = datetime(2018, 1, 2)
-        scenes[1][ds_id].attrs["end_time"] = datetime(2018, 1, 2, 12)
+        scenes[1][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 2)
+        scenes[1][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 2, 12)
         if ds_id == "ds3":
             continue
-        scenes[0][ds_id].attrs["start_time"] = datetime(2018, 1, 1)
-        scenes[0][ds_id].attrs["end_time"] = datetime(2018, 1, 1, 12)
+        scenes[0][ds_id].attrs["start_time"] = dt.datetime(2018, 1, 1)
+        scenes[0][ds_id].attrs["end_time"] = dt.datetime(2018, 1, 1, 12)
 
     mscn = MultiScene(scenes)
     fn = str(tmp_path /

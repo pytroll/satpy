@@ -12,9 +12,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The atms_l1b_nc reader tests package."""
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import pytest
@@ -32,7 +33,7 @@ def reader(l1b_file):
     """Return reader of ATMS level1b data."""
     return AtmsL1bNCFileHandler(
         filename=l1b_file,
-        filename_info={"creation_time": datetime(2020, 1, 2, 3, 4, 5)},
+        filename_info={"creation_time": dt.datetime(2020, 1, 2, 3, 4, 5)},
         filetype_info={"antenna_temperature": "antenna_temp"},
     )
 
@@ -78,11 +79,11 @@ class TestAtsmsL1bNCFileHandler:
 
     def test_start_time(self, reader):
         """Test start time."""
-        assert reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
+        assert reader.start_time == dt.datetime(2000, 1, 2, 3, 4, 5)
 
     def test_end_time(self, reader):
         """Test end time."""
-        assert reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
+        assert reader.end_time == dt.datetime(2000, 1, 2, 4, 5, 6)
 
     def test_sensor(self, reader):
         """Test sensor."""
@@ -100,8 +101,8 @@ class TestAtsmsL1bNCFileHandler:
         )
 
     @pytest.mark.parametrize(("param", "expect"), [
-        ("start_time", datetime(2000, 1, 2, 3, 4, 5)),
-        ("end_time", datetime(2000, 1, 2, 4, 5, 6)),
+        ("start_time", dt.datetime(2000, 1, 2, 3, 4, 5)),
+        ("end_time", dt.datetime(2000, 1, 2, 4, 5, 6)),
         ("platform_name", "JPSS-1"),
         ("sensor", "ATMS"),
     ])
@@ -135,11 +136,11 @@ class TestAtsmsL1bNCFileHandler:
         assert coords not in data.coords
 
     @pytest.mark.parametrize(("param", "expect"), [
-        ("start_time", datetime(2000, 1, 2, 3, 4, 5)),
-        ("end_time", datetime(2000, 1, 2, 4, 5, 6)),
+        ("start_time", dt.datetime(2000, 1, 2, 3, 4, 5)),
+        ("end_time", dt.datetime(2000, 1, 2, 4, 5, 6)),
         ("platform_name", "JPSS-1"),
         ("sensor", "ATMS"),
-        ("creation_time", datetime(2020, 1, 2, 3, 4, 5)),
+        ("creation_time", dt.datetime(2020, 1, 2, 3, 4, 5)),
         ("type", "test_data"),
         ("name", "test"),
     ])

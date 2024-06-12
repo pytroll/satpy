@@ -16,11 +16,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
+import datetime as dt
 import os
 import unittest
-from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
@@ -41,13 +42,13 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        dt_s = filename_info.get("start_time", datetime(2016, 1, 1, 12, 0, 0))
-        dt_e = filename_info.get("end_time", datetime(2016, 1, 1, 12, 0, 0))
+        dt_s = filename_info.get("start_time", dt.datetime(2016, 1, 1, 12, 0, 0))
+        dt_e = filename_info.get("end_time", dt.datetime(2016, 1, 1, 12, 0, 0))
 
         if filetype_info["file_type"] == "tropomi_l2":
             file_content = {
-                "/attr/time_coverage_start": (dt_s+timedelta(minutes=22)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "/attr/time_coverage_end": (dt_e-timedelta(minutes=22)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "/attr/time_coverage_start": (dt_s+dt.timedelta(minutes=22)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "/attr/time_coverage_end": (dt_e-dt.timedelta(minutes=22)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "/attr/platform_shortname": "S5P",
                 "/attr/sensor": "TROPOMI",
             }
@@ -141,8 +142,8 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "S5P"
             assert d.attrs["sensor"] == "tropomi"
-            assert d.attrs["time_coverage_start"] == datetime(2018, 7, 9, 17, 25, 34)
-            assert d.attrs["time_coverage_end"] == datetime(2018, 7, 9, 18, 23, 4)
+            assert d.attrs["time_coverage_start"] == dt.datetime(2018, 7, 9, 17, 25, 34)
+            assert d.attrs["time_coverage_end"] == dt.datetime(2018, 7, 9, 18, 23, 4)
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
             assert "y" in d.dims

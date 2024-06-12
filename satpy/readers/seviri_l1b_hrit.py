@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 r"""SEVIRI Level 1.5 HRIT format reader.
 
 Introduction
@@ -213,8 +214,8 @@ References:
 from __future__ import division
 
 import copy
+import datetime as dt
 import logging
-from datetime import timedelta
 
 import dask.array as da
 import numpy as np
@@ -528,14 +529,14 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the start time and round it according to scan law."""
         tm = self.prologue["ImageAcquisition"][
             "PlannedAcquisitionTime"]["TrueRepeatCycleStart"]
-        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+        return round_nom_time(tm, time_delta=dt.timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Get the end time and round it according to scan law."""
         tm = self.prologue["ImageAcquisition"][
             "PlannedAcquisitionTime"]["PlannedRepeatCycleEnd"]
-        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+        return round_nom_time(tm, time_delta=dt.timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
@@ -765,8 +766,8 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs["standard_name"] = info["standard_name"]
         res.attrs["platform_name"] = self.platform_name
         res.attrs["sensor"] = "seviri"
-        res.attrs["nominal_start_time"] = self.nominal_start_time,
-        res.attrs["nominal_end_time"] = self.nominal_end_time,
+        res.attrs["nominal_start_time"] = self.nominal_start_time
+        res.attrs["nominal_end_time"] = self.nominal_end_time
         res.attrs["time_parameters"] = {
             "nominal_start_time": self.nominal_start_time,
             "nominal_end_time": self.nominal_end_time,

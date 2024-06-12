@@ -23,8 +23,9 @@ References:
     https://navigator.eumetsat.int/
 
 """
+
+import datetime as dt
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -95,7 +96,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         else:
             # Product was retrieved from the EUMETSAT Data Center
             timeStr = self.get_attribute("typicalDate")+self.get_attribute("typicalTime")
-            buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+            buf_start_time = dt.datetime.strptime(timeStr, "%Y%m%d%H%M%S")
             sc_id = self.get_attribute("satelliteIdentifier")
             self.mpef_header = {}
             self.mpef_header["NominalTime"] = buf_start_time
@@ -120,7 +121,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Return the repeat cycle end time."""
-        return self.start_time + timedelta(minutes=15)
+        return self.start_time + dt.timedelta(minutes=15)
 
     @property
     def platform_name(self):

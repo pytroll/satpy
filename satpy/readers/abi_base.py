@@ -15,12 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
+import datetime as dt
 import logging
 import math
 from contextlib import suppress
-from datetime import datetime
 
 import dask
 import numpy as np
@@ -291,12 +292,12 @@ class NC_ABI_BASE(BaseFileHandler):
     @property
     def start_time(self):
         """Start time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs["time_coverage_start"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["time_coverage_start"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """End time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs["time_coverage_end"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["time_coverage_end"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     def spatial_resolution_to_number(self):
         """Convert the 'spatial_resolution' global attribute to meters."""

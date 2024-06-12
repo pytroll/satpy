@@ -1,6 +1,7 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
+
+import datetime as dt
 from contextlib import suppress
-from datetime import datetime
 from functools import cached_property
 
 import dask.array as da
@@ -120,13 +121,15 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        start_time = datetime.strptime(self.datatree.attrs["Acquisition_Start_Time"], "%d-%b-%YT%H:%M:%S")
+        start_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_Start_Time"], "%d-%b-%YT%H:%M:%S")
         return start_time
 
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.strptime(self.datatree.attrs["Acquisition_End_Time"], "%d-%b-%YT%H:%M:%S")
+        end_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_End_Time"], "%d-%b-%YT%H:%M:%S")
         return end_time
 
     @cached_property

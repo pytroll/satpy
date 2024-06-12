@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Generic Reader for GRIB2 files.
 
 Currently this reader depends on the `pygrib` python package. The `eccodes`
@@ -22,8 +23,9 @@ package from ECMWF is preferred, but does not support python 3 at the time
 of writing.
 
 """
+
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -105,7 +107,7 @@ class GRIBFileHandler(BaseFileHandler):
     @staticmethod
     def _convert_datetime(msg, date_key, time_key, date_format="%Y%m%d%H%M"):
         date_str = "{:d}{:04d}".format(msg[date_key], msg[time_key])
-        return datetime.strptime(date_str, date_format)
+        return dt.datetime.strptime(date_str, date_format)
 
     @property
     def start_time(self):

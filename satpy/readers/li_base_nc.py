@@ -191,12 +191,12 @@ import numpy as np
 import xarray as xr
 from pyproj import Proj
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-class LINCFileHandler(NetCDF4FileHandler):
+class LINCFileHandler(NetCDF4FsspecFileHandler):
     """Base class used as parent for the concrete LI reader classes."""
 
     def __init__(self, filename, filename_info, filetype_info, cache_handle=True):
@@ -370,6 +370,9 @@ class LINCFileHandler(NetCDF4FileHandler):
         # Convert scan angles to projection coordinates by multiplying with perspective point height
         azimuth = azimuth.values * point_height
         elevation = elevation.values * point_height
+
+        # In the MTG world, azimuth is defined as positive towards west, while proj expects it positive towards east
+        azimuth *= -1
 
         lon, lat = projection(azimuth, elevation, inverse=True)
 

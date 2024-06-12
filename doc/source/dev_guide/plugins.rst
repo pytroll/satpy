@@ -156,19 +156,6 @@ have a ``etc/`` directory in the root of the package structure. Even so,
 for future compatibility, it is best to use the name of the package directory
 on the right-hand side of the ``=``.
 
-.. warning::
-
-    Due to some limitations in setuptools you must also define a ``setup.py``
-    file in addition to ``pyproject.toml`` if you'd like to use "editable"
-    installations (``pip install -e .``). Once
-    `this setuptools issue <https://github.com/pypa/setuptools/issues/2816>`_
-    is resolved this won't be needed. For now this minimal ``setup.py`` will
-    work:
-
-    .. code-block:: python
-
-        from setuptools import setup
-        setup()
 
 **Alternative: setup.py**
 

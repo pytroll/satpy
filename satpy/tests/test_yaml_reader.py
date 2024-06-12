@@ -15,12 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Testing the yaml_reader module."""
 
+import datetime as dt
 import os
 import random
 import unittest
-from datetime import datetime, timedelta
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, call, patch
 
@@ -182,8 +183,8 @@ class DummyReader(BaseFileHandler):
         """Initialize the dummy reader."""
         super(DummyReader, self).__init__(
             filename, filename_info, filetype_info)
-        self._start_time = datetime(2000, 1, 1, 12, 1)
-        self._end_time = datetime(2000, 1, 1, 12, 2)
+        self._start_time = dt.datetime(2000, 1, 1, 12, 1)
+        self._end_time = dt.datetime(2000, 1, 1, 12, 2)
         self.metadata = {}
 
     @property
@@ -227,8 +228,8 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader(self.config,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2)})
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2)})
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
@@ -280,8 +281,8 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
         self.config = MHS_YAML_READER_DICT
         self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2),
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2),
                                         })
 
     def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
@@ -321,8 +322,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2),
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2),
                                         })
 
     def test_deprecated_passing_config_files(self):
@@ -362,17 +363,18 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_filter_fh_by_time(self):
         """Check filtering filehandlers by time."""
-        fh0 = FakeFH(datetime(1999, 12, 30), datetime(1999, 12, 31))
-        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
-                     datetime(2000, 1, 2, 12, 30))
-        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
-                     datetime(2000, 1, 3, 12, 30))
-        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 3, 12, 30))
+        fh0 = FakeFH(dt.datetime(1999, 12, 30),
+                     dt.datetime(1999, 12, 31))
+        fh1 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(dt.datetime(2000, 1, 1, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(dt.datetime(2000, 1, 1, 12, 30),
+                     dt.datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(dt.datetime(2000, 1, 2, 12, 30),
+                     dt.datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 3, 12, 30))
 
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, fh.end_time)
@@ -388,8 +390,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
     @patch("satpy.readers.yaml_reader.Boundary")
     def test_file_covers_area(self, bnd, adb, gad):
         """Test that area coverage is checked properly."""
-        file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
-                              datetime(2000, 1, 3, 12, 30))
+        file_handler = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                              dt.datetime(2000, 1, 3, 12, 30))
 
         self.reader.filter_parameters["area"] = True
         bnd.return_value.contour_poly.intersection.return_value = True
@@ -417,18 +419,18 @@ class TestFileFileYAMLReader(unittest.TestCase):
         with pytest.raises(RuntimeError):
             self.reader.end_time
 
-        fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
-                     datetime(1999, 12, 31, 0, 0))
-        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
-                     datetime(2000, 1, 2, 12, 30))
-        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
-                     datetime(2000, 1, 3, 12, 30))
-        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 3, 12, 30))
+        fh0 = FakeFH(dt.datetime(1999, 12, 30, 0, 0),
+                     dt.datetime(1999, 12, 31, 0, 0))
+        fh1 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(dt.datetime(2000, 1, 1, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(dt.datetime(2000, 1, 1, 12, 30),
+                     dt.datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(dt.datetime(2000, 1, 2, 12, 30),
+                     dt.datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 3, 12, 30))
 
         self.reader.file_handlers = {
             "0": [fh1, fh2, fh3, fh4, fh5],
@@ -436,8 +438,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
             "2": [fh2, fh3],
         }
 
-        assert self.reader.start_time == datetime(1999, 12, 30, 0, 0)
-        assert self.reader.end_time == datetime(2000, 1, 3, 12, 30)
+        assert self.reader.start_time == dt.datetime(1999, 12, 30, 0, 0)
+        assert self.reader.end_time == dt.datetime(2000, 1, 3, 12, 30)
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
@@ -572,8 +574,8 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2),
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2),
                                         })
         fake_fh = FakeFH(None, None)
         self.lons = xr.DataArray(np.ones((2, 2)) * 2,
@@ -1543,8 +1545,8 @@ def _get_fake_handler(parent, filename):
     fake_filename = os.fspath(parent / filename)
     fake_filename_info = {
             "platform": "M9G",
-            "start_time": datetime(2100, 1, 1, 10, 0, 0),
-            "end_time": datetime(2100, 1, 1, 10, 1, 0),
+            "start_time": dt.datetime(2100, 1, 1, 10, 0, 0),
+            "end_time": dt.datetime(2100, 1, 1, 10, 1, 0),
             "segment": 1}
     fakehandler = BaseFileHandler(
             fake_filename,
@@ -1563,8 +1565,8 @@ def test_predict_filename_info(tmp_path):
     info = _predict_filename_info(fh, 3)
     assert info == {
             "platform": "M9G",
-            "start_time": datetime(2100, 1, 1, 23, 59, 59),
-            "end_time": datetime(2100, 1, 1, 23, 59, 59),
+            "start_time": dt.datetime(2100, 1, 1, 23, 59, 59),
+            "end_time": dt.datetime(2100, 1, 1, 23, 59, 59),
             "segment": 3}
 
 
@@ -1592,8 +1594,8 @@ def test_predict_filename(tmp_path, fake_gsyreader):
     newname = fake_gsyreader._predict_filename(fh, 4)
     assert newname[0] == os.fspath(tmp_path / "M9G-b-21000101??????-21000101??????-0004.nc")
 
-    st = datetime(2023, 12, 20, 15, 8, 49)
-    et = st + timedelta(minutes=5)
+    st = dt.datetime(2023, 12, 20, 15, 8, 49)
+    et = st + dt.timedelta(minutes=5)
     fn = f"M9G-b-{st:%Y%m%d%H%M%S}-{et:%Y%m%d%H%M%S}-0001.nc"
     pt = "M9G-b-20231220??????-20231220??????-0004.nc"
     fake_filename_info = {"platform": "M9G", "start_time": st, "end_time": et, "segment": 1}
@@ -1684,8 +1686,8 @@ def test_preloaded_instances_works(
 
     # filename info belonging to fake_simple_nc_file
 
-    fn_info = {"platform": "M9a", "start_time": datetime(2100, 1, 1, 5, 30),
-               "end_time": datetime(2100, 1, 1, 5, 31), "segment": 1}
+    fn_info = {"platform": "M9a", "start_time": dt.datetime(2100, 1, 1, 5, 30),
+               "end_time": dt.datetime(2100, 1, 1, 5, 31), "segment": 1}
 
     with unittest.mock.patch("appdirs.user_cache_dir") as au:
         au.return_value = os.fspath(tmp_path / "cache")
@@ -1721,8 +1723,8 @@ def test_preloaded_instances_requirement(
             ft_info,
             [(os.fspath(fake_simple_nc_file),
               {"platform": "M9G",
-               "start_time": datetime(2100, 1, 1, 5, 30, ),
-               "end_time": datetime(2100, 1, 1, 5, 31, ),
+               "start_time": dt.datetime(2100, 1, 1, 5, 30, ),
+               "end_time": dt.datetime(2100, 1, 1, 5, 31, ),
                "segment": 1})])
     with pytest.raises(ValueError, match="Unable to preload"):
         list(g)
@@ -1784,8 +1786,8 @@ def test_get_cache_filename(tmp_path):
             "BaseFileHandler" / "a-04-01.pkl")
 
     fn = tmp_path / "a-20421015234500-234600-04-01.nc"
-    fn_info = {"start_time": datetime(2042, 10, 15, 23, 45),
-               "end_time": datetime(2042, 10, 15, 23, 46), "rc": 4, "segment": 1}
+    fn_info = {"start_time": dt.datetime(2042, 10, 15, 23, 45),
+               "end_time": dt.datetime(2042, 10, 15, 23, 46), "rc": 4, "segment": 1}
     ft_info = ft_info_simple.copy()
     ft_info["file_patterns"] = ["a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%M%S}-{rc:>02d}-{segment:>02d}.nc"]
     ft_info["time_tags"] = ["start_time", "end_time"]

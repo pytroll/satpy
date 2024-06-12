@@ -13,9 +13,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Unit tests for saving-related functionality in scene.py."""
+
+import datetime as dt
 import os
-from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -39,7 +41,7 @@ class TestSceneSaving:
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
         scn["test"] = ds1
@@ -52,7 +54,7 @@ class TestSceneSaving:
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
         scn["test"] = ds1
@@ -70,7 +72,7 @@ class TestSceneSaving:
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow()}
+                   "start_time": dt.datetime.utcnow()}
         )
         scn = Scene()
         scn["test"] = ds1
@@ -98,7 +100,7 @@ class TestSceneSaving:
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
         scn["test"] = ds1

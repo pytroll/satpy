@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """GOES HRIT format reader.
 
 References:
@@ -24,8 +25,8 @@ References:
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -116,21 +117,21 @@ sgs_time = np.dtype([("century", "u1"),
                      ("msecs", "u1")])
 
 
-def make_sgs_time(sgs_time_array: ArrayLike) -> datetime:
+def make_sgs_time(sgs_time_array: ArrayLike) -> dt.datetime:
     """Make sgs time."""
     epoch_year = _epoch_year_from_sgs_time(sgs_time_array)
     doy_offset = _epoch_doy_offset_from_sgs_time(sgs_time_array)
     return epoch_year + doy_offset
 
 
-def _epoch_year_from_sgs_time(sgs_time_array: ArrayLike) -> datetime:
+def _epoch_year_from_sgs_time(sgs_time_array: ArrayLike) -> dt.datetime:
     century = sgs_time_array["century"].astype(np.int64)
     year = sgs_time_array["year"].astype(np.int64)
     year = ((century >> 4) * 1000 + (century & 15) * 100 + (year >> 4) * 10 + (year & 15))
-    return datetime(int(year), 1, 1)
+    return dt.datetime(int(year), 1, 1)
 
 
-def _epoch_doy_offset_from_sgs_time(sgs_time_array: ArrayLike) -> timedelta:
+def _epoch_doy_offset_from_sgs_time(sgs_time_array: ArrayLike) -> dt.timedelta:
     doy1 = sgs_time_array["doy1"].astype(np.int64)
     doy_hours = sgs_time_array["doy_hours"].astype(np.int64)
     hours_mins = sgs_time_array["hours_mins"].astype(np.int64)
@@ -143,7 +144,7 @@ def _epoch_doy_offset_from_sgs_time(sgs_time_array: ArrayLike) -> timedelta:
     mins = ((hours_mins & 15) * 10 + (mins_secs >> 4))
     secs = ((mins_secs & 15) * 10 + (secs_msecs >> 4))
     msecs = ((secs_msecs & 15) * 100 + (msecs >> 4) * 10 + (msecs & 15))
-    return timedelta(
+    return dt.timedelta(
         days=int(doy - 1),
         hours=int(hours),
         minutes=int(mins),
@@ -426,7 +427,7 @@ class HRITGOESFileHandler(HRITFileHandler):
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         logger.debug("Calibration")
-        tic = datetime.now()
+        tic = dt.datetime.now()
         if calibration == "counts":
             return data
         if calibration == "reflectance":
@@ -437,7 +438,7 @@ class HRITGOESFileHandler(HRITFileHandler):
             raise NotImplementedError("Don't know how to calibrate to " +
                                       str(calibration))
 
-        logger.debug("Calibration time " + str(datetime.now() - tic))
+        logger.debug("Calibration time " + str(dt.datetime.now() - tic))
         return res
 
     def _calibrate(self, data):

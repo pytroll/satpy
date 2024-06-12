@@ -468,8 +468,6 @@ datasets:
       counts:
         units: "1"
         standard_name: counts
-
-  # Not sure how to get radiance for BT channels
   '20':
     name: '20'
     wavelength: [3.710, 3.800, 3.890]
@@ -484,6 +482,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -501,6 +502,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -518,6 +522,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -535,6 +542,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -558,6 +568,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -581,6 +594,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts

@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """SCMI NetCDF4 Reader.
 
 SCMI files are typically used for data for the ABI instrument onboard the
@@ -40,9 +41,9 @@ There are two forms of these files that this reader supports:
 
 """
 
+import datetime as dt
 import logging
 import os
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -273,7 +274,7 @@ class SCMIFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs["start_date_time"], "%Y%j%H%M%S")
+        return dt.datetime.strptime(self.nc.attrs["start_date_time"], "%Y%j%H%M%S")
 
     @property
     def end_time(self):

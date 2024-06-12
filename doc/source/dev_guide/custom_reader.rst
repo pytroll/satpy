@@ -117,7 +117,8 @@ The parameters to provide in this section are:
     file format. This can be multiline if formatted properly in YAML (see
     example below).
  status
-    The status of the reader (one of: Nominal, Beta, Alpha)
+    The status of the reader (one of: Nominal, Beta, Alpha, Defunct; see :ref:`Status Description <Status Description>`
+    for more details).
  supports_fsspec
     If the reader supports reading data via fsspec (either true or false).
  sensors

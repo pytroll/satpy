@@ -15,16 +15,18 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Interface to OMPS EDR format."""
+
+import datetime as dt
 import logging
-from datetime import datetime, timedelta
 
 import numpy as np
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
+NO_DATE = dt.datetime(1958, 1, 1)
+EPSILON_TIME = dt.timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 

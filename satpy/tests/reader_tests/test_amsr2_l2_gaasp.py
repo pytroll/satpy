@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'amsr2_l2_gaasp' reader."""
 
+import datetime as dt
 import os
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -259,8 +259,8 @@ class TestGAASPReader:
         assert "add_offset" not in attrs
         assert attrs["platform_name"] == "GCOM-W1"
         assert attrs["sensor"] == "amsr2"
-        assert attrs["start_time"] == datetime(2020, 8, 12, 5, 58, 31)
-        assert attrs["end_time"] == datetime(2020, 8, 12, 6, 7, 1)
+        assert attrs["start_time"] == dt.datetime(2020, 8, 12, 5, 58, 31)
+        assert attrs["end_time"] == dt.datetime(2020, 8, 12, 6, 7, 1)
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),

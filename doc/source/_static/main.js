@@ -1,6 +1,11 @@
 $(document).ready( function () {
     $('table.datatable').DataTable( {
     "paging": false,
-    "dom": 'lfitp'
+    "layout": {
+        'topStart': 'info',
+        'topEnd': 'search',
+        'bottomStart': null
+    },
+    "order": [[0, 'asc']]
 } );
 } );

@@ -20,6 +20,8 @@
 Based on the test for geotiff writer
 
 """
+
+import datetime as dt
 import logging
 import os
 import unittest
@@ -48,8 +50,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_datasets(self):
         """Create a datasets list."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -68,7 +68,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "1",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "TEST_SENSOR_NAME",
                    "area": area_def,
@@ -91,7 +91,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "4",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "TEST_SENSOR_NAME",
                    "area": area_def,
@@ -114,8 +114,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_datasets_sensor_set(self):
         """Create a datasets list."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -134,7 +132,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "1",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": {"TEST_SENSOR_NAME"},
                    "area": area_def,
@@ -157,7 +155,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "4",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": {"TEST_SENSOR_NAME"},
                    "area": area_def,
@@ -180,8 +178,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset(self, bands=3):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -201,7 +197,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((bands, 100, 200), chunks=50),
             dims=("bands", "y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "TEST_SENSOR_NAME",
                    "area": area_def,
@@ -211,8 +207,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_one_dataset(self):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -232,7 +226,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "avhrr",
                    "area": area_def,
@@ -242,8 +236,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_one_dataset_sensor_set(self):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -263,7 +255,7 @@ class TestMITIFFWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": {"avhrr"},
                    "area": area_def,
@@ -273,8 +265,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_with_bad_values(self, bands=3):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import xarray as xr
         from pyproj import CRS
         from pyresample.geometry import AreaDefinition
@@ -298,7 +288,7 @@ class TestMITIFFWriter(unittest.TestCase):
         ds1 = xr.DataArray(rgb_data,
                            dims=("bands", "y", "x"),
                            attrs={"name": "test",
-                                  "start_time": datetime.utcnow(),
+                                  "start_time": dt.datetime.utcnow(),
                                   "platform_name": "TEST_PLATFORM_NAME",
                                   "sensor": "TEST_SENSOR_NAME",
                                   "area": area_def,
@@ -307,8 +297,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_calibration(self, bands=6):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -362,7 +350,7 @@ class TestMITIFFWriter(unittest.TestCase):
             bands.append(p.attrs["name"])
         data["bands"] = list(bands)
         new_attrs = {"name": "datasets",
-                     "start_time": datetime.utcnow(),
+                     "start_time": dt.datetime.utcnow(),
                      "platform_name": "TEST_PLATFORM_NAME",
                      "sensor": "test-sensor",
                      "area": area_def,
@@ -411,8 +399,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_calibration_one_dataset(self, bands=1):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -441,7 +427,7 @@ class TestMITIFFWriter(unittest.TestCase):
         for p in scene:
             calibration.append(p.attrs["calibration"])
         new_attrs = {"name": "datasets",
-                     "start_time": datetime.utcnow(),
+                     "start_time": dt.datetime.utcnow(),
                      "platform_name": "TEST_PLATFORM_NAME",
                      "sensor": "test-sensor",
                      "area": area_def,
@@ -465,8 +451,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_three_bands_two_prereq(self, bands=3):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -488,7 +472,7 @@ class TestMITIFFWriter(unittest.TestCase):
             coords=[["R", "G", "B"], list(range(100)), list(range(200))],
             dims=("bands", "y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "TEST_SENSOR_NAME",
                    "area": area_def,
@@ -499,8 +483,6 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_three_bands_prereq(self, bands=3):
         """Create a single test dataset."""
-        from datetime import datetime
-
         import dask.array as da
         import xarray as xr
         from pyproj import CRS
@@ -522,7 +504,7 @@ class TestMITIFFWriter(unittest.TestCase):
             coords=[["R", "G", "B"], list(range(100)), list(range(200))],
             dims=("bands", "y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime.utcnow(),
+                   "start_time": dt.datetime.utcnow(),
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "TEST_SENSOR_NAME",
                    "area": area_def,

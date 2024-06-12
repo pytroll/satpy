@@ -15,9 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """A reader for HDF5 Snow Cover (SC) file produced by the Hydrology SAF."""
+
+import datetime as dt
 import logging
-from datetime import timedelta
 
 import dask.array as da
 import h5py
@@ -47,7 +49,7 @@ class HSAFFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get end time."""
-        return self.start_time + timedelta(hours=23, minutes=59, seconds=59)
+        return self.start_time + dt.timedelta(hours=23, minutes=59, seconds=59)
 
     @property
     def start_time(self):

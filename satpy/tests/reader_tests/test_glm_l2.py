@@ -128,9 +128,9 @@ class TestGLML2FileHandler(unittest.TestCase):
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
-        from datetime import datetime
-        assert self.reader.start_time == datetime(2017, 9, 20, 17, 30, 40)
-        assert self.reader.end_time == datetime(2017, 9, 20, 17, 41, 17)
+        import datetime as dt
+        assert self.reader.start_time == dt.datetime(2017, 9, 20, 17, 30, 40)
+        assert self.reader.end_time == dt.datetime(2017, 9, 20, 17, 41, 17)
 
     def test_get_dataset(self):
         """Test the get_dataset method."""

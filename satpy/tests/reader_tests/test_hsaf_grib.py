@@ -17,9 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.grib module."""
 
+import datetime as dt
 import sys
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -132,7 +132,7 @@ class TestHSAFFileHandler(unittest.TestCase):
     def test_init(self, pg):
         """Test the init function, ensure that the correct dates and metadata are returned."""
         pg.open.return_value = FakeGRIB()
-        correct_dt = datetime(2019, 6, 3, 16, 45, 0)
+        correct_dt = dt.datetime(2019, 6, 3, 16, 45, 0)
         from satpy.readers.hsaf_grib import HSAFFileHandler
         fh = HSAFFileHandler("filename", mock.MagicMock(), mock.MagicMock())
         assert fh._analysis_time == correct_dt

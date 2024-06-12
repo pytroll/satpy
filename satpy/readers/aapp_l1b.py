@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for aapp level 1b data.
 
 Options for loading:
@@ -24,9 +25,10 @@ Options for loading:
 
 https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_Formats_v8.0.pdf
 """
+
+import datetime as dt
 import functools
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -102,14 +104,14 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the time of the first observation."""
-        return datetime(self._data["scnlinyr"][0], 1, 1) + timedelta(
+        return dt.datetime(self._data["scnlinyr"][0], 1, 1) + dt.timedelta(
             days=int(self._data["scnlindy"][0]) - 1,
             milliseconds=int(self._data["scnlintime"][0]))
 
     @property
     def end_time(self):
         """Get the time of the final observation."""
-        return datetime(self._data["scnlinyr"][-1], 1, 1) + timedelta(
+        return dt.datetime(self._data["scnlinyr"][-1], 1, 1) + dt.timedelta(
             days=int(self._data["scnlindy"][-1]) - 1,
             milliseconds=int(self._data["scnlintime"][-1]))
 
@@ -129,10 +131,10 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
 
     def read(self):
         """Read the data."""
-        tic = datetime.now()
+        tic = dt.datetime.now()
         header = np.memmap(self.filename, dtype=self._header_type, mode="r", shape=(1, ))
         data = np.memmap(self.filename, dtype=self._scan_type, offset=self._header_offset, mode="r")
-        logger.debug("Reading time %s", str(datetime.now() - tic))
+        logger.debug("Reading time %s", str(dt.datetime.now() - tic))
 
         self._header = header
         self._data = data

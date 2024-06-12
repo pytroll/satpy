@@ -18,10 +18,10 @@
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
+import datetime as dt
 import itertools
 import os
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -31,7 +31,7 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (721, 1440)
-DEFAULT_DATE = datetime(2019, 6, 19, 13, 0)
+DEFAULT_DATE = dt.datetime(2019, 6, 19, 13, 0)
 DEFAULT_LAT = np.linspace(-90, 90, DEFAULT_FILE_SHAPE[0], dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_LON = np.linspace(-180, 180, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_FILE_FLOAT_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],

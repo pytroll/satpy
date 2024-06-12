@@ -40,8 +40,8 @@ For more information:
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -162,10 +162,10 @@ class VIRR_L1B(HDF5FileHandler):
     def start_time(self):
         """Get starting observation time."""
         start_time = self["/attr/Observing Beginning Date"] + "T" + self["/attr/Observing Beginning Time"] + "Z"
-        return datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get ending observation time."""
         end_time = self["/attr/Observing Ending Date"] + "T" + self["/attr/Observing Ending Time"] + "Z"
-        return datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")

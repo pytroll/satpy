@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Pygac interface."""
 
-from datetime import datetime
+import datetime as dt
 from unittest import TestCase, mock
 
 import dask.array as da
@@ -26,6 +27,7 @@ import pytest
 import xarray as xr
 
 GAC_PATTERN = '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
+EOSIP_PATTERN = '{platform_id:3s}_RPRO_AVH_L1B_1P_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit_number:06d}/image.l1b'  # noqa
 
 GAC_POD_FILENAMES = ["NSS.GHRR.NA.D79184.S1150.E1337.B0008384.WI",
                      "NSS.GHRR.NA.D79184.S2350.E0137.B0008384.WI",
@@ -67,6 +69,8 @@ LAC_KLM_FILENAMES = ["BRN.HRPT.M1.D14152.S0958.E1012.B0883232.UB",
                      "BRN.HRPT.NP.D16185.S1427.E1440.B3814646.UB",
                      "NSS.FRAC.M2.D12153.S1729.E1910.B2915354.SV",
                      "NSS.LHRR.NP.D16306.S1803.E1814.B3985555.WI"]
+
+LAC_EOSIP_FILENAMES = ["N06_RPRO_AVH_L1B_1P_20061206T010808_20061206T012223_007961/image.l1b"]
 
 
 @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__", return_value=None)
@@ -138,6 +142,12 @@ class TestGACLACFile(GACLACFilePatcher):
         filename_info = parse(GAC_PATTERN, filename)
         return self.GACLACFile(filename, filename_info, {}, **kwargs)
 
+    def _get_eosip_fh(self, filename, **kwargs):
+        """Create a file handler."""
+        from trollsift import parse
+        filename_info = parse(EOSIP_PATTERN, filename)
+        return self.GACLACFile(filename, filename_info, {}, **kwargs)
+
     def test_init(self):
         """Test GACLACFile initialization."""
         from pygac.gac_klm import GACKLMReader
@@ -160,6 +170,28 @@ class TestGACLACFile(GACLACFilePatcher):
                 fh = self._get_fh(filename, **kwargs)
                 assert fh.start_time < fh.end_time
                 assert fh.reader_class is reader_cls
+
+
+    def test_init_eosip(self):
+        """Test GACLACFile initialization."""
+        from pygac.lac_pod import LACPODReader
+
+        kwargs = {"start_line": 1,
+                  "end_line": 2,
+                  "strip_invalid_coords": True,
+                  "interpolate_coords": True,
+                  "adjust_clock_drift": True,
+                  "tle_dir": "tle_dir",
+                  "tle_name": "tle_name",
+                  "tle_thresh": 123,
+                  "calibration": "calibration"}
+        for filenames, reader_cls in zip([LAC_EOSIP_FILENAMES],
+                                         [LACPODReader]):
+            for filename in filenames:
+                fh = self._get_eosip_fh(filename, **kwargs)
+                assert fh.start_time < fh.end_time
+                assert fh.reader_class is reader_cls
+                assert fh.reader_kwargs["header_date"] > dt.date(1994, 11, 15)
 
     def test_read_raw_data(self):
         """Test raw data reading."""
@@ -425,8 +457,8 @@ class TestGACLACFile(GACLACFilePatcher):
         data_slc, times_slc = fh.slice(data, times)
         np.testing.assert_array_equal(data_slc, data[1:3])
         np.testing.assert_array_equal(times_slc, times[1:3])
-        assert fh.start_time == datetime(1970, 1, 1, 0, 0, 0, 2)
-        assert fh.end_time == datetime(1970, 1, 1, 0, 0, 0, 3)
+        assert fh.start_time == dt.datetime(1970, 1, 1, 0, 0, 0, 2)
+        assert fh.end_time == dt.datetime(1970, 1, 1, 0, 0, 0, 3)
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_qual_flags")
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._strip_invalid_lat")

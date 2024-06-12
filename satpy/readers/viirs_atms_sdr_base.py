@@ -18,8 +18,8 @@
 
 """Common utilities for reading VIIRS and ATMS SDR data."""
 
+import datetime as dt
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -27,8 +27,8 @@ import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
+NO_DATE = dt.datetime(1958, 1, 1)
+EPSILON_TIME = dt.timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
@@ -106,7 +106,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
             timestr = str(timestr.data.compute().astype(str))
         datetime_str = datestr + timestr
 
-        time_val = datetime.strptime(datetime_str, "%Y%m%d%H%M%S.%fZ")
+        time_val = dt.datetime.strptime(datetime_str, "%Y%m%d%H%M%S.%fZ")
         if abs(time_val - NO_DATE) < EPSILON_TIME:
             # catch rare case when SDR files have incorrect date
             raise ValueError("Datetime invalid {}".format(time_val))

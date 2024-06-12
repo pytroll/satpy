@@ -15,8 +15,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """A reader for OSI-SAF level 3 products in netCDF format."""
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
@@ -197,7 +197,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
     def _parse_datetime(datestr):
         for dt_format in ("%Y-%m-%d %H:%M:%S","%Y%m%dT%H%M%SZ", "%Y-%m-%dT%H:%M:%SZ"):
             try:
-                return datetime.strptime(datestr, dt_format)
+                return dt.datetime.strptime(datestr, dt_format)
             except ValueError:
                 continue
         raise ValueError(f"Unsupported date format: {datestr}")

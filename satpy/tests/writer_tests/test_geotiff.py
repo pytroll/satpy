@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the geotiff writer."""
 
-from datetime import datetime
+import datetime as dt
 from unittest import mock
 
 import dask.array as da
@@ -42,7 +42,7 @@ def _get_test_datasets_2d():
         da.zeros((100, 200), chunks=50),
         dims=("y", "x"),
         attrs={"name": "test",
-               "start_time": datetime.utcnow(),
+               "start_time": dt.datetime.utcnow(),
                "units": "K",
                "area": adef}
     )
@@ -72,7 +72,7 @@ def _get_test_datasets_3d():
         dims=("bands", "y", "x"),
         coords={"bands": ["R", "G", "B"]},
         attrs={"name": "test",
-               "start_time": datetime.utcnow(),
+               "start_time": dt.datetime.utcnow(),
                "area": adef}
     )
     return [ds1]

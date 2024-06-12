@@ -24,8 +24,8 @@ References:
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -299,7 +299,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
+        tic = dt.datetime.now()
         if calibration == "counts":
             res = data
         elif calibration in ["radiance", "brightness_temperature"]:
@@ -311,7 +311,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs["standard_name"] = calibration
         res.attrs["calibration"] = calibration
 
-        logger.debug("Calibration time " + str(datetime.now() - tic))
+        logger.debug("Calibration time " + str(dt.datetime.now() - tic))
         return res
 
     @staticmethod

@@ -26,12 +26,13 @@ import numpy as np
 import pytest
 
 from satpy.tests.reader_tests.utils import fill_h5
+from satpy.tests.utils import RANDOM_GEN
 
-CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
+CTYPE_TEST_ARRAY = (RANDOM_GEN.random((1856, 3712)) * 255).astype(np.uint8)
 CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)
 CTYPE_TEST_ARRAY[1000:1010, 1000:1010] = CTYPE_TEST_FRAME
 
-CTTH_HEIGHT_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
+CTTH_HEIGHT_TEST_ARRAY = (RANDOM_GEN.random((1856, 3712)) * 255).astype(np.uint8)
 _CTTH_HEIGHT_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 80).astype(np.uint8)
 CTTH_HEIGHT_TEST_ARRAY[1000:1010, 1000:1010] = _CTTH_HEIGHT_TEST_FRAME
 
@@ -39,7 +40,7 @@ CTTH_HEIGHT_TEST_FRAME_RES = _CTTH_HEIGHT_TEST_FRAME.astype(np.float32) * 200 - 
 CTTH_HEIGHT_TEST_FRAME_RES[0, 0:10] = np.nan
 CTTH_HEIGHT_TEST_FRAME_RES[1, 0:3] = np.nan
 
-CTTH_PRESSURE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
+CTTH_PRESSURE_TEST_ARRAY = (RANDOM_GEN.random((1856, 3712)) * 255).astype(np.uint8)
 _CTTH_PRESSURE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 54).astype(np.uint8)
 CTTH_PRESSURE_TEST_ARRAY[1000:1010, 1000:1010] = _CTTH_PRESSURE_TEST_FRAME
 
@@ -47,7 +48,7 @@ CTTH_PRESSURE_TEST_FRAME_RES = _CTTH_PRESSURE_TEST_FRAME.astype(np.float32) * 25
 CTTH_PRESSURE_TEST_FRAME_RES[0, 0:10] = np.nan
 CTTH_PRESSURE_TEST_FRAME_RES[1, 0:9] = np.nan
 
-CTTH_TEMPERATURE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
+CTTH_TEMPERATURE_TEST_ARRAY = (RANDOM_GEN.random((1856, 3712)) * 255).astype(np.uint8)
 _CTTH_TEMPERATURE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 140).astype(np.uint8)
 _CTTH_TEMPERATURE_TEST_FRAME[8, 5] = 255
 CTTH_TEMPERATURE_TEST_ARRAY[1000:1010, 1000:1010] = _CTTH_TEMPERATURE_TEST_FRAME
@@ -130,7 +131,7 @@ fake_ct = {
             "PRODUCT": b"CT__",
             "SCALING_FACTOR": 1.0,
         },
-        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+        "value": (RANDOM_GEN.random((1856, 3712)) * 255).astype(np.uint8),
     },
     "CT_QUALITY": {
         "attrs": {
@@ -145,7 +146,7 @@ fake_ct = {
             "PRODUCT": b"CT__",
             "SCALING_FACTOR": 1.0,
         },
-        "value": (np.random.rand(1856, 3712) * 65535).astype(np.uint16),
+        "value": (RANDOM_GEN.random((1856, 3712)) * 65535).astype(np.uint16),
     },
     "attrs": {
         "CFAC": 13642337,
@@ -255,7 +256,7 @@ fake_ctth = {
             "PAL_COLORMODEL": b"RGB",
             "PAL_TYPE": b"DIRECTINDEX",
         },
-        "value": (np.random.rand(128, 3) * 255).astype(np.uint8),
+        "value": (RANDOM_GEN.random((128, 3)) * 255).astype(np.uint8),
     },
     "03-PALETTE": {
         "attrs": {
@@ -263,7 +264,7 @@ fake_ctth = {
             "PAL_COLORMODEL": b"RGB",
             "PAL_TYPE": b"DIRECTINDEX",
         },
-        "value": (np.random.rand(256, 3) * 255).astype(np.uint8),
+        "value": (RANDOM_GEN.random((256, 3)) * 255).astype(np.uint8),
     },
     "04-PALETTE": {
         "attrs": {
@@ -323,7 +324,7 @@ fake_ctth = {
             "PRODUCT": b"CTTH",
             "SCALING_FACTOR": 5.0,
         },
-        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+        "value": (RANDOM_GEN.random((1856, 3712)) * 255).astype(np.uint8),
     },
     "CTTH_HEIGHT": {
         "attrs": {
@@ -370,7 +371,7 @@ fake_ctth = {
             "PRODUCT": b"CTTH",
             "SCALING_FACTOR": 1.0,
         },
-        "value": (np.random.rand(1856, 3712) * 65535).astype(np.uint16),
+        "value": (RANDOM_GEN.random((1856, 3712)) * 65535).astype(np.uint16),
     },
     "CTTH_TEMPER": {
         "attrs": {

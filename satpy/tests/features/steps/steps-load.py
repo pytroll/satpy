@@ -45,13 +45,13 @@ def step_impl_data_available(context):
 @when(u"user loads the data without providing a config file")
 def step_impl_user_loads_no_config(context):
     """Load the data without a config."""
-    from datetime import datetime
+    import datetime as dt
 
     from satpy import Scene, find_files_and_readers
     os.chdir("/tmp/")
     readers_files = find_files_and_readers(sensor="viirs",
-                                           start_time=datetime(2015, 3, 11, 11, 20),
-                                           end_time=datetime(2015, 3, 11, 11, 26))
+                                           start_time=dt.datetime(2015, 3, 11, 11, 20),
+                                           end_time=dt.datetime(2015, 3, 11, 11, 26))
     scn = Scene(filenames=readers_files)
     scn.load(["M02"])
     context.scene = scn
@@ -73,13 +73,13 @@ def step_impl_items_not_available(context):
 @when(u"user wants to know what data is available")
 def step_impl_user_checks_availability(context):
     """Check availability."""
-    from datetime import datetime
+    import datetime as dt
 
     from satpy import Scene, find_files_and_readers
     os.chdir("/tmp/")
     reader_files = find_files_and_readers(sensor="viirs",
-                                          start_time=datetime(2015, 3, 11, 11, 20),
-                                          end_time=datetime(2015, 3, 11, 11, 26))
+                                          start_time=dt.datetime(2015, 3, 11, 11, 20),
+                                          end_time=dt.datetime(2015, 3, 11, 11, 26))
     scn = Scene(filenames=reader_files)
     context.available_dataset_ids = scn.available_dataset_ids()
 

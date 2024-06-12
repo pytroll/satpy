@@ -1,6 +1,10 @@
 reader:
-  description: FY-3E Medium Resolution Spectral Imager - Low Light (MERSI-LL) L1B Reader
   name: mersi_ll_l1b
+  short_name: MERSI Low Light FY3E L1B
+  long_name: FY-3E MERSI Low Light Level 1B
+  description: FY-3E Medium Resolution Spectral Imager - Low Light (MERSI-LL) L1B Reader
+  status: Nominal
+  supports_fsspec: true
   sensors: [mersi-ll]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
@@ -49,11 +53,18 @@ datasets:
       1000:
         file_type: mersi_ll_l1b_1000
         file_key: Data/EV_1KM_LL
+        calibration_key: Calibration/Solar_Irradiance_LL
     coordinates: [longitude, latitude]
     calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
   '2':
     name: '2'
     wavelength: [3.710, 3.800, 3.890]
@@ -72,6 +83,9 @@ datasets:
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
   '3':
     name: '3'
     wavelength: [3.9725, 4.050, 4.1275]
@@ -90,6 +104,9 @@ datasets:
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
   '4':
     name: '4'
     wavelength: [6.950, 7.20, 7.450]
@@ -108,6 +125,9 @@ datasets:
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
   '5':
     name: '5'
     wavelength: [8.400, 8.550, 8.700]
@@ -126,6 +146,9 @@ datasets:
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
   '6':
     name: '6'
     wavelength: [10.300, 10.800, 11.300]
@@ -149,6 +172,9 @@ datasets:
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
   '7':
     name: '7'
     wavelength: [11.500, 12.000, 12.500]
@@ -172,6 +198,9 @@ datasets:
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
 
   longitude:
     name: longitude

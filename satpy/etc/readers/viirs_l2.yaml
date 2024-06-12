@@ -1,0 +1,126 @@
+reader:
+  name: viirs_l2
+  short_name: VIIRS L2
+  long_name: SNPP VIIRS Level 2 data in netCDF4 format
+  description: Generic NASA VIIRS L2 Reader
+  status: Alpha
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  sensors: [viirs]
+
+file_types:
+  cldprop_l2_viirs:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
+    file_patterns:
+      - 'CLDPROP_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
+  cldmsk_l2_viirs:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
+    file_patterns:
+      - 'CLDMSK_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
+  aerdb_l2_viirs:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
+    file_patterns:
+      - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
+      - 'AERDB_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.nrt.nc'
+  cldir_l2_viirs:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
+    file_patterns:
+      - 'CLDIR_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+  aerdt_l2_viirs:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
+    file_patterns:
+      - 'AERDT_L2_VIIRS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
+  fsnrad_l2_viirs:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2FileHandler
+    file_patterns:
+      - 'FSNRAD_L2_VIIRS_CRIS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
+      - 'FSNRAD_L2_VIIRS_CRIS_SS_{spacecraft_name:s}.A{start_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.nc'
+
+datasets:
+  cld_lon:
+    name: cld_lon
+    resolution: 1000
+    file_type: [cldmsk_l2_viirs, cldprop_l2_viirs]
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  cld_lat:
+    name: cld_lat
+    resolution: 1000
+    file_type: [cldmsk_l2_viirs, cldprop_l2_viirs]
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
+  aerdb_lon:
+    name: aerdb_lon
+    resolution: 1000
+    file_type: [aerdb_l2_viirs]
+    file_key: Longitude
+    units: degrees
+    standard_name: longitude
+  aerdb_lat:
+    name: aerdb_lat
+    resolution: 1000
+    file_type: [aerdb_l2_viirs]
+    file_key: Latitude
+    units: degrees
+    standard_name: latitude
+  aerdt_lon:
+    name: aerdt_lon
+    resolution: 1000
+    file_type: [aerdt_l2_viirs]
+    file_key: longitude
+    units: degrees
+    standard_name: longitude
+  aerdt_lat:
+    name: aerdt_lat
+    resolution: 1000
+    file_type: [aerdt_l2_viirs]
+    file_key: latitude
+    units: degrees
+    standard_name: latitude
+
+##################################
+# Datasets in file cldmsk_l2_viirs
+##################################
+  Clear_Sky_Confidence:
+    name: Clear_Sky_Confidence
+    long_name: VIIRS Clear Sky Confidence
+    units: "1"
+    coordinates: [cld_lon, cld_lat]
+    file_key: geophysical_data/Clear_Sky_Confidence
+    file_type: cldmsk_l2_viirs
+    standard_name: clear_sky_confidence
+
+###################################
+# Datasets in file cldprop_l2_viirs
+###################################
+  Cloud_Top_Height:
+    name: Cloud_Top_Height
+    long_name: Cloud Top Height from NOAA CLAVR-x AWG algorithm
+    units: m
+    coordinates: [cld_lon,cld_lat]
+    file_key: geophysical_data/Cloud_Top_Height
+    file_type: cldprop_l2_viirs
+    standard_name: cloud_top_height
+
+##########################################
+# Datasets in files aerdb_l2_viirs
+##########################################
+  Angstrom_Exponent_Land_Ocean_Best_Estimate:
+    name: Angstrom_Exponent_Land_Ocean_Best_Estimate
+    long_name: Deep Blue/SOAR Angstrom exponent over land and ocean
+    units: "1"
+    coordinates: [aerdb_lon,aerdb_lat]
+    file_key: Angstrom_Exponent_Land_Ocean_Best_Estimate
+    file_type: [aerdb_l2_viirs]
+    standard_name: angstrom_exponent_land_ocean_best_estimate
+
+  Aerosol_Optical_Thickness_550_Land_Ocean:
+    name: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
+    long_name: Deep Blue/SOAR aerosol optical thickness at 550 nm over land and ocean
+    units: "1"
+    coordinates: [aerdb_lon,aerdb_lat]
+    file_key: Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate
+    file_type: [aerdb_l2_viirs]
+    standard_name: aerosol_optical_thickness_550_land_ocean

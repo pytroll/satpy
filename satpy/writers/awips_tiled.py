@@ -213,13 +213,14 @@ geolocation by up to 0.5 pixels in each dimension instead of shifting the
 lettered tile locations.
 
 """
+
+import datetime as dt
 import logging
 import os
 import string
 import sys
 import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta
 
 import dask
 import dask.array as da
@@ -1101,7 +1102,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if creator is None:
             creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
-            creation_time = datetime.utcnow()
+            creation_time = dt.datetime.utcnow()
 
         self._add_sector_id_global(new_ds, sector_id)
         new_ds.attrs["Conventions"] = "CF-1.7"
@@ -1493,8 +1494,8 @@ class AWIPSTiledWriter(Writer):
     def _adjust_metadata_times(self, ds_info):
         debug_shift_time = int(os.environ.get("DEBUG_TIME_SHIFT", 0))
         if debug_shift_time:
-            ds_info["start_time"] += timedelta(minutes=debug_shift_time)
-            ds_info["end_time"] += timedelta(minutes=debug_shift_time)
+            ds_info["start_time"] += dt.timedelta(minutes=debug_shift_time)
+            ds_info["end_time"] += dt.timedelta(minutes=debug_shift_time)
 
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
         # use the first data array as a "representative" for the group
@@ -1597,7 +1598,7 @@ class AWIPSTiledWriter(Writer):
         area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
-        creation_time = datetime.utcnow()
+        creation_time = dt.datetime.utcnow()
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
             area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
@@ -1775,7 +1776,7 @@ def create_debug_lettered_tiles(**writer_kwargs):
     sector_info = writer.awips_sectors[sector_id]
     area_def, arr = _create_debug_array(sector_info, save_kwargs["num_subtiles"])
 
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     product = xr.DataArray(da.from_array(arr, chunks="auto"), attrs=dict(
         name="debug_{}".format(sector_id),
         platform_name="DEBUG",

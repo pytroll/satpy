@@ -22,8 +22,8 @@ References:
     https://navigator.eumetsat.int/
 """
 
+import datetime as dt
 import logging
-from datetime import timedelta
 
 import dask.array as da
 import numpy as np
@@ -62,7 +62,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Return the sensing end time."""
-        return self.start_time + timedelta(minutes=REPEAT_CYCLE_DURATION)
+        return self.start_time + dt.timedelta(minutes=REPEAT_CYCLE_DURATION)
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""

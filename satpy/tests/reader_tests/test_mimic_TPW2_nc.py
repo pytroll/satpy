@@ -16,11 +16,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
+import datetime as dt
 import os
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -43,8 +44,8 @@ class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         from xarray import DataArray
-        dt_s = filename_info.get("start_time", datetime(2019, 6, 19, 13, 0))
-        dt_e = filename_info.get("end_time", datetime(2019, 6, 19, 13, 0))
+        dt_s = filename_info.get("start_time", dt.datetime(2019, 6, 19, 13, 0))
+        dt_e = filename_info.get("end_time", dt.datetime(2019, 6, 19, 13, 0))
 
         if filetype_info["file_type"] == "mimicTPW2_comp":
             file_content = {

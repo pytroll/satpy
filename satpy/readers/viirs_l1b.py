@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to VIIRS L1B format."""
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 
@@ -32,7 +32,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def _parse_datetime(self, datestr):
         """Parse datetime."""
-        return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
+        return dt.datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
     @property
     def start_orbit_number(self):

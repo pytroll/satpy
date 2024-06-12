@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 r"""SEVIRI Level 1.5 native format reader.
 
 Introduction
@@ -97,9 +98,9 @@ References:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
 """
 
+import datetime as dt
 import logging
 import warnings
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -207,13 +208,13 @@ class NativeMSGFileHandler(BaseFileHandler):
     def nominal_start_time(self):
         """Get the repeat cycle nominal start time from file header and round it to expected nominal time slot."""
         tm = self.header["15_DATA_HEADER"]["ImageAcquisition"]["PlannedAcquisitionTime"]["TrueRepeatCycleStart"]
-        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+        return round_nom_time(tm, time_delta=dt.timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def nominal_end_time(self):
         """Get the repeat cycle nominal end time from file header and round it to expected nominal time slot."""
         tm = self.header["15_DATA_HEADER"]["ImageAcquisition"]["PlannedAcquisitionTime"]["PlannedRepeatCycleEnd"]
-        return round_nom_time(tm, time_delta=timedelta(minutes=self._repeat_cycle_duration))
+        return round_nom_time(tm, time_delta=dt.timedelta(minutes=self._repeat_cycle_duration))
 
     @property
     def observation_start_time(self):
@@ -609,7 +610,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
-        tic = datetime.now()
+        tic = dt.datetime.now()
         channel_name = dataset_id["name"]
         calib = SEVIRICalibrationHandler(
             platform_id=self.platform_id,
@@ -619,7 +620,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             scan_time=self.observation_start_time
         )
         res = calib.calibrate(data, dataset_id["calibration"])
-        logger.debug("Calibration time " + str(datetime.now() - tic))
+        logger.debug("Calibration time " + str(dt.datetime.now() - tic))
         return res
 
     def _get_calib_coefs(self, channel_name):

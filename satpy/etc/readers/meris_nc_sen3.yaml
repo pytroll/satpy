@@ -1,6 +1,10 @@
 reader:
-  description: NC Reader for MERIS data (Sentinel 3 like format)
   name: meris_nc_sen3
+  short_name: MERIS Sentinel 3
+  long_name: Sentinel 3 MERIS NetCDF format
+  description: NC Reader for MERIS data (Sentinel 3 like format)
+  status: Beta
+  supports_fsspec: false
   sensors: [meris]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

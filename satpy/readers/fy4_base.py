@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Base reader for the L1 HDF data from the AGRI and GHI instruments aboard the FengYun-4A/B satellites.
 
 The files read by this reader are described in the official Real Time Data Service:
@@ -23,8 +24,8 @@ The files read by this reader are described in the official Real Time Data Servi
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -200,20 +201,20 @@ class FY4Base(HDF5FileHandler):
         """Get the start time."""
         start_time = self["/attr/Observing Beginning Date"] + "T" + self["/attr/Observing Beginning Time"] + "Z"
         try:
-            return datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return dt.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
         except ValueError:
             # For some data there is no sub-second component
-            return datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%SZ")
+            return dt.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_time(self):
         """Get the end time."""
         end_time = self["/attr/Observing Ending Date"] + "T" + self["/attr/Observing Ending Time"] + "Z"
         try:
-            return datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return dt.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
         except ValueError:
             # For some data there is no sub-second component
-            return datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%SZ")
+            return dt.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%SZ")
 
     def get_area_def(self, key):
         """Get the area definition."""

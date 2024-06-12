@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.nc_slstr module."""
+
+import datetime as dt
 import unittest
 import unittest.mock as mock
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -136,10 +138,10 @@ class TestSLSTRReader(TestSLSTRL1B):
         bvs_.return_value = self.FakeSpl
         xr_.open_dataset.return_value = self.fake_dataset
 
-        good_start = datetime.strptime(self.start_time,
-                                       "%Y-%m-%dT%H:%M:%S.%fZ")
-        good_end = datetime.strptime(self.end_time,
-                                     "%Y-%m-%dT%H:%M:%S.%fZ")
+        good_start = dt.datetime.strptime(self.start_time,
+                                          "%Y-%m-%dT%H:%M:%S.%fZ")
+        good_end = dt.datetime.strptime(self.end_time,
+                                        "%Y-%m-%dT%H:%M:%S.%fZ")
 
         ds_id = make_dataid(name="foo", calibration="radiance",
                             stripe="a", view="nadir")

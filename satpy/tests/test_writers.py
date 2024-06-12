@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import os
 import shutil
 import unittest
@@ -546,7 +546,6 @@ class TestComputeWriterResults(unittest.TestCase):
     def setUp(self):
         """Create temporary directory to save files to and a mock scene."""
         import tempfile
-        from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
 
@@ -560,7 +559,7 @@ class TestComputeWriterResults(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": datetime(2018, 1, 1, 0, 0, 0),
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
                    "area": adef}
         )
         self.scn = Scene()
@@ -655,7 +654,6 @@ class TestBaseWriter:
     def setup_method(self):
         """Set up tests."""
         import tempfile
-        from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
 
@@ -670,7 +668,7 @@ class TestBaseWriter:
             dims=("y", "x"),
             attrs={
                 "name": "test",
-                "start_time": datetime(2018, 1, 1, 0, 0, 0),
+                "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
                 "sensor": "fake_sensor",
                 "area": adef,
             }
@@ -881,7 +879,7 @@ def test_group_results_by_output_file(tmp_path):
          "kraken_depth": dat},
         daskify=True,
         area=fake_area,
-        common_attrs={"start_time": datetime.datetime(2022, 11, 16, 13, 27)})
+        common_attrs={"start_time": dt.datetime(2022, 11, 16, 13, 27)})
     # NB: even if compute=False, ``save_datasets`` creates (empty) files
     (sources, targets) = fake_scene.save_datasets(
             filename=os.fspath(tmp_path / "test-{name}.tif"),

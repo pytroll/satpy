@@ -14,12 +14,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Unittests for GPM IMERG reader."""
 
-
+import datetime as dt
 import os
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -127,8 +127,8 @@ class TestHdf5IMERG(unittest.TestCase):
         assert reader.file_handlers
         res = reader.load(["IRprecipitation"])
         assert 1 == len(res)
-        assert res["IRprecipitation"].start_time == datetime(2020, 1, 31, 23, 30, 0)
-        assert res["IRprecipitation"].end_time == datetime(2020, 1, 31, 23, 59, 59)
+        assert res["IRprecipitation"].start_time == dt.datetime(2020, 1, 31, 23, 30, 0)
+        assert res["IRprecipitation"].end_time == dt.datetime(2020, 1, 31, 23, 59, 59)
         assert res["IRprecipitation"].resolution == 0.1
         assert res["IRprecipitation"].area.width == 3600
         assert res["IRprecipitation"].area.height == 1800

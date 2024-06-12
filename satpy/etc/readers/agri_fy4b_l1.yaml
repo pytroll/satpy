@@ -4,7 +4,11 @@
 
 reader:
   name: agri_fy4b_l1
+  short_name: AGRI FY4B L1
+  long_name: FY-4B AGRI Level 1 data HDF5 format
   description: FY-4B AGRI instrument HDF5 reader
+  status: Nominal
+  supports_fsspec: true
   sensors: [agri]
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

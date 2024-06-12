@@ -29,8 +29,8 @@ from importlib.metadata import EntryPoint, entry_points
 from importlib.resources import files as impr_files
 from typing import Iterable
 
-import appdirs
 from donfig import Config
+from platformdirs import AppDirs
 
 from satpy._compat import cache
 
@@ -40,7 +40,7 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 # FIXME: Use package_resources?
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, "etc")
 
-_satpy_dirs = appdirs.AppDirs(appname="satpy", appauthor="pytroll")
+_satpy_dirs = AppDirs(appname="satpy", appauthor="pytroll")
 _CONFIG_DEFAULTS = {
     "tmp_dir": tempfile.gettempdir(),
     "cache_dir": _satpy_dirs.user_cache_dir,

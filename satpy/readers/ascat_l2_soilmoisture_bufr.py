@@ -15,14 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """ASCAT Soil moisture product reader for BUFR messages.
 
 Based on the IASI L2 SO2 BUFR reader.
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -82,7 +83,7 @@ class AscatSoilMoistureBufr(BaseFileHandler):
         minutes = np.resize(ec.codes_get_array(bufr, "minute"), size)
         seconds = np.resize(ec.codes_get_array(bufr, "second"), size)
         for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
-            time_stamp = datetime(year, month, day, hour, minute, second)
+            time_stamp = dt.datetime(year, month, day, hour, minute, second)
             date_min = time_stamp if not date_min else min(date_min, time_stamp)
             date_max = time_stamp if not date_max else max(date_max, time_stamp)
         return date_min, date_max

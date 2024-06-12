@@ -68,7 +68,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
             bt_b[:] = np.arange(9)
             cw = g1_1.createVariable("channel_cw_thermal", np.float32, dimensions=("num_chan_thermal",))
             cw[:] = np.arange(9)
-            isi = g1_1.createVariable("Band_averaged_solar_irradiance", np.float32, dimensions=("num_chan_solar",))
+            isi = g1_1.createVariable("band_averaged_solar_irradiance", np.float32, dimensions=("num_chan_solar",))
             isi[:] = np.arange(11)
 
             # Create measurement_data group

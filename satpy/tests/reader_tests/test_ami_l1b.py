@@ -173,9 +173,9 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
-        from datetime import datetime
-        assert self.reader.start_time == datetime(2019, 9, 30, 3, 0, 31, 957882)
-        assert self.reader.end_time == datetime(2019, 9, 30, 3, 9, 35, 606133)
+        import datetime as dt
+        assert self.reader.start_time == dt.datetime(2019, 9, 30, 3, 0, 31, 957882)
+        assert self.reader.end_time == dt.datetime(2019, 9, 30, 3, 9, 35, 606133)
 
     def test_get_dataset(self):
         """Test gettting radiance data."""

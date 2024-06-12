@@ -13,18 +13,52 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""MTG Lighting Imager (LI) L2 unified reader.
+"""MTG Lightning Imager (LI) Level-2 (L2) unified reader.
 
 This reader supports reading all the products from the LI L2
 processing level:
 
-  * L2-LE
-  * L2-LGR
-  * L2-AFA
-  * L2-LEF
-  * L2-LFL
-  * L2-AF
-  * L2-AFR
+Point products:
+  * L2-LE Lightning Events
+  * L2-LEF Lightning Events Filtered
+  * L2-LFL Lightning Flashes
+  * L2-LGR Lightning Groups
+Accumulated products:
+  * L2-AF Accumulated Flashes
+  * L2-AFA Accumulated Flash Area
+  * L2-AFR Accumulated Flash Radiance
+
+Per default, the unified LI L2 reader returns the data either as an 1-D array
+or as a 2-D array depending on the product type.
+
+Point-based products (LE, LEF, LFL, LGR) are "classic" lightning products
+consisting of values with attached latitude and longitude coordinates.
+Hence, these products are provided by the reader as 1-D arrays,
+with a ``pyresample.geometry.SwathDefinition`` area
+attribute containing the points lat-lon coordinates.
+
+Accumulated products (AF, AFA, AFR) are the result of temporal accumulation
+of events (e.g. over 30 seconds), and are gridded in the FCI 2km geostationary
+projection grid, in order to facilitate the synergistic usage together with FCI.
+Compared to the point products, the gridded products also give information
+about the spatial extent of the lightning activity.
+Hence, these products are provided by the reader as 2-D arrays in the FCI 2km
+grid as per intended usage, with a ``pyresample.geometry.AreaDefinition`` area
+attribute containing the grid geolocation information.
+In this way, the products can directly be overlaid to FCI data.
+If needed, the accumulated products can also be accessed as 1-d array by
+setting the reader kwarg ``with_area_definition=False``,
+e.g.::
+
+  scn = Scene(filenames=filenames, reader="li_l2_nc", reader_kwargs={'with_area_definition': False})
+
+For both 1-d and 2-d products, the lat-lon coordinates of the points/grid pixels
+can be accessed using e.g.
+``scn['dataset_name'].attrs['area'].get_lonlats()``.
+
+See the LI L2 Product User Guide `PUG`_ for more information.
+
+.. _PUG: https://www-dr.eumetsat.int/media/49348
 
 """
 
@@ -46,7 +80,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 class LIL2NCFileHandler(LINCFileHandler):
     """Implementation class for the unified LI L2 satpy reader."""
 
-    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False):
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=True):
         """Initialize LIL2NCFileHandler."""
         super(LIL2NCFileHandler, self).__init__(filename, filename_info, filetype_info)
 
@@ -73,7 +107,7 @@ class LIL2NCFileHandler(LINCFileHandler):
         if var_with_swath_coord and self.with_area_def:
             return get_area_def("mtg_fci_fdss_2km")
 
-        raise NotImplementedError("Area definition is not supported for accumulated products.")
+        raise NotImplementedError("Area definition is not supported for non-accumulated products.")
 
     def is_var_with_swath_coord(self, dsid):
         """Check if the variable corresponding to this dataset is listed as variable with swath coordinates."""
