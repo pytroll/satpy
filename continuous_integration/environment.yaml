@@ -7,7 +7,7 @@ dependencies:
   - distributed
   - dask-image
   - donfig
-  - appdirs
+  - platformdirs
   - toolz
   - Cython
   - numba
@@ -45,7 +45,6 @@ dependencies:
   - eccodes>=2.20
   - pytest<8.0.0
   - pytest-cov
-  - pytest-lazy-fixture
   - fsspec
   - botocore>=1.33
   - s3fs
@@ -59,6 +58,7 @@ dependencies:
   - ephem
   - bokeh
   - pip:
+    - pytest-lazy-fixtures
     - trollsift
     - trollimage>=1.23
     - pyspectral

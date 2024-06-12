@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_l1b module."""
 
+import datetime as dt
 import os
-from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
@@ -49,7 +49,7 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        dt = filename_info.get("start_time", datetime(2016, 1, 1, 12, 0, 0))
+        date = filename_info.get("start_time", dt.datetime(2016, 1, 1, 12, 0, 0))
         file_type = filename[:5].lower()
         num_lines = DEFAULT_FILE_SHAPE[0]
         num_pixels = DEFAULT_FILE_SHAPE[1]
@@ -60,8 +60,8 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
             "/dimension/number_of_lines": num_lines,
             "/dimension/number_of_pixels": num_pixels,
             "/dimension/number_of_LUT_values": num_luts,
-            "/attr/time_coverage_start": dt.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-            "/attr/time_coverage_end": (dt + timedelta(minutes=6)).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "/attr/time_coverage_start": date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "/attr/time_coverage_end": (date + dt.timedelta(minutes=6)).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
             "/attr/orbit_number": 26384,
             "/attr/instrument": "VIIRS",
             "/attr/platform": "Suomi-NPP",

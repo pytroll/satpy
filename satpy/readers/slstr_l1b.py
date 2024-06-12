@@ -15,13 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """SLSTR L1b reader."""
 
+import datetime as dt
 import logging
 import os
 import re
 import warnings
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -95,12 +96,12 @@ class NCSLSTRGeo(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTR1B(BaseFileHandler):
@@ -224,12 +225,12 @@ class NCSLSTR1B(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTRAngles(BaseFileHandler):
@@ -326,12 +327,12 @@ class NCSLSTRAngles(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTRFlag(BaseFileHandler):
@@ -376,9 +377,9 @@ class NCSLSTRFlag(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")

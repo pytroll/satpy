@@ -9,8 +9,9 @@ Currently a subset of four of these layers are supported
 3. Cloud Top Height
 4. Deep Blue Aerosol Optical Thickness (Land and Ocean)
 """
+
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 
@@ -23,7 +24,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
     """NetCDF File Handler for VIIRS L2 Products."""
     def _parse_datetime(self, datestr):
         """Parse datetime."""
-        return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
+        return dt.datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
     @property
     def start_time(self):

@@ -23,9 +23,10 @@ References:
     https://navigator.eumetsat.int/
 
 """
+
+import datetime as dt
 import logging
 import os
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -112,7 +113,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             sc_id = int(attr["satelliteIdentifier"])
 
             self.bufr_header = {}
-            self.bufr_header["NominalTime"] = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+            self.bufr_header["NominalTime"] = dt.datetime.strptime(timeStr, "%Y%m%d%H%M%S")
             self.bufr_header["SpacecraftName"] = data_center_dict[sc_id]["name"]
             self.bufr_header["RectificationLongitude"] = data_center_dict[sc_id]["ssp"]
 

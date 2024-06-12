@@ -15,8 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for CF decoding."""
-from datetime import datetime
+
+import datetime as dt
 
 import pytest
 
@@ -46,11 +48,11 @@ class TestDecodeAttrs:
             "my_integer": 0,
             "my_float": 0.0,
             "my_list": [1, 2, 3],
-            "my_timestamp1": datetime(2000, 1, 1),
-            "my_timestamp2": datetime(2000, 1, 1, 12, 15, 33),
-            "my_timestamp3": datetime(2000, 1, 1, 12, 15, 33, 123456),
+            "my_timestamp1": dt.datetime(2000, 1, 1),
+            "my_timestamp2": dt.datetime(2000, 1, 1, 12, 15, 33),
+            "my_timestamp3": dt.datetime(2000, 1, 1, 12, 15, 33, 123456),
             "my_dict": {"a": {"b": [1, 2, 3]},
-                        "c": {"d": datetime(2000, 1, 1, 12, 15, 33, 123456)}}
+                        "c": {"d": dt.datetime(2000, 1, 1, 12, 15, 33, 123456)}}
         }
 
     def test_decoding(self, attrs, expected):

@@ -19,10 +19,10 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 import unittest
 import warnings
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -889,8 +889,8 @@ class TestNativeMSGDataset:
             "15TRAILER": {
                 "ImageProductionStats": {
                     "ActualScanningSummary": {
-                        "ForwardScanStart": datetime(2006, 1, 1, 12, 15, 9, 304888),
-                        "ForwardScanEnd": datetime(2006, 1, 1, 12, 27, 9, 304888),
+                        "ForwardScanStart": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+                        "ForwardScanEnd": dt.datetime(2006, 1, 1, 12, 27, 9, 304888),
                         "ReducedScan": 0
                     }
                 }
@@ -941,8 +941,8 @@ class TestNativeMSGDataset:
                 },
                 "ImageAcquisition": {
                     "PlannedAcquisitionTime": {
-                        "TrueRepeatCycleStart": datetime(2006, 1, 1, 12, 15, 0, 0),
-                        "PlannedRepeatCycleEnd": datetime(2006, 1, 1, 12, 30, 0, 0),
+                        "TrueRepeatCycleStart": dt.datetime(2006, 1, 1, 12, 15, 0, 0),
+                        "PlannedRepeatCycleEnd": dt.datetime(2006, 1, 1, 12, 30, 0, 0),
                     }
                 }
             },
@@ -993,19 +993,19 @@ class TestNativeMSGDataset:
         expected = self._exp_data_array()
         xr.testing.assert_equal(xarr, expected)
         assert "raw_metadata" not in xarr.attrs
-        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 0)
-        assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
+        assert file_handler.start_time == dt.datetime(2006, 1, 1, 12, 15, 0)
+        assert file_handler.end_time == dt.datetime(2006, 1, 1, 12, 30, 0)
         assert_attrs_equal(xarr.attrs, expected.attrs, tolerance=1e-4)
 
     def test_time(self, file_handler):
         """Test start/end nominal/observation time handling."""
-        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
-        assert datetime(2006, 1, 1, 12, 15,) == file_handler.start_time
+        assert dt.datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
+        assert dt.datetime(2006, 1, 1, 12, 15,) == file_handler.start_time
         assert file_handler.start_time == file_handler.nominal_start_time
 
-        assert datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
+        assert dt.datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
         assert file_handler.end_time == file_handler.nominal_end_time
-        assert datetime(2006, 1, 1, 12, 30,) == file_handler.end_time
+        assert dt.datetime(2006, 1, 1, 12, 30,) == file_handler.end_time
 
     def test_repeat_cycle_duration(self, file_handler):
         """Test repeat cycle handling for FD or ReduscedScan."""
@@ -1035,10 +1035,10 @@ class TestNativeMSGDataset:
                     "projection_altitude": 35785831.0
                 },
                 "time_parameters": {
-                    "nominal_start_time": datetime(2006, 1, 1, 12, 15, 0),
-                    "nominal_end_time": datetime(2006, 1, 1, 12, 30, 0),
-                    "observation_start_time": datetime(2006, 1, 1, 12, 15, 9, 304888),
-                    "observation_end_time": datetime(2006, 1, 1, 12, 27, 9, 304888),
+                    "nominal_start_time": dt.datetime(2006, 1, 1, 12, 15, 0),
+                    "nominal_end_time": dt.datetime(2006, 1, 1, 12, 30, 0),
+                    "observation_start_time": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    "observation_end_time": dt.datetime(2006, 1, 1, 12, 27, 9, 304888),
                 },
                 "georef_offset_corrected": True,
                 "platform_name": "MSG-3",

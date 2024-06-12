@@ -18,10 +18,10 @@
 """The HRIT base reader tests package."""
 
 import bz2
+import datetime as dt
 import gzip
 import os
 import unittest
-from datetime import datetime, timedelta
 from tempfile import NamedTemporaryFile, gettempdir
 from unittest import mock
 
@@ -30,6 +30,7 @@ import pytest
 
 from satpy.readers import FSFile
 from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
+from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -145,9 +146,9 @@ def create_stub_hrit(filename, open_fun=open, meta=mda):
     lines = meta["number_of_lines"]
     cols = meta["number_of_columns"]
     total_bits = lines * cols * nbits
-    arr = np.random.randint(0, 256,
-                            size=int(total_bits / 8),
-                            dtype=np.uint8)
+    arr = RANDOM_GEN.integers(0, 256,
+                              size=int(total_bits / 8),
+                              dtype=np.uint8)
     with open_fun(filename, mode="wb") as fd:
         fd.write(b" " * meta["total_header_length"])
         bytes_data = arr.tobytes()
@@ -189,7 +190,7 @@ class TestHRITFileHandler:
         with mock.patch.object(HRITFileHandler, "_get_hd", new=new_get_hd):
             self.reader = HRITFileHandler("filename",
                                           {"platform_shortname": "MSG3",
-                                           "start_time": datetime(2016, 3, 3, 0, 0)},
+                                           "start_time": dt.datetime(2016, 3, 3, 0, 0)},
                                           {"filetype": "info"},
                                           [mock.MagicMock(), mock.MagicMock(),
                                            mock.MagicMock()])
@@ -269,9 +270,9 @@ class TestHRITFileHandler:
 
     def test_start_end_time(self):
         """Test reading and converting start/end time."""
-        assert self.reader.start_time == datetime(2016, 3, 3, 0, 0)
+        assert self.reader.start_time == dt.datetime(2016, 3, 3, 0, 0)
         assert self.reader.start_time == self.reader.observation_start_time
-        assert self.reader.end_time == datetime(2016, 3, 3, 0, 0) + timedelta(minutes=15)
+        assert self.reader.end_time == dt.datetime(2016, 3, 3, 0, 0) + dt.timedelta(minutes=15)
         assert self.reader.end_time == self.reader.observation_end_time
 
 
@@ -292,7 +293,7 @@ class TestHRITFileHandlerCompressed:
             with mock.patch.object(HRITFileHandler, "_get_hd", side_effect=new_get_hd, autospec=True) as get_hd:
                 self.reader = HRITFileHandler(filename,
                                               {"platform_shortname": "MSG3",
-                                               "start_time": datetime(2016, 3, 3, 0, 0)},
+                                               "start_time": dt.datetime(2016, 3, 3, 0, 0)},
                                               {"filetype": "info"},
                                               [mock.MagicMock(), mock.MagicMock(),
                                                mock.MagicMock()])
