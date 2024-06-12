@@ -474,3 +474,93 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     with xr.set_options(keep_attrs=True):
         reflectance = reflectance / reflectance.dtype.type(sun_earth_dist * sun_earth_dist)
     return reflectance
+
+
+class CalibrationCoefficientSelector:
+    """Helper for choosing coefficients out of multiple options."""
+
+    def __init__(self, coefs, modes=None, default="nominal", fallback=None, refl_threshold=1):
+        """Initialize the coefficient selector.
+
+        Args:
+            coefs (dict): One set of calibration coefficients for each calibration
+                mode, for example ::
+
+                    {
+                        "nominal": {
+                            "ch1": nominal_coefs_ch1,
+                            "ch2": nominal_coefs_ch2
+                        },
+                        "gsics": {
+                            "ch2": gsics_coefs_ch2
+                        }
+                    }
+
+                The actual coefficients can be of any type (reader-specific).
+
+            modes (dict): Desired calibration modes per channel type ::
+
+                    {
+                        "reflective": "nominal",
+                        "emissive": "gsics"
+                    }
+
+                or per channel ::
+
+                    {
+                        "VIS006": "nominal",
+                        "IR_108": "gsics"
+                    }
+
+            default (str): Default coefficients to be used if no mode has been
+                specified. Default: "nominal".
+            fallback (str): Fallback coefficients if the desired coefficients
+                are not available for some channel.
+            refl_threshold: Central wavelengths below/above this threshold are
+                considered reflective/emissive. Default is 1um.
+        """
+        self.coefs = coefs
+        self.modes = modes or {}
+        self.default = default
+        self.fallback = fallback
+        self.refl_threshold = refl_threshold
+        if self.default not in self.coefs:
+            raise KeyError("Need at least default coefficients")
+        if self.fallback and self.fallback not in self.coefs:
+            raise KeyError("No fallback coefficients")
+
+    def get_coefs(self, dataset_id):
+        """Get calibration coefficients for the given dataset.
+
+        Args:
+            dataset_id (DataID): Desired dataset
+        """
+        mode = self._get_mode(dataset_id)
+        return self._get_coefs(dataset_id, mode)
+
+    def _get_coefs(self, dataset_id, mode):
+        ds_name = dataset_id["name"]
+        try:
+            return self.coefs[mode][ds_name]
+        except KeyError:
+            if self.fallback:
+                return self.coefs[self.fallback][ds_name]
+            raise KeyError(f"No calibration coefficients for {ds_name}")
+
+    def _get_mode(self, dataset_id):
+        try:
+            return self._get_mode_for_channel(dataset_id)
+        except KeyError:
+            return self._get_mode_for_channel_type(dataset_id)
+
+    def _get_mode_for_channel(self, dataset_id):
+        return self.modes[dataset_id["name"]]
+
+    def _get_mode_for_channel_type(self, dataset_id):
+        ch_type = self._get_channel_type(dataset_id)
+        return self.modes.get(ch_type, self.default)
+
+    def _get_channel_type(self, dataset_id):
+        if dataset_id["wavelength"].central < self.refl_threshold:
+            return "reflective"
+        return "emissive"
