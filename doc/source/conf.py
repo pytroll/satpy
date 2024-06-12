@@ -90,8 +90,11 @@ area_table = [rst_table_header("Area Definitions", header=["Name", "Description"
                                widths=[45, 60, 10], class_name="area-table")]
 
 for aname, params in area_dict.items():
+    projection = params.get("projection")
+    projection_type = projection.get("proj") if isinstance(projection, dict) else projection
+
     area_table.append(rst_table_row([f"`{aname}`_", params.get("description", ""),
-                                     params.get("projection").get("proj")]))
+                                     projection_type]))
 
 with open("area_def_list.rst", mode="w") as f:
     f.write("".join(area_table))
