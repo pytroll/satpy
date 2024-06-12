@@ -140,7 +140,7 @@ defined. The section below gives an overview of these area definitions.
 Area definitions included in Satpy
 ----------------------------------
 
-.. include:: area_def_list.rst
+.. include:: /area_def_list.rst
 
 """
 import hashlib
