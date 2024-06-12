@@ -91,9 +91,11 @@ area_file = get_area_file()[0]
 
 area_dict = _read_yaml_area_file_content(area_file)
 area_table = [rst_table_header("Area Definitions", header=["Name", "Description", "Projection"],
-                               widths=[45, 60, 10], class_name="area-table")]
+                               widths="auto", class_name="area-table")]
 
-for aname, params in area_dict.items():
+for i, (aname, params) in enumerate(area_dict.items()):
+    if i == 18:
+        break
     area = _create_area_def_from_dict(aname, params)
     if not hasattr(area, "_repr_html_"):
         continue
@@ -220,11 +222,13 @@ html_static_path = ["_static"]
 
 html_css_files = [
     "theme_overrides.css",  # override wide tables in RTD theme
-    "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.css"
 ]
 
 html_js_files = [
-    "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.js",
     "main.js",
 ]
 

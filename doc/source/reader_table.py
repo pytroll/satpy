@@ -76,7 +76,7 @@ def generate_reader_table():
         str
     """
     table = [rst_table_header("Satpy Readers", header=["Description", "Reader name", "Status", "fsspec support"],
-                              widths=[45, 25, 30, 30])]
+                              widths="auto")]
 
     reader_configs = available_readers(as_dict=True, yaml_loader=BaseLoader)
     for rc in reader_configs:
