@@ -89,9 +89,9 @@ AREA_DEF_MSG_FES_3km_ext = geometry.AreaDefinition(
 )
 
 # Test data for mock file
-DATA = np.random.uniform(low=250, high=350, size=(128,))
-LAT = np.random.uniform(low=-80, high=80, size=(128,))
-LON = np.random.uniform(low=-38.5, high=121.5, size=(128,))
+DATA = np.random.default_rng().uniform(low=250, high=350, size=(128,))
+LAT = np.random.default_rng().uniform(low=-80, high=80, size=(128,))
+LON = np.random.default_rng().uniform(low=-38.5, high=121.5, size=(128,))
 
 
 os.environ["ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS"] = "1"
