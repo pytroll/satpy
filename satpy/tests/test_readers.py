@@ -34,6 +34,7 @@ import pytest
 import xarray as xr
 from pytest_lazy_fixtures import lf as lazy_fixture
 
+import satpy
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 from satpy.readers import FSFile, find_files_and_readers, open_file_or_filename
@@ -1119,9 +1120,11 @@ def test_create_preloadable_cache(tmp_path):
     dph = FakePreloadableHandler(
             os.fspath(tmp_path / "a-0.nc"),
             {"segment": 0}, fake_config["file_types"]["m9g"],
-            preload=False, rc_cache=tmp_path / "test.pkl")
+            rc_cache=tmp_path / "test.pkl",
+            preload=False)
     dph.file_content["/iceland/reykjavík"] = xr.DataArray(da.from_array([[0, 1, 2]]))
-    gsyr = GEOSegmentYAMLReader(fake_config, preload=True)
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(fake_config)
     gsyr.file_handlers["handler"] = [dph]
 
     with unittest.mock.patch("satpy.readers.load_readers") as srl:
