@@ -27,13 +27,13 @@ import pytest
 import xarray as xr
 
 try:
-    from satpy.readers.netcdf_utils import NetCDF4FileHandler, Preloadable
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler, PreloadableSegments
 except ImportError:
     # fake the import so we can at least run the tests in this file
     NetCDF4FileHandler = object  # type: ignore
     # setting Preloadable to object leads to an MRO error when defining
     # FakePreloadableHandler, therefore define own class
-    class Preloadable:  # type: ignore
+    class PreloadableSegments:  # type: ignore
         """Backup preloadable class if import fails."""
         pass
 
@@ -303,7 +303,7 @@ class TestNetCDF4FsspecFileHandler:
                 assert fh._use_h5netcdf
 
 
-class FakePreloadableHandler(Preloadable, FakeNetCDF4FileHandler):
+class FakePreloadableHandler(PreloadableSegments, FakeNetCDF4FileHandler):
     """Fake preloadable handler."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):

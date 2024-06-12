@@ -124,7 +124,7 @@ from pyresample import geometry
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
-from .netcdf_utils import NetCDF4FsspecFileHandler, Preloadable
+from .netcdf_utils import NetCDF4FsspecFileHandler, PreloadableSegments
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(Preloadable, NetCDF4FsspecFileHandler):
+class FCIL1cNCFileHandler(PreloadableSegments, NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
