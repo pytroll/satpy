@@ -538,16 +538,12 @@ class TestCalibrationCoefficientSelector:
     @pytest.fixture(name="ch1")
     def fixture_ch1(self):
         """Make fake data ID."""
-        return make_dataid(name="ch1", wavelength=(0.6, 0.7, 0.8))
-
-    @pytest.fixture(name="ch2")
-    def fixture_ch2(self):
-        """Make fake data ID."""
-        return make_dataid(name="ch2", wavelength=(10, 11, 12))
+        return make_dataid(name="ch1")
 
     @pytest.fixture(name="dataset_ids")
-    def fixture_dataset_ids(self, ch1, ch2):
+    def fixture_dataset_ids(self, ch1):
         """Make fake data IDs."""
+        ch2 = make_dataid(name="ch2")
         return [ch1, ch2]
 
     @pytest.mark.parametrize(
@@ -558,16 +554,16 @@ class TestCalibrationCoefficientSelector:
                 {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
             ),
             (
-                {"reflective": "mode1"},
+                {"nominal": ["ch1", "ch2"]},
+                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
+            ),
+            (
+                {"mode1": ["ch1"]},
                 {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
             ),
             (
-                {"reflective": "mode1", "emissive": "mode2"},
+                {"mode1": ["ch1"], "mode2": ["ch2"]},
                 {"ch1": "mode1_ch1", "ch2": "mode2_ch2"}
-            ),
-            (
-                {"ch1": "mode1"},
-                {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
             ),
         ]
     )
@@ -582,14 +578,14 @@ class TestCalibrationCoefficientSelector:
 
     def test_missing_coefs(self, coefs, ch1):
         """Test handling of missing coefficients."""
-        calib_modes = {"reflective": "mode2"}
+        calib_modes = {"mode2": ["ch1"]}
         s = CalibrationCoefficientSelector(coefs, calib_modes)
         with pytest.raises(KeyError, match="No mode2 calibration *"):
             s.get_coefs(ch1)
 
     def test_fallback_to_nominal(self, coefs, ch1):
         """Test falling back to nominal coefficients."""
-        calib_modes = {"reflective": "mode2"}
+        calib_modes = {"mode2": ["ch1"]}
         s = CalibrationCoefficientSelector(coefs, calib_modes, fallback="nominal")
         assert s.get_coefs(ch1) == "nominal_ch1"
 
