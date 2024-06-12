@@ -15,12 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Composite classes for the VIIRS instrument."""
+
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import math
-from datetime import datetime
 
 import dask
 import dask.array as da
@@ -90,8 +92,8 @@ class HistogramDNB(CompositeBase):
 
         """
         # convert dask arrays to DataArray objects
-        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
-        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
+        dnb_data = xr.DataArray(dnb_data, dims=("y", "x"))
+        sza_data = xr.DataArray(sza_data, dims=("y", "x"))
 
         good_mask = ~(dnb_data.isnull() | sza_data.isnull())
         output_dataset = dnb_data.where(good_mask)
@@ -842,7 +844,7 @@ def _linear_normalization_from_0to1(
     data[mask] = data[mask] / theoretical_max
 
 
-def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: datetime) -> float:
+def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: dt.datetime) -> float:
     """Check if we have Moon phase as an input dataset and, if not, calculate it."""
     if moon_datasets:
         # convert to decimal instead of %
@@ -904,8 +906,8 @@ class NCCZinke(CompositeBase):
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = self.attrs['name']
-        mda['standard_name'] = 'ncc_radiance'
+        mda["name"] = self.attrs["name"]
+        mda["standard_name"] = "ncc_radiance"
         dnb_data.attrs = mda
         return dnb_data
 

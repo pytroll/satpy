@@ -34,8 +34,8 @@ DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
 
 def test_get_file_units(caplog):
     """Test get the file-units from the dataset info."""
-    did = make_dataid(name='some_variable', modifiers=())
-    ds_info = {'file_units': None}
+    did = make_dataid(name="some_variable", modifiers=())
+    ds_info = {"file_units": None}
     with caplog.at_level(logging.DEBUG):
         file_units = _get_file_units(did, ds_info)
 
@@ -47,20 +47,17 @@ def test_get_file_units(caplog):
 def test_get_scale_factors_for_units_unsupported_units():
     """Test get scale factors for units, when units are not supported."""
     factors = xr.DataArray(da.from_array(DEFAULT_FILE_FACTORS, chunks=1))
-    file_units = 'unknown unit'
-    output_units = '%'
-    with pytest.raises(ValueError) as exec_info:
+    file_units = "unknown unit"
+    output_units = "%"
+    with pytest.raises(ValueError, match="Don't know how to convert 'unknown unit' to '%'"):
         _ = _get_scale_factors_for_units(factors, file_units, output_units)
-
-    expected = "Don't know how to convert 'unknown unit' to '%'"
-    assert str(exec_info.value) == expected
 
 
 def test_get_scale_factors_for_units_reflectances(caplog):
     """Test get scale factors for units, when variable is supposed to be a reflectance."""
     factors = xr.DataArray(da.from_array(DEFAULT_FILE_FACTORS, chunks=1))
-    file_units = '1'
-    output_units = '%'
+    file_units = "1"
+    output_units = "%"
     with caplog.at_level(logging.DEBUG):
         retv = _get_scale_factors_for_units(factors, file_units, output_units)
 
@@ -72,8 +69,8 @@ def test_get_scale_factors_for_units_reflectances(caplog):
 def test_get_scale_factors_for_units_tbs(caplog):
     """Test get scale factors for units, when variable is supposed to be a brightness temperature."""
     factors = xr.DataArray(da.from_array(DEFAULT_FILE_FACTORS, chunks=1))
-    file_units = 'W cm-2 sr-1'
-    output_units = 'W m-2 sr-1'
+    file_units = "W cm-2 sr-1"
+    output_units = "W m-2 sr-1"
     with caplog.at_level(logging.DEBUG):
         retv = _get_scale_factors_for_units(factors, file_units, output_units)
 

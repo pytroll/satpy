@@ -16,6 +16,11 @@ modifiers:
     optional_prerequisites:
       - solar_zenith_angle
 
+  sunz_reduced:
+    modifier: !!python/name:satpy.modifiers.SunZenithReducer
+    optional_prerequisites:
+    - solar_zenith_angle
+
   co2_corrected:
     modifier: !!python/name:satpy.modifiers.CO2Corrector
     prerequisites:
@@ -95,6 +100,11 @@ modifiers:
     - satellite_zenith_angle
     - solar_azimuth_angle
     - solar_zenith_angle
+
+  median5x5:
+    modifier: !!python/name:satpy.modifiers.filters.Median
+    median_filter_params:
+      size: 5
 
 composites:
 
@@ -451,6 +461,23 @@ composites:
       - 3.9
     - 10.8
     standard_name: night_microphysics
+
+  24h_microphysics:
+    references:
+      EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/24MicroRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
+    - 10.8
+    standard_name: 24h_microphysics
 
   ir108_3d:
     compositor: !!python/name:satpy.composites.GenericCompositor

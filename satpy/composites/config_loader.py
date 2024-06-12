@@ -38,10 +38,10 @@ logger = logging.getLogger(__name__)
 
 def _convert_dep_info_to_data_query(dep_info):
     key_item = dep_info.copy()
-    key_item.pop('prerequisites', None)
-    key_item.pop('optional_prerequisites', None)
-    if 'modifiers' in key_item:
-        key_item['modifiers'] = tuple(key_item['modifiers'])
+    key_item.pop("prerequisites", None)
+    key_item.pop("optional_prerequisites", None)
+    if "modifiers" in key_item:
+        key_item["modifiers"] = tuple(key_item["modifiers"])
     key = DataQuery.from_dict(key_item)
     return key
 
@@ -64,14 +64,14 @@ class _CompositeConfigHelper:
 
     def _handle_inline_comp_dep(self, dep_info, dep_num, parent_name):
         # Create an unique temporary name for the composite
-        sub_comp_name = '_' + parent_name + '_dep_{}'.format(dep_num)
-        dep_info['name'] = sub_comp_name
+        sub_comp_name = "_" + parent_name + "_dep_{}".format(dep_num)
+        dep_info["name"] = sub_comp_name
         self._load_config_composite(dep_info)
 
     @staticmethod
     def _get_compositor_loader_from_config(composite_name, composite_info):
         try:
-            loader = composite_info.pop('compositor')
+            loader = composite_info.pop("compositor")
         except KeyError:
             raise ValueError("'compositor' key missing or empty for '{}'. Option keys = {}".format(
                 composite_name, str(composite_info.keys())))
@@ -79,22 +79,22 @@ class _CompositeConfigHelper:
 
     def _process_composite_deps(self, composite_info):
         dep_num = -1
-        for prereq_type in ['prerequisites', 'optional_prerequisites']:
+        for prereq_type in ["prerequisites", "optional_prerequisites"]:
             prereqs = []
             for dep_info in composite_info.get(prereq_type, []):
                 dep_num += 1
                 if not isinstance(dep_info, dict):
                     prereqs.append(dep_info)
                     continue
-                elif 'compositor' in dep_info:
+                elif "compositor" in dep_info:
                     self._handle_inline_comp_dep(
-                        dep_info, dep_num, composite_info['name'])
+                        dep_info, dep_num, composite_info["name"])
                 prereq_key = _convert_dep_info_to_data_query(dep_info)
                 prereqs.append(prereq_key)
             composite_info[prereq_type] = prereqs
 
     def _load_config_composite(self, composite_info):
-        composite_name = composite_info['name']
+        composite_name = composite_info["name"]
         loader = self._get_compositor_loader_from_config(composite_name, composite_info)
         self._process_composite_deps(composite_info)
         key, comp = self._create_comp_from_info(composite_info, loader)
@@ -102,7 +102,7 @@ class _CompositeConfigHelper:
 
     def _load_config_composites(self, configured_composites):
         for composite_name, composite_info in configured_composites.items():
-            composite_info['name'] = composite_name
+            composite_info["name"] = composite_name
             self._load_config_composite(composite_info)
 
     def parse_config(self, configured_composites, composite_configs):
@@ -128,9 +128,9 @@ class _ModifierConfigHelper:
     @staticmethod
     def _get_modifier_loader_from_config(modifier_name, modifier_info):
         try:
-            loader = modifier_info.pop('modifier', None)
+            loader = modifier_info.pop("modifier", None)
             if loader is None:
-                loader = modifier_info.pop('compositor')
+                loader = modifier_info.pop("compositor")
                 warnings.warn(
                     "Modifier '{}' uses deprecated 'compositor' "
                     "key to point to Python class, replace "
@@ -143,7 +143,7 @@ class _ModifierConfigHelper:
         return loader
 
     def _process_modifier_deps(self, modifier_info):
-        for prereq_type in ['prerequisites', 'optional_prerequisites']:
+        for prereq_type in ["prerequisites", "optional_prerequisites"]:
             prereqs = []
             for dep_info in modifier_info.get(prereq_type, []):
                 if not isinstance(dep_info, dict):
@@ -154,14 +154,14 @@ class _ModifierConfigHelper:
             modifier_info[prereq_type] = prereqs
 
     def _load_config_modifier(self, modifier_info):
-        modifier_name = modifier_info['name']
+        modifier_name = modifier_info["name"]
         loader = self._get_modifier_loader_from_config(modifier_name, modifier_info)
         self._process_modifier_deps(modifier_info)
         self.loaded_modifiers[modifier_name] = (loader, modifier_info)
 
     def _load_config_modifiers(self, configured_modifiers):
         for modifier_name, modifier_info in configured_modifiers.items():
-            modifier_info['name'] = modifier_name
+            modifier_info["name"] = modifier_name
             self._load_config_modifier(modifier_info)
 
     def parse_config(self, configured_modifiers, composite_configs):
@@ -179,10 +179,10 @@ def _load_config(composite_configs):
 
     conf = {}
     for composite_config in composite_configs:
-        with open(composite_config, 'r', encoding='utf-8') as conf_file:
+        with open(composite_config, "r", encoding="utf-8") as conf_file:
             conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
     try:
-        sensor_name = conf['sensor_name']
+        sensor_name = conf["sensor_name"]
     except KeyError:
         logger.debug('No "sensor_name" tag found in %s, skipping.',
                      composite_configs)
@@ -192,7 +192,7 @@ def _load_config(composite_configs):
     sensor_modifiers = {}
 
     dep_id_keys = None
-    sensor_deps = sensor_name.split('/')[:-1]
+    sensor_deps = sensor_name.split("/")[:-1]
     if sensor_deps:
         # get dependent
         for sensor_dep in sensor_deps:
@@ -203,18 +203,18 @@ def _load_config(composite_configs):
 
     id_keys = _get_sensor_id_keys(conf, dep_id_keys)
     mod_config_helper = _ModifierConfigHelper(sensor_modifiers, id_keys)
-    configured_modifiers = conf.get('modifiers', {})
+    configured_modifiers = conf.get("modifiers", {})
     mod_config_helper.parse_config(configured_modifiers, composite_configs)
 
     comp_config_helper = _CompositeConfigHelper(sensor_compositors, id_keys)
-    configured_composites = conf.get('composites', {})
+    configured_composites = conf.get("composites", {})
     comp_config_helper.parse_config(configured_composites, composite_configs)
     return sensor_compositors, sensor_modifiers, id_keys
 
 
 def _get_sensor_id_keys(conf, parent_id_keys):
     try:
-        id_keys = conf['composite_identification_keys']
+        id_keys = conf["composite_identification_keys"]
     except KeyError:
         id_keys = parent_id_keys
         if not id_keys:
@@ -270,7 +270,7 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
     """
     config_filename = sensor_name + ".yaml"
     logger.debug("Looking for composites config file %s", config_filename)
-    paths = get_entry_points_config_dirs('satpy.composites')
+    paths = get_entry_points_config_dirs("satpy.composites")
     composite_configs = config_search_paths(
         os.path.join("composites", config_filename),
         search_dirs=paths, check_exists=True)
@@ -310,12 +310,12 @@ def load_compositor_configs_for_sensors(sensor_names: Iterable[str]) -> tuple[di
 
 def all_composite_sensors():
     """Get all sensor names from available composite configs."""
-    paths = get_entry_points_config_dirs('satpy.composites')
+    paths = get_entry_points_config_dirs("satpy.composites")
     composite_configs = glob_config(
         os.path.join("composites", "*.yaml"),
         search_dirs=paths)
     yaml_names = set([os.path.splitext(os.path.basename(fn))[0]
                       for fn in composite_configs])
-    non_sensor_yamls = ('visir',)
+    non_sensor_yamls = ("visir",)
     sensor_names = [x for x in yaml_names if x not in non_sensor_yamls]
     return sensor_names

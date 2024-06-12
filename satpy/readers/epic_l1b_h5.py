@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """File handler for DSCOVR EPIC L1B data in hdf5 format.
 
 The ``epic_l1b_h5`` reader reads and calibrates EPIC L1B image data in hdf5 format.
@@ -37,8 +38,8 @@ By default, channel data is loaded as calibrated reflectances, but counts data i
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -49,16 +50,16 @@ logger = logging.getLogger(__name__)
 
 # Level 1b is given as counts. These factors convert to reflectance.
 # Retrieved from: https://asdc.larc.nasa.gov/documents/dscovr/DSCOVR_EPIC_Calibration_Factors_V03.pdf
-CALIB_COEFS = {'B317': 1.216e-4,
-               'B325': 1.111e-4,
-               'B340': 1.975e-5,
-               'B388': 2.685e-5,
-               'B443': 8.34e-6,
-               'B551': 6.66e-6,
-               'B680': 9.3e-6,
-               'B688': 2.02e-5,
-               'B764': 2.36e-5,
-               'B780': 1.435e-5}
+CALIB_COEFS = {"B317": 1.216e-4,
+               "B325": 1.111e-4,
+               "B340": 1.975e-5,
+               "B388": 2.685e-5,
+               "B443": 8.34e-6,
+               "B551": 6.66e-6,
+               "B680": 9.3e-6,
+               "B688": 2.02e-5,
+               "B764": 2.36e-5,
+               "B780": 1.435e-5}
 
 
 class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
@@ -68,19 +69,19 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
         """Init filehandler."""
         super(DscovrEpicL1BH5FileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.sensor = 'epic'
-        self.platform_name = 'dscovr'
+        self.sensor = "epic"
+        self.platform_name = "DSCOVR"
 
     @property
     def start_time(self):
         """Get the start time."""
-        start_time = datetime.strptime(self.file_content['/attr/begin_time'], '%Y-%m-%d %H:%M:%S')
+        start_time = dt.datetime.strptime(self.file_content["/attr/begin_time"], "%Y-%m-%d %H:%M:%S")
         return start_time
 
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.strptime(self.file_content['/attr/end_time'], '%Y-%m-%d %H:%M:%S')
+        end_time = dt.datetime.strptime(self.file_content["/attr/end_time"], "%Y-%m-%d %H:%M:%S")
         return end_time
 
     @staticmethod
@@ -97,19 +98,19 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
-        ds_name = dataset_id['name']
+        ds_name = dataset_id["name"]
 
-        logger.debug('Reading in get_dataset %s.', ds_name)
-        file_key = ds_info.get('file_key', ds_name)
+        logger.debug("Reading in get_dataset %s.", ds_name)
+        file_key = ds_info.get("file_key", ds_name)
 
         band = self._mask_infinite(self.get(file_key))
-        band = self.calibrate(band, ds_name, calibration=dataset_id.get('calibration'))
+        band = self.calibrate(band, ds_name, calibration=dataset_id.get("calibration"))
         band = self._update_metadata(band)
 
         return band
 
     def _update_metadata(self, band):
-        band = band.rename({band.dims[0]: 'x', band.dims[1]: 'y'})
-        band.attrs.update({'platform_name': self.platform_name, 'sensor': self.sensor})
+        band = band.rename({band.dims[0]: "x", band.dims[1]: "y"})
+        band.attrs.update({"platform_name": self.platform_name, "sensor": self.sensor})
 
         return band

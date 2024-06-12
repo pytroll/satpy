@@ -1,142 +1,136 @@
-# Copyright (c) 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the VIIRS CSPP L2 readers."""
+"""Module for testing the satpy.readers.viirs_l2 module."""
+
+import datetime as dt
+import os
+from unittest import mock
 
 import numpy as np
 import pytest
-import xarray as xr
 
-from satpy import Scene
+from satpy.readers import load_reader
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
-# NOTE:
-# The following Pytest fixtures are not defined in this file, but are used and injected by Pytest:
-# - tmp_path
-
-CLOUD_MASK_FILE = "JRR-CloudMask_v3r0_npp_s202212070905565_e202212070907207_c202212071932513.nc"
-NUM_COLUMNS = 3200
-NUM_ROWS = 768
-DATASETS = ['Latitude', 'Longitude', 'CloudMask', 'CloudMaskBinary']
-
-
-@pytest.fixture
-def cloud_mask_file(tmp_path):
-    """Create a temporary JRR CloudMask file as a fixture."""
-    file_path = tmp_path / CLOUD_MASK_FILE
-    _write_cloud_mask_file(file_path)
-    yield file_path
+DEFAULT_FILE_DTYPE = np.float32
+DEFAULT_FILE_SHAPE = (10, 300)
+DEFAULT_FILE_DATA = np.arange(
+    DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE
+).reshape(DEFAULT_FILE_SHAPE)
+DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
+DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
+DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-def _write_cloud_mask_file(file_path):
-    dset = xr.Dataset()
-    dset.attrs = _get_global_attrs()
-    dset['Latitude'] = _get_lat_arr()
-    dset['Longitude'] = _get_lon_arr()
-    dset['CloudMask'] = _get_cloud_mask_arr()
-    dset['CloudMaskBinary'] = _get_cloud_mask_binary_arr()
-    dset.to_netcdf(file_path, 'w')
+class FakeNetCDF4FileHandlerVIIRSL2(FakeNetCDF4FileHandler):
+    """Swap-in NetCDF4 File Handler."""
+
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content."""
+        date = filename_info.get("start_time", dt.datetime(2023, 12, 30, 22, 30, 0))
+        file_type = filename[:6]
+        num_lines = DEFAULT_FILE_SHAPE[0]
+        num_pixels = DEFAULT_FILE_SHAPE[1]
+        num_scans = 5
+        file_content = {
+            "/dimension/number_of_scans": num_scans,
+            "/dimension/number_of_lines": num_lines,
+            "/dimension/number_of_pixels": num_pixels,
+            "/attr/time_coverage_start": date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "/attr/time_coverage_end": (date + dt.timedelta(minutes=6)).strftime(
+                "%Y-%m-%dT%H:%M:%S.000Z"
+            ),
+            "/attr/orbit_number": 26384,
+            "/attr/instrument": "VIIRS",
+            "/attr/platform": "Suomi-NPP",
+        }
+        self._fill_contents_with_default_data(file_content, file_type)
+        convert_file_content_to_data_array(file_content)
+        return file_content
+
+    def _fill_contents_with_default_data(self, file_content, file_type):
+        """Fill file contents with default data."""
+        if file_type.startswith("CLD"):
+            file_content["geolocation_data/latitude"] = DEFAULT_LAT_DATA
+            file_content["geolocation_data/longitude"] = DEFAULT_LON_DATA
+            if file_type == "CLDPRO":
+                file_content["geophysical_data/Cloud_Top_Height"] = DEFAULT_FILE_DATA
+            elif file_type == "CLDMSK":
+                file_content[
+                    "geophysical_data/Clear_Sky_Confidence"
+                ] = DEFAULT_FILE_DATA
+        elif file_type == "AERDB_":
+            file_content["Latitude"] = DEFAULT_LAT_DATA
+            file_content["Longitude"] = DEFAULT_LON_DATA
+            file_content["Angstrom_Exponent_Land_Ocean_Best_Estimate"] = DEFAULT_FILE_DATA
+            file_content["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate"] = DEFAULT_FILE_DATA
 
 
-def _get_global_attrs():
-    return {
-        'time_coverage_start': '2022-12-07T09:05:56Z',
-        'time_coverage_end': '2022-12-07T09:07:20Z',
-        'start_orbit_number': np.array(57573),
-        'end_orbit_number': np.array(57573),
-        'instrument_name': 'VIIRS',
-    }
+class TestVIIRSL2FileHandler:
+    """Test VIIRS_L2 Reader."""
+    yaml_file = "viirs_l2.yaml"
 
+    def setup_method(self):
+        """Wrap NetCDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
+        from satpy.readers.viirs_l2 import VIIRSL2FileHandler
 
-def _get_lat_arr():
-    arr = np.zeros((NUM_ROWS, NUM_COLUMNS), dtype=np.float32)
-    attrs = {
-        'long_name': 'Latitude',
-        'units': 'degrees_north',
-        'valid_range': np.array([-90, 90], dtype=np.float32),
-        '_FillValue': -999.
-    }
-    return xr.DataArray(arr, attrs=attrs, dims=('Rows', 'Columns'))
+        self.reader_configs = config_search_paths(
+            os.path.join("readers", self.yaml_file)
+        )
+        self.p = mock.patch.object(
+            VIIRSL2FileHandler, "__bases__", (FakeNetCDF4FileHandlerVIIRSL2,)
+        )
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
 
+    def teardown_method(self):
+        """Stop wrapping the NetCDF4 file handler."""
+        self.p.stop()
 
-def _get_lon_arr():
-    arr = np.zeros((NUM_ROWS, NUM_COLUMNS), dtype=np.float32)
-    attrs = {
-        'long_name': 'Longitude',
-        'units': 'degrees_east',
-        'valid_range': np.array([-180, 180], dtype=np.float32),
-        '_FillValue': -999.
-    }
-    return xr.DataArray(arr, attrs=attrs, dims=('Rows', 'Columns'))
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            ("CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc"),
+            ("CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc"),
+            ("AERDB_L2_VIIRS_SNPP.A2023364.2230.011.2023365113427.nc"),
+        ],
+    )
+    def test_init(self, filename):
+        """Test basic init with no extra parameters."""
+        from satpy.readers import load_reader
 
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([filename])
+        assert len(loadables) == 1
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        assert r.file_handlers
 
-def _get_cloud_mask_arr():
-    arr = np.random.randint(0, 4, (NUM_ROWS, NUM_COLUMNS), dtype=np.byte)
-    attrs = {
-        'long_name': 'Cloud Mask',
-        '_FillValue': np.byte(-128),
-        'valid_range': np.array([0, 3], dtype=np.byte),
-        'units': '1',
-        'flag_values': np.array([0, 1, 2, 3], dtype=np.byte),
-        'flag_meanings': 'clear probably_clear probably_cloudy cloudy',
-    }
-    return xr.DataArray(arr, attrs=attrs, dims=('Rows', 'Columns'))
-
-
-def _get_cloud_mask_binary_arr():
-    arr = np.random.randint(0, 2, (NUM_ROWS, NUM_COLUMNS), dtype=np.byte)
-    attrs = {
-        'long_name': 'Cloud Mask Binary',
-        '_FillValue': np.byte(-128),
-        'valid_range': np.array([0, 1], dtype=np.byte),
-        'units': '1',
-    }
-    return xr.DataArray(arr, attrs=attrs, dims=('Rows', 'Columns'))
-
-
-def test_cloud_mask_read_latitude(cloud_mask_file):
-    """Test reading latitude dataset."""
-    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'latitude')
-    _assert_common(data)
-
-
-def test_cloud_mask_read_longitude(cloud_mask_file):
-    """Test reading longitude dataset."""
-    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'longitude')
-    _assert_common(data)
-
-
-def test_cloud_mask_read_cloud_mask(cloud_mask_file):
-    """Test reading cloud mask dataset."""
-    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'cloud_mask')
-    _assert_common(data)
-    np.testing.assert_equal(data.attrs['flag_values'], [0, 1, 2, 3])
-    assert data.attrs['flag_meanings'] == ['clear', 'probably_clear', 'probably_cloudy', 'cloudy']
-
-
-def test_cloud_mas_read_binary_cloud_mask(cloud_mask_file):
-    """Test reading binary cloud mask dataset."""
-    data = _read_viirs_l2_cloud_mask_nc_data(cloud_mask_file, 'cloud_mask_binary')
-    _assert_common(data)
-
-
-def _read_viirs_l2_cloud_mask_nc_data(fname, dset_name):
-    scn = Scene(reader="viirs_l2_cloud_mask_nc", filenames=[fname])
-    scn.load([dset_name])
-    return scn[dset_name]
-
-
-def _assert_common(data):
-    assert data.dims == ('y', 'x')
-    assert "units" in data.attrs
+    @pytest.mark.parametrize(
+        ("filename", "datasets"),
+        [
+            pytest.param("CLDPROP_L2_VIIRS_SNPP.A2023364.2230.011.2023365115856.nc",
+                         ["Cloud_Top_Height"], id="CLDPROP"),
+            pytest.param("CLDMSK_L2_VIIRS_SNPP.A2023364.2230.001.2023365105952.nc",
+                         ["Clear_Sky_Confidence"], id="CLDMSK"),
+            pytest.param("AERDB_L2_VIIRS_SNPP.A2023364.2230.011.2023365113427.nc",
+                         ["Aerosol_Optical_Thickness_550_Land_Ocean_Best_Estimate",
+                          "Angstrom_Exponent_Land_Ocean_Best_Estimate"], id="AERDB"),
+        ],
+    )
+    def test_load_l2_files(self, filename, datasets):
+        """Test L2 File Loading."""
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([filename])
+        r.create_filehandlers(loadables)
+        loaded_datasets = r.load(datasets)
+        assert len(loaded_datasets) == len(datasets)
+        for d in loaded_datasets.values():
+            assert d.shape == DEFAULT_FILE_SHAPE
+            assert d.dims == ("y", "x")
+            assert d.attrs["sensor"] == "viirs"
+            d_np = d.compute()
+            assert d.dtype == d_np.dtype
+            assert d.dtype == np.float32

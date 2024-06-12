@@ -30,7 +30,7 @@ from netCDF4 import Dataset
 
 from satpy.readers.vii_l2_nc import ViiL2NCFileHandler
 
-TEST_FILE = 'test_file_vii_l2_nc.nc'
+TEST_FILE = "test_file_vii_l2_nc.nc"
 
 
 class TestViiL2NCFileHandler(unittest.TestCase):
@@ -42,29 +42,29 @@ class TestViiL2NCFileHandler(unittest.TestCase):
         # uses a UUID to avoid permission conflicts during execution of tests in parallel
         self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
 
-        with Dataset(self.test_file_name, 'w') as nc:
+        with Dataset(self.test_file_name, "w") as nc:
             # Create data group
-            g1 = nc.createGroup('data')
+            g1 = nc.createGroup("data")
 
             # Add dimensions to data group
-            g1.createDimension('num_pixels', 100)
-            g1.createDimension('num_lines', 10)
+            g1.createDimension("num_pixels", 100)
+            g1.createDimension("num_lines", 10)
 
             # Create measurement_data group
-            g1_2 = g1.createGroup('measurement_data')
+            g1_2 = g1.createGroup("measurement_data")
 
             # Add variables to data/measurement_data group
-            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_lines', 'num_pixels'))
+            delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_lines", "num_pixels"))
             delta_lat[:] = 0.1
 
         self.reader = ViiL2NCFileHandler(
             filename=self.test_file_name,
             filename_info={
-                'creation_time': datetime.datetime(year=2017, month=9, day=22,
+                "creation_time": datetime.datetime(year=2017, month=9, day=22,
                                                    hour=22, minute=40, second=10),
-                'sensing_start_time': datetime.datetime(year=2017, month=9, day=20,
+                "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
                                                         hour=12, minute=30, second=30),
-                'sensing_end_time': datetime.datetime(year=2017, month=9, day=20,
+                "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
                                                       hour=18, minute=30, second=50)
             },
             filetype_info={}
@@ -82,16 +82,16 @@ class TestViiL2NCFileHandler(unittest.TestCase):
         """Test the functions."""
         # Checks that the _perform_orthorectification function is correctly executed
         variable = xr.DataArray(
-            dims=('num_lines', 'num_pixels'),
-            name='test_name',
+            dims=("num_lines", "num_pixels"),
+            name="test_name",
             attrs={
-                'key_1': 'value_1',
-                'key_2': 'value_2'
+                "key_1": "value_1",
+                "key_2": "value_2"
             },
             data=da.from_array(np.ones((10, 100)))
         )
-        orthorect_variable = self.reader._perform_orthorectification(variable, 'data/measurement_data/delta_lat')
+        orthorect_variable = self.reader._perform_orthorectification(variable, "data/measurement_data/delta_lat")
 
         expected_values = 1.1 * np.ones((10, 100))
-        self.assertTrue(np.allclose(orthorect_variable.values, expected_values))
-        self.assertEqual(orthorect_variable.attrs['key_1'], 'value_1')
+        assert np.allclose(orthorect_variable.values, expected_values)
+        assert orthorect_variable.attrs["key_1"] == "value_1"
