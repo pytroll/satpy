@@ -24,7 +24,11 @@ import sys
 sys.path.append(os.path.abspath("../../"))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from pyresample.area_config import _read_yaml_area_file_content, generate_area_def_rst_list  # noqa: E402
+from pyresample.area_config import (  # noqa: E402
+    _create_area_def_from_dict,
+    _read_yaml_area_file_content,
+    generate_area_def_rst_list,
+)
 from reader_table import generate_reader_table, rst_table_header, rst_table_row  # noqa: E402
 
 import satpy  # noqa: E402
@@ -90,11 +94,12 @@ area_table = [rst_table_header("Area Definitions", header=["Name", "Description"
                                widths=[45, 60, 10], class_name="area-table")]
 
 for aname, params in area_dict.items():
-    projection = params.get("projection")
-    projection_type = projection.get("proj") if isinstance(projection, dict) else projection
+    area = _create_area_def_from_dict(aname, params)
+    if not hasattr(area, "_repr_html_"):
+        continue
 
-    area_table.append(rst_table_row([f"`{aname}`_", params.get("description", ""),
-                                     projection_type]))
+    area_table.append(rst_table_row([f"`{aname}`_", area.description,
+                                     area.proj_dict.get("proj")]))
 
 with open("area_def_list.rst", mode="w") as f:
     f.write("".join(area_table))

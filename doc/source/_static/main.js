@@ -12,6 +12,11 @@ $(document).ready( function () {
     $('table.area-table').DataTable( {
     "paging": true,
     "pageLength": 15,
-    "dom": 'lfitp'
+    "layout": {
+        'topStart': 'info',
+        'topEnd': 'search',
+        'bottomEnd': 'paging',
+        'bottomStart': null
+    }
 } );
 } );
