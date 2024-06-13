@@ -35,7 +35,6 @@ from pyproj import CRS
 from satpy.readers import FSFile
 from satpy.readers import utils as hf
 from satpy.readers.utils import CalibrationCoefficientSelector
-from satpy.tests.utils import make_dataid
 
 
 class TestHelpers(unittest.TestCase):
@@ -535,17 +534,6 @@ class TestCalibrationCoefficientSelector:
             }
         }
 
-    @pytest.fixture(name="ch1")
-    def fixture_ch1(self):
-        """Make fake data ID."""
-        return make_dataid(name="ch1")
-
-    @pytest.fixture(name="dataset_ids")
-    def fixture_dataset_ids(self, ch1):
-        """Make fake data IDs."""
-        ch2 = make_dataid(name="ch2")
-        return [ch1, ch2]
-
     @pytest.mark.parametrize(
         ("calib_modes", "expected"),
         [
@@ -567,27 +555,27 @@ class TestCalibrationCoefficientSelector:
             ),
         ]
     )
-    def test_get_coefs(self, dataset_ids, coefs, calib_modes, expected):
+    def test_get_coefs(self, coefs, calib_modes, expected):
         """Test getting calibration coefficients."""
         s = CalibrationCoefficientSelector(coefs, calib_modes)
         coefs = {
-            dataset_id["name"]: s.get_coefs(dataset_id)
-            for dataset_id in dataset_ids
+            channel: s.get_coefs(channel)
+            for channel in ["ch1", "ch2"]
         }
         assert coefs == expected
 
-    def test_missing_coefs(self, coefs, ch1):
+    def test_missing_coefs(self, coefs):
         """Test handling of missing coefficients."""
         calib_modes = {"mode2": ["ch1"]}
         s = CalibrationCoefficientSelector(coefs, calib_modes)
         with pytest.raises(KeyError, match="No mode2 calibration *"):
-            s.get_coefs(ch1)
+            s.get_coefs("ch1")
 
-    def test_fallback_to_nominal(self, coefs, ch1):
+    def test_fallback_to_nominal(self, coefs):
         """Test falling back to nominal coefficients."""
         calib_modes = {"mode2": ["ch1"]}
         s = CalibrationCoefficientSelector(coefs, calib_modes, fallback="nominal")
-        assert s.get_coefs(ch1) == "nominal_ch1"
+        assert s.get_coefs("ch1") == "nominal_ch1"
 
     def test_no_default_coefs(self):
         """Test initialization without default coefficients."""

@@ -487,7 +487,6 @@ class CalibrationCoefficientSelector:
     .. code-block:: python
 
         from satpy.readers.utils import CalibrationCoefficientSelector
-        from satpy.tests.utils import make_dataid
 
         coefs = {
             "nominal": {
@@ -508,20 +507,16 @@ class CalibrationCoefficientSelector:
             "gsics": ["ch2", "ch3"]
         }
 
-        ch1 = make_dataid(name="ch1")
-        ch2 = make_dataid(name="ch2")
-        ch3 = make_dataid(name="ch3")
-
     2. Query:
 
     .. code-block:: python
 
         >>> s = CalibrationCoefficientSelector(coefs, modes)
-        >>> s.get_coefs(ch1)
+        >>> s.get_coefs("ch1")
         "meirink_ch1"
-        >>> s.get_coefs(ch2)
+        >>> s.get_coefs("ch2")
         "gsics_ch2"
-        >>> s.get_coefs(ch3)
+        >>> s.get_coefs("ch3")
         KeyError: 'No gsics calibration coefficients for ch3'
 
     3. Fallback to nominal for ch3:
@@ -529,7 +524,7 @@ class CalibrationCoefficientSelector:
     .. code-block:: python
 
         >>> s = CalibrationCoefficientSelector(coefs, modes, fallback="nominal")
-        >>> s.get_coefs(ch3)
+        >>> s.get_coefs("ch3")
         "nominal_ch3"
     """
 
@@ -555,26 +550,25 @@ class CalibrationCoefficientSelector:
         if self.fallback and self.fallback not in self.coefs:
             raise KeyError("No fallback coefficients")
 
-    def get_coefs(self, dataset_id):
-        """Get calibration coefficients for the given dataset.
+    def get_coefs(self, channel):
+        """Get calibration coefficients for the given channel.
 
         Args:
-            dataset_id (DataID): Desired dataset
+            channel (str): Channel name
         """
-        mode = self._get_mode(dataset_id)
-        return self._get_coefs(dataset_id, mode)
+        mode = self._get_mode(channel)
+        return self._get_coefs(channel, mode)
 
-    def _get_coefs(self, dataset_id, mode):
-        ds_name = dataset_id["name"]
+    def _get_coefs(self, channel, mode):
         try:
-            return self.coefs[mode][ds_name]
+            return self.coefs[mode][channel]
         except KeyError:
             if self.fallback:
-                return self.coefs[self.fallback][ds_name]
-            raise KeyError(f"No {mode} calibration coefficients for {ds_name}")
+                return self.coefs[self.fallback][channel]
+            raise KeyError(f"No {mode} calibration coefficients for {channel}")
 
-    def _get_mode(self, dataset_id):
+    def _get_mode(self, channel):
         for mode, channels in self.modes.items():
-            if dataset_id["name"] in channels:
+            if channel in channels:
                 return mode
         return self.default
