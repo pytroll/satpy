@@ -22,7 +22,7 @@ import pickle  # nosec
 import time
 
 import dask.array as da
-import dask.delayed
+import dask.distributed
 import netCDF4
 import numpy as np
 import xarray as xr
@@ -644,7 +644,9 @@ def _log_and_wait(i, pat, wait):
         LOG.debug(f"Waiting for {pat!s} to appear.")
     if i % 60 == 30:
         LOG.debug(f"Still waiting for {pat!s}")
+    dask.distributed.secede()
     time.sleep(wait)
+    dask.distributed.rejoin()
 
 
 @dask.delayed
