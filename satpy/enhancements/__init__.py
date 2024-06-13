@@ -455,24 +455,16 @@ def create_colormap(palette, img=None):  # noqa: D417
     ``max_value``. See :meth:`trollimage.colormap.Colormap.set_range` for more
     information.
 
+    **Set Alpha Range**
+
+    The alpha channel of a created colormap can be added and/or modified by
+    specifying ``min_alpha`` and ``max_alpha``.
+    See :meth:`set_alpha_range`  for more info.
+
     """
-    fname = palette.get("filename", None)
-    colors = palette.get("colors", None)
-    dataset = palette.get("dataset", None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get("color_scale", 255)
-    if fname:
-        if not os.path.exists(fname):
-            fname = get_config_path(fname)
-        cmap = Colormap.from_file(fname, palette.get("colormap_mode", None), color_scale)
-    elif isinstance(colors, (tuple, list)):
-        cmap = Colormap.from_sequence_of_colors(colors, palette.get("values", None), color_scale)
-    elif isinstance(colors, str):
-        cmap = Colormap.from_name(colors)
-    elif isinstance(dataset, str):
-        cmap = _create_colormap_from_dataset(img, dataset, color_scale)
-    else:
-        raise ValueError("Unknown colormap format: {}".format(palette))
+    cmap = _get_cmap_from_palette_info(palette, img, color_scale)
 
     if palette.get("reverse", False):
         cmap.reverse()
@@ -489,10 +481,39 @@ def create_colormap(palette, img=None):  # noqa: D417
     return cmap
 
 
-def set_alpha_range(cmap, min_alpha, max_alpha, color_scale):
-    """Set the alpha channel of a colormap to be between min_alpha and max_alpha in linear steps.
+def _get_cmap_from_palette_info(palette, img, color_scale):
+    fname = palette.get("filename", None)
+    colors = palette.get("colors", None)
+    dataset = palette.get("dataset", None)
+    if fname:
+        if not os.path.exists(fname):
+            fname = get_config_path(fname)
+        cmap = Colormap.from_file(fname, palette.get("colormap_mode", None), color_scale)
+    elif isinstance(colors, (tuple, list)):
+        cmap = Colormap.from_sequence_of_colors(colors, palette.get("values", None), color_scale)
+    elif isinstance(colors, str):
+        cmap = Colormap.from_name(colors)
+    elif isinstance(dataset, str):
+        cmap = _create_colormap_from_dataset(img, dataset, color_scale)
+    else:
+        raise ValueError("Unknown colormap format: {}".format(palette))
+    return cmap
 
-    If the input colormap does not have an alpha channel, it will be added to it."""
+
+def set_alpha_range(cmap, min_alpha, max_alpha, color_scale=255):
+    """Set the colormap alpha channel between two values in linear steps.
+
+    If the input colormap does not have an alpha channel,
+    it will be added to it. If an alpha channel is already existing,
+    the values will be overwritten.
+
+    Args:
+        cmap: input colormap
+        min_alpha: start value of the alpha channel
+        max_alpha: end value of the alpha channel
+        color_scale: number for normalising the alpha values to 0-1.
+
+    """
     cmap = cmap.to_rgba()
     cmap.colors[:, 3] = np.linspace(min_alpha / color_scale,
                                     max_alpha / color_scale,

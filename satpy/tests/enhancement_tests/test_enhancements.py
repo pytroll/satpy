@@ -350,6 +350,31 @@ class TestColormapLoading:
             assert cmap.values[0] == 0
             assert cmap.values[-1] == 1.0
 
+    def test_cmap_with_alpha_set(self):
+        """Test that the min_alpha and max_alpha arguments set the alpha channel correctly."""
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
+            cmap_data = _generate_cmap_test_data(None, "RGB")
+            np.save(cmap_filename, cmap_data)
+            cmap = create_colormap({"filename": cmap_filename, "min_alpha": 100, "max_alpha": 255})
+            assert cmap.colors.shape[0] == 4
+            assert cmap.colors.shape[1] == 4  # RGBA
+            #check that we start from min_alpha
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0, 100/255.])
+            # two thirds of the linear scale
+            np.testing.assert_almost_equal(cmap.colors[2], [1., 1., 1., (100+(2/3)*(255-100))/255])
+            #check that we end at max_alpha
+            np.testing.assert_equal(cmap.colors[3], [0, 0, 1., 1.0])
+            # check that values have not been changed
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 0
+            assert cmap.values[-1] == 1.0
+
+            # check that if a value is missing we raise a ValueError
+            with pytest.raises(ValueError, match="Both 'min_value' and 'max_value' must be specified (or neither)."):
+                create_colormap({"filename": cmap_filename, "max_alpha": 255})
+            with pytest.raises(ValueError, match="Both 'min_value' and 'max_value' must be specified (or neither)."):
+                create_colormap({"filename": cmap_filename, "min_alpha": 255})
+
     @pytest.mark.parametrize(
         ("real_mode", "forced_mode"),
         [
