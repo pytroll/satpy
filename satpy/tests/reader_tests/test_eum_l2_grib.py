@@ -110,7 +110,7 @@ class TestEUML2GribFileHandler(unittest.TestCase):
     @mock.patch("satpy.readers.eum_l2_grib.da")
     def test_seviri_data_reading(self, da_, xr_):
         """Test the reading of data from the product."""
-        from satpy.readers.eum_l2_grib import SEVIRI_REPEAT_CYCLE_DURATION, EUML2GribFileHandler
+        from satpy.readers.eum_l2_grib import EUML2GribFileHandler
         from satpy.utils import get_legacy_chunk_size
         chunk_size = get_legacy_chunk_size()
 
@@ -134,8 +134,9 @@ class TestEUML2GribFileHandler(unittest.TestCase):
 
                 self.common_checks(mock_file, dataset_id)
 
-                # Checks the basic data reading
-                assert SEVIRI_REPEAT_CYCLE_DURATION == 15
+                # Check end_time
+                assert self.reader.end_time == datetime.datetime(year=2020, month=10, day=20,
+                                                                 hour=19, minute=50, second=0)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 attributes = self.reader._get_attributes()
@@ -219,7 +220,9 @@ class TestEUML2GribFileHandler(unittest.TestCase):
                     filename_info={
                         "spacecraft_id": "1",
                         "start_time": datetime.datetime(year=2020, month=10, day=20,
-                                                        hour=19, minute=45, second=0)
+                                                        hour=19, minute=40, second=0),
+                        "end_time": datetime.datetime(year=2020, month=10, day=20,
+                                                      hour=19, minute=50, second=0)
                     },
                     filetype_info={
                         "file_type": "fci"
@@ -229,6 +232,10 @@ class TestEUML2GribFileHandler(unittest.TestCase):
                 dataset_id = make_dataid(name="dummmy", resolution=2000)
 
                 self.common_checks(mock_file, dataset_id)
+
+                # Check end_time
+                assert self.reader.end_time == datetime.datetime(year=2020, month=10, day=20,
+                                                                 hour=19, minute=50, second=0)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 attributes = self.reader._get_attributes()
