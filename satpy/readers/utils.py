@@ -476,34 +476,47 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     return reflectance
 
 
-class CalibrationCoefficientParser:
-    """TODO."""
+class _CalibrationCoefficientParser:
+    """Parse user-defined calibration coefficients."""
+
     def __init__(self, coefs, default="nominal"):
         """TODO."""
+        if default not in coefs:
+            raise KeyError("Need at least default coefficients")
         self.coefs = coefs
         self.default = default
 
-    def parse(self, user_input):
-        """TODO."""
-        if user_input is None:
-            return self._get_coefs_set(self.default)  # FIXME: Does not check missing coefs
-        elif isinstance(user_input, str):
-            return self._get_coefs_set(user_input)   # FIXME: Does not check missing coefs
-        elif isinstance(user_input, dict):
-            return self._expand_user_input(user_input)
-        raise ValueError(f"Unsupported calibration coefficients. Expected dict/str, got {type(user_input)}")
+    def parse(self, wishlist):
+        """Parse user-defined calibration coefficients."""
+        if wishlist is None:
+            return self._get_coefs_set(self.default)
+        elif isinstance(wishlist, str):
+            return self._get_coefs_set(wishlist)
+        elif isinstance(wishlist, dict):
+            return self._parse(wishlist)
+        raise TypeError(f"Unsupported wishlist type. Expected dict/str, got {type(wishlist)}")
 
-    def _expand_user_input(self, user_input):
-        coefs = {}
-        for channel, mode_or_coefs in user_input.items():
-            if self._is_single_channel(channel):
-                coefs[channel] = self._get_coefs_for_single_channel(mode_or_coefs, channel)
-            elif self._is_multi_channel(channel):
-                coefs = self._get_coefs_for_multiple_channels(mode_or_coefs, channel)
-                coefs.update(coefs)
+    def _parse(self, wishlist):
+        wishlist = self._expand_multi_channel_keys(wishlist)
+        return self._replace_calib_mode_with_actual_coefs(wishlist)
+
+    def _expand_multi_channel_keys(self, wishlist):
+        expanded = {}
+        for channels, coefs in wishlist.items():
+            if self._is_multi_channel(channels):
+                for channel in channels:
+                    expanded[channel] = coefs
             else:
-                raise ValueError("TODO")
-        return coefs
+                expanded[channels] = coefs
+        return expanded
+
+    def _replace_calib_mode_with_actual_coefs(self, wishlist):
+        res = {}
+        for channel, mode_or_coefs in wishlist.items():
+            coefs = self._get_coefs_for_single_channel(mode_or_coefs, channel)
+            if coefs:
+                res[channel] = coefs
+        return res
 
     def _is_single_channel(self, key):
         return isinstance(key, str)
@@ -518,11 +531,16 @@ class CalibrationCoefficientParser:
         return isinstance(key, tuple)
 
     def _get_coefs_for_multiple_channels(self, mode, channels):
-        return {channel: self._get_coefs(mode, channel) for channel in channels}
+        res = {}
+        for channel in channels:
+            coefs = self._get_coefs(mode, channel)
+            if coefs is not None:
+                res[channel] = coefs
+        return res
 
     def _get_coefs(self, mode, channel):
         coefs_set = self._get_coefs_set(mode)
-        return self._get_coefs_from_set(coefs_set, channel, mode)
+        return coefs_set.get(channel, None)
 
     def _get_coefs_set(self, mode):
         try:
@@ -531,11 +549,13 @@ class CalibrationCoefficientParser:
             modes = list(self.coefs.keys())
             raise KeyError(f"Unknown calibration mode: {mode}. Choose one of {modes}")
 
-    def _get_coefs_from_set(self, coefs_set, channel, mode):
-        try:
-            return coefs_set[channel]
-        except KeyError:
-            raise KeyError(f"No {mode} calibration coefficients for {channel}")
+    def get_calib_mode(self, wishlist, channel):
+        """Get desired calibration mode for the given channel."""
+        if isinstance(wishlist, str):
+            return wishlist
+        elif isinstance(wishlist, dict):
+            expanded = self._expand_multi_channel_keys(wishlist)
+            return expanded[channel]
 
 
 class CalibrationCoefficientSelector:
@@ -590,7 +610,7 @@ class CalibrationCoefficientSelector:
         "nominal_ch3"
     """
 
-    def __init__(self, coefs, modes=None, default="nominal", fallback=None):
+    def __init__(self, coefs, wishlist, default="nominal", fallback=None):
         """Initialize the coefficient selector.
 
         Args:
@@ -605,26 +625,14 @@ class CalibrationCoefficientSelector:
             fallback (str): Fallback coefficients if the desired coefficients
                 are not available for some channel.
         """
+        if fallback and fallback not in coefs:
+            raise KeyError("No fallback coefficients")
         self.coefs = coefs
-        self.modes = modes or {}
+        self.wishlist = wishlist
         self.default = default
         self.fallback = fallback
-        if self.default not in self.coefs:
-            raise KeyError("Need at least default coefficients")
-        if self.fallback and self.fallback not in self.coefs:
-            raise KeyError("No fallback coefficients")
-        self.modes = self._make_modes(modes)
-
-    def _make_modes(self, modes):
-        if modes is None:
-            return {}
-        elif self._same_mode_for_all_channels(modes):
-            all_channels = self.coefs[self.default].keys()
-            return {modes: all_channels}
-        return modes
-
-    def _same_mode_for_all_channels(self, modes):
-        return isinstance(modes, str)
+        self.parser = _CalibrationCoefficientParser(coefs, default)
+        self.parsed_wishlist = self.parser.parse(wishlist)
 
     def get_coefs(self, channel):
         """Get calibration coefficients for the given channel.
@@ -632,19 +640,10 @@ class CalibrationCoefficientSelector:
         Args:
             channel (str): Channel name
         """
-        mode = self._get_mode(channel)
-        return self._get_coefs(channel, mode)
-
-    def _get_coefs(self, channel, mode):
         try:
-            return self.coefs[mode][channel]
+            return self.parsed_wishlist[channel]
         except KeyError:
             if self.fallback:
                 return self.coefs[self.fallback][channel]
+            mode = self.parser.get_calib_mode(self.wishlist, channel)
             raise KeyError(f"No {mode} calibration coefficients for {channel}")
-
-    def _get_mode(self, channel):
-        for mode, channels in self.modes.items():
-            if channel in channels:
-                return mode
-        return self.default

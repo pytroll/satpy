@@ -514,8 +514,9 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
     assert read_binary_data == dummy_data
 
 
-class TestCalibrationCoefficientParser:
-    """TODO."""
+class TestCalibrationCoefficientSelector:
+    """Unit tests for calibration coefficient selection."""
+
     @pytest.fixture(name="coefs")
     def fixture_coefs(self):
         """Get fake coefficients."""
@@ -533,13 +534,17 @@ class TestCalibrationCoefficientParser:
         }
 
     @pytest.mark.parametrize(
-        ("user_input", "expected"),
+        ("wishlist", "expected"),
         [
             (None, {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}),
             ("nominal", {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}),
             (
                 {("ch1", "ch2"): "nominal"},
                 {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
+            ),
+            (
+                {"ch1": "mode1"},
+                {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
             ),
             (
                 {"ch1": "mode1", "ch2": "mode2"},
@@ -551,103 +556,51 @@ class TestCalibrationCoefficientParser:
             ),
         ]
     )
-    def test_parse(self, coefs, user_input, expected):
-        """TODO."""
-        s = hf.CalibrationCoefficientParser(coefs)
-        coefs = s.parse(user_input)
-        assert coefs == expected
-
-    @pytest.mark.parametrize(
-        "user_input", ["foo", {"ch1": "foo"}, {("ch1", "ch2"): "foo"}]
-    )
-    def test_missing_mode(self, coefs, user_input):
-        """TODO."""
-        s = hf.CalibrationCoefficientParser(coefs)
-        with pytest.raises(KeyError, match="Unknown calibration mode *"):
-            s.parse(user_input)
-
-    @pytest.mark.parametrize(
-        "user_input", [{"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
-    )
-    def test_missing_coefs(self, coefs, user_input):
-        """TODO."""
-        s = hf.CalibrationCoefficientParser(coefs)
-        with pytest.raises(KeyError, match="No mode1 calibration *"):
-            s.parse(user_input)
-
-
-class TestCalibrationCoefficientSelector:
-    """Test selection of calibration coefficients."""
-
-    @pytest.fixture(name="coefs")
-    def fixture_coefs(self):
-        """Get fake coefficients."""
-        return {
-            "nominal": {
-                "ch1": "nominal_ch1",
-                "ch2": "nominal_ch2"
-            },
-            "mode1": {
-                "ch1": "mode1_ch1",
-            },
-            "mode2": {
-                "ch2": "mode2_ch2",
-            }
-        }
-
-    @pytest.mark.parametrize(
-        ("calib_modes", "expected"),
-        [
-            (
-                None,
-                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
-            ),
-            (
-                "nominal",
-                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
-            ),
-            (
-                {"nominal": ["ch1", "ch2"]},
-                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
-            ),
-            (
-                {"mode1": ["ch1"]},
-                {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
-            ),
-            (
-                {"mode1": ["ch1"], "mode2": ["ch2"]},
-                {"ch1": "mode1_ch1", "ch2": "mode2_ch2"}
-            ),
-        ]
-    )
-    def test_get_coefs(self, coefs, calib_modes, expected):
+    def test_get_coefs(self, coefs, wishlist, expected):
         """Test getting calibration coefficients."""
-        s = hf.CalibrationCoefficientSelector(coefs, calib_modes)
+        s = hf.CalibrationCoefficientSelector(coefs, wishlist)
         coefs = {
             channel: s.get_coefs(channel)
             for channel in ["ch1", "ch2"]
         }
         assert coefs == expected
 
-    def test_missing_coefs(self, coefs):
-        """Test handling of missing coefficients."""
-        calib_modes = {"mode2": ["ch1"]}
-        s = hf.CalibrationCoefficientSelector(coefs, calib_modes)
-        with pytest.raises(KeyError, match="No mode2 calibration *"):
-            s.get_coefs("ch1")
+    @pytest.mark.parametrize(
+        "wishlist", ["foo", {"ch1": "foo"}, {("ch1", "ch2"): "foo"}]
+    )
+    def test_unknown_mode(self, coefs, wishlist):
+        """Test handling of unknown calibration mode."""
+        with pytest.raises(KeyError, match="Unknown calibration mode"):
+            hf.CalibrationCoefficientSelector(coefs, wishlist)
 
-    def test_fallback_to_nominal(self, coefs):
+    @pytest.mark.parametrize(
+        "wishlist", ["mode1", {"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
+    )
+    def test_missing_coefs(self, coefs, wishlist):
+        """Test that an exception is raised when coefficients are missing."""
+        s = hf.CalibrationCoefficientSelector(coefs, wishlist)
+        with pytest.raises(KeyError, match="No mode1 calibration"):
+            s.get_coefs("ch2")
+
+    @pytest.mark.parametrize(
+        "wishlist", ["mode1", {"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
+    )
+    def test_fallback_to_nominal(self, coefs, wishlist):
         """Test falling back to nominal coefficients."""
-        calib_modes = {"mode2": ["ch1"]}
-        s = hf.CalibrationCoefficientSelector(coefs, calib_modes, fallback="nominal")
-        assert s.get_coefs("ch1") == "nominal_ch1"
+        s = hf.CalibrationCoefficientSelector(coefs, wishlist, fallback="nominal")
+        assert s.get_coefs("ch2") == "nominal_ch2"
 
     def test_no_default_coefs(self):
         """Test initialization without default coefficients."""
-        with pytest.raises(KeyError, match="Need at least *"):
-            hf.CalibrationCoefficientSelector({})
+        with pytest.raises(KeyError, match="Need at least"):
+            hf.CalibrationCoefficientSelector({}, {})
 
     def test_no_fallback(self):
         """Test initialization without fallback coefficients."""
         with pytest.raises(KeyError, match="No fallback coefficients"):
-            hf.CalibrationCoefficientSelector({"nominal": 123}, fallback="foo")
+            hf.CalibrationCoefficientSelector({"nominal": 123}, {}, fallback="foo")
+
+    def test_invalid_wishlist_type(self):
+        """Test handling of invalid wishlist type."""
+        with pytest.raises(TypeError, match="Unsupported wishlist type"):
+            hf.CalibrationCoefficientSelector({"nominal": 123}, 123)
