@@ -174,7 +174,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
         # Initialize output
         attrs = dict()
-        
+
         while True:
             # Get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
