@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Gld360Ualf2 reader.
+"""Vaisala Global Lightning Dataset 360 reader for Universal ASCII Lightning Format 2 (UALF2).
 
 Vaisala Global Lightning Dataset GLD360 is data as a service
 that provides real-time lightning data for accurate and early
@@ -26,6 +26,7 @@ detection sensor network.
 
 References:
 - [GLD360] https://www.vaisala.com/en/products/data-subscriptions-and-reports/data-sets/gld360
+- [SMHI] https://opendata.smhi.se/apidocs/lightning/parameters.html
 
 """
 
@@ -41,112 +42,112 @@ from satpy.readers.file_handlers import BaseFileHandler
 logger = logging.getLogger(__name__)
 
 
-class Gld360Ualf2FileHandler(BaseFileHandler):
-    """ASCII reader for Vaisala GDL360 ualf2 data."""
+class VaisalaGld360Ualf2FileHandler(BaseFileHandler):
+    """FileHandler for Vaisala GLD360 data in UALF2-format."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Initialize Vaisala Gld360Ualf2FileHandler."""
-        super(Gld360Ualf2FileHandler, self).__init__(filename, filename_info, filetype_info)
+        """Initialize FileHandler."""
+        super(VaisalaGld360Ualf2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         def pad_nanoseconds(nanoseconds):
             """Read ns values for less than 0.1s correctly (these are not zero-padded in the input files)."""
             return str(nanoseconds).zfill(9)
 
         names = [
-            'ualf_record_type',
-            'network_type',
-            'year',
-            'month',
-            'day',
-            'hour',
-            'minute',
-            'second',
-            'nanosecond',
-            'latitude',
-            'longitude',
-            'altitude',
-            'altitude_uncertainty',
-            'peak_current',
-            'vhf_range',
-            'multiplicity_flash',
-            'cloud_pulse_count',
-            'number_of_sensors',
-            'degree_freedom_for_location',
-            'error_ellipse_angle',
-            'error_ellipse_max_axis_length',
-            'error_ellipse_min_axis_length',
-            'chi_squared_value_location_optimization',
-            'wave_form_rise_time',
-            'wave_form_peak_to_zero_time',
-            'wave_form_max_rate_of_rise',
-            'cloud_indicator',
-            'angle_indicator',
-            'signal_indicator',
-            'timing_indicator',
+            "ualf_record_type",
+            "network_type",
+            "year",
+            "month",
+            "day",
+            "hour",
+            "minute",
+            "second",
+            "nanosecond",
+            "latitude",
+            "longitude",
+            "altitude",
+            "altitude_uncertainty",
+            "peak_current",
+            "vhf_range",
+            "multiplicity_flash",
+            "cloud_pulse_count",
+            "number_of_sensors",
+            "degree_freedom_for_location",
+            "error_ellipse_angle",
+            "error_ellipse_max_axis_length",
+            "error_ellipse_min_axis_length",
+            "chi_squared_value_location_optimization",
+            "wave_form_rise_time",
+            "wave_form_peak_to_zero_time",
+            "wave_form_max_rate_of_rise",
+            "cloud_indicator",
+            "angle_indicator",
+            "signal_indicator",
+            "timing_indicator",
         ]
 
         dtype = {
-            'ualf_record_type': np.uint8,
-            'network_type': np.uint8,
-            'year': str,
-            'month': str,
-            'day': str,
-            'hour': str,
-            'minute': str,
-            'second': str,
-            'latitude': np.float32,
-            'longitude': np.float32,
-            'altitude': np.uint16,
-            'altitude_uncertainty': np.uint16,
-            'peak_current': np.int16,
-            'vhf_range': np.float32,
-            'multiplicity_flash': np.uint8,
-            'cloud_pulse_count': np.int16,
-            'number_of_sensors': np.uint8,
-            'degree_freedom_for_location': np.uint8,
-            'error_ellipse_angle': np.float32,
-            'error_ellipse_max_axis_length': np.float32,
-            'error_ellipse_min_axis_length': np.float32,
-            'chi_squared_value_location_optimization': np.float32,
-            'wave_form_rise_time': np.float32,
-            'wave_form_peak_to_zero_time': np.float32,
-            'wave_form_max_rate_of_rise': np.float32,
-            'cloud_indicator': bool,
-            'angle_indicator': bool,
-            'signal_indicator': bool,
-            'timing_indicator': bool,
+            "ualf_record_type": np.uint8,
+            "network_type": np.uint8,
+            "year": str,
+            "month": str,
+            "day": str,
+            "hour": str,
+            "minute": str,
+            "second": str,
+            "latitude": np.float32,
+            "longitude": np.float32,
+            "altitude": np.uint16,
+            "altitude_uncertainty": np.uint16,
+            "peak_current": np.int16,
+            "vhf_range": np.float32,
+            "multiplicity_flash": np.uint8,
+            "cloud_pulse_count": np.int16,
+            "number_of_sensors": np.uint8,
+            "degree_freedom_for_location": np.uint8,
+            "error_ellipse_angle": np.float32,
+            "error_ellipse_max_axis_length": np.float32,
+            "error_ellipse_min_axis_length": np.float32,
+            "chi_squared_value_location_optimization": np.float32,
+            "wave_form_rise_time": np.float32,
+            "wave_form_peak_to_zero_time": np.float32,
+            "wave_form_max_rate_of_rise": np.float32,
+            "cloud_indicator": bool,
+            "angle_indicator": bool,
+            "signal_indicator": bool,
+            "timing_indicator": bool,
         }
 
-        # Combine 'year', 'month', 'day', 'hour', 'minute', 'second' and 'nanosecond' into a datetime object.
-        parse_dates = {'time': ['year', 'month', 'day', 'hour', 'minute', 'second', 'nanosecond']}
+        # Combine "year", "month", "day", "hour", "minute", "second" and "nanosecond" into a datetime object.
+        parse_dates = {"time": ["year", "month", "day", "hour", "minute", "second", "nanosecond"]}
 
         self.data = dd.read_csv(filename,
-                                sep='\t',
+                                sep="\t",
                                 header=None,
                                 names=names,
                                 dtype=dtype,
                                 parse_dates=parse_dates,
-                                converters={'nanosecond': pad_nanoseconds}
+                                converters={"nanosecond": pad_nanoseconds}
                                 )
 
-        self.data['time'] = dd.to_datetime(self.data['time'], format='%Y %m %d %H %M %S %f')
+        self.data["time"] = dd.to_datetime(self.data["time"], format="%Y %m %d %H %M %S %f")
         self.data = self.data.drop_duplicates()
-        self.data = self.data.sort_values('time')
+        self.data = self.data.sort_values("time")
 
     @property
     def start_time(self):
         """Return start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Return end time."""
-        return self.filename_info['start_time'] + timedelta(hours=1)
+        return self.filename_info["start_time"] + timedelta(hours=1)
 
     def get_dataset(self, dataset_id, dataset_info):
         """Return the dataset."""
         # create xarray and place along y dimension
-        data_array = xr.DataArray(self.data[dataset_id['name']].to_dask_array(lengths=True), dims=['y'])
+        data_array = xr.DataArray(self.data[dataset_id["name"]].to_dask_array(lengths=True), dims=["y"])
         # assign dataset infos to xarray attrs
         data_array.attrs.update(dataset_info)
         return data_array
