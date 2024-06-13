@@ -476,6 +476,68 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     return reflectance
 
 
+class CalibrationCoefficientParser:
+    """TODO."""
+    def __init__(self, coefs, default="nominal"):
+        """TODO."""
+        self.coefs = coefs
+        self.default = default
+
+    def parse(self, user_input):
+        """TODO."""
+        if user_input is None:
+            return self._get_coefs_set(self.default)  # FIXME: Does not check missing coefs
+        elif isinstance(user_input, str):
+            return self._get_coefs_set(user_input)   # FIXME: Does not check missing coefs
+        elif isinstance(user_input, dict):
+            return self._expand_user_input(user_input)
+        raise ValueError(f"Unsupported calibration coefficients. Expected dict/str, got {type(user_input)}")
+
+    def _expand_user_input(self, user_input):
+        coefs = {}
+        for channel, mode_or_coefs in user_input.items():
+            if self._is_single_channel(channel):
+                coefs[channel] = self._get_coefs_for_single_channel(mode_or_coefs, channel)
+            elif self._is_multi_channel(channel):
+                coefs = self._get_coefs_for_multiple_channels(mode_or_coefs, channel)
+                coefs.update(coefs)
+            else:
+                raise ValueError("TODO")
+        return coefs
+
+    def _is_single_channel(self, key):
+        return isinstance(key, str)
+
+    def _get_coefs_for_single_channel(self, mode_or_coefs, channel):
+        if isinstance(mode_or_coefs, str):
+            mode = mode_or_coefs
+            return self._get_coefs(mode, channel)
+        return mode_or_coefs
+
+    def _is_multi_channel(self, key):
+        return isinstance(key, tuple)
+
+    def _get_coefs_for_multiple_channels(self, mode, channels):
+        return {channel: self._get_coefs(mode, channel) for channel in channels}
+
+    def _get_coefs(self, mode, channel):
+        coefs_set = self._get_coefs_set(mode)
+        return self._get_coefs_from_set(coefs_set, channel, mode)
+
+    def _get_coefs_set(self, mode):
+        try:
+            return self.coefs[mode]
+        except KeyError:
+            modes = list(self.coefs.keys())
+            raise KeyError(f"Unknown calibration mode: {mode}. Choose one of {modes}")
+
+    def _get_coefs_from_set(self, coefs_set, channel, mode):
+        try:
+            return coefs_set[channel]
+        except KeyError:
+            raise KeyError(f"No {mode} calibration coefficients for {channel}")
+
+
 class CalibrationCoefficientSelector:
     """Helper for choosing coefficients out of multiple options.
 

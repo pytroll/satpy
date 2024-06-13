@@ -34,7 +34,6 @@ from pyproj import CRS
 
 from satpy.readers import FSFile
 from satpy.readers import utils as hf
-from satpy.readers.utils import CalibrationCoefficientSelector
 
 
 class TestHelpers(unittest.TestCase):
@@ -515,6 +514,68 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
     assert read_binary_data == dummy_data
 
 
+class TestCalibrationCoefficientParser:
+    """TODO."""
+    @pytest.fixture(name="coefs")
+    def fixture_coefs(self):
+        """Get fake coefficients."""
+        return {
+            "nominal": {
+                "ch1": "nominal_ch1",
+                "ch2": "nominal_ch2"
+            },
+            "mode1": {
+                "ch1": "mode1_ch1",
+            },
+            "mode2": {
+                "ch2": "mode2_ch2",
+            }
+        }
+
+    @pytest.mark.parametrize(
+        ("user_input", "expected"),
+        [
+            (None, {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}),
+            ("nominal", {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}),
+            (
+                {("ch1", "ch2"): "nominal"},
+                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
+            ),
+            (
+                {"ch1": "mode1", "ch2": "mode2"},
+                {"ch1": "mode1_ch1", "ch2": "mode2_ch2"}
+            ),
+            (
+                {"ch1": "mode1", "ch2": {"gain": 1}},
+                {"ch1": "mode1_ch1", "ch2": {"gain": 1}}
+            ),
+        ]
+    )
+    def test_parse(self, coefs, user_input, expected):
+        """TODO."""
+        s = hf.CalibrationCoefficientParser(coefs)
+        coefs = s.parse(user_input)
+        assert coefs == expected
+
+    @pytest.mark.parametrize(
+        "user_input", ["foo", {"ch1": "foo"}, {("ch1", "ch2"): "foo"}]
+    )
+    def test_missing_mode(self, coefs, user_input):
+        """TODO."""
+        s = hf.CalibrationCoefficientParser(coefs)
+        with pytest.raises(KeyError, match="Unknown calibration mode *"):
+            s.parse(user_input)
+
+    @pytest.mark.parametrize(
+        "user_input", [{"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
+    )
+    def test_missing_coefs(self, coefs, user_input):
+        """TODO."""
+        s = hf.CalibrationCoefficientParser(coefs)
+        with pytest.raises(KeyError, match="No mode1 calibration *"):
+            s.parse(user_input)
+
+
 class TestCalibrationCoefficientSelector:
     """Test selection of calibration coefficients."""
 
@@ -561,7 +622,7 @@ class TestCalibrationCoefficientSelector:
     )
     def test_get_coefs(self, coefs, calib_modes, expected):
         """Test getting calibration coefficients."""
-        s = CalibrationCoefficientSelector(coefs, calib_modes)
+        s = hf.CalibrationCoefficientSelector(coefs, calib_modes)
         coefs = {
             channel: s.get_coefs(channel)
             for channel in ["ch1", "ch2"]
@@ -571,22 +632,22 @@ class TestCalibrationCoefficientSelector:
     def test_missing_coefs(self, coefs):
         """Test handling of missing coefficients."""
         calib_modes = {"mode2": ["ch1"]}
-        s = CalibrationCoefficientSelector(coefs, calib_modes)
+        s = hf.CalibrationCoefficientSelector(coefs, calib_modes)
         with pytest.raises(KeyError, match="No mode2 calibration *"):
             s.get_coefs("ch1")
 
     def test_fallback_to_nominal(self, coefs):
         """Test falling back to nominal coefficients."""
         calib_modes = {"mode2": ["ch1"]}
-        s = CalibrationCoefficientSelector(coefs, calib_modes, fallback="nominal")
+        s = hf.CalibrationCoefficientSelector(coefs, calib_modes, fallback="nominal")
         assert s.get_coefs("ch1") == "nominal_ch1"
 
     def test_no_default_coefs(self):
         """Test initialization without default coefficients."""
         with pytest.raises(KeyError, match="Need at least *"):
-            CalibrationCoefficientSelector({})
+            hf.CalibrationCoefficientSelector({})
 
     def test_no_fallback(self):
         """Test initialization without fallback coefficients."""
         with pytest.raises(KeyError, match="No fallback coefficients"):
-            CalibrationCoefficientSelector({"nominal": 123}, fallback="foo")
+            hf.CalibrationCoefficientSelector({"nominal": 123}, fallback="foo")
