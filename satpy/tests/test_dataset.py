@@ -13,10 +13,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Test objects and functions in the dataset module."""
 
+import datetime as dt
 import unittest
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -101,39 +102,85 @@ class TestCombineMetadata(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self.datetime_dts = (
-            {"start_time": datetime(2018, 2, 1, 11, 58, 0)},
-            {"start_time": datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 2, 0)},
+        # The times need to be in ascending order (oldest first)
+        self.start_time_dts = (
+            {"start_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        self.end_time_dts = (
+            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        self.other_time_dts = (
+            {"other_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        self.start_time_dts_with_none = (
+            {"start_time": None},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        self.end_time_dts_with_none = (
+            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": None},
         )
 
     def test_average_datetimes(self):
         """Test the average_datetimes helper function."""
         from satpy.dataset.metadata import average_datetimes
         dts = (
-            datetime(2018, 2, 1, 11, 58, 0),
-            datetime(2018, 2, 1, 11, 59, 0),
-            datetime(2018, 2, 1, 12, 0, 0),
-            datetime(2018, 2, 1, 12, 1, 0),
-            datetime(2018, 2, 1, 12, 2, 0),
+            dt.datetime(2018, 2, 1, 11, 58, 0),
+            dt.datetime(2018, 2, 1, 11, 59, 0),
+            dt.datetime(2018, 2, 1, 12, 0, 0),
+            dt.datetime(2018, 2, 1, 12, 1, 0),
+            dt.datetime(2018, 2, 1, 12, 2, 0),
         )
         ret = average_datetimes(dts)
         assert dts[2] == ret
 
-    def test_combine_times_with_averaging(self):
-        """Test the combine_metadata with times with averaging."""
+    def test_combine_start_times(self):
+        """Test the combine_metadata with start times."""
         from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.datetime_dts)
-        assert self.datetime_dts[2]["start_time"] == ret["start_time"]
+        ret = combine_metadata(*self.start_time_dts)
+        assert ret["start_time"] == self.start_time_dts[0]["start_time"]
 
-    def test_combine_times_without_averaging(self):
-        """Test the combine_metadata with times without averaging."""
+    def test_combine_end_times(self):
+        """Test the combine_metadata with end times."""
         from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.datetime_dts, average_times=False)
-        # times are not equal so don't include it in the final result
-        assert "start_time" not in ret
+        ret = combine_metadata(*self.end_time_dts)
+        assert ret["end_time"] == self.end_time_dts[-1]["end_time"]
+
+    def test_combine_start_times_with_none(self):
+        """Test the combine_metadata with start times when there's a None included."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.start_time_dts_with_none)
+        assert ret["start_time"] == self.start_time_dts_with_none[1]["start_time"]
+
+    def test_combine_end_times_with_none(self):
+        """Test the combine_metadata with end times when there's a None included."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.end_time_dts_with_none)
+        assert ret["end_time"] == self.end_time_dts_with_none[-2]["end_time"]
+
+    def test_combine_other_times(self):
+        """Test the combine_metadata with other time values than start or end times."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.other_time_dts)
+        assert ret["other_time"] == self.other_time_dts[2]["other_time"]
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
@@ -327,10 +374,10 @@ def test_combine_dicts_close():
             "c": [1, 2, 3],
             "d": {
                 "e": np.str_("bar"),
-                "f": datetime(2020, 1, 1, 12, 15, 30),
+                "f": dt.datetime(2020, 1, 1, 12, 15, 30),
                 "g": np.array([1, 2, 3]),
             },
-            "h": np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+            "h": np.array([dt.datetime(2020, 1, 1), dt.datetime(2020, 1, 1)])
         }
     }
     attrs_close = {
@@ -340,10 +387,10 @@ def test_combine_dicts_close():
             "c": np.array([1, 2, 3]) + 1E-12,
             "d": {
                 "e": np.str_("bar"),
-                "f": datetime(2020, 1, 1, 12, 15, 30),
+                "f": dt.datetime(2020, 1, 1, 12, 15, 30),
                 "g": np.array([1, 2, 3]) + 1E-12
             },
-            "h": np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+            "h": np.array([dt.datetime(2020, 1, 1), dt.datetime(2020, 1, 1)])
         }
     }
     test_metadata = [attrs, attrs_close]

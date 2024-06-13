@@ -35,7 +35,7 @@ locations:
 3. ``~/.satpy/satpy.yaml``
 4. ``<SATPY_CONFIG_PATH>/satpy.yaml`` (see :ref:`config_path_setting` below)
 
-The above ``user_config_dir`` is provided by the ``appdirs`` package and
+The above ``user_config_dir`` is provided by the ``platformdirs`` package and
 differs by operating system. Typical user config directories are:
 
 * Mac OSX: ``~/Library/Preferences/satpy``
@@ -90,7 +90,7 @@ Directory where any files cached by Satpy will be stored. This
 directory is not necessarily cleared out by Satpy, but is rarely used without
 explicitly being enabled by the user. This
 defaults to a different path depending on your operating system following
-the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+the `platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user cache dir".
 
 .. _config_cache_lonlats_setting:
@@ -214,7 +214,7 @@ Data Directory
 Directory where any data Satpy needs to perform certain operations will be
 stored. This replaces the legacy ``SATPY_ANCPATH`` environment variable. This
 defaults to a different path depending on your operating system following the
-`appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+`platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user data dir".
 
 .. _download_aux_setting:

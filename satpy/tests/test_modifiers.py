@@ -15,9 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for modifiers in modifiers/__init__.py."""
+
+import datetime as dt
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -25,7 +27,9 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
+
+from satpy.tests.utils import RANDOM_GEN
 
 
 def _sunz_area_def():
@@ -57,7 +61,7 @@ def _sunz_stacked_area_def():
 
 def _shared_sunz_attrs(area_def):
     attrs = {"area": area_def,
-             "start_time": datetime(2018, 1, 1, 18),
+             "start_time": dt.datetime(2018, 1, 1, 18),
              "modifiers": tuple(),
              "name": "test_vis"}
     return attrs
@@ -213,23 +217,23 @@ class TestNIRReflectance(unittest.TestCase):
                          "area": area,
                          "start_time": self.start_time}
 
-        nir_arr = np.random.random((2, 2))
+        nir_arr = RANDOM_GEN.random((2, 2))
         self.nir = xr.DataArray(da.from_array(nir_arr), dims=["y", "x"])
         self.nir.attrs.update(self.metadata)
 
-        ir_arr = 100 * np.random.random((2, 2))
+        ir_arr = 100 * RANDOM_GEN.random((2, 2))
         self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"])
         self.ir_.attrs["area"] = area
 
-        self.sunz_arr = 100 * np.random.random((2, 2))
+        self.sunz_arr = 100 * RANDOM_GEN.random((2, 2))
         self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"])
         self.sunz.attrs["standard_name"] = "solar_zenith_angle"
         self.sunz.attrs["area"] = area
         self.da_sunz = da.from_array(self.sunz_arr)
 
-        refl_arr = np.random.random((2, 2))
+        refl_arr = RANDOM_GEN.random((2, 2))
         self.refl = da.from_array(refl_arr)
-        self.refl_with_co2 = da.from_array(np.random.random((2, 2)))
+        self.refl_with_co2 = da.from_array(RANDOM_GEN.random((2, 2)))
         self.refl_from_tbs = mock.MagicMock()
         self.refl_from_tbs.side_effect = self.fake_refl_from_tbs
 
@@ -292,7 +296,7 @@ class TestNIRReflectance(unittest.TestCase):
 
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
-        co2_arr = np.random.random((2, 2))
+        co2_arr = RANDOM_GEN.random((2, 2))
         co2 = xr.DataArray(da.from_array(co2_arr), dims=["y", "x"])
         co2.attrs["wavelength"] = [12.0, 13.0, 14.0]
         co2.attrs["units"] = "K"
@@ -378,14 +382,14 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         """Test the NIR emissive part from reflectance compositor."""
         from satpy.modifiers.spectral import NIRReflectance
 
-        refl_arr = np.random.random((2, 2))
+        refl_arr = RANDOM_GEN.random((2, 2))
         refl = da.from_array(refl_arr)
 
         refl_from_tbs = mock.MagicMock()
         refl_from_tbs.return_value = refl
         calculator.return_value = mock.MagicMock(reflectance_from_tbs=refl_from_tbs)
 
-        emissive_arr = np.random.random((2, 2))
+        emissive_arr = RANDOM_GEN.random((2, 2))
         emissive = da.from_array(emissive_arr)
         emissive_part = mock.MagicMock()
         emissive_part.return_value = emissive
@@ -405,17 +409,17 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         get_lonlats.return_value = (lons, lats)
         area = mock.MagicMock(get_lonlats=get_lonlats)
 
-        nir_arr = np.random.random((2, 2))
+        nir_arr = RANDOM_GEN.random((2, 2))
         nir = xr.DataArray(da.from_array(nir_arr), dims=["y", "x"])
         nir.attrs["platform_name"] = platform
         nir.attrs["sensor"] = sensor
         nir.attrs["name"] = chan_name
         nir.attrs["area"] = area
-        ir_arr = np.random.random((2, 2))
+        ir_arr = RANDOM_GEN.random((2, 2))
         ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"])
         ir_.attrs["area"] = area
 
-        sunz_arr = 100 * np.random.random((2, 2))
+        sunz_arr = 100 * RANDOM_GEN.random((2, 2))
         sunz = xr.DataArray(da.from_array(sunz_arr), dims=["y", "x"])
         sunz.attrs["standard_name"] = "solar_zenith_angle"
         sunz.attrs["area"] = area
@@ -591,7 +595,7 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         lats[1, 1] = np.inf
         lats = da.from_array(lats, chunks=5)
         area = SwathDefinition(lons, lats)
-        stime = datetime(2020, 1, 1, 12, 0, 0)
+        stime = dt.datetime(2020, 1, 1, 12, 0, 0)
         orb_params = {
             "satellite_actual_altitude": 12345678,
             "nadir_longitude": 0.0,

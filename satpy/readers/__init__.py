@@ -15,15 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Shared objects of the various reader classes."""
+
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import os
 import pathlib
 import pickle  # nosec B403
 import warnings
-from datetime import datetime, timedelta
 from functools import total_ordering
 
 import yaml
@@ -39,7 +41,9 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 PENDING_OLD_READER_NAMES = {"fci_l1c_fdhsi": "fci_l1c_nc", "viirs_l2_cloud_mask_nc": "viirs_edr"}
-OLD_READER_NAMES: dict[str, str] = {}
+OLD_READER_NAMES: dict[str, str] = {
+    "slstr_l2": "ghrsst_l2",
+}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
@@ -211,7 +215,7 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
     # interest of sorting
     flat_keys = ((v[0], rn, v[1]) for (rn, vL) in all_file_keys.items() for v in vL)
     prev_key = None
-    threshold = timedelta(seconds=time_threshold)
+    threshold = dt.timedelta(seconds=time_threshold)
     # file_groups is sorted, because dictionaries are sorted by insertion
     # order in Python 3.7+
     file_groups = {}
@@ -220,7 +224,7 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
         if prev_key is None:
             is_new_group = True
             prev_key = gk
-        elif isinstance(gk[0], datetime):
+        elif isinstance(gk[0], dt.datetime):
             # datetimes within threshold difference are "the same time"
             is_new_group = (gk[0] - prev_key[0]) > threshold
         else:
@@ -573,7 +577,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(
+            reader_instance.create_storage_items(
                     loadables,
                     fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
@@ -778,7 +782,7 @@ def _get_compression(file):
         return None
 
 
-def open_file_or_filename(unknown_file_thing):
+def open_file_or_filename(unknown_file_thing, mode=None):
     """Try to open the provided file "thing" if needed, otherwise return the filename or Path.
 
     This wraps the logic of getting something like an fsspec OpenFile object
@@ -792,7 +796,10 @@ def open_file_or_filename(unknown_file_thing):
         f_obj = unknown_file_thing
     else:
         try:
-            f_obj = unknown_file_thing.open()
+            if mode is None:
+                f_obj = unknown_file_thing.open()
+            else:
+                f_obj = unknown_file_thing.open(mode=mode)
         except AttributeError:
             f_obj = unknown_file_thing
     return f_obj

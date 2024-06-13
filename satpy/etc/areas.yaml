@@ -349,7 +349,7 @@ EastEurope:
     lower_left_xy: [654112.8864287604, 2989901.7547366405]
     upper_right_xy: [4553111.804127298, 5390224.287390241]
 
-AfHorn:
+AfHorn_geos:
   description: Eastern disk MSG image 0 degrees
   projection:
     proj: geos
@@ -364,7 +364,7 @@ AfHorn:
     lower_left_xy: [2263804.1886089267, -1327678.4008740226]
     upper_right_xy: [5564247.671007627, 3472966.6644331776]
 
-SouthAmerica:
+SouthAmerica_geos:
   description: Lower West part of Southern disk MSG image 0 degrees
   projection:
     proj: geos
@@ -764,6 +764,7 @@ australia:
   area_extent:
     lower_left_xy: [-2504688.5428486555, -5591295.9185533915]
     upper_right_xy: [2504688.5428486555, -1111475.102852225]
+
 mali:
   description: mali
   projection:
@@ -777,6 +778,7 @@ mali:
   area_extent:
     lower_left_xy: [-1224514.3987260093, 1111475.1028522244]
     upper_right_xy: [1224514.3987260093, 3228918.5790461157]
+
 mali_eqc:
   description: mali
   projection:
@@ -790,6 +792,7 @@ mali_eqc:
   area_extent:
     lower_left_xy: [-1224514.3987260093, -1001875.4171394627]
     upper_right_xy: [1224514.3987260093, 1001875.4171394617]
+
 sve:
   description:
     Sweden and baltic sea
@@ -801,6 +804,7 @@ sve:
   area_extent:
     lower_left_xy: [-342379.698, 6032580.06]
     upper_right_xy: [1423701.52, 8029648.75]
+
 brazil2:
   description: brazil, platecarree
   projection:
@@ -813,6 +817,7 @@ brazil2:
     lower_left_xy: [-7792364.355529149, -4452779.631730943]
     upper_right_xy: [-2226389.8158654715, 1669792.3618991035]
     units: m
+
 sudeste:
   description: sudeste, platecarree
   projection:
@@ -825,6 +830,7 @@ sudeste:
     lower_left_xy: [-6122571.993630046, -3005626.251418386]
     upper_right_xy: [-4230140.650144396, -1447153.3803125564]
     units: m
+
 SouthAmerica_flat:
   description: South America flat
   projection:
@@ -838,6 +844,7 @@ SouthAmerica_flat:
     lower_left_xy: [-8326322.82790897, -4609377.085697311]
     upper_right_xy: [-556597.4539663679, 1535833.8895192828]
     units: m
+
 south_america:
   description: south_america, platecarree
   projection:
@@ -850,6 +857,7 @@ south_america:
     lower_left_xy: [-8126322.82790897, -5009377.085697311]
     upper_right_xy: [-556597.4539663679, 1335833.8895192828]
     units: m
+
 brazil:
   description: brazil, platecarree
   projection:
@@ -862,6 +870,7 @@ brazil:
     lower_left_xy: [-8348961.809495518, -3896182.1777645745]
     upper_right_xy: [-3784862.6869713017, 1001875.4171394621]
     units: m
+
 worldeqc3km70:
   description: World in 3km, platecarree
   projection:
@@ -874,6 +883,7 @@ worldeqc3km70:
     lower_left_xy: [-20037508.3428, -7792364.355533333]
     upper_right_xy: [20037508.3428, 7792364.355533333]
     units: m
+
 worldeqc30km70:
   description: World in 3km, platecarree
   projection:
@@ -886,6 +896,7 @@ worldeqc30km70:
     lower_left_xy: [-20037508.3428, -7792364.355533333]
     upper_right_xy: [20037508.3428, 7792364.355533333]
     units: m
+
 worldeqc3km73:
   description: World in 3km, platecarree
   projection:
@@ -898,6 +909,7 @@ worldeqc3km73:
     lower_left_xy: [-20037508.3428, -8181982.573309999]
     upper_right_xy: [20037508.3428, 8181982.573309999]
     units: m
+
 worldeqc3km:
   description: World in 3km, platecarree
   projection:
@@ -910,6 +922,7 @@ worldeqc3km:
     lower_left_xy: [-20037508.3428, -10018754.1714]
     upper_right_xy: [20037508.3428, 10018754.1714]
     units: m
+
 worldeqc30km:
   description: World in 3km, platecarree
   projection:
@@ -922,6 +935,7 @@ worldeqc30km:
     lower_left_xy: [-20037508.3428, -10018754.1714]
     upper_right_xy: [20037508.3428, 10018754.1714]
     units: m
+
 libya:
   description: libya area
   projection:
@@ -936,6 +950,7 @@ libya:
     lower_left_xy: [-1921632.0902750609, 1725320.2028891125]
     upper_right_xy: [1918367.9097249391, 4797320.202889113]
     units: m
+
 phil:
   description: kuwait area
   projection:
@@ -951,6 +966,7 @@ phil:
     lower_left_xy: [-2200000.0, 0.0]
     upper_right_xy: [2200000.0, 2200000.0]
     units: m
+
 phil_small:
   description: kuwait area
   projection:
@@ -966,6 +982,7 @@ phil_small:
     lower_left_xy: [-600000.0, 0.0]
     upper_right_xy: [1600000.0, 2200000.0]
     units: m
+
 kuwait:
   description: kuwait area
   projection:
@@ -980,6 +997,7 @@ kuwait:
     lower_left_xy: [-1280000.0, 1820000.0]
     upper_right_xy: [1280000.0, 4380000.0]
     units: m
+
 afghanistan:
   description: Afghanistan
   projection:
@@ -1008,7 +1026,8 @@ maspalomas:
   area_extent:
     lower_left_xy: [-1200000.0, 2900000.0]
     upper_right_xy: [900000.0, 4000000.0]
-afhorn:
+
+afhorn_merc:
   description: Africa horn 3km resolution
   projection:
     proj: merc
@@ -1020,6 +1039,7 @@ afhorn:
   area_extent:
     lower_left_xy: [-2432000.0, -1130348.139543]
     upper_right_xy: [2432000.0, 3733651.860457]
+
 spain:
   description: Spain
   projection:
@@ -1036,6 +1056,7 @@ spain:
   area_extent:
     lower_left_xy: [-500000.0, -500000.0]
     upper_right_xy: [500000.0, 500000.0]
+
 germ:
   description: Germany
   projection:
@@ -1052,6 +1073,7 @@ germ:
   area_extent:
     lower_left_xy: [-155100.436345, -4441495.37946]
     upper_right_xy: [868899.563655, -3417495.37946]
+
 germ2:
   description: Germany
   projection:
@@ -1068,6 +1090,7 @@ germ2:
   area_extent:
     lower_left_xy: [-165100.436345, -4441495.37946]
     upper_right_xy: [878899.563655, -3417495.37946]
+
 euro4:
   description: Euro 4km area - Europe
   projection:
@@ -1082,6 +1105,7 @@ euro4:
   area_extent:
     lower_left_xy: [-2717181.7304994687, -5571048.14031214]
     upper_right_xy: [1378818.2695005313, -1475048.1403121399]
+
 euro1:
   description: Euro 4km area - Europe
   projection:
@@ -1096,6 +1120,7 @@ euro1:
   area_extent:
     lower_left_xy: [-2717181.7304994687, -5571048.14031214]
     upper_right_xy: [1378818.2695005313, -1475048.1403121399]
+
 scan:
   description: Scandinavia
   projection:
@@ -1110,6 +1135,7 @@ scan:
   area_extent:
     lower_left_xy: [-1268854.126638295, -4150234.8425892727]
     upper_right_xy: [779145.8733617051, -2102234.8425892727]
+
 scan2:
   description: Scandinavia - 2km area
   projection:
@@ -1124,6 +1150,7 @@ scan2:
   area_extent:
     lower_left_xy: [-1268854.126638295, -4150234.8425892727]
     upper_right_xy: [779145.8733617051, -2102234.8425892727]
+
 scan1:
   description: Scandinavia - 1km area
   projection:
@@ -1138,6 +1165,7 @@ scan1:
   area_extent:
     lower_left_xy: [-1268854.126638295, -4150234.8425892727]
     upper_right_xy: [779145.8733617051, -2062234.8425892727]
+
 scan500m:
   description: Scandinavia - 500m area
   projection:
@@ -1152,6 +1180,7 @@ scan500m:
   area_extent:
     lower_left_xy: [-1268854.126638295, -4150234.8425892727]
     upper_right_xy: [779145.8733617051, -2062234.8425892727]
+
 mesanX:
   description: Mesan-X rotated lon/lat 1.8km
   projection:
@@ -1169,6 +1198,7 @@ mesanX:
   area_extent:
     lower_left_xy: [1067435.7598983962, -1278764.890341909]
     upper_right_xy: [3791765.9965939857, 1690140.6680267097]
+
 mesanE:
   description: Europe Mesan rotated lon/lat 1.8km
   projection:
@@ -1186,6 +1216,7 @@ mesanE:
   area_extent:
     lower_left_xy: [289083.0005619671, -2957836.6467769896]
     upper_right_xy: [5381881.121371055, 3335826.68502126]
+
 baws:
   description: BAWS
   projection:
@@ -1200,6 +1231,7 @@ baws:
   area_extent:
     lower_left_xy: [-475617.0, 5324430.0]
     upper_right_xy: [924383.0, 6724430.0]
+
 eurotv:
   description: Europe TV -  6.2x5.0km
   projection:
@@ -1216,6 +1248,7 @@ eurotv:
   area_extent:
     lower_left_xy: [-3503748.8201907813, -6589593.134058789]
     upper_right_xy: [2842567.6359087573, -1499856.5846593212]
+
 eurotv4n:
   description: Europe TV4 -  4.1x4.1km
   projection:
@@ -1232,6 +1265,7 @@ eurotv4n:
   area_extent:
     lower_left_xy: [-5103428.678666952, -6772478.60053407]
     upper_right_xy: [3293371.321333048, -2049278.6005340703]
+
 eurol:
   description: Euro 3.0km area - Europe
   projection:
@@ -1246,6 +1280,7 @@ eurol:
   area_extent:
     lower_left_xy: [-3780000.0, -7644000.0]
     upper_right_xy: [3900000.0, -1500000.0]
+
 eurol1:
   description: Euro 3.0km area - Europe
   projection:
@@ -1260,6 +1295,7 @@ eurol1:
   area_extent:
     lower_left_xy: [-3780000.0, -7644000.0]
     upper_right_xy: [3900000.0, -1500000.0]
+
 scanl:
   description: Scandinavia - Large
   projection:
@@ -1274,6 +1310,7 @@ scanl:
   area_extent:
     lower_left_xy: [-900000.0, -4500000.0]
     upper_right_xy: [2000000.0, -1600000.0]
+
 euron1:
   description: Northern Europe - 1km
   projection:
@@ -1288,6 +1325,7 @@ euron1:
   area_extent:
     lower_left_xy: [-1000000.0, -4500000.0]
     upper_right_xy: [2072000.0, -1428000.0]
+
 euron0250:
   description: Northern Europe - 1km
   projection:
@@ -1302,6 +1340,7 @@ euron0250:
   area_extent:
     lower_left_xy: [-1000000.0, -4500000.0]
     upper_right_xy: [2072000.0, -1428000.0]
+
 nsea:
   description: North Baltic Sea
   projection:
@@ -1315,6 +1354,7 @@ nsea:
   area_extent:
     lower_left_xy: [-322789.07638000086, 7784901.986829306]
     upper_right_xy: [1725210.923619999, 9832901.986829307]
+
 ssea:
   description: South Baltic Sea
   projection:
@@ -1328,6 +1368,7 @@ ssea:
   area_extent:
     lower_left_xy: [-801407.3620468981, 7003690.663643802]
     upper_right_xy: [1246592.637953102, 9051690.663643802]
+
 nsea250:
   description: North Baltic Sea
   projection:
@@ -1341,6 +1382,7 @@ nsea250:
   area_extent:
     lower_left_xy: [-322789.07638000086, 7784901.986829306]
     upper_right_xy: [1725210.923619999, 9832901.986829307]
+
 ssea250:
   description: South Baltic Sea
   projection:
@@ -1354,6 +1396,7 @@ ssea250:
   area_extent:
     lower_left_xy: [-801407.3620468981, 7003690.663643802]
     upper_right_xy: [1246592.637953102, 9051690.663643802]
+
 bsea250:
   description: South Baltic Sea
   projection:
@@ -1367,6 +1410,7 @@ bsea250:
   area_extent:
     lower_left_xy: [512000.0, 3525000.0]
     upper_right_xy: [1700000.0, 4933000.0]
+
 test250:
   description: South Baltic Sea
   projection:
@@ -1380,6 +1424,7 @@ test250:
   area_extent:
     lower_left_xy: [512000.0, 3525000.0]
     upper_right_xy: [1700000.0, 4933000.0]
+
 bsea1000:
   description: South Baltic Sea
   projection:
@@ -1393,6 +1438,7 @@ bsea1000:
   area_extent:
     lower_left_xy: [512000.0, 3525000.0]
     upper_right_xy: [1700000.0, 4933000.0]
+
 euro:
   description: Euro area - Europe
   projection:
@@ -1407,6 +1453,7 @@ euro:
   area_extent:
     lower_left_xy: [-2717181.7304994687, -5571048.14031214]
     upper_right_xy: [1378818.2695005313, -1475048.1403121399]
+
 baltrad_lambert:
   description: Baltrad Lambert
   projection:
@@ -1421,6 +1468,7 @@ baltrad_lambert:
   area_extent:
     lower_left_xy: [-994211.85388, -1291605.15396]
     upper_right_xy: [635788.14612, 1098394.84604]
+
 eport:
   description: eport
   projection:
@@ -1435,6 +1483,7 @@ eport:
     lower_left_xy: [-5283418.625834752, -5283418.625834753]
     upper_right_xy: [5283418.625834753, 5283418.625834752]
     units: m
+
 eport1:
   description: eport
   projection:
@@ -1449,6 +1498,7 @@ eport1:
     lower_left_xy: [-5283418.625834752, -5283418.625834753]
     upper_right_xy: [5283418.625834753, 5283418.625834752]
     units: m
+
 eport10:
   description: eport reduced resolution
   projection:
@@ -1463,6 +1513,7 @@ eport10:
     lower_left_xy: [-5283418.625834752, -5283418.625834753]
     upper_right_xy: [5283418.625834753, 5283418.625834752]
     units: m
+
 eport4:
   description: eport reduced resolution
   projection:
@@ -1477,6 +1528,7 @@ eport4:
     lower_left_xy: [-5283418.625834752, -5283418.625834753]
     upper_right_xy: [5283418.625834753, 5283418.625834752]
     units: m
+
 eport2:
   description: eport reduced resolution
   projection:
@@ -1491,6 +1543,7 @@ eport2:
     lower_left_xy: [-5283418.625834752, -5283418.625834753]
     upper_right_xy: [5283418.625834753, 5283418.625834752]
     units: m
+
 npp_sample_m:
   description: North America - NPP sample data - M-bands
   projection:
@@ -1505,6 +1558,7 @@ npp_sample_m:
   area_extent:
     lower_left_xy: [-1700000.0, -1400000.0]
     upper_right_xy: [1100000.0, 1400000.0]
+
 arctic_europe_1km:
   description: Arctic and Europe
   projection:
@@ -1519,6 +1573,7 @@ arctic_europe_1km:
   area_extent:
     lower_left_xy: [-3100000.0, -7100000.0]
     upper_right_xy: [6000000.0, 2000000.0]
+
 arctic_europe_9km:
   description: Arctic and Europe
   projection:
@@ -1533,6 +1588,7 @@ arctic_europe_9km:
   area_extent:
     lower_left_xy: [-3100000.0, -7100000.0]
     upper_right_xy: [6000000.0, 2000000.0]
+
 sswe:
   description: Southern Sweden
   projection:
@@ -1549,6 +1605,7 @@ sswe:
   area_extent:
     lower_left_xy: [-400884.23045, -3946631.71387]
     upper_right_xy: [623115.76955, -2922631.71387]
+
 nswe:
   description: Northern Sweden
   projection:
@@ -1565,6 +1622,7 @@ nswe:
   area_extent:
     lower_left_xy: [-392288.010506, -3105279.35252]
     upper_right_xy: [631711.989494, -2081279.35252]
+
 sval:
   description: Svalbard
   projection:
@@ -1579,6 +1637,7 @@ sval:
   area_extent:
     lower_left_xy: [-287554.9489620461, -1630805.15418955]
     upper_right_xy: [736445.0510379539, -606805.1541895501]
+
 ease_sh:
   description: Antarctic EASE grid
   projection:
@@ -1594,6 +1653,7 @@ ease_sh:
     lower_left_xy: [-5326849.0625, -5326849.0625]
     upper_right_xy: [5326849.0625, 5326849.0625]
     units: m
+
 ease_nh:
   description: Arctic EASE grid
   projection:
@@ -1609,6 +1669,7 @@ ease_nh:
     lower_left_xy: [-5326849.0625, -5326849.0625]
     upper_right_xy: [5326849.0625, 5326849.0625]
     units: m
+
 barents_sea:
   description: Barents and Greenland seas
   projection:
@@ -1623,6 +1684,7 @@ barents_sea:
   area_extent:
     lower_left_xy: [-1600000.0, -2000000.0]
     upper_right_xy: [1400000.0, -300000.0]
+
 antarctica:
   description: Antarctica - 1km
   projection:
@@ -1637,6 +1699,7 @@ antarctica:
   area_extent:
     lower_left_xy: [-2858899.2042342643, -2858899.204234264]
     upper_right_xy: [2858899.204234264, 2858899.2042342643]
+
 arctica:
   description: arctica - 1km
   projection:
@@ -1651,6 +1714,7 @@ arctica:
   area_extent:
     lower_left_xy: [-1458899.2042342643, -1458899.2042342639]
     upper_right_xy: [1458899.2042342639, 1458899.2042342643]
+
 euroasia:
   description: Euroasia - Global 1km USGS Landuse database
   projection:
@@ -1665,6 +1729,7 @@ euroasia:
   area_extent:
     lower_left_xy: [-3000000.0, -4999000.0]
     upper_right_xy: [9999000.0, 8000000.0]
+
 euroasia_10km:
   description: Euroasia - Global 1km USGS Landuse database
   projection:
@@ -1679,6 +1744,7 @@ euroasia_10km:
   area_extent:
     lower_left_xy: [-3000000.0, -4999000.0]
     upper_right_xy: [9999000.0, 8000000.0]
+
 euroasia_asia:
   description:
     Euroasia - optimised for Asia -
@@ -1695,6 +1761,7 @@ euroasia_asia:
   area_extent:
     lower_left_xy: [-8000000.0, -5499000.0]
     upper_right_xy: [4999000.0, 6500000.0]
+
 euroasia_asia_10km:
   description: Euroasia - optimised for Asia - Global 1km USGS Landuse database
   projection:
@@ -1709,6 +1776,7 @@ euroasia_asia_10km:
   area_extent:
     lower_left_xy: [-8000000.0, -5499000.0]
     upper_right_xy: [4999000.0, 6500000.0]
+
 australia_pacific:
   description: Austalia/Pacific - Global 1km USGS Landuse database
   projection:
@@ -1723,6 +1791,7 @@ australia_pacific:
   area_extent:
     lower_left_xy: [-5000000.0, -3944890.0]
     upper_right_xy: [4299000.0, 4054110.0]
+
 australia_pacific_10km:
   description: Austalia/Pacific - Global 1km USGS Landuse database
   projection:
@@ -1737,6 +1806,7 @@ australia_pacific_10km:
   area_extent:
     lower_left_xy: [-5000000.0, -3944890.0]
     upper_right_xy: [4299000.0, 4054110.0]
+
 africa:
   description: Africa - Global 1km USGS Landuse database
   projection:
@@ -1751,6 +1821,7 @@ africa:
   area_extent:
     lower_left_xy: [-4458000.0, -4795000.0]
     upper_right_xy: [3891000.0, 4480000.0]
+
 africa_10km:
   description: Africa - Global 1km USGS Landuse database
   projection:
@@ -1765,7 +1836,8 @@ africa_10km:
   area_extent:
     lower_left_xy: [-4458000.0, -4795000.0]
     upper_right_xy: [3891000.0, 4480000.0]
-southamerica:
+
+southamerica_laea:
   description: South America - Global 1km USGS Landuse database
   projection:
     proj: laea
@@ -1779,6 +1851,7 @@ southamerica:
   area_extent:
     lower_left_xy: [-3000000.0, -4899000.0]
     upper_right_xy: [2999000.0, 3100000.0]
+
 southamerica_10km:
   description: South America - Global 1km USGS Landuse database
   projection:
@@ -1793,6 +1866,7 @@ southamerica_10km:
   area_extent:
     lower_left_xy: [-3000000.0, -4899000.0]
     upper_right_xy: [2999000.0, 3100000.0]
+
 northamerica:
   description: North America - Global 1km USGS Landuse database
   projection:
@@ -1807,6 +1881,7 @@ northamerica:
   area_extent:
     lower_left_xy: [-4487000.0, -4515000.0]
     upper_right_xy: [4735000.0, 4480000.0]
+
 northamerica_10km:
   description: North America - Global 1km USGS Landuse database
   projection:
@@ -1821,6 +1896,7 @@ northamerica_10km:
   area_extent:
     lower_left_xy: [-4487000.0, -4515000.0]
     upper_right_xy: [4735000.0, 4480000.0]
+
 romania:
   description: Romania - 3km
   projection:
@@ -1835,6 +1911,7 @@ romania:
   area_extent:
     lower_left_xy: [-2226837.662574135, -1684219.2829063328]
     upper_right_xy: [2299196.337425865, 881436.7170936672]
+
 stere_asia_test:
   description: stere
   projection:
@@ -1847,6 +1924,7 @@ stere_asia_test:
   area_extent:
     lower_left_xy: [-3589072.840299738, -3568228.07278016]
     upper_right_xy: [3611014.256314698, 3594111.7022882444]
+
 bocheng_test:
   description: stere
   projection:
@@ -1859,6 +1937,7 @@ bocheng_test:
   area_extent:
     lower_left_xy: [-3589072.840299738, -3568228.07278016]
     upper_right_xy: [3611014.256314698, 3594111.7022882444]
+
 nsper_swe:
   description: nsper_swe
   projection:
@@ -1873,6 +1952,7 @@ nsper_swe:
   area_extent:
     lower_left_xy: [-5000000.0, -5000000.0]
     upper_right_xy: [5000000.0, 5000000.0]
+
 new_bsea250:
   description: new_bsea250
   projection:
@@ -1886,6 +1966,7 @@ new_bsea250:
   area_extent:
     lower_left_xy: [-638072.2772287376, -680339.8397175331]
     upper_right_xy: [638072.277228737, 757253.9342263378]
+
 scanice:
   description: Scandinavia and Iceland
   projection:
@@ -1900,6 +1981,7 @@ scanice:
   area_extent:
     lower_left_xy: [-1920000.0, -1536000.0]
     upper_right_xy: [1920000.0, 1536000.0]
+
 baws250:
   description: BAWS, 250m resolution
   projection:
@@ -1914,6 +1996,7 @@ baws250:
   area_extent:
     lower_left_xy: [-475617.0, 5324430.0]
     upper_right_xy: [924383.0, 6724430.0]
+
 moll:
   description: moll
   projection:
@@ -1927,6 +2010,7 @@ moll:
   area_extent:
     lower_left_xy: [-18040095.696147293, -9020047.848073646]
     upper_right_xy: [18040095.696147293, 9020047.848073646]
+
 robinson:
   description: robinson
   projection:
@@ -1960,6 +2044,7 @@ met07globe:  # obsolete platform number
   area_extent:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
+
 met09globe:  # obsolete platform number
   description: Cropped disk MSG image 0 degrees
   projection:
@@ -1974,6 +2059,7 @@ met09globe:  # obsolete platform number
   area_extent:
     lower_left_xy: [-5432229.931711678, -5429229.528545862]
     upper_right_xy: [5429229.528545862, 5432229.931711678]
+
 met09globeFull:  # superseded by msg_seviri_fes_3km
   description: Full disk MSG image 0 degrees
   projection:
@@ -1988,6 +2074,7 @@ met09globeFull:  # superseded by msg_seviri_fes_3km
   area_extent:
     lower_left_xy: [-5570248.477339261, -5567248.074173444]
     upper_right_xy: [5567248.074173444, 5570248.477339261]
+
 seviri_0deg:  # superseded by msg_seviri_fes_3km
   description: Full disk MSG image 0 degrees
   projection:
@@ -2002,6 +2089,7 @@ seviri_0deg:  # superseded by msg_seviri_fes_3km
   area_extent:
     lower_left_xy: [-5570248.686685662, -5567248.28340708]
     upper_right_xy: [5567248.28340708, 5570248.686685662]
+
 seviri_iodc:  # superseded by msg_seviri_iodc_3km
   description: Full disk MSG image 41.5 degrees
   projection:
@@ -2016,6 +2104,7 @@ seviri_iodc:  # superseded by msg_seviri_iodc_3km
   area_extent:
     lower_left_xy: [-5570248.686685662, -5567248.28340708]
     upper_right_xy: [5567248.28340708, 5570248.686685662]
+
 msg_resample_area:
   description: Full disk MSG image 20.75 degrees
   projection:

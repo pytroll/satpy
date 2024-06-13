@@ -14,10 +14,11 @@
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 """Tests for the angles in modifiers."""
+
 import contextlib
+import datetime as dt
 import warnings
 from copy import deepcopy
-from datetime import datetime, timedelta
 from glob import glob
 from typing import Optional, Union
 from unittest import mock
@@ -74,7 +75,7 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
         "satellite_nominal_longitude": 10.0,
         "satellite_nominal_latitude": 0.0,
     }
-    stime = datetime(2020, 1, 1, 12, 0, 0)
+    stime = dt.datetime(2020, 1, 1, 12, 0, 0)
     data = da.zeros(shape, chunks=chunks)
     vis = xr.DataArray(data,
                        dims=dims,
@@ -113,7 +114,7 @@ def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
     new_data = orig_data.copy()
     old_lon = new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
     new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + lon_offset
-    new_data.attrs["start_time"] = new_data.attrs["start_time"] + timedelta(hours=36)
+    new_data.attrs["start_time"] = new_data.attrs["start_time"] + dt.timedelta(hours=36)
     return new_data
 
 
@@ -372,15 +373,13 @@ class TestAngleGeneration:
 
     def test_solazi_correction(self):
         """Test that solar azimuth angles are corrected into the right range."""
-        from datetime import datetime
-
         from satpy.modifiers.angles import _get_sun_azimuth_ndarray
 
         lats = np.array([-80, 40, 0, 40, 80])
         lons = np.array([-80, 40, 0, 40, 80])
 
-        dt = datetime(2022, 1, 5, 12, 50, 0)
+        date = dt.datetime(2022, 1, 5, 12, 50, 0)
 
-        azi = _get_sun_azimuth_ndarray(lats, lons, dt)
+        azi = _get_sun_azimuth_ndarray(lats, lons, date)
 
         assert np.all(azi > 0)

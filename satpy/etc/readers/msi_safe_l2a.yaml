@@ -1,0 +1,345 @@
+reader:
+  name: msi_safe_l2a
+  short_name: MSI SAFE L2A
+  long_name: Sentinel-2 A and B MSI L2A data in SAFE format
+  description: SAFE Reader for MSI L2A data (Sentinel-2)
+  status: Nominal
+  supports_fsspec: false
+  sensors: [msi]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  data_identification_keys:
+    name:
+      required: true
+    wavelength:
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+        - reflectance
+        - radiance
+        - counts
+        - aerosol_thickness
+        - water_vapor
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+file_types:
+  l2a_safe_granule_10m:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R10m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_10m.jp2']
+        requires: [l2a_safe_metadata, l2a_safe_tile_metadata]
+  l2a_safe_granule_20m:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R20m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_20m.jp2']
+        requires: [l2a_safe_metadata, l2a_safe_tile_metadata]
+  l2a_safe_granule_60m:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/R60m/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}_60m.jp2']
+        requires: [l2a_safe_metadata, l2a_safe_tile_metadata]
+  l2a_safe_tile_metadata:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSITileMDXML
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L2A_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
+  l2a_safe_metadata:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL2A.xml']
+
+datasets:
+  B01:
+    name: B01
+    sensor: msi
+    wavelength: [0.415, 0.443, 0.470]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B02:
+    name: B02
+    sensor: msi
+    wavelength: [0.440, 0.490, 0.540]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B03:
+    name: B03
+    sensor: msi
+    wavelength: [0.540, 0.560, 0.580]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B04:
+    name: B04
+    sensor: msi
+    wavelength: [0.645, 0.665, 0.685]
+    modifiers: [esa_sunz_corrected, esa_rayleigh_corrected]
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B05:
+    name: B05
+    sensor: msi
+    wavelength: [0.695, 0.705, 0.715]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B06:
+    name: B06
+    sensor: msi
+    wavelength: [0.731, 0.740, 0.749]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B07:
+    name: B07
+    sensor: msi
+    wavelength: [0.764, 0.783, 0.802]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B08:
+    name: B08
+    sensor: msi
+    wavelength: [0.780, 0.842, 0.905]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B8A:
+    name: B8A
+    sensor: msi
+    wavelength: [0.855, 0.865, 0.875]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B09:
+    name: B09
+    sensor: msi
+    wavelength: [0.935, 0.945, 0.955]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B11:
+    name: B11
+    sensor: msi
+    wavelength: [1.565, 1.610, 1.655]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  B12:
+    name: B12
+    sensor: msi
+    wavelength: [2.100, 2.190, 2.280]
+    modifiers: [esa_sunz_corrected]
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      reflectance:
+        standard_name: boa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: boa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  AOT:
+    name: AOT
+    sensor: msi
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      aerosol_thickness:
+        standard_name: aerosol_optical_thickness
+        units: "1"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  WVP:
+    name: WVP
+    sensor: msi
+    resolution:
+      10: {file_type: l2a_safe_granule_10m}
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      water_vapor:
+        standard_name: water_vapor
+        units: cm
+      counts:
+        standard_name: counts
+        units: "1"
+
+  SCL:
+    name: SCL
+    sensor: msi
+    resolution:
+      20: {file_type: l2a_safe_granule_20m}
+      60: {file_type: l2a_safe_granule_60m}
+    calibration:
+      counts:
+        standard_name: counts
+        units: "1"
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Sun_Angles_Grid/Zenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Sun_Angles_Grid/Azimuth
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Azimuth
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    resolution: [10, 20, 60]
+    file_type: l2a_safe_tile_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Zenith

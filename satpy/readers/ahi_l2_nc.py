@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for Himawari L2 cloud products from NOAA's big data programme.
 
 For more information about the data, see: <https://registry.opendata.aws/noaa-himawari/>.
@@ -43,8 +44,8 @@ All the simple data products are supported here, but multidimensional products a
 supported. These include the CldHgtFlag and the CloudMaskPacked variables.
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import xarray as xr
 
@@ -82,14 +83,14 @@ class HIML2NCFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        dt = self.nc.attrs["time_coverage_start"]
-        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
+        date_str = self.nc.attrs["time_coverage_start"]
+        return dt.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_time(self):
         """End timestamp of the dataset."""
-        dt = self.nc.attrs["time_coverage_end"]
-        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
+        date_str = self.nc.attrs["time_coverage_end"]
+        return dt.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
 
     def get_dataset(self, key, info):
         """Load a dataset."""

@@ -17,10 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
+import datetime as dt
 import os
 import tempfile
 import warnings
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -74,8 +74,8 @@ class TestCFWriter:
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
@@ -90,8 +90,8 @@ class TestCFWriter:
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         coords = {
             "x": np.arange(3),
             "y": np.arange(1),
@@ -162,8 +162,8 @@ class TestCFWriter:
         """Test ancillary_variables cited each other."""
         from satpy.tests.utils import make_dataid
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         da = xr.DataArray([1, 2, 3],
                           attrs=dict(start_time=start_time,
                           end_time=end_time,
@@ -180,8 +180,8 @@ class TestCFWriter:
 
     def test_groups(self):
         """Test creating a file with groups."""
-        tstart = datetime(2019, 4, 1, 12, 0)
-        tend = datetime(2019, 4, 1, 12, 15)
+        tstart = dt.datetime(2019, 4, 1, 12, 0)
+        tend = dt.datetime(2019, 4, 1, 12, 15)
 
         data_visir = [[1, 2], [3, 4]]
         y_visir = [1, 2]
@@ -238,8 +238,8 @@ class TestCFWriter:
     def test_single_time_value(self):
         """Test setting a single time value."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
@@ -272,8 +272,8 @@ class TestCFWriter:
     def test_bounds(self):
         """Test setting time bounds."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y", "time"],
@@ -307,10 +307,10 @@ class TestCFWriter:
     def test_bounds_minimum(self):
         """Test minimum bounds."""
         scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
-        end_timeA = datetime(2018, 5, 30, 10, 20)
-        start_timeB = datetime(2018, 5, 30, 10, 3)
-        end_timeB = datetime(2018, 5, 30, 10, 15)  # expected to be used
+        start_timeA = dt.datetime(2018, 5, 30, 10, 0)  # expected to be used
+        end_timeA = dt.datetime(2018, 5, 30, 10, 20)
+        start_timeB = dt.datetime(2018, 5, 30, 10, 3)
+        end_timeB = dt.datetime(2018, 5, 30, 10, 15)  # expected to be used
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
@@ -333,8 +333,8 @@ class TestCFWriter:
     def test_bounds_missing_time_info(self):
         """Test time bounds generation in case of missing time."""
         scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0)
-        end_timeA = datetime(2018, 5, 30, 10, 15)
+        start_timeA = dt.datetime(2018, 5, 30, 10, 0)
+        end_timeA = dt.datetime(2018, 5, 30, 10, 15)
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
@@ -355,8 +355,8 @@ class TestCFWriter:
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
@@ -372,8 +372,8 @@ class TestCFWriter:
     def test_header_attrs(self):
         """Check global attributes are set."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
@@ -423,8 +423,8 @@ class TestCFWriter:
     def test_global_attr_default_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([[1, 2, 3]],
                                          dims=("y", "x"),
                                          attrs=dict(start_time=start_time,
@@ -439,8 +439,8 @@ class TestCFWriter:
     def test_global_attr_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([[1, 2, 3]],
                                          dims=("y", "x"),
                                          attrs=dict(start_time=start_time,
@@ -465,8 +465,8 @@ class TestNetcdfEncodingKwargs:
         """Create a fake scene."""
         scn = Scene()
         attrs = {
-            "start_time": datetime(2018, 5, 30, 10, 0),
-            "end_time": datetime(2018, 5, 30, 10, 15)
+            "start_time": dt.datetime(2018, 5, 30, 10, 0),
+            "end_time": dt.datetime(2018, 5, 30, 10, 15)
         }
         scn["test-array"] = xr.DataArray([1., 2, 3], attrs=attrs)
         return scn

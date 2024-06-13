@@ -4,7 +4,7 @@ reader:
     long_name: Generic Images e.g. GeoTIFF
     description: generic image reader
     status: Nominal
-    supports_fsspec: false
+    supports_fsspec: true
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [images]
     default_channels: [image]

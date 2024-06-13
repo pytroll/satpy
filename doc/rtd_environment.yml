@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.10
   - pip
-  - appdirs
+  - platformdirs
   - dask
   - dask-image
   - defusedxml
@@ -18,7 +18,6 @@ dependencies:
   - pooch
   - pyresample
   - pytest
-  - pytest-lazy-fixture
   - python-eccodes
   - python-geotiepoints
   - rasterio
@@ -32,6 +31,8 @@ dependencies:
   - xarray
   - zarr
   - xarray-datatree
+  - cartopy
   - pip:
     - graphviz
+    - pytest-lazy-fixtures
     - ..  # relative path to the satpy project

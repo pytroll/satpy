@@ -13,8 +13,8 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 """Tests for the CREFL ReflectanceCorrector modifier."""
+import datetime as dt
 from contextlib import contextmanager
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -82,8 +82,8 @@ def _make_viirs_xarray(data, area, name, standard_name, wavelength=None, units="
                             "resolution": 371, "name": name,
                             "standard_name": standard_name, "platform_name": "Suomi-NPP",
                             "polarization": None, "sensor": "viirs", "units": units,
-                            "start_time": datetime(2012, 2, 25, 18, 1, 24, 570942),
-                            "end_time": datetime(2012, 2, 25, 18, 11, 21, 175760), "area": area,
+                            "start_time": dt.datetime(2012, 2, 25, 18, 1, 24, 570942),
+                            "end_time": dt.datetime(2012, 2, 25, 18, 11, 21, 175760), "area": area,
                             "ancillary_variables": []
                         })
 
@@ -259,8 +259,8 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs["platform_name"] == "Suomi-NPP"
         assert res.attrs["sensor"] == "viirs"
         assert res.attrs["units"] == "%"
-        assert res.attrs["start_time"] == datetime(2012, 2, 25, 18, 1, 24, 570942)
-        assert res.attrs["end_time"] == datetime(2012, 2, 25, 18, 11, 21, 175760)
+        assert res.attrs["start_time"] == dt.datetime(2012, 2, 25, 18, 1, 24, 570942)
+        assert res.attrs["end_time"] == dt.datetime(2012, 2, 25, 18, 11, 21, 175760)
         assert res.attrs["area"] == area
         assert res.attrs["ancillary_variables"] == []
         data = res.values
@@ -304,8 +304,8 @@ class TestReflectanceCorrectorModifier:
                                     "calibration": calibration, "resolution": resolution,
                                     "name": name, "coordinates": ["longitude", "latitude"],
                                     "platform_name": "EOS-Aqua", "polarization": None, "sensor": "modis",
-                                    "units": "%", "start_time": datetime(2012, 8, 13, 18, 46, 1, 439838),
-                                    "end_time": datetime(2012, 8, 13, 18, 57, 47, 746296), "area": area,
+                                    "units": "%", "start_time": dt.datetime(2012, 8, 13, 18, 46, 1, 439838),
+                                    "end_time": dt.datetime(2012, 8, 13, 18, 57, 47, 746296), "area": area,
                                     "ancillary_variables": []
                                 })
 
@@ -327,8 +327,8 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs["platform_name"] == "EOS-Aqua"
         assert res.attrs["sensor"] == "modis"
         assert res.attrs["units"] == "%"
-        assert res.attrs["start_time"] == datetime(2012, 8, 13, 18, 46, 1, 439838)
-        assert res.attrs["end_time"] == datetime(2012, 8, 13, 18, 57, 47, 746296)
+        assert res.attrs["start_time"] == dt.datetime(2012, 8, 13, 18, 46, 1, 439838)
+        assert res.attrs["end_time"] == dt.datetime(2012, 8, 13, 18, 57, 47, 746296)
         assert res.attrs["area"] == area
         assert res.attrs["ancillary_variables"] == []
         data = res.values
