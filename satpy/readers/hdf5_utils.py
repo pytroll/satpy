@@ -17,7 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading hdf5-based files."""
 
+import hashlib
 import logging
+import os
 
 import dask.array as da
 import h5py
@@ -102,7 +104,7 @@ class HDF5FileHandler(BaseFileHandler):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             f_obj = open_file_or_filename(self.filename)
             dset = h5py.File(f_obj, "r")[key]
-            dset_data = da.from_array(dset, chunks=CHUNK_SIZE)
+            dset_data = from_h5_array(dset)
             attrs = self._attrs_cache.get(key, dset.attrs)
             if dset.ndim == 2:
                 return xr.DataArray(dset_data, dims=["y", "x"], attrs=attrs)
@@ -120,3 +122,11 @@ class HDF5FileHandler(BaseFileHandler):
             return self[item]
         else:
             return default
+
+
+def from_h5_array(h5dset):
+    """Create a dask array from an h5py dataset, ensuring uniqueness of the dask array name."""
+    name_str = os.fspath(h5dset.file.filename) + "-" + h5dset.name
+    name = hashlib.md5(name_str.encode(), usedforsecurity=False).hexdigest()
+    dset_data = da.from_array(h5dset, chunks=CHUNK_SIZE, name=name)
+    return dset_data
