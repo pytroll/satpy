@@ -409,7 +409,7 @@ def create_colormap(palette, img=None):  # noqa: D417
     Colormaps can be loaded from lists of colors provided by the ``colors``
     key in the provided dictionary. Each element in the list represents a
     single color to be mapped to and can be 3 (RGB) or 4 (RGBA) elements long.
-    By default the value or control point for a color is determined by the
+    By default, the value or control point for a color is determined by the
     index in the list (0, 1, 2, ...) divided by the total number of colors
     to produce a number between 0 and 1. This can be overridden by providing a
     ``values`` key in the provided dictionary. See the "Set Range" section
@@ -479,8 +479,24 @@ def create_colormap(palette, img=None):  # noqa: D417
     if "min_value" in palette and "max_value" in palette:
         cmap.set_range(palette["min_value"], palette["max_value"])
     elif "min_value" in palette or "max_value" in palette:
-        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither)")
+        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither).")
 
+    if "min_alpha" in palette and "max_alpha" in palette:
+        cmap = set_alpha_range(cmap, palette["min_alpha"], palette["max_alpha"], color_scale)
+    elif "min_alpha" in palette or "max_alpha" in palette:
+        raise ValueError("Both 'min_alpha' and 'max_alpha' must be specified (or neither).")
+
+    return cmap
+
+
+def set_alpha_range(cmap, min_alpha, max_alpha, color_scale):
+    """Set the alpha channel of a colormap to be between min_alpha and max_alpha in linear steps.
+
+    If the input colormap does not have an alpha channel, it will be added to it."""
+    cmap = cmap.to_rgba()
+    cmap.colors[:, 3] = np.linspace(min_alpha / color_scale,
+                                    max_alpha / color_scale,
+                                    cmap.colors.shape[0])
     return cmap
 
 
