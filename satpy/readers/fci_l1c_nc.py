@@ -222,7 +222,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def rc_period_min(self):
         """Get nominal repeat cycle duration.
 
-        As RSS is not yet implemeted and error will be raised if RSS are to be read
+        As RSS is not yet implemented an error will be raised if RSS are tried to be read.
         """
         if self.filename_info["coverage"] not in ["FD","AF"]:
             raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
