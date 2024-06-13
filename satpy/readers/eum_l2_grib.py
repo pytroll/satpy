@@ -22,6 +22,7 @@ References:
     https://navigator.eumetsat.int/
 """
 
+import datetime as dt
 import logging
 
 import dask.array as da
@@ -32,7 +33,9 @@ from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.fci_base import calculate_area_extent as fci_calculate_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import PLATFORM_DICT, REPEAT_CYCLE_DURATION, REPEAT_CYCLE_DURATION_RSS
+from satpy.readers.seviri_base import PLATFORM_DICT as SEVIRI_PLATFORM_DICT
+from satpy.readers.seviri_base import REPEAT_CYCLE_DURATION as SEVIRI_REPEAT_CYCLE_DURATION
+from satpy.readers.seviri_base import REPEAT_CYCLE_DURATION_RSS as SEVIRI_REPEAT_CYCLE_DURATION_RSS
 from satpy.readers.seviri_base import calculate_area_extent as seviri_calculate_area_extent
 from satpy.utils import get_legacy_chunk_size
 
@@ -60,7 +63,7 @@ class EUML2GribFileHandler(BaseFileHandler):
 
         if "seviri" in self.filetype_info["file_type"]:
             self.sensor = "seviri"
-            self.PLATFORM_NAME = PLATFORM_DICT[self.filename_info["spacecraft"]]
+            self.PLATFORM_NAME = SEVIRI_PLATFORM_DICT[self.filename_info["spacecraft"]]
         elif "fci" in self.filetype_info["file_type"]:
             self.sensor = "fci"
             self.PLATFORM_NAME = f"MTG-i{self.filename_info['spacecraft_id']}"
@@ -74,8 +77,11 @@ class EUML2GribFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Return the sensing end time."""
-        delta = REPEAT_CYCLE_DURATION_RSS if self._ssp_lon == 9.5 else REPEAT_CYCLE_DURATION
-        return self.start_time + delta
+        if self.sensor == "seviri":
+            delta = SEVIRI_REPEAT_CYCLE_DURATION_RSS if self._ssp_lon == 9.5 else SEVIRI_REPEAT_CYCLE_DURATION
+            return self.start_time + dt.timedelta(minutes=delta)
+        elif self.sensor == "fci":
+            return self.filename_info["end_time"]
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
@@ -282,13 +288,8 @@ class EUML2GribFileHandler(BaseFileHandler):
             "projection_longitude": self._ssp_lon
         }
 
-        attributes = {
-            "orbital_parameters": orbital_parameters,
-            "sensor": self.sensor
-        }
-
-
-        attributes["platform_name"] = self.PLATFORM_NAME
+        attributes = {"orbital_parameters": orbital_parameters, "sensor": self.sensor,
+                      "platform_name": self.PLATFORM_NAME}
 
         return attributes
 
