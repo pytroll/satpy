@@ -5,12 +5,13 @@
 reader:
   name: mviri_l1b_fiduceo_nc
   short_name: FIDUCEO MVIRI FCDR
-  long_name: >
-    Fundamental Climate Data Record of re-calibrated Level 1.5 Infrared, Water Vapour, and Visible radiances
-    from the Meteosat Visible Infra-Red Imager (MVIRI) instrument onboard the Meteosat First Generation satellites
+  long_name: MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
   description: >
-    Reader for FIDUCEO MVIRI FCDR data in netCDF format. For documentation see
-    http://doi.org/10.15770/EUM_SEC_CLM_0009 .
+    Reader for re-calibrated Level 1.5 Infrared, Water Vapour, and Visible radiances from
+    Meteosat Visible Infra-Red Imager (MVIRI) Fundamental Climate Data Record (FCDR) data.
+    For documentation see: http://doi.org/10.15770/EUM_SEC_CLM_0009 .
+  status: Beta
+  supports_fsspec: false
   sensors: [mviri]
   default_channels: [VIS, WV, IR]
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader

@@ -1,9 +1,11 @@
 reader:
   name: iasi_l2_so2_bufr
   short_name: IASI L2 SO2 BUFR
-  long_name: METOP IASI Level 2 SO2 BUFR
+  long_name: METOP IASI Level 2 SO2 in BUFR format
   description: >
     Reader for IASI L2 files
+  status: Beta
+  supports_fsspec: false
   sensors: [iasi]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   default_datasets:
@@ -284,10 +286,3 @@ datasets:
     coordinates: [longitude, latitude]
     key: '#1#brightnessTemperatureRealPart'
     fill_value: -1.e+100
-
-
-
-
-
-
-

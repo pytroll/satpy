@@ -4,9 +4,9 @@ modifiers:
   rayleigh_corrected:
     modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
-    - wavelength: 0.64
+    - name: B03
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
@@ -15,8 +15,9 @@ modifiers:
     - solar_zenith_angle
 
 composites:
-  green:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+
+  hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -28,8 +29,31 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
-  green_nocorr:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+  reproduced_green:
+    # JMA True Color Reproduction corrected green band.
+    compositor: !!python/name:satpy.composites.spectral.SpectralBlender
+    fractions: [0.6321, 0.2928, 0.0751]
+    prerequisites:
+    - name: B02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B03
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B04
+      modifiers: [sunz_corrected]
+    standard_name: none
+
+  reproduced_green_uncorr:
+    # JMA True Color Reproduction uncorrected green band.
+    compositor: !!python/name:satpy.composites.spectral.SpectralBlender
+    fractions: [0.6321, 0.2928, 0.0751]
+    prerequisites:
+    - name: B02
+    - name: B03
+    - name: B04
+    standard_name: none
+
+  hybrid_green_nocorr:
+    compositor: !!python/name:satpy.composites.spectral.HybridGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -38,6 +62,19 @@ composites:
     - wavelength: 0.51
     - wavelength: 0.85
     standard_name: toa_reflectance
+
+  ndvi_hybrid_green:
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
+    prerequisites:
+    - name: B02
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    - name: B03
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    - name: B04
+      modifiers: [sunz_corrected, sunz_reduced]
+    standard_name: toa_bidirectional_reflectance
 
   airmass:
     # PDF slides: https://www.eumetsat.int/website/home/News/ConferencesandEvents/DAT_2833302.html
@@ -155,13 +192,22 @@ composites:
     standard_name: fire_temperature
     name: fire_temperature_39refl
 
-
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.65
-    - 0.85
-    - 10.4
+    - name: B03
+      modifiers: [sunz_corrected]
+    - name: B04
+      modifiers: [sunz_corrected]
+    - name: B13
+    standard_name: overview
+
+  overview_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - B03
+      - B04
+      - B13
     standard_name: overview
 
   natural_color:
@@ -181,9 +227,20 @@ composites:
     prerequisites:
     - name: B03
       modifiers: [sunz_corrected, rayleigh_corrected]
-    - name: green
+    - name: hybrid_green
     - name: B01
       modifiers: [sunz_corrected, rayleigh_corrected]
+    high_resolution_band: red
+    standard_name: true_color
+
+  true_color_ndvi_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: B03
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    - name: ndvi_hybrid_green
+    - name: B01
+      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     high_resolution_band: red
     standard_name: true_color
 
@@ -200,10 +257,51 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - name: B03
-    - name: green_nocorr
+    - name: hybrid_green_nocorr
     - name: B01
     high_resolution_band: red
     standard_name: true_color
+
+  true_color_reproduction_night_ir:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    lim_low: 83.
+    lim_high: 88.
+    prerequisites:
+      - true_color_reproduction
+      - ir_cloud_day
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 73.
+    lim_high: 85.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: reproduced_green
+      - name: B01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+      - name: reproduced_green_uncorr
+      - name: B01
+    standard_name: true_color_reproduction_color_stretch
 
 #  true_color_reducedsize_land:
 #    compositor: !!python/name:satpy.composites.GenericCompositor
@@ -310,6 +408,15 @@ composites:
     prerequisites:
       - name: B14
 
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - cloudtop
+
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_with_night_ir
@@ -333,6 +440,14 @@ composites:
       - name: B15
       - name: B13
 
+  cloudtop:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: cloudtop
+    prerequisites:
+      - name: B07
+      - name: B14
+      - name: B15
+
   night_ir_with_background:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: night_ir_with_background
@@ -342,7 +457,61 @@ composites:
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background_hires
+    standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  # GeoColor
+  geo_color:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    description: >
+      GeoColor is a multi-layer blended RGB composite where the day-time part of the image is represented by true
+      color imagery and the nighttime part of the image by a three layer vertically blended stack composed of a
+      high-level cloud layer (single IR window channel), a low-level cloud layer (IR split window) and a static
+      surface terrain layer with city lights (NASA Black Marble).
+    references:
+      Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
+    lim_low: 78
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color_ndvi_green
+      - geo_color_night
+
+  # GeoColor Night-time
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    compositor: !!python/name:satpy.composites.HighCloudCompositor
+    prerequisites:
+      - name: B13
+
+  geo_color_low_clouds:
+    standard_name: geo_color_low_clouds
+    compositor: !!python/name:satpy.composites.LowCloudCompositor
+    values_water: 0
+    values_land: 100
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B13
+          - name: B07
+      - name: B13
+      - compositor: !!python/name:satpy.composites.StaticImageCompositor
+        standard_name: land_water_mask
+        url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
+        known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+
+  geo_color_background_with_low_clouds:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - _night_background_hires
+
+  geo_color_night:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_background_with_low_clouds

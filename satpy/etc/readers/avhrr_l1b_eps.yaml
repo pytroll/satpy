@@ -1,6 +1,10 @@
 reader:
     name: avhrr_l1b_eps
+    short_name: AVHRR l1b eps
+    long_name: Metop A to C AVHRR in native level 1 format
     description: EPS Reader for AVHRR
+    status: Nominal
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3]
     default_channels: [1, 2, 3a, 3b, 4, 5]
@@ -85,6 +89,7 @@ datasets:
             - latitude
         file_type: avhrr_eps
 
+
     latitude:
         name: latitude
         resolution: 1050
@@ -122,6 +127,13 @@ datasets:
 
     satellite_azimuth_angle:
         name: satellite_azimuth_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    cloud_flags:
+        name: cloud_flags
         sensor: avhrr-3
         resolution: 1050
         coordinates: [longitude, latitude]

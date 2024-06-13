@@ -17,15 +17,34 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface for BaseFileHandlers."""
 
-from abc import ABCMeta
-
 import numpy as np
+import xarray as xr
 from pyresample.geometry import SwathDefinition
 
 from satpy.dataset import combine_metadata
+from satpy.readers import open_file_or_filename
 
 
-class BaseFileHandler(metaclass=ABCMeta):
+def open_dataset(filename, *args, **kwargs):  # noqa: D417
+    """Open a file with xarray.
+
+    Args:
+       filename (Union[str, FSFile]):
+           The path to the file to open. Can be a `string` or
+           :class:`~satpy.readers.FSFile` object which allows using
+           `fsspec` or `s3fs` like files.
+
+    Returns:
+       xarray.Dataset:
+
+    Notes:
+       This can be used to enable readers to open remote files.
+    """
+    f_obj = open_file_or_filename(filename)
+    return xr.open_dataset(f_obj, *args, **kwargs)
+
+
+class BaseFileHandler:
     """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -85,59 +104,55 @@ class BaseFileHandler(metaclass=ABCMeta):
          - end_time
          - start_orbit
          - end_orbit
-         - satellite_altitude
-         - satellite_latitude
-         - satellite_longitude
          - orbital_parameters
+         - time_parameters
 
          Also, concatenate the areas.
 
         """
         combined_info = combine_metadata(*all_infos)
 
-        new_dict = self._combine(all_infos, min, 'start_time', 'start_orbit')
-        new_dict.update(self._combine(all_infos, max, 'end_time', 'end_orbit'))
-        new_dict.update(self._combine(all_infos, np.mean,
-                                      'satellite_longitude',
-                                      'satellite_latitude',
-                                      'satellite_altitude'))
-
-        # Average orbital parameters
-        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
-        if all(orb_params):
-            # Collect all available keys
-            orb_params_comb = {}
-            for d in orb_params:
-                orb_params_comb.update(d)
-
-            # Average known keys
-            keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
-                    'satellite_nominal_longitude', 'satellite_nominal_latitude',
-                    'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
-                    'nadir_longitude', 'nadir_latitude']
-            orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
-            new_dict['orbital_parameters'] = orb_params_comb
+        new_dict = self._combine(all_infos, min, "start_orbit")
+        new_dict.update(self._combine(all_infos, max, "end_orbit"))
+        new_dict.update(self._combine_orbital_parameters(all_infos))
 
         try:
-            area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
-                                   lats=np.ma.vstack([info['area'].lats for info in all_infos]))
-            area.name = '_'.join([info['area'].name for info in all_infos])
-            combined_info['area'] = area
+            area = SwathDefinition(lons=np.ma.vstack([info["area"].lons for info in all_infos]),
+                                   lats=np.ma.vstack([info["area"].lats for info in all_infos]))
+            area.name = "_".join([info["area"].name for info in all_infos])
+            combined_info["area"] = area
         except KeyError:
             pass
 
         new_dict.update(combined_info)
         return new_dict
 
+    def _combine_orbital_parameters(self, all_infos):
+        orb_params = [info.get("orbital_parameters", {}) for info in all_infos]
+        if not all(orb_params):
+            return {}
+        # Collect all available keys
+        orb_params_comb = {}
+        for d in orb_params:
+            orb_params_comb.update(d)
+
+        # Average known keys
+        keys = ["projection_longitude", "projection_latitude", "projection_altitude",
+                "satellite_nominal_longitude", "satellite_nominal_latitude",
+                "satellite_actual_longitude", "satellite_actual_latitude", "satellite_actual_altitude",
+                "nadir_longitude", "nadir_latitude"]
+        orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
+        return {"orbital_parameters": orb_params_comb}
+
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     @property
     def sensor_names(self):
@@ -160,7 +175,7 @@ class BaseFileHandler(metaclass=ABCMeta):
         """
         if not isinstance(ds_ftype, (list, tuple)):
             ds_ftype = [ds_ftype]
-        if self.filetype_info['file_type'] in ds_ftype:
+        if self.filetype_info["file_type"] in ds_ftype:
             return True
         return None
 
@@ -191,9 +206,9 @@ class BaseFileHandler(metaclass=ABCMeta):
         Args:
             configured_datasets (list): Series of (bool or None, dict) in the
                 same way as is returned by this method (see below). The bool
-                is whether or not the dataset is available from at least one
+                is whether the dataset is available from at least one
                 of the current file handlers. It can also be ``None`` if
-                no file handler knows before us knows how to handle it.
+                no file handler before us knows how to handle it.
                 The dictionary is existing dataset metadata. The dictionaries
                 are typically provided from a YAML configuration file and may
                 be modified, updated, or used as a "template" for additional
@@ -258,4 +273,4 @@ class BaseFileHandler(metaclass=ABCMeta):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
-            yield self.file_type_matches(ds_info['file_type']), ds_info
+            yield self.file_type_matches(ds_info["file_type"]), ds_info

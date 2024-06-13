@@ -22,6 +22,7 @@ import os
 import tempfile
 import unittest
 from contextlib import suppress
+from unittest import mock
 
 import numpy as np
 
@@ -35,26 +36,26 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._header['satid'][0] = 13
-        self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
+        self._header["satid"][0] = 13
+        self._header["radtempcnv"][0] = [[267194, -171669, 1002811],
                                          [930310,  -59084, 1001600],
                                          [828600,  -37854, 1001147]]
         # first 3b is off, 3a is on
-        self._header['inststat1'][0] = 0b1111011100000000
+        self._header["inststat1"][0] = 0b1111011100000000
         # switch 3a off at position 1
-        self._header['statchrecnb'][0] = 1
+        self._header["statchrecnb"][0] = 1
         # 3b is on, 3a is off
-        self._header['inststat2'][0] = 0b1111101100000000
+        self._header["inststat2"][0] = 0b1111101100000000
 
         self._data = np.zeros(3, dtype=_SCANTYPE)
-        self._data['scnlinyr'][:] = 2020
-        self._data['scnlindy'][:] = 8
-        self._data['scnlintime'][0] = 30195225
-        self._data['scnlintime'][1] = 30195389
-        self._data['scnlintime'][2] = 30195556
-        self._data['scnlinbit'][0] = -16383
-        self._data['scnlinbit'][1] = -16383
-        self._data['scnlinbit'][2] = -16384
+        self._data["scnlinyr"][:] = 2020
+        self._data["scnlindy"][:] = 8
+        self._data["scnlintime"][0] = 30195225
+        self._data["scnlintime"][1] = 30195389
+        self._data["scnlintime"][2] = 30195556
+        self._data["scnlinbit"][0] = -16383
+        self._data["scnlinbit"][1] = -16383
+        self._data["scnlinbit"][2] = -16384
         calvis = np.array([[[0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0],
                             [543489984, -21941870, 1592440064, -545027008, 499]],
@@ -64,8 +65,8 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                            [[0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0],
                             [257550000, -10449420, 1812019968, -785690304, 499]]])
-        self._data['calvis'][:] = calvis
-        self._data['calir'] = [[[[0, -2675, 2655265],
+        self._data["calvis"][:] = calvis
+        self._data["calir"] = [[[[0, -2675, 2655265],
                                  [0, 0, 0]],
                                 [[33605, -260786, 226818992],
                                  [0, 0, 0]],
@@ -83,13 +84,13 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                                  [0, 0, 0]],
                                 [[13871, -249531, 234652640],
                                  [0, 0, 0]]]]
-        self._data['hrpt'] = np.ones_like(self._data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
+        self._data["hrpt"] = np.ones_like(self._data["hrpt"]) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
 
-        self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
-                              'orbit_number': 6071}
-        self.filetype_info = {'file_reader': AVHRRAAPPL1BFile,
+        self.filename_info = {"platform_shortname": "metop03", "start_time": datetime.datetime(2020, 1, 8, 8, 19),
+                              "orbit_number": 6071}
+        self.filetype_info = {"file_reader": AVHRRAAPPL1BFile,
                               'file_patterns': ['hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b'],  # noqa
-                              'file_type': 'avhrr_aapp_l1b'}
+                              "file_type": "avhrr_aapp_l1b"}
 
     def test_read(self):
         """Test the reading."""
@@ -102,23 +103,23 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             info = {}
             mins = []
             maxs = []
-            for name in ['1', '2', '3a']:
-                key = make_dataid(name=name, calibration='reflectance')
+            for name in ["1", "2", "3a"]:
+                key = make_dataid(name=name, calibration="reflectance")
                 res = fh.get_dataset(key, info)
-                assert(res.min() == 0)
-                assert(res.max() >= 100)
+                assert res.min() == 0
+                assert res.max() >= 100
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
-                if name == '3a':
-                    assert(np.all(np.isnan(res[:2, :])))
+                if name == "3a":
+                    assert np.all(np.isnan(res[:2, :]))
 
-            for name in ['3b', '4', '5']:
-                key = make_dataid(name=name, calibration='reflectance')
+            for name in ["3b", "4", "5"]:
+                key = make_dataid(name=name, calibration="reflectance")
                 res = fh.get_dataset(key, info)
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
-                if name == '3b':
-                    assert(np.all(np.isnan(res[2:, :])))
+                if name == "3b":
+                    assert np.all(np.isnan(res[2:, :]))
 
             np.testing.assert_allclose(mins, [0., 0., 0., 204.10106939, 103.23477235, 106.42609758])
             np.testing.assert_allclose(maxs, [108.40391775, 107.68545158, 106.80061233,
@@ -133,9 +134,9 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dataid(name='solar_zenith_angle')
+            key = make_dataid(name="solar_zenith_angle")
             res = fh.get_dataset(key, info)
-            assert(np.all(res == 0))
+            assert np.all(res == 0)
 
     def test_navigation(self):
         """Test reading the lon and lats."""
@@ -146,12 +147,137 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dataid(name='longitude')
+            key = make_dataid(name="longitude")
             res = fh.get_dataset(key, info)
-            assert(np.all(res == 0))
-            key = make_dataid(name='latitude')
+            assert np.all(res == 0)
+            key = make_dataid(name="latitude")
             res = fh.get_dataset(key, info)
-            assert(np.all(res == 0))
+            assert np.all(res == 0)
+
+    def test_interpolation(self):
+        """Test reading the lon and lats."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            lons40km = np.array([
+                [-115.9773, -122.3054, -127.7482, -132.464, -136.5788, -140.1951,
+                 -143.3961, -146.2497, -148.8112, -151.1259, -153.2309, -155.1568,
+                 -156.9291, -158.5689, -160.0941, -161.5196, -162.8584, -164.1212,
+                 -165.3176, -166.4557, -167.5426, -168.5846, -169.5872, -170.5555,
+                 -171.4937, -172.406, -173.296, -174.1671, -175.0224, -175.865,
+                 -176.6976, -177.523, -178.3439, -179.1628, -179.9825, 179.1944,
+                 178.3651, 177.5267, 176.6761, 175.8098, 174.9242, 174.0149,
+                 173.0773, 172.1057, 171.0935, 170.0326, 168.9128, 167.7211,
+                 166.4397, 165.0436, 163.4946],
+                [-115.9639, -122.2967, -127.7441, -132.4639, -136.5824, -140.2018,
+                 -143.4055, -146.2614, -148.8249, -151.1413, -153.2478, -155.175,
+                 -156.9484, -158.5892, -160.1152, -161.5415, -162.8809, -164.1443,
+                 -165.3412, -166.4797, -167.567, -168.6094, -169.6123, -170.5808,
+                 -171.5192, -172.4317, -173.3219, -174.1931, -175.0486, -175.8913,
+                 -176.724, -177.5494, -178.3703, -179.1893, 179.991, 179.168,
+                 178.3388, 177.5005, 176.6499, 175.7838, 174.8983, 173.9892,
+                 173.0518, 172.0805, 171.0685, 170.0079, 168.8885, 167.6972,
+                 166.4164, 165.0209, 163.4726],
+                [-115.9504, -122.288, -127.7399, -132.4639, -136.5859, -140.2084,
+                 -143.4148, -146.2731, -148.8386, -151.1567, -153.2647, -155.1932,
+                 -156.9677, -158.6095, -160.1363, -161.5634, -162.9034, -164.1674,
+                 -165.3648, -166.5038, -167.5915, -168.6341, -169.6374, -170.6061,
+                 -171.5448, -172.4575, -173.3478, -174.2192, -175.0748, -175.9176,
+                 -176.7503, -177.5758, -178.3968, -179.2157, 179.9646, 179.1416,
+                 178.3124, 177.4742, 176.6238, 175.7577, 174.8724, 173.9635,
+                 173.0263, 172.0552, 171.0436, 169.9833, 168.8643, 167.6734,
+                 166.3931, 164.9982, 163.4507]])
+            lats40km = np.array([
+                [78.6613, 78.9471, 79.0802, 79.1163, 79.0889, 79.019, 78.9202,
+                 78.8016, 78.6695, 78.528, 78.38, 78.2276, 78.0721, 77.9145,
+                 77.7553, 77.5949, 77.4335, 77.2712, 77.1079, 76.9435, 76.7779,
+                 76.6108, 76.4419, 76.2708, 76.0973, 75.921, 75.7412, 75.5576,
+                 75.3696, 75.1764, 74.9776, 74.7721, 74.5592, 74.3379, 74.1069,
+                 73.865, 73.6106, 73.342, 73.057, 72.7531, 72.4273, 72.076,
+                 71.6945, 71.2773, 70.8171, 70.3046, 69.7272, 69.0676, 68.3014,
+                 67.3914, 66.2778],
+                [78.6703, 78.9565, 79.0897, 79.1259, 79.0985, 79.0286, 78.9297,
+                 78.8111, 78.6789, 78.5373, 78.3892, 78.2367, 78.0811, 77.9233,
+                 77.764, 77.6035, 77.442, 77.2796, 77.1162, 76.9518, 76.7861,
+                 76.6188, 76.4498, 76.2787, 76.1051, 75.9287, 75.7488, 75.5651,
+                 75.377, 75.1838, 74.9848, 74.7793, 74.5663, 74.3448, 74.1138,
+                 73.8718, 73.6173, 73.3486, 73.0635, 72.7595, 72.4336, 72.0821,
+                 71.7005, 71.2832, 70.8229, 70.3102, 69.7326, 69.0729, 68.3065,
+                 67.3963, 66.2825],
+                [78.6794, 78.9658, 79.0993, 79.1355, 79.1082, 79.0381, 78.9392,
+                 78.8205, 78.6882, 78.5465, 78.3984, 78.2458, 78.0901, 77.9322,
+                 77.7728, 77.6122, 77.4506, 77.2881, 77.1246, 76.96, 76.7942,
+                 76.6269, 76.4578, 76.2866, 76.1129, 75.9364, 75.7564, 75.5727,
+                 75.3844, 75.1911, 74.9921, 74.7864, 74.5734, 74.3518, 74.1207,
+                 73.8786, 73.624, 73.3552, 73.0699, 72.7658, 72.4398, 72.0882,
+                 71.7065, 71.2891, 70.8286, 70.3158, 69.7381, 69.0782, 68.3116,
+                 67.4012, 66.2872]])
+            fh._get_coordinates_in_degrees = mock.MagicMock()
+            fh._get_coordinates_in_degrees.return_value = (lons40km, lats40km)
+            (lons, lats) = fh._get_all_interpolated_coordinates()
+            lon_data = lons.compute()
+            assert (np.max(lon_data) <= 180)
+            # Not longitdes between -110, 110 in indata
+            assert np.all(np.abs(lon_data) > 110)
+
+    def test_interpolation_angles(self):
+        """Test reading the lon and lats."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+
+            sunz40km = np.array(
+                [[122.42, 121.72, 121.14, 120.63, 120.19, 119.79, 119.43, 119.1, 118.79, 118.51,
+                  118.24, 117.99, 117.76, 117.53, 117.31, 117.1, 116.9, 116.71, 116.52, 116.33,
+                  116.15, 115.97, 115.79, 115.61, 115.44, 115.26, 115.08, 114.91, 114.73, 114.55,
+                  114.36, 114.18, 113.98, 113.79, 113.58, 113.37, 113.15, 112.92, 112.68, 112.43,
+                  112.15, 111.87, 111.55, 111.22, 110.85, 110.44, 109.99, 109.47, 108.88, 108.18,
+                  107.33],
+                 [122.41, 121.71, 121.13, 120.62, 120.18, 119.78, 119.42, 119.09, 118.78, 118.5,
+                  118.24, 117.99, 117.75, 117.52, 117.31, 117.1, 116.9, 116.7, 116.51, 116.32,
+                  116.14, 115.96, 115.78, 115.6, 115.43, 115.25, 115.08, 114.9, 114.72, 114.54,
+                  114.36, 114.17, 113.98, 113.78, 113.57, 113.36, 113.14, 112.91, 112.67, 112.42,
+                  112.15, 111.86, 111.55, 111.21, 110.84, 110.43, 109.98, 109.46, 108.87, 108.17,
+                  107.32]])
+            satz40km = np.array(
+                [[6.623e+01, 6.281e+01, 5.960e+01, 5.655e+01, 5.360e+01, 5.075e+01, 4.797e+01,
+                  4.524e+01, 4.256e+01, 3.992e+01, 3.731e+01, 3.472e+01, 3.216e+01, 2.962e+01,
+                  2.710e+01, 2.460e+01, 2.210e+01, 1.962e+01, 1.714e+01, 1.467e+01, 1.221e+01,
+                  9.760e+00, 7.310e+00, 4.860e+00, 2.410e+00, 3.000e-02, 2.470e+00, 4.920e+00,
+                  7.370e+00, 9.820e+00, 1.227e+01, 1.474e+01, 1.720e+01, 1.968e+01, 2.216e+01,
+                  2.466e+01, 2.717e+01, 2.969e+01, 3.223e+01, 3.479e+01, 3.737e+01, 3.998e+01,
+                  4.263e+01, 4.531e+01, 4.804e+01, 5.082e+01, 5.368e+01, 5.662e+01, 5.969e+01,
+                  6.290e+01, 6.633e+01],
+                 [6.623e+01, 6.281e+01, 5.960e+01, 5.655e+01, 5.360e+01, 5.075e+01, 4.797e+01,
+                  4.524e+01, 4.256e+01, 3.992e+01, 3.731e+01, 3.472e+01, 3.216e+01, 2.962e+01,
+                  2.710e+01, 2.460e+01, 2.210e+01, 1.962e+01, 1.714e+01, 1.467e+01, 1.221e+01,
+                  9.760e+00, 7.310e+00, 4.860e+00, 2.410e+00, 3.000e-02, 2.470e+00, 4.920e+00,
+                  7.370e+00, 9.820e+00, 1.227e+01, 1.474e+01, 1.720e+01, 1.968e+01, 2.216e+01,
+                  2.466e+01, 2.717e+01, 2.969e+01, 3.223e+01, 3.479e+01, 3.737e+01, 3.998e+01,
+                  4.263e+01, 4.531e+01, 4.804e+01, 5.082e+01, 5.368e+01, 5.662e+01, 5.969e+01,
+                  6.290e+01, 6.633e+01]])
+            azidiff40km = np.array([
+                [56.9, 56.24, 55.71, 55.27, 54.9, 54.57, 54.29, 54.03, 53.8, 53.59,
+                 53.4, 53.22, 53.05, 52.89, 52.74, 52.6, 52.47, 52.34, 52.22, 52.1,
+                 51.98, 51.87, 51.76, 51.65, 51.55, 128.55, 128.65, 128.76, 128.86, 128.96,
+                 129.07, 129.17, 129.27, 129.38, 129.49, 129.6, 129.72, 129.83, 129.95, 130.08,
+                 130.21, 130.35, 130.5, 130.65, 130.81, 130.99, 131.18, 131.39, 131.63, 131.89,
+                 132.19],
+                [56.9, 56.24, 55.72, 55.28, 54.9, 54.58, 54.29, 54.03, 53.8, 53.59,
+                 53.4, 53.22, 53.05, 52.89, 52.75, 52.6, 52.47, 52.34, 52.22, 52.1,
+                 51.98, 51.87, 51.76, 51.65, 51.55, 128.55, 128.65, 128.75, 128.86, 128.96,
+                 129.06, 129.17, 129.27, 129.38, 129.49, 129.6, 129.71, 129.83, 129.95, 130.08,
+                 130.21, 130.35, 130.49, 130.65, 130.81, 130.99, 131.18, 131.39, 131.62, 131.89,
+                 132.19]])
+            fh._get_tiepoint_angles_in_degrees = mock.MagicMock()
+            fh._get_tiepoint_angles_in_degrees.return_value = (sunz40km, satz40km, azidiff40km)
+            (sunz, satz, azidiff) = fh._get_all_interpolated_angles()
+            assert (np.max(sunz) <= 123)
+            assert (np.max(satz) <= 70)
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):
@@ -160,25 +286,25 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._header['satid'][0] = 13
-        self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
+        self._header["satid"][0] = 13
+        self._header["radtempcnv"][0] = [[267194, -171669, 1002811],
                                          [930310, -59084, 1001600],
                                          [828600, -37854, 1001147]]
         # first 3a is off, 3b is on
-        self._header['inststat1'][0] = 0b1111011100000000
+        self._header["inststat1"][0] = 0b1111011100000000
         # valid for the whole pass
-        self._header['statchrecnb'][0] = 0
-        self._header['inststat2'][0] = 0b0
+        self._header["statchrecnb"][0] = 0
+        self._header["inststat2"][0] = 0b0
 
         self._data = np.zeros(3, dtype=_SCANTYPE)
-        self._data['scnlinyr'][:] = 2020
-        self._data['scnlindy'][:] = 8
-        self._data['scnlintime'][0] = 30195225
-        self._data['scnlintime'][1] = 30195389
-        self._data['scnlintime'][2] = 30195556
-        self._data['scnlinbit'][0] = -16383
-        self._data['scnlinbit'][1] = -16383
-        self._data['scnlinbit'][2] = -16383
+        self._data["scnlinyr"][:] = 2020
+        self._data["scnlindy"][:] = 8
+        self._data["scnlintime"][0] = 30195225
+        self._data["scnlintime"][1] = 30195389
+        self._data["scnlintime"][2] = 30195556
+        self._data["scnlinbit"][0] = -16383
+        self._data["scnlinbit"][1] = -16383
+        self._data["scnlinbit"][2] = -16383
         calvis = np.array([[[0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0],
                             [543489984, -21941870, 1592440064, -545027008, 499]],
@@ -188,8 +314,8 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
                            [[0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0],
                             [257550000, -10449420, 1812019968, -785690304, 499]]])
-        self._data['calvis'][:] = calvis
-        self._data['calir'] = [[[[0, -2675, 2655265],
+        self._data["calvis"][:] = calvis
+        self._data["calir"] = [[[[0, -2675, 2655265],
                                  [0, 0, 0]],
                                 [[33605, -260786, 226818992],
                                  [0, 0, 0]],
@@ -207,15 +333,15 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
                                  [0, 0, 0]],
                                 [[13871, -249531, 234652640],
                                  [0, 0, 0]]]]
-        self._data['hrpt'] = np.ones_like(self._data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
+        self._data["hrpt"] = np.ones_like(self._data["hrpt"]) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
 
-        self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
-                              'orbit_number': 6071}
-        self.filetype_info = {'file_reader': AVHRRAAPPL1BFile,
-                              'file_patterns': [
-                                  'hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b'],
+        self.filename_info = {"platform_shortname": "metop03", "start_time": datetime.datetime(2020, 1, 8, 8, 19),
+                              "orbit_number": 6071}
+        self.filetype_info = {"file_reader": AVHRRAAPPL1BFile,
+                              "file_patterns": [
+                                  "hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b"],
                               # noqa
-                              'file_type': 'avhrr_aapp_l1b'}
+                              "file_type": "avhrr_aapp_l1b"}
 
     def test_loading_missing_channels_returns_none(self):
         """Test that loading a missing channel raises a keyerror."""
@@ -226,7 +352,7 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dataid(name='3a', calibration='reflectance')
+            key = make_dataid(name="3a", calibration="reflectance")
             assert fh.get_dataset(key, info) is None
 
     def test_available_datasets_miss_3a(self):
@@ -237,16 +363,16 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
             self._data.tofile(tmpfile)
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
-            configured_datasets = [[None, {'name': '1'}],
-                                   [None, {'name': '2'}],
-                                   [None, {'name': '3a'}],
-                                   [None, {'name': '3b'}],
-                                   [None, {'name': '4'}],
-                                   [None, {'name': '5'}],
+            configured_datasets = [[None, {"name": "1"}],
+                                   [None, {"name": "2"}],
+                                   [None, {"name": "3a"}],
+                                   [None, {"name": "3b"}],
+                                   [None, {"name": "4"}],
+                                   [None, {"name": "5"}],
                                    ]
             available_datasets = fh.available_datasets(configured_datasets)
             for status, mda in available_datasets:
-                if mda['name'] == '3a':
+                if mda["name"] == "3a":
                     assert status is False
                 else:
                     assert status is True
@@ -271,9 +397,9 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
                           [[18214, -200932, 182150896], [0, 0, 0]],
                           [[6761, -200105, 192092496], [0, 0, 0]]], dtype="<i4")
 
-        hrpt = np.full((2048, 5), 1023, dtype='<i2')
+        hrpt = np.full((2048, 5), 1023, dtype="<i2")
 
-        data = np.array([(1, 2021, 86, 0, 51110551, -16383, b'', 0, 0, [0, 0, 0], 0, b'',
+        data = np.array([(1, 2021, 86, 0, 51110551, -16383, b"", 0, 0, [0, 0, 0], 0, b"",
 
                           calvis, calir,
                           [9, 6, 6], 0, 51110551, 120, 0, 5, 8479,
@@ -318,17 +444,17 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
                            [12810, 2070, 3865, 5420, 15160], [772, 3118, 12810, 7183, 3584],
                            [29, 15160, 772, 3118, 12810], [4116, 3868, 12032, 15160, 772],
                            [3118, 12810, 286, 3863, 12073]],
-                          [[b'\x15\x002/\x04\n', b'\x15\x002/\x04\n', b'\x03\x00\x03?\x033', b'\x03\x00\x03?\x033',
+                          [[b"\x15\x002/\x04\n", b"\x15\x002/\x04\n", b"\x03\x00\x03?\x033", b"\x03\x00\x03?\x033",
                             # cpu telemetry
-                            b'\x0c\x00\r%\x02\x0c'],
-                           [b'\x0c\x00\r%\x02\x0c', b'\x03\x00\x00\x0f', b'\x03\x00\x00\x0f', b'?\x00\x01?2\x11',
-                            b'?\x00\x01?2\x11']],
+                            b"\x0c\x00\r%\x02\x0c"],
+                           [b"\x0c\x00\r%\x02\x0c", b"\x03\x00\x00\x0f", b"\x03\x00\x00\x0f", b"?\x00\x01?2\x11",
+                            b"?\x00\x01?2\x11"]],
                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                            0, 0,
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                            0, 0,
                            0, 0, 0, 0, 0]),
-                         (2, 2021, 86, 0, 51110718, -16383, b'', 0, 0, [0, 0, 0], 0, b'',
+                         (2, 2021, 86, 0, 51110718, -16383, b"", 0, 0, [0, 0, 0], 0, b"",
                           calvis, calir,
                           [9, 6, 6], 0, 51110551, 120, 0, 5, 8479,
                           [[6033, 6670, 3758], [5930, 6322, 3805], [5845, 5997, 3845], [5773, 5689, 3881],
@@ -374,18 +500,18 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
                            [12810, 2070, 3865, 5420, 15160], [772, 3118, 12810, 7183, 3584],
                            [29, 15160, 772, 3118, 12810], [4116, 3868, 12032, 15160, 772],
                            [3118, 12810, 286, 3863, 12073]], [
-                              [b'\x15\x002/\x04\n', b'\x15\x002/\x04\n', b'\x03\x00\x03?\x033',
-                               b'\x03\x00\x03?\x033',
-                               b'\x0c\x00\r%\x02\x0c'],
-                              [b'\x0c\x00\r%\x02\x0c', b'\x03\x00\x00\x0f', b'\x03\x00\x00\x0f',
-                               b'?\x00\x01?2\x11',
-                               b'?\x00\x01?2\x11']],
+                              [b"\x15\x002/\x04\n", b"\x15\x002/\x04\n", b"\x03\x00\x03?\x033",
+                               b"\x03\x00\x03?\x033",
+                               b"\x0c\x00\r%\x02\x0c"],
+                              [b"\x0c\x00\r%\x02\x0c", b"\x03\x00\x00\x0f", b"\x03\x00\x00\x0f",
+                               b"?\x00\x01?2\x11",
+                               b"?\x00\x01?2\x11"]],
                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                            0, 0,
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                            0, 0,
                            0, 0, 0, 0, 0]),
-                         (3, 2021, 86, 0, 51110885, -16383, b'', 0, 0, [0, 0, 0], 0, b'',
+                         (3, 2021, 86, 0, 51110885, -16383, b"", 0, 0, [0, 0, 0], 0, b"",
                           calvis, calir,
                           [9, 6, 6], 0, 51110551, 120, 0, 5, 8479,
                           [[6033, 6670, 3757], [5929, 6322, 3804], [5844, 5997, 3845], [5772, 5689, 3880],
@@ -430,12 +556,12 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
                            [12810, 2070, 3865, 5420, 15160], [772, 3118, 12810, 7183, 3584],
                            [29, 15160, 772, 3118, 12810], [4116, 3868, 12032, 15160, 772],
                            [3118, 12810, 286, 3863, 12073]], [
-                              [b'\x15\x002/\x04\n', b'\x15\x002/\x04\n', b'\x03\x00\x03?\x033',
-                               b'\x03\x00\x03?\x033',
-                               b'\x0c\x00\r%\x02\x0c'],
-                              [b'\x0c\x00\r%\x02\x0c', b'\x03\x00\x00\x0f', b'\x03\x00\x00\x0f',
-                               b'?\x00\x01?2\x11',
-                               b'?\x00\x01?2\x11']],
+                              [b"\x15\x002/\x04\n", b"\x15\x002/\x04\n", b"\x03\x00\x03?\x033",
+                               b"\x03\x00\x03?\x033",
+                               b"\x0c\x00\r%\x02\x0c"],
+                              [b"\x0c\x00\r%\x02\x0c", b"\x03\x00\x00\x0f", b"\x03\x00\x00\x0f",
+                               b"?\x00\x01?2\x11",
+                               b"?\x00\x01?2\x11"]],
                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                            0, 0,
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -443,16 +569,16 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
                            0, 0, 0, 0, 0])],
                         dtype=_SCANTYPE)
         self.data = data
-        header = np.array([(b'SSE', b' ', 3, 2003, 164, 22016, 0, 1, b'', b'SSE.HRPT.NN.D21086.S1411.E1416.B8169898.WE',
-                            b'B8169898', 7, 0, 3, 4, 26018, 2021, 86, 51110551, 26018, 2021, 86, 51383551, 18, 290, b'',
-                            63232, b'', 0, 0, 1639, 1639, 0, 0, 1639, 0, 1640, 0, 0, 0, 0, 0, 0, 0, b'', b'', b'', b'',
+        header = np.array([(b"SSE", b" ", 3, 2003, 164, 22016, 0, 1, b"", b"SSE.HRPT.NN.D21086.S1411.E1416.B8169898.WE",
+                            b"B8169898", 7, 0, 3, 4, 26018, 2021, 86, 51110551, 26018, 2021, 86, 51383551, 18, 290, b"",
+                            63232, b"", 0, 0, 1639, 1639, 0, 0, 1639, 0, 1640, 0, 0, 0, 0, 0, 0, 0, b"", b"", b"", b"",
                             0, 2021, 50, 0, 0, 0, 0,
                             [[27660, 5090, 166, 0, 0, 0], [27668, 5101, 148, 0, 0, 0], [27657, 5117, 131, 0, 0, 0],
                              [27662, 5103, 148, 0, 0, 0]], [0, 0], [[1303, 79, 2460], [247, 135, 55]],
                             [[265980, -170388, 1003049], [928146, -43725, 1001395], [833253, -25342, 1000944]],
-                            [0, 0, 0], b'  GRS 80', 0, 1, b'', 120, 0, 5, 2021, 85, 20805634, 722582600, 150530,
+                            [0, 0, 0], b"  GRS 80", 0, 1, b"", 120, 0, 5, 2021, 85, 20805634, 722582600, 150530,
                             9900180, 15435470, 14974490, 31088821, 217697780, -758900, 687823610, 604477400, -387831420,
-                            -192264620, 997397, b'', [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0,
+                            -192264620, 997397, b"", [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0,
                             [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0,
                             [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0,
                             [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0, [0, 0, 0, 0, 0], 0,
@@ -462,7 +588,7 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
         self.header = header
 
         from tempfile import NamedTemporaryFile
-        with NamedTemporaryFile(mode='wb', delete=False) as fd:
+        with NamedTemporaryFile(mode="wb", delete=False) as fd:
             fd.write(header.tobytes())
             fd.write(np.zeros(22016-_HEADERTYPE.itemsize, dtype=np.uint8).tobytes())
             fd.write(data)
@@ -473,7 +599,7 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
         from satpy.readers.aapp_l1b import AVHRRAAPPL1BFile
         from satpy.tests.utils import make_dataid
         file_handler = AVHRRAAPPL1BFile(self.filename, dict(), None)
-        data = file_handler.get_dataset(make_dataid(name='2', calibration='reflectance'), dict())
+        data = file_handler.get_dataset(make_dataid(name="2", calibration="reflectance"), dict())
         np.testing.assert_array_less(100, data.values)
 
     def tearDown(self):

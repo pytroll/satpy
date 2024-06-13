@@ -1,0 +1,502 @@
+reader:
+  name: mws_l1b_nc
+  short_name: MWS L1B RAD NetCDF4
+  long_name: EPS-SG MWS L1B Radiance (NetCDF4)
+  description: Reader for the EPS-SG l1b MWS (Microwave Sounder) level-1 files in netCDF4.
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [mws,]
+  status: Beta
+  default_channels: []
+
+  data_identification_keys:
+    name:
+      required: true
+    frequency_quadruple_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyQuadrupleSideBand
+    frequency_double_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
+    frequency_range:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
+    resolution:
+    polarization:
+      enum:
+        - QH
+        - QV
+    calibration:
+      enum:
+        - brightness_temperature
+      transitive: true
+    modifiers:
+      required: true
+      default: []
+      type: !!python/name:satpy.dataset.ModifierTuple
+
+datasets:
+    '1':
+        name: '1'
+        frequency_range:
+           central: 23.8
+           bandwidth: 0.270
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '2':
+        name: '2'
+        frequency_range:
+           central: 31.4
+           bandwidth: 0.180
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '3':
+        name: '3'
+        frequency_range:
+           central: 50.3
+           bandwidth: 0.180
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '4':
+        name: '4'
+        frequency_range:
+           central: 52.8
+           bandwidth: 0.400
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '5':
+        name: '5'
+        frequency_double_sideband:
+           central: 53.246
+           side: 0.08
+           bandwidth: 0.140
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '6':
+        name: '6'
+        frequency_double_sideband:
+           central: 53.596
+           side: 0.115
+           bandwidth: 0.170
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '7':
+        name: '7'
+        frequency_double_sideband:
+           central: 53.948
+           side: 0.081
+           bandwidth: 0.142
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '8':
+        name: '8'
+        frequency_range:
+           central: 54.4
+           bandwidth: 0.400
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '9':
+        name: '9'
+        frequency_range:
+           central: 54.94
+           bandwidth: 0.400
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '10':
+        name: '10'
+        frequency_range:
+           central: 55.5
+           bandwidth: 0.330
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '11':
+        name: '11'
+        frequency_range:
+           central: 57.290344
+           bandwidth: 0.330
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '12':
+        #57.290344±0.217
+        name: '12'
+        frequency_double_sideband:
+           central: 57.290344
+           side: 0.217
+           bandwidth: 0.078
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '13':
+        #57.290344±0.3222±0.048
+        name: '13'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.048
+           bandwidth: 0.036
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '14':
+        #57.290344±0.3222±0.022
+        name: '14'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.022
+           bandwidth: 0.016
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '15':
+        #57.290344±0.3222±0.010
+        name: '15'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.010
+           bandwidth: 0.008
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '16':
+        #57.290344±0.3222±0.0045
+        name: '16'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.0045
+           bandwidth: 0.004
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '17':
+        name: '17'
+        frequency_range:
+           central: 89.0
+           bandwidth: 4.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '18':
+        name: '18'
+        # FIXME! Is this a souble side band or what? MWS-18; 164–167; 2 x 1350; QH
+        frequency_range:
+           central: 166.0
+           bandwidth: 2.700
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '19':
+        name: '19'
+        frequency_double_sideband:
+           central: 183.311
+           side: 7.0
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '20':
+        name: '20'
+        frequency_double_sideband:
+           central: 183.311
+           side: 4.5
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '21':
+        name: '21'
+        frequency_double_sideband:
+           central: 183.311
+           side: 3.0
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '22':
+        name: '22'
+        frequency_double_sideband:
+           central: 183.311
+           side: 1.8
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '23':
+        name: '23'
+        frequency_double_sideband:
+           central: 183.311
+           side: 1.0
+           bandwidth: 0.5
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+    '24':
+        name: '24'
+        frequency_range:
+           central: 229.
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
+
+# --- Coordinates ---
+
+    mws_lat:
+        name: mws_lat
+        resolution: 17000
+        file_type: mws_l1b_nc
+        file_key: data/navigation/mws_lat
+        standard_name: latitude
+        units: degrees_north
+
+    mws_lon:
+        name: mws_lon
+        resolution: 17000
+        file_type: mws_l1b_nc
+        file_key: data/navigation/mws_lat
+        standard_name: longitude
+        units: degrees_east
+
+# --- Navigation data ---
+
+    solar_azimuth:
+        name: solar_azimuth
+        standard_name: solar_azimuth_angle
+        file_type: mws_l1b_nc
+        file_key: data/navigation/mws_solar_azimuth_angle
+        coordinates:
+            - mws_lon
+            - mws_lat
+    solar_zenith:
+        name: solar_zenith
+        standard_name: solar_zenith_angle
+        file_type: mws_l1b_nc
+        file_key: data/navigation/mws_solar_zenith_angle
+        coordinates:
+            - mws_lon
+            - mws_lat
+    satellite_azimuth:
+        name: satellite_azimuth
+        standard_name: satellite_azimuth_angle
+        file_type: mws_l1b_nc
+        file_key: data/navigation/mws_satellite_azimuth_angle
+        coordinates:
+            - mws_lon
+            - mws_lat
+    satellite_zenith:
+        name: satellite_zenith
+        standard_name: satellite_zenith_angle
+        file_type: mws_l1b_nc
+        file_key: data/navigation/mws_satellite_zenith_angle
+        coordinates:
+            - mws_lon
+            - mws_lat
+
+
+file_types:
+    mws_l1b_nc:
+        # EPS-SG_MWS-1B-RAD.nc
+        # W_XX-EUMETSAT-Darmstadt,SAT,SGA1-MWS-1B-RAD_C_EUMT_20210609095009_G_D_20070912084321_20070912102225_T_N____.nc
+        file_reader: !!python/name:satpy.readers.mws_l1b.MWSL1BFile
+        file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{platform_shortname}-MWS-1B-RAD_C_EUMT_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_N____.nc']

@@ -35,7 +35,7 @@ locations:
 3. ``~/.satpy/satpy.yaml``
 4. ``<SATPY_CONFIG_PATH>/satpy.yaml`` (see :ref:`config_path_setting` below)
 
-The above ``user_config_dir`` is provided by the ``appdirs`` package and
+The above ``user_config_dir`` is provided by the ``platformdirs`` package and
 differs by operating system. Typical user config directories are:
 
 * Mac OSX: ``~/Library/Preferences/satpy``
@@ -90,7 +90,7 @@ Directory where any files cached by Satpy will be stored. This
 directory is not necessarily cleared out by Satpy, but is rarely used without
 explicitly being enabled by the user. This
 defaults to a different path depending on your operating system following
-the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+the `platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user cache dir".
 
 .. _config_cache_lonlats_setting:
@@ -106,7 +106,7 @@ Whether or not generated longitude and latitude coordinates should be cached
 to on-disk zarr arrays. Currently this only works in very specific cases.
 Mainly the lon/lats that are generated when computing sensor and solar zenith
 and azimuth angles used in various modifiers and compositors. This caching is
-only done for ``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
+only done for ``AreaDefinition``-based geolocation, not ``SwathDefinition``.
 Arrays are stored in ``cache_dir`` (see above).
 
 When setting this as an environment variable, this should be set with the
@@ -132,7 +132,7 @@ Cache Sensor Angles
 Whether or not generated sensor azimuth and sensor zenith angles should be
 cached to on-disk zarr arrays. These angles are primarily used in certain
 modifiers and compositors. This caching is only done for
-``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
+``AreaDefinition``-based geolocation, not ``SwathDefinition``.
 Arrays are stored in ``cache_dir`` (see above).
 
 This caching requires producing an estimate of the angles to avoid needing to
@@ -214,7 +214,7 @@ Data Directory
 Directory where any data Satpy needs to perform certain operations will be
 stored. This replaces the legacy ``SATPY_ANCPATH`` environment variable. This
 defaults to a different path depending on your operating system following the
-`appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+`platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user data dir".
 
 .. _download_aux_setting:
@@ -241,6 +241,52 @@ See :doc:`dev_guide/aux_data` for more information. If ``True`` then Satpy
 will download and cache any necessary data files to :ref:`data_dir_setting`
 when needed. If ``False`` then pre-downloaded files will be used, but any
 other files will not be downloaded or checked for validity.
+
+Sensor Angles Position Preference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_SENSOR_ANGLES_POSITION_PREFERENCE``
+* **YAML/Config Key**: ``sensor_angles_position_preference``
+* **Default**: "actual"
+
+Control which satellite position should be preferred when generating sensor
+azimuth and sensor zenith angles. This value is passed directly to the
+:func:`~satpy.utils.get_satpos` function. See the documentation for that
+function for more information on how the value will be used. This is used
+as part of the :func:`~satpy.modifiers.angles.get_angles` and
+:func:`~satpy.modifiers.angles.get_satellite_zenith_angle` functions which is
+used by multiple modifiers and composites including the default rayleigh
+correction.
+
+Clipping Negative Infrared Radiances
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_READERS__CLIP_NEGATIVE_RADIANCES``
+* **YAML/Config Key**: ``readers.clip_negative_radiances``
+* **Default**: False
+
+Whether to clip negative infrared radiances to the minimum allowable value before
+computing the brightness temperature.
+If ``clip_negative_radiances=False``, pixels with negative radiances will have
+``np.nan`` brightness temperatures.
+
+Clipping of negative radiances is currently implemented for the following readers:
+
+* ``abi_l1b``
+
+
+Temporary Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_TMP_DIR``
+* **YAML/Config Key**: ``tmp_dir``
+* **Default**: `tempfile.gettempdir()`_
+
+Directory where Satpy creates temporary files, for example decompressed
+input files. Default depends on the operating system.
+
+.. _tempfile.gettempdir(): https://docs.python.org/3/library/tempfile.html?highlight=gettempdir#tempfile.gettempdir
+
 
 .. _component_configuration:
 

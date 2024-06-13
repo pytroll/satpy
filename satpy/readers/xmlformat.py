@@ -19,9 +19,8 @@
 
 from __future__ import annotations
 
-from xml.etree.ElementTree import ElementTree
-
 import numpy as np
+from defusedxml.ElementTree import parse
 
 VARIABLES: dict[str, str] = {}
 
@@ -32,22 +31,22 @@ TYPEC = {"boolean": ">i1",
          "uinteger4": ">u4", }
 
 
-def process_delimiter(elt, ascii=False):
+def process_delimiter(elt, text=False):
     """Process a 'delimiter' tag."""
-    del elt, ascii
+    del elt, text
 
 
-def process_field(elt, ascii=False):
+def process_field(elt, text=False):
     """Process a 'field' tag."""
     # NOTE: if there is a variable defined in this field and it is different
     # from the default, we could change the value and restart.
 
     scale = np.uint8(1)
-    if elt.get("type") == "bitfield" and not ascii:
+    if elt.get("type") == "bitfield" and not text:
         current_type = ">u" + str(int(elt.get("length")) // 8)
         scale = np.dtype(current_type).type(1)
     elif (elt.get("length") is not None):
-        if ascii:
+        if text:
             add = 33
         else:
             add = 0
@@ -65,9 +64,9 @@ def process_field(elt, ascii=False):
     return ((elt.get("name"), current_type, scale))
 
 
-def process_array(elt, ascii=False):
+def process_array(elt, text=False):
     """Process an 'array' tag."""
-    del ascii
+    del text
     chld = list(elt)
     if len(chld) > 1:
         raise ValueError()
@@ -141,18 +140,17 @@ def to_scales(val):
 
 def parse_format(xml_file):
     """Parse the xml file to create types, scaling factor types, and scales."""
-    tree = ElementTree()
-    tree.parse(xml_file)
+    tree = parse(xml_file)
     for param in tree.find("parameters"):
         VARIABLES[param.get("name")] = param.get("value")
 
     types_scales = {}
 
     for prod in tree.find("product"):
-        ascii = (prod.tag in ["mphr", "sphr"])
+        text = (prod.tag in ["mphr", "sphr"])
         res = []
         for i in prod:
-            lres = CASES[i.tag](i, ascii)
+            lres = CASES[i.tag](i, text)
             if lres is not None:
                 res.append(lres)
         types_scales[(prod.tag, int(prod.get("subclass")))] = res
@@ -204,5 +202,5 @@ class XMLFormat(object):
         return _apply_scales(array, *self.translator[array.dtype])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

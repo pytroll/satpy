@@ -1,6 +1,10 @@
 reader:
-  description: NC Reader for OLCI data
   name: olci_l1b
+  short_name: OLCI Level 1b
+  long_name: Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
+  description: NC Reader for OLCI data
+  status: Nominal
+  supports_fsspec: true
   sensors: [olci]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

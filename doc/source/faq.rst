@@ -12,6 +12,39 @@ an issue on GitHub or talk to us on the Slack team or mailing list. See the
     :depth: 1
     :local:
 
+
+How can I speed up creation of composites that need resampling?
+------------------------------------------------------------------------
+
+Satpy performs some initial image generation on the fly, but for composites
+that need resampling (like the ``true_color`` composite for GOES/ABI) the data
+must be resampled to a common grid before the final image can be produced, as
+the input channels are at differing spatial resolutions. In such cases, you may
+see a substantial performance improvement by passing ``generate=False`` when you
+load your composite:
+
+.. code-block:: python
+
+    scn = Scene(filenames=filenames, reader='abi_l1b')
+    scn.load(['true_color'], generate=False)
+    scn_res = scn.resample(...)
+
+By default, ``generate=True`` which means that Satpy will create as many
+composites as it can with the available data. In some cases this could mean
+a lot of intermediate products (ex. rayleigh corrected data using dynamically
+generated angles for each band resolution) that will then need to be
+resampled.
+By setting ``generate=False``, Satpy will only load the necessary dependencies
+from the reader, but not attempt generating any composites or applying any
+modifiers. In these cases this can save a lot of time and memory as only one
+resolution of the input data have to be processed. Note that this option has
+no effect when only loading data directly from readers (ex. IR/visible bands
+directly from the files) and where no composites or modifiers are used. Also
+note that in cases where most of your composite
+inputs are already at the same resolution and you are only generating a limited
+number of composites, ``generate=False`` may actually hurt performance.
+
+
 Why is Satpy slow on my powerful machine?
 -----------------------------------------
 
@@ -43,16 +76,21 @@ Similarly, if you have many workers processing large chunks of data you may
 be using much more memory than you expect. If you limit the number of workers
 *and* the size of the data chunks being processed by each worker you can
 reduce the overall memory usage. Default chunk size can be configured in Satpy
-by setting the following environment variable:
+by using the following around your code:
 
-.. code-block:: bash
+.. code-block:: python
 
-    export PYTROLL_CHUNK_SIZE=2048
+    with dask.config.set("array.chunk-size": "32MiB"):
+      # your code here
 
-This could also be set inside python using ``os.environ``, but must be set
-**before** Satpy is imported. This value defaults to 4096, meaning each
-chunk of data will be 4096 rows by 4096 columns. In the future setting this
-value will change to be easier to set in python.
+For more information about chunk sizes in Satpy, please refer to the
+`Data Chunks` section in :doc:`overview`.
+
+.. note::
+
+    The PYTROLL_CHUNK_SIZE variable is pending deprecation, so the
+    above-mentioned dask configuration parameter should be used instead.
+
 
 Why multiple CPUs are used even with one worker?
 ------------------------------------------------
@@ -129,11 +167,11 @@ control the number of threads used during compression by specifying the
 to set this to at least the same number of dask workers you use. Do this by
 adding ``num_threads`` to your `save_dataset` or `save_datasets` call::
 
-    scn.save_datasets(base_dir='/tmp', tiled=True, num_threads=8)
+    scn.save_datasets(base_dir='/tmp', num_threads=8)
 
-Here we're also using the `tiled` option to store our data as "tiles" instead
+Satpy also stores our data as "tiles" instead
 of "stripes" which is another way to get more efficient compression of our
-GeoTIFF image.
+GeoTIFF image. You can disable this with ``tiled=False``.
 
 See the
 `GDAL GeoTIFF documentation <https://gdal.org/drivers/raster/gtiff.html#creation-options>`_

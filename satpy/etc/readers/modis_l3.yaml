@@ -1,0 +1,16 @@
+reader:
+  name: modis_l3
+  short_name: MODIS l3
+  long_name: MODIS Level 3 (mcd43) data in HDF-EOS format
+  description: MODIS HDF-EOS L3 Reader
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis]
+
+file_types:
+  modis_l3_cmg_hdf:
+    file_patterns:
+    - 'MCD43C{prod_type}.A{start_time:%Y%j}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D09CMG.A{start_time:%Y%j}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l3.ModisL3GriddedHDFFileHandler

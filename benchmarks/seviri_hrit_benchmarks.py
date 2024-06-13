@@ -41,15 +41,15 @@ class SEVIRIHRIT(GeoBenchmarks):
             from satpy.demo import download_seviri_hrit_20180228_1500
             download_seviri_hrit_20180228_1500()
         except ImportError:
-            assert len(get_filenames(self.subdir)) == 114
+            assert len(get_filenames(self.subdir)) == 114  # nosec
         download_rsr()
-        download_luts(aerosol_type='rayleigh_only')
+        download_luts(aerosol_type="rayleigh_only")
 
     def setup(self):
         """Set up the benchmarks."""
-        import satpy
+        import dask.config
         self.data_files = get_filenames(self.subdir)
-        satpy.CHUNK_SIZE = 2048
+        dask.config.set({"array.chunk-size": "32MiB"})
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""

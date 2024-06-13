@@ -18,9 +18,11 @@
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) Level 1B products reader.
 
 The ``vii_l1b_nc`` reader reads and calibrates EPS-SG VII L1b image data in netCDF format. The format is explained
-in the `EPS-SG VII Level 1B Product Format Specification`_.
+in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
 
-.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/media/44393
+This version is applicable for the vii test data V2 to be released in Jan 2022.
+
+.. _EPS-SG VII Level 1B Product Format Specification V4A: https://www.eumetsat.int/media/44393
 
 """
 
@@ -42,14 +44,14 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
         # Read the variables which are required for the calibration
-        self._bt_conversion_a = self['data/calibration_data/bt_conversion_a'].values
-        self._bt_conversion_b = self['data/calibration_data/bt_conversion_b'].values
-        self._channel_cw_thermal = self['data/calibration_data/channel_cw_thermal'].values
-        self._integrated_solar_irradiance = self['data/calibration_data/Band_averaged_solar_irradiance'].values
+        self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
+        self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
+        self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
+        self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
         # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
         # (the values in the product file are on tie points and in degrees,
         # therefore interpolation and conversion to radians are required)
-        solar_zenith_angle = self['data/measurement_data/solar_zenith']
+        solar_zenith_angle = self["data/measurement_data/solar_zenith"]
         solar_zenith_angle_on_pixels = self._perform_interpolation(solar_zenith_angle)
         solar_zenith_angle_on_pixels_radians = np.radians(solar_zenith_angle_on_pixels)
         self.angle_factor = 1.0 / (np.cos(solar_zenith_angle_on_pixels_radians))
@@ -65,28 +67,27 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             DataArray: array containing the calibrated values and all the original metadata.
 
         """
-        calibration_name = dataset_info['calibration']
-        if calibration_name == 'brightness_temperature':
+        calibration_name = dataset_info["calibration"]
+        if calibration_name == "brightness_temperature":
             # Extract the values of calibration coefficients for the current channel
-            chan_index = dataset_info['chan_thermal_index']
-            cw = self._channel_cw_thermal[chan_index] * 1e-3
+            chan_index = dataset_info["chan_thermal_index"]
+            cw = self._channel_cw_thermal[chan_index]
             a = self._bt_conversion_a[chan_index]
             b = self._bt_conversion_b[chan_index]
             # Perform the calibration
             calibrated_variable = self._calibrate_bt(variable, cw, a, b)
             calibrated_variable.attrs = variable.attrs
-        elif calibration_name == 'reflectance':
-            scale = 1/(dataset_info['wavelength'][2] - dataset_info['wavelength'][0])
+        elif calibration_name == "reflectance":
             # Extract the values of calibration coefficients for the current channel
-            chan_index = dataset_info['chan_solar_index']
-            isi = scale * self._integrated_solar_irradiance[chan_index]
+            chan_index = dataset_info["chan_solar_index"]
+            isi = self._integrated_solar_irradiance[chan_index]
             # Perform the calibration
-            calibrated_variable = self._calibrate_refl(variable, self.angle_factor, isi)
+            calibrated_variable = self._calibrate_refl(variable, self.angle_factor.data, isi)
             calibrated_variable.attrs = variable.attrs
-        elif calibration_name == 'radiance':
+        elif calibration_name == "radiance":
             calibrated_variable = variable
         else:
-            raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info['name']))
+            raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info["name"]))
 
         return calibrated_variable
 
@@ -107,7 +108,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             # based on the simplified formula using mean Earth radius
             variable += np.degrees(orthorect_data / MEAN_EARTH_RADIUS)
         except KeyError:
-            logger.warning('Required dataset %s for orthorectification not available, skipping', orthorect_data_name)
+            logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
         return variable
 
     @staticmethod
@@ -141,5 +142,5 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             numpy ndarray: array containing the calibrated reflectance values.
 
         """
-        refl_values = (np.pi / isi) * angle_factor * radiance
+        refl_values = (np.pi / isi) * angle_factor * radiance * 100.0
         return refl_values

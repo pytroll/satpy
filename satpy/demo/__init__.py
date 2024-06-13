@@ -50,7 +50,7 @@ To use these functions, do:
 
 """
 
-from .abi_l1b import get_hurricane_florence_abi  # noqa: F401
+from .abi_l1b import get_hurricane_florence_abi  # noqa: F401, I001
 from .abi_l1b import get_us_midlatitude_cyclone_abi  # noqa: F401
 from .ahi_hsd import download_typhoon_surigae_ahi  # noqa: F401
 from .fci import download_fci_test_data  # noqa: F401

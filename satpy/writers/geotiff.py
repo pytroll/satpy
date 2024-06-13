@@ -16,15 +16,20 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """GeoTIFF writer objects for creating GeoTIFF files from `DataArray` objects."""
+from __future__ import annotations
 
 import logging
+from typing import Any, Optional, Union
 
 import numpy as np
 
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
+from trollimage.colormap import Colormap
+from trollimage.xrimage import XRImage
 
+from satpy._compat import DTypeLike
 from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
@@ -53,6 +58,10 @@ class GeoTIFFWriter(ImageWriter):
         >>> scn.save_dataset(dataset_name, writer='geotiff',
         ...                  tags={'offset': 291.8, 'scale': -0.35})
 
+    Images are tiled by default. To create striped TIFF files ``tiled=False`` can be specified:
+
+        >>> scn.save_datasets(writer='geotiff', tiled=False)
+
     For performance tips on creating geotiffs quickly and making them smaller
     see the :ref:`faq`.
 
@@ -79,11 +88,29 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews",)
+                    "copy_src_overviews",
+                    # COG driver options (different from GTiff above)
+                    "blocksize",
+                    "resampling",
+                    "quality",
+                    "level",
+                    "overview_resampling",
+                    "warp_resampling",
+                    "overview_compress",
+                    "overview_quality",
+                    "overview_predictor",
+                    "tiling_scheme",
+                    "zoom_level_strategy",
+                    "target_srs",
+                    "res",
+                    "extent",
+                    "aligned_levels",
+                    "add_alpha",
+                    )
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         """Init the writer."""
-        super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
+        super().__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
         self.dtype = self.info.get("dtype") if dtype is None else dtype
         self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
@@ -104,22 +131,35 @@ class GeoTIFFWriter(ImageWriter):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
             kwargs)
-        for kw in ['dtype', 'tags']:
+        for kw in ["dtype", "tags"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
 
         return init_kwargs, kwargs
 
-    def save_image(self, img, filename=None, dtype=None, fill_value=None,
-                   compute=True, keep_palette=False, cmap=None, tags=None,
-                   overviews=None, overviews_minsize=256,
-                   overviews_resampling=None, include_scale_offset=False,
-                   scale_offset_tags=None, **kwargs):
+    def save_image(  # noqa: D417
+            self,
+            img: XRImage,
+            filename: Optional[str] = None,
+            compute: bool = True,
+            dtype: Optional[DTypeLike] = None,
+            fill_value: Optional[Union[int, float]] = None,
+            keep_palette: bool = False,
+            cmap: Optional[Colormap] = None,
+            tags: Optional[dict[str, Any]] = None,
+            overviews: Optional[list[int]] = None,
+            overviews_minsize: int = 256,
+            overviews_resampling: Optional[str] = None,
+            include_scale_offset: bool = False,
+            scale_offset_tags: Optional[tuple[str, str]] = None,
+            colormap_tag: Optional[str] = None,
+            driver: Optional[str] = None,
+            tiled: bool = True,
+            **kwargs
+    ):
         """Save the image to the given ``filename`` in geotiff_ format.
 
-        Note for faster output and reduced memory usage the ``rasterio``
-        library must be installed. This writer currently falls back to
-        using ``gdal`` directly, but that will be deprecated in the future.
+        Note this writer requires the ``rasterio`` library to be installed.
 
         Args:
             img (xarray.DataArray): Data to save to geotiff.
@@ -127,14 +167,6 @@ class GeoTIFFWriter(ImageWriter):
                 ``filename`` passed during writer creation. Unlike the
                 creation ``filename`` keyword argument, this filename does not
                 get formatted with data attributes.
-            dtype (numpy.dtype): Numpy data type to save the image as.
-                Defaults to 8-bit unsigned integer (``np.uint8``) or the data
-                type of the data to be saved if ``enhance=False``. If the
-                ``dtype`` argument is provided during writer creation then
-                that will be used as the default.
-            fill_value (int or float): Value to use where data values are
-                NaN/null. If this is specified in the writer configuration
-                file that value will be used as the default.
             compute (bool): Compute dask arrays and save the image
                 immediately. If ``False`` then the return value can be passed
                 to :func:`~satpy.writers.compute_writer_results` to do the
@@ -143,6 +175,14 @@ class GeoTIFFWriter(ImageWriter):
                 them multiple times. Defaults to ``True`` in the writer by
                 itself, but is typically passed as ``False`` by callers where
                 calculations can be combined.
+            dtype (DTypeLike): Numpy data type to save the image as.
+                Defaults to 8-bit unsigned integer (``np.uint8``) or the data
+                type of the data to be saved if ``enhance=False``. If the
+                ``dtype`` argument is provided during writer creation then
+                that will be used as the default.
+            fill_value (float or int): Value to use where data values are
+                NaN/null. If this is specified in the writer configuration
+                file that value will be used as the default.
             keep_palette (bool): Save palette/color table to geotiff.
                 To be used with images that were palettized with the
                 "palettize" enhancement. Setting this to ``True`` will cause
@@ -183,6 +223,17 @@ class GeoTIFFWriter(ImageWriter):
                 tag.  The value of this argument should be a keyword argument
                 ``(scale_label, offset_label)``, for example, ``("scale",
                 "offset")``, indicating the labels to be used.
+            colormap_tag (Optional[str]): If set and the image being saved was
+                colorized or palettized then a comma-separated version of the
+                colormap is saved to a custom geotiff tag with the provided
+                name. See :meth:`trollimage.colormap.Colormap.to_csv` for more
+                information.
+            driver (Optional[str]): Name of GDAL driver to use to save the
+                geotiff. If not specified or None (default) the "GTiff" driver
+                is used. Another common option is "COG" for Cloud Optimized
+                GeoTIFF. See GDAL documentation for more information.
+            tiled (bool): For performance this defaults to ``True``.
+                Pass ``False`` to created striped TIFF files.
             include_scale_offset (deprecated, bool): Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
@@ -195,7 +246,7 @@ class GeoTIFFWriter(ImageWriter):
         gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
             # fall back to fill_value from configuration file
-            fill_value = self.info.get('fill_value')
+            fill_value = self.info.get("fill_value")
 
         dtype = dtype if dtype is not None else self.dtype
         if dtype is None and self.enhancer is not False:
@@ -217,21 +268,24 @@ class GeoTIFFWriter(ImageWriter):
                 fill_value = np.nan
         if keep_palette and cmap is None and img.palette is not None:
             from satpy.enhancements import create_colormap
-            cmap = create_colormap({'colors': img.palette})
+            cmap = create_colormap({"colors": img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
         if tags is None:
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat='tif', fill_value=fill_value,
+        return img.save(filename, fformat="tif", driver=driver,
+                        fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
                         scale_offset_tags=scale_offset_tags,
+                        colormap_tag=colormap_tag,
                         overviews=overviews,
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
+                        tiled=tiled,
                         **gdal_options)
 
     def _get_gdal_options(self, kwargs):

@@ -86,7 +86,7 @@ msg_seviri_iodc_3km:
     with 3 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -103,7 +103,7 @@ msg_seviri_iodc_1km:
     with 1 km resolution
   projection:
     proj: geos
-    lon_0: 41.5
+    lon_0: 45.5
     a: 6378169.0
     b: 6356583.8
     h: 35785831.0
@@ -113,6 +113,208 @@ msg_seviri_iodc_1km:
   area_extent:
     lower_left_xy: [-5571248.412732527, -5566247.740968115]
     upper_right_xy: [5566247.740968115,  5571248.412732527]
+
+# Full disk - segmented products
+msg_seviri_fes_9km:
+  description:
+    MSG SEVIRI Full Earth Scanning service area definition
+    with 9 km resolution
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1237
+    width: 1237
+  area_extent:
+    lower_left_xy: [-5567248.28351984, -5567248.28340708]
+    upper_right_xy: [5567248.28340708 , 5567248.28351984]
+
+msg_seviri_rss_9km:
+  description:
+    MSG SEVIRI Rapid Scanning Service area definition
+    with 9 km resolution
+  projection:
+    proj: geos
+    lon_0: 9.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1237
+    width: 1237
+  area_extent:
+    lower_left_xy: [-5567248.28351984, -5567248.28340708]
+    upper_right_xy: [5567248.28340708 , 5567248.28351984]
+
+msg_seviri_iodc_9km:
+  description:
+    MSG SEVIRI Indian Ocean Data Coverage service area definition
+    with 9 km resolution
+  projection:
+    proj: geos
+    lon_0: 45.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1237
+    width: 1237
+  area_extent:
+    lower_left_xy: [-5567248.28351984, -5567248.28340708]
+    upper_right_xy: [5567248.28340708 , 5567248.28351984]
+
+msg_seviri_fes_9km_ext:
+  description:
+    MSG SEVIRI Full Earth Scanning service area definition
+    with 9 km resolution (extended outside original 3km grid)
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1238
+    width: 1238
+  area_extent:
+    lower_left_xy: [-5571748.888268564, -5571748.888155806]
+    upper_right_xy: [5571748.888155806,  5571748.888268564]
+
+msg_seviri_rss_9km_ext:
+  description:
+    MSG SEVIRI Rapid Scanning Service area definition
+    with 9 km resolution (extended outside original 3km grid)
+  projection:
+    proj: geos
+    lon_0: 9.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1238
+    width: 1238
+  area_extent:
+    lower_left_xy: [-5571748.888268564, -5571748.888155806]
+    upper_right_xy: [5571748.888155806,  5571748.888268564]
+
+msg_seviri_iodc_9km_ext:
+  description:
+    MSG SEVIRI Indian Ocean Data Coverage service area definition
+    with 9 km resolution (extended outside original 3km grid)
+  projection:
+    proj: geos
+    lon_0: 45.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1238
+    width: 1238
+  area_extent:
+    lower_left_xy: [-5571748.888268564, -5571748.888155806]
+    upper_right_xy: [5571748.888155806,  5571748.888268564]
+
+msg_seviri_fes_48km:
+  description:
+    MSG SEVIRI Full Earth Scanning service area definition
+    with 48 km resolution
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 232
+    width: 232
+  area_extent:
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708,   5570248.686685662]
+
+msg_seviri_rss_48km:
+  description:
+    MSG SEVIRI Rapid Scanning Service area definition
+    with 48 km resolution
+  projection:
+    proj: geos
+    lon_0: 9.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 232
+    width: 232
+  area_extent:
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708,   5570248.686685662]
+
+msg_seviri_iodc_48km:
+  description:
+    MSG SEVIRI Indian Ocean Data Coverage service area definition
+    with 48 km resolution
+  projection:
+    proj: geos
+    lon_0: 45.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 232
+    width: 232
+  area_extent:
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708,   5570248.686685662]
+
+himawari_ahi_fes_500m:
+  description:
+    Himawari-8/9 full disk area definition at 500m resolution
+  projection:
+    proj: geos
+    lon_0: 140.7
+    a: 6378137.0
+    rf: 298.257024882273
+    h: 35785863.0
+  shape:
+    height: 22000
+    width: 22000
+  area_extent:
+    lower_left_xy: [-5499999.9684, -5499999.9684]
+    upper_right_xy: [5499999.9684, 5499999.9684]
+
+himawari_ahi_fes_1km:
+  description:
+    Himawari-8/9 full disk area definition at 1km resolution
+  projection:
+    proj: geos
+    lon_0: 140.7
+    a: 6378137.0
+    rf: 298.257024882273
+    h: 35785863.0
+  shape:
+    height: 11000
+    width: 11000
+  area_extent:
+    lower_left_xy: [-5500000.0355, -5500000.0355]
+    upper_right_xy: [5500000.0355, 5500000.0355]
+
+himawari_ahi_fes_2km:
+  description:
+    Himawari-8/9 full disk area definition at 2km resolution
+  projection:
+    proj: geos
+    lon_0: 140.7
+    a: 6378137.0
+    rf: 298.257024882273
+    h: 35785863.0
+  shape:
+    height: 5500
+    width: 5500
+  area_extent:
+    lower_left_xy: [ -5499999.9012, -5499999.9012 ]
+    upper_right_xy: [ 5499999.9012, 5499999.9012 ]
 
 
 # Regional
@@ -181,10 +383,30 @@ SouthAmerica:
 # ---------- Meteosat Third Generation (MTG) / FCI Instrument -----------------
 
 # Full disk
+mtg_fci_fdss_500m:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 500 m SSP resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 22272
+    width: 22272
+  area_extent:
+    lower_left_xy: [-5567999.999637696, -5567999.999637696]
+    upper_right_xy: [5567999.999637678,  5567999.999637678]
+    units: m
+
 mtg_fci_fdss_1km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 1 km resolution
+    with 1 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -197,14 +419,14 @@ mtg_fci_fdss_1km:
     height: 11136
     width: 11136
   area_extent:
-    lower_left_xy: [-5567999.998577303, -5567999.998577303]
-    upper_right_xy: [5567999.998527619,  5567999.998527619]
+    lower_left_xy: [-5567999.998550739, -5567999.998550739]
+    upper_right_xy: [5567999.998550762,  5567999.998550762]
     units: m
 
 mtg_fci_fdss_2km:
   description:
     MTG FCI Full Disk Scanning Service area definition
-    with 2 km resolution
+    with 2 km SSP resolution
   projection:
     proj: geos
     lon_0: 0
@@ -217,8 +439,49 @@ mtg_fci_fdss_2km:
     height: 5568
     width: 5568
   area_extent:
-    lower_left_xy: [-5567999.994200589, -5567999.994200589]
-    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
+    units: m
+
+# Full disk - segmented products
+mtg_fci_fdss_6km:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 6 km SSP resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 1856
+    width: 1856
+  area_extent:
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
+    units: m
+
+mtg_fci_fdss_32km:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 32 km SSP resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 348
+    width: 348
+  area_extent:
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
 # Geostationary Operational Environmental Satellite (GOES) / ABI Instrument
@@ -1767,3 +2030,70 @@ msg_resample_area:
   area_extent:
     lower_left_xy: [-5570248.477339261, -5567248.074173444]
     upper_right_xy: [5567248.074173444, 5570248.477339261]
+
+# Global lat / lon gridded areas
+EPSG_4326_36000x18000:
+  description: Global equal latitude/longitude grid at 0.01 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 18000
+    width: 36000
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_7200x3600:
+  description: Global equal latitude/longitude grid at 0.05 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 3600
+    width: 7200
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_3600x1800:
+  description: Global equal latitude/longitude grid at 0.1 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 1800
+    width: 3600
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_1440x720:
+  description: Global equal latitude/longitude grid at 0.25 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 720
+    width: 1440
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_720x360:
+  description: Global equal latitude/longitude grid at 0.5 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 360
+    width: 720
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]
+
+EPSG_4326_360x180:
+  description: Global equal latitude/longitude grid at 1 degree resolution
+  projection:
+    EPSG:4326
+  shape:
+    height: 180
+    width: 360
+  area_extent:
+    lower_left_xy: [-180.0, -90.0]
+    upper_right_xy: [180.0, 90.0]

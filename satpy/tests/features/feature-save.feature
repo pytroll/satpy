@@ -21,4 +21,3 @@ Feature: Simple and intuitive saving
     Given a bunch of datasets are available
     When the save_datasets command is called
     Then a bunch of files should be saved on disk
-

@@ -74,3 +74,10 @@ doc/source/_build/*
 # this should be generated automatically when installed
 satpy/version.py
 doc/source/api/*.rst
+doc/source/reader_table.rst
+
+# lock files
+*.lock
+
+# rye files
+.python-version

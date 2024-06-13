@@ -17,8 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Package initializer."""
 
-import os
-
 try:
     from satpy.version import version as __version__  # noqa
 except ModuleNotFoundError:
@@ -26,8 +24,6 @@ except ModuleNotFoundError:
         "No module named satpy.version. This could mean "
         "you didn't install 'satpy' properly. Try reinstalling ('pip "
         "install').")
-
-CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
 from satpy._config import config  # noqa
 from satpy.dataset import DataID, DataQuery  # noqa
@@ -39,4 +35,4 @@ from satpy.scene import Scene  # noqa
 from satpy.utils import get_logger  # noqa
 from satpy.writers import available_writers  # noqa
 
-log = get_logger('satpy')
+log = get_logger("satpy")

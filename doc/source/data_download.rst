@@ -37,7 +37,7 @@ NOAA GOES on Amazon Web Services
 * Associated Readers: ``abi_l1b``
 
 In addition to the pages above, Brian Blaylock's `GOES-2-Go <https://github.com/blaylockbk/goes2go>`_
-python package is useful for downloading GOES data to your local machine. 
+python package is useful for downloading GOES data to your local machine.
 Brian also prepared some instructions
 for using the ``rclone`` tool for downloading AWS data to a local machine. The
 instructions can be found
@@ -72,7 +72,8 @@ NASA VIIRS Atmosphere SIPS
 * `Resource Description <https://sips.ssec.wisc.edu/>`__
 * Associated Readers: ``viirs_l1b``
 
-EUMETSAT Data Center
---------------------
+EUMETSAT Data Store and Data Center
+-----------------------------------
 
-* `Data Ordering <https://eoportal.eumetsat.int>`__
+* EUMETSAT's primary source for data is the `Data Store <https://data.eumetsat.int/>`__
+* Some products remain available on the `Earth Observation Portal <https://eoportal.eumetsat.int>`__

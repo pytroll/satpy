@@ -53,5 +53,5 @@ def _unpack_tarfile_to(filename, subdir):
     """Unpack content of tarfile in filename to subdir."""
     with tarfile.open(filename, mode="r:gz") as tf:
         contents = tf.getnames()
-        tf.extractall(path=subdir)
+        tf.extractall(path=subdir)  # nosec
     return contents

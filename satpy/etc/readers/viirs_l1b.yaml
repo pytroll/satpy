@@ -1,6 +1,10 @@
 reader:
-  description: Generic NASA VIIRS L1B Reader
   name: viirs_l1b
+  short_name: VIIRS l1b
+  long_name: JPSS VIIRS Level 1b data in netCDF4 format
+  description: Generic NASA VIIRS L1B Reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs]
   default_datasets:
@@ -35,36 +39,42 @@ file_types:
     - 'VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
     - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
+    - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
   vgeom:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
     - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
+    - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
   vgeod:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
     - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
+    - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
   vl1bi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
     - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
+    - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
   vl1bm:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
     - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
+    - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
   vl1bd:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
     - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
+    - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
 
 datasets:
   i_lon:
@@ -175,7 +185,7 @@ datasets:
     coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I_SOLZ:
-    name: i_solar_zenith_angle
+    name: solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 371
     units: degrees
@@ -183,7 +193,7 @@ datasets:
     file_type: vgeoi
     file_key: geolocation_data/solar_zenith
   I_SOLA:
-    name: i_solar_azimuth_angle
+    name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
     resolution: 371
     units: degrees
@@ -191,7 +201,7 @@ datasets:
     file_type: vgeoi
     file_key: geolocation_data/solar_azimuth
   I_SENZ:
-    name: i_satellite_zenith_angle
+    name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
     resolution: 371
     units: degrees
@@ -199,7 +209,7 @@ datasets:
     file_type: vgeoi
     file_key: geolocation_data/sensor_zenith
   I_SENA:
-    name: i_satellite_azimuth_angle
+    name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
     resolution: 371
     units: degrees
@@ -471,7 +481,7 @@ datasets:
     resolution: 743
     coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
-    file_key: geolocation_data/solar_zenith
+    file_key: geolocation_data/sensor_zenith
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle

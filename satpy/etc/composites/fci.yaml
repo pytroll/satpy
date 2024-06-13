@@ -1,13 +1,388 @@
 sensor_name: visir/fci
 
-
 composites:
-
+### L2
   binary_cloud_mask:
-    # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
-    # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
+    # This will set all clear pixels to '0', all pixels with cloudy features (meteorological/dust/ash clouds) to '1' and
+    # missing/undefined pixels to 'nan'. This can be used for the official EUMETSAT cloud mask product (CLM).
     compositor: !!python/name:satpy.composites.CategoricalDataCompositor
     prerequisites:
       - name: 'cloud_state'
-    lut: [.nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan]
+    lut: [ .nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan ]
     standard_name: binary_cloud_mask
+
+### Night Layers
+  night_ir105:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: ir_105
+    standard_name: night_ir105
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - name: ir_38
+      - name: ir_105
+      - name: ir_123
+      - name: ir_105
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires
+
+### Green Corrections
+  ndvi_hybrid_green:
+    description: >
+      The FCI green band at 0.51 µm deliberately misses the chlorophyll band, such that
+      the signal comes from aerosols and ash rather than vegetation. An effect
+      is that vegetation in a true colour RGB looks rather brown than green and barren rather red. Mixing in
+      some part of the NIR 0.8 channel reduced this effect.  Note that the fractions and non-linear strength
+      currently implemented are experimental and may change in future versions of Satpy.
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
+    prerequisites:
+      - name: vis_05
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      - name: vis_08
+        modifiers: [sunz_corrected, sunz_reduced ]
+    standard_name: toa_bidirectional_reflectance
+
+  ndvi_hybrid_green_raw:
+    description: >
+      Alternative to ndvi_hybrid_green, but without solar zenith or rayleigh correction.
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [0.15, 0.05]
+    strength: 3.0
+    prerequisites:
+      - name: vis_05
+      - name: vis_06
+      - name: vis_08
+    standard_name: toa_bidirectional_reflectance
+
+  ndvi_hybrid_green_fully_sunzencorrected:
+    description: Same as ndvi_hybrid_green, but without Sun-zenith reduction
+    compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
+    limits: [ 0.15, 0.05 ]
+    strength: 3.0
+    prerequisites:
+      - name: vis_05
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: vis_06
+        modifiers: [ sunz_corrected, rayleigh_corrected ]
+      - name: vis_08
+        modifiers: [ sunz_corrected ]
+    standard_name: toa_bidirectional_reflectance
+
+### True Color
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      FCI true color composite.  The green band is simulated based on a combination of
+      channels.  This simulation may change in future versions of Satpy.  See the description
+      of the ndvi_hybrid_green composites for details.
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      - name: ndvi_hybrid_green
+      - name: vis_04
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    standard_name: true_color
+
+  true_color_fully_sunzencorrected:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      Same as true_color, but without Sun-zenith reduction. For users that want to maintain as much data as possible
+      close to the terminator, at cost of some artefacts (bright limb and reddish clouds) (see issue #2643).
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: ndvi_hybrid_green_fully_sunzencorrected
+      - name: vis_04
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_raw_with_corrected_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      FCI true color without solar zenith or rayleigh corrections, but with the NDVI
+      hybrid green correction.
+    prerequisites:
+      - name: vis_06
+      - name: ndvi_hybrid_green_raw
+      - name: vis_04
+    standard_name: true_color_raw
+
+  true_color_with_night_ir105:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - true_color
+      - night_ir105
+
+  true_color_with_night_ir:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+
+  true_color_with_night_ir_hires:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - true_color
+      - night_ir_with_background_hires
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 73
+    lim_high: 85
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: ndvi_hybrid_green
+      - name: vis_04
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: vis_06
+      - name: ndvi_hybrid_green_raw
+      - name: vis_04
+    standard_name: true_color_reproduction_color_stretch
+
+### GeoColor
+  geo_color:
+   compositor: !!python/name:satpy.composites.DayNightCompositor
+   description: >
+     GeoColor is a multi-layer blended RGB composite where the day-time part of the image is represented by true
+     color imagery and the nighttime part of the image by a three layer vertically blended stack composed of a
+     high-level cloud layer (single IR window channel), a low-level cloud layer (IR split window) and a static
+     surface terrain layer with city lights (NASA Black Marble).
+   references:
+     Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
+   lim_low: 78
+   lim_high: 88
+   standard_name: geo_color_day_night_blend
+   prerequisites:
+     - true_color
+     - geo_color_night
+
+  geo_color_high_clouds:
+   standard_name: geo_color_high_clouds
+   compositor: !!python/name:satpy.composites.HighCloudCompositor
+   prerequisites:
+     - name: ir_105
+
+  geo_color_low_clouds:
+   standard_name: geo_color_low_clouds
+   compositor: !!python/name:satpy.composites.LowCloudCompositor
+   values_water: 0
+   values_land: 100
+   range_water: [1.35, 5.0]
+   range_land: [4.35, 6.75]
+   prerequisites:
+     - compositor: !!python/name:satpy.composites.DifferenceCompositor
+       prerequisites:
+         - name: ir_105
+         - name: ir_38
+     - name: ir_105
+     - compositor: !!python/name:satpy.composites.StaticImageCompositor
+       standard_name: land_water_mask
+       url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
+       known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+
+  geo_color_background_with_low_clouds:
+   compositor: !!python/name:satpy.composites.BackgroundCompositor
+   standard_name: night_ir_with_background
+   prerequisites:
+     - geo_color_low_clouds
+     - _night_background_hires
+
+  geo_color_night:
+   compositor: !!python/name:satpy.composites.BackgroundCompositor
+   standard_name: night_ir_with_background
+   prerequisites:
+     - geo_color_high_clouds
+     - geo_color_background_with_low_clouds
+
+### IR-Sandwich
+  ir_sandwich:
+    compositor: !!python/name:satpy.composites.SandwichCompositor
+    standard_name: ir_sandwich
+    prerequisites:
+      - name: 'vis_06'
+        modifiers: [ sunz_corrected ]
+      - name: colorized_ir_clouds
+
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: 'ir_105'
+    standard_name: colorized_ir_clouds
+
+  ir_sandwich_with_night_colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - ir_sandwich
+      - colorized_ir_clouds
+
+### other RGBs
+  cloud_type:
+    description: >
+      Equal to cimss_cloud_type recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: nir_13
+        modifiers: [ sunz_corrected, sunz_reduced ]
+      - name: vis_06
+        modifiers: [ sunz_corrected, sunz_reduced ]
+      - name: nir_16
+        modifiers: [ sunz_corrected, sunz_reduced ]
+    standard_name: cimss_cloud_type
+
+  cloud_type_with_night_ir105:
+    description: >
+      Combines the cloud_type during daytime with the simple 10.5µm night_ir105 layer during nighttime
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - cloud_type
+      - night_ir105
+
+  cloud_phase:
+    description: >
+      Equal to cloud_phase recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: nir_16
+        modifiers: [sunz_corrected, sunz_reduced]
+      - name: nir_22
+        modifiers: [sunz_corrected, sunz_reduced]
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+    standard_name: cloud_phase
+
+  cloud_phase_with_night_ir105:
+    description: >
+      Combines the cloud_phase during daytime with the simple 10.5µm night_ir105 layer during nighttime
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: fci_day_night_blend
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - cloud_phase
+      - night_ir105
+
+  fire_temperature:
+    standard_name: fire_temperature_fci
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      The fire temperature RGB highlights intense fires and differentiate these
+      from low temperature fires. Small low temperature fires will only show up at 3.9 μm and
+      appear red. With the increasing intensity and temperature the fires will also be detected
+      by the 2.2 μm and 1.6 μm bands resulting very intense fires in white.
+      Note: the EUM, CIRA and AWIPS recipes are identical (apart from neglectable 0.15K difference due to
+      unprecise C->K conversion)
+    references:
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+      Cira Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+      Eumetrain Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/FireTemperatureRGB.pdf
+    prerequisites:
+      - name: ir_38
+      - name: nir_22
+      - name: nir_16
+
+  fire_temperature_38refl:
+    standard_name: fire_temperature_fci_38refl
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      Same as fire_temperature, but uses only reflective part of 3.8
+    references:
+      discussion: See https://github.com/pytroll/satpy/pull/728
+    prerequisites:
+      - name: ir_38
+        modifiers: [nir_reflectance]
+      - name: nir_22
+        modifiers: [sunz_corrected]
+      - name: nir_16
+        modifiers: [sunz_corrected]
+
+  fire_temperature_rad:
+    standard_name: fire_temperature_fci_rad
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      Same as fire_temperature, but uses the channels in radiance units. This is the original VIIRS recipe.
+    references:
+      discussion: See https://github.com/pytroll/satpy/pull/728
+    prerequisites:
+      - name: ir_38
+        calibration: radiance
+      - name: nir_22
+        calibration: radiance
+      - name: nir_16
+        calibration: radiance
+
+  snow:
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: vis_08
+      modifiers: [sunz_corrected]
+    - name: nir_16
+      modifiers: [sunz_corrected]
+    - name: ir_38
+      modifiers: [nir_reflectance]
+    standard_name: snow

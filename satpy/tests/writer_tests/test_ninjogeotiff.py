@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample import create_area_def
 
 from satpy import Scene
-from satpy.writers import get_enhanced_image
+from satpy.writers import get_enhanced_image, to_image
 
 try:
     from math import prod
@@ -40,6 +40,12 @@ except ImportError:  # Remove when dropping Python < 3.8
         """Drop-in replacement for math.prod."""
         return reduce(mul, iterable, 1)
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - monkeypatch
+# - caplog
+
 
 def _get_fake_da(lo, hi, shp, dtype="f4"):
     """Generate dask array with synthetic data.
@@ -47,7 +53,7 @@ def _get_fake_da(lo, hi, shp, dtype="f4"):
     This is more or less a 2d linspace: it'll return a 2-d dask array of shape
     ``shp``, lowest value is ``lo``, highest value is ``hi``.
     """
-    return da.arange(lo, hi, (hi-lo)/prod(shp), chunks=50, dtype=dtype).reshape(shp)
+    return da.linspace(lo, hi, prod(shp), dtype=dtype).reshape(shp)
 
 
 @pytest.fixture(scope="module")
@@ -184,6 +190,37 @@ def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
 
 
 @pytest.fixture(scope="module")
+def test_image_small_mid_atlantic_K_L(test_area_tiny_eqc_sphere):
+    """Get a small test image in units K, mode L, over Atlantic."""
+    arr = xr.DataArray(
+        _get_fake_da(-80+273.15, 40+273.15, test_area_tiny_eqc_sphere.shape + (1,)),
+        dims=("y", "x", "bands"),
+        attrs={
+            "name": "test-small-mid-atlantic",
+            "start_time": datetime.datetime(1985, 8, 13, 13, 0),
+            "area": test_area_tiny_eqc_sphere,
+            "units": "K"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
+def test_image_small_mid_atlantic_L_no_quantity(test_area_tiny_eqc_sphere):
+    """Get a small test image, mode L, over Atlantic, with non-quantitywvalues.
+
+    This could be the case, for example, for vis_with_night_ir.
+    """
+    arr = xr.DataArray(
+        _get_fake_da(0, 273, test_area_tiny_eqc_sphere.shape + (1,)),
+        dims=("y", "x", "bands"),
+        attrs={
+            "name": "test-small-mid-atlantic",
+            "start_time": datetime.datetime(1985, 8, 13, 13, 0),
+            "area": test_area_tiny_eqc_sphere,
+            "units": "N/A"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
 def test_image_large_asia_RGB(test_area_small_eqc_wgs84):
     """Get a large-ish test image in mode RGB, over Asia."""
     arr = xr.DataArray(
@@ -210,7 +247,7 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
             "start_time": datetime.datetime(2027, 8, 2, 8, 20),
             "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
-    return get_enhanced_image(arr)
+    return to_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -366,6 +403,22 @@ def ntg_weird(test_image_weird):
 
 
 @pytest.fixture(scope="module")
+def ntg_no_fill_value(test_image_small_mid_atlantic_L):
+    """Create instance of NinJoTagGenerator class."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_small_mid_atlantic_L,
+            None,
+            "bulgur.tif",
+            ChannelID=900015,
+            DataType="GORN",
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            DataSource="dowsing rod")
+
+
+@pytest.fixture(scope="module")
 def ntg_rgba(test_image_rgba_merc):
     """Create NinJoTagGenerator instance with RGBA image."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
@@ -410,8 +463,8 @@ def ntg_latlon(test_image_latlon):
             SatelliteNameID=654321)
 
 
-@pytest.fixture
-def patch_datetime_now(monkeypatch):
+@pytest.fixture()
+def _patch_datetime_now(monkeypatch):
     """Get a fake datetime.datetime.now()."""
     # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0
 
@@ -424,7 +477,7 @@ def patch_datetime_now(monkeypatch):
             return datetime.datetime(2033, 5, 18, 3, 33, 20,
                                      tzinfo=tz)
 
-    monkeypatch.setattr(datetime, 'datetime', mydatetime)
+    monkeypatch.setattr(datetime, "datetime", mydatetime)
 
 
 def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
@@ -453,9 +506,9 @@ def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
-                               0.4653780307919959)
+                               0.46771654391851947)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
-                               -79.86837954904149)
+                               -79.86771951938239)
 
 
 def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
@@ -506,9 +559,10 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
-    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.30816176470588236)
-    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.603125)
+    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.31058823679007746)
+    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.6)
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
+    assert tgs["ninjo_TransparentPixel"] == "-1"  # meaning not set
 
 
 def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
@@ -537,6 +591,93 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
+    assert "ninjo_Gradient" not in tgs
+    assert "ninjo_AxisIntercept" not in tgs
+
+
+def test_write_and_read_file_units(
+        test_image_small_mid_atlantic_K_L, tmp_path, caplog):
+    """Test that it writes a GeoTIFF with the appropriate NinJo-tags and units."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    with caplog.at_level(logging.DEBUG):
+        ngtw.save_dataset(
+            test_image_small_mid_atlantic_K_L.data,
+            filename=fn,
+            fill_value=0,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            ChannelID=900015,
+            DataType="GORN",
+            DataSource="dowsing rod")
+    assert "Adding offset for K → °C conversion" in caplog.text
+    # a better test would be to check that the attributes haven't changed at
+    # all, but that currently fails due to
+    # https://github.com/pytroll/satpy/issues/2022
+    assert test_image_small_mid_atlantic_K_L.data.attrs["enhancement_history"][0] != {"scale": 1, "offset": 273.15}
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == fn
+    assert tgs["ninjo_DataSource"] == "dowsing rod"
+    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
+                               0.467717, rtol=1e-5)
+    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
+                               -79.86771, rtol=1e-5)
+    fn2 = os.fspath(tmp_path / "test2.tif")
+    with caplog.at_level(logging.WARNING):
+        ngtw.save_dataset(
+            test_image_small_mid_atlantic_K_L.data,
+            filename=fn2,
+            fill_value=0,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            PhysicUnit="F",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            ChannelID=900015,
+            DataType="GORN",
+            DataSource="dowsing rod")
+    assert ("Writing F to ninjogeotiff headers, but "
+            "data attributes have unit K. "
+            "No conversion applied.") in caplog.text
+
+
+@pytest.mark.parametrize("unit", ["N/A", "1", ""])
+def test_write_and_read_no_quantity(
+        test_image_small_mid_atlantic_L_no_quantity, tmp_path, unit):
+    """Test that no scale/offset written if no valid units present."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    ngtw.save_dataset(
+        test_image_small_mid_atlantic_L_no_quantity.data,
+        filename=fn,
+        blockxsize=128,
+        blockysize=128,
+        compress="lzw",
+        predictor=2,
+        PhysicUnit=unit,
+        PhysicValue="N/A",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="GORN",
+        DataSource="dowsing rod")
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert "ninjo_Gradient" not in tgs.keys()
+    assert "ninjo_AxisIntercept" not in tgs.keys()
 
 
 def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
@@ -600,11 +741,13 @@ def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
     assert ntg2.get_tag("DataType") == "GORN"
     assert ntg3.get_tag("DataType") == "PPRN"
     assert ntg1.get_tag("DataSource") == "dowsing rod"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown tag: invalid"):
         ntg1.get_tag("invalid")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError,
+                       match="Optional tag OriginalHeader must be supplied by user if user wants to request the value,"
+                             " but wasn't."):
         ntg1.get_tag("OriginalHeader")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Tag Gradient is added later by the GeoTIFF writer."):
         ntg1.get_tag("Gradient")
 
 
@@ -632,11 +775,12 @@ def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
     assert ntg3.get_color_depth() == 8  # mode P
     assert ntg_weird.get_color_depth() == 16  # mode LA
     assert ntg_rgba.get_color_depth() == 32  # mode RGBA
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported image mode: CMYK"):
         ntg_cmyk.get_color_depth()
 
 
-def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now):
+@pytest.mark.usefixtures("_patch_datetime_now")
+def test_get_creation_date_id(ntg1, ntg2, ntg3):
     """Test getting the creation date ID.
 
     This is the time at which the file was created.
@@ -716,7 +860,6 @@ def test_get_max_gray_value_RGB(ntg2):
     assert ntg2.get_max_gray_value() == 255
 
 
-@pytest.mark.xfail(reason="Needs GeoTIFF P fixes, see GH#1844")
 def test_get_max_gray_value_P(ntg3):
     """Test getting max gray value for mode P."""
     assert ntg3.get_max_gray_value().compute().item() == 10
@@ -747,7 +890,7 @@ def test_get_projection(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk,
     assert ntg_cmyk.get_projection() == "SPOL"
     assert ntg_rgba.get_projection() == "MERC"
     assert ntg_latlon.get_projection() == "PLAT"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown mapping from area .*"):
         ntg_weird.get_projection()
 
 
@@ -758,7 +901,7 @@ def test_get_ref_lat_1(ntg1, ntg2, ntg3, ntg_weird, ntg_latlon):
     np.testing.assert_allclose(rl1, 0.0)
     np.testing.assert_allclose(ntg2.get_ref_lat_1(), 2.5)
     np.testing.assert_allclose(ntg3.get_ref_lat_1(), 75)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not find reference latitude for area test-area-north-stereo"):
         ntg_weird.get_ref_lat_1()
     with pytest.raises(AttributeError):
         ntg_latlon.get_ref_lat_1()
@@ -774,13 +917,14 @@ def test_get_ref_lat_2(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg2.get_ref_lat_3(), 0.0)
 
 
-def test_get_transparent_pixel(ntg1, ntg2, ntg3):
+def test_get_transparent_pixel(ntg1, ntg2, ntg3, ntg_no_fill_value):
     """Test getting fill value."""
     tp = ntg1.get_transparent_pixel()
     assert isinstance(tp, int)
     assert tp == 255
-    assert ntg2.get_transparent_pixel() == 0  # when not set ??
+    assert ntg2.get_transparent_pixel() == 0
     assert ntg3.get_transparent_pixel() == 255
+    assert ntg_no_fill_value.get_transparent_pixel() == -1
 
 
 def test_get_xmax(ntg1, ntg2, ntg3):
@@ -804,7 +948,7 @@ def test_get_ymax(ntg1, ntg2, ntg3):
 def test_create_unknown_tags(test_image_small_arctic_P):
     """Test that unknown tags raise ValueError."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The following tags were not recognised: Locatie"):
         NinJoTagGenerator(
             test_image_small_arctic_P,
             42,
@@ -815,3 +959,17 @@ def test_create_unknown_tags(test_image_small_arctic_P):
             PhysicValue="N/A",
             SatelliteNameID=6500014,
             Locatie="Hozomeen")
+
+
+def test_str_ids(test_image_small_arctic_P):
+    """Test that channel and satellit IDs can be str."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    NinJoTagGenerator(
+        test_image_small_arctic_P,
+        42,
+        "quorn.tif",
+        ChannelID="la manche",
+        DataType="GPRN",
+        PhysicUnit="N/A",
+        PhysicValue="N/A",
+        SatelliteNameID="trollsat")

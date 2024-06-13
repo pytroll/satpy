@@ -18,7 +18,6 @@
 """Modifiers related to atmospheric corrections or adjustments."""
 
 import logging
-from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
@@ -26,15 +25,48 @@ import xarray as xr
 
 from satpy.modifiers import ModifierBase
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
-from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
+from satpy.modifiers.angles import compute_relative_azimuth, get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 
 
 class PSPRayleighReflectance(ModifierBase):
-    """Pyspectral-based rayleigh corrector for visible channels."""
+    """Pyspectral-based rayleigh corrector for visible channels.
 
-    _rayleigh_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
+    It is possible to use ``reduce_lim_low``, ``reduce_lim_high`` and ``reduce_strength``
+    together to reduce rayleigh correction at high solar zenith angle and make the image
+    transition from rayleigh-corrected to partially/none rayleigh-corrected at day/night edge,
+    therefore producing a more natural look, which could be especially helpful for geostationary
+    satellites. This reduction starts at solar zenith angle of ``reduce_lim_low``, and ends in
+    ``reduce_lim_high``. It's linearly scaled between these two angles. The ``reduce_strength``
+    controls the amount of the reduction. When the solar zenith angle reaches ``reduce_lim_high``,
+    the rayleigh correction will remain ``(1 - reduce_strength)`` of its initial reduce_strength
+    at ``reduce_lim_high``.
+
+    To use this function in a YAML configuration file:
+
+    .. code-block:: yaml
+
+      rayleigh_corrected_reduced:
+        modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+        atmosphere: us-standard
+        aerosol_type: rayleigh_only
+        reduce_lim_low: 70
+        reduce_lim_high: 95
+        reduce_strength: 0.6
+        prerequisites:
+          - name: B03
+            modifiers: [sunz_corrected]
+        optional_prerequisites:
+          - satellite_azimuth_angle
+          - satellite_zenith_angle
+          - solar_azimuth_angle
+          - solar_zenith_angle
+
+    In the case above, rayleigh correction is reduced gradually starting at solar zenith angle 70°.
+    When reaching 95°, the correction will only remain 40% its initial strength at 95°.
+
+    """
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
@@ -42,14 +74,15 @@ class PSPRayleighReflectance(ModifierBase):
         Uses pyspectral.
         """
         from pyspectral.rayleigh import Rayleigh
-        if not optional_datasets or len(optional_datasets) != 4:
+        projectables = projectables + (optional_datasets or [])
+        if len(projectables) != 6:
             vis, red = self.match_data_arrays(projectables)
             sata, satz, suna, sunz = get_angles(vis)
-            red.data = da.rechunk(red.data, vis.data.chunks)
         else:
-            vis, red, sata, satz, suna, sunz = self.match_data_arrays(
-                projectables + optional_datasets)
-            sata, satz, suna, sunz = optional_datasets
+            vis, red, sata, satz, suna, sunz = self.match_data_arrays(projectables)
+            # First make sure the two azimuth angles are in the range 0-360:
+            sata = sata % 360.
+            suna = suna % 360.
 
         # get the dask array underneath
         sata = sata.data
@@ -57,38 +90,39 @@ class PSPRayleighReflectance(ModifierBase):
         suna = suna.data
         sunz = sunz.data
 
-        # First make sure the two azimuth angles are in the range 0-360:
-        sata = sata % 360.
-        suna = suna % 360.
-        ssadiff = da.absolute(suna - sata)
-        ssadiff = da.minimum(ssadiff, 360 - ssadiff)
+        ssadiff = compute_relative_azimuth(sata, suna)
         del sata, suna
 
-        atmosphere = self.attrs.get('atmosphere', 'us-standard')
-        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        rayleigh_key = (vis.attrs['platform_name'],
-                        vis.attrs['sensor'], atmosphere, aerosol_type)
+        atmosphere = self.attrs.get("atmosphere", "us-standard")
+        aerosol_type = self.attrs.get("aerosol_type", "marine_clean_aerosol")
+        reduce_lim_low = abs(self.attrs.get("reduce_lim_low", 70))
+        reduce_lim_high = abs(self.attrs.get("reduce_lim_high", 105))
+        reduce_strength = np.clip(self.attrs.get("reduce_strength", 0), 0, 1)
+
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
-                    atmosphere, aerosol_type, vis.attrs['name'])
-        if rayleigh_key not in self._rayleigh_cache:
-            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                                 atmosphere=atmosphere,
-                                 aerosol_type=aerosol_type)
-            self._rayleigh_cache[rayleigh_key] = corrector
-        else:
-            corrector = self._rayleigh_cache[rayleigh_key]
+                    atmosphere, aerosol_type, vis.attrs["name"])
+        corrector = Rayleigh(vis.attrs["platform_name"], vis.attrs["sensor"],
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         try:
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.attrs['name'],
+                                                      vis.attrs["name"],
                                                       red.data)
         except (KeyError, IOError):
-            logger.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
+            logger.warning("Could not get the reflectance correction using band name: %s", vis.attrs["name"])
             logger.warning("Will try use the wavelength, however, this may be ambiguous!")
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.attrs['wavelength'][1],
+                                                      vis.attrs["wavelength"][1],
                                                       red.data)
+
+        if reduce_strength > 0:
+            if reduce_lim_low > reduce_lim_high:
+                reduce_lim_low = reduce_lim_high
+            refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
+                                                                 reduce_lim_low, reduce_lim_high, reduce_strength)
+
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
@@ -121,13 +155,13 @@ class PSPAtmosphericalCorrection(ModifierBase):
             satz = get_satellite_zenith_angle(band)
         satz = satz.data  # get dask array underneath
 
-        logger.info('Correction for limb cooling')
-        corrector = AtmosphericalCorrection(band.attrs['platform_name'],
-                                            band.attrs['sensor'])
+        logger.info("Correction for limb cooling")
+        corrector = AtmosphericalCorrection(band.attrs["platform_name"],
+                                            band.attrs["sensor"])
 
         atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
                                  corrector=corrector,
-                                 band_name=band.attrs['name'],
+                                 band_name=band.attrs["name"],
                                  meta=np.array((), dtype=band.dtype))
         proj = xr.DataArray(atm_corr, attrs=band.attrs,
                             dims=band.dims, coords=band.coords)
@@ -147,13 +181,13 @@ class CO2Corrector(ModifierBase):
 
     Derived from D. Rosenfeld, "CO2 Correction of Brightness Temperature of Channel IR3.9"
     References:
-        - http://www.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
+        - https://resources.eumetrain.org/IntGuide/PowerPoints/Channels/conversion.ppt
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Apply correction."""
         ir_039, ir_108, ir_134 = projectables
-        logger.info('Applying CO2 correction')
+        logger.info("Applying CO2 correction")
         dt_co2 = (ir_108 - ir_134) / 4.0
         rcorr = ir_108 ** 4 - (ir_108 - dt_co2) ** 4
         t4_co2corr = (ir_039 ** 4 + rcorr).clip(0.0) ** 0.25
