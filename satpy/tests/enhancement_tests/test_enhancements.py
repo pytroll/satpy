@@ -370,9 +370,9 @@ class TestColormapLoading:
             assert cmap.values[-1] == 1.0
 
             # check that if a value is missing we raise a ValueError
-            with pytest.raises(ValueError, match="Both 'min_value' and 'max_value' must be specified (or neither)."):
+            with pytest.raises(ValueError, match="Both 'min_alpha' and 'max_alpha' must be specified*."):
                 create_colormap({"filename": cmap_filename, "max_alpha": 255})
-            with pytest.raises(ValueError, match="Both 'min_value' and 'max_value' must be specified (or neither)."):
+            with pytest.raises(ValueError, match="Both 'min_alpha' and 'max_alpha' must be specified*."):
                 create_colormap({"filename": cmap_filename, "min_alpha": 255})
 
     @pytest.mark.parametrize(
