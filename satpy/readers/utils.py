@@ -535,7 +535,9 @@ class CalibrationCoefficientSelector:
             coefs (dict): One set of calibration coefficients for each
                 calibration mode. The actual coefficients can be of any type
                 (reader-specific).
-            modes (dict): Desired calibration modes
+            modes (str or dict): Desired calibration modes. Use a dictionary
+                `{mode: channels}` to specify multiple modes. Use a string to
+                 specify one mode for all channels.
             default (str): Default coefficients to be used if no mode has been
                 specified. Default: "nominal".
             fallback (str): Fallback coefficients if the desired coefficients
@@ -549,6 +551,18 @@ class CalibrationCoefficientSelector:
             raise KeyError("Need at least default coefficients")
         if self.fallback and self.fallback not in self.coefs:
             raise KeyError("No fallback coefficients")
+        self.modes = self._make_modes(modes)
+
+    def _make_modes(self, modes):
+        if modes is None:
+            return {}
+        elif self._same_mode_for_all_channels(modes):
+            all_channels = self.coefs[self.default].keys()
+            return {modes: all_channels}
+        return modes
+
+    def _same_mode_for_all_channels(self, modes):
+        return isinstance(modes, str)
 
     def get_coefs(self, channel):
         """Get calibration coefficients for the given channel.

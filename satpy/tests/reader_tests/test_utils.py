@@ -542,6 +542,10 @@ class TestCalibrationCoefficientSelector:
                 {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
             ),
             (
+                "nominal",
+                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
+            ),
+            (
                 {"nominal": ["ch1", "ch2"]},
                 {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
             ),
