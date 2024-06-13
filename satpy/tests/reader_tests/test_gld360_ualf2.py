@@ -20,7 +20,7 @@
 import numpy as np
 import pytest
 
-from satpy.readers.gld360_ualf2 import VaisalaGld360Ualf2FileHandler
+from satpy.readers.gld360_ualf2 import UALF2_COLUMN_NAMES, VaisalaGld360Ualf2FileHandler
 from satpy.tests.utils import make_dataid
 
 
@@ -269,3 +269,24 @@ def test_timing_indicator(gld360_ualf2_filehandler):
     dataset_info = {}
     result = gld360_ualf2_filehandler.get_dataset(dataset_id, dataset_info).values
     np.testing.assert_array_equal(result, expected_timing_indicator)
+
+
+def test_pad_nanoseconds(gld360_ualf2_filehandler):
+    """Test pad nanoseconds."""
+    expected_nanoseconds = "000000013"
+    result = gld360_ualf2_filehandler.pad_nanoseconds(13)
+    np.testing.assert_string_equal(result, expected_nanoseconds)
+
+
+def test_nanoseconds_index():
+    """Test nanosecond column being after seconds."""
+    expected_index = UALF2_COLUMN_NAMES.index("nanosecond")
+    result = UALF2_COLUMN_NAMES.index("second") + 1
+    np.testing.assert_array_equal(result, expected_index)
+
+
+def test_column_names_length():
+    """Test correct number of column names."""
+    expected_length = 30
+    result = len(UALF2_COLUMN_NAMES)
+    np.testing.assert_equal(result, expected_length)
