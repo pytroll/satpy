@@ -61,240 +61,240 @@ def fake_filehandler(fake_file):
 
 def test_ualf2_record_type(fake_filehandler):
     """Test ualf record type."""
-    expected_ualf_record_type = np.array([2, 2, 2])
+    expected = np.array([2, 2, 2])
     dataset_id = make_dataid(name="ualf_record_type")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_ualf_record_type)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_network_type(fake_filehandler):
     """Test network type."""
-    expected_network_type = np.array([3, 3, 3])
+    expected = np.array([3, 3, 3])
     dataset_id = make_dataid(name="network_type")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_network_type)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_time(fake_filehandler):
     """Test time."""
-    expected_time = np.array(["2021-01-04T08:00:01.000000051", "2021-01-04T08:00:01.864782486",
-                              "2021-01-04T08:00:01.897014133"], dtype="datetime64[ns]")
+    expected = np.array(["2021-01-04T08:00:01.000000051", "2021-01-04T08:00:01.864782486",
+                         "2021-01-04T08:00:01.897014133"], dtype="datetime64[ns]")
     dataset_id = make_dataid(name="time")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_time)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_latitude(fake_filehandler):
     """Test latitude."""
-    expected_latitude = np.array([-20.8001, 0.4381, 66.8166])
+    expected = np.array([-20.8001, 0.4381, 66.8166])
     dataset_id = make_dataid(name="latitude")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_latitude, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_longitude(fake_filehandler):
     """Test longitude."""
-    expected_longitude = np.array([-158.3439, -0.85, 42.4914])
+    expected = np.array([-158.3439, -0.85, 42.4914])
     dataset_id = make_dataid(name="longitude")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_longitude, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_altitude(fake_filehandler):
     """Test altitude."""
-    expected_altitude = np.array([0, 0, 0])
+    expected = np.array([0, 0, 0])
     dataset_id = make_dataid(name="altitude")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_altitude)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_altitude_uncertainty(fake_filehandler):
     """Test altitude uncertainty."""
-    expected_altitude_uncertainty = np.array([0, 0, 0])
+    expected = np.array([0, 0, 0])
     dataset_id = make_dataid(name="altitude_uncertainty")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_altitude_uncertainty)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_peak_current(fake_filehandler):
     """Test peak current."""
-    expected_peak_current = np.array([10, -20, 15])
+    expected = np.array([10, -20, 15])
     dataset_id = make_dataid(name="peak_current")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_peak_current)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_vhf_range(fake_filehandler):
     """Test vhf range."""
-    expected_vhf_range = np.array([0, 0, 0])
+    expected = np.array([0, 0, 0])
     dataset_id = make_dataid(name="vhf_range")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_vhf_range)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_multiplicity_flash(fake_filehandler):
     """Test multiplicity flash."""
-    expected_multiplicity_flash = np.array([0, 1, 0])
+    expected = np.array([0, 1, 0])
     dataset_id = make_dataid(name="multiplicity_flash")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_multiplicity_flash)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_cloud_pulse_count(fake_filehandler):
     """Test cloud pulse count."""
-    expected_cloud_pulse_count = np.array([1, 0, 1])
+    expected = np.array([1, 0, 1])
     dataset_id = make_dataid(name="cloud_pulse_count")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_cloud_pulse_count)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_number_of_sensors(fake_filehandler):
     """Test number of sensors."""
-    expected_number_of_sensors = np.array([3, 4, 5])
+    expected = np.array([3, 4, 5])
     dataset_id = make_dataid(name="number_of_sensors")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_number_of_sensors)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_degree_freedom_for_location(fake_filehandler):
     """Test degree freedom for location."""
-    expected_degree_freedom_for_location = np.array([3, 5, 7])
+    expected = np.array([3, 5, 7])
     dataset_id = make_dataid(name="degree_freedom_for_location")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_degree_freedom_for_location)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_error_ellipse_angle(fake_filehandler):
     """Test error ellipse angle."""
-    expected_error_ellipse_angle = np.array([9.47, 24.99, 103.87])
+    expected = np.array([9.47, 24.99, 103.87])
     dataset_id = make_dataid(name="error_ellipse_angle")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_error_ellipse_angle, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_error_ellipse_max_axis_length(fake_filehandler):
     """Test error ellipse max axis length."""
-    expected_error_ellipse_max_axis_length = np.array([1.91, 1.95, 4.33])
+    expected = np.array([1.91, 1.95, 4.33])
     dataset_id = make_dataid(name="error_ellipse_max_axis_length")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_error_ellipse_max_axis_length, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_error_ellipse_min_axis_length(fake_filehandler):
     """Test error ellipse min axis length."""
-    expected_error_ellipse_min_axis_length = np.array([1.59, 1.53, 1.46])
+    expected = np.array([1.59, 1.53, 1.46])
     dataset_id = make_dataid(name="error_ellipse_min_axis_length")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_error_ellipse_min_axis_length, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_chi_squared_value_location_optimization(fake_filehandler):
     """Test chi squared value location optimization."""
-    expected_chi_squared_value_location_optimization = np.array([0.19, 1.53, 0.48])
+    expected = np.array([0.19, 1.53, 0.48])
     dataset_id = make_dataid(name="chi_squared_value_location_optimization")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_chi_squared_value_location_optimization, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_wave_form_rise_time(fake_filehandler):
     """Test wave form rise time."""
-    expected_wave_form_rise_time = np.array([11.4, 14., 22.])
+    expected = np.array([11.4, 14., 22.])
     dataset_id = make_dataid(name="wave_form_rise_time")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_wave_form_rise_time, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_wave_form_peak_to_zero_time(fake_filehandler):
     """Test wave form peak to zero time."""
-    expected_wave_form_peak_to_zero_time = np.array([8.8, 12.9, 12.3])
+    expected = np.array([8.8, 12.9, 12.3])
     dataset_id = make_dataid(name="wave_form_peak_to_zero_time")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_allclose(result, expected_wave_form_peak_to_zero_time, rtol=1e-05)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_allclose(actual, expected, rtol=1e-05)
 
 
 def test_wave_form_max_rate_of_rise(fake_filehandler):
     """Test wave form max rate of rise."""
-    expected_wave_form_max_rate_of_rise = np.array([0, 0, 0])
+    expected = np.array([0, 0, 0])
     dataset_id = make_dataid(name="wave_form_max_rate_of_rise")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_wave_form_max_rate_of_rise)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_cloud_indicator(fake_filehandler):
     """Test cloud indicator."""
-    expected_cloud_indicator = np.array([1, 0, 1])
+    expected = np.array([1, 0, 1])
     dataset_id = make_dataid(name="cloud_indicator")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_cloud_indicator)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_angle_indicator(fake_filehandler):
     """Test angle indicator."""
-    expected_angle_indicator = np.array([1, 1, 1])
+    expected = np.array([1, 1, 1])
     dataset_id = make_dataid(name="angle_indicator")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_angle_indicator)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_signal_indicator(fake_filehandler):
     """Test signal indicator."""
-    expected_signal_indicator = np.array([0, 0, 0])
+    expected = np.array([0, 0, 0])
     dataset_id = make_dataid(name="signal_indicator")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_signal_indicator)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_timing_indicator(fake_filehandler):
     """Test timing indicator."""
-    expected_timing_indicator = np.array([1, 1, 1])
+    expected = np.array([1, 1, 1])
     dataset_id = make_dataid(name="timing_indicator")
     dataset_info = {}
-    result = fake_filehandler.get_dataset(dataset_id, dataset_info).values
-    np.testing.assert_array_equal(result, expected_timing_indicator)
+    actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_pad_nanoseconds(fake_filehandler):
     """Test pad nanoseconds."""
-    expected_nanoseconds = "000000013"
-    result = fake_filehandler.pad_nanoseconds(13)
-    np.testing.assert_string_equal(result, expected_nanoseconds)
+    expected = "000000013"
+    actual = fake_filehandler.pad_nanoseconds(13)
+    np.testing.assert_string_equal(actual, expected)
 
 
 def test_nanoseconds_index():
     """Test nanosecond column being after seconds."""
-    expected_index = UALF2_COLUMN_NAMES.index("nanosecond")
-    result = UALF2_COLUMN_NAMES.index("second") + 1
-    np.testing.assert_array_equal(result, expected_index)
+    expected = UALF2_COLUMN_NAMES.index("nanosecond")
+    actual = UALF2_COLUMN_NAMES.index("second") + 1
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_column_names_length():
     """Test correct number of column names."""
-    expected_length = 30
-    result = len(UALF2_COLUMN_NAMES)
-    np.testing.assert_equal(result, expected_length)
+    expected = 30
+    actual = len(UALF2_COLUMN_NAMES)
+    np.testing.assert_equal(actual, expected)
 
 
 @pytest.fixture()
@@ -303,6 +303,7 @@ def fake_scn(fake_file):
     from satpy import Scene
     scn = Scene(reader="gld360_ualf2", filenames=[fake_file])
     return scn
+
 
 def test_scene_attributes(fake_scn):
     """Test for correct start and end times."""
