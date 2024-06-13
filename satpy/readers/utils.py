@@ -480,7 +480,7 @@ class _CalibrationCoefficientParser:
     """Parse user-defined calibration coefficients."""
 
     def __init__(self, coefs, default="nominal"):
-        """TODO."""
+        """Initialize the parser."""
         if default not in coefs:
             raise KeyError("Need at least default coefficients")
         self.coefs = coefs
@@ -493,52 +493,43 @@ class _CalibrationCoefficientParser:
         elif isinstance(wishlist, str):
             return self._get_coefs_set(wishlist)
         elif isinstance(wishlist, dict):
-            return self._parse(wishlist)
+            return self._parse_dict(wishlist)
         raise TypeError(f"Unsupported wishlist type. Expected dict/str, got {type(wishlist)}")
 
-    def _parse(self, wishlist):
-        wishlist = self._expand_multi_channel_keys(wishlist)
+    def _parse_dict(self, wishlist):
+        wishlist = self._flatten_multi_channel_keys(wishlist)
         return self._replace_calib_mode_with_actual_coefs(wishlist)
 
-    def _expand_multi_channel_keys(self, wishlist):
-        expanded = {}
+    def _flatten_multi_channel_keys(self, wishlist):
+        flat = {}
         for channels, coefs in wishlist.items():
             if self._is_multi_channel(channels):
-                for channel in channels:
-                    expanded[channel] = coefs
+                flat.update({channel: coefs for channel in channels})
             else:
-                expanded[channels] = coefs
-        return expanded
-
-    def _replace_calib_mode_with_actual_coefs(self, wishlist):
-        res = {}
-        for channel, mode_or_coefs in wishlist.items():
-            coefs = self._get_coefs_for_single_channel(mode_or_coefs, channel)
-            if coefs:
-                res[channel] = coefs
-        return res
-
-    def _is_single_channel(self, key):
-        return isinstance(key, str)
-
-    def _get_coefs_for_single_channel(self, mode_or_coefs, channel):
-        if isinstance(mode_or_coefs, str):
-            mode = mode_or_coefs
-            return self._get_coefs(mode, channel)
-        return mode_or_coefs
+                flat[channels] = coefs
+        return flat
 
     def _is_multi_channel(self, key):
         return isinstance(key, tuple)
 
-    def _get_coefs_for_multiple_channels(self, mode, channels):
+    def _replace_calib_mode_with_actual_coefs(self, wishlist):
         res = {}
-        for channel in channels:
-            coefs = self._get_coefs(mode, channel)
-            if coefs is not None:
+        for channel in self.coefs[self.default]:
+            mode_or_coefs = wishlist.get(channel, self.default)
+            coefs = self._get_coefs(mode_or_coefs, channel)
+            if coefs:
                 res[channel] = coefs
         return res
 
-    def _get_coefs(self, mode, channel):
+    def _get_coefs(self, mode_or_coefs, channel):
+        if self._is_mode(mode_or_coefs):
+            return self._get_coefs_by_mode(mode_or_coefs, channel)
+        return mode_or_coefs
+
+    def _is_mode(self, mode_or_coefs):
+        return isinstance(mode_or_coefs, str)
+
+    def _get_coefs_by_mode(self, mode, channel):
         coefs_set = self._get_coefs_set(mode)
         return coefs_set.get(channel, None)
 
@@ -554,17 +545,21 @@ class _CalibrationCoefficientParser:
         if isinstance(wishlist, str):
             return wishlist
         elif isinstance(wishlist, dict):
-            expanded = self._expand_multi_channel_keys(wishlist)
-            return expanded[channel]
+            flat = self._flatten_multi_channel_keys(wishlist)
+            return flat[channel]
 
 
 class CalibrationCoefficientSelector:
     """Helper for choosing coefficients out of multiple options.
 
     Example: Three sets of coefficients are available (nominal, meirink, gsics).
-    Calibrate channel 1 with "meirink" and channels 2/3 with "gsics".
+    A user wants to calibrate
+      - channel 1 with "meirink"
+      - channels 2/3 with "gsics"
+      - channel 4 with custom coefficients
+      - remaining channels with nominal coefficients
 
-    1. Setup
+    1. Define coefficients
 
     .. code-block:: python
 
@@ -575,6 +570,8 @@ class CalibrationCoefficientSelector:
                 "ch1": "nominal_ch1",
                 "ch2": "nominal_ch2",
                 "ch3": "nominal_ch3"
+                "ch4": "nominal_ch4"
+                "ch5": "nominal_ch5"
             },
             "meirink": {
                 "ch1": "meirink_ch1",
@@ -584,28 +581,33 @@ class CalibrationCoefficientSelector:
                 # ch3 coefficients are missing
             }
         }
-        modes = {
-            "meirink": ["ch1"],
-            "gsics": ["ch2", "ch3"]
+        wishlist = {
+            "ch1": "meirink",
+            ("ch2", "ch3"): "gsics"
+            "ch4": {"mygain": 123},
         }
 
     2. Query:
 
     .. code-block:: python
 
-        >>> s = CalibrationCoefficientSelector(coefs, modes)
+        >>> s = CalibrationCoefficientSelector(coefs, wishlist)
         >>> s.get_coefs("ch1")
         "meirink_ch1"
         >>> s.get_coefs("ch2")
         "gsics_ch2"
         >>> s.get_coefs("ch3")
         KeyError: 'No gsics calibration coefficients for ch3'
+        >>> s.get_coefs("ch4")
+        {"mygain": 123}
+        >>> s.get_coefs("ch5")
+        "nominal_ch5
 
     3. Fallback to nominal for ch3:
 
     .. code-block:: python
 
-        >>> s = CalibrationCoefficientSelector(coefs, modes, fallback="nominal")
+        >>> s = CalibrationCoefficientSelector(coefs, wishlist, fallback="nominal")
         >>> s.get_coefs("ch3")
         "nominal_ch3"
     """
@@ -617,13 +619,14 @@ class CalibrationCoefficientSelector:
             coefs (dict): One set of calibration coefficients for each
                 calibration mode. The actual coefficients can be of any type
                 (reader-specific).
-            modes (str or dict): Desired calibration modes. Use a dictionary
-                `{mode: channels}` to specify multiple modes. Use a string to
-                 specify one mode for all channels.
-            default (str): Default coefficients to be used if no mode has been
-                specified. Default: "nominal".
+            wishlist (str or dict): Desired calibration coefficients. Use a
+                dictionary to specify channel-specific coefficients. Use a
+                string to specify one mode for all channels.
+            default (str): Default coefficients to be used if nothing was
+                specified in the wishlist. Default: "nominal".
             fallback (str): Fallback coefficients if the desired coefficients
-                are not available for some channel.
+                are not available for some channel. By default, an exception is
+                raised if coefficients are missing.
         """
         if fallback and fallback not in coefs:
             raise KeyError("No fallback coefficients")
