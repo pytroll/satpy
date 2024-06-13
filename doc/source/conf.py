@@ -24,9 +24,15 @@ import sys
 sys.path.append(os.path.abspath("../../"))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from reader_table import generate_reader_table  # noqa: E402
+from pyresample.area_config import (  # noqa: E402
+    _create_area_def_from_dict,
+    _read_yaml_area_file_content,
+    generate_area_def_rst_list,
+)
+from reader_table import generate_reader_table, rst_table_header, rst_table_row  # noqa: E402
 
 import satpy  # noqa: E402
+from satpy.resample import get_area_file  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -79,6 +85,26 @@ autoclass_content = "both"  # append class __init__ docstring to the class docst
 # auto generate reader table from reader config files
 with open("reader_table.rst", mode="w") as f:
     f.write(generate_reader_table())
+
+# create table from area definition yaml file
+area_file = get_area_file()[0]
+
+area_dict = _read_yaml_area_file_content(area_file)
+area_table = [rst_table_header("Area Definitions", header=["Name", "Description", "Projection"],
+                               widths="auto", class_name="area-table")]
+
+for aname, params in area_dict.items():
+    area = _create_area_def_from_dict(aname, params)
+    if not hasattr(area, "_repr_html_"):
+        continue
+
+    area_table.append(rst_table_row([f"`{aname}`_", area.description,
+                                     area.proj_dict.get("proj")]))
+
+with open("area_def_list.rst", mode="w") as f:
+    f.write("".join(area_table))
+    f.write("\n\n")
+    f.write(generate_area_def_rst_list(area_file))
 
 # -- General configuration -----------------------------------------------------
 
@@ -194,11 +220,13 @@ html_static_path = ["_static"]
 
 html_css_files = [
     "theme_overrides.css",  # override wide tables in RTD theme
-    "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.css"
 ]
 
 html_js_files = [
-    "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.js",
     "main.js",
 ]
 
