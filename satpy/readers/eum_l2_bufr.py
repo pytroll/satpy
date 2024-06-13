@@ -56,20 +56,20 @@ data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "
                     57: {"ssp": "E0095", "name": "MSG3"}, 70: {"ssp": "E0000", "name": "MSG4"},
                     71: {"ssp": "E0000", "name": "MTGi1"}}
 
-# sensor resolution (pixel size in m)
+# Sensor resolution (pixel size in m) used to deermine product segment sizes
 resolution_dict = {"fci": 2000, "seviri": 3000}
 
+# Set this environment variable to get consistent array sizes from eccodes. This fixes the cases
+# where all values in the expected array are the same (in particular fill values) which causes
+# eccodes to encode them and return them as a single value
+os.environ["ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS"] = "1"
 
-# List of variables that are returned by eccodes as array, but we want as single value
+# List of variables that are now returned by eccodes as array, but that we want as single value
 deprecate_to_single_value = ["satelliteIdentifier"]
 
 
-# Need to set this in order to get consistent array sizes from eccodes
-os.environ["ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS"] = "1"
-
-
 class EumetsatL2BufrFileHandler(BaseFileHandler):
-    """File handler for EUMETSAT SEVIRI and FCI L2 BUFR products.
+    """File handler for EUMETSAT Central Facility SEVIRI and FCI L2 BUFR products.
 
     **Loading data with AreaDefinition**
 
@@ -107,7 +107,6 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             self.bufr_header = self._read_mpef_header()
         else:
             # Product was retrieved from the EUMETSAT Data Center
-            # get all attributes in one call
             attr = self.get_attributes(["typicalDate", "typicalTime", "satelliteIdentifier"])
             timeStr = attr["typicalDate"]+attr["typicalTime"]
             sc_id = int(attr["satelliteIdentifier"])
@@ -151,7 +150,6 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
     @property
     def ssp_lon(self):
         """Return subsatellite point longitude."""
-        # e.g. E0415
         ssp_lon = self.bufr_header["RectificationLongitude"]
         return float(ssp_lon[1:])/10.
 
@@ -170,15 +168,15 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
     def get_attributes(self, keys):
         """Get BUFR attributes."""
         # This function is inefficient as it is looping through the entire
-        # file to get 1 attribute. It causes a problem though if you break
-        # from the file early - dont know why but investigating - fix later
+        # file to get a list of attributes. It causes a problem though if you break
+        # from the file early - dont know why but investigating - fix later.
         fh = open(self.filename, "rb")
 
-        # initialize output
-        attr = dict()
-
+        # Initialize output
+        attrs = dict()
+        
         while True:
-            # get handle for message
+            # Get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
             if bufr is None:
                 break
@@ -186,21 +184,21 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             for k in keys:
                 try:
                     if k in deprecate_to_single_value:
-                        # Extract satelliteIdentifier single value. The satelliteIdentifier attribute is returned as an
-                        # array becasue the environment variable ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS is set to 1.
+                        # With ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS set to 1 all values, including scalars, are
+                        # returned as arrays. Hence, we extract the single value here.
                         value = ec.codes_get_array(bufr, k)[0]
                     else:
                         value = ec.codes_get(bufr, k)
-                    attr[k] = value
+                    attrs[k] = value
 
                 except BaseException:
-                    attr[k] = None
+                    attrs[k] = None
                     logging.warning(f"Failed to read key {k} from message")
 
             ec.codes_release(bufr)
 
         fh.close()
-        return attr
+        return attrs
 
     def get_array(self, key):
         """Get all data from file for the given BUFR key."""
@@ -216,10 +214,6 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
                 if not ec.codes_is_defined(bufr, key):
                     logging.warning(f"Key: {key} does not exist in BUFR file")
                     return None
-
-                # Introduced fix for cases where all values in the expected array are the same
-                # (in particular fill values) which causes the eccodes to encode them and return
-                # them as a single value
 
                 # if is the first message initialise our final array
                 if (msgCount == 0):
@@ -248,13 +242,13 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
         if self.with_adef and "resolution" in dataset_id:
             xarr = self.get_dataset_with_area_def(arr, dataset_id)
-            # coordinates are not relevant when returning data with an AreaDefinition
+            # Coordinates are not relevant when returning data with an AreaDefinition
             if "coordinates" in dataset_info.keys():
                 del dataset_info["coordinates"]
         else:
             if self.with_adef:
-                logging.warning("Trying to use area definition with a dataset without resolution. "
-                                "The keyword will be ignored")
+                logging.warning("Trying to use `with_area_definition=True` for a dataset without resolution. "
+                                "This is not supported and the keyword will be ignored.")
             xarr = xr.DataArray(arr, dims=["y"])
 
         if "fill_value" in dataset_info:
