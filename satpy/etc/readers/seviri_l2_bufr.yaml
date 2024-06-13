@@ -1081,7 +1081,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "\u00B0C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1094,7 +1094,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "\u00B0C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1107,7 +1107,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "\u00B0C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1120,7 +1120,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1133,7 +1133,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1146,7 +1146,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1159,7 +1159,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "\u00B0C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1185,7 +1185,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
