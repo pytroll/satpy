@@ -702,7 +702,7 @@ def _make_coefs(coefs, mode):
     return {"coefs": coefs, "mode": mode}
 
 
-def get_distributed_friendly_dask_array(manager, varname):
+def get_distributed_friendly_dask_array(manager, varname, chunks=None):
     """Construct a dask array from a variable for dask distributed.
 
     When we construct a dask array using da.array and use that to create an
@@ -711,22 +711,28 @@ def get_distributed_friendly_dask_array(manager, varname):
     is in use.  To circumvent this problem, xarray provides the
     CachingFileManager.  See GH#2815 for more information.
 
+    Should have at least one dimension.
+
+    Example::
+
+        >>> import NetCDF4
+        >>> from xarray.backends import CachingFileManager
+        >>> cfm = CachingFileManager(NetCDF4.Dataset, fn, mode="r")
+        >>> arr = get_distributed_friendly_dask_array(cfm, "my_var")
+
     Args:
         manager (xarray.backends.CachingFileManager):
             Instance of xarray.backends.CachingFileManager encapsulating the
             dataset to be read.
         varname (str):
             Name of the variable.
+        chunks (tuple or None, optional):
+            Chunks to use when creating the dask array.
     """
-    def get_chunk(block_info):
+    def get_chunk():
         with manager.acquire_context() as nc:
-            loc = block_info[None]["array-location"][0]
-            rv = nc[varname][loc[0]:loc[1]]
-        return rv
+            return nc[varname][:]
 
     return da.map_blocks(
-            get_chunk,
-            chunks=(10,),
-            meta=np.array([]),
-            dtype="i4")
-
+            chunks=chunks,
+            meta=np.array([]))
