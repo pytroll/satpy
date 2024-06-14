@@ -59,11 +59,6 @@ data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "
 # Sensor resolution (pixel size in m) used to deermine product segment sizes
 resolution_dict = {"fci": 2000, "seviri": 3000}
 
-# Set this environment variable to get consistent array sizes from eccodes. This fixes the cases
-# where all values in the expected array are the same (in particular fill values) which causes
-# eccodes to encode them and return them as a single value
-os.environ["ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS"] = "1"
-
 # List of variables that are now returned by eccodes as array, but that we want as single value
 deprecate_to_single_value = ["satelliteIdentifier"]
 
@@ -102,6 +97,11 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
                                                         filename_info,
                                                         filetype_info)
 
+        # Set this environment variable to get consistent array sizes from eccodes. This fixes the cases
+        # where all values in the expected array are the same (in particular fill values) which causes
+        # eccodes to encode them and return them as a single value
+        os.environ["ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS"] = "1"
+
         if ("server" in filename_info):
             # EUMETSAT Offline Bufr product
             self.bufr_header = self._read_mpef_header()
@@ -121,6 +121,13 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
         self.filetype = filetype_info["file_type"]
         self.with_adef = with_area_definition
+
+    def __del__(self):
+        """Delete the instance and environment variable."""
+        try:
+            del os.environ["ECCODES_BUFR_MULTI_ELEMENT_CONSTANT_ARRAYS"]
+        except KeyError:
+            pass
 
     @property
     def start_time(self):
