@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for SEADAS L2 products.
 
 This reader currently only supports MODIS and VIIRS Chlorophyll A from SEADAS.
@@ -28,7 +29,7 @@ warned about the quality of the result.
 
 """
 
-from datetime import datetime
+import datetime as dt
 
 from .hdf4_utils import HDF4FileHandler
 from .netcdf_utils import NetCDF4FileHandler
@@ -57,22 +58,22 @@ class _SEADASL2Base:
 
     def _platform_name(self):
         platform = self[self.platform_attr_name]
-        platform_dict = {'NPP': 'Suomi-NPP',
-                         'JPSS-1': 'NOAA-20',
-                         'JPSS-2': 'NOAA-21'}
+        platform_dict = {"NPP": "Suomi-NPP",
+                         "JPSS-1": "NOAA-20",
+                         "JPSS-2": "NOAA-21"}
         return platform_dict.get(platform, platform)
 
     @property
     def start_time(self):
         """Get the starting observation time of this file's data."""
         start_time = self[self.start_time_attr_name]
-        return datetime.strptime(start_time[:-3], self.time_format)
+        return dt.datetime.strptime(start_time[:-3], self.time_format)
 
     @property
     def end_time(self):
         """Get the ending observation time of this file's data."""
         end_time = self[self.end_time_attr_name]
-        return datetime.strptime(end_time[:-3], self.time_format)
+        return dt.datetime.strptime(end_time[:-3], self.time_format)
 
     @property
     def sensor_names(self):

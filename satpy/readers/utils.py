@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helper functions for satpy readers."""
+from __future__ import annotations
 
 import bz2
 import logging
@@ -33,9 +34,12 @@ import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy import CHUNK_SIZE
+from satpy import config
+from satpy.readers import FSFile
+from satpy.utils import get_legacy_chunk_size
 
 LOGGER = logging.getLogger(__name__)
+CHUNK_SIZE = get_legacy_chunk_size()
 
 
 def np2str(value):
@@ -45,12 +49,12 @@ def np2str(value):
         value (ndarray): scalar or 1-element numpy array to convert
 
     Raises:
-        ValueError: if value is array larger than 1-element or it is not of
+        ValueError: if value is array larger than 1-element, or it is not of
                     type `numpy.string_` or it is not a numpy array
 
     """
-    if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, (np.str_, np.string_, np.object_)) \
+    if hasattr(value, "dtype") and \
+            issubclass(value.dtype.type, (np.str_, np.bytes_, np.object_)) \
             and value.size == 1:
         value = value.item()
         if not isinstance(value, str):
@@ -64,13 +68,13 @@ def np2str(value):
 
 def _get_geostationary_height(geos_area):
     params = geos_area.crs.coordinate_operation.params
-    h_param = [p for p in params if 'satellite height' in p.name.lower()][0]
+    h_param = [p for p in params if "satellite height" in p.name.lower()][0]
     return h_param.value
 
 
 def _get_geostationary_reference_longitude(geos_area):
     params = geos_area.crs.coordinate_operation.params
-    lon_0_params = [p for p in params if 'longitude of natural origin' in p.name.lower()]
+    lon_0_params = [p for p in params if "longitude of natural origin" in p.name.lower()]
     if not lon_0_params:
         return 0
     elif len(lon_0_params) != 1:
@@ -198,7 +202,25 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename, prefix=None):
+def unzip_file(filename: str | FSFile, prefix=None):
+    """Unzip the local/remote file ending with 'bz2'.
+
+    Args:
+        filename: The local/remote file to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if isinstance(filename, str):
+        return _unzip_local_file(filename, prefix=prefix)
+    elif isinstance(filename, FSFile):
+        return _unzip_FSFile(filename, prefix=prefix)
+
+
+def _unzip_local_file(filename: str, prefix=None):
     """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
 
     Args:
@@ -210,56 +232,96 @@ def unzip_file(filename, prefix=None):
         Temporary filename path for decompressed file or None.
 
     """
-    if os.fspath(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
-        LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # try pbzip2
-        pbzip = which('pbzip2')
-        # Run external pbzip2
-        if pbzip is not None:
-            n_thr = os.environ.get('OMP_NUM_THREADS')
-            if n_thr:
-                runner = [pbzip,
-                          '-dc',
-                          '-p'+str(n_thr),
-                          filename]
-            else:
-                runner = [pbzip,
-                          '-dc',
-                          filename]
-            p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
-            stdout = BytesIO(p.communicate()[0])
-            status = p.returncode
-            if status != 0:
-                raise IOError("pbzip2 error '%s', failed, status=%d"
-                              % (filename, status))
-            with closing(os.fdopen(fdn, 'wb')) as ofpt:
-                try:
-                    stdout.seek(0)
-                    shutil.copyfileobj(stdout, ofpt)
-                except IOError:
-                    import traceback
-                    traceback.print_exc()
-                    LOGGER.info("Failed to read bzipped file %s",
-                                str(filename))
-                    os.remove(tmpfilepath)
-                    raise
-            return tmpfilepath
+    if not os.fspath(filename).endswith("bz2"):
+        return None
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                        dir=config["tmp_dir"])
+    LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
+    # check pbzip2 status
+    pbzip2 = _unzip_with_pbzip(filename, tmpfilepath, fdn)
+    if pbzip2 is not None:
+        return pbzip2
+    # Otherwise, fall back to the original method bz2
+    content = _unzip_with_bz2(filename, tmpfilepath)
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
 
-        # Otherwise, fall back to the original method
-        bz2file = bz2.BZ2File(filename)
-        with closing(os.fdopen(fdn, 'wb')) as ofpt:
-            try:
-                ofpt.write(bz2file.read())
-            except IOError:
-                import traceback
-                traceback.print_exc()
-                LOGGER.info("Failed to read bzipped file %s", str(filename))
-                os.remove(tmpfilepath)
-                return None
-        return tmpfilepath
 
-    return None
+def _unzip_with_pbzip(filename, tmpfilepath, fdn):
+    # try pbzip2
+    pbzip = which("pbzip2")
+    if pbzip is None:
+        return None
+    # Run external pbzip2
+    n_thr = os.environ.get("OMP_NUM_THREADS")
+    if n_thr:
+        runner = [pbzip,
+                  "-dc",
+                  "-p"+str(n_thr),
+                  filename]
+    else:
+        runner = [pbzip,
+                  "-dc",
+                  filename]
+    p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
+    stdout = BytesIO(p.communicate()[0])
+    status = p.returncode
+    if status != 0:
+        raise IOError("pbzip2 error '%s', failed, status=%d"
+                      % (filename, status))
+    with closing(os.fdopen(fdn, "wb")) as ofpt:
+        try:
+            stdout.seek(0)
+            shutil.copyfileobj(stdout, ofpt)
+        except IOError:
+            LOGGER.debug("Failed to read bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return tmpfilepath
+
+
+def _unzip_with_bz2(filename, tmpfilepath):
+    with bz2.BZ2File(filename) as bz2file:
+        try:
+            content = bz2file.read()
+        except IOError:
+            LOGGER.debug("Failed to unzip bzipped file %s", str(filename))
+            os.remove(tmpfilepath)
+            raise
+    return content
+
+
+def _write_uncompressed_file(content, fdn, filename, tmpfilepath):
+    with closing(os.fdopen(fdn, "wb")) as ofpt:
+        try:
+            ofpt.write(content)
+        except IOError:
+            LOGGER.debug("Failed to write uncompressed file %s", str(filename))
+            os.remove(tmpfilepath)
+            return None
+    return tmpfilepath
+
+
+def _unzip_FSFile(filename: FSFile, prefix=None):
+    """Open and Unzip remote FSFile ending with 'bz2'.
+
+    Args:
+        filename: The FSFile to unzip.
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
+                                        dir=config["tmp_dir"])
+    # open file
+    content = filename.open().read()
+    # unzip file if zipped (header start with hex 425A68)
+    if content.startswith(bytes.fromhex("425A68")):
+        content = bz2.decompress(content)
+
+    return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
 
 
 @contextmanager
@@ -286,7 +348,7 @@ def generic_open(filename, *args, **kwargs):
 
     Returns a file-like object.
     """
-    if os.fspath(filename).endswith('.bz2'):
+    if os.fspath(filename).endswith(".bz2"):
         fp = bz2.open(filename, *args, **kwargs)
     else:
         try:
@@ -329,9 +391,10 @@ def get_earth_radius(lon, lat, a, b):
         Earth Radius (meters)
 
     """
-    geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
-    latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-    x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
+    geocent = pyproj.CRS.from_dict({"proj": "geocent", "a": a, "b": b, "units": "m"})
+    latlong = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b, "units": "m"})
+    transformer = pyproj.Transformer.from_crs(latlong, geocent)
+    x, y, z = transformer.transform(lon, lat, 0.0)
     return np.sqrt(x**2 + y**2 + z**2)
 
 
@@ -350,16 +413,18 @@ def get_user_calibration_factors(band_name, correction_dict):
     """Retrieve radiance correction factors from user-supplied dict."""
     if band_name in correction_dict:
         try:
-            slope = correction_dict[band_name]['slope']
-            offset = correction_dict[band_name]['offset']
+            slope = correction_dict[band_name]["slope"]
+            offset = correction_dict[band_name]["offset"]
         except KeyError:
             raise KeyError("Incorrect correction factor dictionary. You must "
                            "supply 'slope' and 'offset' keys.")
     else:
         # If coefficients not present, warn user and use slope=1, offset=0
-        warnings.warn("WARNING: You have selected radiance correction but "
-                      " have not supplied coefficients for channel " +
-                      band_name)
+        warnings.warn(
+            "WARNING: You have selected radiance correction but "
+            " have not supplied coefficients for channel " + band_name,
+            stacklevel=2
+        )
         return 1., 0.
 
     return slope, offset
@@ -375,13 +440,13 @@ def get_array_date(scn_data, utc_date=None):
     """Get start time from a channel data array."""
     if utc_date is None:
         try:
-            utc_date = scn_data.attrs['start_time']
+            utc_date = scn_data.attrs["start_time"]
         except KeyError:
             try:
-                utc_date = scn_data.attrs['scheduled_time']
+                utc_date = scn_data.attrs["scheduled_time"]
             except KeyError:
-                raise KeyError('Scene has no start_time '
-                               'or scheduled_time attribute.')
+                raise KeyError("Scene has no start_time "
+                               "or scheduled_time attribute.")
     return utc_date
 
 
@@ -391,10 +456,10 @@ def apply_earthsun_distance_correction(reflectance, utc_date=None):
     utc_date = get_array_date(reflectance, utc_date)
     sun_earth_dist = sun_earth_distance_correction(utc_date)
 
-    reflectance.attrs['sun_earth_distance_correction_applied'] = True
-    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    reflectance.attrs["sun_earth_distance_correction_applied"] = True
+    reflectance.attrs["sun_earth_distance_correction_factor"] = sun_earth_dist
     with xr.set_options(keep_attrs=True):
-        reflectance = reflectance * sun_earth_dist * sun_earth_dist
+        reflectance = reflectance * reflectance.dtype.type(sun_earth_dist * sun_earth_dist)
     return reflectance
 
 
@@ -404,8 +469,8 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     utc_date = get_array_date(reflectance, utc_date)
     sun_earth_dist = sun_earth_distance_correction(utc_date)
 
-    reflectance.attrs['sun_earth_distance_correction_applied'] = False
-    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    reflectance.attrs["sun_earth_distance_correction_applied"] = False
+    reflectance.attrs["sun_earth_distance_correction_factor"] = sun_earth_dist
     with xr.set_options(keep_attrs=True):
-        reflectance = reflectance / (sun_earth_dist * sun_earth_dist)
+        reflectance = reflectance / reflectance.dtype.type(sun_earth_dist * sun_earth_dist)
     return reflectance

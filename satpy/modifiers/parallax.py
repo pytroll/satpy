@@ -265,7 +265,7 @@ class ParallaxCorrection:
         self.debug_mode = debug_mode
         self.diagnostics = {}
 
-    def __call__(self, cth_dataset, **kwargs):
+    def __call__(self, cth_dataset, **kwargs):  # noqa: D417
         """Apply parallax correction to dataset.
 
         Args:
@@ -388,8 +388,10 @@ class ParallaxCorrection:
         by ``cth_dataset``, raise a `MissingHeightError`.
         """
         warnings.warn(
-            "Overlap checking not impelemented. Waiting for "
-            "fix for https://github.com/pytroll/pyresample/issues/329")
+            "Overlap checking not implemented. Waiting for "
+            "fix for https://github.com/pytroll/pyresample/issues/329",
+            stacklevel=3
+        )
 
     def _get_corrected_lon_lat(self, base_lon, base_lat, shifted_area):
         """Calculate the corrected lon/lat based from the shifted area.

@@ -10,7 +10,7 @@ reader:
 
 file_types:
   mersi2_l1b_1000:
-    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF
@@ -23,7 +23,7 @@ file_types:
       - '{filename_mda}_MERSI_1000M_L1B.{ext:3s}'
 
   mersi2_l1b_250:
-    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF
@@ -34,7 +34,7 @@ file_types:
       - '{filename_mda}_MERSI_0250M_L1B.{ext:3s}'
 
   mersi2_l1b_1000_geo:
-    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF
@@ -47,7 +47,7 @@ file_types:
       - '{filename_mda}_MERSI_GEO1K_L1B.{ext:3s}'
 
   mersi2_l1b_250_geo:
-    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF
@@ -468,8 +468,6 @@ datasets:
       counts:
         units: "1"
         standard_name: counts
-
-  # Not sure how to get radiance for BT channels
   '20':
     name: '20'
     wavelength: [3.710, 3.800, 3.890]
@@ -484,6 +482,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -501,6 +502,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -518,6 +522,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -535,6 +542,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -558,6 +568,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
@@ -581,6 +594,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts

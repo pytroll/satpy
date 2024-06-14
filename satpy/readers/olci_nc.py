@@ -40,24 +40,28 @@ References:
 
 
 import logging
-from contextlib import suppress
 from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import angle2xyz, xyz2angle
+from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
+
+DEFAULT_MASK_ITEMS = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
 
 logger = logging.getLogger(__name__)
 
-PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
-                  'S3B': 'Sentinel-3B',
-                  'ENV': 'Environmental Satellite'}
+CHUNK_SIZE = get_legacy_chunk_size()
+
+PLATFORM_NAMES = {"S3A": "Sentinel-3A",
+                  "S3B": "Sentinel-3B",
+                  "ENV": "Environmental Satellite"}
 
 
 class BitFlags:
@@ -66,17 +70,27 @@ class BitFlags:
     def __init__(self, value, flag_list=None):
         """Init the flags."""
         self._value = value
-        flag_list = flag_list or ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                                  'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                                  'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                                  'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                                  'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                                  'Extra_1',
-                                  'KDM_FAIL',
-                                  'Extra_2',
-                                  'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                                  'LOWRW', 'HIGHRW']
-        self.meaning = {f: i for i, f in enumerate(flag_list)}
+
+        if flag_list is None:
+            try:
+                meanings = value.attrs["flag_meanings"].split()
+                masks = value.attrs["flag_masks"]
+            except (AttributeError, KeyError):
+                meanings = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
+                            "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT",
+                            "HISOLZEN", "SATURATED", "MEGLINT", "HIGHGLINT",
+                            "WHITECAPS", "ADJAC", "WV_FAIL", "PAR_FAIL",
+                            "AC_FAIL", "OC4ME_FAIL", "OCNN_FAIL",
+                            "Extra_1",
+                            "KDM_FAIL",
+                            "Extra_2",
+                            "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON", "WHITE_SCATT",
+                            "LOWRW", "HIGHRW"]
+                self.meaning = {meaning: mask for mask, meaning in enumerate(meanings)}
+            else:
+                self.meaning = {meaning: int(np.log2(mask)) for meaning, mask in zip(meanings, masks)}
+        else:
+            self.meaning = {meaning: mask for mask, meaning in enumerate(flag_list)}
 
     def __getitem__(self, item):
         """Get the item."""
@@ -100,16 +114,15 @@ class NCOLCIBase(BaseFileHandler):
     cols_name = "columns"
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+                 engine=None, **kwargs):
         """Init the olci reader base."""
         super().__init__(filename, filename_info, filetype_info)
         self._engine = engine
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
+        self._start_time = filename_info["start_time"]
+        self._end_time = filename_info["end_time"]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
-        self.sensor = 'olci'
-        self.open_file = None
+        self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
+        self.sensor = "olci"
 
     @cached_property
     def nc(self):
@@ -121,7 +134,7 @@ class NCOLCIBase(BaseFileHandler):
                                   engine=self._engine,
                                   chunks={self.cols_name: CHUNK_SIZE,
                                           self.rows_name: CHUNK_SIZE})
-        return dataset.rename({self.cols_name: 'x', self.rows_name: 'y'})
+        return dataset.rename({self.cols_name: "x", self.rows_name: "y"})
 
     @property
     def start_time(self):
@@ -135,15 +148,10 @@ class NCOLCIBase(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key['name'])
-        variable = self.nc[key['name']]
+        logger.debug("Reading %s.", key["name"])
+        variable = self.nc[key["name"]]
 
         return variable
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError, TypeError):
-            self.nc.close()
 
 
 class NCOLCICal(NCOLCIBase):
@@ -160,9 +168,9 @@ class NCOLCIChannelBase(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
-        self.channel = filename_info.get('dataset_name')
-        self.reflectance_prefix = 'Oa'
-        self.reflectance_suffix = '_reflectance'
+        self.channel = filename_info.get("dataset_name")
+        self.reflectance_prefix = "Oa"
+        self.reflectance_suffix = "_reflectance"
 
 
 class NCOLCI1B(NCOLCIChannelBase):
@@ -180,28 +188,28 @@ class NCOLCI1B(NCOLCIChannelBase):
 
     def _get_solar_flux(self, band):
         """Get the solar flux for the band."""
-        solar_flux = self.cal['solar_flux'].isel(bands=band).values
-        d_index = self.cal['detector_index'].fillna(0).astype(int)
+        solar_flux = self.cal["solar_flux"].isel(bands=band).values
+        d_index = self.cal["detector_index"].fillna(0).astype(int)
 
         return da.map_blocks(self._get_items, d_index.data,
                              solar_flux=solar_flux, dtype=solar_flux.dtype)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key['name']:
+        if self.channel != key["name"]:
             return
-        logger.debug('Reading %s.', key['name'])
+        logger.debug("Reading %s.", key["name"])
 
-        radiances = self.nc[self.channel + '_radiance']
+        radiances = self.nc[self.channel + "_radiance"]
 
-        if key['calibration'] == 'reflectance':
-            idx = int(key['name'][2:]) - 1
+        if key["calibration"] == "reflectance":
+            idx = int(key["name"][2:]) - 1
             sflux = self._get_solar_flux(idx)
             radiances = radiances / sflux * np.pi * 100
-            radiances.attrs['units'] = '%'
+            radiances.attrs["units"] = "%"
 
-        radiances.attrs['platform_name'] = self.platform_name
-        radiances.attrs['sensor'] = self.sensor
+        radiances.attrs["platform_name"] = self.platform_name
+        radiances.attrs["sensor"] = self.sensor
         radiances.attrs.update(key.to_dict())
         return radiances
 
@@ -209,32 +217,47 @@ class NCOLCI1B(NCOLCIChannelBase):
 class NCOLCI2(NCOLCIChannelBase):
     """File handler for OLCI l2."""
 
+    def __init__(self, filename, filename_info, filetype_info, engine=None, unlog=False, mask_items=None):
+        """Init the file handler."""
+        super().__init__(filename, filename_info, filetype_info, engine)
+        self.unlog = unlog
+        self.mask_items = mask_items
+
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel is not None and self.channel != key['name']:
+        if self.channel is not None and self.channel != key["name"]:
             return
-        logger.debug('Reading %s.', key['name'])
+        logger.debug("Reading %s.", key["name"])
         if self.channel is not None and self.channel.startswith(self.reflectance_prefix):
             dataset = self.nc[self.channel + self.reflectance_suffix]
         else:
-            dataset = self.nc[info['nc_key']]
+            dataset = self.nc[info["nc_key"]]
 
-        if key['name'] == 'wqsf':
-            dataset.attrs['_FillValue'] = 1
-        elif key['name'] == 'mask':
-            dataset = self.getbitmask(dataset)
-
-        dataset.attrs['platform_name'] = self.platform_name
-        dataset.attrs['sensor'] = self.sensor
+        if key["name"] == "wqsf":
+            dataset.attrs["_FillValue"] = 1
+        elif key["name"] == "mask":
+            dataset = self.getbitmask(dataset, self.mask_items)
+        dataset.attrs["platform_name"] = self.platform_name
+        dataset.attrs["sensor"] = self.sensor
         dataset.attrs.update(key.to_dict())
+        if self.unlog:
+            dataset = self.delog(dataset)
+
         return dataset
+
+    def delog(self, data_array):
+        """Remove log10 from the units and values."""
+        units = data_array.attrs["units"]
+
+        if units.startswith("lg("):
+            data_array = 10 ** data_array
+            data_array.attrs["units"] = units.split("lg(re ")[1].strip(")")
+        return data_array
 
     def getbitmask(self, wqsf, items=None):
         """Get the bitmask."""
         if items is None:
-            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+            items = DEFAULT_MASK_ITEMS
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
@@ -246,11 +269,11 @@ class NCOLCILowResData(NCOLCIBase):
     cols_name = "tie_columns"
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+                 engine=None, **kwargs):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
-        self.l_step = self.nc.attrs['al_subsampling_factor']
-        self.c_step = self.nc.attrs['ac_subsampling_factor']
+        self.l_step = self.nc.attrs["al_subsampling_factor"]
+        self.c_step = self.nc.attrs["ac_subsampling_factor"]
 
     def _do_interpolate(self, data):
 
@@ -274,7 +297,7 @@ class NCOLCILowResData(NCOLCIBase):
         int_data = satint.interpolate()
 
         return [xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                             dims=['y', 'x']) for x in int_data]
+                             dims=["y", "x"]) for x in int_data]
 
     @property
     def _need_interpolation(self):
@@ -284,37 +307,37 @@ class NCOLCILowResData(NCOLCIBase):
 class NCOLCIAngles(NCOLCILowResData):
     """File handler for the OLCI angles."""
 
-    datasets = {'satellite_azimuth_angle': 'OAA',
-                'satellite_zenith_angle': 'OZA',
-                'solar_azimuth_angle': 'SAA',
-                'solar_zenith_angle': 'SZA'}
+    datasets = {"satellite_azimuth_angle": "OAA",
+                "satellite_zenith_angle": "OZA",
+                "solar_azimuth_angle": "SAA",
+                "solar_zenith_angle": "SZA"}
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key['name'] not in self.datasets:
+        if key["name"] not in self.datasets:
             return
 
-        logger.debug('Reading %s.', key['name'])
+        logger.debug("Reading %s.", key["name"])
 
         if self._need_interpolation:
-            if key['name'].startswith('satellite'):
+            if key["name"].startswith("satellite"):
                 azi, zen = self.satellite_angles
-            elif key['name'].startswith('solar'):
+            elif key["name"].startswith("solar"):
                 azi, zen = self.sun_angles
             else:
-                raise NotImplementedError("Don't know how to read " + key['name'])
+                raise NotImplementedError("Don't know how to read " + key["name"])
 
-            if 'zenith' in key['name']:
+            if "zenith" in key["name"]:
                 values = zen
-            elif 'azimuth' in key['name']:
+            elif "azimuth" in key["name"]:
                 values = azi
             else:
-                raise NotImplementedError("Don't know how to read " + key['name'])
+                raise NotImplementedError("Don't know how to read " + key["name"])
         else:
-            values = self.nc[self.datasets[key['name']]]
+            values = self.nc[self.datasets[key["name"]]]
 
-        values.attrs['platform_name'] = self.platform_name
-        values.attrs['sensor'] = self.sensor
+        values.attrs["platform_name"] = self.platform_name
+        values.attrs["sensor"] = self.sensor
 
         values.attrs.update(key.to_dict())
         return values
@@ -322,16 +345,16 @@ class NCOLCIAngles(NCOLCILowResData):
     @cached_property
     def sun_angles(self):
         """Return the sun angles."""
-        zen = self.nc[self.datasets['solar_zenith_angle']]
-        azi = self.nc[self.datasets['solar_azimuth_angle']]
+        zen = self.nc[self.datasets["solar_zenith_angle"]]
+        azi = self.nc[self.datasets["solar_azimuth_angle"]]
         azi, zen = self._interpolate_angles(azi, zen)
         return azi, zen
 
     @cached_property
     def satellite_angles(self):
         """Return the satellite angles."""
-        zen = self.nc[self.datasets['satellite_zenith_angle']]
-        azi = self.nc[self.datasets['satellite_azimuth_angle']]
+        zen = self.nc[self.datasets["satellite_zenith_angle"]]
+        azi = self.nc[self.datasets["satellite_azimuth_angle"]]
         azi, zen = self._interpolate_angles(azi, zen)
         return azi, zen
 
@@ -349,7 +372,7 @@ class NCOLCIAngles(NCOLCILowResData):
 class NCOLCIMeteo(NCOLCILowResData):
     """File handler for the OLCI meteo data."""
 
-    datasets = ['humidity', 'sea_level_pressure', 'total_columnar_water_vapour', 'total_ozone']
+    datasets = ["humidity", "sea_level_pressure", "total_columnar_water_vapour", "total_ozone"]
 
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
@@ -364,27 +387,27 @@ class NCOLCIMeteo(NCOLCILowResData):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key['name'] not in self.datasets:
+        if key["name"] not in self.datasets:
             return
 
-        logger.debug('Reading %s.', key['name'])
+        logger.debug("Reading %s.", key["name"])
 
-        if self._need_interpolation and self.cache.get(key['name']) is None:
+        if self._need_interpolation and self.cache.get(key["name"]) is None:
 
-            data = self.nc[key['name']]
+            data = self.nc[key["name"]]
 
             values, = self._do_interpolate(data)
             values.attrs = data.attrs
 
-            self.cache[key['name']] = values
+            self.cache[key["name"]] = values
 
-        elif key['name'] in self.cache:
-            values = self.cache[key['name']]
+        elif key["name"] in self.cache:
+            values = self.cache[key["name"]]
         else:
-            values = self.nc[key['name']]
+            values = self.nc[key["name"]]
 
-        values.attrs['platform_name'] = self.platform_name
-        values.attrs['sensor'] = self.sensor
+        values.attrs["platform_name"] = self.platform_name
+        values.attrs["sensor"] = self.sensor
 
         values.attrs.update(key.to_dict())
         return values

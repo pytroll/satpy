@@ -40,11 +40,19 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
-.. versionchanged:: 0.20.0
-
-    Dropped Python 2 support.
-
 .. _project: http://github.com/pytroll/satpy
+
+
+Getting Help
+============
+
+Having trouble installing or using Satpy? Feel free to ask questions at
+any of the contact methods for the PyTroll group
+`here <https://pytroll.github.io/#getting-in-touch>`_ or file an issue on
+`Satpy's GitHub page <https://github.com/pytroll/satpy/issues>`_.
+
+Documentation
+=============
 
 .. toctree::
     :maxdepth: 2
@@ -55,12 +63,12 @@ the base Satpy installation.
     data_download
     examples/index
     quickstart
-    readers
+    reading
     remote_reading
     composites
     resample
     enhancements
-    writers
+    writing
     multiscene
     dev_guide/index
 
@@ -76,6 +84,30 @@ the base Satpy installation.
 
 .. include:: reader_table.rst
 
+.. _Status Description:
+.. note::
+
+    Status description:
+
+    Defunct
+        Most likely the reader is not functional. If it is there is a good chance of
+        bugs and/or performance problems (e.g. not ported to dask/xarray yet). Future
+        development is unclear. Users are encouraged to contribute (see section
+        :doc:`dev_guide/CONTRIBUTING` and/or get help on Slack or by opening a Github issue).
+
+    Alpha
+        This denotes early development status. Reader is functional and implements some
+        or all of the nominal features. There might be bugs. Exactness of results is
+        not be guaranteed. Use at your own risk.
+
+    Beta
+        This denotes final developement status. Reader is functional and implements all
+        nominal features. Results should be dependable but there might be bugs. Users
+        are actively encouraged to test and report bugs.
+
+    Nominal
+        This denotes a finished status. Reader is functional and most likely no new
+        features will be introduced. It has been tested and there are no known bugs.
 
 Indices and tables
 ==================

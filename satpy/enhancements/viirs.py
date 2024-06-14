@@ -27,11 +27,11 @@ def water_detection(img, **kwargs):
     This modifies the image's data so the correct colors
     can be applied to it, and then palettizes the image.
     """
-    palette = kwargs['palettes']
-    palette['colors'] = tuple(map(tuple, palette['colors']))
+    palette = kwargs["palettes"]
+    palette["colors"] = tuple(map(tuple, palette["colors"]))
 
     _water_detection(img.data)
-    cm = Colormap(*palette['colors'])
+    cm = Colormap(*palette["colors"])
     img.palettize(cm)
 
 

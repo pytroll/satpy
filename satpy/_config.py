@@ -23,40 +23,37 @@ import glob
 import logging
 import os
 import sys
+import tempfile
 from collections import OrderedDict
-from importlib.metadata import entry_points
-from pathlib import Path
+from importlib.metadata import EntryPoint, entry_points
+from importlib.resources import files as impr_files
+from typing import Iterable
 
-try:
-    from importlib.resources import files as impr_files  # type: ignore
-except ImportError:
-    # Python 3.8
-    def impr_files(module_name: str) -> Path:
-        """Get path to module as a backport for Python 3.8."""
-        from importlib.resources import path as impr_path
-
-        with impr_path(module_name, "__init__.py") as pkg_init_path:
-            return pkg_init_path.parent
-
-import appdirs
 from donfig import Config
+from platformdirs import AppDirs
+
+from satpy._compat import cache
 
 LOG = logging.getLogger(__name__)
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 # FIXME: Use package_resources?
-PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
+PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, "etc")
 
-_satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
+_satpy_dirs = AppDirs(appname="satpy", appauthor="pytroll")
 _CONFIG_DEFAULTS = {
-    'cache_dir': _satpy_dirs.user_cache_dir,
-    'cache_lonlats': False,
-    'cache_sensor_angles': False,
-    'config_path': [],
-    'data_dir': _satpy_dirs.user_data_dir,
-    'demo_data_dir': '.',
-    'download_aux': True,
-    'sensor_angles_position_preference': 'actual',
+    "tmp_dir": tempfile.gettempdir(),
+    "cache_dir": _satpy_dirs.user_cache_dir,
+    "cache_lonlats": False,
+    "cache_sensor_angles": False,
+    "config_path": [],
+    "data_dir": _satpy_dirs.user_data_dir,
+    "demo_data_dir": ".",
+    "download_aux": True,
+    "sensor_angles_position_preference": "actual",
+    "readers": {
+        "clip_negative_radiances": False,
+    },
 }
 
 # Satpy main configuration object
@@ -71,17 +68,17 @@ _CONFIG_DEFAULTS = {
 # 5. ~/.satpy/satpy.yaml
 # 6. $SATPY_CONFIG_PATH/satpy.yaml if present (colon separated)
 _CONFIG_PATHS = [
-    os.path.join(PACKAGE_CONFIG_PATH, 'satpy.yaml'),
-    os.getenv('SATPY_ROOT_CONFIG', os.path.join('/etc', 'satpy', 'satpy.yaml')),
-    os.path.join(sys.prefix, 'etc', 'satpy', 'satpy.yaml'),
-    os.path.join(_satpy_dirs.user_config_dir, 'satpy.yaml'),
-    os.path.join(os.path.expanduser('~'), '.satpy', 'satpy.yaml'),
+    os.path.join(PACKAGE_CONFIG_PATH, "satpy.yaml"),
+    os.getenv("SATPY_ROOT_CONFIG", os.path.join("/etc", "satpy", "satpy.yaml")),
+    os.path.join(sys.prefix, "etc", "satpy", "satpy.yaml"),
+    os.path.join(_satpy_dirs.user_config_dir, "satpy.yaml"),
+    os.path.join(os.path.expanduser("~"), ".satpy", "satpy.yaml"),
 ]
 # The above files can also be directories. If directories all files
 # with `.yaml`., `.yml`, or `.json` extensions will be used.
 
-_ppp_config_dir = os.getenv('PPP_CONFIG_DIR', None)
-_satpy_config_path = os.getenv('SATPY_CONFIG_PATH', None)
+_ppp_config_dir = os.getenv("PPP_CONFIG_DIR", None)
+_satpy_config_path = os.getenv("SATPY_CONFIG_PATH", None)
 
 if _ppp_config_dir is not None and _satpy_config_path is None:
     LOG.warning("'PPP_CONFIG_DIR' is deprecated. Please use 'SATPY_CONFIG_PATH' instead.")
@@ -97,39 +94,57 @@ if _satpy_config_path is not None:
         # i.e. last-applied/highest priority to first-applied/lowest priority
         _satpy_config_path_list = _satpy_config_path.split(os.pathsep)
 
-    os.environ['SATPY_CONFIG_PATH'] = repr(_satpy_config_path_list)
+    os.environ["SATPY_CONFIG_PATH"] = repr(_satpy_config_path_list)
     for config_dir in _satpy_config_path_list:
-        _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
+        _CONFIG_PATHS.append(os.path.join(config_dir, "satpy.yaml"))
 
-_ancpath = os.getenv('SATPY_ANCPATH', None)
-_data_dir = os.getenv('SATPY_DATA_DIR', None)
+_ancpath = os.getenv("SATPY_ANCPATH", None)
+_data_dir = os.getenv("SATPY_DATA_DIR", None)
 if _ancpath is not None and _data_dir is None:
     LOG.warning("'SATPY_ANCPATH' is deprecated. Please use 'SATPY_DATA_DIR' instead.")
-    os.environ['SATPY_DATA_DIR'] = _ancpath
+    os.environ["SATPY_DATA_DIR"] = _ancpath
 
 config = Config("satpy", defaults=[_CONFIG_DEFAULTS], paths=_CONFIG_PATHS)
 
 
 def get_config_path_safe():
     """Get 'config_path' and check for proper 'list' type."""
-    config_path = config.get('config_path')
+    config_path = config.get("config_path")
     if not isinstance(config_path, list):
         raise ValueError("Satpy config option 'config_path' must be a "
                          "list, not '{}'".format(type(config_path)))
     return config_path
 
 
-def get_entry_points_config_dirs(name, include_config_path=True):
+def get_entry_points_config_dirs(group_name: str, include_config_path: bool = True) -> list[str]:
     """Get the config directories for all entry points of given name."""
-    dirs = []
-    for entry_point in entry_points().get(name, []):
+    dirs: list[str] = []
+    for entry_point in cached_entry_point(group_name):
         module = _entry_point_module(entry_point)
         new_dir = str(impr_files(module) / "etc")
         if not dirs or dirs[-1] != new_dir:
             dirs.append(new_dir)
     if include_config_path:
-        dirs.extend(config.get('config_path')[::-1])
+        dirs.extend(config.get("config_path")[::-1])
     return dirs
+
+
+@cache
+def cached_entry_point(group_name: str) -> Iterable[EntryPoint]:
+    """Return entry_point for specified ``group``.
+
+    This is a dummy proxy to allow caching and provide compatibility between
+    versions of Python and importlib_metadata.
+
+    """
+    try:
+        # mypy in pre-commit currently checks for Python 3.8 compatibility
+        # this line is for Python 3.10+ so it will fail checks
+        return entry_points(group=group_name)  # type: ignore
+    except TypeError:
+        # Python <3.10
+        entry_points_list = entry_points()
+        return entry_points_list.get(group_name, [])
 
 
 def _entry_point_module(entry_point):

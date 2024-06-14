@@ -18,6 +18,7 @@ at the pages listed below.
     plugins
     satpy_internals
     aux_data
+    writing_tests
 
 Coding guidelines
 =================
@@ -28,7 +29,7 @@ and all code should follow the
 practices <http://pytroll.github.io/guidelines.html>`_.
 
 Satpy is now Python 3 only and it is no longer needed to support Python 2.
-Check ``setup.py`` for the current Python versions any new code needs
+Check ``pyproject.toml`` for the current Python versions any new code needs
 to support.
 
 .. _devinstall:
@@ -43,12 +44,12 @@ automatically reflected in the python environment. We highly recommend making
 a separate conda environment or virtualenv for development. For example, you
 can do this using conda_::
 
-  conda create -n satpy-dev python=3.8
+  conda create -n satpy-dev python=3.11
   conda activate satpy-dev
 
 .. _conda: https://conda.io/
 
-This will create a new environment called "satpy-dev" with Python 3.8
+This will create a new environment called "satpy-dev" with Python 3.11
 installed. The second command will activate the environment so any future
 conda, python, or pip commands will use this new environment.
 
@@ -62,10 +63,16 @@ clone your fork. The package can then be installed in development mode by doing:
 The first command will install all dependencies needed by the Satpy
 conda-forge package, but won't actually install Satpy. The second command
 should be run from the root of the cloned Satpy repository (where the
-``setup.py`` is) and will install the actual package.
+``pyproject.toml`` is) and will install the actual package.
 
 You can now edit the python files in your cloned repository and have them
 immediately reflected in your conda environment.
+
+All the required dependencies for a full development environment, i.e. running the
+tests and building the documentation, can be installed with::
+
+    conda install eccodes
+    pip install -e ".[all]"
 
 Running tests
 =============
@@ -79,7 +86,8 @@ libraries. If you want to run all Satpy tests you will need to install
 additional dependencies that aren't needed for regular Satpy usage. To install
 them run::
 
-    pip install -e .[tests]
+    conda install eccodes
+    pip install -e ".[tests]"
 
 Satpy tests can be executed by running::
 
@@ -114,8 +122,12 @@ Documentation
 =============
 
 Satpy's documentation is built using Sphinx. All documentation lives in the
-``doc/`` directory of the project repository. After editing the source files
-there the documentation can be generated locally::
+``doc/`` directory of the project repository. For building the documentation,
+additional packages are needed. These can be installed with ::
+
+    pip install -e ".[all]"
+
+After editing the source files there the documentation can be generated locally::
 
     cd doc
     make html

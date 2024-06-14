@@ -24,6 +24,7 @@ import tempfile
 import unittest
 
 import numpy as np
+import pytest
 
 from satpy.readers.aapp_mhs_amsub_l1c import _HEADERTYPE, _SCANTYPE, HEADER_LENGTH, MHS_AMSUB_AAPPL1CFile
 from satpy.tests.utils import make_dataid
@@ -308,44 +309,44 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._header['satid'][0] = 3
-        self._header['instrument'][0] = 12
-        self._header['tempradcnv'][0] = [[2968720,       0, 1000000, 5236956,       0],
-                                         [1000000, 6114597,       0, 1000000, 6114597],
-                                         [-3100, 1000270, 6348092,       0, 1000000]]
+        self._header["satid"][0] = 3
+        self._header["instrument"][0] = 12
+        self._header["tempradcnv"][0] = [[2968720, 0, 1000000, 5236956, 0],
+                                         [1000000, 6114597, 0, 1000000, 6114597],
+                                         [-3100, 1000270, 6348092, 0, 1000000]]
         self._data = np.zeros(3, dtype=_SCANTYPE)
-        self._data['scnlinyr'][:] = 2020
-        self._data['scnlindy'][:] = 261
-        self._data['scnlintime'][0] = 36368496
-        self._data['scnlintime'][1] = 36371163
-        self._data['scnlintime'][2] = 36373830
-        self._data['qualind'][0] = 0
-        self._data['qualind'][1] = 0
-        self._data['qualind'][2] = 0
-        self._data['scnlinqual'][0] = 16384
-        self._data['scnlinqual'][1] = 16384
-        self._data['scnlinqual'][2] = 16384
-        self._data['chanqual'][0] = [6, 6, 6, 6, 6]
-        self._data['chanqual'][1] = [6, 6, 6, 6, 6]
-        self._data['chanqual'][2] = [6, 6, 6, 6, 6]
-        self._data['instrtemp'][:] = [29520, 29520, 29520]
-        self._data['dataqual'][:] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        self._data["scnlinyr"][:] = 2020
+        self._data["scnlindy"][:] = 261
+        self._data["scnlintime"][0] = 36368496
+        self._data["scnlintime"][1] = 36371163
+        self._data["scnlintime"][2] = 36373830
+        self._data["qualind"][0] = 0
+        self._data["qualind"][1] = 0
+        self._data["qualind"][2] = 0
+        self._data["scnlinqual"][0] = 16384
+        self._data["scnlinqual"][1] = 16384
+        self._data["scnlinqual"][2] = 16384
+        self._data["chanqual"][0] = [6, 6, 6, 6, 6]
+        self._data["chanqual"][1] = [6, 6, 6, 6, 6]
+        self._data["chanqual"][2] = [6, 6, 6, 6, 6]
+        self._data["instrtemp"][:] = [29520, 29520, 29520]
+        self._data["dataqual"][:] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0, 0]
-        self._data['scalti'][0:3] = [8321, 8321, 8321]
-        self._data['latlon'][0] = LATLON_SCLINE1
-        self._data['angles'][0] = ANGLES_SCLINE1
-        self._data['btemps'][0] = SCANLINE1
-        self.filename_info = {'platform_shortname': 'metop01',
-                              'start_time': datetime.datetime(2020, 9, 17, 10, 6),
-                              'orbit_number': 41509}
+        self._data["scalti"][0:3] = [8321, 8321, 8321]
+        self._data["latlon"][0] = LATLON_SCLINE1
+        self._data["angles"][0] = ANGLES_SCLINE1
+        self._data["btemps"][0] = SCANLINE1
+        self.filename_info = {"platform_shortname": "metop01",
+                              "start_time": datetime.datetime(2020, 9, 17, 10, 6),
+                              "orbit_number": 41509}
 
-        self.filetype_info = {'file_reader': MHS_AMSUB_AAPPL1CFile,
-                              'file_patterns':
-                              ['mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c'],
-                              'file_type': 'mhs_aapp_l1c'}
+        self.filetype_info = {"file_reader": MHS_AMSUB_AAPPL1CFile,
+                              "file_patterns":
+                              ["mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c"],
+                              "file_type": "mhs_aapp_l1c"}
 
     def test_platform_name(self):
         """Test getting the platform name."""
@@ -356,9 +357,9 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.platform_name == 'Metop-C'
+        assert fh_.platform_name == "Metop-C"
 
-        self._header['satid'][0] = 1
+        self._header["satid"][0] = 1
         with tempfile.TemporaryFile() as tmpfile:
             self._header.tofile(tmpfile)
             tmpfile.seek(HEADER_LENGTH, 0)
@@ -366,7 +367,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.platform_name == 'Metop-B'
+        assert fh_.platform_name == "Metop-B"
 
     def test_sensor_name(self):
         """Test getting the sensor name."""
@@ -377,9 +378,9 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.sensor == 'mhs'
+        assert fh_.sensor == "mhs"
 
-        self._header['instrument'][0] = 11
+        self._header["instrument"][0] = 11
         with tempfile.TemporaryFile() as tmpfile:
             self._header.tofile(tmpfile)
             tmpfile.seek(HEADER_LENGTH, 0)
@@ -387,16 +388,16 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.sensor == 'amsub'
+        assert fh_.sensor == "amsub"
 
-        self._header['instrument'][0] = 10
+        self._header["instrument"][0] = 10
 
         with tempfile.TemporaryFile() as tmpfile:
             self._header.tofile(tmpfile)
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            with self.assertRaises(IOError):
+            with pytest.raises(IOError, match="Sensor neither MHS nor AMSU-B!"):
                 fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
     def test_read(self):
@@ -412,8 +413,8 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             chmin = [199.25, 218.55, 233.06, 243.3, 252.84]
             chmax = [267.98, 274.87, 248.85, 256.16, 263.]
-            for chn, name in enumerate(['1', '2', '3', '4', '5']):
-                key = make_dataid(name=name, calibration='brightness_temperature')
+            for chn, name in enumerate(["1", "2", "3", "4", "5"]):
+                key = make_dataid(name=name, calibration="brightness_temperature")
                 res = fh_.get_dataset(key, info)
 
                 assert res.min() == chmin[chn]
@@ -428,7 +429,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dataid(name='solar_zenith_angle')
+            key = make_dataid(name="solar_zenith_angle")
             res = fh_.get_dataset(key, info)
 
             assert np.all(res[2] == 0)
@@ -455,7 +456,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dataid(name='longitude')
+            key = make_dataid(name="longitude")
             res = fh_.get_dataset(key, info)
 
             assert np.all(res[2] == 0)
@@ -478,7 +479,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             np.testing.assert_allclose(res[0], expected)
 
-            key = make_dataid(name='latitude')
+            key = make_dataid(name="latitude")
             res = fh_.get_dataset(key, info)
 
             assert np.all(res[2] == 0)

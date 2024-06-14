@@ -282,7 +282,7 @@ def run_crefl(refl,
     :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
 
     """
-    runner_cls = _runner_class_for_sensor(refl.attrs['sensor'])
+    runner_cls = _runner_class_for_sensor(refl.attrs["sensor"])
     runner = runner_cls(refl)
     corr_refl = runner(sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation)
     return corr_refl
@@ -318,7 +318,7 @@ class _CREFLRunner:
     def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
         raise NotImplementedError()
 
-    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
+    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array | float:
         """Get digital elevation map data for our granule with ocean fill value set to 0."""
         if avg_elevation is None:
             LOG.debug("No average elevation information provided in CREFL")
@@ -326,7 +326,7 @@ class _CREFLRunner:
             height = 0.
         else:
             LOG.debug("Using average elevation information provided to CREFL")
-            lon, lat = self._refl.attrs['area'].get_lonlats(chunks=self._refl.chunks)
+            lon, lat = self._refl.attrs["area"].get_lonlats(chunks=self._refl.chunks)
             height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
                                    chunks=lon.chunks, dtype=avg_elevation.dtype)
         return height
@@ -390,17 +390,21 @@ def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
 
 
 def _space_mask_height(lon, lat, avg_elevation):
-    lat[(lat <= -90) | (lat >= 90)] = np.nan
-    lon[(lon <= -180) | (lon >= 180)] = np.nan
-    row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
-    col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
-    space_mask = np.isnan(lon) | np.isnan(lat)
-    row[space_mask] = 0
-    col[space_mask] = 0
+    row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0)
+    col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0)
+    np.clip(row, 0, avg_elevation.shape[0] - 1, out=row)
+    np.clip(col, 0, avg_elevation.shape[1] - 1, out=col)
+    row = row.astype(np.int32)
+    col = col.astype(np.int32)
+    # conditions need to be this way to include NaNs
+    bad_mask = ~((lon >= -180) | (lon <= 180) | (lat >= -90) | (lat <= 90))
+    # convert any NaNs to valid indexes
+    row[bad_mask] = 0
+    col[bad_mask] = 0
 
     height = avg_elevation[row, col]
     # negative heights aren't allowed, clip to 0
-    height[(height < 0.0) | np.isnan(height) | space_mask] = 0.0
+    height[(height < 0.0) | np.isnan(height) | bad_mask] = 0.0
     return height
 
 

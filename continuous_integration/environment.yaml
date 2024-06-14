@@ -5,10 +5,12 @@ dependencies:
   - xarray!=2022.9.0
   - dask
   - distributed
+  - dask-image
   - donfig
-  - appdirs
+  - platformdirs
   - toolz
   - Cython
+  - numba
   - sphinx
   - cartopy
   - panel>=0.12.7
@@ -35,15 +37,16 @@ dependencies:
   - mock
   - libtiff
   - geoviews
+  - holoviews
+  - hvplot
   - zarr
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - geoviews
-  - pytest
+  - pytest<8.0.0
   - pytest-cov
-  - pytest-lazy-fixture
   - fsspec
+  - botocore>=1.33
   - s3fs
   - python-geotiepoints
   - pooch
@@ -51,8 +54,12 @@ dependencies:
   - skyfield
   - astropy
   - xarray-datatree
+  - pint-xarray
+  - ephem
+  - bokeh
   - pip:
+    - pytest-lazy-fixtures
     - trollsift
-    - trollimage
+    - trollimage>=1.23
     - pyspectral
     - pyorbital
