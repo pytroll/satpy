@@ -700,6 +700,37 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
 
+    def _collect_listed_variables(self, file_handle, listed_variables, filetype_info):
+        listed_variables = self._recycle_shared_info(listed_variables, filetype_info)
+        super()._collect_listed_variables(file_handle, listed_variables, filetype_info)
+        self._store_shared_info(filetype_info)
+
+    def _recycle_shared_info(self, listed_variables, filetype_info):
+        if "shared_info" in filetype_info:
+            shared_info = filetype_info["shared_info"]
+            for key in shared_info:
+                self.file_content[key] = shared_info[key]
+                try:
+                    listed_variables.remove(key)
+                except ValueError:
+                    pass
+        return listed_variables
+
+    def _store_shared_info(self, filetype_info):
+        nonshareable = ["index", "time"]
+        if "shared_info" not in filetype_info:
+            shared_info = {}
+            for key in self.file_content:
+                if (key in nonshareable or
+                    "measured/effective_radiance" in key or
+                    "measured/y" in key or
+                    "start_position" in key or
+                    "measured/index_map" in key or
+                    "measured/pixel_quality" in key):
+                    continue
+                shared_info[key] = self.file_content[key]
+            filetype_info["shared_info"] = shared_info
+
 
 def _ensure_dataarray(arr):
     if not isinstance(arr, xr.DataArray):
