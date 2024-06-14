@@ -110,12 +110,33 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
+        if "shared_info" in filetype_info:
+            shared_info = filetype_info["shared_info"]
+            for key in shared_info:
+                self.file_content[key] = shared_info[key]
+                try:
+                    listed_variables.remove(key)
+                except ValueError:
+                    pass
+        nonshareable = ["index", "time"]
         if listed_variables:
             self._collect_listed_variables(file_handle, listed_variables)
         else:
             self.collect_metadata("", file_handle)
             self.collect_dimensions("", file_handle)
         self.collect_cache_vars(cache_var_size)
+        if "shared_info" not in filetype_info:
+            shared_info = {}
+            for key in self.file_content:
+                if (key in nonshareable or
+                    "measured/effective_radiance" in key or
+                    "measured/x" in key or
+                    "measured/y" in key or
+                    "start_position" in key or
+                    "measured/pixel_quality" in key):
+                    continue
+                shared_info[key] = self.file_content[key]
+            filetype_info["shared_info"] = shared_info
 
         if cache_handle:
             self.file_handle = file_handle
