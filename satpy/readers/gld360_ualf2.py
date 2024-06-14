@@ -93,19 +93,23 @@ class VaisalaGld360Ualf2FileHandler(BaseFileHandler):
         """Initialize FileHandler."""
         super(VaisalaGld360Ualf2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        # Combine "year", "month", "day", "hour", "minute", "second" and "nanosecond" into a datetime object.
-        parse_dates = {"time": ["year", "month", "day", "hour", "minute", "second", "nanosecond"]}
-
         self.data = dd.read_csv(filename,
                                 sep="\t",
                                 header=None,
                                 names=UALF2_COLUMN_NAMES,
                                 dtype=UALF2_DTYPES,
-                                parse_dates=parse_dates,
                                 converters={"nanosecond": self.pad_nanoseconds}
                                 )
 
-        self.data["time"] = dd.to_datetime(self.data["time"], format="%Y %m %d %H %M %S %f")
+        combined_time = (self.data["year"] + " " +
+                         self.data["month"] + " " +
+                         self.data["day"] + " " +
+                         self.data["hour"] + " " +
+                         self.data["minute"] + " " +
+                         self.data["second"] + " " +
+                         self.data["nanosecond"])
+
+        self.data["time"] = dd.to_datetime(combined_time, format="%Y %m %d %H %M %S %f")
         self.data = self.data.drop_duplicates()
         self.data = self.data.sort_values("time")
 
