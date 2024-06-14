@@ -459,7 +459,7 @@ def create_colormap(palette, img=None):  # noqa: D417
 
     The alpha channel of a created colormap can be added and/or modified by
     specifying ``min_alpha`` and ``max_alpha``.
-    See :meth:`set_alpha_range`  for more info.
+    See :meth:`trollimage.colormap.Colormap.set_alpha_range`  for more info.
 
     """
     # are colors between 0-255 or 0-1
@@ -474,7 +474,8 @@ def create_colormap(palette, img=None):  # noqa: D417
         raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither).")
 
     if "min_alpha" in palette and "max_alpha" in palette:
-        cmap = set_alpha_range(cmap, palette["min_alpha"], palette["max_alpha"], color_scale)
+        cmap.set_alpha_range(palette["min_alpha"]/color_scale,
+                             palette["max_alpha"]/color_scale)
     elif "min_alpha" in palette or "max_alpha" in palette:
         raise ValueError("Both 'min_alpha' and 'max_alpha' must be specified (or neither).")
 
@@ -499,26 +500,6 @@ def _get_cmap_from_palette_info(palette, img, color_scale):
         raise ValueError("Unknown colormap format: {}".format(palette))
     return cmap
 
-
-def set_alpha_range(cmap, min_alpha, max_alpha, color_scale=255):
-    """Set the colormap alpha channel between two values in linear steps.
-
-    If the input colormap does not have an alpha channel,
-    it will be added to it. If an alpha channel is already existing,
-    the values will be overwritten.
-
-    Args:
-        cmap: input colormap
-        min_alpha: start value of the alpha channel
-        max_alpha: end value of the alpha channel
-        color_scale: number for normalising the alpha values to 0-1.
-
-    """
-    cmap = cmap.to_rgba()
-    cmap.colors[:, 3] = np.linspace(min_alpha / color_scale,
-                                    max_alpha / color_scale,
-                                    cmap.colors.shape[0])
-    return cmap
 
 
 def _create_colormap_from_dataset(img, dataset, color_scale):
