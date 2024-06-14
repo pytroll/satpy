@@ -477,7 +477,7 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     return reflectance
 
 
-def get_distributed_friendly_dask_array(manager, varname, chunks=None):
+def get_distributed_friendly_dask_array(manager, varname, chunks, dtype):
     """Construct a dask array from a variable for dask distributed.
 
     When we construct a dask array using da.array and use that to create an
@@ -501,8 +501,10 @@ def get_distributed_friendly_dask_array(manager, varname, chunks=None):
             dataset to be read.
         varname (str):
             Name of the variable.
-        chunks (tuple or None, optional):
+        chunks (tuple):
             Chunks to use when creating the dask array.
+        dtype (dtype):
+            What dtype to use.
     """
     def get_chunk():
         with manager.acquire_context() as nc:
@@ -511,4 +513,5 @@ def get_distributed_friendly_dask_array(manager, varname, chunks=None):
     return da.map_blocks(
             get_chunk,
             chunks=chunks,
+            dtype=dtype,
             meta=np.array([]))
