@@ -663,3 +663,37 @@ def test_init_import_warns(name):
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(utils, name)
+
+
+@pytest.fixture()
+def dummy_nc(tmp_path):
+    """Fixture to create a dummy NetCDF file and return its path."""
+    import xarray as xr
+
+    fn = tmp_path / "sjaunja.nc"
+    ds = xr.Dataset(data_vars={"kaitum": (["x"], np.arange(10, dtype="i4"))})
+    ds.to_netcdf(fn)
+    return fn
+
+
+def test_get_distributed_friendly_dask_array(dummy_nc):
+    """Test getting a dask distributed friendly dask array."""
+    import netCDF4
+    from dask.distributed import Client
+    from xarray.backends import CachingFileManager
+
+    cfm = CachingFileManager(netCDF4.Dataset, dummy_nc, mode="r")
+    arr = hf.get_distributed_friendly_dask_array(cfm, "kaitum")
+
+    # As documented in GH issue 2815, using dask distributed with the file
+    # handle cacher might fail in non-trivial ways, such as giving incorrect
+    # results.  Testing map_blocks is one way to reproduce the problem
+    # reliably, even though the problem also manifests itself (in different
+    # ways) without map_blocks.
+
+    def doubler(x):
+        return x * 2
+
+    with Client():
+        dask_doubler = arr.map_blocks(doubler)
+        dask_doubler.compute()
