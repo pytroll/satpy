@@ -527,7 +527,7 @@ class _CalibrationCoefficientParser:
     def _get_coefs(self, mode_or_coefs, channel):
         if self._is_mode(mode_or_coefs):
             return self._get_coefs_by_mode(mode_or_coefs, channel)
-        return mode_or_coefs
+        return _make_coefs(mode_or_coefs, "external")
 
     def _is_mode(self, mode_or_coefs):
         return isinstance(mode_or_coefs, str)
@@ -538,7 +538,10 @@ class _CalibrationCoefficientParser:
 
     def _get_coefs_set(self, mode):
         try:
-            return self.coefs[mode]
+            return {
+                channel: _make_coefs(coefs, mode)
+                for channel, coefs in self.coefs[mode].items()
+            }
         except KeyError:
             modes = list(self.coefs.keys())
             raise KeyError(f"Unknown calibration mode: {mode}. Choose one of {modes}")
@@ -557,12 +560,25 @@ class CalibrationCoefficientPicker:
 
     Example: Three sets of coefficients are available (nominal, meirink, gsics).
     A user wants to calibrate
-      - channel 1 with "meirink"
-      - channels 2/3 with "gsics"
-      - channel 4 with custom coefficients
-      - remaining channels with nominal coefficients
 
-    1. Define coefficients
+        - channel 1 with "meirink"
+        - channels 2/3 with "gsics"
+        - channel 4 with custom coefficients
+        - remaining channels with nominal coefficients
+
+    1. Users provide a wishlist via ``reader_kwargs``
+
+    .. code-block:: python
+
+        calib_wishlist = {
+            "ch1": "meirink",
+            ("ch2", "ch3"): "gsics"
+            "ch4": {"mygain": 123},
+        }
+        # Also possible: Same mode for all channels via
+        # calib_wishlist = "gsics"
+
+    2. Readers provide a dictionary with all available coefficients
 
     .. code-block:: python
 
@@ -570,49 +586,45 @@ class CalibrationCoefficientPicker:
 
         coefs = {
             "nominal": {
-                "ch1": "nominal_ch1",
-                "ch2": "nominal_ch2",
-                "ch3": "nominal_ch3"
-                "ch4": "nominal_ch4"
-                "ch5": "nominal_ch5"
+                "ch1": 1.0,
+                "ch2": 2.0,
+                "ch3": 3.0,
+                "ch4": 4.0,
+                "ch5": 5.0,
             },
             "meirink": {
-                "ch1": "meirink_ch1",
+                "ch1": 1.1,
             },
             "gsics": {
-                "ch2": "gsics_ch2",
+                "ch2": 2.2,
                 # ch3 coefficients are missing
             }
         }
-        calib_wishlist = {
-            "ch1": "meirink",
-            ("ch2", "ch3"): "gsics"
-            "ch4": {"mygain": 123},
-        }
 
-    2. Query:
+    3. Raders make queries to get the desired coefficients:
 
     .. code-block:: python
 
         >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist)
         >>> picker.get_coefs("ch1")
-        "meirink_ch1"
+        {"coefs": 1.0, "mode": "meirink"}
         >>> picker.get_coefs("ch2")
-        "gsics_ch2"
+        {"coefs": 2.2, "mode": "gsics"}
         >>> picker.get_coefs("ch3")
         KeyError: 'No gsics calibration coefficients for ch3'
         >>> picker.get_coefs("ch4")
-        {"mygain": 123}
+        {"coefs": {"mygain": 123}, "mode": "external"}
         >>> picker.get_coefs("ch5")
-        "nominal_ch5
+        {"coefs": 5.0, "mode": "nominal"}
 
-    3. Fallback to nominal for ch3:
+    4. Fallback to nominal coefficients for ch3:
 
     .. code-block:: python
 
         >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist, fallback="nominal")
         >>> picker.get_coefs("ch3")
-        "nominal_ch3"
+        {"coefs": 3.0, "mode": "nominal"}
+
     """
 
     def __init__(self, coefs, calib_wishlist, default="nominal", fallback=None):
@@ -645,6 +657,10 @@ class CalibrationCoefficientPicker:
 
         Args:
             channel (str): Channel name
+
+        Returns:
+            dict: Calibration coefficients and mode (for transparency, in case
+                  the picked coefficients differ from the wishlist).
         """
         try:
             return self.parsed_wishlist[channel]
@@ -655,5 +671,10 @@ class CalibrationCoefficientPicker:
                     f"No {mode} calibration coefficients for {channel}. "
                     f"Falling back to {self.fallback}."
                 )
-                return self.coefs[self.fallback][channel]
+                return _make_coefs(self.coefs[self.fallback][channel],
+                                   self.fallback)
             raise KeyError(f"No {mode} calibration coefficients for {channel}")
+
+
+def _make_coefs(coefs, mode):
+    return {"coefs": coefs, "mode": mode}

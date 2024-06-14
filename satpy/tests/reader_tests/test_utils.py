@@ -522,37 +522,61 @@ class TestCalibrationCoefficientPicker:
         """Get fake coefficients."""
         return {
             "nominal": {
-                "ch1": "nominal_ch1",
-                "ch2": "nominal_ch2"
+                "ch1": 1.0,
+                "ch2": 2.0,
             },
             "mode1": {
-                "ch1": "mode1_ch1",
+                "ch1": 1.1,
             },
             "mode2": {
-                "ch2": "mode2_ch2",
+                "ch2": 2.2,
             }
         }
 
     @pytest.mark.parametrize(
         ("wishlist", "expected"),
         [
-            (None, {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}),
-            ("nominal", {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}),
+            (
+                None,
+                {
+                    "ch1": {"coefs": 1.0, "mode": "nominal"},
+                    "ch2": {"coefs": 2.0, "mode": "nominal"}
+                }
+            ),
+            (
+                    "nominal",
+                    {
+                        "ch1": {"coefs": 1.0, "mode": "nominal"},
+                        "ch2": {"coefs": 2.0, "mode": "nominal"}
+                    }
+            ),
             (
                 {("ch1", "ch2"): "nominal"},
-                {"ch1": "nominal_ch1", "ch2": "nominal_ch2"}
+                {
+                    "ch1": {"coefs": 1.0, "mode": "nominal"},
+                    "ch2": {"coefs": 2.0, "mode": "nominal"}
+                }
             ),
             (
                 {"ch1": "mode1"},
-                {"ch1": "mode1_ch1", "ch2": "nominal_ch2"}
+                {
+                    "ch1": {"coefs": 1.1, "mode": "mode1"},
+                    "ch2": {"coefs": 2.0, "mode": "nominal"}
+                }
             ),
             (
                 {"ch1": "mode1", "ch2": "mode2"},
-                {"ch1": "mode1_ch1", "ch2": "mode2_ch2"}
+                {
+                    "ch1": {"coefs": 1.1, "mode": "mode1"},
+                    "ch2": {"coefs": 2.2, "mode": "mode2"}
+                }
             ),
             (
                 {"ch1": "mode1", "ch2": {"gain": 1}},
-                {"ch1": "mode1_ch1", "ch2": {"gain": 1}}
+                {
+                    "ch1": {"coefs": 1.1, "mode": "mode1"},
+                    "ch2": {"coefs": {"gain": 1}, "mode": "external"}
+                }
             ),
         ]
     )
@@ -589,7 +613,8 @@ class TestCalibrationCoefficientPicker:
         """Test falling back to nominal coefficients."""
         picker = hf.CalibrationCoefficientPicker(coefs, wishlist,
                                                  fallback="nominal")
-        assert picker.get_coefs("ch2") == "nominal_ch2"
+        expected = {"coefs": 2.0, "mode": "nominal"}
+        assert picker.get_coefs("ch2") == expected
         assert "Falling back" in caplog.text
 
     def test_no_default_coefs(self):
