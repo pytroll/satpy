@@ -693,7 +693,8 @@ def test_get_distributed_friendly_dask_array(tmp_path, shape, dtype):
     ds.to_netcdf(fn)
 
     cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
-    arr = hf.get_distributed_friendly_dask_array(cfm, "kaitum")
+    arr = hf.get_distributed_friendly_dask_array(cfm, "kaitum",
+                                                 chunks=shape, dtype=dtype)
 
     # As documented in GH issue 2815, using dask distributed with the file
     # handle cacher might fail in non-trivial ways, such as giving incorrect
@@ -710,6 +711,8 @@ def test_get_distributed_friendly_dask_array(tmp_path, shape, dtype):
     with Client():
         dask_doubler = arr.map_blocks(doubler)
         res = dask_doubler.compute()
-    assert res.shape == shape
-    assert res.dtype == dtype
+    assert shape == dask_doubler.shape  # we will need dtype before compute
+    assert shape == res.shape
+    assert dtype == dask_doubler.dtype
+    assert dtype == res.dtype
     np.testing.assert_array_equal(res, np.arange(np.prod(shape)).reshape(shape)*2)
