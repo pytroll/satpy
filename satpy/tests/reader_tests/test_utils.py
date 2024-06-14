@@ -676,13 +676,23 @@ def dummy_nc(tmp_path):
     return fn
 
 
-def test_get_distributed_friendly_dask_array(dummy_nc):
+@pytest.mark.parametrize("shape", [(2,), (2, 3), (2, 3, 4)])
+@pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
+def test_get_distributed_friendly_dask_array(tmp_path, shape, dtype):
     """Test getting a dask distributed friendly dask array."""
     import netCDF4
     from dask.distributed import Client
     from xarray.backends import CachingFileManager
 
-    cfm = CachingFileManager(netCDF4.Dataset, dummy_nc, mode="r")
+    fn = tmp_path / "sjaunja.nc"
+    ds = xr.Dataset(
+            data_vars={
+                "kaitum": (["x", "y", "z"][:len(shape)],
+                           np.arange(np.prod(shape),
+                                     dtype=dtype).reshape(shape))})
+    ds.to_netcdf(fn)
+
+    cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
     arr = hf.get_distributed_friendly_dask_array(cfm, "kaitum")
 
     # As documented in GH issue 2815, using dask distributed with the file
@@ -694,6 +704,12 @@ def test_get_distributed_friendly_dask_array(dummy_nc):
     def doubler(x):
         return x * 2
 
+    # FIXME: setting up the client is slow, taking more than one second —
+    # consider putting it in a class-scoped fixture and putting this test
+    # in a class (so it is still shared between parameterised runs)
     with Client():
         dask_doubler = arr.map_blocks(doubler)
-        dask_doubler.compute()
+        res = dask_doubler.compute()
+    assert res.shape == shape
+    assert res.dtype == dtype
+    np.testing.assert_array_equal(res, np.arange(np.prod(shape)).reshape(shape)*2)
