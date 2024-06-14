@@ -393,3 +393,40 @@ def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
     res = get_data_as_xarray(fid["test_data"])
     np.testing.assert_equal(res.data, np.array(data))
     assert res.attrs == NC_ATTRS
+
+
+@pytest.fixture()
+def dummy_nc(tmp_path):
+    """Fixture to create a dummy NetCDF file and return its path."""
+    import xarray as xr
+
+    fn = tmp_path / "sjaunja.nc"
+    ds = xr.Dataset(data_vars={"kaitum": (["x"], np.arange(10))})
+    ds.to_netcdf(fn)
+    return fn
+
+
+def test_caching_distributed(dummy_nc):
+    """Test that the distributed scheduler works with file handle caching.
+
+    This is a test for GitHub issue 2815.
+    """
+    from dask.distributed import Client
+
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+    fh = NetCDF4FileHandler(dummy_nc, {}, {}, cache_handle=True)
+
+    Client()
+
+    def doubler(x):
+        return x * 2
+
+    # As documented in GH issue 2815, using dask distributed with the file
+    # handle cacher might fail in non-trivial ways, such as giving incorrect
+    # results.  Testing map_blocks is one way to reproduce the problem
+    # reliably, even though the problem also manifests itself (in different
+    # ways) without map_blocks.
+
+    dask_doubler = fh["kaitum"].map_blocks(doubler)
+    dask_doubler.compute()
