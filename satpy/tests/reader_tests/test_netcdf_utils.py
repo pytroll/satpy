@@ -417,8 +417,6 @@ def test_caching_distributed(dummy_nc):
 
     fh = NetCDF4FileHandler(dummy_nc, {}, {}, cache_handle=True)
 
-    Client()
-
     def doubler(x):
         return x * 2
 
@@ -428,5 +426,7 @@ def test_caching_distributed(dummy_nc):
     # reliably, even though the problem also manifests itself (in different
     # ways) without map_blocks.
 
-    dask_doubler = fh["kaitum"].map_blocks(doubler)
-    dask_doubler.compute()
+
+    with Client():
+        dask_doubler = fh["kaitum"].map_blocks(doubler)
+        dask_doubler.compute()
