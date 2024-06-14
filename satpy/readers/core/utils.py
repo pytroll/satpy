@@ -28,6 +28,7 @@ from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
 
+import dask.array as da
 import numpy as np
 import pyproj
 import xarray as xr
@@ -699,3 +700,32 @@ class CalibrationCoefficientPicker:
 
 def _make_coefs(coefs, mode):
     return {"coefs": coefs, "mode": mode}
+
+
+def get_distributed_friendly_dask_array(manager, varname):
+    """Construct a dask array from a variable for dask distributed.
+
+    When we construct a dask array using da.array and use that to create an
+    xarray dataarray, the result is not serialisable and dask graphs using
+    this dataarray cannot be computed when the dask distributed scheduler
+    is in use.  To circumvent this problem, xarray provides the
+    CachingFileManager.  See GH#2815 for more information.
+
+    Args:
+        manager (xarray.backends.CachingFileManager):
+            Instance of xarray.backends.CachingFileManager encapsulating the
+            dataset to be read.
+        varname (str):
+            Name of the variable.
+    """
+    def get_chunk(block_info):
+        with manager.acquire_context() as nc:
+            loc = block_info[None]["array-location"][0]
+            rv = nc[varname][loc[0]:loc[1]]
+        return rv
+
+    return da.map_blocks(
+            get_chunk,
+            chunks=(10,),
+            meta=np.array([]),
+            dtype="i4")
