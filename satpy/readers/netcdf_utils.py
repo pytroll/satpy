@@ -130,9 +130,9 @@ class NetCDF4FileHandler(BaseFileHandler):
             for key in self.file_content:
                 if (key in nonshareable or
                     "measured/effective_radiance" in key or
-                    "measured/x" in key or
                     "measured/y" in key or
                     "start_position" in key or
+                    "measured/index_map" in key or
                     "measured/pixel_quality" in key):
                     continue
                 shared_info[key] = self.file_content[key]
