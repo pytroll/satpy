@@ -151,8 +151,6 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
             return "seviri"
         elif self.platform_name.startswith("MTG"):
             return "fci"
-        else:
-            raise NotImplementedError(f"Unknown satellite platform {self.platform_name}.")
 
     @property
     def ssp_lon(self):
