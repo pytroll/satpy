@@ -60,32 +60,32 @@ Documentation for specific readers
 ----------------------------------
 
 SEVIRI L1.5 data readers
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.seviri_base
     :noindex:
 
 SEVIRI HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
     :noindex:
 
 SEVIRI Native format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""
 
 .. automodule:: satpy.readers.seviri_l1b_native
     :noindex:
 
 SEVIRI netCDF format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""
 
 .. automodule:: satpy.readers.seviri_l1b_nc
     :noindex:
 
 
 Other xRIT-based readers
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.hrit_base
     :noindex:
@@ -111,7 +111,7 @@ Electro-L HRIT format reader
     :noindex:
 
 hdf-eos based readers
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.modis_l1b
     :noindex:
@@ -120,13 +120,13 @@ hdf-eos based readers
     :noindex:
 
 satpy cf nc readers
----------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.satpy_cf_nc
     :noindex:
 
 hdf5 based readers
-------------------
+^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.agri_l1
     :noindex:
