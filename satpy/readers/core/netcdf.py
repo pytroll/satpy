@@ -19,14 +19,13 @@
 
 import logging
 
-import dask.array as da
 import netCDF4
 import numpy as np
 import xarray as xr
 
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
-from satpy.readers.core.utils import np2str
+from satpy.readers.core.utils import get_distributed_friendly_dask_array, np2str
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -85,10 +84,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
         cache_var_size (int): Cache variables smaller than this size.
         cache_handle (bool): Keep files open for lifetime of filehandler.
+            Uses xarray.backends.CachingFileManager, which uses a least
+            recently used cache.
 
     """
 
-    file_handle = None
+    manager = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
@@ -118,7 +119,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.collect_cache_vars(cache_var_size)
 
         if cache_handle:
-            self.file_handle = file_handle
+            self.manager = xr.backends.CachingFileManager(
+                    netCDF4.Dataset, self.filename, mode="r")
         else:
             file_handle.close()
 
@@ -196,9 +198,9 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the file handler."""
-        if self.file_handle is not None:
+        if self.manager is not None:
             try:
-                self.file_handle.close()
+                self.manager.close()
             except RuntimeError:  # presumably closed already
                 pass
 
@@ -301,8 +303,8 @@ class NetCDF4FileHandler(BaseFileHandler):
             group, key = parts
         else:
             group = None
-        if self.file_handle is not None:
-            val = self._get_var_from_filehandle(group, key)
+        if self.manager is not None:
+            val = self._get_var_from_manager(group, key)
         else:
             val = self._get_var_from_xr(group, key)
         return val
@@ -331,18 +333,26 @@ class NetCDF4FileHandler(BaseFileHandler):
                 val.load()
         return val
 
-    def _get_var_from_filehandle(self, group, key):
+    def _get_var_from_manager(self, group, key):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
+        with self.manager.acquire_context() as ds:
+            if group is not None:
+                v = ds[group][key]
+            else:
+                v = ds[key]
         if group is None:
-            g = self.file_handle
+            dv = get_distributed_friendly_dask_array(
+                    self.manager, key,
+                    chunks=v.shape, dtype=v.dtype)
         else:
-            g = self.file_handle[group]
-        v = g[key]
+            dv = get_distributed_friendly_dask_array(
+                    self.manager, key, group=group,
+                    chunks=v.shape, dtype=v.dtype)
         attrs = self._get_object_attrs(v)
         x = xr.DataArray(
-                da.from_array(v), dims=v.dimensions, attrs=attrs,
-                name=v.name)
+                dv,
+                dims=v.dimensions, attrs=attrs, name=v.name)
         return x
 
     def __contains__(self, item):
