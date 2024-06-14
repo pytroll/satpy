@@ -582,8 +582,6 @@ class CalibrationCoefficientPicker:
 
     .. code-block:: python
 
-        from satpy.readers.utils import CalibrationCoefficientPicker
-
         coefs = {
             "nominal": {
                 "ch1": 1.0,
@@ -605,6 +603,7 @@ class CalibrationCoefficientPicker:
 
     .. code-block:: python
 
+        >>> from satpy.readers.utils import CalibrationCoefficientPicker
         >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist)
         >>> picker.get_coefs("ch1")
         {"coefs": 1.0, "mode": "meirink"}
@@ -623,6 +622,7 @@ class CalibrationCoefficientPicker:
 
         >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist, fallback="nominal")
         >>> picker.get_coefs("ch3")
+        WARNING No gsics calibration coefficients for ch3. Falling back to nominal.
         {"coefs": 3.0, "mode": "nominal"}
 
     """
