@@ -585,10 +585,11 @@ class TestCalibrationCoefficientSelector:
     @pytest.mark.parametrize(
         "wishlist", ["mode1", {"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
     )
-    def test_fallback_to_nominal(self, coefs, wishlist):
+    def test_fallback_to_nominal(self, coefs, wishlist, caplog):
         """Test falling back to nominal coefficients."""
         s = hf.CalibrationCoefficientSelector(coefs, wishlist, fallback="nominal")
         assert s.get_coefs("ch2") == "nominal_ch2"
+        assert "Falling back" in caplog.text
 
     def test_no_default_coefs(self):
         """Test initialization without default coefficients."""
@@ -597,7 +598,7 @@ class TestCalibrationCoefficientSelector:
 
     def test_no_fallback(self):
         """Test initialization without fallback coefficients."""
-        with pytest.raises(KeyError, match="No fallback coefficients"):
+        with pytest.raises(KeyError, match="No fallback calibration"):
             hf.CalibrationCoefficientSelector({"nominal": 123}, {}, fallback="foo")
 
     def test_invalid_wishlist_type(self):

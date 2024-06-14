@@ -486,23 +486,26 @@ class _CalibrationCoefficientParser:
         self.coefs = coefs
         self.default = default
 
-    def parse(self, wishlist):
-        """Parse user-defined calibration coefficients."""
-        if wishlist is None:
+    def parse(self, calib_wishlist):
+        """Parse user's calibration wishlist."""
+        if calib_wishlist is None:
             return self._get_coefs_set(self.default)
-        elif isinstance(wishlist, str):
-            return self._get_coefs_set(wishlist)
-        elif isinstance(wishlist, dict):
-            return self._parse_dict(wishlist)
-        raise TypeError(f"Unsupported wishlist type. Expected dict/str, got {type(wishlist)}")
+        elif isinstance(calib_wishlist, str):
+            return self._get_coefs_set(calib_wishlist)
+        elif isinstance(calib_wishlist, dict):
+            return self._parse_dict(calib_wishlist)
+        raise TypeError(
+            f"Unsupported wishlist type. Expected dict/str, "
+            f"got {type(calib_wishlist)}"
+        )
 
-    def _parse_dict(self, wishlist):
-        wishlist = self._flatten_multi_channel_keys(wishlist)
-        return self._replace_calib_mode_with_actual_coefs(wishlist)
+    def _parse_dict(self, calib_wishlist):
+        calib_wishlist = self._flatten_multi_channel_keys(calib_wishlist)
+        return self._replace_calib_mode_with_actual_coefs(calib_wishlist)
 
-    def _flatten_multi_channel_keys(self, wishlist):
+    def _flatten_multi_channel_keys(self, calib_wishlist):
         flat = {}
-        for channels, coefs in wishlist.items():
+        for channels, coefs in calib_wishlist.items():
             if self._is_multi_channel(channels):
                 flat.update({channel: coefs for channel in channels})
             else:
@@ -512,10 +515,10 @@ class _CalibrationCoefficientParser:
     def _is_multi_channel(self, key):
         return isinstance(key, tuple)
 
-    def _replace_calib_mode_with_actual_coefs(self, wishlist):
+    def _replace_calib_mode_with_actual_coefs(self, calib_wishlist):
         res = {}
         for channel in self.coefs[self.default]:
-            mode_or_coefs = wishlist.get(channel, self.default)
+            mode_or_coefs = calib_wishlist.get(channel, self.default)
             coefs = self._get_coefs(mode_or_coefs, channel)
             if coefs:
                 res[channel] = coefs
@@ -540,12 +543,12 @@ class _CalibrationCoefficientParser:
             modes = list(self.coefs.keys())
             raise KeyError(f"Unknown calibration mode: {mode}. Choose one of {modes}")
 
-    def get_calib_mode(self, wishlist, channel):
+    def get_calib_mode(self, calib_wishlist, channel):
         """Get desired calibration mode for the given channel."""
-        if isinstance(wishlist, str):
-            return wishlist
-        elif isinstance(wishlist, dict):
-            flat = self._flatten_multi_channel_keys(wishlist)
+        if isinstance(calib_wishlist, str):
+            return calib_wishlist
+        elif isinstance(calib_wishlist, dict):
+            flat = self._flatten_multi_channel_keys(calib_wishlist)
             return flat[channel]
 
 
@@ -581,7 +584,7 @@ class CalibrationCoefficientSelector:
                 # ch3 coefficients are missing
             }
         }
-        wishlist = {
+        calib_wishlist = {
             "ch1": "meirink",
             ("ch2", "ch3"): "gsics"
             "ch4": {"mygain": 123},
@@ -591,7 +594,7 @@ class CalibrationCoefficientSelector:
 
     .. code-block:: python
 
-        >>> s = CalibrationCoefficientSelector(coefs, wishlist)
+        >>> s = CalibrationCoefficientSelector(coefs, calib_wishlist)
         >>> s.get_coefs("ch1")
         "meirink_ch1"
         >>> s.get_coefs("ch2")
@@ -607,35 +610,35 @@ class CalibrationCoefficientSelector:
 
     .. code-block:: python
 
-        >>> s = CalibrationCoefficientSelector(coefs, wishlist, fallback="nominal")
+        >>> s = CalibrationCoefficientSelector(coefs, calib_wishlist, fallback="nominal")
         >>> s.get_coefs("ch3")
         "nominal_ch3"
     """
 
-    def __init__(self, coefs, wishlist, default="nominal", fallback=None):
+    def __init__(self, coefs, calib_wishlist, default="nominal", fallback=None):
         """Initialize the coefficient selector.
 
         Args:
             coefs (dict): One set of calibration coefficients for each
                 calibration mode. The actual coefficients can be of any type
                 (reader-specific).
-            wishlist (str or dict): Desired calibration coefficients. Use a
+            calib_wishlist (str or dict): Desired calibration coefficients. Use a
                 dictionary to specify channel-specific coefficients. Use a
                 string to specify one mode for all channels.
             default (str): Default coefficients to be used if nothing was
-                specified in the wishlist. Default: "nominal".
+                specified in the calib_wishlist. Default: "nominal".
             fallback (str): Fallback coefficients if the desired coefficients
                 are not available for some channel. By default, an exception is
                 raised if coefficients are missing.
         """
         if fallback and fallback not in coefs:
-            raise KeyError("No fallback coefficients")
+            raise KeyError("No fallback calibration coefficients")
         self.coefs = coefs
-        self.wishlist = wishlist
+        self.calib_wishlist = calib_wishlist
         self.default = default
         self.fallback = fallback
         self.parser = _CalibrationCoefficientParser(coefs, default)
-        self.parsed_wishlist = self.parser.parse(wishlist)
+        self.parsed_wishlist = self.parser.parse(calib_wishlist)
 
     def get_coefs(self, channel):
         """Get calibration coefficients for the given channel.
@@ -646,7 +649,11 @@ class CalibrationCoefficientSelector:
         try:
             return self.parsed_wishlist[channel]
         except KeyError:
+            mode = self.parser.get_calib_mode(self.calib_wishlist, channel)
             if self.fallback:
+                LOGGER.warning(
+                    f"No {mode} calibration coefficients for {channel}. "
+                    f"Falling back to {self.fallback}."
+                )
                 return self.coefs[self.fallback][channel]
-            mode = self.parser.get_calib_mode(self.wishlist, channel)
             raise KeyError(f"No {mode} calibration coefficients for {channel}")
