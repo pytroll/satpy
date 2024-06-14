@@ -17,22 +17,22 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading hdf5-based files."""
 
-import hashlib
 import logging
 import os
 
 import dask.array as da
+import dask.config as dc
 import h5py
 import numpy as np
 import xarray as xr
+from dask.array.core import normalize_chunks
+from dask.base import tokenize
 
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
-from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
-CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class HDF5FileHandler(BaseFileHandler):
@@ -126,7 +126,10 @@ class HDF5FileHandler(BaseFileHandler):
 
 def from_h5_array(h5dset):
     """Create a dask array from an h5py dataset, ensuring uniqueness of the dask array name."""
-    name_str = os.fspath(h5dset.file.filename) + "-" + h5dset.name
-    name = hashlib.md5(name_str.encode(), usedforsecurity=False).hexdigest()
-    dset_data = da.from_array(h5dset, chunks=CHUNK_SIZE, name=name)
+    chunk_size = dc.get("array.chunk-size")
+
+    chunks = normalize_chunks(chunk_size, dtype=h5dset.dtype, previous_chunks=h5dset.chunks, shape=h5dset.shape)
+    name = tokenize(os.fspath(h5dset.file.filename), h5dset.name, chunks)
+
+    dset_data = da.from_array(h5dset, chunks=chunks, name=name)
     return dset_data
