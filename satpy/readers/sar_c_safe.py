@@ -46,6 +46,7 @@ from threading import Lock
 import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
+import rioxarray  # noqa F401 : xarray open_dataset use engine rasterio, which use rioxarray
 import xarray as xr
 from dask import array as da
 from geotiepoints.geointerpolator import lonlat2xyz, xyz2lonlat
