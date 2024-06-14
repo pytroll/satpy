@@ -514,7 +514,7 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
     assert read_binary_data == dummy_data
 
 
-class TestCalibrationCoefficientSelector:
+class TestCalibrationCoefficientPicker:
     """Unit tests for calibration coefficient selection."""
 
     @pytest.fixture(name="coefs")
@@ -558,9 +558,9 @@ class TestCalibrationCoefficientSelector:
     )
     def test_get_coefs(self, coefs, wishlist, expected):
         """Test getting calibration coefficients."""
-        s = hf.CalibrationCoefficientSelector(coefs, wishlist)
+        picker = hf.CalibrationCoefficientPicker(coefs, wishlist)
         coefs = {
-            channel: s.get_coefs(channel)
+            channel: picker.get_coefs(channel)
             for channel in ["ch1", "ch2"]
         }
         assert coefs == expected
@@ -571,37 +571,38 @@ class TestCalibrationCoefficientSelector:
     def test_unknown_mode(self, coefs, wishlist):
         """Test handling of unknown calibration mode."""
         with pytest.raises(KeyError, match="Unknown calibration mode"):
-            hf.CalibrationCoefficientSelector(coefs, wishlist)
+            hf.CalibrationCoefficientPicker(coefs, wishlist)
 
     @pytest.mark.parametrize(
         "wishlist", ["mode1", {"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
     )
     def test_missing_coefs(self, coefs, wishlist):
         """Test that an exception is raised when coefficients are missing."""
-        s = hf.CalibrationCoefficientSelector(coefs, wishlist)
+        picker = hf.CalibrationCoefficientPicker(coefs, wishlist)
         with pytest.raises(KeyError, match="No mode1 calibration"):
-            s.get_coefs("ch2")
+            picker.get_coefs("ch2")
 
     @pytest.mark.parametrize(
         "wishlist", ["mode1", {"ch2": "mode1"}, {("ch1", "ch2"): "mode1"}]
     )
     def test_fallback_to_nominal(self, coefs, wishlist, caplog):
         """Test falling back to nominal coefficients."""
-        s = hf.CalibrationCoefficientSelector(coefs, wishlist, fallback="nominal")
-        assert s.get_coefs("ch2") == "nominal_ch2"
+        picker = hf.CalibrationCoefficientPicker(coefs, wishlist,
+                                                 fallback="nominal")
+        assert picker.get_coefs("ch2") == "nominal_ch2"
         assert "Falling back" in caplog.text
 
     def test_no_default_coefs(self):
         """Test initialization without default coefficients."""
         with pytest.raises(KeyError, match="Need at least"):
-            hf.CalibrationCoefficientSelector({}, {})
+            hf.CalibrationCoefficientPicker({}, {})
 
     def test_no_fallback(self):
         """Test initialization without fallback coefficients."""
         with pytest.raises(KeyError, match="No fallback calibration"):
-            hf.CalibrationCoefficientSelector({"nominal": 123}, {}, fallback="foo")
+            hf.CalibrationCoefficientPicker({"nominal": 123}, {}, fallback="foo")
 
     def test_invalid_wishlist_type(self):
         """Test handling of invalid wishlist type."""
         with pytest.raises(TypeError, match="Unsupported wishlist type"):
-            hf.CalibrationCoefficientSelector({"nominal": 123}, 123)
+            hf.CalibrationCoefficientPicker({"nominal": 123}, 123)

@@ -552,7 +552,7 @@ class _CalibrationCoefficientParser:
             return flat[channel]
 
 
-class CalibrationCoefficientSelector:
+class CalibrationCoefficientPicker:
     """Helper for choosing coefficients out of multiple options.
 
     Example: Three sets of coefficients are available (nominal, meirink, gsics).
@@ -566,7 +566,7 @@ class CalibrationCoefficientSelector:
 
     .. code-block:: python
 
-        from satpy.readers.utils import CalibrationCoefficientSelector
+        from satpy.readers.utils import CalibrationCoefficientPicker
 
         coefs = {
             "nominal": {
@@ -594,29 +594,29 @@ class CalibrationCoefficientSelector:
 
     .. code-block:: python
 
-        >>> s = CalibrationCoefficientSelector(coefs, calib_wishlist)
-        >>> s.get_coefs("ch1")
+        >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist)
+        >>> picker.get_coefs("ch1")
         "meirink_ch1"
-        >>> s.get_coefs("ch2")
+        >>> picker.get_coefs("ch2")
         "gsics_ch2"
-        >>> s.get_coefs("ch3")
+        >>> picker.get_coefs("ch3")
         KeyError: 'No gsics calibration coefficients for ch3'
-        >>> s.get_coefs("ch4")
+        >>> picker.get_coefs("ch4")
         {"mygain": 123}
-        >>> s.get_coefs("ch5")
+        >>> picker.get_coefs("ch5")
         "nominal_ch5
 
     3. Fallback to nominal for ch3:
 
     .. code-block:: python
 
-        >>> s = CalibrationCoefficientSelector(coefs, calib_wishlist, fallback="nominal")
-        >>> s.get_coefs("ch3")
+        >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist, fallback="nominal")
+        >>> picker.get_coefs("ch3")
         "nominal_ch3"
     """
 
     def __init__(self, coefs, calib_wishlist, default="nominal", fallback=None):
-        """Initialize the coefficient selector.
+        """Initialize the coefficient picker.
 
         Args:
             coefs (dict): One set of calibration coefficients for each
