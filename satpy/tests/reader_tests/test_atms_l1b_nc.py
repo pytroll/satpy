@@ -12,9 +12,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The atms_l1b_nc reader tests package."""
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import pytest
@@ -27,25 +28,25 @@ from satpy.readers.atms_l1b_nc import AtmsL1bNCFileHandler
 # - tmp_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def reader(l1b_file):
     """Return reader of ATMS level1b data."""
     return AtmsL1bNCFileHandler(
         filename=l1b_file,
-        filename_info={"creation_time": datetime(2020, 1, 2, 3, 4, 5)},
+        filename_info={"creation_time": dt.datetime(2020, 1, 2, 3, 4, 5)},
         filetype_info={"antenna_temperature": "antenna_temp"},
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def l1b_file(tmp_path, atms_fake_dataset):
     """Return file path to level1b file."""
     l1b_file_path = tmp_path / "test_file_atms_l1b.nc"
     atms_fake_dataset.to_netcdf(l1b_file_path)
-    yield l1b_file_path
+    return l1b_file_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def atms_fake_dataset():
     """Return fake ATMS dataset."""
     atrack = 2
@@ -78,11 +79,11 @@ class TestAtsmsL1bNCFileHandler:
 
     def test_start_time(self, reader):
         """Test start time."""
-        assert reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
+        assert reader.start_time == dt.datetime(2000, 1, 2, 3, 4, 5)
 
     def test_end_time(self, reader):
         """Test end time."""
-        assert reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
+        assert reader.end_time == dt.datetime(2000, 1, 2, 4, 5, 6)
 
     def test_sensor(self, reader):
         """Test sensor."""
@@ -99,20 +100,20 @@ class TestAtsmsL1bNCFileHandler:
             atms_fake_dataset.antenna_temp.values,
         )
 
-    @pytest.mark.parametrize("param,expect", (
-        ("start_time", datetime(2000, 1, 2, 3, 4, 5)),
-        ("end_time", datetime(2000, 1, 2, 4, 5, 6)),
+    @pytest.mark.parametrize(("param", "expect"), [
+        ("start_time", dt.datetime(2000, 1, 2, 3, 4, 5)),
+        ("end_time", dt.datetime(2000, 1, 2, 4, 5, 6)),
         ("platform_name", "JPSS-1"),
         ("sensor", "ATMS"),
-    ))
+    ])
     def test_attrs(self, reader, param, expect):
         """Test attributes."""
         assert reader.attrs[param] == expect
 
-    @pytest.mark.parametrize("dims", (
+    @pytest.mark.parametrize("dims", [
         ("xtrack", "atrack"),
         ("x", "y"),
-    ))
+    ])
     def test_standardize_dims(self, reader, dims):
         """Test standardize dims."""
         data = xr.DataArray(
@@ -134,15 +135,15 @@ class TestAtsmsL1bNCFileHandler:
         data = reader._drop_coords(data)
         assert coords not in data.coords
 
-    @pytest.mark.parametrize("param,expect", (
-        ("start_time", datetime(2000, 1, 2, 3, 4, 5)),
-        ("end_time", datetime(2000, 1, 2, 4, 5, 6)),
+    @pytest.mark.parametrize(("param", "expect"), [
+        ("start_time", dt.datetime(2000, 1, 2, 3, 4, 5)),
+        ("end_time", dt.datetime(2000, 1, 2, 4, 5, 6)),
         ("platform_name", "JPSS-1"),
         ("sensor", "ATMS"),
-        ("creation_time", datetime(2020, 1, 2, 3, 4, 5)),
+        ("creation_time", dt.datetime(2020, 1, 2, 3, 4, 5)),
         ("type", "test_data"),
         ("name", "test"),
-    ))
+    ])
     def test_merge_attributes(self, reader, param, expect):
         """Test merge attributes."""
         data = xr.DataArray(
@@ -154,10 +155,10 @@ class TestAtsmsL1bNCFileHandler:
         data = reader._merge_attributes(data, dataset_info)
         assert data.attrs[param] == expect
 
-    @pytest.mark.parametrize("param,expect", (
+    @pytest.mark.parametrize(("param", "expect"), [
         ("1", 100.),
         ("sat_azi", 3.),
-    ))
+    ])
     def test_select_dataset(self, reader, param, expect):
         """Test select dataset."""
         np.testing.assert_array_equal(

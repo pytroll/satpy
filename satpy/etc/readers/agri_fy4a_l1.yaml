@@ -5,7 +5,7 @@
 reader:
   name: agri_fy4a_l1
   short_name: AGRI FY4A L1
-  long_name: FY-4A AGRI L1 data in HDF5 format
+  long_name: FY-4A AGRI Level 1 HDF5 format
   description: FY-4A AGRI instrument HDF5 reader
   status: Beta
   supports_fsspec: false

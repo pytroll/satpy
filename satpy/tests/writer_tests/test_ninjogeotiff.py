@@ -463,8 +463,8 @@ def ntg_latlon(test_image_latlon):
             SatelliteNameID=654321)
 
 
-@pytest.fixture
-def patch_datetime_now(monkeypatch):
+@pytest.fixture()
+def _patch_datetime_now(monkeypatch):
     """Get a fake datetime.datetime.now()."""
     # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0
 
@@ -477,7 +477,7 @@ def patch_datetime_now(monkeypatch):
             return datetime.datetime(2033, 5, 18, 3, 33, 20,
                                      tzinfo=tz)
 
-    monkeypatch.setattr(datetime, 'datetime', mydatetime)
+    monkeypatch.setattr(datetime, "datetime", mydatetime)
 
 
 def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
@@ -630,7 +630,7 @@ def test_write_and_read_file_units(
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
                                0.467717, rtol=1e-5)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
-                               -79.86771)
+                               -79.86771, rtol=1e-5)
     fn2 = os.fspath(tmp_path / "test2.tif")
     with caplog.at_level(logging.WARNING):
         ngtw.save_dataset(
@@ -741,11 +741,13 @@ def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
     assert ntg2.get_tag("DataType") == "GORN"
     assert ntg3.get_tag("DataType") == "PPRN"
     assert ntg1.get_tag("DataSource") == "dowsing rod"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown tag: invalid"):
         ntg1.get_tag("invalid")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError,
+                       match="Optional tag OriginalHeader must be supplied by user if user wants to request the value,"
+                             " but wasn't."):
         ntg1.get_tag("OriginalHeader")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Tag Gradient is added later by the GeoTIFF writer."):
         ntg1.get_tag("Gradient")
 
 
@@ -773,11 +775,12 @@ def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
     assert ntg3.get_color_depth() == 8  # mode P
     assert ntg_weird.get_color_depth() == 16  # mode LA
     assert ntg_rgba.get_color_depth() == 32  # mode RGBA
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported image mode: CMYK"):
         ntg_cmyk.get_color_depth()
 
 
-def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now):
+@pytest.mark.usefixtures("_patch_datetime_now")
+def test_get_creation_date_id(ntg1, ntg2, ntg3):
     """Test getting the creation date ID.
 
     This is the time at which the file was created.
@@ -887,7 +890,7 @@ def test_get_projection(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk,
     assert ntg_cmyk.get_projection() == "SPOL"
     assert ntg_rgba.get_projection() == "MERC"
     assert ntg_latlon.get_projection() == "PLAT"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown mapping from area .*"):
         ntg_weird.get_projection()
 
 
@@ -898,7 +901,7 @@ def test_get_ref_lat_1(ntg1, ntg2, ntg3, ntg_weird, ntg_latlon):
     np.testing.assert_allclose(rl1, 0.0)
     np.testing.assert_allclose(ntg2.get_ref_lat_1(), 2.5)
     np.testing.assert_allclose(ntg3.get_ref_lat_1(), 75)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Could not find reference latitude for area test-area-north-stereo"):
         ntg_weird.get_ref_lat_1()
     with pytest.raises(AttributeError):
         ntg_latlon.get_ref_lat_1()
@@ -945,7 +948,7 @@ def test_get_ymax(ntg1, ntg2, ntg3):
 def test_create_unknown_tags(test_image_small_arctic_P):
     """Test that unknown tags raise ValueError."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The following tags were not recognised: Locatie"):
         NinJoTagGenerator(
             test_image_small_arctic_P,
             42,

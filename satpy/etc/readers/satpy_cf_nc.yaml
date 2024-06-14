@@ -17,4 +17,3 @@ file_types:
         file_patterns:
          - '{platform_name}-{sensor}-{resolution_type}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
          - '{platform_name}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
-         - '{stem}.nc'

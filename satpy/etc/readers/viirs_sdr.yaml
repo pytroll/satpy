@@ -1,7 +1,7 @@
 reader:
   name: viirs_sdr
   short_name: VIIRS SDR
-  long_name: SNPP VIIRS data in HDF5 SDR format
+  long_name: JPSS VIIRS data in HDF5 SDR format
   description: VIIRS SDR Reader
   status: Nominal
   supports_fsspec: false

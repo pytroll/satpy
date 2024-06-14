@@ -1,0 +1,45 @@
+reader:
+  name: gerb_l2_hr_h5
+  short_name: GERB HR
+  long_name: Meteosat Second Generation Geostationary Earth Radiation Budget L2 High-Resolution
+  description: Reader for the HR product of the Geostationary Earth Radiation Budget instrument
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [gerb]
+
+file_types:
+  gerb_l2_hr_h5:
+    file_reader: !!python/name:satpy.readers.gerb_l2_hr_h5.GERB_HR_FileHandler
+    file_patterns: ['{sensor_name}_{seviri_name}_L20_HR_SOL_TH_{sensing_time:%Y%m%d_%H%M%S}_{gerb_version}.hdf']
+
+datasets:
+  Solar_Flux:
+    name: Solar Flux
+    sensor: gerb
+    units: W m-2
+    fill_value: -32767
+    standard_name: toa_outgoing_shortwave_flux
+    file_type: gerb_l2_hr_h5
+
+  Thermal_Flux:
+    name: Thermal Flux
+    sensor: gerb
+    units: W m-2
+    fill_value: -32767
+    standard_name: toa_outgoing_longwave_flux
+    file_type: gerb_l2_hr_h5
+
+  Solar_Radiance:
+    name: Solar Radiance
+    sensor: gerb
+    units: W m-2 sr-1
+    fill_value: -32767
+    file_type: gerb_l2_hr_h5
+
+  Thermal_Radiance:
+    name: Thermal Radiance
+    sensor: gerb
+    units: W m-2 sr-1
+    fill_value: -32767
+    file_type: gerb_l2_hr_h5

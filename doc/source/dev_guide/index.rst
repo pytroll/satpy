@@ -29,7 +29,7 @@ and all code should follow the
 practices <http://pytroll.github.io/guidelines.html>`_.
 
 Satpy is now Python 3 only and it is no longer needed to support Python 2.
-Check ``setup.py`` for the current Python versions any new code needs
+Check ``pyproject.toml`` for the current Python versions any new code needs
 to support.
 
 .. _devinstall:
@@ -49,7 +49,7 @@ can do this using conda_::
 
 .. _conda: https://conda.io/
 
-This will create a new environment called "satpy-dev" with Python 3.8
+This will create a new environment called "satpy-dev" with Python 3.11
 installed. The second command will activate the environment so any future
 conda, python, or pip commands will use this new environment.
 
@@ -63,7 +63,7 @@ clone your fork. The package can then be installed in development mode by doing:
 The first command will install all dependencies needed by the Satpy
 conda-forge package, but won't actually install Satpy. The second command
 should be run from the root of the cloned Satpy repository (where the
-``setup.py`` is) and will install the actual package.
+``pyproject.toml`` is) and will install the actual package.
 
 You can now edit the python files in your cloned repository and have them
 immediately reflected in your conda environment.
@@ -125,7 +125,7 @@ Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. For building the documentation,
 additional packages are needed. These can be installed with ::
 
-    pip install -e ".[all]".
+    pip install -e ".[all]"
 
 After editing the source files there the documentation can be generated locally::
 

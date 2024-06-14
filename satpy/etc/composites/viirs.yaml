@@ -231,10 +231,10 @@ composites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
-    - name: I01
+    - name: I02
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: false_color
-    high_resolution_band: blue
+    high_resolution_band: green
 
   fire_temperature:
     # CIRA: Original VIIRS
@@ -306,6 +306,53 @@ composites:
       modifiers: [sunz_corrected_iband]
     standard_name: natural_color
 
+  natural_color_surf:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: surf_refl_I03
+    - name: surf_refl_I02
+    - name: surf_refl_I01
+    standard_name: natural_color
+
+  natural_color_lowres_surf:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: surf_refl_M10
+    - name: surf_refl_M07
+    - name: surf_refl_M05
+    standard_name: natural_color
+
+  false_color_surf:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: surf_refl_M11
+      - name: surf_refl_M07
+      - name: surf_refl_M05
+    optional_prerequisites:
+      - name: surf_refl_I02
+    standard_name: false_color
+    high_resolution_band: green
+
+
+  true_color_lowres_surf:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: surf_refl_M05
+    - name: surf_refl_M04
+    - name: surf_refl_M03
+    standard_name: true_color
+
+  true_color_surf:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: surf_refl_M05
+      - name: surf_refl_M04
+      - name: surf_refl_M03
+    optional_prerequisites:
+      - name: surf_refl_I01
+    standard_name: true_color
+    high_resolution_band: red
+
   natural_color_sun_lowres:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
@@ -327,14 +374,6 @@ composites:
     - name: M03
       modifiers: [sunz_corrected]
     standard_name: true_color
-
-  night_overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - DNB
-    - DNB
-    - M15
-    standard_name: night_overview
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor

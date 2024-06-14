@@ -16,9 +16,6 @@
 """Composite classes for spectral adjustments."""
 
 import logging
-import warnings
-
-import dask.array as da
 
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
@@ -114,8 +111,8 @@ class NDVIHybridGreen(SpectralBlender):
 
     This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
     factor `f` that depends on the pixel-level Normalized Differece Vegetation Index (NDVI). The higher the NDVI, the
-    smaller the contribution from the nir channel will be, following a liner relationship between the two ranges
-    `[ndvi_min, ndvi_max]` and `limits`.
+    smaller the contribution from the nir channel will be, following a liner (default) or non-linear relationship
+    between the two ranges `[ndvi_min, ndvi_max]` and `limits`.
 
     As an example, a new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like::
 
@@ -124,6 +121,7 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi_min: 0.0
         ndvi_max: 1.0
         limits: [0.15, 0.05]
+        strength: 1.0
         prerequisites:
           - name: vis_05
             modifiers: [sunz_corrected, rayleigh_corrected]
@@ -138,46 +136,65 @@ class NDVIHybridGreen(SpectralBlender):
     pixels with NDVI=1.0 will be a weighted average with 5% contribution from the near-infrared
     vis_08 channel and the remaining 95% from the native green vis_05 channel. For other values of
     NDVI a linear interpolation between these values will be performed.
+
+    A strength larger or smaller than 1.0 will introduce a non-linear relationship between the two ranges
+    `[ndvi_min, ndvi_max]` and `limits`. Hence, a higher strength (> 1.0) will result in a slower transition
+    to higher/lower fractions at the NDVI extremes. Similarly, a lower strength (< 1.0) will result in a
+    faster transition to higher/lower fractions at the NDVI extremes.
     """
 
-    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), **kwargs):
-        """Initialize class and set the NDVI limits and the corresponding blending fraction limits."""
+    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), strength=1.0, **kwargs):
+        """Initialize class and set the NDVI limits, blending fraction limits and strength."""
+        if strength <= 0.0:
+            raise ValueError(f"Expected strength greater than 0.0, got {strength}.")
+
         self.ndvi_min = ndvi_min
         self.ndvi_max = ndvi_max
         self.limits = limits
+        self.strength = strength
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Construct the hybrid green channel weighted by NDVI."""
-        ndvi_input = self.match_data_arrays([projectables[1], projectables[2]])
+        LOG.info(f"Applying NDVI-weighted hybrid-green correction with limits [{self.limits[0]}, "
+                 f"{self.limits[1]}] and strength {self.strength}.")
 
-        ndvi = (ndvi_input[1] - ndvi_input[0]) / (ndvi_input[1] + ndvi_input[0])
+        projectables = self.match_data_arrays(projectables)
 
-        ndvi.data = da.where(ndvi > self.ndvi_min, ndvi, self.ndvi_min)
-        ndvi.data = da.where(ndvi < self.ndvi_max, ndvi, self.ndvi_max)
+        ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
 
-        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
-            + self.limits[0]
+        ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
+
+        # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
+        if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
+            ndvi = self._apply_strength(ndvi)
+
+        # Compute pixel-level NIR blend fractions from ndvi
+        fraction = self._compute_blend_fraction(ndvi)
+
+        # Prepare input as required by parent class (SpectralBlender)
         self.fractions = (1 - fraction, fraction)
 
         return super().__call__([projectables[0], projectables[2]], **attrs)
 
+    def _apply_strength(self, ndvi):
+        """Introduce non-linearity by applying strength factor.
 
-class GreenCorrector(SpectralBlender):
-    """Previous class used to blend channels for green band corrections.
+        The method introduces non-linearity to the ndvi for a non-linear scaling from ndvi to blend fraction in
+        `_compute_blend_fraction`. This can be used for a slower or faster transision to higher/lower fractions
+        at the ndvi extremes. If strength equals 1.0, this operation has no effect on the ndvi.
+        """
+        ndvi = ndvi ** self.strength / (ndvi ** self.strength + (1 - ndvi) ** self.strength)
 
-    This method has been refactored to make it more generic. The replacement class is 'SpectralBlender' which computes
-    a weighted average based on N number of channels and N number of corresponding weights/fractions. A new class
-    called 'HybridGreen' has been created, which performs a correction of green bands centered at 0.51 microns
-    following Miller et al. (2016, :doi:`10.1175/BAMS-D-15-00154.2`) in order to improve true color imagery.
-    """
+        return ndvi
 
-    def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
-        """Set default keyword argument values."""
-        warnings.warn(
-            "'GreenCorrector' is deprecated, use 'SpectralBlender' instead, or 'HybridGreen' for hybrid green"
-            " correction following Miller et al. (2016).",
-            UserWarning,
-            stacklevel=2
-        )
-        super().__init__(fractions=fractions, *args, **kwargs)
+    def _compute_blend_fraction(self, ndvi):
+        """Compute pixel-level fraction of NIR signal to blend with native green signal.
+
+        This method linearly scales the input ndvi values to pixel-level blend fractions within the range
+        `[limits[0], limits[1]]` following this implementation <https://stats.stackexchange.com/a/281164>.
+        """
+        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
+            + self.limits[0]
+
+        return fraction

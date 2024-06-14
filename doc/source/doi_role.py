@@ -20,40 +20,44 @@ from sphinx.util.nodes import split_explicit_title
 
 
 def doi_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
+    """Create a doi role."""
     if options is None:
         options = {}
     if content is None:
         content = []
     text = utils.unescape(text)
     has_explicit_title, title, part = split_explicit_title(text)
-    full_url = 'https://doi.org/' + part
+    full_url = "https://doi.org/" + part
     if not has_explicit_title:
-        title = 'DOI:' + part
+        title = "DOI:" + part
     pnode = nodes.reference(title, title, internal=False, refuri=full_url)
     return [pnode], []
 
 
 def arxiv_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
+    """Create an arxive role."""
     if options is None:
         options = {}
     if content is None:
         content = []
     text = utils.unescape(text)
     has_explicit_title, title, part = split_explicit_title(text)
-    full_url = 'https://arxiv.org/abs/' + part
+    full_url = "https://arxiv.org/abs/" + part
     if not has_explicit_title:
-        title = 'arXiv:' + part
+        title = "arXiv:" + part
     pnode = nodes.reference(title, title, internal=False, refuri=full_url)
     return [pnode], []
 
 
 def setup_link_role(app):
-    app.add_role('doi', doi_role, override=True)
-    app.add_role('DOI', doi_role, override=True)
-    app.add_role('arXiv', arxiv_role, override=True)
-    app.add_role('arxiv', arxiv_role, override=True)
+    """Set up the role link."""
+    app.add_role("doi", doi_role, override=True)
+    app.add_role("DOI", doi_role, override=True)
+    app.add_role("arXiv", arxiv_role, override=True)
+    app.add_role("arxiv", arxiv_role, override=True)
 
 
 def setup(app):
-    app.connect('builder-inited', setup_link_role)
-    return {'version': '0.1', 'parallel_read_safe': True}
+    """Set up the app."""
+    app.connect("builder-inited", setup_link_role)
+    return {"version": "0.1", "parallel_read_safe": True}
