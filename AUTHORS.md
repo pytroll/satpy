@@ -44,6 +44,7 @@ The following people have made contributions to this project:
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
+- [Beke Kremmling (bkremmli)](https://github.com/bkremmli) - Deutscher Wetterdienst
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Jussi Leinonen (jleinonen)](https://github.com/jleinonen) - meteoswiss

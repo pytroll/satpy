@@ -162,9 +162,7 @@ import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
 
-CHUNK_SIZE = get_legacy_chunk_size()
 EQUATOR_RADIUS = 6378140.0
 POLE_RADIUS = 6356755.0
 ALTITUDE = 42164000.0 - EQUATOR_RADIUS
@@ -407,7 +405,6 @@ class Interpolator:
         """
         # Compute mean timestamp per scanline
         time = time2d.mean(dim="x")
-
         # If required, repeat timestamps in y-direction to obtain higher
         # resolution
         y = time.coords["y"].values
@@ -455,9 +452,39 @@ def is_high_resol(resolution):
 class DatasetWrapper:
     """Helper class for accessing the dataset."""
 
-    def __init__(self, nc):
+    def __init__(self, nc, decode_nc=True):
         """Wrap the given dataset."""
         self.nc = nc
+
+        if decode_nc is True:
+            self._decode_cf()
+            self._fix_duplicate_dimensions(self.nc)
+            self.nc = self._chunk(self.nc)
+
+    def _decode_cf(self):
+        # remove time before decoding and add again.
+        time = self.get_time()
+        time_dims = self.nc[time.name].dims
+        time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
+                        (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
+        self.nc = self.nc.drop_vars(time.name)
+        self.nc = xr.decode_cf(self.nc)
+        self.nc[time.name] = (time_dims, time.values)
+
+    def _fix_duplicate_dimensions(self, nc):
+        nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
+        self.nc = nc.drop_dims("srf_size")
+
+    def _chunk(self, nc):
+
+        (chunk_size_y, chunk_size_x) = nc.variables["quality_pixel_bitmask"].encoding["chunksizes"]
+        chunks = {
+            "x": chunk_size_x,
+            "y": chunk_size_y,
+            "x_ir_wv": chunk_size_x,
+            "y_ir_wv": chunk_size_y
+        }
+        return nc.chunk(chunks)
 
     @property
     def attrs(self):
@@ -555,16 +582,21 @@ class FiduceoMviriBase(BaseFileHandler):
         self.mask_bad_quality = mask_bad_quality
         nc_raw = xr.open_dataset(
             filename,
-            chunks={"x": CHUNK_SIZE,
-                    "y": CHUNK_SIZE,
-                    "x_ir_wv": CHUNK_SIZE,
-                    "y_ir_wv": CHUNK_SIZE}
+            decode_cf=False,
+            decode_times=False,
+            mask_and_scale=False,
         )
+
         self.nc = DatasetWrapper(nc_raw)
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
-        self.projection_longitude = float(filename_info["projection_longitude"])
+        if "." in str(filename_info["projection_longitude"]):
+            self.projection_longitude = float(filename_info["projection_longitude"])
+        else:
+            self.projection_longitude = (
+                float(filename_info["projection_longitude"][:2] + "." + filename_info["projection_longitude"][2:])
+            )
         self.calib_coefs = self._get_calib_coefs()
 
         self._get_angles = functools.lru_cache(maxsize=8)(
