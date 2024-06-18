@@ -67,7 +67,7 @@ gms5-vissr_l1b = ["numba"]
 # Writers:
 cf = ["h5netcdf >= 0.7.3"]
 awips_tiled = ["netCDF4 >= 1.1.8"]
-geotiff = ["rasterio", "rioxarray", "trollimage[geotiff]"]
+geotiff = ["rasterio", "trollimage[geotiff]"]
 ninjo = ["pyninjotiff", "pint"]
 units = ["pint-xarray"]
 # Composites/Modifiers:

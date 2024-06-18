@@ -31,7 +31,7 @@ import logging
 import dask.array as da
 import numpy as np
 import rasterio
-import rioxarray  # noqa: F401, need by xarray with the engine rasterio
+import rioxarray  # noqa: F401  # need by xarray with the engine rasterio
 import xarray as xr
 from pyresample import utils
 
