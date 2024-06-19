@@ -129,7 +129,7 @@ def from_h5_array(h5dset):
     chunk_size = dc.get("array.chunk-size")
 
     chunks = normalize_chunks(chunk_size, dtype=h5dset.dtype, previous_chunks=h5dset.chunks, shape=h5dset.shape)
-    name = tokenize(os.fspath(h5dset.file.filename), h5dset.name, chunks)
+    name = h5dset.name + "-" + tokenize(os.fspath(h5dset.file.filename), h5dset.name, chunks)
 
     dset_data = da.from_array(h5dset, chunks=chunks, name=name)
     return dset_data

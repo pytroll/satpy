@@ -159,3 +159,4 @@ class TestHDF5FileHandler(unittest.TestCase):
         dsname = "test_group/ds1_f"
 
         assert file_handler[dsname].data.name == file_handler[dsname].data.name
+        assert file_handler[dsname].data.name.startswith("/" + dsname)
