@@ -703,7 +703,7 @@ def _make_coefs(coefs, mode):
 
 
 def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
-                                        group="/"):
+                                        group="/", auto_maskandscale=None):
     """Construct a dask array from a variable for dask distributed.
 
     When we construct a dask array using da.array and use that to create an
@@ -733,9 +733,16 @@ def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
             What dtype to use.
         group (str):
             What group to read the variable from.
+        auto_maskandscale (bool, optional):
+            Apply automatic masking and scaling.  This will only
+            work if CachingFileManager.acquire returns a handler with a
+            method set_auto_maskandscale, such as is the case for
+            NetCDF4.Dataset.
     """
     def get_chunk():
         with manager.acquire_context() as nc:
+            if auto_maskandscale is not None:
+                nc.set_auto_maskandscale(auto_maskandscale)
             return nc["/".join([group, varname])][:]
 
     return da.map_blocks(
