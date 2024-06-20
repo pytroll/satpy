@@ -106,6 +106,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content = {}
         self.cached_file_content = {}
         self._use_h5netcdf = False
+        self._auto_maskandscale = auto_maskandscale
         try:
             file_handle = self._get_file_handle()
         except IOError:
@@ -352,6 +353,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _get_var_from_manager(self, group, key):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
+
         with self.manager.acquire_context() as ds:
             if group is not None:
                 v = ds[group][key]
@@ -360,11 +362,13 @@ class NetCDF4FileHandler(BaseFileHandler):
         if group is None:
             dv = get_distributed_friendly_dask_array(
                     self.manager, key,
-                    chunks=v.shape, dtype=v.dtype)
+                    chunks=v.shape, dtype=v.dtype,
+                    auto_maskandscale=self._auto_maskandscale)
         else:
             dv = get_distributed_friendly_dask_array(
                     self.manager, key, group=group,
-                    chunks=v.shape, dtype=v.dtype)
+                    chunks=v.shape, dtype=v.dtype,
+                    auto_maskandscale=self._auto_maskandscale)
         attrs = self._get_object_attrs(v)
         x = xr.DataArray(
                 dv,
