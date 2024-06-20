@@ -20,6 +20,7 @@ import logging
 import os
 import pickle  # nosec
 import time
+import warnings
 
 import dask.array as da
 import dask.distributed
@@ -131,6 +132,16 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def _get_file_handle(self):
         return netCDF4.Dataset(self.filename, "r")
+
+    @property
+    def file_handle(self):
+        """Backward-compatible way for file handle caching."""
+        warnings.warn(
+                "attribute .file_handle is deprecated, use .manager instead",
+                DeprecationWarning)
+        if self.manager is None:
+            return None
+        return self.manager.acquire()
 
     @staticmethod
     def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
