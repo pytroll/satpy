@@ -710,11 +710,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         return res
 
     def _collect_listed_variables(self, file_handle, listed_variables, filetype_info):
-        listed_variables = self._recycle_shared_info(listed_variables, filetype_info)
+        listed_variables = self._collect_from_inter_segment_cache(listed_variables, filetype_info)
         super()._collect_listed_variables(file_handle, listed_variables, filetype_info)
         self._store_shared_info(filetype_info)
 
-    def _recycle_shared_info(self, listed_variables, filetype_info):
+    def _collect_from_inter_segment_cache(self, listed_variables, filetype_info):
         if "shared_info" in filetype_info:
             shared_info = filetype_info["shared_info"]
             for key in shared_info:
