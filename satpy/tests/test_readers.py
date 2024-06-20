@@ -1102,6 +1102,18 @@ class TestFSFile:
                     for fn in {local_filename, local_filename2}
                     for fs in [None, lfs, zfs, cfs]}) == 2 * 4
 
+    def test_fs_property_read(self, local_filename):
+        """Test reading the fs property of the class."""
+        fsf = FSFile(local_filename)
+        fs = fsf.fs
+        assert fs is None
+
+    def test_fs_property_is_read_only(self, local_filename):
+        """Test that the fs property of the class is read-only."""
+        fsf = FSFile(local_filename)
+        with pytest.raises(AttributeError):
+            fsf.fs = "foo"
+
 
 def test_open_file_or_filename_uses_mode(tmp_path):
     """Test that open_file_or_filename uses provided mode."""

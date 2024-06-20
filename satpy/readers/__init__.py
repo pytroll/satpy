@@ -710,6 +710,11 @@ class FSFile(os.PathLike):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
 
+    @property
+    def fs(self):
+        """Return the underlying private filesystem attribute."""
+        return self._fs
+
     def open(self, *args, **kwargs):  # noqa: A003
         """Open the file.
 
