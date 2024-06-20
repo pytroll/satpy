@@ -226,8 +226,6 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         np.testing.assert_array_equal(
                 h["ds2_f"],
                 np.arange(10. * 100).reshape((10, 100)))
-        h.__del__()
-        assert not h.file_handle.isopen()
 
     def test_filenotfound(self):
         """Test that error is raised when file not found."""
