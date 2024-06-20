@@ -56,6 +56,7 @@ _CONFIG_DEFAULTS = {
         "preload_segments": False,
         "preload_step": 2,
         "preload_tries": 300,
+        "preload_dask_distributed": False,
     },
 }
 

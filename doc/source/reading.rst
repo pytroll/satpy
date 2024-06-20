@@ -388,19 +388,26 @@ the computation of the dask graphs until data become available.
 
 For additional configuration parameters, see :ref:`Settings`.
 
-Some limitations that may be resolved in the future:
+Known limitations as of Satpy 0.50:
 
 - Mixing different file types for the same reader is not yet supported.
   For FCI, that means it is not yet possible to mix FDHSI and HRFI data.
 - Only the nominal case has been tested.  Missing segments are not yet supported.
 - Dask may not order the processing of the chunks optimally.  That means some
   dask workers may be waiting for chunks 33–40 as chunks 1–32 are coming in
-  and are not being processed.  A suboptimal workaround is to use 40 workers.
+  and are not being processed.  Possible workarounds:
+  - Use 40 workers.
+  - Use the dask distributed scheduler using
+    ``from dask.distributed import Client; Client()``.  This has only
+    limited support in Satpy. It is possible to read FCI L1C data, resample it
+    using the gradient search resampler, and write the resulting data using the
+    ``simple_image`` writer.  The nearest neighbour resampler or the GeoTIFF
+    writer do not currently work (see https://github.com/pytroll/satpy/issues/1762)
+    If you use this scheduler, set the configuration variable
+    ``readers.preload_dask_distributed`` to True.
 - Currently, Satpy merely checks the existence of a file and not whether it
   has been completely written.  This may lead to incomplete files being read,
   which might lead to failures.
-
-Note that this uses the ``h5netcdf`` backend for opening NetCDF files.
 
 For more technical background reading including hints
 on how this could be extended to other readers, see

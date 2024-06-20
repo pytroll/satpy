@@ -529,6 +529,7 @@ class PreloadableSegments:
         self.preload = preload
         self.preload_tries = satpy.config.get("readers.preload_tries")
         self.preload_step = satpy.config.get("readers.preload_step")
+        self.use_distributed = satpy.config.get("readers.preload_dask_distributed")
         if preload:
             if not isinstance(ref_fh, BaseFileHandler):
                 raise TypeError(
@@ -601,7 +602,8 @@ class PreloadableSegments:
     def _collect_variable_delayed(self, subst_name):
         md = self.ref_fh[subst_name]  # some metadata from reference segment
         fn_matched = _wait_for_file(self.filename, self.preload_tries,
-                                    self.preload_step)
+                                    self.preload_step,
+                                    self.use_distributed)
         dade = _get_delayed_value_from_nc(fn_matched, subst_name)
         array = da.from_delayed(
                 dade,
@@ -640,10 +642,10 @@ class PreloadableSegments:
 
 
 @dask.delayed
-def _wait_for_file(pat, max_tries=300, wait=2):
+def _wait_for_file(pat, max_tries=300, wait=2, use_distributed=False):
     """Wait for file to appear."""
     for i in range(max_tries):
-        if (match := _check_for_matching_file(i, pat, wait)):
+        if (match := _check_for_matching_file(i, pat, wait, use_distributed)):
             if i > 0:  # only log if not found immediately
                 LOG.debug(f"Found {match!s} matching {pat!s}!")
             return match
@@ -651,25 +653,27 @@ def _wait_for_file(pat, max_tries=300, wait=2):
         raise TimeoutError(f"File matching {pat!s} failed to materialise")
 
 
-def _check_for_matching_file(i, pat, wait):
+def _check_for_matching_file(i, pat, wait, use_distributed=False):
     fns = glob.glob(pat)
     if len(fns) == 0:
-        _log_and_wait(i, pat, wait)
+        _log_and_wait(i, pat, wait, use_distributed)
         return
     if len(fns) > 1:
         raise ValueError(f"Expected one matching file, found {len(fns):d}")
     return fns[0]
 
 
-def _log_and_wait(i, pat, wait):
+def _log_and_wait(i, pat, wait, use_distributed=False):
     """Maybe log that we're waiting for pat, then wait."""
     if i == 0:  # only log if not yet present
         LOG.debug(f"Waiting for {pat!s} to appear.")
     if i % 60 == 30:
         LOG.debug(f"Still waiting for {pat!s}")
-    dask.distributed.secede()
+    if use_distributed:
+        dask.distributed.secede()
     time.sleep(wait)
-    dask.distributed.rejoin()
+    if use_distributed:
+        dask.distributed.rejoin()
 
 
 @dask.delayed
