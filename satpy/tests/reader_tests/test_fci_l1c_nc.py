@@ -956,7 +956,8 @@ def test_reusing_shared_segment_info():
     with mock.patch("satpy.readers.netcdf_utils.NetCDF4FsspecFileHandler._get_file_handle"):
         with mock.patch("satpy.readers.netcdf_utils.np2str", _mock_np2str):
             fh_ = FCIL1cNCFileHandler(filename, filename_info, filetype_info)
-            assert fh_.file_content["attr/platform"] == filetype_info["shared_info"]["attr/platform"]
+
+    assert fh_.file_content["attr/platform"] == filetype_info["shared_info"]["attr/platform"]
 
 
 def test_store_shared_segment_info():
@@ -969,4 +970,32 @@ def test_store_shared_segment_info():
         get_file_handle.return_value.platform = "mock-satellite"
         with mock.patch("satpy.readers.netcdf_utils.np2str", _mock_np2str):
             _ = FCIL1cNCFileHandler(filename, filename_info, filetype_info)
-            assert filetype_info["shared_info"]["attr/platform"] == "mock-satellite"
+
+    assert filetype_info["shared_info"]["attr/platform"] == "mock-satellite"
+
+
+def test_store_shared_segment_info_ignore_nonshareable():
+    """Test that nonshareable segment info are not collected for sharing."""
+    variables = [
+        "data/ir105/measured/effective_radiance",
+        "data/ir105/measured/y",
+        "data/ir105/measured/end_position_row",
+        "data/ir105/measured/start_position_row",
+        "data/ir105/measured/index_map",
+        "data/ir105/measured/pixel_quality",
+        "index",
+        "time",
+    ]
+
+    filename = TEST_FILENAMES["fdhsi"][0]
+    filename_info = parse_fdhsi_filename_info(filename)
+    filetype_info = {"required_netcdf_variables": variables}
+
+    with mock.patch("satpy.readers.netcdf_utils.NetCDF4FsspecFileHandler._get_file_handle") as get_file_handle:
+        for itm in variables:
+            setattr(get_file_handle.return_value, itm, "mock-value")
+        with mock.patch("satpy.readers.netcdf_utils.np2str", _mock_np2str):
+            _ = FCIL1cNCFileHandler(filename, filename_info, filetype_info)
+
+    for itm in variables:
+        assert itm not in filetype_info["shared_info"]
