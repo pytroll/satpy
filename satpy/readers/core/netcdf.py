@@ -211,10 +211,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __del__(self):
         """Delete the file handler."""
         if self.manager is not None:
-            try:
-                self.manager.close()
-            except RuntimeError:  # presumably closed already
-                pass
+            self.manager.close()
 
     def _collect_global_attrs(self, obj):
         """Collect all the global attributes for the provided file object."""
