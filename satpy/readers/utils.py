@@ -29,6 +29,7 @@ from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
 
+import dask.array as da
 import numpy as np
 import pyproj
 import xarray as xr
@@ -474,3 +475,53 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     with xr.set_options(keep_attrs=True):
         reflectance = reflectance / reflectance.dtype.type(sun_earth_dist * sun_earth_dist)
     return reflectance
+
+
+def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
+                                        group="/", auto_maskandscale=None):
+    """Construct a dask array from a variable for dask distributed.
+
+    When we construct a dask array using da.array and use that to create an
+    xarray dataarray, the result is not serialisable and dask graphs using
+    this dataarray cannot be computed when the dask distributed scheduler
+    is in use.  To circumvent this problem, xarray provides the
+    CachingFileManager.  See GH#2815 for more information.
+
+    Should have at least one dimension.
+
+    Example::
+
+        >>> import NetCDF4
+        >>> from xarray.backends import CachingFileManager
+        >>> cfm = CachingFileManager(NetCDF4.Dataset, fn, mode="r")
+        >>> arr = get_distributed_friendly_dask_array(cfm, "my_var")
+
+    Args:
+        manager (xarray.backends.CachingFileManager):
+            Instance of xarray.backends.CachingFileManager encapsulating the
+            dataset to be read.
+        varname (str):
+            Name of the variable.
+        chunks (tuple):
+            Chunks to use when creating the dask array.
+        dtype (dtype):
+            What dtype to use.
+        group (str):
+            What group to read the variable from.
+        auto_maskandscale (bool, optional):
+            Apply automatic masking and scaling.  This will only
+            work if CachingFileManager.acquire returns a handler with a
+            method set_auto_maskandscale, such as is the case for
+            NetCDF4.Dataset.
+    """
+    def get_chunk():
+        with manager.acquire_context() as nc:
+            if auto_maskandscale is not None:
+                nc.set_auto_maskandscale(auto_maskandscale)
+            return nc["/".join([group, varname])][:]
+
+    return da.map_blocks(
+            get_chunk,
+            chunks=chunks,
+            dtype=dtype,
+            meta=np.array([]))
