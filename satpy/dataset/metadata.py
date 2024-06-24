@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Utilities for merging metadata from various sources."""
 
+import datetime as dt
+import warnings
 from collections.abc import Collection
-from datetime import datetime
 from functools import partial, reduce
 from operator import eq, is_
 
@@ -27,33 +29,50 @@ import numpy as np
 from satpy.writers.utils import flatten_dict
 
 
-def combine_metadata(*metadata_objects, average_times=True):
+def combine_metadata(*metadata_objects, average_times=None):
     """Combine the metadata of two or more Datasets.
 
     If the values corresponding to any keys are not equal or do not
     exist in all provided dictionaries then they are not included in
-    the returned dictionary.  By default any keys with the word 'time'
-    in them and consisting of datetime objects will be averaged. This
-    is to handle cases where data were observed at almost the same time
-    but not exactly.  In the interest of time, lazy arrays are compared by
-    object identity rather than by their contents.
+    the returned dictionary.
+
+    All values of the keys containing the substring 'start_time' will be set
+    to the earliest value and similarly for 'end_time' to latest time.  All
+    other keys containing the word 'time' are averaged.  Before these adjustments,
+    `None` values resulting from data that don't have times associated to them
+    are removed. These rules are applied also to values in the 'time_parameters'
+    dictionary.
+
+    .. versionchanged:: 0.47
+
+       Before Satpy 0.47, all times, including `start_time` and `end_time`, were averaged.
+
+    In the interest of processing time, lazy arrays are compared by object
+    identity rather than by their contents.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
-        average_times (bool): Average any keys with 'time' in the name
+
+    Kwargs:
+        average_times (bool): Removed option to average all time attributes.
 
     Returns:
         dict: the combined metadata
 
     """
-    info_dicts = _get_valid_dicts(metadata_objects)
+    if average_times is not None:
+        warnings.warn(
+            "'average_time' option has been removed and start/end times are handled with min/max instead.",
+            UserWarning
+        )
 
+    info_dicts = _get_valid_dicts(metadata_objects)
     if len(info_dicts) == 1:
         return info_dicts[0].copy()
 
     shared_keys = _shared_keys(info_dicts)
 
-    return _combine_shared_info(shared_keys, info_dicts, average_times)
+    return _combine_shared_info(shared_keys, info_dicts)
 
 
 def _get_valid_dicts(metadata_objects):
@@ -75,15 +94,49 @@ def _shared_keys(info_dicts):
     return reduce(set.intersection, key_sets)
 
 
-def _combine_shared_info(shared_keys, info_dicts, average_times):
+def _combine_shared_info(shared_keys, info_dicts):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
-        if "time" in key and isinstance(values[0], datetime) and average_times:
-            shared_info[key] = average_datetimes(values)
-        elif _are_values_combinable(values):
-            shared_info[key] = values[0]
+        _combine_values(key, values, shared_info)
     return shared_info
+
+
+def _combine_values(key, values, shared_info):
+    if "time" in key:
+        times = _combine_times(key, values)
+        if times is not None:
+            shared_info[key] = times
+    elif _are_values_combinable(values):
+        shared_info[key] = values[0]
+
+
+def _combine_times(key, values):
+    if key == "time_parameters":
+        return _combine_time_parameters(values)
+    filtered_values = _filter_time_values(values)
+    if not filtered_values:
+        return None
+    if "end_time" in key:
+        return max(filtered_values)
+    elif "start_time" in key:
+        return min(filtered_values)
+    return average_datetimes(filtered_values)
+
+
+def _combine_time_parameters(values):
+    # Assume the first item has all the keys
+    keys = values[0].keys()
+    res = {}
+    for key in keys:
+        sub_values = [itm[key] for itm in values]
+        res[key] = _combine_times(key, sub_values)
+    return res
+
+
+def _filter_time_values(values):
+     """Remove values that are not datetime objects."""
+     return [v for v in values if isinstance(v, dt.datetime)]
 
 
 def average_datetimes(datetime_list):
@@ -100,8 +153,8 @@ def average_datetimes(datetime_list):
     Returns: Average datetime as a datetime object
 
     """
-    total = [datetime.timestamp(dt) for dt in datetime_list]
-    return datetime.fromtimestamp(sum(total) / len(total))
+    total = [dt.datetime.timestamp(d) for d in datetime_list]
+    return dt.datetime.fromtimestamp(sum(total) / len(total))
 
 
 def _are_values_combinable(values):

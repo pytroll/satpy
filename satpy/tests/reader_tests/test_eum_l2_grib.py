@@ -60,7 +60,7 @@ FAKE_FCI_MESSAGE = {
 FAKE_GID = [0, 1, 2, 3, None]
 
 
-class Test_EUML2GribFileHandler(unittest.TestCase):
+class TestEUML2GribFileHandler(unittest.TestCase):
     """Test the EUML2GribFileHandler reader."""
 
     @mock.patch("satpy.readers.eum_l2_grib.ec")
@@ -72,7 +72,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
 
     def common_checks(self, mock_file, dataset_id):
         """Commmon checks for fci and seviri data."""
-         # Checks that the codes_grib_multi_support_on function has been called
+        # Checks that the codes_grib_multi_support_on function has been called
         self.ec_.codes_grib_multi_support_on.assert_called()
 
         # Restarts the id generator and clears the call history
@@ -110,9 +110,9 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
     @mock.patch("satpy.readers.eum_l2_grib.da")
     def test_seviri_data_reading(self, da_, xr_):
         """Test the reading of data from the product."""
-        from satpy.readers.eum_l2_grib import REPEAT_CYCLE_DURATION, EUML2GribFileHandler
+        from satpy.readers.eum_l2_grib import EUML2GribFileHandler
         from satpy.utils import get_legacy_chunk_size
-        CHUNK_SIZE = get_legacy_chunk_size()
+        chunk_size = get_legacy_chunk_size()
 
         with mock.patch("builtins.open", mock.mock_open()) as mock_file:
             with mock.patch("satpy.readers.eum_l2_grib.ec", self.ec_):
@@ -126,7 +126,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
                                                         hour=19, minute=45, second=0)
                     },
                     filetype_info={
-                        "file_type" : "seviri"
+                        "file_type": "seviri"
                     }
                 )
 
@@ -134,8 +134,9 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
 
                 self.common_checks(mock_file, dataset_id)
 
-                # Checks the basic data reading
-                assert REPEAT_CYCLE_DURATION == 15
+                # Check end_time
+                assert self.reader.end_time == datetime.datetime(year=2020, month=10, day=20,
+                                                                 hour=19, minute=50, second=0)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 attributes = self.reader._get_attributes()
@@ -154,7 +155,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
                 # Checks that dask.array has been called with the correct arguments
                 name, args, kwargs = da_.mock_calls[0]
                 assert np.all(args[0] == np.ones((1200, 1000)))
-                assert args[1] == CHUNK_SIZE
+                assert args[1] == chunk_size
 
                 # Checks that xarray.DataArray has been called with the correct arguments
                 name, args, kwargs = xr_.mock_calls[0]
@@ -208,7 +209,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
         """Test the reading of fci data from the product."""
         from satpy.readers.eum_l2_grib import EUML2GribFileHandler
         from satpy.utils import get_legacy_chunk_size
-        CHUNK_SIZE = get_legacy_chunk_size()
+        chunk_size = get_legacy_chunk_size()
 
         with mock.patch("builtins.open", mock.mock_open()) as mock_file:
             with mock.patch("satpy.readers.eum_l2_grib.ec", self.ec_):
@@ -219,16 +220,22 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
                     filename_info={
                         "spacecraft_id": "1",
                         "start_time": datetime.datetime(year=2020, month=10, day=20,
-                                                        hour=19, minute=45, second=0)
+                                                        hour=19, minute=40, second=0),
+                        "end_time": datetime.datetime(year=2020, month=10, day=20,
+                                                      hour=19, minute=50, second=0)
                     },
                     filetype_info={
-                        "file_type" : "fci"
+                        "file_type": "fci"
                     }
                 )
 
                 dataset_id = make_dataid(name="dummmy", resolution=2000)
 
                 self.common_checks(mock_file, dataset_id)
+
+                # Check end_time
+                assert self.reader.end_time == datetime.datetime(year=2020, month=10, day=20,
+                                                                 hour=19, minute=50, second=0)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 attributes = self.reader._get_attributes()
@@ -247,7 +254,7 @@ class Test_EUML2GribFileHandler(unittest.TestCase):
                 # Checks that dask.array has been called with the correct arguments
                 name, args, kwargs = da_.mock_calls[0]
                 assert np.all(args[0] == np.ones((5568, 5568)))
-                assert args[1] == CHUNK_SIZE
+                assert args[1] == chunk_size
 
                 # Checks that xarray.DataArray has been called with the correct arguments
                 name, args, kwargs = xr_.mock_calls[0]

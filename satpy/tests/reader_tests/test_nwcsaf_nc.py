@@ -22,6 +22,7 @@ import pytest
 import xarray as xr
 
 from satpy.readers.nwcsaf_nc import NcNWCSAF, read_nwcsaf_time
+from satpy.tests.utils import RANDOM_GEN
 
 PROJ_KM = {"gdal_projection": "+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000",
            "gdal_xgeo_up_left": -5569500.0,
@@ -83,9 +84,9 @@ COT_PALETTE_MEANINGS = ("0 2 5 8 10 13 16 19 23 26 29 33 36 40 43 47 51 55 59 63
 COT_SCALE = 0.01
 COT_OFFSET = 0.0
 
-CRE_ARRAY = np.random.randint(0, 65535, size=(928, 1530), dtype=np.uint16)
-COT_ARRAY = np.random.randint(0, 65535, size=(928, 1530), dtype=np.uint16)
-PAL_ARRAY = np.random.randint(0, 255, size=(250, 3), dtype=np.uint8)
+CRE_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
+COT_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
+PAL_ARRAY = RANDOM_GEN.integers(0, 255, size=(250, 3), dtype=np.uint8)
 
 
 @pytest.fixture(scope="session")
@@ -104,7 +105,7 @@ def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
 
         var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint16,
                                       chunks=(256, 256))
-        var[:] = np.random.randint(0, 255, size=(928, 1530), dtype=np.uint8)
+        var[:] = RANDOM_GEN.integers(0, 255, size=(928, 1530), dtype=np.uint8)
 
     return filename
 

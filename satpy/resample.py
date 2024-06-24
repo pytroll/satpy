@@ -135,7 +135,12 @@ Or using :func:`satpy.resample.get_area_def`, which will search through all
 
 For examples of area definitions, see the file ``etc/areas.yaml`` that is
 included with Satpy and where all the area definitions shipped with Satpy are
-defined.
+defined. The section below gives an overview of these area definitions.
+
+Area definitions included in Satpy
+----------------------------------
+
+.. include:: /area_def_list.rst
 
 """
 import hashlib

@@ -14,12 +14,13 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Common utility modules used for LI mock-oriented unit tests."""
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import xarray as xr
 
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import RANDOM_GEN
 
 # mapping of netcdf type code to numpy data type:
 TYPE_MAP = {
@@ -44,7 +45,7 @@ def l2_le_schema(settings=None):
     nfilters = settings.get("num_filters", 2)
 
     def rand_u16(num):
-        return np.random.randint(low=0, high=np.iinfo(np.uint16).max - 1, size=num, dtype=np.uint16)
+        return RANDOM_GEN.integers(low=0, high=np.iinfo(np.uint16).max - 1, size=num, dtype=np.uint16)
 
     return {
         "providers": settings.get("providers", {}),
@@ -100,7 +101,7 @@ def l2_le_schema(settings=None):
                 "scale_factor": 0.004,
                 "add_offset": 0.0,
                 "long_name": "L2 filter results",
-                "default_data": lambda: np.random.randint(low=0, high=255, size=(nobs, nfilters), dtype=np.uint8)
+                "default_data": lambda: RANDOM_GEN.integers(low=0, high=255, size=(nobs, nfilters), dtype=np.uint8)
             },
             "epoch_time": {
                 "format": "f8",
@@ -127,8 +128,8 @@ def l2_le_schema(settings=None):
 
 def l2_lef_schema(settings=None):
     """Define schema for LI L2 LEF product."""
-    epoch_ts = datetime(2000, 1, 1, 0, 0, 0, 0)
-    start_time = datetime.now()
+    epoch_ts = dt.datetime(2000, 1, 1, 0, 0, 0, 0)
+    start_time = dt.datetime.now()
     start_ts = (start_time - epoch_ts).total_seconds()
 
     settings = settings or {}
@@ -212,13 +213,13 @@ def l2_lef_schema(settings=None):
                 "long_name": "Radiance of Flash",
                 "standard_name": "radiance",
                 "units": "mW.m-2.sr-1",
-                "default_data": lambda: np.clip(np.round(np.random.normal(500, 100, nobs)), 1, 2 ** 16 - 1)
+                "default_data": lambda: np.clip(np.round(RANDOM_GEN.normal(500, 100, nobs)), 1, 2 ** 16 - 1)
             },
             "event_filter_qa": {
                 "format": "u1",
                 "shape": ("events",),
                 "long_name": "L2 event pre-filtering quality assurance value",
-                "default_data": lambda: np.random.randint(1, 2 ** 8 - 1, nobs)
+                "default_data": lambda: RANDOM_GEN.integers(1, 2 ** 8 - 1, nobs)
             },
             "epoch_time": {
                 "format": "f8",
@@ -232,21 +233,21 @@ def l2_lef_schema(settings=None):
                 "shape": ("events",),
                 "long_name": "Time offset from epoch time",
                 "units": "seconds",
-                "default_data": lambda: np.random.uniform(1, 2 ** 31 - 1, nobs)
+                "default_data": lambda: RANDOM_GEN.uniform(1, 2 ** 31 - 1, nobs)
             },
             "detector_row": {
                 "format": "u2",
                 "shape": ("events",),
                 "long_name": "Detector row position of event pixel",
                 "units": "1",
-                "default_data": lambda: np.random.randint(1, 1000, nobs)
+                "default_data": lambda: RANDOM_GEN.integers(1, 1000, nobs)
             },
             "detector_column": {
                 "format": "u2",
                 "shape": ("events",),
                 "long_name": "Detector column position of event pixel",
                 "units": "1",
-                "default_data": lambda: np.random.randint(1, 1000, nobs)
+                "default_data": lambda: RANDOM_GEN.integers(1, 1000, nobs)
             },
         }
     }
@@ -287,9 +288,9 @@ def l2_lfl_schema(settings=None):
     settings = settings or {}
 
     nobs = settings.get("num_obs", 1234)
-    epoch = datetime(2000, 1, 1)
-    stime = (datetime(2019, 1, 1) - epoch).total_seconds()
-    etime = (datetime(2019, 1, 2) - epoch).total_seconds()
+    epoch = dt.datetime(2000, 1, 1)
+    stime = (dt.datetime(2019, 1, 1) - epoch).total_seconds()
+    etime = (dt.datetime(2019, 1, 2) - epoch).total_seconds()
 
     return {
         "providers": settings.get("providers", {}),
@@ -328,7 +329,7 @@ def l2_lfl_schema(settings=None):
                 "long_name": "Radiance of Flash",
                 "standard_name": "radiance",
                 "units": "mW.m-2.sr-1",
-                "default_data": lambda: np.round(np.random.normal(500, 100, nobs))
+                "default_data": lambda: np.round(RANDOM_GEN.normal(500, 100, nobs))
             },
             "flash_duration": {
                 "format": "u2",
@@ -343,7 +344,7 @@ def l2_lfl_schema(settings=None):
                 "shape": ("flashes",),
                 "long_name": "L2 filtered flash confidence",
                 "standard_name": "flash_filter_confidence",
-                "default_data": lambda: np.clip(np.round(np.random.normal(20, 10, nobs)), 1, 2 ** 7 - 1)
+                "default_data": lambda: np.clip(np.round(RANDOM_GEN.normal(20, 10, nobs)), 1, 2 ** 7 - 1)
             },
             "flash_footprint": {
                 "format": "u2",
@@ -351,7 +352,7 @@ def l2_lfl_schema(settings=None):
                 "long_name": "Flash footprint size",
                 "standard_name": "flash_footprint",
                 "units": "L1 grid pixels",
-                "default_data": lambda: np.maximum(1, np.round(np.random.normal(5, 3, nobs)))
+                "default_data": lambda: np.maximum(1, np.round(RANDOM_GEN.normal(5, 3, nobs)))
             },
             "flash_id": {
                 "format": "u4",
@@ -367,7 +368,7 @@ def l2_lfl_schema(settings=None):
                 "units": "seconds since 2000-01-01 00:00:00.0",
                 "standard_name": "time",
                 "precision": "1 millisecond",
-                "default_data": lambda: np.random.uniform(stime, etime, nobs)
+                "default_data": lambda: RANDOM_GEN.uniform(stime, etime, nobs)
             },
             "l1b_geolocation_warning": {
                 "format": "i1",
@@ -437,7 +438,7 @@ def l2_af_schema(settings=None):
             "flash_accumulation": {
                 "format": "u2",
                 "shape": ("pixels",),
-                "default_data": lambda: np.clip(np.round(np.random.normal(1, 2, nobs)), 1, 2 ** 16 - 1)
+                "default_data": lambda: np.clip(np.round(RANDOM_GEN.normal(1, 2, nobs)), 1, 2 ** 16 - 1)
             },
             "mtg_geos_projection": mtg_geos_projection(),
             "x": fci_grid_definition("X", nobs),
@@ -495,7 +496,7 @@ def l2_afr_schema(settings=None):
                 "long_name": "Area averaged flash radiance accumulation",
                 "grid_mapping": "mtg_geos_projection",
                 "coordinate": "sparse: x y",
-                "default_data": lambda: np.random.randint(low=1, high=6548, size=(120), dtype=np.int16)
+                "default_data": lambda: RANDOM_GEN.integers(low=1, high=6548, size=(120), dtype=np.int16)
             },
             "accumulation_start_times": {
                 "format": "f4",
@@ -521,9 +522,13 @@ def accumulation_dimensions(nacc, nobs):
 
 def fci_grid_definition(axis, nobs):
     """FCI grid definition on X or Y axis."""
+    scale_factor = 5.58871526031607e-5
+    add_offset = -0.15561777642350116
     if axis == "X":
         long_name = "azimuth angle encoded as column"
         standard_name = "projection_x_coordinate"
+        scale_factor *= -1
+        add_offset *= -1
     else:
         long_name = "zenith angle encoded as row"
         standard_name = "projection_y_coordinate"
@@ -531,14 +536,14 @@ def fci_grid_definition(axis, nobs):
     return {
         "format": "i2",
         "shape": ("pixels",),
-        "add_offset": -0.155619516,
+        "add_offset": add_offset,
         "axis": axis,
         "long_name": long_name,
-        "scale_factor": 5.58878e-5,
+        "scale_factor": scale_factor,
         "standard_name": standard_name,
         "units": "radian",
         "valid_range": np.asarray([1, 5568]),
-        "default_data": lambda: np.clip(np.round(np.random.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
+        "default_data": lambda: np.clip(np.round(RANDOM_GEN.normal(2000, 500, nobs)), 1, 2 ** 16 - 1)
     }
 
 
@@ -548,12 +553,12 @@ def mtg_geos_projection():
         "format": "i4",
         "shape": ("accumulations",),
         "grid_mapping_name": "geostationary",
-        "inverse_flattening": 298.2572221,
+        "inverse_flattening": 298.257223563,
         "latitude_of_projection_origin": 0,
         "longitude_of_projection_origin": 0,
-        "perspective_point_height": 42164000,
-        "semi_major_axis": 6378169,
-        "semi_minor_axis": 6356583.8,
+        "perspective_point_height": 3.57864e7,
+        "semi_major_axis": 6378137.0,
+        "semi_minor_axis": 6356752.31424518,
         "sweep_angle_axis": "y",
         "long_name": "MTG geostationary projection",
         "default_data": lambda: -2147483647

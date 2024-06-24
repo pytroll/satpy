@@ -1,8 +1,8 @@
 reader:
   name: msi_safe
-  short_name: MSI SAFE
-  long_name: Sentinel-2 A and B MSI data in SAFE format
-  description: SAFE Reader for MSI data (Sentinel-2)
+  short_name: MSI SAFE L1C
+  long_name: Sentinel-2 A and B MSI L1C data in SAFE format
+  description: SAFE Reader for MSI L1C data (Sentinel-2)
   status: Nominal
   supports_fsspec: false
   sensors: [msi]
@@ -10,23 +10,21 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-  safe_granule:
+  l1c_safe_granule:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
-        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
-        requires: [safe_metadata, safe_tile_metadata]
-  safe_tile_metadata:
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
+        requires: [l1c_safe_metadata, l1c_safe_tile_metadata]
+  l1c_safe_tile_metadata:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSITileMDXML
-        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
-  safe_metadata:
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
+  l1c_safe_metadata:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
-        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL1C.xml']
-
+        file_patterns: ['{fmission_id:3s}_MSI{process_level:3s}_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL1C.xml']
 
 datasets:
-
   B01:
     name: B01
-    sensor: MSI
+    sensor: msi
     wavelength: [0.415, 0.443, 0.470]
     resolution: 60
     calibration:
@@ -36,11 +34,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B02:
     name: B02
-    sensor: MSI
+    sensor: msi
     wavelength: [0.440, 0.490, 0.540]
     resolution: 10
     calibration:
@@ -50,11 +51,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B03:
     name: B03
-    sensor: MSI
+    sensor: msi
     wavelength: [0.540, 0.560, 0.580]
     resolution: 10
     calibration:
@@ -64,11 +68,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B04:
     name: B04
-    sensor: MSI
+    sensor: msi
     wavelength: [0.645, 0.665, 0.685]
     resolution: 10
     calibration:
@@ -78,11 +85,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B05:
     name: B05
-    sensor: MSI
+    sensor: msi
     wavelength: [0.695, 0.705, 0.715]
     resolution: 20
     calibration:
@@ -92,11 +102,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B06:
     name: B06
-    sensor: MSI
+    sensor: msi
     wavelength: [0.731, 0.740, 0.749]
     resolution: 20
     calibration:
@@ -106,11 +119,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B07:
     name: B07
-    sensor: MSI
+    sensor: msi
     wavelength: [0.764, 0.783, 0.802]
     resolution: 20
     calibration:
@@ -120,11 +136,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B08:
     name: B08
-    sensor: MSI
+    sensor: msi
     wavelength: [0.780, 0.842, 0.905]
     resolution: 10
     calibration:
@@ -134,11 +153,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B8A:
     name: B8A
-    sensor: MSI
+    sensor: msi
     wavelength: [0.855, 0.865, 0.875]
     resolution: 20
     calibration:
@@ -148,11 +170,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B09:
     name: B09
-    sensor: MSI
+    sensor: msi
     wavelength: [0.935, 0.945, 0.955]
     resolution: 60
     calibration:
@@ -162,11 +187,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B10:
     name: B10
-    sensor: MSI
+    sensor: msi
     wavelength: [1.365, 1.375, 1.385]
     resolution: 60
     calibration:
@@ -176,11 +204,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B11:
     name: B11
-    sensor: MSI
+    sensor: msi
     wavelength: [1.565, 1.610, 1.655]
     resolution: 20
     calibration:
@@ -190,11 +221,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   B12:
     name: B12
-    sensor: MSI
+    sensor: msi
     wavelength: [2.100, 2.190, 2.280]
     resolution: 20
     calibration:
@@ -204,31 +238,33 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: safe_granule
-
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: l1c_safe_granule
 
   solar_zenith_angle:
     name: solar_zenith_angle
     resolution: [10, 20, 60]
-    file_type: safe_tile_metadata
+    file_type: l1c_safe_tile_metadata
     xml_tag: Sun_Angles_Grid/Zenith
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     resolution: [10, 20, 60]
-    file_type: safe_tile_metadata
+    file_type: l1c_safe_tile_metadata
     xml_tag: Sun_Angles_Grid/Azimuth
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     resolution: [10, 20, 60]
-    file_type: safe_tile_metadata
+    file_type: l1c_safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
     xml_item: Azimuth
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     resolution: [10, 20, 60]
-    file_type: safe_tile_metadata
+    file_type: l1c_safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
     xml_item: Zenith

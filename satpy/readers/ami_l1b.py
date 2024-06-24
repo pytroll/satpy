@@ -15,10 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Advanced Meteorological Imager reader for the Level 1b NetCDF4 format."""
 
+import datetime as dt
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -117,14 +118,14 @@ class AMIL1bNetCDF(BaseFileHandler):
     @property
     def start_time(self):
         """Get observation start time."""
-        base = datetime(2000, 1, 1, 12, 0, 0)
-        return base + timedelta(seconds=self.nc.attrs["observation_start_time"])
+        base = dt.datetime(2000, 1, 1, 12, 0, 0)
+        return base + dt.timedelta(seconds=self.nc.attrs["observation_start_time"])
 
     @property
     def end_time(self):
         """Get observation end time."""
-        base = datetime(2000, 1, 1, 12, 0, 0)
-        return base + timedelta(seconds=self.nc.attrs["observation_end_time"])
+        base = dt.datetime(2000, 1, 1, 12, 0, 0)
+        return base + dt.timedelta(seconds=self.nc.attrs["observation_end_time"])
 
     def get_area_def(self, dsid):
         """Get area definition for this file."""

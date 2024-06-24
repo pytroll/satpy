@@ -29,9 +29,9 @@ For more information on this format, the reader can refer to the
 
 """
 
+import datetime as dt
 import logging
 from contextlib import suppress
-from datetime import datetime, timedelta
 
 import dask.array as da
 import h5py
@@ -173,10 +173,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.combine(self.start_time.date(),
+        end_time = dt.datetime.combine(self.start_time.date(),
                                     self.finfo["end_time"].time())
         if end_time < self.start_time:
-            end_time += timedelta(days=1)
+            end_time += dt.timedelta(days=1)
         return end_time
 
     def read_geo(self, key, info):
