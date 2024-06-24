@@ -31,6 +31,7 @@ import logging
 import dask.array as da
 import numpy as np
 import rasterio
+import rioxarray  # noqa: F401  # need by xarray with the engine rasterio
 import xarray as xr
 from pyresample import utils
 
@@ -76,6 +77,9 @@ class GenericImageFileHandler(BaseFileHandler):
         if hasattr(dataset, "crs") and dataset.crs is not None:
             self.area = utils.get_area_def_from_raster(dataset)
 
+        # xarray use the engine 'rasterio' to open the file, but
+        #   its actually rioxarray used in the backend.
+        #   however, error is not explicit enough (see https://github.com/pydata/xarray/issues/7831)
         data = xr.open_dataset(self.finfo["filename"], engine="rasterio",
                                chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE}, mask_and_scale=False)["band_data"]
         if hasattr(dataset, "nodatavals"):
