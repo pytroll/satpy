@@ -18,6 +18,7 @@
 """Module for testing the satpy.readers.netcdf_utils module."""
 
 import os
+import pathlib
 import unittest
 
 import numpy as np
@@ -234,7 +235,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
         with pytest.raises(IOError, match=".*No such file or directory.*"):
-            NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
+            NetCDF4FileHandler(str(pathlib.Path("/") / "thisfiledoesnotexist.nc"), {}, {})
 
     def test_get_and_cache_npxr_is_xr(self):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
