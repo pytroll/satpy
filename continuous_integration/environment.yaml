@@ -48,7 +48,7 @@ dependencies:
   - fsspec
   - botocore>=1.33
   - s3fs
-  - python-geotiepoints
+#  - python-geotiepoints
   - pooch
   - pip
   - skyfield
@@ -63,3 +63,4 @@ dependencies:
     - trollimage>=1.23
     - pyspectral
     - pyorbital
+    - python-geotiepoints
