@@ -18,7 +18,6 @@
 """Module for testing the satpy.readers.netcdf_utils module."""
 
 import os
-import pathlib
 import unittest
 
 import numpy as np
@@ -234,8 +233,9 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """Test that error is raised when file not found."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
-        with pytest.raises(IOError, match=".*No such file or directory.*"):
-            NetCDF4FileHandler(str(pathlib.Path("/") / "thisfiledoesnotexist.nc"), {}, {})
+        # NOTE: Some versions of NetCDF C report unknown file format on Windows
+        with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
+            NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
     def test_get_and_cache_npxr_is_xr(self):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
