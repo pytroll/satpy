@@ -30,7 +30,7 @@ dependencies:
   - gdal
   - rasterio
   - bottleneck
-  - rioxarray!=0.15.6
+  - rioxarray
   - defusedxml
   - imageio
   - pyhdf
