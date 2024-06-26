@@ -221,7 +221,12 @@ def aod_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake AOD VIIRs EDR file."""
     fn = f"JRR-AOD_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
     data_vars = _create_continuous_variables(
-        ("AOD550",)
+        ("AOD550",),
+        data_attrs={
+            "valid_range": [-0.5, 0.5],
+            "units": "1",
+            "_FillValue": -999.999,
+        }
     )
     qc_data = np.zeros(data_vars["AOD550"].shape, dtype=np.int8)
     qc_data[-1, -1] = 2
@@ -255,30 +260,40 @@ def _create_lst_variables() -> dict[str, xr.DataArray]:
     return data_vars
 
 
-def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataArray]:
+def _create_continuous_variables(
+        var_names: Iterable[str],
+        data_attrs: None | dict = None
+) -> dict[str, xr.DataArray]:
     dims = ("Rows", "Columns")
 
     lon_attrs = {"standard_name": "longitude", "units": "degrees_east", "_FillValue": -999.9}
     lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9}
-    cont_attrs = {"units": "Kelvin", "_FillValue": -9999,
-                  "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
+    cont_attrs = data_attrs
+    if cont_attrs is None:
+        cont_attrs = {"units": "Kelvin", "_FillValue": -9999,
+                      "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
     m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     data_arrs = {
         "Longitude": xr.DataArray(m_data, dims=dims, attrs=lon_attrs),
         "Latitude": xr.DataArray(m_data, dims=dims, attrs=lat_attrs),
     }
+    cont_data = m_data
+    if "valid_range" in cont_attrs:
+        valid_range = cont_attrs["valid_range"]
+        # scale 0-1 random data to fit in valid_range
+        cont_data = cont_data * (valid_range[1] - valid_range[0]) + valid_range[0]
     for var_name in var_names:
-        data_arrs[var_name] = xr.DataArray(m_data, dims=dims, attrs=cont_attrs)
+        data_arrs[var_name] = xr.DataArray(cont_data, dims=dims, attrs=cont_attrs)
     for data_arr in data_arrs.values():
         if "_FillValue" in data_arr.attrs:
             data_arr.encoding["_FillValue"] = data_arr.attrs.pop("_FillValue")
+        data_arr.encoding["coordinates"] = "Longitude Latitude"
         if "scale_factor" not in data_arr.attrs:
             continue
         data_arr.encoding["dtype"] = np.int16
         data_arr.encoding["scale_factor"] = data_arr.attrs.pop("scale_factor")
         data_arr.encoding["add_offset"] = data_arr.attrs.pop("add_offset")
-        data_arr.encoding["coordinates"] = "Longitude Latitude"
     return data_arrs
 
 
@@ -498,10 +513,16 @@ def _check_surf_refl_data_arr(
 def _check_continuous_data_arr(data_arr: xr.DataArray) -> None:
     _array_checks(data_arr)
 
-    # random sample should be between 0 and 1 only if factor/offset applied
+    if "valid_range" not in data_arr.attrs and "valid_min" not in data_arr.attrs:
+        # random sample should be between 0 and 1 only if factor/offset applied
+        exp_range = (0, 1)
+    else:
+        # if there is a valid range then we shouldn't be outside it
+        exp_range = data_arr.attrs.get("valid_range",
+                                       (data_arr.attrs.get("valid_min"), data_arr.attrs.get("valid_max")))
     data = data_arr.data.compute()
-    assert not (data < 0).any()
-    assert not (data > 1).any()
+    assert not (data < exp_range[0]).any()
+    assert not (data > exp_range[1]).any()
 
     _shared_metadata_checks(data_arr)
 
@@ -535,6 +556,11 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     assert lons.max() <= 180.0
     assert lats.min() >= -90.0
     assert lats.max() <= 90.0
+
+    if "valid_range" in data_arr.attrs:
+        valid_range = data_arr.attrs["valid_range"]
+        assert isinstance(valid_range, tuple)
+        assert len(valid_range) == 2
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:
