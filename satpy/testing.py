@@ -12,7 +12,7 @@ import satpy.scene
 def fake_satpy_reading(scene_dict):
     """Fake the satpy reading and populate the returned scene with the contents of *scene_dict*.
 
-    This allows users to test their programs that use satpy with actually needing to read files, eg::
+    This allows users to test their programs that use satpy without actually needing to read files, eg::
 
         scene_dict = {channel: somedata}
 
