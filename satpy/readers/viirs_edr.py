@@ -128,18 +128,13 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Get the dataset."""
         data_arr = self.nc[info["file_key"]]
         data_arr = self._mask_invalid(data_arr, info)
+        data_arr = self._sanitize_metadata(data_arr, info)
         units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
             units = "1"
         if units == "%" and data_arr.attrs.get("units") in ("1", "unitless"):
             data_arr *= 100.0  # turn into percentages
         data_arr.attrs["units"] = units
-        if "standard_name" in info:
-            data_arr.attrs["standard_name"] = info["standard_name"]
-        self._decode_flag_meanings(data_arr)
-        data_arr.attrs["platform_name"] = self.platform_name
-        data_arr.attrs["sensor"] = self.sensor_name
-        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         if data_arr.attrs.get("standard_name") in ("longitude", "latitude"):
             # recursive swath definitions are a problem for the base reader right now
             # delete the coordinates here so the base reader doesn't try to
@@ -155,6 +150,18 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
             return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
+        return data_arr
+
+    def _sanitize_metadata(self, data_arr: xr.DataArray, info: dict) -> xr.DataArray:
+        if "valid_range" in data_arr.attrs:
+            # don't use numpy arrays for simple metadata
+            data_arr.attrs["valid_range"] = tuple(data_arr.attrs["valid_range"])
+        if "standard_name" in info:
+            data_arr.attrs["standard_name"] = info["standard_name"]
+        self._decode_flag_meanings(data_arr)
+        data_arr.attrs["platform_name"] = self.platform_name
+        data_arr.attrs["sensor"] = self.sensor_name
+        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         return data_arr
 
     @staticmethod
