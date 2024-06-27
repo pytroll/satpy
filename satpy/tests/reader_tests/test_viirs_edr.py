@@ -213,6 +213,14 @@ def cloud_height_file(tmp_path_factory: TempPathFactory) -> Path:
     data_vars = _create_continuous_variables(
         ("CldTopTemp", "CldTopHght", "CldTopPres")
     )
+    lon_pc = data_vars["Longitude"].copy(deep=True)
+    lat_pc = data_vars["Latitude"].copy(deep=True)
+    lon_pc.attrs["long_name"] = "BAD"
+    lat_pc.attrs["long_name"] = "BAD"
+    del lon_pc.encoding["_FillValue"]
+    del lat_pc.encoding["_FillValue"]
+    data_vars["Longitude_Pc"] = lon_pc
+    data_vars["Latitude_Pc"] = lat_pc
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
@@ -556,6 +564,9 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     assert lons.max() <= 180.0
     assert lats.min() >= -90.0
     assert lats.max() <= 90.0
+    # Some files (ex. CloudHeight) have other lon/lats that shouldn't be used
+    assert lons.attrs.get("long_name") != "BAD"
+    assert lats.attrs.get("long_name") != "BAD"
 
     if "valid_range" in data_arr.attrs:
         valid_range = data_arr.attrs["valid_range"]
