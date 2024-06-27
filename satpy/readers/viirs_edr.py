@@ -257,6 +257,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         i_lon_name = f"longitude_i_{ftype}"
         i_lat_name = f"latitude_i_{ftype}"
         i_coords = (i_lon_name, i_lat_name)
+        coords: dict[str, dict] = {}
         for var_name in self.nc.variables.keys():
             data_arr = self.nc[var_name]
             is_lon = "longitude" in var_name.lower()
@@ -276,19 +277,28 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                 "resolution": res,
                 "coordinates": m_coords if res == 750 else i_coords,
             }
-            if is_lon:
-                ds_info["standard_name"] = "longitude"
-                ds_info["units"] = "degrees_east"
-                ds_info["name"] = m_lon_name if res == 750 else i_lon_name
-                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
-                del ds_info["coordinates"]
-            elif is_lat:
-                ds_info["standard_name"] = "latitude"
-                ds_info["units"] = "degrees_north"
-                ds_info["name"] = m_lat_name if res == 750 else i_lat_name
-                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
-                del ds_info["coordinates"]
-            yield True, ds_info
+            if not (is_lon or is_lat):
+                yield True, ds_info
+                continue
+
+            ds_info["standard_name"] = "longitude" if is_lon else "latitude"
+            ds_info["units"] = "degrees_east" if is_lon else "degrees_north"
+            # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
+            del ds_info["coordinates"]
+            if var_name not in handled_var_names:
+                handled_var_names.add(var_name)
+                yield True, ds_info
+
+            # "standard" geolocation coordinate (assume shorter variable name is "better")
+            new_name = (m_lon_name if res == 750 else i_lon_name) if is_lon else (
+                m_lat_name if res == 750 else i_lat_name)
+            if new_name not in coords or len(var_name) < len(coords[new_name]["file_key"]):
+                ds_info = ds_info.copy()
+                ds_info["name"] = new_name
+                coords[ds_info["name"]] = ds_info
+
+        for coord_info in coords.values():
+            yield True, coord_info
 
 
 class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
