@@ -250,33 +250,34 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         yield from self._dynamic_variables_from_file(handled_var_names)
 
     def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
-        ftype = self.filetype_info["file_type"]
-        m_lon_name = f"longitude_{ftype}"
-        m_lat_name = f"latitude_{ftype}"
-        m_coords = (m_lon_name, m_lat_name)
-        i_lon_name = f"longitude_i_{ftype}"
-        i_lat_name = f"latitude_i_{ftype}"
-        i_coords = (i_lon_name, i_lat_name)
         coords: dict[str, dict] = {}
-        for var_name in self.nc.variables.keys():
-            data_arr = self.nc[var_name]
-            is_lon = "longitude" in var_name.lower()
-            is_lat = "latitude" in var_name.lower()
-            if var_name in handled_var_names and not (is_lon or is_lat):
-                # skip variables that YAML had configured, but allow lon/lats
-                # to be reprocessed due to our dynamic coordinate naming
+        for is_avail, ds_info in self._generate_dynamic_metadata(self.nc.variables.keys(), coords):
+            var_name = ds_info["file_key"]
+            if var_name in handled_var_names and not ("longitude_" in var_name or "latitude_" in var_name):
                 continue
+            handled_var_names.add(var_name)
+            yield is_avail, ds_info
+
+        for coord_info in coords.values():
+            yield True, coord_info
+
+    def _generate_dynamic_metadata(self, variable_names: Iterable[str], coords: dict) -> Iterable[tuple[bool, dict]]:
+        for var_name in variable_names:
+            data_arr = self.nc[var_name]
             if data_arr.ndim != 2:
                 # only 2D arrays supported at this time
                 continue
             res = 750 if data_arr.shape[1] == M_COLS else 375
             ds_info = {
                 "file_key": var_name,
-                "file_type": ftype,
+                "file_type": self.filetype_info["file_type"],
                 "name": var_name,
                 "resolution": res,
-                "coordinates": m_coords if res == 750 else i_coords,
+                "coordinates": self._coord_names_for_resolution(res),
             }
+
+            is_lon = "longitude" in var_name.lower()
+            is_lat = "latitude" in var_name.lower()
             if not (is_lon or is_lat):
                 yield True, ds_info
                 continue
@@ -285,20 +286,28 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             ds_info["units"] = "degrees_east" if is_lon else "degrees_north"
             # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
             del ds_info["coordinates"]
-            if var_name not in handled_var_names:
-                handled_var_names.add(var_name)
-                yield True, ds_info
+            yield True, ds_info
 
             # "standard" geolocation coordinate (assume shorter variable name is "better")
-            new_name = (m_lon_name if res == 750 else i_lon_name) if is_lon else (
-                m_lat_name if res == 750 else i_lat_name)
+            new_name = self._coord_names_for_resolution(res)[int(not is_lon)]
             if new_name not in coords or len(var_name) < len(coords[new_name]["file_key"]):
                 ds_info = ds_info.copy()
                 ds_info["name"] = new_name
                 coords[ds_info["name"]] = ds_info
 
-        for coord_info in coords.values():
-            yield True, coord_info
+    def _coord_names_for_resolution(self, res: int):
+        ftype = self.filetype_info["file_type"]
+        m_lon_name = f"longitude_{ftype}"
+        m_lat_name = f"latitude_{ftype}"
+        m_coords = (m_lon_name, m_lat_name)
+        i_lon_name = f"longitude_i_{ftype}"
+        i_lat_name = f"latitude_i_{ftype}"
+        i_coords = (i_lon_name, i_lat_name)
+        if res == 750:
+            return m_coords
+        else:
+            return i_coords
+
 
 
 class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
