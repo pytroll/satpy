@@ -52,7 +52,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         types = ["str", "str", "float", "float", "float", "str"]
         dtypes = dict(zip(names, types))
         # Combine 'date' and 'time' into a datetime object
-        parse_dates = {"time": ["gld360_date", "gld360_time"]}
+        parse_dates = {"time": [0, 1]}
 
         self.data = pd.read_csv(filename, sep="\\s+", header=None,
                                 names=names, dtype=dtypes, parse_dates=parse_dates)
