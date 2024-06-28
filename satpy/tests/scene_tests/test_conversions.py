@@ -23,7 +23,7 @@ import xarray as xr
 from dask import array as da
 
 from satpy import Scene
-from satpy.tests.reader_tests.utils import skip_numba_unstable_if_missing
+from satpy.tests.utils import skip_numba_unstable_if_missing
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
