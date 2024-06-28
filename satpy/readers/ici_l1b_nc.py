@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """EUMETSAT EPS-SG Ice Cloud Imager (ICI) Level 1B products reader.
 
 The format is explained in the
@@ -26,8 +27,8 @@ This version is applicable for the ici test data released in Jan 2021.
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 from enum import Enum
 from functools import cached_property
 
@@ -77,12 +78,12 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def start_time(self):
         """Get observation start time."""
         try:
-            start_time = datetime.strptime(
+            start_time = dt.datetime.strptime(
                 self["/attr/sensing_start_time_utc"],
                 "%Y%m%d%H%M%S.%f",
             )
         except ValueError:
-            start_time = datetime.strptime(
+            start_time = dt.datetime.strptime(
                 self["/attr/sensing_start_time_utc"],
                 "%Y-%m-%d %H:%M:%S.%f",
             )
@@ -92,12 +93,12 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def end_time(self):
         """Get observation end time."""
         try:
-            end_time = datetime.strptime(
+            end_time = dt.datetime.strptime(
                 self["/attr/sensing_end_time_utc"],
                 "%Y%m%d%H%M%S.%f",
             )
         except ValueError:
-            end_time = datetime.strptime(
+            end_time = dt.datetime.strptime(
                 self["/attr/sensing_end_time_utc"],
                 "%Y-%m-%d %H:%M:%S.%f",
             )

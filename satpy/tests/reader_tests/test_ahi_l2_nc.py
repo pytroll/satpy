@@ -1,6 +1,6 @@
 """Tests for the Himawari L2 netCDF reader."""
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import pytest
@@ -15,8 +15,8 @@ cprob_data = rng.uniform(0, 1, (5500, 5500))
 lat_data = rng.uniform(-90, 90, (5500, 5500))
 lon_data = rng.uniform(-180, 180, (5500, 5500))
 
-start_time = datetime(2023, 8, 24, 5, 40, 21)
-end_time = datetime(2023, 8, 24, 5, 49, 40)
+start_time = dt.datetime(2023, 8, 24, 5, 40, 21)
+end_time = dt.datetime(2023, 8, 24, 5, 49, 40)
 
 dimensions = {"Columns": 5500, "Rows": 5500}
 

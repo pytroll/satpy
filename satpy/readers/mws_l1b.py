@@ -1,24 +1,25 @@
 # Copyright (c) 2022 Pytroll Developers
-
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for the EPS-SG Microwave Sounder (MWS) level-1b data.
 
 Documentation: https://www.eumetsat.int/media/44139
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -101,13 +102,13 @@ class MWSL1BFile(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return datetime.strptime(self["/attr/sensing_start_time_utc"],
+        return dt.datetime.strptime(self["/attr/sensing_start_time_utc"],
                                  "%Y-%m-%d %H:%M:%S.%f")
 
     @property
     def end_time(self):
         """Get end time."""
-        return datetime.strptime(self["/attr/sensing_end_time_utc"],
+        return dt.datetime.strptime(self["/attr/sensing_end_time_utc"],
                                  "%Y-%m-%d %H:%M:%S.%f")
 
     @property

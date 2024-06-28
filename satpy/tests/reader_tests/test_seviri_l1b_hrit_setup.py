@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Setup for SEVIRI HRIT reader tests."""
 
-from datetime import datetime
+import datetime as dt
 from unittest import mock
 
 import numpy as np
@@ -126,8 +127,8 @@ def get_fake_prologue(projection_longitude, orbit_polynomials):
          },
          "ImageAcquisition": {
             "PlannedAcquisitionTime": {
-                "TrueRepeatCycleStart": datetime(2006, 1, 1, 12, 15, 9, 304888),
-                "PlannedRepeatCycleEnd": datetime(2006, 1, 1, 12, 30, 0, 0)
+                "TrueRepeatCycleStart": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+                "PlannedRepeatCycleEnd": dt.datetime(2006, 1, 1, 12, 30, 0, 0)
             }
          }
     }
@@ -149,8 +150,8 @@ def get_fake_epilogue():
                 },
                 "ActualScanningSummary": {
                     "ReducedScan": 0,
-                    "ForwardScanStart": datetime(2006, 1, 1, 12, 15, 9, 304888),
-                    "ForwardScanEnd": datetime(2006, 1, 1, 12, 27, 39, 0)
+                    "ForwardScanStart": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    "ForwardScanEnd": dt.datetime(2006, 1, 1, 12, 27, 39, 0)
                 }
             }
         }
@@ -198,7 +199,7 @@ def get_fake_dataset_info():
 
 def get_acq_time_cds(start_time, nlines):
     """Get fake scanline acquisition times."""
-    days_since_1958 = (start_time - datetime(1958, 1, 1)).days
+    days_since_1958 = (start_time - dt.datetime(1958, 1, 1)).days
     tline = np.zeros(
         nlines,
         dtype=[("days", ">u2"), ("milliseconds", ">u4")]
@@ -238,12 +239,12 @@ def get_attrs_exp(projection_longitude=0.0):
                                "satellite_actual_latitude": -0.5711243456528018,
                                "satellite_actual_altitude": 35783296.150123544},
         "georef_offset_corrected": True,
-        "nominal_start_time": datetime(2006, 1, 1, 12, 15),
-        "nominal_end_time": datetime(2006, 1, 1, 12, 30),
+        "nominal_start_time": dt.datetime(2006, 1, 1, 12, 15),
+        "nominal_end_time": dt.datetime(2006, 1, 1, 12, 30),
         "time_parameters": {
-            "nominal_start_time": datetime(2006, 1, 1, 12, 15),
-            "nominal_end_time": datetime(2006, 1, 1, 12, 30),
-            "observation_start_time": datetime(2006, 1, 1, 12, 15, 9, 304888),
-            "observation_end_time": datetime(2006, 1, 1, 12, 27, 39, 0)
+            "nominal_start_time": dt.datetime(2006, 1, 1, 12, 15),
+            "nominal_end_time": dt.datetime(2006, 1, 1, 12, 30),
+            "observation_start_time": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+            "observation_end_time": dt.datetime(2006, 1, 1, 12, 27, 39, 0)
             }
     }

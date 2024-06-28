@@ -17,10 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the AWIPS Tiled writer."""
 
+import datetime as dt
 import logging
 import os
 import shutil
-from datetime import datetime, timedelta
 from glob import glob
 
 import dask
@@ -32,8 +32,8 @@ from pyproj import CRS
 
 from satpy.resample import update_resampled_coords
 
-START_TIME = datetime(2018, 1, 1, 12, 0, 0)
-END_TIME = START_TIME + timedelta(minutes=20)
+START_TIME = dt.datetime(2018, 1, 1, 12, 0, 0)
+END_TIME = START_TIME + dt.timedelta(minutes=20)
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -378,7 +378,7 @@ class TestAWIPSTiledWriter:
             unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
             masked_ds = xr.open_dataset(fn, mask_and_scale=True)
             check_required_properties(unmasked_ds, masked_ds)
-            expected_start = (START_TIME + timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%S")
+            expected_start = (START_TIME + dt.timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%S")
             assert masked_ds.attrs["start_date_time"] == expected_start
 
     def test_lettered_tiles_no_fit(self, tmp_path):

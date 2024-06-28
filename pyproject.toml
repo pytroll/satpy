@@ -6,7 +6,7 @@ authors = [
     { name = "The Pytroll Team", email = "pytroll@googlegroups.com" }
 ]
 dependencies = [
-    "appdirs",
+    "platformdirs",
     "dask[array]>=0.17.1",
     "donfig",
     "numpy>=1.21",
@@ -40,6 +40,8 @@ avhrr_l1b_eps = ["defusedxml"]
 avhrr_l1b_gaclac = ["pygac >= 1.3.0"]
 modis_l1b = ["pyhdf", "python-geotiepoints >= 1.1.7"]
 geocat = ["pyhdf"]
+goci2 = ["netCDF4 >= 1.1.8"]
+generic_image = ["rasterio", "rioxarray"]
 acspo = ["netCDF4 >= 1.1.8"]
 clavrx = ["netCDF4 >= 1.1.8"]
 viirs_l1b = ["netCDF4 >= 1.1.8"]

@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Interface to MTG-FCI L1c NetCDF files.
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
@@ -29,7 +30,9 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI) and High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    In addition it also supports the L1C format for the African dissemination ("AF"), where each file
+    contains the masked full-dic of a single channel see `AF PUG`_.
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
     Satpy will automatically read the channels from the source with the finest resolution,
     i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
@@ -104,6 +107,7 @@ All auxiliary data can be obtained by prepending the channel name such as
     If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
     at the top of your script.
 
+.. _AF PUG: https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
 .. _test data releases: https://www.eumetsat.int/mtg-test-data
@@ -111,8 +115,8 @@ All auxiliary data can be obtained by prepending the channel name such as
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import datetime as dt
 import logging
-from datetime import timedelta
 from functools import cached_property
 
 import dask.array as da
@@ -146,11 +150,13 @@ AUX_DATA = {
 HIGH_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "500m",
                                        "grid_width": 22272},
                       "fci_l1c_fdhsi": {"grid_type": "1km",
-                                        "grid_width": 11136}}
+                                        "grid_width": 11136},
+                      }
 LOW_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "1km",
                                       "grid_width": 11136},
                      "fci_l1c_fdhsi": {"grid_type": "2km",
-                                       "grid_width": 5568}}
+                                       "grid_width": 5568},
+                     }
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -216,9 +222,9 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def rc_period_min(self):
         """Get nominal repeat cycle duration.
 
-        As RSS is not yet implemeted and error will be raised if RSS are to be read
+        As RSS is not yet implemented an error will be raised if RSS are tried to be read.
         """
-        if not self.filename_info["coverage"] == "FD":
+        if self.filename_info["coverage"] not in ["FD","AF"]:
             raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
             return 2.5
         return 10
@@ -227,12 +233,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def nominal_start_time(self):
         """Get nominal start time."""
         rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        return rc_date + timedelta(minutes=(self.filename_info["repeat_cycle_in_day"]-1)*self.rc_period_min)
+        return rc_date + dt.timedelta(
+            minutes=(self.filename_info["repeat_cycle_in_day"]-1)*self.rc_period_min)
 
     @property
     def nominal_end_time(self):
         """Get nominal end time."""
-        return self.nominal_start_time + timedelta(minutes=self.rc_period_min)
+        return self.nominal_start_time + dt.timedelta(minutes=self.rc_period_min)
 
     @property
     def observation_start_time(self):
@@ -272,29 +279,28 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
         of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
+
+        Note: This function is not used for the African data as it contains only one segment.
         """
+        file_type = self.filetype_info["file_type"]
         vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
         ir_105_measured_path = self.get_channel_measured_group_path("ir_105")
-
-        file_type = self.filetype_info["file_type"]
-
         segment_position_info = {
-            HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
-                "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
-                "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
-                "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
-                self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
-                "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
-            },
-            LOW_RES_GRID_INFO[file_type]["grid_type"]: {
-                "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
-                "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
-                "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
-                self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
-                "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
-            }
-        }
-
+             HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
+                 "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
+                 "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
+                 "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
+                 self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
+                 "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
+             },
+             LOW_RES_GRID_INFO[file_type]["grid_type"]: {
+                 "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
+                 "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
+                 "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
+                 self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
+                 "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
+             }
+         }
         return segment_position_info
 
     def get_dataset(self, key, info=None):
@@ -397,9 +403,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
-        nominal_and_proj_subsat_lon = float(
-            self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
-        nominal_and_proj_subsat_lat = 0
+        # The "try" is a temporary part of the code as long as the AF data are not modified
+        try :
+            nominal_and_proj_subsat_lon = float(
+                self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        except ValueError:
+            nominal_and_proj_subsat_lon = 0.0
+        nominal_and_proj_subsat_lat = 0.0
         nominal_and_proj_sat_alt = float(
             self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
 
@@ -551,7 +561,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
         h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
         rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
-        lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        # The "try" is a temporary part of the code as long as the AF data are not modified
+        try:
+            lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+        except ValueError:
+            lon_0 = 0.0
         sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)

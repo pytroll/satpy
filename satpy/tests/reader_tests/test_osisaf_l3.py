@@ -15,8 +15,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.osisaf_l3 module."""
 
+import datetime as dt
 import os
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -206,8 +206,8 @@ class TestOSISAFL3ReaderICE(OSISAFL3ReaderTests):
         super().setup_method(tester="ice")
         self.filename_info = {"grid": "ease"}
         self.filetype_info = {"file_type": "osi_sea_ice_conc"}
-        self.good_start_time = datetime(2022, 12, 15, 0, 0, 0)
-        self.good_stop_time = datetime(2022, 12, 16, 0, 0, 0)
+        self.good_start_time = dt.datetime(2022, 12, 15, 0, 0, 0)
+        self.good_stop_time = dt.datetime(2022, 12, 16, 0, 0, 0)
         self.varname = "ice_conc"
         self.stdname = "sea_ice_area_fraction"
         self.fillv = -999
@@ -260,8 +260,8 @@ class TestOSISAFL3ReaderFluxStere(OSISAFL3ReaderTests):
         super().setup_method(tester="flux_stere")
         self.filename_info = {"grid": "polstere"}
         self.filetype_info = {"file_type": "osi_radflux_stere"}
-        self.good_start_time = datetime(2023, 10, 10, 0, 0, 0)
-        self.good_stop_time = datetime(2023, 10, 10, 23, 59, 59)
+        self.good_start_time = dt.datetime(2023, 10, 10, 0, 0, 0)
+        self.good_stop_time = dt.datetime(2023, 10, 10, 23, 59, 59)
         self.varname = "ssi"
         self.stdname = "surface_downwelling_shortwave_flux_in_air"
         self.fillv = -999.99
@@ -295,8 +295,8 @@ class TestOSISAFL3ReaderFluxGeo(OSISAFL3ReaderTests):
         super().setup_method(tester="flux_geo")
         self.filename_info = {}
         self.filetype_info = {"file_type": "osi_radflux_grid"}
-        self.good_start_time = datetime(2022, 12, 28, 18, 30, 0)
-        self.good_stop_time = datetime(2022, 12, 28, 19, 30, 0)
+        self.good_start_time = dt.datetime(2022, 12, 28, 18, 30, 0)
+        self.good_stop_time = dt.datetime(2022, 12, 28, 19, 30, 0)
         self.varname = "ssi"
         self.stdname = "surface_downwelling_shortwave_flux_in_air"
         self.fillv = -32768
@@ -332,8 +332,8 @@ class TestOSISAFL3ReaderSST(OSISAFL3ReaderTests):
         super().setup_method(tester="sst")
         self.filename_info = {}
         self.filetype_info = {"file_type": "osi_sst"}
-        self.good_start_time = datetime(2022, 12, 15, 0, 0, 0)
-        self.good_stop_time = datetime(2022, 12, 16, 0, 0, 0)
+        self.good_start_time = dt.datetime(2022, 12, 15, 0, 0, 0)
+        self.good_stop_time = dt.datetime(2022, 12, 16, 0, 0, 0)
         self.varname = "surface_temperature"
         self.stdname = "sea_ice_surface_temperature"
         self.fillv = -32768

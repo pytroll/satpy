@@ -14,7 +14,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """The abi_l2_nc reader tests package."""
+
 import contextlib
 from typing import Optional
 from unittest import mock
@@ -165,7 +167,7 @@ class TestMCMIPReading:
     @mock.patch("satpy.readers.abi_base.xr")
     def test_mcmip_get_dataset(self, xr_, product, exp_metadata):
         """Test getting channel from MCMIP file."""
-        from datetime import datetime
+        import datetime as dt
 
         from pyresample.geometry import AreaDefinition
 
@@ -197,8 +199,8 @@ class TestMCMIPReading:
             "scene_id": None,
             "sensor": "abi",
             "timeline_ID": None,
-            "start_time": datetime(2017, 9, 20, 17, 30, 40, 800000),
-            "end_time": datetime(2017, 9, 20, 17, 41, 17, 500000),
+            "start_time": dt.datetime(2017, 9, 20, 17, 30, 40, 800000),
+            "end_time": dt.datetime(2017, 9, 20, 17, 41, 17, 500000),
             "ancillary_variables": [],
         }
         exp_attrs.update(exp_metadata)

@@ -15,13 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The ici_l1b_nc reader tests package.
 
 This version tests the reader for ICI test data as per PFS V3A.
 
 """
 
-from datetime import datetime
+import datetime as dt
 from unittest.mock import patch
 
 import numpy as np
@@ -50,13 +51,13 @@ def reader(fake_file):
         filename=fake_file,
         filename_info={
             "sensing_start_time": (
-                datetime.fromisoformat("2000-01-01T01:00:00")
+                dt.datetime.fromisoformat("2000-01-01T01:00:00")
             ),
             "sensing_end_time": (
-                datetime.fromisoformat("2000-01-01T02:00:00")
+                dt.datetime.fromisoformat("2000-01-01T02:00:00")
             ),
             "creation_time": (
-                datetime.fromisoformat("2000-01-01T03:00:00")
+                dt.datetime.fromisoformat("2000-01-01T03:00:00")
             ),
         },
         filetype_info={
@@ -217,11 +218,11 @@ class TestIciL1bNCFileHandler:
 
     def test_start_time(self, reader):
         """Test start time."""
-        assert reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
+        assert reader.start_time == dt.datetime(2000, 1, 2, 3, 4, 5)
 
     def test_end_time(self, reader):
         """Test end time."""
-        assert reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
+        assert reader.end_time == dt.datetime(2000, 1, 2, 4, 5, 6)
 
     def test_sensor(self, reader):
         """Test sensor."""
@@ -517,13 +518,13 @@ class TestIciL1bNCFileHandler:
         attributes = reader._get_global_attributes()
         assert attributes == {
             "filename": reader.filename,
-            "start_time": datetime(2000, 1, 2, 3, 4, 5),
-            "end_time": datetime(2000, 1, 2, 4, 5, 6),
+            "start_time": dt.datetime(2000, 1, 2, 3, 4, 5),
+            "end_time": dt.datetime(2000, 1, 2, 4, 5, 6),
             "spacecraft_name": "SGB",
             "ssp_lon": None,
             "sensor": "ICI",
-            "filename_start_time": datetime(2000, 1, 1, 1, 0),
-            "filename_end_time": datetime(2000, 1, 1, 2, 0),
+            "filename_start_time": dt.datetime(2000, 1, 1, 1, 0),
+            "filename_end_time": dt.datetime(2000, 1, 1, 2, 0),
             "platform_name": "SGB",
             "quality_group": {
                 "duration_of_product": np.array(1000., dtype=np.float32),
