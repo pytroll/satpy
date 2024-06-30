@@ -77,7 +77,15 @@ Documentation
 
     Satpy API <api/modules>
     faq
-	performance_tests
+
+.. toctree::
+    :maxdepth: 2
+	
+    performance_tests/index
+
+.. toctree::
+    :maxdepth: 1
+
     Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
