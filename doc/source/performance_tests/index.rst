@@ -48,7 +48,7 @@ Conda environment
 
 Test procedure
 --------------
-- Each round will go through 5 scenes.
+- Each round will go through 5 scenes to calculate average.
 
 - The composite will usually be the default ``true_color`` which requires heavy computation like atmospheric corrections.
 
