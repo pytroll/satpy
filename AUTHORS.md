@@ -93,3 +93,4 @@ The following people have made contributions to this project:
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Antonio Valentino](https://github.com/avalentino)
+- [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
