@@ -1,11 +1,25 @@
 =================
 Tests for abi_l1b
 =================
++----------+----------------------------------------------------------------------------------+
+| Datasets | 5 scenes by GOES-16 around solar noon (scan period: UTC 17:00 - 17:10)           |
+|          | from 2024.06.17 to 2024.06.21                                                    |
++----------+----------------------------------------------------------------------------------+
+| Area 1   | - 500m full disk (``scn.finest_area()``)                                         |
+|          | - ``native`` resampling                                                          |
++----------+----------------------------------------------------------------------------------+
+| Area 2   | - 500m local area                                                                |
+|          | - width: 8008, height: 8008                                                      |
+|          | - projection: +proj=lcc +lon_0=-96 +lat_1=20 +lat_2=60 +datum=WGS84 +ellps=WGS84 |
+|          | - area extent: (-106000, 2635000, 3898000, 6639000)                              |
+|          | - ``nearest`` and ``bilinear`` resampling                                        |
++----------+----------------------------------------------------------------------------------+
 
 
 Recommended Settings
 ====================
-
+- ``DASK_ARRAY__CHUNK_SIZE``: **16MiB**
+- ``DASK_NUM_WORKERS``: **8/12/16** are all worth considering
 
 Result Table
 ============
