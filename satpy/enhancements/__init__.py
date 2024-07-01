@@ -474,8 +474,8 @@ def create_colormap(palette, img=None):  # noqa: D417
         raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither).")
 
     if "min_alpha" in palette and "max_alpha" in palette:
-        cmap.set_alpha_range(palette["min_alpha"]/color_scale,
-                             palette["max_alpha"]/color_scale)
+        cmap.set_alpha_range(palette["min_alpha"] / color_scale,
+                             palette["max_alpha"] / color_scale)
     elif "min_alpha" in palette or "max_alpha" in palette:
         raise ValueError("Both 'min_alpha' and 'max_alpha' must be specified (or neither).")
 
