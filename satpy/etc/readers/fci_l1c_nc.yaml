@@ -21,33 +21,67 @@ file_types:
       - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
     expected_segments: 40
     required_netcdf_variables: &required-variables
-      - attr/platform
-      - data/{channel_name}/measured/start_position_row
-      - data/{channel_name}/measured/end_position_row
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a
-      - data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1
-      - data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2
-      - data/{channel_name}/measured/radiance_unit_conversion_coefficient
-      - data/{channel_name}/measured/channel_effective_solar_irradiance
-      - data/{channel_name}/measured/effective_radiance
-      - data/{channel_name}/measured/x
-      - data/{channel_name}/measured/y
-      - data/{channel_name}/measured/pixel_quality
-      - data/{channel_name}/measured/index_map
-      - data/mtg_geos_projection
-      - data/swath_direction
-      - data/swath_number
-      - index
-      - state/celestial/earth_sun_distance
-      - state/celestial/subsolar_latitude
-      - state/celestial/subsolar_longitude
-      - state/celestial/sun_satellite_distance
-      - state/platform/platform_altitude
-      - state/platform/subsatellite_latitude
-      - state/platform/subsatellite_longitude
-      - time
+      # key/value; keys are names, value is a list of string on how this may be
+      # cached between segments or between repeat cycles or neither
+      attr/platform:
+        - segment
+        - rc
+      data/{channel_name}/measured/start_position_row:
+        - rc
+      data/{channel_name}/measured/end_position_row:
+        - rc
+      data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_wavenumber:
+        - segment
+        - rc
+      data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_a:
+        - segment
+        - rc
+      data/{channel_name}/measured/radiance_to_bt_conversion_coefficient_b:
+        - segment
+        - rc
+      data/{channel_name}/measured/radiance_to_bt_conversion_constant_c1:
+        - segment
+        - rc
+      data/{channel_name}/measured/radiance_to_bt_conversion_constant_c2:
+        - segment
+        - rc
+      data/{channel_name}/measured/radiance_unit_conversion_coefficient:
+        - segment
+        - rc
+      data/{channel_name}/measured/channel_effective_solar_irradiance:
+        - segment
+        - rc
+      data/{channel_name}/measured/effective_radiance: []
+      data/{channel_name}/measured/x:
+        - segment
+        - rc
+      data/{channel_name}/measured/y:
+        - rc
+      data/{channel_name}/measured/pixel_quality: []
+      data/{channel_name}/measured/index_map: []
+      data/mtg_geos_projection:
+        - segment
+        - rc
+      data/swath_direction:
+        - segment
+      data/swath_number:
+        - rc
+      index: []
+      state/celestial/earth_sun_distance:
+        - segment
+      state/celestial/subsolar_latitude:
+        - segment
+      state/celestial/subsolar_longitude:
+        - segment
+      state/celestial/sun_satellite_distance:
+        - segment
+      state/platform/platform_altitude:
+        - segment
+      state/platform/subsatellite_latitude:
+        - segment
+      state/platform/subsatellite_longitude:
+        - segment
+      time: []
     variable_name_replacements:
       channel_name:
         - vis_04
@@ -66,12 +100,24 @@ file_types:
         - ir_105
         - ir_123
         - ir_133
+    # information needed for preloading
+    segment_tag: count_in_repeat_cycle
+    time_tags: &tt
+      - processing_time
+      - start_time
+      - end_time
+    variable_tags:  # other tags where RC caching doesn't care about variation
+      - repeat_cycle_in_day
   fci_l1c_hrfi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
     file_patterns:
       - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-HRFI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
     expected_segments: 40
     required_netcdf_variables: *required-variables
+    segment_tag: count_in_repeat_cycle
+    time_tags: *tt
+    variable_tags:
+      - repeat_cycle_in_day
     variable_name_replacements:
       channel_name:
         - vis_06_hr

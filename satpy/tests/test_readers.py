@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, 2022, 2023 Satpy developers
+# Copyright (c) 2019, 2022-2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -22,6 +20,7 @@ import builtins
 import contextlib
 import datetime as dt
 import os
+import pickle
 import sys
 import unittest
 import warnings
@@ -29,11 +28,13 @@ from pathlib import Path
 from typing import Iterator
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 from pytest_lazy_fixtures import lf as lazy_fixture
 
+import satpy
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 from satpy.readers import FSFile, find_files_and_readers, open_file_or_filename
@@ -1113,6 +1114,40 @@ class TestFSFile:
         fsf = FSFile(local_filename)
         with pytest.raises(AttributeError):
             fsf.fs = "foo"
+
+
+def test_create_preloadable_cache(tmp_path):
+    """Test utility function creating a test for preloading."""
+    from satpy.readers import create_preloadable_cache
+    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+    from satpy.tests.reader_tests.test_netcdf_utils import FakePreloadableHandler
+    fake_config = {"reader": {
+            "name": "tartupaluk"},
+         "file_types": {
+             "m9g": {
+                 "file_reader": FakePreloadableHandler,
+                 "file_patterns": ["a-{segment:d}.nc"],
+                 "expected_segments": 3,
+                 "required_netcdf_variables": {"/iceland/reykjavík": ["rc"]}}}}
+    dph = FakePreloadableHandler(
+            os.fspath(tmp_path / "a-0.nc"),
+            {"segment": 0}, fake_config["file_types"]["m9g"],
+            rc_cache=tmp_path / "test.pkl",
+            preload=False)
+    dph.file_content["/iceland/reykjavík"] = xr.DataArray(da.from_array([[0, 1, 2]]))
+    with satpy.config.set({"readers.preload_segments": True}):
+        gsyr = GEOSegmentYAMLReader(fake_config)
+    gsyr.file_handlers["handler"] = [dph]
+
+    with unittest.mock.patch("satpy.readers.load_readers") as srl:
+        with unittest.mock.patch("appdirs.user_cache_dir") as au:
+            au.return_value = os.fspath(tmp_path / "cache")
+            srl.return_value = {"tartupaluk": gsyr}
+            create_preloadable_cache("tartupaluk", [tmp_path / "a-0.nc"])
+    with (tmp_path / "cache" / "satpy" / "preloadable" /
+          "FakePreloadableHandler" / "a-0.pkl").open(mode="rb") as fp:
+        data = pickle.load(fp)
+        assert data.keys()
 
 
 def test_open_file_or_filename_uses_mode(tmp_path):
