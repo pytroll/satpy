@@ -216,16 +216,21 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))
 
+        if self.filename_info["coverage"] == "Q4":
+            # change number of chunk so that padding gets activated correctly on missing chunks
+            self.filename_info["count_in_repeat_cycle"] += 28
+
+        if self.filename_info["facility_or_tool"] == "IQTI":
+            self.is_iqt = True
+        else :
+            self.is_iqt = False
+
         self._cache = {}
 
     @property
     def rc_period_min(self):
-        """Get nominal repeat cycle duration.
-
-        As RSS is not yet implemented an error will be raised if RSS are tried to be read.
-        """
+        """Get nominal repeat cycle duration."""
         if self.filename_info["coverage"] not in ["FD","AF"]:
-            raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
             return 2.5
         return 10
 
@@ -378,11 +383,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
-        if key["calibration"] in ["brightness_temperature", "reflectance"]:
+        if key["calibration"] in ["brightness_temperature", "reflectance","radiance"]:
             res.attrs.pop("add_offset")
             res.attrs.pop("warm_add_offset")
             res.attrs.pop("scale_factor")
             res.attrs.pop("warm_scale_factor")
+            res.attrs.pop("valid_range")
 
         # remove attributes from original file which don't apply anymore
         res.attrs.pop("long_name")
@@ -400,9 +406,18 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     @cached_property
     def orbital_param(self):
         """Compute the orbital parameters for the current segment."""
-        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
-        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
-        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        if self.is_iqt:
+            actual_subsat_lon = -3.4
+            actual_subsat_lat = 0.0
+            actual_sat_alt = 35786400
+            logger.info("IQT data the following parameters are hardcoded "
+                        f"satellite_actual_longitude = {actual_subsat_lon} ,"
+                        f" satellite_actual_latitude = {actual_subsat_lat} ,"
+                        f"satellite_sat_alt = {actual_sat_alt}")
+        else:
+             actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
+             actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
+             actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
         # The "try" is a temporary part of the code as long as the AF data are not modified
         try :
             nominal_and_proj_subsat_lon = float(
@@ -687,15 +702,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "cannot produce reflectance for {:s}.".format(measured))
             return radiance * np.float32(np.nan)
 
-        sun_earth_distance = np.mean(
+        sun_earth_distance = np.nanmean(
             self.get_and_cache_npxr("state/celestial/earth_sun_distance")) / 149597870.7  # [AU]
-
-        # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-        if sun_earth_distance < 0.9 or sun_earth_distance > 1.1:
-            logger.info("The variable state/celestial/earth_sun_distance contains unexpected values"
-                        "(mean value is {} AU). Defaulting to 1 AU for reflectance calculation."
-                        "".format(sun_earth_distance))
-            sun_earth_distance = 1
 
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
