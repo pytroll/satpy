@@ -22,7 +22,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
 logger = logging.getLogger(__name__)
@@ -75,9 +75,7 @@ class VGACFileHandler(BaseFileHandler):
 
     def dt64_to_datetime(self, dt64):
         """Conversion of numpy.datetime64 to datetime objects."""
-        if isinstance(dt64, np.datetime64):
-            return dt64.astype(dt.datetime)
-        return dt64
+        return datetime64_to_pydatetime(dt64)
 
     def extract_time_data(self, data, nc):
         """Decode time data."""
