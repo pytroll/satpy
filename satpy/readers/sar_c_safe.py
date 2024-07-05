@@ -35,6 +35,7 @@ References:
 """
 
 import functools
+import json
 import logging
 import warnings
 from collections import defaultdict
@@ -664,7 +665,7 @@ class SAFEGRD(BaseFileHandler):
            gcp_coords (tuple): longitude and latitude 1d arrays
 
         """
-        gcps = self._data.coords["spatial_ref"].attrs["gcps"]
+        gcps = get_gcps_from_array(self._data)
         crs = self._data.rio.crs
 
         gcp_list = [(feature["properties"]["row"], feature["properties"]["col"], *feature["geometry"]["coordinates"])
@@ -726,7 +727,7 @@ class SAFESARReader(GenericYAMLReader):
                     if key["name"] not in ["longitude", "latitude"]:
                         lonlats = self.load([DataID(self._id_keys, name="longitude", polarization=key["polarization"]),
                                              DataID(self._id_keys, name="latitude", polarization=key["polarization"])])
-                        gcps = val.coords["spatial_ref"].attrs["gcps"]
+                        gcps = get_gcps_from_array(val)
                         from pyresample.future.geometry import SwathDefinition
                         val.attrs["area"] = SwathDefinition(lonlats["longitude"], lonlats["latitude"],
                                                             attrs=dict(gcps=gcps))
@@ -797,3 +798,11 @@ class SAFESARReader(GenericYAMLReader):
                                                          filetype_info=None)
 
         return measurement_handlers
+
+
+def get_gcps_from_array(val):
+    """Get the gcps from the spatial_ref coordinate as a geojson dict."""
+    gcps = val.coords["spatial_ref"].attrs["gcps"]
+    if isinstance(gcps, str):
+        gcps = json.loads(gcps)
+    return gcps

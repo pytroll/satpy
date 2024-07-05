@@ -128,18 +128,13 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Get the dataset."""
         data_arr = self.nc[info["file_key"]]
         data_arr = self._mask_invalid(data_arr, info)
+        data_arr = self._sanitize_metadata(data_arr, info)
         units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
             units = "1"
         if units == "%" and data_arr.attrs.get("units") in ("1", "unitless"):
             data_arr *= 100.0  # turn into percentages
         data_arr.attrs["units"] = units
-        if "standard_name" in info:
-            data_arr.attrs["standard_name"] = info["standard_name"]
-        self._decode_flag_meanings(data_arr)
-        data_arr.attrs["platform_name"] = self.platform_name
-        data_arr.attrs["sensor"] = self.sensor_name
-        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         if data_arr.attrs.get("standard_name") in ("longitude", "latitude"):
             # recursive swath definitions are a problem for the base reader right now
             # delete the coordinates here so the base reader doesn't try to
@@ -155,6 +150,18 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
             return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
+        return data_arr
+
+    def _sanitize_metadata(self, data_arr: xr.DataArray, info: dict) -> xr.DataArray:
+        if "valid_range" in data_arr.attrs:
+            # don't use numpy arrays for simple metadata
+            data_arr.attrs["valid_range"] = tuple(data_arr.attrs["valid_range"])
+        if "standard_name" in info:
+            data_arr.attrs["standard_name"] = info["standard_name"]
+        self._decode_flag_meanings(data_arr)
+        data_arr.attrs["platform_name"] = self.platform_name
+        data_arr.attrs["sensor"] = self.sensor_name
+        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         return data_arr
 
     @staticmethod
@@ -243,6 +250,52 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         yield from self._dynamic_variables_from_file(handled_var_names)
 
     def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
+        coords: dict[str, dict] = {}
+        for is_avail, ds_info in self._generate_dynamic_metadata(self.nc.variables.keys(), coords):
+            var_name = ds_info["file_key"]
+            if var_name in handled_var_names and not ("longitude_" in var_name or "latitude_" in var_name):
+                continue
+            handled_var_names.add(var_name)
+            yield is_avail, ds_info
+
+        for coord_info in coords.values():
+            yield True, coord_info
+
+    def _generate_dynamic_metadata(self, variable_names: Iterable[str], coords: dict) -> Iterable[tuple[bool, dict]]:
+        for var_name in variable_names:
+            data_arr = self.nc[var_name]
+            if data_arr.ndim != 2:
+                # only 2D arrays supported at this time
+                continue
+            res = 750 if data_arr.shape[1] == M_COLS else 375
+            ds_info = {
+                "file_key": var_name,
+                "file_type": self.filetype_info["file_type"],
+                "name": var_name,
+                "resolution": res,
+                "coordinates": self._coord_names_for_resolution(res),
+            }
+
+            is_lon = "longitude" in var_name.lower()
+            is_lat = "latitude" in var_name.lower()
+            if not (is_lon or is_lat):
+                yield True, ds_info
+                continue
+
+            ds_info["standard_name"] = "longitude" if is_lon else "latitude"
+            ds_info["units"] = "degrees_east" if is_lon else "degrees_north"
+            # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
+            del ds_info["coordinates"]
+            yield True, ds_info
+
+            # "standard" geolocation coordinate (assume shorter variable name is "better")
+            new_name = self._coord_names_for_resolution(res)[int(not is_lon)]
+            if new_name not in coords or len(var_name) < len(coords[new_name]["file_key"]):
+                ds_info = ds_info.copy()
+                ds_info["name"] = new_name
+                coords[ds_info["name"]] = ds_info
+
+    def _coord_names_for_resolution(self, res: int):
         ftype = self.filetype_info["file_type"]
         m_lon_name = f"longitude_{ftype}"
         m_lat_name = f"latitude_{ftype}"
@@ -250,38 +303,11 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         i_lon_name = f"longitude_i_{ftype}"
         i_lat_name = f"latitude_i_{ftype}"
         i_coords = (i_lon_name, i_lat_name)
-        for var_name in self.nc.variables.keys():
-            data_arr = self.nc[var_name]
-            is_lon = "longitude" in var_name.lower()
-            is_lat = "latitude" in var_name.lower()
-            if var_name in handled_var_names and not (is_lon or is_lat):
-                # skip variables that YAML had configured, but allow lon/lats
-                # to be reprocessed due to our dynamic coordinate naming
-                continue
-            if data_arr.ndim != 2:
-                # only 2D arrays supported at this time
-                continue
-            res = 750 if data_arr.shape[1] == M_COLS else 375
-            ds_info = {
-                "file_key": var_name,
-                "file_type": ftype,
-                "name": var_name,
-                "resolution": res,
-                "coordinates": m_coords if res == 750 else i_coords,
-            }
-            if is_lon:
-                ds_info["standard_name"] = "longitude"
-                ds_info["units"] = "degrees_east"
-                ds_info["name"] = m_lon_name if res == 750 else i_lon_name
-                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
-                del ds_info["coordinates"]
-            elif is_lat:
-                ds_info["standard_name"] = "latitude"
-                ds_info["units"] = "degrees_north"
-                ds_info["name"] = m_lat_name if res == 750 else i_lat_name
-                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
-                del ds_info["coordinates"]
-            yield True, ds_info
+        if res == 750:
+            return m_coords
+        else:
+            return i_coords
+
 
 
 class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
