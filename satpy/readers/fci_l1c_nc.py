@@ -230,9 +230,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     @property
     def rc_period_min(self):
         """Get nominal repeat cycle duration."""
-        if self.filename_info["coverage"] not in ["FD","AF"]:
+        if "Q4" in self.filename_info["coverage"]:
             return 2.5
-        return 10
+        elif self.filename_info["coverage"] in ["FD","AF"]:
+            return 10
+        else:
+            raise NotImplementedError(f"coverage for {self.filename_info['coverage']}"
+                                      " not supported by this reader")
 
     @property
     def nominal_start_time(self):
@@ -407,9 +411,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def orbital_param(self):
         """Compute the orbital parameters for the current segment."""
         if self.is_iqt:
-            actual_subsat_lon = -3.4
+            actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
+                                                              "longitude_of_projection_origin"))
+            #actual_subsat_lon = -3.4
             actual_subsat_lat = 0.0
-            actual_sat_alt = 35786400
+            actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+            #actual_sat_alt = 0.0
             logger.info("IQT data the following parameters are hardcoded "
                         f"satellite_actual_longitude = {actual_subsat_lon} ,"
                         f" satellite_actual_latitude = {actual_subsat_lat} ,"
@@ -511,16 +518,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         extents = {}
         for coord in "xy":
             coord_radian = self.get_and_cache_npxr(measured + "/{:s}".format(coord))
-
-            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
-            if coord == "x" and coord_radian.attrs["scale_factor"] > 0:
-                coord_radian.attrs["scale_factor"] *= -1
-
-            # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-            if type(coord_radian.attrs["scale_factor"]) is np.float32:
-                coord_radian.attrs["scale_factor"] = coord_radian.attrs["scale_factor"].astype("float64")
-            if type(coord_radian.attrs["add_offset"]) is np.float32:
-                coord_radian.attrs["add_offset"] = coord_radian.attrs["add_offset"].astype("float64")
 
             coord_radian_num = coord_radian[:] * coord_radian.attrs["scale_factor"] + coord_radian.attrs["add_offset"]
 
@@ -703,7 +700,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             return radiance * np.float32(np.nan)
 
         sun_earth_distance = np.nanmean(
-            self.get_and_cache_npxr("state/celestial/earth_sun_distance")) / 149597870.7  # [AU]
+            self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
 
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
