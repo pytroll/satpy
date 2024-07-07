@@ -72,20 +72,13 @@ Documentation
     multiscene
     dev_guide/index
 
+
 .. toctree::
     :maxdepth: 1
 
     Satpy API <api/modules>
     faq
-
-.. toctree::
-    :maxdepth: 2
-
-    performance_tests/index
-
-.. toctree::
-    :maxdepth: 1
-
+    performance_test
     Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
