@@ -124,7 +124,7 @@ class SatpyPerformanceTest:
             scn2.save_dataset(self.composite, writer="geotiff", filename="test.tif", base_dir=self.work_dir,
                               fill_value=0, compress=None)
 
-    def single_loop(self, conditions, area, diff_res=False, area_def=None, resampler_kwargs=None):
+    def single_loop(self, conditions, diff_res=False, area_def=None, resampler_kwargs=None):
         """Single round of the test. """
         import dask.config
         self.running = True
@@ -160,6 +160,11 @@ class SatpyPerformanceTest:
         self.running = False
         monitor_thread.join()
 
+        if area_def is None:
+            area = "original"
+        else:
+            area = "local" if len(area_def.area_id) == 0 else area_def.area_id.replace("_", "")
+
         csv_file = (f"{self.work_dir}/{self.reader_name.replace("_", "")}_"
                     f"chunk{chunk_size}_worker{num_worker}_thread{num_thread}_{area}_{resampler}.csv")
         self.write_to_csv(csv_file)
@@ -176,13 +181,12 @@ class SatpyPerformanceTest:
 
         """
         resampler = "native" if diff_res else "none"
-        area = "original"
 
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
                 print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
-                self.single_loop((chunk_size, num_worker, resampler), area, diff_res)
+                self.single_loop((chunk_size, num_worker, resampler), diff_res)
                 i = i + 1
 
                 if i == self.total_rounds:
@@ -205,7 +209,6 @@ class SatpyPerformanceTest:
 
         """
         resampler_kwargs = {} if resampler_kwargs is None else resampler_kwargs
-        area = "local" if len(area_def.area_id) == 0 else area_def.area_id.replace("_", "")
 
         i = 0
         for chunk_size in self.chunk_size_opts:
@@ -213,7 +216,7 @@ class SatpyPerformanceTest:
                 for resampler in resamplers:
                     print(
                         f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
-                    self.single_loop((chunk_size, num_worker, resampler), area, area_def, resampler_kwargs)
+                    self.single_loop((chunk_size, num_worker, resampler), area_def, resampler_kwargs)
                     i = i + 1
 
                     if i == self.total_rounds:
