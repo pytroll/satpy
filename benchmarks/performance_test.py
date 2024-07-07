@@ -63,8 +63,7 @@ class SatpyPerformanceTest:
         self.folders = glob.glob(f"{self.work_dir}/{self.folder_pattern}")
 
         self.chunk_size_opts = chunk_size_opts
-        self.worker_opts = worker_opts
-        self.total_rounds = len(self.chunk_size_opts) * len(self.worker_opts)
+        self.worker_opts = worker_opts  
 
         self.result = {}
         self.running = True
@@ -106,7 +105,7 @@ class SatpyPerformanceTest:
                                                          self.result["scenes"], self.result["errors"], fillvalue="N/A"):
                 csvwriter.writerow([ts, cpu, mem, pt, scn, er])
 
-    def satpy_test(self, resampler, diff_res=False, area_def=None, resampler_kwargs=None):
+    def satpy_test(self, resampler, generate=False, area_def=None, resampler_kwargs=None):
         """Call satpy to do the test."""
         from satpy import Scene, find_files_and_readers
 
@@ -115,7 +114,7 @@ class SatpyPerformanceTest:
         for folder in self.folders:
             files = find_files_and_readers(base_dir=folder, reader=self.reader_name)
             scn = Scene(filenames=files, reader_kwargs=reader_kwargs)
-            scn.load([self.composite], generate=False if diff_res else True)
+            scn.load([self.composite], generate=generate)
 
             if resampler == "none":
                 scn2 = scn
@@ -125,7 +124,7 @@ class SatpyPerformanceTest:
             scn2.save_dataset(self.composite, writer="geotiff", filename="test.tif", base_dir=self.work_dir,
                               fill_value=0, compress=None)
 
-    def single_loop(self, conditions, diff_res=False, area_def=None, resampler_kwargs=None):
+    def single_loop(self, conditions, generate=False, area_def=None, resampler_kwargs=None):
         """Single round of the test."""
         import dask.config
         self.running = True
@@ -147,7 +146,7 @@ class SatpyPerformanceTest:
         errors = []
         start = time.perf_counter()
         try:
-            self.satpy_test(resampler, diff_res, area_def, resampler_kwargs)
+            self.satpy_test(resampler, generate, area_def, resampler_kwargs)
         except Exception as e:
             errors.append(e)
 
@@ -182,48 +181,62 @@ class SatpyPerformanceTest:
 
         """
         resampler = "native" if diff_res else "none"
+        generate = not diff_res
+        total_rounds = len(self.chunk_size_opts) * len(self.worker_opts)
 
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
                 print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
-                self.single_loop((chunk_size, num_worker, resampler), diff_res)
+                self.single_loop((chunk_size, num_worker, resampler), generate=generate)
                 i = i + 1
 
-                if i == self.total_rounds:
-                    print(f"ROUND {i} / {self.total_rounds} Completed. Generating HTML report.") # noqa
+                if i == total_rounds:
+                    print(f"ROUND {i} / {total_rounds} Completed. Generating HTML report.") # noqa
                     html_report(self.work_dir, self.reader_name)
                 else:
-                    print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.") # noqa
+                    print(f"ROUND {i} / {total_rounds} Completed. Now take a 1-min rest.\n") # noqa
                     time.sleep(60)
 
     def resampler_test(self, resamplers, area_def, resampler_kwargs=None):
         """Test readers with resampling.
 
         Args:
-            resamplers (list): List of resampling algorithms you want to test.
+            resamplers (list or str): A single resampling algorithm or a list of resampling algorithms you want to test.
             area_def (AreaDefinition or DynamicAreaDefinition or str): Area definition or the name of an area stored
                                                                        in YAML.
-            resampler_kwargs (dict): Additional arguments passed to the resampler, e.g.
-                                     {'cache_dir': '/path/to/my/cache'} for ``bilinear`` or ``nearest``.
+            resampler_kwargs (dict): Additional arguments passed to the resampler. You can specify the separate
+                                     kwargs for each resampler, e.g.
+                                     {'bilinear': {'cache_dir': '/path/to/my/cache'},
+                                      'ewa': {'weight_delta_max': 40, 'weight_distance_max': 2}}.
+                                     Or you can just give general kwargs like {'cache_dir': '/path/to/my/cache'} for
+                                     both ``nearest`` and ``bilinear``.
 
         """
+        resamplers = [resamplers] if not isinstance(resamplers, list) else resamplers
         resampler_kwargs = {} if resampler_kwargs is None else resampler_kwargs
+        total_rounds = len(self.chunk_size_opts) * len(self.worker_opts) * len(resamplers)
 
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
                 for resampler in resamplers:
+                    try:
+                        single_resampler_kwargs = resampler_kwargs[resampler]
+                    except KeyError:
+                        single_resampler_kwargs = resampler_kwargs
+
                     print( # noqa
                         f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.")
-                    self.single_loop((chunk_size, num_worker, resampler), area_def, resampler_kwargs)
+                    self.single_loop((chunk_size, num_worker, resampler),
+                                     area_def=area_def, resampler_kwargs=single_resampler_kwargs)
                     i = i + 1
 
-                    if i == self.total_rounds:
+                    if i == total_rounds:
                         print("All the tests finished. Generating HTML report.") # noqa
                         html_report(self.work_dir, self.reader_name)
                     else:
-                        print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.") # noqa
+                        print(f"ROUND {i} / {total_rounds} Completed. Now take a 1-min rest.") # noqa
                         time.sleep(60)
 
 
