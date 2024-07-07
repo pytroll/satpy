@@ -49,7 +49,7 @@ class SatpyPerformanceTest:
             chunk_size_opts (list): All the ``dask_array_chunk_size`` values you wish for, in `MiB`.
             worker_opts (list): All the ``dask_num_workers`` values you wish for.
             reader_kwargs (dict): Additional reader arguments for ``Scene``,
-                                  like `{'mask_saturated': False}` in modis_l1b.
+                                  e.g. `{'mask_saturated': False}` in modis_l1b.
 
         """
         super().__init__()
@@ -165,11 +165,11 @@ class SatpyPerformanceTest:
         self.write_to_csv(csv_file)
 
     def simple_test(self, diff_res=False):
-        """Test in dataset's original projection. No resampling or the simplest ``native`` resampling.
+        """Test readers in dataset's original projection. No resampling involved or the simplest ``native`` resampling.
 
         Args:
             diff_res (bool): If the composite requires bands in different resolutions, this should be set to True
-                             to let the native resampler match them to the ``scn.finest_area()``.
+                             so the native resampler will match them to the ``scn.finest_area()``.
                              For example, ``true_color`` of ABI needs 500m C01 and 1000m C02 bands, so it's `True`.
                              This is not a test option and should be set properly according to the composite,
                              otherwise the test will end up in errors.
@@ -181,19 +181,19 @@ class SatpyPerformanceTest:
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
-                print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.")
+                print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
                 self.single_loop((chunk_size, num_worker, resampler), area, diff_res)
                 i = i + 1
 
                 if i == self.total_rounds:
-                    print("All the tests finished. Generating HTML report.")
+                    print("All the tests finished. Generating HTML report.") # noqa
                     html_report(self.work_dir, self.reader_name)
                 else:
-                    print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.")
+                    print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.") # noqa
                     time.sleep(60)
 
     def resampler_test(self, resamplers, area_def, resampler_kwargs=None):
-        """Test involving resampling. See https://satpy.readthedocs.io/en/latest/resample.html#resampling-algorithms
+        """Test readers with resampling. See https://satpy.readthedocs.io/en/latest/resample.html#resampling-algorithms
         for available resampler.
 
         Args:
@@ -212,15 +212,15 @@ class SatpyPerformanceTest:
             for num_worker in self.worker_opts:
                 for resampler in resamplers:
                     print(
-                        f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.")
+                        f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
                     self.single_loop((chunk_size, num_worker, resampler), area, area_def, resampler_kwargs)
                     i = i + 1
 
                     if i == self.total_rounds:
-                        print("All the tests finished. Generating HTML report.")
+                        print("All the tests finished. Generating HTML report.") # noqa
                         html_report(self.work_dir, self.reader_name)
                     else:
-                        print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.")
+                        print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.") # noqa
                         time.sleep(60)
 
 
