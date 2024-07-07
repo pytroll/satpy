@@ -63,7 +63,7 @@ class SatpyPerformanceTest:
         self.folders = glob.glob(f"{self.work_dir}/{self.folder_pattern}")
 
         self.chunk_size_opts = chunk_size_opts
-        self.worker_opts = worker_opts  
+        self.worker_opts = worker_opts
 
         self.result = {}
         self.running = True
