@@ -19,7 +19,7 @@ import glob
 import os
 import platform
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from io import BytesIO
 from itertools import zip_longest
 from threading import Thread
@@ -338,7 +338,7 @@ def draw_hbar(dataframe, title):
                 # Now we have to restore the value to the real Max when writing the label.
                 label_text = str(round(cumulative_widths[j], 2))
 
-            ax.text(label_x_pos, bar.get_y() + bar.get_height() / 2, label_text, va='center')
+            ax.text(label_x_pos, bar.get_y() + bar.get_height() / 2, label_text, va="center")
 
     svg = BytesIO()
     plt.savefig(svg, format="svg")
@@ -415,7 +415,7 @@ def html_head(reader_name):
         </head>
         <body>
             <h1>Satpy Performance Test Report for {reader_name}</h1>
-            <h3>Generation Date: UTC {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}</h3>
+            <h3>Generation Date: UTC {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")}</h3>
             <h2>1. System Info</h2>
             <h3>1.1 Platform</h3>
             <p>CPU: {cpu_model}, {cpu_core} cores / {cpu_thread} threads in total</p>
