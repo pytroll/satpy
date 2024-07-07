@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import psutil
+from pyresample.geometry import AreaDefinition, DynamicAreaDefinition
 
 
 class SatpyPerformanceTest:
@@ -42,15 +43,15 @@ class SatpyPerformanceTest:
         """Initialize SatpyPerformanceTest with some basic arguments.
 
         Args:
-            work_dir (str): Absolute path to the directory that contains all your dataset folders.
+            work_dir (str): Absolute path to the base directory that contains all your dataset folders.
             folder_pattern (str): Naming scheme of the dataset folders, e.g. `G16_s*_e*_FLDK`.
+                                  This will be used for ``glob.glob`` to search the datasets.
             reader_name (str): Reader you want to test.
-            composite (str): Composite for test. Usually this could be ``true_color`` which involves a
-                             lot of computation like atmospheric correction.
+            composite (str): Composite for test.
             chunk_size_opts (list): All the ``dask_array_chunk_size`` values you wish for, in `MiB`.
             worker_opts (list): All the ``dask_num_workers`` values you wish for.
             reader_kwargs (dict): Additional reader arguments for ``Scene``,
-                                  e.g. `{'mask_saturated': False}` in modis_l1b.
+                                  like ``{'mask_saturated': False}`` in modis_l1b.
 
         """
         super().__init__()
@@ -170,13 +171,13 @@ class SatpyPerformanceTest:
         self.write_to_csv(csv_file)
 
     def simple_test(self, diff_res=False):
-        """Test readers in dataset's original projection. No resampling involved or the simplest ``native`` resampling.
+        """Test the reader in dataset's original projection, with no resampling or the simplest ``native`` resampling.
 
         Args:
-            diff_res (bool): If the composite requires bands in different resolutions, this should be set to True
+            diff_res (bool): If the composite requires bands in different resolutions, this should be set to `True`
                              so the native resampler will match them to the ``scn.finest_area()``.
                              For example, ``true_color`` of ABI needs 500m C01 and 1000m C02 bands, so it's `True`.
-                             This is not a test option and should be set properly according to the composite,
+                             **This is not a test option and should be set properly according to the composite,**
                              otherwise the test will end up in errors.
 
         """
@@ -199,7 +200,7 @@ class SatpyPerformanceTest:
                     time.sleep(60)
 
     def resampler_test(self, resamplers, area_def, resampler_kwargs=None):
-        """Test readers with resampling.
+        """Test the reader with resampling.
 
         Args:
             resamplers (list or str): A single resampling algorithm or a list of resampling algorithms you want to test.
@@ -207,9 +208,9 @@ class SatpyPerformanceTest:
                                                                        in YAML.
             resampler_kwargs (dict): Additional arguments passed to the resampler. You can specify the separate
                                      kwargs for each resampler, e.g.
-                                     {'bilinear': {'cache_dir': '/path/to/my/cache'},
-                                      'ewa': {'weight_delta_max': 40, 'weight_distance_max': 2}}.
-                                     Or you can just give general kwargs like {'cache_dir': '/path/to/my/cache'} for
+                                     ``{'bilinear': {'cache_dir': '/path/to/my/cache'},
+                                     'ewa': {'weight_delta_max': 40, 'weight_distance_max': 2}}``.
+                                     Or you can just give general kwargs like ``{'cache_dir': '/path/to/my/cache'}`` for
                                      both ``nearest`` and ``bilinear``.
 
         """

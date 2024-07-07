@@ -25,14 +25,17 @@ Preparations
 ============
 1. Additional packages required
 -------------------------------
-- **psutil:** Record CPU/memory usage
-- **pandas:** Analyze test result
+- **psutil:** Record CPU/memory usage.
+- **pandas:** Analyze test result.
 - **matplotlib**: Plot the charts for report.
 - **py-cpuinfo**: Get the CPU model for report.
 
 
 2. Choose the composite and get corresponding datasets
 ------------------------------------------------------
+Usually the composite should be the one involving a lot of computation like atmospheric correction. For most of the
+earth observing satellites, this could be ``true_color`` or something like that.
+
 Although one scene is enough to run the test, 3-5 scenes would be better to get the average.
 
 - For geostationary satellites, it is recommended to get those around **solar noon** under **full-disk** scan mode.
@@ -61,13 +64,14 @@ the OS may just kill the test process without any warnings or errors recorded.
 5. Arrange your time and work
 -----------------------------
 The whole test progress may last hours long depending on the conditions. Keep the machine free during this period.
-Turn off all the unnecessary background jobs such as software update.
+Avoid any unnecessary background jobs like software update.
 
 
 Usage
 =====
 Initialize
 ----------
+.. autofunction:: performance_test.SatpyPerformanceTest.__init__
 
 .. code-block:: python
 
@@ -79,8 +83,37 @@ Initialize
                                   chunk_size_opts=[16, 64],
                                   worker_opts=[8, 16])
 
+simple_test
+-----------
+.. autofunction:: performance_test.SatpyPerformanceTest.simple_test
 
-``simple_test``
----------------
-This will test the reader in dataset's original projection.
+.. code-block:: python
+
+    # You can set some system environments related to satpy before running the test.
+    os.environ["PSP_CONFIG_FILE"] = "D:/satpy_config/pyspectral/pyspectral.yaml"
+
+    tester.simple_test(diff_res=True)
+
+resampler_test
+--------------
+.. autofunction:: performance_test.SatpyPerformanceTest.resampler_test
+
+.. code-block:: python
+
+    from pyresample.geometry import AreaDefinition
+
+    proj = "+proj=lcc +lon_0=-96 +lat_1=20 +lat_2=60 +datum=WGS84 +ellps=WGS84"
+    width = 8008
+    height = 8008
+    area_extent = (-106000, 2635000, 3898000, 6639000)
+    nprocs=8
+
+    area_def = AreaDefinition(area_id="NorthAmerica", proj_id="lcc", description="na",
+                              projection=proj, width=width, height=height, area_extent=area_extent, nprocs=nprocs)
+    new_tester.resampler_test(resamplers=["bilinear", "ewa"],
+                              area_def=area_def,
+                              resampler_kwargs={
+                              "bilinear": {"cache_dir": "C:/Users/45107/Downloads/Sat/Geo/ABI pef test/cache"},
+                              "ewa": {"weight_delta_max": 40, "weight_distance_max": 2},
+                              })
 
