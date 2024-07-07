@@ -39,7 +39,7 @@ earth observing satellites, this could be ``true_color`` or something like that.
 Although one scene is enough to run the test, 3-5 scenes would be better to get the average.
 
 - For geostationary satellites, it is recommended to get those around **solar noon** under **full-disk** scan mode.
-- For polar satellites, scenes should be around the **same area** so the intensities of the computation are similar.
+- For polar orbit satellites, scenes should be around the **same area** so the intensities of the computation are similar.
 
 
 3. Organize the datasets
@@ -57,7 +57,7 @@ One scene per folder. All the dataset folders should have the same naming patter
 
 4. Do I have enough swap memory?
 --------------------------------
-Some conditions or resamplers will consume a hell of memory and will need swap. When both are at their limits,
+Some conditions or resamplers will consume a hell of physical memory and then swap. When both are at their limits,
 the OS may just kill the test process without any warnings or errors recorded.
 
 
@@ -117,3 +117,19 @@ resampler_test
                               "ewa": {"weight_delta_max": 40, "weight_distance_max": 2},
                               })
 
+How to test ``OMP_NUM_THREADS``?
+--------------------------------
+``OMP_NUM_THREADS`` should be set outside the python script. In **Linux**, you can set it temporarily by
+
+.. code-block:: shell
+
+    OMP_NUM_THREADS=4 python your_test_script.py
+
+In **Windows**:
+
+.. code-block:: batch
+
+    set OMP_NUM_THREADS=4 && python your_test_script.py
+
+You can also choose not to set it. Normally the program will use as many logic cores as available. Either way, the test
+will pick up the correct value and pass it to the report.
