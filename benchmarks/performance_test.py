@@ -31,6 +31,15 @@ import pandas as pd
 import psutil
 
 OS_TYPE = platform.system()
+OS_MEMORY_KEY_MAP = {
+    "Windows": "Memory Usage (Physical + PageFile)",
+    "Linux": "Memory Usage (Physical + Swap)"
+}
+
+MEMORY_KEY = OS_MEMORY_KEY_MAP.get(OS_TYPE, "Memory Usage")
+FIGURES = {"Process Time (single scene average)": {"key_y": "Time (s)", "colors": ["#4E79A7"]},
+           "Average CPU Usage": {"key_y": "Avg CPU (%)", "colors": ["#F28E2B"]},
+           MEMORY_KEY: {"key_y": ["Avg Memory (GB)", "Max Memory (GB)"], "colors": ["#59A14F", "#EDC948"]}}
 
 
 class SatpyPerformanceTest:
@@ -139,8 +148,8 @@ class SatpyPerformanceTest:
         except KeyError:
             num_thread = psutil.cpu_count(logical=True)
 
-        print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, NUM_THREADS={num_thread}, " # noqa
-              f"resampler is \"{resampler}\".")
+        print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, NUM_THREADS={num_thread}, "  # noqa
+              f"""resampler is "{resampler}".""")
 
         # Start recording cpu/mem usage
         monitor_thread = Thread(target=self.monitor_system_usage, args=(0.5,))
@@ -187,7 +196,7 @@ class SatpyPerformanceTest:
         generate = not diff_res
         total_rounds = len(self.chunk_size_opts) * len(self.worker_opts)
 
-        print(f"{self.reader_name} test started. Composite is \"{self.composite}\".\n") # noqa
+        print(f"{self.reader_name} test started. Composite is \"{self.composite}\".\n")  # noqa
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
@@ -195,10 +204,10 @@ class SatpyPerformanceTest:
                 i = i + 1
 
                 if i == total_rounds:
-                    print(f"ROUND {i} / {total_rounds} Completed. Generating HTML report.") # noqa
+                    print(f"ROUND {i} / {total_rounds} Completed. Generating HTML report.")  # noqa
                     html_report(self.work_dir, self.reader_name)
                 else:
-                    print(f"ROUND {i} / {total_rounds} Completed. Now take a 1-min rest.\n") # noqa
+                    print(f"ROUND {i} / {total_rounds} Completed. Now take a 1-min rest.\n")  # noqa
                     time.sleep(60)
 
     def resampler_test(self, resamplers, area_def, resampler_kwargs=None):
@@ -220,7 +229,7 @@ class SatpyPerformanceTest:
         resampler_kwargs = {} if resampler_kwargs is None else resampler_kwargs
         total_rounds = len(self.chunk_size_opts) * len(self.worker_opts) * len(resamplers)
 
-        print(f"{self.reader_name} test started. Composite is \"{self.composite}\".\n") # noqa
+        print(f"{self.reader_name} test started. Composite is \"{self.composite}\".\n")  # noqa
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
@@ -304,20 +313,9 @@ def combined_csv(work_dir, reader_name):
 
 def draw_hbar(dataframe, title):
     """Plot the bar chart by matplotlib."""
-    if OS_TYPE == "Windows":
-        memory_key = "Memory Usage (Physical + PageFile)"
-    elif OS_TYPE == "Linux":
-        memory_key = "Memory Usage (Physical + Swap)"
-    else:
-        memory_key = "Memory Usage"
-
-    figures = {"Process Time (single scene average)": {"key_y": "Time (s)", "colors": ["#4E79A7"]},
-               "Average CPU Usage": {"key_y": "Avg CPU (%)", "colors": ["#F28E2B"]},
-               memory_key: {"key_y": ["Avg Memory (GB)", "Max Memory (GB)"], "colors": ["#59A14F", "#EDC948"]}}
-
-    colors = figures[title]["colors"]
+    colors = FIGURES[title]["colors"]
     key_x = "Chunk size - Num workers - Num Threads"
-    key_y = figures[title]["key_y"]
+    key_y = FIGURES[title]["key_y"]
 
     dpi = 100
     fig_width = 1080 / dpi
@@ -450,7 +448,7 @@ def html_report(work_dir, reader_name):
     """Analyze the summary dataframe and produce an HTML report."""
     df = combined_csv(work_dir, reader_name)
     if df is None:
-        print("Test CSV result not found! Or its filename doesn't fit [*_chunk*_worker*_thread*_*_*.csv]") # noqa
+        print("Test CSV result not found! Or its filename doesn't fit [*_chunk*_worker*_thread*_*_*.csv]")  # noqa
         return
     # Group the dataframe for report
     df["Group"] = "Area: " + df["Area"] + " - " + "Resampler: " + df["Resampling Algorithm"]
@@ -487,17 +485,11 @@ def html_report(work_dir, reader_name):
         """
 
         # Plot three charts: time, cpu and mem
-        if OS_TYPE == "Windows":
-            memory_title = "Memory Usage (Physical + PageFile)"
-        elif OS_TYPE == "Linux":
-            memory_title = "Memory Usage (Physical + Swap)"
-        else:
-            memory_title = "Memory Usage"
-        titles = ["Process Time (single scene average)", "Average CPU Usage", memory_title]
-        for title in titles:
+        for title in FIGURES.keys():
             svg_bar = draw_hbar(group_df_graph, title)
             html_content += f"""
-                <div id="{groups.tolist().index(group) + 1}_chart{titles.index(title) + 1}" class="centered-svg">
+                <div id="{groups.tolist().index(group) + 1}_chart{list(FIGURES.keys()).index(title) + 1}" 
+                class="centered-svg">
                     {svg_bar}
                 </div>
                 """
