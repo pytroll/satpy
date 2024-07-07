@@ -80,7 +80,7 @@ Documentation
 
 .. toctree::
     :maxdepth: 2
-	
+
     performance_tests/index
 
 .. toctree::

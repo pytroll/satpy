@@ -19,16 +19,16 @@ import glob
 import os
 import platform
 import time
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from io import BytesIO
 from itertools import zip_longest
 from threading import Thread
 
 import cpuinfo
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import psutil
-import matplotlib.pyplot as plt
 
 
 class SatpyPerformanceTest:
@@ -107,7 +107,7 @@ class SatpyPerformanceTest:
 
     def satpy_test(self, resampler, diff_res=False, area_def=None, resampler_kwargs=None):
         """Call satpy to do the test."""
-        from satpy import find_files_and_readers, Scene
+        from satpy import Scene, find_files_and_readers
 
         reader_kwargs = {} if self.reader_kwargs is None else self.reader_kwargs
         resampler_kwargs = {} if resampler_kwargs is None else resampler_kwargs
@@ -343,10 +343,11 @@ def draw_hbar(dataframe, colors, title, key_x, key_y):
 def html_report(work_dir, reader_name):
     """Analyze the summary dataframe and produce an HTML report."""
     import dask
-    import xarray as xr
-    import satpy
     import pyresample
     import pyspectral
+    import xarray as xr
+
+    import satpy
 
     # Get system info
     cpu_core = psutil.cpu_count(logical=False)
@@ -403,7 +404,7 @@ def html_report(work_dir, reader_name):
             background-color: #f2f2f2;
         }}
         tr:nth-child(even) {{background-color: #f9f9f9}}
-        tr:hover {{background-color: #f1f1f1}}    
+        tr:hover {{background-color: #f1f1f1}}
         </style>
         <style>
         centered-svg {{
