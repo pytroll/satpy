@@ -73,7 +73,7 @@ Usage
 
     Both ``simple_test`` and ``resampler_test`` collect all the results under ``work_dir`` and produce the report
     in the same format. So if you already have some previous tests, just keep them in the same directory and the
-    test will merge them into one automatically.
+    test will merge them into one and refresh the report automatically.
 
 Initialize
 ----------
