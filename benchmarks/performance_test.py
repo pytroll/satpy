@@ -488,7 +488,7 @@ def html_report(work_dir, reader_name):
         for title in FIGURES.keys():
             svg_bar = draw_hbar(group_df_graph, title)
             html_content += f"""
-                <div id="{groups.tolist().index(group) + 1}_chart{list(FIGURES.keys()).index(title) + 1}" 
+                <div id="{groups.tolist().index(group) + 1}_chart{list(FIGURES.keys()).index(title) + 1}"
                 class="centered-svg">
                     {svg_bar}
                 </div>
