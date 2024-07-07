@@ -30,6 +30,8 @@ import numpy as np
 import pandas as pd
 import psutil
 
+OS_TYPE = platform.system()
+
 
 class SatpyPerformanceTest:
     """Test satpy performance by looping through conditions involving ``dask_array_chunk_size``and ``dask_num_workers``.
@@ -70,8 +72,6 @@ class SatpyPerformanceTest:
 
     def monitor_system_usage(self, interval=0.5):
         """Use psutil to record CPU and memory usage. Default sample rate is 0.5s."""
-        os_type = platform.system()
-
         process = psutil.Process()
         cpu_usage = []
         memory_usage = []
@@ -80,10 +80,10 @@ class SatpyPerformanceTest:
         start_time = time.time()
         while self.running:
             cpu_usage.append(process.cpu_percent())
-            if os_type == "Windows":
+            if OS_TYPE == "Windows":
                 # In Windows, "vms" means "pagefile"
                 memory_usage.append((process.memory_full_info().rss + process.memory_full_info().vms))
-            elif os_type == "Linux":
+            elif OS_TYPE == "Linux":
                 memory_usage.append((process.memory_full_info().rss + process.memory_full_info().swap))
             else:
                 memory_usage.append(process.memory_full_info().rss)
@@ -139,6 +139,9 @@ class SatpyPerformanceTest:
         except KeyError:
             num_thread = psutil.cpu_count(logical=True)
 
+        print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, NUM_THREADS={num_thread}, " # noqa
+              f"resampler is \"{resampler}\".")
+
         # Start recording cpu/mem usage
         monitor_thread = Thread(target=self.monitor_system_usage, args=(0.5,))
         monitor_thread.start()
@@ -184,10 +187,10 @@ class SatpyPerformanceTest:
         generate = not diff_res
         total_rounds = len(self.chunk_size_opts) * len(self.worker_opts)
 
+        print(f"{self.reader_name} test started. Composite is \"{self.composite}\".\n") # noqa
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
-                print(f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
                 self.single_loop((chunk_size, num_worker, resampler), generate=generate)
                 i = i + 1
 
@@ -217,6 +220,7 @@ class SatpyPerformanceTest:
         resampler_kwargs = {} if resampler_kwargs is None else resampler_kwargs
         total_rounds = len(self.chunk_size_opts) * len(self.worker_opts) * len(resamplers)
 
+        print(f"{self.reader_name} test started. Composite is \"{self.composite}\".\n") # noqa
         i = 0
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
@@ -226,17 +230,15 @@ class SatpyPerformanceTest:
                     except KeyError:
                         single_resampler_kwargs = resampler_kwargs
 
-                    print( # noqa
-                        f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.")
                     self.single_loop((chunk_size, num_worker, resampler),
                                      area_def=area_def, resampler_kwargs=single_resampler_kwargs)
                     i = i + 1
 
                     if i == total_rounds:
-                        print("All the tests finished. Generating HTML report.") # noqa
+                        print(f"ROUND {i} / {total_rounds} Completed. Generating HTML report.")  # noqa
                         html_report(self.work_dir, self.reader_name)
                     else:
-                        print(f"ROUND {i} / {total_rounds} Completed. Now take a 1-min rest.") # noqa
+                        print(f"ROUND {i} / {total_rounds} Completed. Now take a 1-min rest.\n")  # noqa
                         time.sleep(60)
 
 
@@ -302,9 +304,16 @@ def combined_csv(work_dir, reader_name):
 
 def draw_hbar(dataframe, title):
     """Plot the bar chart by matplotlib."""
+    if OS_TYPE == "Windows":
+        memory_key = "Memory Usage (Physical + PageFile)"
+    elif OS_TYPE == "Linux":
+        memory_key = "Memory Usage (Physical + Swap)"
+    else:
+        memory_key = "Memory Usage"
+
     figures = {"Process Time (single scene average)": {"key_y": "Time (s)", "colors": ["#4E79A7"]},
                "Average CPU Usage": {"key_y": "Avg CPU (%)", "colors": ["#F28E2B"]},
-               "Memory Usage": {"key_y": ["Avg Memory (GB)", "Max Memory (GB)"], "colors": ["#59A14F", "#EDC948"]}}
+               memory_key: {"key_y": ["Avg Memory (GB)", "Max Memory (GB)"], "colors": ["#59A14F", "#EDC948"]}}
 
     colors = figures[title]["colors"]
     key_x = "Chunk size - Num workers - Num Threads"
@@ -318,19 +327,19 @@ def draw_hbar(dataframe, title):
     fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
     plt.subplots_adjust(left=0.15, right=0.85, top=0.9, bottom=0.1)
 
-    dataframe.plot.barh(x=key_x, y=key_y, legend=True if title == "Memory Usage" else False,
-                        ax=ax, width=0.5, color=colors, stacked=True if title == "Memory Usage" else False)
+    dataframe.plot.barh(x=key_x, y=key_y, legend=True if "Memory" in title else False,
+                        ax=ax, width=0.5, color=colors, stacked=True if "Memory" in title else False)
     plt.title(title, fontsize=16)
     plt.ylabel(key_x, fontsize=14)
-    plt.xlabel("Memory (GB)" if title == "Memory Usage" else key_y, fontsize=14)
+    plt.xlabel("Memory (GB)" if "Memory" in title else key_y, fontsize=14)
     ax.tick_params(axis="both", labelsize=12)
-    if title == "Memory Usage":
+    if "Memory" in title:
         ax.legend(loc="upper right")
         # Mark the position of physical memory limit
         physical_memory = psutil.virtual_memory().total // (1024 ** 3)
         ax.axvline(x=physical_memory, color="#808080", linestyle="--")
         ax.text(physical_memory + 0.5, 1, "Physical\nMemory\nLimit", color="#808080")
-    if title == "Average CPU Usage":
+    if "CPU" in title:
         ax.set_xlim([0, 100])
 
     # Data label right to the bar
@@ -338,7 +347,7 @@ def draw_hbar(dataframe, title):
     for i, container in enumerate(ax.containers):
         for j, bar in enumerate(container):
             width = bar.get_width()
-            cumulative_widths[j] = cumulative_widths[j] + width if title == "Memory Usage" else width
+            cumulative_widths[j] = cumulative_widths[j] + width if "Memory" in title else width
             label_x_pos = cumulative_widths[j] + 0.3
 
             if i == 0:
@@ -478,7 +487,13 @@ def html_report(work_dir, reader_name):
         """
 
         # Plot three charts: time, cpu and mem
-        titles = ["Process Time (single scene average)", "Average CPU Usage", "Memory Usage"]
+        if OS_TYPE == "Windows":
+            memory_title = "Memory Usage (Physical + PageFile)"
+        elif OS_TYPE == "Linux":
+            memory_title = "Memory Usage (Physical + Swap)"
+        else:
+            memory_title = "Memory Usage"
+        titles = ["Process Time (single scene average)", "Average CPU Usage", memory_title]
         for title in titles:
             svg_bar = draw_hbar(group_df_graph, title)
             html_content += f"""
