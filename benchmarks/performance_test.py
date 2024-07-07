@@ -33,7 +33,8 @@ import psutil
 
 class SatpyPerformanceTest:
     """Test satpy performance by looping through conditions involving ``dask_array_chunk_size``and ``dask_num_workers``.
-    There are two tests: ``simple_test`` and ``resampler_test``
+
+    There are two tests: ``simple_test`` and ``resampler_test``. See below for details.
 
     """
     def __init__(self, work_dir, folder_pattern, reader_name, composite, chunk_size_opts, worker_opts,
@@ -125,7 +126,7 @@ class SatpyPerformanceTest:
                               fill_value=0, compress=None)
 
     def single_loop(self, conditions, diff_res=False, area_def=None, resampler_kwargs=None):
-        """Single round of the test. """
+        """Single round of the test."""
         import dask.config
         self.running = True
 
@@ -190,15 +191,14 @@ class SatpyPerformanceTest:
                 i = i + 1
 
                 if i == self.total_rounds:
-                    print("All the tests finished. Generating HTML report.") # noqa
+                    print(f"ROUND {i} / {self.total_rounds} Completed. Generating HTML report.") # noqa
                     html_report(self.work_dir, self.reader_name)
                 else:
                     print(f"ROUND {i} / {self.total_rounds} Completed. Now take a 1-min rest.") # noqa
                     time.sleep(60)
 
     def resampler_test(self, resamplers, area_def, resampler_kwargs=None):
-        """Test readers with resampling. See https://satpy.readthedocs.io/en/latest/resample.html#resampling-algorithms
-        for available resampler.
+        """Test readers with resampling.
 
         Args:
             resamplers (list): List of resampling algorithms you want to test.
@@ -214,8 +214,8 @@ class SatpyPerformanceTest:
         for chunk_size in self.chunk_size_opts:
             for num_worker in self.worker_opts:
                 for resampler in resamplers:
-                    print(
-                        f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.") # noqa
+                    print( # noqa
+                        f"Start testing CHUNK_SIZE={chunk_size}MiB, NUM_WORKER={num_worker}, resampler is {resampler}.")
                     self.single_loop((chunk_size, num_worker, resampler), area_def, resampler_kwargs)
                     i = i + 1
 
@@ -264,7 +264,7 @@ def process_csv(cvs_file):
 
 
 def combined_csv(work_dir, reader_name):
-    """Collect all the csv files under work_dir and merge them in to one dataframe."""
+    """Collect all the csv files under ``work_dir`` and merge them in to one dataframe."""
     all_dataframes = []
     csvs = glob.glob(f"{work_dir}/{reader_name.replace("_", "")}_chunk*_worker*_thread*_*_*.csv")
     for file in csvs:
@@ -287,29 +287,37 @@ def combined_csv(work_dir, reader_name):
     return sorted_df
 
 
-def draw_hbar(dataframe, colors, title, key_x, key_y):
+def draw_hbar(dataframe, title):
     """Plot the bar chart by matplotlib."""
+    figures = {"Process Time (single scene average)": {"key_y": "Time (s)", "colors": ["#4E79A7"]},
+               "Average CPU Usage": {"key_y": "Avg CPU (%)", "colors": ["#F28E2B"]},
+               "Memory Usage": {"key_y": ["Avg Memory (GB)", "Max Memory (GB)"], "colors": ["#59A14F", "#EDC948"]}}
+
+    colors = figures[title]["colors"]
+    key_x = "Chunk size - Num workers - Num Threads"
+    key_y = figures[title]["key_y"]
+
     dpi = 100
     fig_width = 1080 / dpi
+    # Dynamic height according to the dataframe
     num_bars = len(dataframe)
-    # Dynamic height
     fig_height = max(600, 100 + 50 * num_bars) / dpi
     fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
     plt.subplots_adjust(left=0.15, right=0.85, top=0.9, bottom=0.1)
 
-    dataframe.plot.barh(x=key_x, y=key_y, legend=True if isinstance(key_y, list) else False,
-                        ax=ax, width=0.5, color=colors, stacked=True if isinstance(key_y, list) else False)
+    dataframe.plot.barh(x=key_x, y=key_y, legend=True if title == "Memory Usage" else False,
+                        ax=ax, width=0.5, color=colors, stacked=True if title == "Memory Usage" else False)
     plt.title(title, fontsize=16)
     plt.ylabel(key_x, fontsize=14)
-    plt.xlabel("Memory (GB)" if isinstance(key_y, list) else key_y, fontsize=14)
+    plt.xlabel("Memory (GB)" if title == "Memory Usage" else key_y, fontsize=14)
     ax.tick_params(axis="both", labelsize=12)
-    if isinstance(key_y, list):
+    if title == "Memory Usage":
         ax.legend(loc="upper right")
         # Mark the position of physical memory limit
         physical_memory = psutil.virtual_memory().total // (1024 ** 3)
         ax.axvline(x=physical_memory, color="#808080", linestyle="--")
         ax.text(physical_memory + 0.5, 1, "Physical\nMemory\nLimit", color="#808080")
-    if "CPU" in ax.get_xlabel():
+    if title == "Average CPU Usage":
         ax.set_xlim([0, 100])
 
     # Data label right to the bar
@@ -317,7 +325,7 @@ def draw_hbar(dataframe, colors, title, key_x, key_y):
     for i, container in enumerate(ax.containers):
         for j, bar in enumerate(container):
             width = bar.get_width()
-            cumulative_widths[j] = cumulative_widths[j] + width if isinstance(key_y, list) else width
+            cumulative_widths[j] = cumulative_widths[j] + width if title == "Memory Usage" else width
             label_x_pos = cumulative_widths[j] + 0.3
 
             if i == 0:
@@ -340,13 +348,12 @@ def draw_hbar(dataframe, colors, title, key_x, key_y):
     return svg
 
 
-def html_report(work_dir, reader_name):
-    """Analyze the summary dataframe and produce an HTML report."""
+def html_head(reader_name):
+    """Generate the html head of the report."""
     import dask
     import pyresample
     import pyspectral
     import xarray as xr
-
     import satpy
 
     # Get system info
@@ -367,76 +374,78 @@ def html_report(work_dir, reader_name):
     pyspectral_version = pyspectral.__version__
     psutil_version = psutil.__version__
 
+    html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Satpy Performance Test Report for {reader_name}</title>
+            <style>
+            table {{
+                margin-left: auto;
+                margin-right: auto;
+            }}
+            th, td {{
+               max-width: 100px;
+            }}
+            table, th, td {{
+                border: 1px solid black;
+                border-collapse: collapse;
+            }}
+            th, td {{
+                padding: 10px;
+                text-align: left;
+                white-space: normal;
+                word-wrap: break-word;
+            }}
+            th {{
+                background-color: #f2f2f2;
+            }}
+            tr:nth-child(even) {{background-color: #f9f9f9}}
+            tr:hover {{background-color: #f1f1f1}}
+            </style>
+            <style>
+            centered-svg {{
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }}
+            </style>
+        </head>
+        <body>
+            <h1>Satpy Performance Test Report for {reader_name}</h1>
+            <h3>Generation Date: UTC {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}</h3>
+            <h2>1. System Info</h2>
+            <h3>1.1 Platform</h3>
+            <p>CPU: {cpu_model}, {cpu_core} cores / {cpu_thread} threads in total</p>
+            <p>Physical Memory: {memory_info} GB</p>
+            <p>OS: {os_info}</p>
+            <h3>1.2 Python Environment</h3>
+            <p>Python: {python_version}</p>
+            <p>Numpy: {numpy_version}</p>
+            <p>Dask: {dask_version}</p>
+            <p>Xarray: {xarray_version}</p>
+            <p>Satpy: {satpy_version}</p>
+            <p>Pyresample: {pyresample_version}</p>
+            <p>Pyspectral: {pyspectral_version}</p>
+            <p>Psutil: {psutil_version}</p>
+            <h2>2. Test Results</h2>
+        """
+
+    return html_content
+
+
+def html_report(work_dir, reader_name):
+    """Analyze the summary dataframe and produce an HTML report."""
     df = combined_csv(work_dir, reader_name)
     if df is None:
-        print("Test CSV result not found! Or its filename doesn't fit [*_chunk*_worker*_thread*_*_*.csv]")
+        print("Test CSV result not found! Or its filename doesn't fit [*_chunk*_worker*_thread*_*_*.csv]") # noqa
         return
     # Group the dataframe for report
     df["Group"] = "Area: " + df["Area"] + " - " + "Resampler: " + df["Resampling Algorithm"]
     groups = df["Group"].unique()
 
-    # HTML head
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Satpy Performance Test Report for {reader_name}</title>
-        <style>
-        table {{
-            margin-left: auto;
-            margin-right: auto;
-        }}
-        th, td {{
-           max-width: 100px;
-        }}
-        table, th, td {{
-            border: 1px solid black;
-            border-collapse: collapse;
-        }}
-        th, td {{
-            padding: 10px;
-            text-align: left;
-            white-space: normal;
-            word-wrap: break-word;
-        }}
-        th {{
-            background-color: #f2f2f2;
-        }}
-        tr:nth-child(even) {{background-color: #f9f9f9}}
-        tr:hover {{background-color: #f1f1f1}}
-        </style>
-        <style>
-        centered-svg {{
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }}
-        </style>
-    </head>
-    <body>
-        <h1>Satpy Performance Test Report for {reader_name}</h1>
-        <h3>Generation Date: UTC {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}</h3>
-        <h2>1. System Info</h2>
-        <h3>1.1 Platform</h3>
-        <p>CPU: {cpu_model}, {cpu_core} cores / {cpu_thread} threads in total</p>
-        <p>Physical Memory: {memory_info} GB</p>
-        <p>OS: {os_info}</p>
-        <h3>1.2 Python Environment</h3>
-        <p>Python: {python_version}</p>
-        <p>Numpy: {numpy_version}</p>
-        <p>Dask: {dask_version}</p>
-        <p>Xarray: {xarray_version}</p>
-        <p>Satpy: {satpy_version}</p>
-        <p>Pyresample: {pyresample_version}</p>
-        <p>Pyspectral: {pyspectral_version}</p>
-        <p>Psutil: {psutil_version}</p>
-        <h2>2. Test Results</h2>
-    """
-
-    figures = {"Process Time (single scene average)": {"key_y": "Time (s)", "colors": ["#4E79A7"]},
-               "Average CPU Usage": {"key_y": "Avg CPU (%)", "colors": ["#F28E2B"]},
-               "Memory Usage": {"key_y": ["Avg Memory (GB)", "Max Memory (GB)"], "colors": ["#59A14F", "#EDC948"]}}
+    html_content = html_head(reader_name)
 
     for group in groups:
         group_df = df[df["Group"] == group]
@@ -467,12 +476,11 @@ def html_report(work_dir, reader_name):
         """
 
         # Plot three charts: time, cpu and mem
-        for figure in figures.keys():
-            svg_bar = draw_hbar(group_df_graph, figures[figure]["colors"], figure,
-                                "Chunk size - Num workers - Num Threads", figures[figure]["key_y"])
+        titles = ["Process Time (single scene average)", "Average CPU Usage", "Memory Usage"]
+        for title in titles:
+            svg_bar = draw_hbar(group_df_graph, title)
             html_content += f"""
-                <div id="{groups.tolist().index(group) + 1}_chart{list(figures.keys()).index(figure) + 1}"
-                class="centered-svg">
+                <div id="{groups.tolist().index(group) + 1}_chart{titles.index(title) + 1}" class="centered-svg">
                     {svg_bar}
                 </div>
                 """
@@ -484,5 +492,5 @@ def html_report(work_dir, reader_name):
     """
 
     # Save it to disk
-    with open(f"{work_dir}/satpy_performance_report.html", "w", encoding="utf-8") as f:
+    with open(f"{work_dir}/{reader_name}_test_report.html", "w", encoding="utf-8") as f:
         f.write(html_content)
