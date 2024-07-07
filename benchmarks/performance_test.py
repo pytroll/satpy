@@ -382,35 +382,23 @@ def html_head(reader_name):
             <meta charset="UTF-8">
             <title>Satpy Performance Test Report for {reader_name}</title>
             <style>
-            table {{
-                margin-left: auto;
-                margin-right: auto;
-            }}
-            th, td {{
-               max-width: 100px;
-            }}
-            table, th, td {{
-                border: 1px solid black;
-                border-collapse: collapse;
-            }}
-            th, td {{
-                padding: 10px;
-                text-align: left;
-                white-space: normal;
-                word-wrap: break-word;
-            }}
-            th {{
-                background-color: #f2f2f2;
-            }}
+            table {{margin-left: auto;
+                    margin-right: auto;}}
+            th, td {{max-width: 100px;}}
+            table, th, td {{border: 1px solid black;
+                            border-collapse: collapse;}}
+            th, td {{padding: 10px;
+                     text-align: left;
+                     white-space: normal;
+                     word-wrap: break-word;}}
+            th {{background-color: #f2f2f2;}}
             tr:nth-child(even) {{background-color: #f9f9f9}}
             tr:hover {{background-color: #f1f1f1}}
             </style>
             <style>
-            centered-svg {{
-                display: block;
-                margin-left: auto;
-                margin-right: auto;
-            }}
+            centered-svg {{display: block;
+                           margin-left: auto;
+                           margin-right: auto;}}
             </style>
         </head>
         <body>
