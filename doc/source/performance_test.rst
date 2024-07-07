@@ -15,9 +15,9 @@ How it works?
   save it as geotiff.
 - A monitor thread using ``psutil`` records the CPU and memory usage synchronously. The sample rate is around
   0.5 seconds. Any errors during the test will also be recorded.
-- Each round will have one single condition tested. The result is stored in a csv file. After that, the machine will
+- Each round has one single condition tested. The result is stored in a csv file. After that, the machine will
   take a 1-min rest to let the CPU cool down.
-- After all the tests finished, it collects all the result csv files, visualizing and summarizing theme into the HTML
+- After all the tests finished, it collects all the result csv files, summarizing and visualizing them into the HTML
   report.
 
 
@@ -57,18 +57,24 @@ One scene per folder. All the dataset folders should have the same naming patter
 
 4. Do I have enough swap memory?
 --------------------------------
-Some conditions or resamplers will consume a hell of physical memory and then swap. When both are at their limits,
+Some conditions or resamplers may consume a hell of physical memory and then swap. When both are at their limits,
 the OS may just kill the test process without any warnings or errors recorded.
 
 
 5. Arrange your time and work
 -----------------------------
-The whole test progress may last hours long depending on the conditions. Keep the machine free during this period.
+The whole test progress could last hours long depending on the conditions. Keep the machine free during this period.
 Avoid any unnecessary background jobs like software update.
 
 
 Usage
 =====
+.. note::
+
+    Both ``simple_test`` and ``resampler_test`` collect all the results under ``work_dir`` and produce the report
+    in the same format. So if you already have some previous tests, just keep them in the same directory and the
+    test will merge them into one automatically.
+
 Initialize
 ----------
 .. autofunction:: performance_test.SatpyPerformanceTest.__init__
@@ -116,10 +122,16 @@ resampler_test
                               "bilinear": {"cache_dir": "C:/Users/45107/Downloads/Sat/Geo/ABI pef test/cache"},
                               "ewa": {"weight_delta_max": 40, "weight_distance_max": 2},
                               })
+.. note::
+
+    When you test ``bilinear`` or ``nearest`` resampler on geostationary datasets and want to both accelerate the test
+    and exclude the impact of resampling cache, it is recommended to pre-build the cache with just one scene and
+    one condition. And by that, you can also have a chance to tell how big the difference is between with and
+    without cache (Sometimes, it's VERY, especially for ``bilinear``).
 
 How to test ``OMP_NUM_THREADS``?
 --------------------------------
-``OMP_NUM_THREADS`` should be set outside the python script. In **Linux**, you can set it temporarily by
+``OMP_NUM_THREADS`` should be set outside the python script. In **Linux**, you can do it temporarily by
 
 .. code-block:: shell
 
