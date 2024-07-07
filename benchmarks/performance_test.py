@@ -354,6 +354,7 @@ def html_head(reader_name):
     import pyresample
     import pyspectral
     import xarray as xr
+
     import satpy
 
     # Get system info
