@@ -477,25 +477,6 @@ class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
         return data
 
 
-class FakeFCIFileHandlerWithBadIDPFData(FakeFCIFileHandlerFDHSI):
-    """Mock bad data for IDPF TO-DO's."""
-
-    def _get_test_content_all_channels(self):
-        data = super()._get_test_content_all_channels()
-        data["data/vis_06/measured/x"].attrs["scale_factor"] *= -1
-        data["data/vis_06/measured/x"].attrs["scale_factor"] = \
-            np.float32(data["data/vis_06/measured/x"].attrs["scale_factor"])
-        data["data/vis_06/measured/x"].attrs["add_offset"] = \
-            np.float32(data["data/vis_06/measured/x"].attrs["add_offset"])
-        data["data/vis_06/measured/y"].attrs["scale_factor"] = \
-            np.float32(data["data/vis_06/measured/y"].attrs["scale_factor"])
-        data["data/vis_06/measured/y"].attrs["add_offset"] = \
-            np.float32(data["data/vis_06/measured/y"].attrs["add_offset"])
-
-        data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([30000000]), 6000))
-        return data
-
-
 class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
     """Mock HRFI data."""
 
@@ -1004,27 +985,3 @@ class TestFCIL1cNCReaderBadData:
                     name="vis_06",
                     calibration="reflectance")], pad_data=False)
                 assert "cannot produce reflectance" in caplog.text
-
-
-class TestFCIL1cNCReaderBadDataFromIDPF:
-    """Test the FCI L1c NetCDF Reader for bad data input, specifically the IDPF issues."""
-
-    def test_handling_bad_earthsun_distance(self, reader_configs):
-        """Test handling of bad earth-sun distance data."""
-        with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
-            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
-            res = reader.load([make_dataid(name=["vis_06"], calibration="reflectance")], pad_data=False)
-            numpy.testing.assert_array_almost_equal(res["vis_06"], 100 * 15 * 1 * np.pi / 50)
-
-    def test_bad_xy_coords(self, reader_configs):
-        """Test that the geolocation computation is correct."""
-        with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
-            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
-            res = reader.load(["vis_06"], pad_data=False)
-
-            area_def = res["vis_06"].attrs["area"]
-            # test area extents computation
-            np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
-                                                 np.array([-5568000.227139, -5368000.221262,
-                                                           5568000.100073, -5568000.227139]),
-                                                 decimal=2)
