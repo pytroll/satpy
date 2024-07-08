@@ -113,9 +113,16 @@ Resize area definition in pixels
 --------------------------------
 
 Sometimes you may want to create a small image with fixed size in pixels.
-For example, to create an image of (x, y) pixels :
+For example, to create an image of (y, x) pixels :
 
-    >>> small_scn = scn.resample(scn.finest_area().copy(height=y, width=x), ...)
+    >>> small_scn = scn.resample(scn.finest_area().copy(height=y, width=x), resampler="nearest")
+
+
+.. warning::
+
+    Resizing with the `nearest` resampler will accept all sizes.
+    Be aware that resizing with natine resampling only works if size is a factor of the original size.
+
 
 Create dynamic area definition
 ------------------------------
