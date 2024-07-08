@@ -1,4 +1,6 @@
 enhancements:
+# note that the colormap parameters are tuned for 5 minutes of files accumulation
+# these are tentative recipes that will need to be further tuned as we gain experience with LI data
 
   acc_flash:
     standard_name: acc_flash

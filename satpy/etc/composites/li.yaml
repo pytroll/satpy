@@ -1,6 +1,6 @@
 ---
 sensor_name: visir/li
-
+# these are tentative recipes that will need to be further tuned as we gain experience with LI data
 composites:
   acc_flash:
     description: Composite to colorise the AF product using the flash accumulation
