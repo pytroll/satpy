@@ -177,7 +177,7 @@ class SatpyPerformanceTest:
         else:
             area = "local" if len(area_def.area_id) == 0 else area_def.area_id.replace("_", "")
 
-        csv_file = (f"{self.work_dir}/{self.reader_name.replace("_", "")}_"
+        csv_file = (f"{self.work_dir}/{self.reader_name.replace('_', '')}_"
                     f"chunk{chunk_size}_worker{num_worker}_thread{num_thread}_{area}_{resampler}.csv")
         self.write_to_csv(csv_file)
 
