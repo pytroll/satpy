@@ -18,7 +18,6 @@
 """Utilities for reader tests."""
 
 import inspect
-import os
 
 
 def default_attr_processor(root, attr):
@@ -62,23 +61,3 @@ def get_jit_methods(module):
 
 def _is_jit_method(obj):
     return hasattr(obj, "py_func")
-
-
-def skip_numba_unstable_if_missing():
-    """Determine if numba-based tests should be skipped during unstable CI tests.
-
-    If numba fails to import it could be because numba is not compatible with
-    a newer version of numpy. This is very likely to happen in the
-    unstable/experimental CI environment. This function returns ``True`` if
-    numba-based tests should be skipped if ``numba`` could not
-    be imported *and* we're in the unstable environment. We determine if we're
-    in this CI environment by looking for the ``UNSTABLE="1"``
-    environment variable.
-
-    """
-    try:
-        import numba
-    except ImportError:
-        numba = None
-
-    return numba is None and os.environ.get("UNSTABLE", "0") in ("1", "true")
