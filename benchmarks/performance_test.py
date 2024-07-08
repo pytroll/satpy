@@ -290,7 +290,7 @@ def process_csv(cvs_file):
 def combined_csv(work_dir, reader_name):
     """Collect all the csv files under ``work_dir`` and merge them in to one dataframe."""
     all_dataframes = []
-    csvs = glob.glob(f"{work_dir}/{reader_name.replace("_", "")}_chunk*_worker*_thread*_*_*.csv")
+    csvs = glob.glob(f"{work_dir}/{reader_name.replace('_', '')}_chunk*_worker*_thread*_*_*.csv")
     for file in csvs:
         df = process_csv(file)
         all_dataframes.append(df)

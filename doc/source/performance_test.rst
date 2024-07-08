@@ -63,8 +63,8 @@ the OS may just kill the test process without any warnings or errors recorded.
 
 5. Arrange your time and work
 -----------------------------
-The whole test progress could last hours long depending on the conditions. Keep the machine free during this period.
-Avoid any unnecessary background jobs like software update.
+The whole test progress could last hours long depending on the reader, the datasets and the conditions.
+Keep the machine free during this period. Avoid any unnecessary background jobs like software update.
 
 
 Usage
@@ -81,7 +81,9 @@ Initialize
 
 .. code-block:: python
 
+    import os
     from performance_test import SatpyPerformanceTest
+
     tester = SatpyPerformanceTest(work_dir="C:/Users/ABC/Downloads/Sat/Geo/ABI pef test",
                                   folder_pattern="G16_s*_e*_FLDK",
                                   reader_name="abi_l1b",
