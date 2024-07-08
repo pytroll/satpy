@@ -1,6 +1,6 @@
-=================
-Performance Tests
-=================
+================
+Performance Test
+================
 
 For better performace tweaks on specific readers, a tool ``performance_test`` under ``benchmarks`` is introduced here.
 It involves ``DASK_ARRAY__CHUNK_SIZE``, ``DASK_NUM_WORKERS``, ``OMP_NUM_THREADS`` and other options mentioned in
