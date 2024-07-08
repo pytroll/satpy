@@ -27,7 +27,7 @@ Preparations
 -------------------------------
 - **psutil:** Record CPU/memory usage.
 - **pandas:** Analyze test result.
-- **matplotlib**: Plot the charts for report.
+- **matplotlib**: (Either ``matplotlib`` or ``matplotlib-base``) Plot the charts for report.
 - **py-cpuinfo**: Get the CPU model for report.
 
 
