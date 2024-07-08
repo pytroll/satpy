@@ -443,6 +443,26 @@ mtg_fci_fdss_2km:
     upper_right_xy: [5567999.994203017,  5567999.994203017]
     units: m
 
+mtg_fci_fdss_4km:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 4 km SSP resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 2784
+    width: 2784
+  area_extent:
+    lower_left_xy: [-5567999.994203018, -5567999.994203018]
+    upper_right_xy: [5567999.994203017,  5567999.994203017]
+    units: m
+
 # Full disk - segmented products
 mtg_fci_fdss_6km:
   description:

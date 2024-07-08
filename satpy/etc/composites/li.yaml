@@ -2,7 +2,6 @@
 sensor_name: visir/li
 
 composites:
-
   acc_flash:
     description: Composite to colorise the AF product using the flash accumulation
     compositor: !!python/name:satpy.composites.SingleBandCompositor
@@ -68,7 +67,7 @@ composites:
     prerequisites:
     - radiance
 
-  # DEPRECATED, USE acc_flash_area instead
+  # DEPRECATED, USE acc_flash_area INSTEAD
   flash_area:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: acc_flash_area
