@@ -190,6 +190,43 @@ composites:
       - name: vis_04
     standard_name: true_color_reproduction_color_stretch
 
+### True Color with LI lightning
+
+  true_color_with_night_ir105_acc_flash:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_alpha
+      - true_color_with_night_ir105
+
+  true_color_with_night_ir105_acc_flash_area:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_area_alpha
+      - true_color_with_night_ir105
+
+  true_color_with_night_ir105_acc_flash_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_radiance_alpha
+      - true_color_with_night_ir105
+
+  true_color_with_night_ir105_flash_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - flash_radiance_alpha
+      - true_color_with_night_ir105
+
+  true_color_with_night_ir105_group_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - group_radiance_alpha
+      - true_color_with_night_ir105
+
 ### GeoColor
   geo_color:
    compositor: !!python/name:satpy.composites.DayNightCompositor
