@@ -153,6 +153,11 @@ TEST_FILENAMES = {"fdhsi": [
     "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
     "20170410113925_20170410113934_N__C_0070_0067.nc"
 ],
+    "fdhsi_error": [
+    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FDD--"
+    "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+    "20170410113925_20170410113934_N__C_0070_0067.nc"
+],
     "fdhsi_iqti": [
     "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
     "CHK-BODY--MON-NC4_C_EUMT_20240307233956_IQTI_DEV_"
@@ -557,8 +562,20 @@ def FakeFCIFileHandlerFDHSI_fixture():
         yield param_dict
 
 @pytest.fixture()
-def FakeFCIFileHandlerFDHSIIQTI_fixture():
+def FakeFCIFileHandlerFDHSIError_fixture():
     """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+        param_dict = {
+            "filetype": "fci_l1c_fdhsi",
+            "channels": CHANS_FHDSI,
+            "filenames": TEST_FILENAMES["fdhsi_error"]
+        }
+        yield param_dict
+
+
+@pytest.fixture()
+def FakeFCIFileHandlerFDHSIIQTI_fixture():
+    """Get a fixture for the fake FDHSI IQTI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
@@ -569,7 +586,7 @@ def FakeFCIFileHandlerFDHSIIQTI_fixture():
 
 @pytest.fixture()
 def FakeFCIFileHandlerFDHSIQ4_fixture():
-    """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
+    """Get a fixture for the fake FDHSI Q4 filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
@@ -591,7 +608,7 @@ def FakeFCIFileHandlerHRFI_fixture():
 
 @pytest.fixture()
 def FakeFCIFileHandlerHRFIIQTI_fixture():
-    """Get a fixture for the fake HRFI filehandler, including channel and file names."""
+    """Get a fixture for the fake HRFI IQTI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
         param_dict = {
             "filetype": "fci_l1c_hrfi",
@@ -602,7 +619,7 @@ def FakeFCIFileHandlerHRFIIQTI_fixture():
 
 @pytest.fixture()
 def FakeFCIFileHandlerHRFIQ4_fixture():
-    """Get a fixture for the fake HRFI filehandler, including channel and file names."""
+    """Get a fixture for the fake HRFI Q4 filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
         param_dict = {
             "filetype": "fci_l1c_hrfi",
@@ -891,7 +908,8 @@ class TestFCIL1cNCReader:
                                           (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                                          ])
     def test_platform_name(self, reader_configs, fh_param):
         """Test that platform name is exposed.
 
@@ -901,6 +919,58 @@ class TestFCIL1cNCReader:
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         res = reader.load(["vis_06"], pad_data=False)
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
+
+
+    @pytest.mark.parametrize(("fh_param","count_in_repeat_cycle_imp"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),67),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),67),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),29),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),29),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),1),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),1),
+                                                                                              ])
+    def test_count_in_repeat_cycle(self, reader_configs, fh_param,count_in_repeat_cycle_imp):
+        """Test the rc_period_min value for each configurations."""
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        assert count_in_repeat_cycle_imp == \
+        reader.file_handlers[fh_param["filetype"]][0].filename_info["count_in_repeat_cycle"]
+
+
+    @pytest.mark.parametrize(("fh_param","rc_period_min_imp"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),10),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),10),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),2.5),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),2.5),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),10),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),10),
+                                                                                              ])
+    def test_rc_period_min(self, reader_configs, fh_param,rc_period_min_imp):
+        """Test the rc_period_min value for each configurations."""
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        assert rc_period_min_imp == \
+        reader.file_handlers[fh_param["filetype"]][0].rc_period_min
+
+    @pytest.mark.parametrize(("channel","resolution","count_in_repeat_cycle_imp"),[("vis_06","3km",0)])
+    def test_count_in_repeat_cycle_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
+                                      channel,count_in_repeat_cycle_imp):
+        """Test the rc_period_min value for each configurations."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        assert count_in_repeat_cycle_imp == \
+        reader.file_handlers[f"{fh_param['filetype']}_{channel}"][0].filename_info["erraneous_count_in_repeat_cycle"]
+
+    @pytest.mark.parametrize(("channel","resolution","rc_period_min_imp"),[("vis_06","3km",10)])
+    def test_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,channel,rc_period_min_imp):
+        """Test the rc_period_min value for each configurations."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        assert rc_period_min_imp == reader.file_handlers[f"{fh_param['filetype']}_{channel}"][0].rc_period_min
+
+    @pytest.mark.parametrize(("fh_param"), [(lazy_fixture("FakeFCIFileHandlerFDHSIError_fixture"))])
+    def test_rc_period_min_error(self, reader_configs, fh_param):
+        """Test the rc_period_min error."""
+        with pytest.raises(NotImplementedError):
+            _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+
 
     @pytest.mark.parametrize(("fh_param", "expected_area"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), ["mtg_fci_fdss_1km", "mtg_fci_fdss_2km"]),
@@ -939,7 +1009,8 @@ class TestFCIL1cNCReader:
                                           (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                                          ])
     def test_excs(self, reader_configs, fh_param):
         """Test that exceptions are raised where expected."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)

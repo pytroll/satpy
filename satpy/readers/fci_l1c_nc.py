@@ -413,10 +413,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         if self.is_iqt:
             actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
                                                               "longitude_of_projection_origin"))
-            #actual_subsat_lon = -3.4
             actual_subsat_lat = 0.0
             actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
-            #actual_sat_alt = 0.0
             logger.info("IQT data the following parameters are hardcoded "
                         f"satellite_actual_longitude = {actual_subsat_lon} ,"
                         f" satellite_actual_latitude = {actual_subsat_lat} ,"
