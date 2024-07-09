@@ -676,12 +676,21 @@ class TestFCIL1cNCReader:
         for key,item in attrs_dict.items():
             assert res[ch].attrs[key] == item
 
+    def _get_assert_erased_attrs(self,res,ch):
+        """Test that the attributes listed have been erased."""
+        LIST_ATTRIBUTES = ["add_offset","warm_add_offset","scale_factor",
+                           "warm_scale_factor","valid_range"]
+        for atr in LIST_ATTRIBUTES:
+            assert atr not in res[ch].attrs
+
     def _get_assert_load(self,res,ch,grid_type,dict_arg):
         """Test the value for differents channels."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
         assert res[ch].dtype == dict_arg["dtype"]
         self._get_assert_attrs(res,ch,dict_arg["attrs_dict"])
+        if dict_arg["attrs_dict"]["calibration"] in ["radiance","brightness_temperature","reflectance"]:
+           self._get_assert_erased_attrs(res,ch)
         if dict_arg["attrs_dict"]["calibration"] == "reflectance":
             numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
         else :

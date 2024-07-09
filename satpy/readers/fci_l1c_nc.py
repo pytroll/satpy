@@ -415,9 +415,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                                                               "longitude_of_projection_origin"))
             actual_subsat_lat = 0.0
             actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
-            logger.info("IQT data the following parameters are hardcoded "
-                        f"satellite_actual_longitude = {actual_subsat_lon} ,"
+            logger.info("IQT data the following parameter is hardcoded "
                         f" satellite_actual_latitude = {actual_subsat_lat} ,"
+                        " These parameters are taken from the projection's dictionary"
+                        f"satellite_actual_longitude = {actual_subsat_lon} ,"
                         f"satellite_sat_alt = {actual_sat_alt}")
         else:
              actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
@@ -696,10 +697,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
             return radiance * np.float32(np.nan)
-
-        sun_earth_distance = np.nanmean(
-            self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
-
+        if self.is_iqt:
+            sun_earth_distance = 1.0
+            logger.info(f"The value sun_earth_distance is set to {sun_earth_distance}")
+        else:
+            sun_earth_distance = np.nanmean(
+                self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
 
