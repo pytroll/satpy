@@ -59,8 +59,8 @@ dependencies:
   - bokeh
   - pytest-xdist
   - pip:
-      - pytest-lazy-fixtures
-      - trollsift
-      - trollimage>=1.23
-      - pyspectral
-      - pyorbital
+    - pytest-lazy-fixtures
+    - trollsift
+    - trollimage>=1.24
+    - pyspectral
+    - pyorbital
