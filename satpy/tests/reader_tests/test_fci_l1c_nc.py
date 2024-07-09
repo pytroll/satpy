@@ -464,6 +464,15 @@ class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
                        "grid_type": "2km"},
     }
 
+class FakeFCIFileHandlerFDHSIIQTI(FakeFCIFileHandlerFDHSI):
+    """Mock IQTI for FHDSI data."""
+
+    def _get_test_content_all_channels(self):
+        data = super()._get_test_content_all_channels()
+        data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
+            da.repeat(da.array([np.nan]), 6000), dims=("x"))})
+        return data
+
 
 class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
     """Mock bad data."""
@@ -493,6 +502,15 @@ class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
         "ir_{:>02d}_hr": {"channels": [38, 105],
                           "grid_type": "1km"},
     }
+
+class FakeFCIFileHandlerHRFIIQTI(FakeFCIFileHandlerHRFI):
+    """Mock IQTI for HRFI data."""
+
+    def _get_test_content_all_channels(self):
+        data = super()._get_test_content_all_channels()
+        data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
+            da.repeat(da.array([np.nan]), 6000), dims=("x"))})
+        return data
 
 
 class FakeFCIFileHandlerAF(FakeFCIFileHandlerBase):
@@ -576,7 +594,7 @@ def FakeFCIFileHandlerFDHSIError_fixture():
 @pytest.fixture()
 def FakeFCIFileHandlerFDHSIIQTI_fixture():
     """Get a fixture for the fake FDHSI IQTI filehandler, including channel and file names."""
-    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSIIQTI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
             "channels": CHANS_FHDSI,
@@ -609,7 +627,7 @@ def FakeFCIFileHandlerHRFI_fixture():
 @pytest.fixture()
 def FakeFCIFileHandlerHRFIIQTI_fixture():
     """Get a fixture for the fake HRFI IQTI filehandler, including channel and file names."""
-    with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
+    with mocked_basefilehandler(FakeFCIFileHandlerHRFIIQTI):
         param_dict = {
             "filetype": "fci_l1c_hrfi",
             "channels": CHANS_HRFI,
@@ -907,8 +925,11 @@ class TestFCIL1cNCReader:
         for aux in [fh_param["channels"]["solar"][0] + "_" + key for key in AUX_DATA.keys()]:
             assert res[aux].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                       GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-            if aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance":
+            if (aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance") and ("IQTI" not in
+            fh_param["filenames"][0]):
                 numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
+            elif aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance":
+                numpy.testing.assert_array_equal(res[aux][1, 1], np.nan)
             else:
                 numpy.testing.assert_array_equal(res[aux][1, 1], 10)
 
