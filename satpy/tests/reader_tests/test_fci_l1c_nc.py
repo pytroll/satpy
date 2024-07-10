@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'fci_l1c_nc' reader."""
 import contextlib
+import datetime
 import logging
 import os
 from typing import Dict, List, Union
@@ -726,6 +727,26 @@ class TestFCIL1cNCReader:
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         return res
 
+    def _compare_sun_earth_distance(self,filetype,fh_param,reader_configs):
+        """Test the sun earth distance."""
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        np.testing.assert_almost_equal(
+        reader.file_handlers[filetype][0]._compute_sun_earth_distance(),
+                  1.0,decimal=3)
+
+    def _compare_rc_period_min_count_in_repeat_cycle(self,filetype,fh_param,
+                                reader_configs,compare_parameters_tuple):
+        """Test the count_in_repeat_cycle, rc_period_min."""
+        count_in_repeat_cycle_imp,rc_period_min_imp,start_nominal_time,end_nominal_time = compare_parameters_tuple
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        assert count_in_repeat_cycle_imp == \
+        reader.file_handlers[filetype][0].filename_info["count_in_repeat_cycle"]
+        assert rc_period_min_imp == \
+        reader.file_handlers[filetype][0].rc_period_min
+        assert start_nominal_time == reader.file_handlers[filetype][0].nominal_start_time
+        assert end_nominal_time == reader.file_handlers[filetype][0].nominal_end_time
+
+
     @pytest.mark.parametrize("filenames", [TEST_FILENAMES[filename] for filename in TEST_FILENAMES.keys()])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""
@@ -951,39 +972,69 @@ class TestFCIL1cNCReader:
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
 
-    @pytest.mark.parametrize(("fh_param","count_in_repeat_cycle_imp","rc_period_min_imp"),
-                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),67,10),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),67,10),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),29,2.5),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),29,2.5),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),1,10),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),1,10),
+    @pytest.mark.parametrize(("fh_param","count_in_repeat_cycle_imp","rc_period_min_imp",
+                              "nominal_start_time","nominal_end_time"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),67,10,
+                                        datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),67,10,
+                                        datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),29,2.5,
+                                        datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),29,2.5,
+                                        datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),1,10,
+                                        datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),1,10,
+                                        datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S")),
                                                                                               ])
     def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param,
-                                count_in_repeat_cycle_imp,rc_period_min_imp):
+                                count_in_repeat_cycle_imp,rc_period_min_imp,nominal_start_time,
+                                nominal_end_time):
         """Test the rc_period_min value for each configurations."""
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        assert count_in_repeat_cycle_imp == \
-        reader.file_handlers[fh_param["filetype"]][0].filename_info["count_in_repeat_cycle"]
-        assert rc_period_min_imp == \
-        reader.file_handlers[fh_param["filetype"]][0].rc_period_min
-        # Check that the sun_earth_distance is set to 1.0 for IQTI data
-        if "IQTI" in fh_param["filenames"][0]:
-            assert reader.file_handlers[fh_param["filetype"]][0]._compute_sun_earth_distance() == \
-                  1.0
-
+        self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"],fh_param,
+                        reader_configs,
+                        (count_in_repeat_cycle_imp,rc_period_min_imp,nominal_start_time,nominal_end_time))
 
     @pytest.mark.parametrize(("channel","resolution","count_in_repeat_cycle_imp",
-                              "rc_period_min_imp"),[("vis_06","3km",0,10)])
+                              "rc_period_min_imp","nominal_start_time","nominal_end_time"),
+                            [("vis_06","3km",0,10,
+                              datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
+                              datetime.datetime.strptime("2024-01-09 08:10:00", "%Y-%m-%d %H:%M:%S"))])
     def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                      channel,count_in_repeat_cycle_imp,rc_period_min_imp):
+                                      channel,count_in_repeat_cycle_imp,
+                                      rc_period_min_imp,nominal_start_time,nominal_end_time):
         """Test the rc_period_min value for each configurations."""
         fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        assert count_in_repeat_cycle_imp == \
-        reader.file_handlers[f"{fh_param['filetype']}_{channel}"][0].filename_info["erraneous_count_in_repeat_cycle"]
-        assert rc_period_min_imp == reader.file_handlers[f"{fh_param['filetype']}_{channel}"][0].rc_period_min
+        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}",fh_param,
+                        reader_configs,(count_in_repeat_cycle_imp,
+                                        rc_period_min_imp,nominal_start_time,
+                                        nominal_end_time))
 
+    @pytest.mark.parametrize(("fh_param"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                                                                                              ])
+    def test_compute_earth_sun_parameter(self, reader_configs, fh_param):
+        """Test the computation of the sun_earth_parameter."""
+        self._compare_sun_earth_distance(fh_param["filetype"],fh_param,reader_configs)
+
+
+    @pytest.mark.parametrize(("channel","resolution"),[("vis_06","3km")])
+    def test_compute_earth_sun_parameter_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
+                                      channel):
+        """Test the rc_period_min value for each configurations."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}",fh_param,reader_configs)
 
     @pytest.mark.parametrize(("fh_param"), [(lazy_fixture("FakeFCIFileHandlerFDHSIError_fixture"))])
     def test_rc_period_min_error(self, reader_configs, fh_param):
