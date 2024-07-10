@@ -208,12 +208,12 @@ class AMIL1bNetCDF(BaseFileHandler):
         data = data.where(qf == 0)
 
         # Calibration values from file, fall back to built-in if unavailable
-        self.gain = self.nc.attrs["DN_to_Radiance_Gain"]
-        self.offset = self.nc.attrs["DN_to_Radiance_Offset"]
+        gain = self.nc.attrs["DN_to_Radiance_Gain"]
+        offset = self.nc.attrs["DN_to_Radiance_Offset"]
 
         if dataset_id["calibration"] in ("radiance", "reflectance", "brightness_temperature"):
-            data = self.gain * data + self.offset
-            data = self._clip_negative_radiance(data)
+            data = gain * data + offset
+            data = self._clip_negative_radiance(data, gain, offset)
             if self.calib_mode == "GSICS":
                 data = self._apply_gsics_rad_correction(data)
             elif isinstance(self.user_calibration, dict):
@@ -239,13 +239,13 @@ class AMIL1bNetCDF(BaseFileHandler):
         return data
 
 
-    def _clip_negative_radiance(self, data):
+    def _clip_negative_radiance(self, data, gain, offset):
         """If requested, clip negative radiance from Rad DataArray."""
         if self.clip_negative_radiances:
-            count_zero_rad = - self.offset / self.gain
+            count_zero_rad = - offset / gain
             # We need floor here as the scale factor for AMI is negative (unlike ABI)
             count_pos = np.floor(count_zero_rad)
-            min_rad = count_pos * self.gain + self.offset
+            min_rad = count_pos * gain + offset
             data = data.clip(min=min_rad)
             return data
         else:
