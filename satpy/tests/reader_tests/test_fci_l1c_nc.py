@@ -951,49 +951,39 @@ class TestFCIL1cNCReader:
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
 
-    @pytest.mark.parametrize(("fh_param","count_in_repeat_cycle_imp"),
-                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),67),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),67),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),29),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),29),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),1),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),1),
+    @pytest.mark.parametrize(("fh_param","count_in_repeat_cycle_imp","rc_period_min_imp"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),67,10),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),67,10),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),29,2.5),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),29,2.5),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),1,10),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),1,10),
                                                                                               ])
-    def test_count_in_repeat_cycle(self, reader_configs, fh_param,count_in_repeat_cycle_imp):
+    def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param,
+                                count_in_repeat_cycle_imp,rc_period_min_imp):
         """Test the rc_period_min value for each configurations."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         assert count_in_repeat_cycle_imp == \
         reader.file_handlers[fh_param["filetype"]][0].filename_info["count_in_repeat_cycle"]
-
-
-    @pytest.mark.parametrize(("fh_param","rc_period_min_imp"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),10),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),10),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),2.5),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),2.5),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),10),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),10),
-                                                                                              ])
-    def test_rc_period_min(self, reader_configs, fh_param,rc_period_min_imp):
-        """Test the rc_period_min value for each configurations."""
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         assert rc_period_min_imp == \
         reader.file_handlers[fh_param["filetype"]][0].rc_period_min
+        # Check that the sun_earth_distance is set to 1.0 for IQTI data
+        if "IQTI" in fh_param["filenames"][0]:
+            assert reader.file_handlers[fh_param["filetype"]][0]._compute_sun_earth_distance() == \
+                  1.0
 
-    @pytest.mark.parametrize(("channel","resolution","count_in_repeat_cycle_imp"),[("vis_06","3km",0)])
-    def test_count_in_repeat_cycle_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                      channel,count_in_repeat_cycle_imp):
+
+    @pytest.mark.parametrize(("channel","resolution","count_in_repeat_cycle_imp",
+                              "rc_period_min_imp"),[("vis_06","3km",0,10)])
+    def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
+                                      channel,count_in_repeat_cycle_imp,rc_period_min_imp):
         """Test the rc_period_min value for each configurations."""
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         assert count_in_repeat_cycle_imp == \
         reader.file_handlers[f"{fh_param['filetype']}_{channel}"][0].filename_info["erraneous_count_in_repeat_cycle"]
-
-    @pytest.mark.parametrize(("channel","resolution","rc_period_min_imp"),[("vis_06","3km",10)])
-    def test_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,channel,rc_period_min_imp):
-        """Test the rc_period_min value for each configurations."""
-        fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         assert rc_period_min_imp == reader.file_handlers[f"{fh_param['filetype']}_{channel}"][0].rc_period_min
+
 
     @pytest.mark.parametrize(("fh_param"), [(lazy_fixture("FakeFCIFileHandlerFDHSIError_fixture"))])
     def test_rc_period_min_error(self, reader_configs, fh_param):

@@ -697,15 +697,19 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
             return radiance * np.float32(np.nan)
+        sun_earth_distance = self._compute_sun_earth_distance()
+        res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
+        return res
+
+    def _compute_sun_earth_distance(self) -> float:
+        """Compute the sun_earth_distance."""
         if self.is_iqt:
             sun_earth_distance = 1.0
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance}")
         else:
             sun_earth_distance = np.nanmean(
                 self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
-        res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
-        return res
-
+        return sun_earth_distance
 
 def _ensure_dataarray(arr):
     if not isinstance(arr, xr.DataArray):
