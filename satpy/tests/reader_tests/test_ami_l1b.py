@@ -57,11 +57,17 @@ class FakeDataset(object):
 class TestAMIL1bNetCDFBase(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
+    def __init__(self, *args):
+        """Initialize test data."""
+        super(TestAMIL1bNetCDFBase, self).__init__(*args)
+        self.counts = None
+        self.irtest = None
+
     @mock.patch("satpy.readers.ami_l1b.xr")
-    def setUp(self, xr_, counts=None, irtest=False):
+    def setUp(self, xr_):
         """Create a fake dataset using the given counts data."""
         from satpy.readers.ami_l1b import AMIL1bNetCDF
-        if irtest:
+        if self.irtest:
             dn_to_Radiance_Gain = -0.00108296517282724
             dn_to_Radiance_Offset = 17.699987411499
             bpp = 14
@@ -70,40 +76,40 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
             dn_to_Radiance_Offset = 118.050903320312
             bpp = 12
 
-        if counts is None:
+        if self.counts is None:
             rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
             rad_data = (rad_data + 1.) / 0.5
             rad_data = rad_data.astype(np.uint16)
-            if irtest:
+            if self.irtest:
                 # If testing IR clipping, set one pixel to negative radiance
                 rad_data[0, 0] = 16364
-            counts = xr.DataArray(
-                da.from_array(rad_data, chunks="auto"),
-                dims=("y", "x"),
-                attrs={
-                    "channel_name": "VI006",
-                    "detector_side": 2,
-                    "number_of_total_pixels": 484000000,
-                    "number_of_error_pixels": 113892451,
-                    "max_pixel_value": 32768,
-                    "min_pixel_value": 6,
-                    "average_pixel_value": 8228.98770845248,
-                    "stddev_pixel_value": 13621.130386551,
-                    "number_of_total_bits_per_pixel": 16,
-                    "number_of_data_quality_flag_bits_per_pixel": 2,
-                    "number_of_valid_bits_per_pixel": bpp,
-                    "data_quality_flag_meaning":
-                        "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
-                    "ground_sample_distance_ew": 1.4e-05,
-                    "ground_sample_distance_ns": 1.4e-05,
-                }
-            )
+                self.counts = xr.DataArray(
+                    da.from_array(rad_data, chunks="auto"),
+                    dims=("y", "x"),
+                    attrs={
+                        "channel_name": "VI006",
+                        "detector_side": 2,
+                        "number_of_total_pixels": 484000000,
+                        "number_of_error_pixels": 113892451,
+                        "max_pixel_value": 32768,
+                        "min_pixel_value": 6,
+                        "average_pixel_value": 8228.98770845248,
+                        "stddev_pixel_value": 13621.130386551,
+                        "number_of_total_bits_per_pixel": 16,
+                        "number_of_data_quality_flag_bits_per_pixel": 2,
+                        "number_of_valid_bits_per_pixel": bpp,
+                        "data_quality_flag_meaning":
+                            "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
+                        "ground_sample_distance_ew": 1.4e-05,
+                        "ground_sample_distance_ns": 1.4e-05,
+                    }
+                )
         sc_position = xr.DataArray(0., attrs={
             "sc_position_center_pixel": [-26113466.1974016, 33100139.1630508, 3943.75470244799],
         })
         xr_.open_dataset.return_value = FakeDataset(
             {
-                "image_pixel_values": counts,
+                "image_pixel_values": self.counts,
                 "sc_position": sc_position,
                 "gsics_coeff_intercept": [0.1859369],
                 "gsics_coeff_slope": [0.9967594],
@@ -273,7 +279,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         from satpy.tests.utils import make_dataid
         count_data = (np.arange(10).reshape((2, 5))) + 7000
         count_data = count_data.astype(np.uint16)
-        count = xr.DataArray(
+        self.counts = xr.DataArray(
             da.from_array(count_data, chunks="auto"),
             dims=("y", "x"),
             attrs={
@@ -302,7 +308,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
             "standard_name": "toa_brightness_temperature",
             "units": "K",
         }
-        super(TestAMIL1bNetCDFIRCal, self).setUp(counts=count)
+        super(TestAMIL1bNetCDFIRCal, self).setUp()
 
     def test_default_calibrate(self):
         """Test default (pyspectral) IR calibration."""
@@ -377,7 +383,8 @@ class TestAMIL1bNetCDFIRClip(TestAMIL1bNetCDFBase):
             "standard_name": "toa_brightness_temperature",
             "units": "K",
         }
-        super(TestAMIL1bNetCDFIRClip, self).setUp(irtest=True)
+        self.irtest = True
+        super(TestAMIL1bNetCDFIRClip, self).setUp()
 
     def test_clipneg(self):
         """Test that negative radiances are clipped."""
