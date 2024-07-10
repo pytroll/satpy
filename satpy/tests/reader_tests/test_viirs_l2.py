@@ -1,6 +1,7 @@
 """Module for testing the satpy.readers.viirs_l2 module."""
+
+import datetime as dt
 import os
-from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
@@ -27,7 +28,7 @@ class FakeNetCDF4FileHandlerVIIRSL2(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        dt = filename_info.get("start_time", datetime(2023, 12, 30, 22, 30, 0))
+        date = filename_info.get("start_time", dt.datetime(2023, 12, 30, 22, 30, 0))
         file_type = filename[:6]
         num_lines = DEFAULT_FILE_SHAPE[0]
         num_pixels = DEFAULT_FILE_SHAPE[1]
@@ -36,8 +37,8 @@ class FakeNetCDF4FileHandlerVIIRSL2(FakeNetCDF4FileHandler):
             "/dimension/number_of_scans": num_scans,
             "/dimension/number_of_lines": num_lines,
             "/dimension/number_of_pixels": num_pixels,
-            "/attr/time_coverage_start": dt.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-            "/attr/time_coverage_end": (dt + timedelta(minutes=6)).strftime(
+            "/attr/time_coverage_start": date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "/attr/time_coverage_end": (date + dt.timedelta(minutes=6)).strftime(
                 "%Y-%m-%dT%H:%M:%S.000Z"
             ),
             "/attr/orbit_number": 26384,

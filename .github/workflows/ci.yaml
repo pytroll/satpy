@@ -67,8 +67,11 @@ jobs:
         # Install pykdtree with --no-build-isolation so it builds with numpy 2.0
         # We must get LD_PRELOAD for stdlibc++ or else the manylinux wheels
         # may break the conda-forge libraries trying to use newer glibc versions
+        # NOTE: Many of the packages removed and then reinstalled below are to avoid
+        #   compatibility issues with numpy 2. When conda-forge has numpy 2 available
+        #   this shouldn't be needed.
         run: |
-          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig
+          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
@@ -77,18 +80,19 @@ jobs:
           numpy \
           pandas \
           scipy
-          mamba remove --force-remove -y pykdtree pyresample trollimage pyhdf netcdf4 h5py
+          conda remove --force-remove -y pykdtree pyresample python-geotiepoints pyhdf netcdf4 h5py cftime astropy pyerfa
           python -m pip install --upgrade --no-deps --pre --no-build-isolation \
+          pyerfa \
           git+https://github.com/storpipfugl/pykdtree \
           git+https://github.com/pytroll/pyresample \
           git+https://github.com/pytroll/trollimage \
+          git+https://github.com/pytroll/python-geotiepoints \
           git+https://github.com/fhs/pyhdf \
           git+https://github.com/h5py/h5py \
           git+https://github.com/h5netcdf/h5netcdf \
           git+https://github.com/Unidata/netcdf4-python \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
-          git+https://github.com/zarr-developers/zarr \
           git+https://github.com/Unidata/cftime \
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \

@@ -13,10 +13,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Test objects and functions in the dataset module."""
 
+import datetime as dt
 import unittest
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -103,38 +104,38 @@ class TestCombineMetadata(unittest.TestCase):
         """Set up the test case."""
         # The times need to be in ascending order (oldest first)
         self.start_time_dts = (
-            {"start_time": datetime(2018, 2, 1, 11, 58, 0)},
-            {"start_time": datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 2, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
         )
         self.end_time_dts = (
-            {"end_time": datetime(2018, 2, 1, 11, 58, 0)},
-            {"end_time": datetime(2018, 2, 1, 11, 59, 0)},
-            {"end_time": datetime(2018, 2, 1, 12, 0, 0)},
-            {"end_time": datetime(2018, 2, 1, 12, 1, 0)},
-            {"end_time": datetime(2018, 2, 1, 12, 2, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
         )
         self.other_time_dts = (
-            {"other_time": datetime(2018, 2, 1, 11, 58, 0)},
-            {"other_time": datetime(2018, 2, 1, 11, 59, 0)},
-            {"other_time": datetime(2018, 2, 1, 12, 0, 0)},
-            {"other_time": datetime(2018, 2, 1, 12, 1, 0)},
-            {"other_time": datetime(2018, 2, 1, 12, 2, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
         )
         self.start_time_dts_with_none = (
             {"start_time": None},
-            {"start_time": datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": datetime(2018, 2, 1, 12, 2, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
         )
         self.end_time_dts_with_none = (
-            {"end_time": datetime(2018, 2, 1, 11, 58, 0)},
-            {"end_time": datetime(2018, 2, 1, 11, 59, 0)},
-            {"end_time": datetime(2018, 2, 1, 12, 0, 0)},
-            {"end_time": datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
             {"end_time": None},
         )
 
@@ -142,11 +143,11 @@ class TestCombineMetadata(unittest.TestCase):
         """Test the average_datetimes helper function."""
         from satpy.dataset.metadata import average_datetimes
         dts = (
-            datetime(2018, 2, 1, 11, 58, 0),
-            datetime(2018, 2, 1, 11, 59, 0),
-            datetime(2018, 2, 1, 12, 0, 0),
-            datetime(2018, 2, 1, 12, 1, 0),
-            datetime(2018, 2, 1, 12, 2, 0),
+            dt.datetime(2018, 2, 1, 11, 58, 0),
+            dt.datetime(2018, 2, 1, 11, 59, 0),
+            dt.datetime(2018, 2, 1, 12, 0, 0),
+            dt.datetime(2018, 2, 1, 12, 1, 0),
+            dt.datetime(2018, 2, 1, 12, 2, 0),
         )
         ret = average_datetimes(dts)
         assert dts[2] == ret
@@ -373,10 +374,10 @@ def test_combine_dicts_close():
             "c": [1, 2, 3],
             "d": {
                 "e": np.str_("bar"),
-                "f": datetime(2020, 1, 1, 12, 15, 30),
+                "f": dt.datetime(2020, 1, 1, 12, 15, 30),
                 "g": np.array([1, 2, 3]),
             },
-            "h": np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+            "h": np.array([dt.datetime(2020, 1, 1), dt.datetime(2020, 1, 1)])
         }
     }
     attrs_close = {
@@ -386,10 +387,10 @@ def test_combine_dicts_close():
             "c": np.array([1, 2, 3]) + 1E-12,
             "d": {
                 "e": np.str_("bar"),
-                "f": datetime(2020, 1, 1, 12, 15, 30),
+                "f": dt.datetime(2020, 1, 1, 12, 15, 30),
                 "g": np.array([1, 2, 3]) + 1E-12
             },
-            "h": np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+            "h": np.array([dt.datetime(2020, 1, 1), dt.datetime(2020, 1, 1)])
         }
     }
     test_metadata = [attrs, attrs_close]

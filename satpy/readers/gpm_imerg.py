@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for GPM imerg data on half-hourly timesteps.
 
 References:
@@ -23,8 +24,8 @@ References:
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import h5py
@@ -49,22 +50,22 @@ class Hdf5IMERG(HDF5FileHandler):
     @property
     def start_time(self):
         """Find the start time from filename info."""
-        return datetime(self.finfo["date"].year,
-                        self.finfo["date"].month,
-                        self.finfo["date"].day,
-                        self.finfo["start_time"].hour,
-                        self.finfo["start_time"].minute,
-                        self.finfo["start_time"].second)
+        return dt.datetime(self.finfo["date"].year,
+                           self.finfo["date"].month,
+                           self.finfo["date"].day,
+                           self.finfo["start_time"].hour,
+                           self.finfo["start_time"].minute,
+                           self.finfo["start_time"].second)
 
     @property
     def end_time(self):
         """Find the end time from filename info."""
-        return datetime(self.finfo["date"].year,
-                        self.finfo["date"].month,
-                        self.finfo["date"].day,
-                        self.finfo["end_time"].hour,
-                        self.finfo["end_time"].minute,
-                        self.finfo["end_time"].second)
+        return dt.datetime(self.finfo["date"].year,
+                           self.finfo["date"].month,
+                           self.finfo["date"].day,
+                           self.finfo["end_time"].hour,
+                           self.finfo["end_time"].minute,
+                           self.finfo["end_time"].second)
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""

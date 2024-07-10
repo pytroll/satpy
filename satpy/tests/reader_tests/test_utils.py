@@ -15,11 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Testing of helper functions."""
 
+import datetime as dt
 import os
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -430,7 +431,7 @@ class TestSunEarthDistanceCorrection:
 
     def setup_method(self):
         """Create input / output arrays for the tests."""
-        self.test_date = datetime(2020, 8, 15, 13, 0, 40)
+        self.test_date = dt.datetime(2020, 8, 15, 13, 0, 40)
 
         raw_refl = xr.DataArray(da.from_array([10., 20., 40., 1., 98., 50.]),
                                 attrs={"start_time": self.test_date,
@@ -462,7 +463,7 @@ class TestSunEarthDistanceCorrection:
 
         # Now check correct time is returned with utc_date passed
         tmp_array = self.raw_refl.copy()
-        new_test_date = datetime(2019, 2, 1, 15, 2, 12)
+        new_test_date = dt.datetime(2019, 2, 1, 15, 2, 12)
         utc_time = hf.get_array_date(tmp_array, new_test_date)
         assert utc_time == new_test_date
 

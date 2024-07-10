@@ -15,11 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for compositors in composites/__init__.py."""
 
+import datetime as dt
 import os
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask
@@ -175,7 +176,7 @@ class TestRatioSharpenedCompositors:
                               {"proj": "merc"}, 2, 2,
                               (-2000, -2000, 2000, 2000))
         attrs = {"area": area,
-                 "start_time": datetime(2018, 1, 1, 18),
+                 "start_time": dt.datetime(2018, 1, 1, 18),
                  "modifiers": tuple(),
                  "resolution": 1000,
                  "calibration": "reflectance",
@@ -347,7 +348,7 @@ class TestDifferenceCompositor(unittest.TestCase):
                               {"proj": "merc"}, 2, 2,
                               (-2000, -2000, 2000, 2000))
         attrs = {"area": area,
-                 "start_time": datetime(2018, 1, 1, 18),
+                 "start_time": dt.datetime(2018, 1, 1, 18),
                  "modifiers": tuple(),
                  "resolution": 1000,
                  "name": "test_vis"}
@@ -430,7 +431,7 @@ class TestDayNightCompositor(unittest.TestCase):
     def setUp(self):
         """Create test data."""
         bands = ["R", "G", "B"]
-        start_time = datetime(2018, 1, 1, 18, 0, 0)
+        start_time = dt.datetime(2018, 1, 1, 18, 0, 0)
 
         # RGB
         a = np.zeros((3, 2, 2), dtype=np.float32)
@@ -605,11 +606,12 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
 
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
-            res = comp((self.data_a,))
-            res = res.compute()
+        # with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
+        res_dask = comp((self.data_a,))
+        res = res_dask.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res_dask.dtype == res.dtype
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands

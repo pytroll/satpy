@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The viirs_vgac_l1b_nc reader tests package.
 
 This version tests the readers for VIIIRS VGAC data preliminary version.
@@ -22,7 +23,7 @@ This version tests the readers for VIIIRS VGAC data preliminary version.
 """
 
 
-from datetime import datetime
+import datetime as dt
 
 import numpy as np
 import pytest
@@ -33,7 +34,7 @@ from netCDF4 import Dataset
 @pytest.fixture()
 def nc_filename(tmp_path):
     """Create an nc test data file and return its filename."""
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     filename = f"VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc"
     filename_str = str(tmp_path / filename)
     # Create test data
@@ -107,10 +108,10 @@ class TestVGACREader:
         assert (diff_e > np.timedelta64(-5, "us"))
         assert (scn_["M05"][0, 0] == 100)
         assert (scn_["M15"][0, 0] == 400)
-        assert scn_.start_time == datetime(year=2023, month=3, day=28,
-                                           hour=9, minute=8, second=7)
-        assert scn_.end_time == datetime(year=2023, month=3, day=28,
-                                         hour=10, minute=11, second=12)
+        assert scn_.start_time == dt.datetime(year=2023, month=3, day=28,
+                                              hour=9, minute=8, second=7)
+        assert scn_.end_time == dt.datetime(year=2023, month=3, day=28,
+                                            hour=10, minute=11, second=12)
 
     def test_dt64_to_datetime(self):
         """Test datetime conversion branch."""
@@ -118,8 +119,8 @@ class TestVGACREader:
         fh = VGACFileHandler(filename="",
                              filename_info={"start_time": "2023-03-28T09:08:07"},
                              filetype_info="")
-        in_dt = datetime(year=2023, month=3, day=28,
-                         hour=9, minute=8, second=7)
+        in_dt = dt.datetime(year=2023, month=3, day=28,
+                            hour=9, minute=8, second=7)
         out_dt = fh.dt64_to_datetime(in_dt)
         assert out_dt == in_dt
 
