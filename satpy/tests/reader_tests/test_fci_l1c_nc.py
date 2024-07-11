@@ -972,49 +972,41 @@ class TestFCIL1cNCReader:
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
 
-    @pytest.mark.parametrize(("fh_param","count_in_repeat_cycle_imp","rc_period_min_imp",
-                              "nominal_start_time","nominal_end_time"),
-                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),67,10,
+    @pytest.mark.parametrize(("fh_param","compare_tuples"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),(67,10,
                                         datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),67,10,
+                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),(67,10,
                                         datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),29,2.5,
+                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),(29,2.5,
                                         datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S")),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),29,2.5,
+                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),(29,2.5,
                                         datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),1,10,
+                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),(1,10,
                                         datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S")),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),1,10,
+                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),(1,10,
                                         datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S")),
+                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S"))),
                                                                                               ])
-    def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param,
-                                count_in_repeat_cycle_imp,rc_period_min_imp,nominal_start_time,
-                                nominal_end_time):
+    def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param,compare_tuples):
         """Test the rc_period_min value for each configurations."""
         self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"],fh_param,
-                        reader_configs,
-                        (count_in_repeat_cycle_imp,rc_period_min_imp,nominal_start_time,nominal_end_time))
+                        reader_configs,compare_tuples)
 
-    @pytest.mark.parametrize(("channel","resolution","count_in_repeat_cycle_imp",
-                              "rc_period_min_imp","nominal_start_time","nominal_end_time"),
-                            [("vis_06","3km",0,10,
+    @pytest.mark.parametrize(("channel","resolution","compare_tuples"),
+                            [("vis_06","3km",(0,10,
                               datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
-                              datetime.datetime.strptime("2024-01-09 08:10:00", "%Y-%m-%d %H:%M:%S"))])
+                              datetime.datetime.strptime("2024-01-09 08:10:00", "%Y-%m-%d %H:%M:%S")))])
     def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                      channel,count_in_repeat_cycle_imp,
-                                      rc_period_min_imp,nominal_start_time,nominal_end_time):
+                                      channel,compare_tuples):
         """Test the rc_period_min value for each configurations."""
         fh_param = FakeFCIFileHandlerAF_fixture
         self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}",fh_param,
-                        reader_configs,(count_in_repeat_cycle_imp,
-                                        rc_period_min_imp,nominal_start_time,
-                                        nominal_end_time))
+                        reader_configs,compare_tuples)
 
     @pytest.mark.parametrize(("fh_param"),
                                           [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
