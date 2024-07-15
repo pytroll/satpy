@@ -120,7 +120,6 @@ For example, to create an image of (y, x) pixels :
 
 .. warning::
 
-    Resizing with the `nearest` resampler will accept all sizes.
     Be aware that resizing with natine resampling only works if size is a factor of the original size.
 
 
