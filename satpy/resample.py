@@ -120,7 +120,10 @@ For example, to create an image of (y, x) pixels :
 
 .. warning::
 
-    Be aware that resizing with natine resampling only works if size is a factor of the original size.
+    Be aware that resizing with native resampling (``resampler="native"``) only
+    works if the new size is an integer factor of the original input size. For example,
+    multiplying the size by 2 or dividing the size by 2. Multiplying by 1.5 would
+    not be allowed.
 
 
 Create dynamic area definition
