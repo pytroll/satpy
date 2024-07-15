@@ -123,6 +123,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
+from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
 from satpy.readers._geos_area import get_geos_area_naming
@@ -387,7 +388,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
-        if key["calibration"] in ["brightness_temperature", "reflectance","radiance"]:
+        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
             res.attrs.pop("add_offset")
             res.attrs.pop("warm_add_offset")
             res.attrs.pop("scale_factor")
@@ -487,7 +488,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         # get lut values from 1-d vector variable
         lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
-
         # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut.data, dtype=lut.data.dtype)
         aux = xr.DataArray(aux, dims=index_map.dims, attrs=index_map.attrs, coords=index_map.coords)
@@ -697,14 +697,17 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
             return radiance * np.float32(np.nan)
-        sun_earth_distance = self._compute_sun_earth_distance()
+        sun_earth_distance = self._compute_sun_earth_distance
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
 
-    def _compute_sun_earth_distance(self) -> float:
+    @cached_property
+    def _compute_sun_earth_distance(self) -> float :
         """Compute the sun_earth_distance."""
         if self.is_iqt:
-            sun_earth_distance = 1.0
+            middle_time_diff = (self.observation_end_time-self.observation_start_time)/2
+            utc_date = self.observation_start_time + middle_time_diff
+            sun_earth_distance = sun_earth_distance_correction(utc_date)
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance}")
         else:
             sun_earth_distance = np.nanmean(

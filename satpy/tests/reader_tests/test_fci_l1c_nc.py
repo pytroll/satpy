@@ -265,7 +265,7 @@ def _get_test_calib_for_channel_ir(data, meas_path):
 
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
-        da.repeat(da.array([149597870.7]), 6000), dims=("x"))
+        da.repeat(da.array([149597870.7]), 6000), dims=("index"))
     data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array((50.0), dtype=np.float32))
     return data
 
@@ -471,7 +471,7 @@ class FakeFCIFileHandlerFDHSIIQTI(FakeFCIFileHandlerFDHSI):
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
         data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
-            da.repeat(da.array([np.nan]), 6000), dims=("x"))})
+            da.repeat(da.array([np.nan]), 6000), dims=("index"))})
         return data
 
 
@@ -702,7 +702,7 @@ class TestFCIL1cNCReader:
         for atr in LIST_ATTRIBUTES:
             assert atr not in res[ch].attrs
 
-    def _get_assert_load(self,res,ch,grid_type,dict_arg):
+    def _get_assert_load(self,res,ch,grid_type,dict_arg,filenames):
         """Test the value for differents channels."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                      GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
@@ -711,7 +711,12 @@ class TestFCIL1cNCReader:
         if dict_arg["attrs_dict"]["calibration"] in ["radiance","brightness_temperature","reflectance"]:
            self._get_assert_erased_attrs(res,ch)
         if dict_arg["attrs_dict"]["calibration"] == "reflectance":
-            numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
+            if "IQTI" in filenames:
+                numpy.testing.assert_array_almost_equal(res[ch],
+                                                93.6462)
+            else :
+                numpy.testing.assert_array_almost_equal(res[ch],
+                                                100 * 15 * 1 * np.pi / 50)
         else :
             if ch == "ir_38":
                 numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
@@ -730,9 +735,14 @@ class TestFCIL1cNCReader:
     def _compare_sun_earth_distance(self,filetype,fh_param,reader_configs):
         """Test the sun earth distance."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        np.testing.assert_almost_equal(
-        reader.file_handlers[filetype][0]._compute_sun_earth_distance(),
-                  1.0,decimal=3)
+        if "IQTI" in fh_param["filenames"][0]:
+            np.testing.assert_almost_equal(
+            reader.file_handlers[filetype][0]._compute_sun_earth_distance,
+                      0.996803423,decimal=7)
+        else :
+            np.testing.assert_almost_equal(
+            reader.file_handlers[filetype][0]._compute_sun_earth_distance,
+                      1.0,decimal=7)
 
     def _compare_rc_period_min_count_in_repeat_cycle(self,filetype,fh_param,
                                 reader_configs,compare_parameters_tuple):
@@ -805,7 +815,7 @@ class TestFCIL1cNCReader:
         assert expected_res_n[res_type] == len(res)
         for ch, grid_type in zip(list_chan,
                                  list_grid):
-            self._get_assert_load(res, ch, grid_type, DICT_CALIBRATION[calibration])
+            self._get_assert_load(res, ch, grid_type, DICT_CALIBRATION[calibration],fh_param["filenames"][0])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
     (calibration, channel, resolution)
@@ -823,7 +833,7 @@ class TestFCIL1cNCReader:
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
-            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration],fh_param["filenames"][0])
 
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
@@ -950,7 +960,7 @@ class TestFCIL1cNCReader:
             fh_param["filenames"][0]):
                 numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
             elif aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance":
-                numpy.testing.assert_array_equal(res[aux][1, 1], np.nan)
+                numpy.testing.assert_array_equal(res[aux][1,1], np.nan)
             else:
                 numpy.testing.assert_array_equal(res[aux][1, 1], 10)
 
