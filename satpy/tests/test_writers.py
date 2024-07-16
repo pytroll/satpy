@@ -23,7 +23,6 @@ import datetime as dt
 import os
 import pathlib
 import shutil
-import unittest
 import warnings
 from typing import Iterator
 from unittest import mock
@@ -37,12 +36,11 @@ from trollimage.colormap import greys
 from satpy.writers import ImageWriter
 
 
-class TestWritersModule(unittest.TestCase):
+class TestWritersModule:
     """Test the writers module."""
 
     def test_to_image_1d(self):
         """Conversion to image."""
-        # 1D
         from satpy.writers import to_image
         p = xr.DataArray(np.arange(25), dims=["y"])
         with pytest.raises(ValueError, match="Need at least a 2D array to make an image."):
@@ -53,7 +51,6 @@ class TestWritersModule(unittest.TestCase):
         """Conversion to image."""
         from satpy.writers import to_image
 
-        # 2D
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
                                           palette=[0, 1, 2, 3, 4, 5]),
@@ -67,8 +64,8 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch("satpy.writers.XRImage")
     def test_to_image_3d(self, mock_geoimage):
         """Conversion to image."""
-        # 3D
         from satpy.writers import to_image
+
         data = np.arange(75).reshape((3, 5, 5))
         p = xr.DataArray(data, dims=["bands", "y", "x"])
         p["bands"] = ["R", "G", "B"]
@@ -88,7 +85,7 @@ class TestWritersModule(unittest.TestCase):
         assert mock_get_image.return_value.show.called
 
 
-class TestEnhancer(unittest.TestCase):
+class TestEnhancer:
     """Test basic `Enhancer` functionality with builtin configs."""
 
     def test_basic_init_no_args(self):
@@ -514,7 +511,7 @@ enhancements:
         np.testing.assert_allclose(img.data.values[0], data_arr.data / 50.0)
 
 
-class TestYAMLFiles(unittest.TestCase):
+class TestYAMLFiles:
     """Test and analyze the writer configuration files."""
 
     def test_filename_matches_writer_name(self):
@@ -551,10 +548,10 @@ class TestYAMLFiles(unittest.TestCase):
             assert "name" in writer_info
 
 
-class TestComputeWriterResults(unittest.TestCase):
+class TestComputeWriterResults:
     """Test compute_writer_results()."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create temporary directory to save files to and a mock scene."""
         import tempfile
 
@@ -579,7 +576,7 @@ class TestComputeWriterResults(unittest.TestCase):
         # Temp dir
         self.base_dir = tempfile.mkdtemp()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -737,10 +734,10 @@ class TestBaseWriter:
         assert os.path.isfile(os.path.join(self.base_dir, exp_fn))
 
 
-class TestOverlays(unittest.TestCase):
+class TestOverlays:
     """Tests for add_overlay and add_decorate functions."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create test data and mock pycoast/pydecorate."""
         from pyresample.geometry import AreaDefinition
         from trollimage.xrimage import XRImage
@@ -794,7 +791,7 @@ class TestOverlays(unittest.TestCase):
         self.module_patcher = mock.patch.dict("sys.modules", modules)
         self.module_patcher.start()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Turn off pycoast/pydecorate mocking."""
         self.module_patcher.stop()
 
