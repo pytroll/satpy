@@ -11,8 +11,8 @@ from pyresample.geometry import AreaDefinition
 
 import satpy.tests.reader_tests.gms.test_gms5_vissr_data as real_world
 from satpy.readers import FSFile
-from satpy.tests.reader_tests.utils import get_jit_methods, skip_numba_unstable_if_missing
-from satpy.tests.utils import make_dataid
+from satpy.tests.reader_tests.utils import get_jit_methods
+from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
 
 try:
     import satpy.readers.gms.gms5_vissr_format as fmt
