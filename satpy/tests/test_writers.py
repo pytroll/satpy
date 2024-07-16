@@ -18,13 +18,11 @@
 
 from __future__ import annotations
 
-import contextlib
 import datetime as dt
 import os
 import pathlib
 import shutil
 import warnings
-from typing import Iterator
 from unittest import mock
 
 import dask.array as da
@@ -129,38 +127,32 @@ class _CustomImageWriter(ImageWriter):
         self.img = img
 
 
-@contextlib.contextmanager
-def _create_test_configs(base_dir: pathlib.Path, test_configs: dict[str, str]) -> Iterator[None]:
-    for fn, content in test_configs.items():
-        config_rel_dir = os.path.dirname(fn)
-        if config_rel_dir:
-            os.makedirs(base_dir / config_rel_dir, exist_ok=True)
-        with open(base_dir / fn, "w") as f:
-            f.write(content)
-    yield
-    # teardown: Is this needed if we use a tmp_path?
-    for fn, _content in test_configs.items():
-        config_base_dir = base_dir / os.path.dirname(fn)
-        if config_base_dir != base_dir and os.path.isdir(config_base_dir):
-            shutil.rmtree(config_base_dir)
-        elif os.path.isfile(base_dir / fn):
-            os.remove(base_dir / fn)
-
-
 class _BaseCustomEnhancementConfigTests:
 
     TEST_CONFIGS: dict[str, str] = {}
 
     @pytest.fixture(scope="class", autouse=True)
     def test_configs_path(self, tmp_path_factory):
+        """Create test enhancement configuration files in a temporary directory.
+
+        The root temporary directory is changed to and returned.
+
+        """
+        prev_cwd = pathlib.Path.cwd()
         tmp_path = tmp_path_factory.mktemp("config")
-        with _create_test_configs(tmp_path, self.TEST_CONFIGS):
-            prev_cwd = pathlib.Path.cwd()
-            os.chdir(tmp_path)
-            try:
-                yield tmp_path
-            finally:
-                os.chdir(prev_cwd)
+        os.chdir(tmp_path)
+
+        for fn, content in self.TEST_CONFIGS.items():
+            config_rel_dir = os.path.dirname(fn)
+            if config_rel_dir:
+                os.makedirs(config_rel_dir, exist_ok=True)
+            with open(fn, "w") as f:
+                f.write(content)
+
+        try:
+            yield tmp_path
+        finally:
+            os.chdir(prev_cwd)
 
 
 class TestComplexSensorEnhancerConfigs(_BaseCustomEnhancementConfigTests):
