@@ -626,7 +626,10 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         fills = [2 ** file_bit_depth - 1]
     elif unsigned_in_signed:
         # max unsigned value is -1 as a signed int
-        fills = [-1]
+        # xarray will take the unpacked/in-memory type (unsigned) and convert
+        # it to the packed/on-disk type (signed) for us
+        unsigned_type = np.dtype("u" + dtype.name)
+        fills = [dtype.type(-1).astype(unsigned_type)]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
@@ -1598,7 +1601,7 @@ class AWIPSTiledWriter(Writer):
         area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
-        creation_time = dt.datetime.utcnow()
+        creation_time = dt.datetime.now(dt.UTC)
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
             area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
