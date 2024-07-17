@@ -626,10 +626,7 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         fills = [2 ** file_bit_depth - 1]
     elif unsigned_in_signed:
         # max unsigned value is -1 as a signed int
-        # xarray will take the unpacked/in-memory type (unsigned) and convert
-        # it to the packed/on-disk type (signed) for us
-        unsigned_type = np.dtype("u" + dtype.name)
-        fills = [dtype.type(-1).astype(unsigned_type)]
+        fills = [dtype.type(-1)]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
@@ -1066,12 +1063,10 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             new_ds.coords["x"].encoding["dtype"] = "int16"
             new_ds.coords["x"].encoding["scale_factor"] = np.float64(xy_factors.mx)
             new_ds.coords["x"].encoding["add_offset"] = np.float64(xy_factors.bx)
-            new_ds.coords["x"].encoding["_FillValue"] = -1
         if "y" in new_ds.coords:
             new_ds.coords["y"].encoding["dtype"] = "int16"
             new_ds.coords["y"].encoding["scale_factor"] = np.float64(xy_factors.my)
             new_ds.coords["y"].encoding["add_offset"] = np.float64(xy_factors.by)
-            new_ds.coords["y"].encoding["_FillValue"] = -1
         return new_ds
 
     def apply_tile_info(self, new_ds, tile_info):
