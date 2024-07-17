@@ -31,7 +31,6 @@ from urllib.parse import urlparse
 
 import dask.utils
 import numpy as np
-import pandas as pd
 import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
@@ -855,4 +854,4 @@ def datetime64_to_pydatetime(dt64):
     Returns (dt.datetime):
         Converted timestamp
     """
-    return pd.Timestamp(dt64).to_pydatetime(warn=False)
+    return dt64.astype("datetime64[us]").astype(datetime.datetime)
