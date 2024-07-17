@@ -1082,7 +1082,7 @@ class Scene:
         Parameters:
             datasets (list):
                 List of products to include in the :class:`xarray.Dataset`
-            compat (Optional[str]):
+            compat (str):
                 How to compare variables with the same name for conflicts.
                 See :func:`xarray.merge` for possible options. Defaults to
                 "minimal" which drops conflicting variables.
