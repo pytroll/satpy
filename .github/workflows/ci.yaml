@@ -111,7 +111,7 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest -n 6 --cov=satpy satpy/tests --cov-report=xml --cov-report=
+          pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v4
