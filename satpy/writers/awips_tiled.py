@@ -1105,7 +1105,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if creator is None:
             creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
-            creation_time = dt.datetime.utcnow()
+            creation_time = dt.datetime.now(dt.timezone.utc)
 
         self._add_sector_id_global(new_ds, sector_id)
         new_ds.attrs["Conventions"] = "CF-1.7"
@@ -1601,7 +1601,7 @@ class AWIPSTiledWriter(Writer):
         area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
-        creation_time = dt.datetime.now(dt.UTC)
+        creation_time = dt.datetime.now(dt.timezone.utc)
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
             area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
