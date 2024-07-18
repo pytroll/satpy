@@ -702,6 +702,23 @@ class TestFCIL1cNCReader:
         for atr in LIST_ATTRIBUTES:
             assert atr not in res[ch].attrs
 
+    def _reflectance_test(self,tab,filenames):
+        """Test of with the reflectance test."""
+        if "IQTI" in filenames:
+                numpy.testing.assert_array_almost_equal(tab,
+                                                93.6462)
+        else :
+            numpy.testing.assert_array_almost_equal(tab,
+                                            100 * 15 * 1 * np.pi / 50)
+
+    def _other_calibration_test(self,res,ch,dict_arg):
+        """Test of other calibration test."""
+        if ch == "ir_38":
+            numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
+            numpy.testing.assert_array_equal(res[ch][0], dict_arg["value_0"])
+        else:
+            numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
+
     def _get_assert_load(self,res,ch,grid_type,dict_arg,filenames):
         """Test the value for differents channels."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
@@ -711,18 +728,9 @@ class TestFCIL1cNCReader:
         if dict_arg["attrs_dict"]["calibration"] in ["radiance","brightness_temperature","reflectance"]:
            self._get_assert_erased_attrs(res,ch)
         if dict_arg["attrs_dict"]["calibration"] == "reflectance":
-            if "IQTI" in filenames:
-                numpy.testing.assert_array_almost_equal(res[ch],
-                                                93.6462)
-            else :
-                numpy.testing.assert_array_almost_equal(res[ch],
-                                                100 * 15 * 1 * np.pi / 50)
+            self._reflectance_test(res[ch],filenames)
         else :
-            if ch == "ir_38":
-                numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
-                numpy.testing.assert_array_equal(res[ch][0], dict_arg["value_0"])
-            else:
-                numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
+            self._other_calibration_test(res,ch,dict_arg)
 
     def _get_res_AF(self,channel,fh_param,calibration,reader_configs):
         """Load the reader for AF data."""
