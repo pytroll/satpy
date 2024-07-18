@@ -665,22 +665,19 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
 # ----------------------------------------------------
 # Tests ----------------------------------------------
 # ----------------------------------------------------
-
-
-class TestFCIL1cNCReader:
-    """Test FCI L1c NetCDF reader with nominal data."""
-
+class ModuleTestFCIL1cNcReader:
+    """Class containing parameters and modules usefull for the test related to L1c reader."""
     fh_param_for_filetype = {"hrfi": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi"]},
-                             "fdhsi": {"channels": CHANS_FHDSI,
+                            "fdhsi": {"channels": CHANS_FHDSI,
                                        "filenames": TEST_FILENAMES["fdhsi"]},
-                             "fdhsi_iqti": {"channels": CHANS_FHDSI,
+                            "fdhsi_iqti": {"channels": CHANS_FHDSI,
                                        "filenames": TEST_FILENAMES["fdhsi_iqti"]},
-                             "hrfi_q4": {"channels": CHANS_HRFI,
+                            "hrfi_q4": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi_q4"]},
-                             "hrfi_iqti": {"channels": CHANS_HRFI,
+                            "hrfi_iqti": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi_iqti"]},
-                              "fdhsi_q4": {"channels": CHANS_FHDSI,
+                            "fdhsi_q4": {"channels": CHANS_FHDSI,
                                        "filenames": TEST_FILENAMES["fdhsi_q4"]}}
 
     def _get_type_ter_AF(self,channel):
@@ -769,6 +766,9 @@ class TestFCIL1cNCReader:
         assert start_nominal_time == reader.file_handlers[filetype][0].nominal_start_time
         assert end_nominal_time == reader.file_handlers[filetype][0].nominal_end_time
 
+
+class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
+    """Test FCI L1c NetCDF reader with nominal data."""
 
     @pytest.mark.parametrize("filenames", [TEST_FILENAMES[filename] for filename in TEST_FILENAMES.keys()])
     def test_file_pattern(self, reader_configs, filenames):
