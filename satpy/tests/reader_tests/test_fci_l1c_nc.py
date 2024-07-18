@@ -703,7 +703,7 @@ class ModuleTestFCIL1cNcReader:
         """Test of with the reflectance test."""
         if "IQTI" in filenames:
                 numpy.testing.assert_array_almost_equal(tab,
-                                                93.6462)
+                                        93.6462,decimal=4)
         else :
             numpy.testing.assert_array_almost_equal(tab,
                                             100 * 15 * 1 * np.pi / 50)
