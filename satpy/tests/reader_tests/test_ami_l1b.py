@@ -402,7 +402,6 @@ class TestAMIL1bNetCDFIRCal:
         assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
 
-
 class TestAMIL1bNetCDFIRClip:
     """Test IR specific things about the AMI reader."""
 
@@ -415,12 +414,12 @@ class TestAMIL1bNetCDFIRClip:
         "units": "K",
     }
 
-    def test_clipneg(self, fake_ir_reader2):
+    @pytest.mark.parametrize("clip", [False, True])
+    def test_clipneg(self, fake_ir_reader2, clip):
         """Test that negative radiances are clipped."""
-        fake_ir_reader2.clip_negative_radiances = True
+        fake_ir_reader2.clip_negative_radiances = clip
         res = np.array(fake_ir_reader2.get_dataset(self.ds_id, self.ds_info))
-        assert np.isclose(res[0, 0], 4.6268106e-06)
-
-        fake_ir_reader2.clip_negative_radiances = False
-        res = np.array(fake_ir_reader2.get_dataset(self.ds_id, self.ds_info))
-        assert res[0, 0] < 0
+        if clip:
+            assert np.isclose(res[0, 0], 4.6268106e-06)
+        else:
+            assert res[0, 0] < 0
