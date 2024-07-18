@@ -71,7 +71,7 @@ def _get_fake_counts(rad_data: np.ndarray, attrs: dict) -> xr.DataArray:
 
 
 @contextlib.contextmanager
-def _fake_reader(counts_data: xr.DataArray, gain: float, offset: float) -> Iterator[AMIL1bNetCDF]:
+def _fake_reader(counts_data: xr.DataArray) -> Iterator[AMIL1bNetCDF]:
     sc_position = xr.DataArray(0., attrs={
         "sc_position_center_pixel": [-26113466.1974016, 33100139.1630508, 3943.75470244799],
     })
@@ -100,8 +100,8 @@ def _fake_reader(counts_data: xr.DataArray, gain: float, offset: float) -> Itera
             "observation_mode": "FD",
             "channel_spatial_resolution": "0.5",
             "Radiance_to_Albedo_c": 1,
-            "DN_to_Radiance_Gain": gain,
-            "DN_to_Radiance_Offset": offset,
+            "DN_to_Radiance_Gain": -0.0144806550815701,
+            "DN_to_Radiance_Offset": 118.050903320312,
             "Teff_to_Tbb_c0": -0.141418528203155,
             "Teff_to_Tbb_c1": 1.00052232906885,
             "Teff_to_Tbb_c2": -0.00000036287276076109,
@@ -122,14 +122,11 @@ def fake_vis_reader():
     """Create fake reader for loading visible data."""
     attrs = _fake_vis_attrs()
     counts_data_arr = _get_fake_counts(FAKE_VIS_DATA, attrs)
-    dn_to_Radiance_Gain = -0.0144806550815701
-    dn_to_Radiance_Offset = 118.050903320312
-    with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
+    with _fake_reader(counts_data_arr) as reader:
         yield reader
 
 
-def _fake_vis_attrs(irtest: bool = False):
-    bpp = 12 if not irtest else 14
+def _fake_vis_attrs():
     return {
         "channel_name": "VI006",
         "detector_side": 2,
@@ -141,7 +138,7 @@ def _fake_vis_attrs(irtest: bool = False):
         "stddev_pixel_value": 13621.130386551,
         "number_of_total_bits_per_pixel": 16,
         "number_of_data_quality_flag_bits_per_pixel": 2,
-        "number_of_valid_bits_per_pixel": bpp,
+        "number_of_valid_bits_per_pixel": 12,
         "data_quality_flag_meaning":
             "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
         "ground_sample_distance_ew": 1.4e-05,
@@ -154,9 +151,7 @@ def fake_ir_reader():
     """Create fake reader for loading IR data."""
     attrs = _fake_ir_attrs()
     counts_data_arr = _get_fake_counts(FAKE_IR_DATA, attrs)
-    dn_to_Radiance_Gain = -0.0144806550815701
-    dn_to_Radiance_Offset = 118.050903320312
-    with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
+    with _fake_reader(counts_data_arr) as reader:
         yield reader
 
 
@@ -183,13 +178,11 @@ def _fake_ir_attrs():
 @pytest.fixture()
 def fake_ir_reader2():
     """Create fake reader for testing radiance clipping."""
-    counts_arr = FAKE_VIS_DATA.copy()
+    counts_arr = FAKE_IR_DATA.copy()
     counts_arr[0, 0] = 16364
-    attrs = _fake_vis_attrs(irtest=True)
+    attrs = _fake_ir_attrs()
     counts_data_arr = _get_fake_counts(counts_arr, attrs)
-    dn_to_Radiance_Gain = -0.00108296517282724
-    dn_to_Radiance_Offset = 17.699987411499
-    with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
+    with _fake_reader(counts_data_arr) as reader:
         yield reader
 
 
@@ -384,25 +377,14 @@ class TestAMIL1bNetCDFIRCal:
         # make sure the attributes from the file are in the data array
         assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
-
-class TestAMIL1bNetCDFIRClip:
-    """Test IR specific things about the AMI reader."""
-
-    ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
-                        calibration="radiance")
-    ds_info = {
-        "file_key": "image_pixel_values",
-        "wavelength": [8.415, 8.59, 8.765],
-        "standard_name": "toa_brightness_temperature",
-        "units": "K",
-    }
-
     @pytest.mark.parametrize("clip", [False, True])
     def test_clipneg(self, fake_ir_reader2, clip):
         """Test that negative radiances are clipped."""
+        ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
+                            calibration="radiance")
         fake_ir_reader2.clip_negative_radiances = clip
-        res = np.array(fake_ir_reader2.get_dataset(self.ds_id, self.ds_info))
+        res = np.array(fake_ir_reader2.get_dataset(ds_id, self.ds_info))
         if clip:
-            assert np.isclose(res[0, 0], 4.6268106e-06)
+            np.testing.assert_allclose(res[0, 0], 0.004603, atol=0.0001)
         else:
             assert res[0, 0] < 0
