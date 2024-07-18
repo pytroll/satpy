@@ -19,7 +19,6 @@ from __future__ import annotations
 import datetime
 import logging
 import typing
-import unittest
 import warnings
 from math import sqrt
 from unittest import mock
@@ -266,7 +265,7 @@ def test_make_fake_scene():
     assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
 
 
-class TestCheckSatpy(unittest.TestCase):
+class TestCheckSatpy:
     """Test the 'check_satpy' function."""
 
     def test_basic_check_satpy(self):
