@@ -719,11 +719,14 @@ class TestFCIL1cNCReader:
         else:
             numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
 
-    def _get_assert_load(self,res,ch,grid_type,dict_arg,filenames):
-        """Test the value for differents channels."""
+    def _shape_test(self,res,ch,grid_type,dict_arg):
+        """Test the shape."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
-                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+                                GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
         assert res[ch].dtype == dict_arg["dtype"]
+
+    def _get_assert_load(self,res,ch,dict_arg,filenames):
+        """Test the value for differents channels."""
         self._get_assert_attrs(res,ch,dict_arg["attrs_dict"])
         if dict_arg["attrs_dict"]["calibration"] in ["radiance","brightness_temperature","reflectance"]:
            self._get_assert_erased_attrs(res,ch)
@@ -731,6 +734,8 @@ class TestFCIL1cNCReader:
             self._reflectance_test(res[ch],filenames)
         else :
             self._other_calibration_test(res,ch,dict_arg)
+
+
 
     def _get_res_AF(self,channel,fh_param,calibration,reader_configs):
         """Load the reader for AF data."""
@@ -823,7 +828,8 @@ class TestFCIL1cNCReader:
         assert expected_res_n[res_type] == len(res)
         for ch, grid_type in zip(list_chan,
                                  list_grid):
-            self._get_assert_load(res, ch, grid_type, DICT_CALIBRATION[calibration],fh_param["filenames"][0])
+            self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],fh_param["filenames"][0])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
     (calibration, channel, resolution)
@@ -841,7 +847,8 @@ class TestFCIL1cNCReader:
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
-            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration],fh_param["filenames"][0])
+            self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._get_assert_load(res,ch,DICT_CALIBRATION[calibration],fh_param["filenames"][0])
 
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
