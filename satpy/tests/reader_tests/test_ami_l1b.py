@@ -29,6 +29,9 @@ from pytest import approx, raises  # noqa: PT013
 from satpy.readers.ami_l1b import AMIL1bNetCDF
 from satpy.tests.utils import make_dataid
 
+FAKE_VIS_DATA = (((np.arange(10.).reshape((2, 5)) + 1.) * 50.0 + 1.0) / 0.5).astype(np.uint16)
+FAKE_IR_DATA = ((np.arange(10).reshape((2, 5))) + 7000).astype(np.uint16)
+
 
 class FakeDataset(object):
     """Mimic xarray Dataset object."""
@@ -56,24 +59,6 @@ class FakeDataset(object):
     def close(self):
         """Act like close method."""
         return
-
-
-def _get_fake_vis_counts(include_neg_first_pixel: bool = False) -> np.ndarray:
-    rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
-    rad_data = (rad_data + 1.) / 0.5
-    if include_neg_first_pixel:
-        # If testing IR clipping, set one pixel to negative radiance
-        rad_data[0, 0] = 16364
-    return rad_data.astype(np.uint16)
-
-
-def _get_fake_ir_counts(include_neg_first_pixel: bool = False) -> np.ndarray:
-    rad_data = (np.arange(10).reshape((2, 5))) + 7000
-    rad_data = rad_data.astype(np.uint16)
-    if include_neg_first_pixel:
-        # If testing IR clipping, set one pixel to negative radiance
-        rad_data[0, 0] = 16364
-    return rad_data
 
 
 def _get_fake_counts(rad_data: np.ndarray, attrs: dict) -> xr.DataArray:
@@ -135,9 +120,8 @@ def _fake_reader(counts_data: xr.DataArray, gain: float, offset: float) -> Itera
 @pytest.fixture()
 def fake_vis_reader():
     """Create fake reader for loading visible data."""
-    counts_arr = _get_fake_vis_counts()
     attrs = _fake_vis_attrs()
-    counts_data_arr = _get_fake_counts(counts_arr, attrs)
+    counts_data_arr = _get_fake_counts(FAKE_VIS_DATA, attrs)
     dn_to_Radiance_Gain = -0.0144806550815701
     dn_to_Radiance_Offset = 118.050903320312
     with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
@@ -168,9 +152,8 @@ def _fake_vis_attrs(irtest: bool = False):
 @pytest.fixture()
 def fake_ir_reader():
     """Create fake reader for loading IR data."""
-    counts_arr = _get_fake_ir_counts()
     attrs = _fake_ir_attrs()
-    counts_data_arr = _get_fake_counts(counts_arr, attrs)
+    counts_data_arr = _get_fake_counts(FAKE_IR_DATA, attrs)
     dn_to_Radiance_Gain = -0.0144806550815701
     dn_to_Radiance_Offset = 118.050903320312
     with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
@@ -200,7 +183,8 @@ def _fake_ir_attrs():
 @pytest.fixture()
 def fake_ir_reader2():
     """Create fake reader for testing radiance clipping."""
-    counts_arr = _get_fake_vis_counts(include_neg_first_pixel=True)
+    counts_arr = FAKE_VIS_DATA.copy()
+    counts_arr[0, 0] = 16364
     attrs = _fake_vis_attrs(irtest=True)
     counts_data_arr = _get_fake_counts(counts_arr, attrs)
     dn_to_Radiance_Gain = -0.00108296517282724
