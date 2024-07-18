@@ -360,7 +360,6 @@ class TestAMIL1bNetCDFIRCal:
         """Test IR calibration using in-file coefficients."""
         from satpy.readers.ami_l1b import rad2temp
         fake_ir_reader.calib_mode = "FILE"
-        # TODO: Create a separate fixture with the different calib modes
         with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
             res = fake_ir_reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
