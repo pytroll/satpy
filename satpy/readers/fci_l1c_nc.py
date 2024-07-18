@@ -29,8 +29,9 @@ For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
+    This reader supports datas from both DPF-I and IQT-I processing facilities.
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS scanning mode.
     In addition it also supports the L1C format for the African dissemination ("AF"), where each file
     contains the masked full-dic of a single channel see `AF PUG`_.
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
