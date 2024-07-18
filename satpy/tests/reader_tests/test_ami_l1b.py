@@ -16,14 +16,18 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ami_l1b reader tests package."""
-
-import unittest
+import contextlib
+from typing import Iterator
 from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 from pytest import approx, raises  # noqa: PT013
+
+from satpy.readers.ami_l1b import AMIL1bNetCDF
+from satpy.tests.utils import make_dataid
 
 
 class FakeDataset(object):
@@ -54,100 +58,158 @@ class FakeDataset(object):
         return
 
 
-class TestAMIL1bNetCDFBase(unittest.TestCase):
-    """Common setup for NC_ABI_L1B tests."""
-
-    def __init__(self, *args):
-        """Initialize test data."""
-        super(TestAMIL1bNetCDFBase, self).__init__(*args)
-        self.counts = None
-        self.irtest = None
-
-    @mock.patch("satpy.readers.ami_l1b.xr")
-    def setUp(self, xr_):
-        """Create a fake dataset using the given counts data."""
-        from satpy.readers.ami_l1b import AMIL1bNetCDF
-        if self.irtest:
-            dn_to_Radiance_Gain = -0.00108296517282724
-            dn_to_Radiance_Offset = 17.699987411499
-            bpp = 14
-        else:
-            dn_to_Radiance_Gain = -0.0144806550815701
-            dn_to_Radiance_Offset = 118.050903320312
-            bpp = 12
-
-        if self.counts is None:
-            rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
-            rad_data = (rad_data + 1.) / 0.5
-            rad_data = rad_data.astype(np.uint16)
-            if self.irtest:
-                # If testing IR clipping, set one pixel to negative radiance
-                rad_data[0, 0] = 16364
-                self.counts = xr.DataArray(
-                    da.from_array(rad_data, chunks="auto"),
-                    dims=("y", "x"),
-                    attrs={
-                        "channel_name": "VI006",
-                        "detector_side": 2,
-                        "number_of_total_pixels": 484000000,
-                        "number_of_error_pixels": 113892451,
-                        "max_pixel_value": 32768,
-                        "min_pixel_value": 6,
-                        "average_pixel_value": 8228.98770845248,
-                        "stddev_pixel_value": 13621.130386551,
-                        "number_of_total_bits_per_pixel": 16,
-                        "number_of_data_quality_flag_bits_per_pixel": 2,
-                        "number_of_valid_bits_per_pixel": bpp,
-                        "data_quality_flag_meaning":
-                            "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
-                        "ground_sample_distance_ew": 1.4e-05,
-                        "ground_sample_distance_ns": 1.4e-05,
-                    }
-                )
-        sc_position = xr.DataArray(0., attrs={
-            "sc_position_center_pixel": [-26113466.1974016, 33100139.1630508, 3943.75470244799],
-        })
-        xr_.open_dataset.return_value = FakeDataset(
-            {
-                "image_pixel_values": self.counts,
-                "sc_position": sc_position,
-                "gsics_coeff_intercept": [0.1859369],
-                "gsics_coeff_slope": [0.9967594],
-            },
-            {
-                "satellite_name": "GK-2A",
-                "observation_start_time": 623084431.957882,
-                "observation_end_time": 623084975.606133,
-                "projection_type": "GEOS",
-                "sub_longitude": 2.23751210105673,
-                "cfac": 81701355.6133574,
-                "lfac": -81701355.6133574,
-                "coff": 11000.5,
-                "loff": 11000.5,
-                "nominal_satellite_height": 42164000.,
-                "earth_equatorial_radius": 6378137.,
-                "earth_polar_radius": 6356752.3,
-                "number_of_columns": 22000,
-                "number_of_lines": 22000,
-                "observation_mode": "FD",
-                "channel_spatial_resolution": "0.5",
-                "Radiance_to_Albedo_c": 1,
-                "DN_to_Radiance_Gain": dn_to_Radiance_Gain,
-                "DN_to_Radiance_Offset": dn_to_Radiance_Offset,
-                "Teff_to_Tbb_c0": -0.141418528203155,
-                "Teff_to_Tbb_c1": 1.00052232906885,
-                "Teff_to_Tbb_c2": -0.00000036287276076109,
-                "light_speed": 2.9979245800E+08,
-                "Boltzmann_constant_k": 1.3806488000E-23,
-                "Plank_constant_h": 6.6260695700E-34,
-            }
-        )
-        self.reader = AMIL1bNetCDF("filename",
-                                   {"platform_shortname": "gk2a"},
-                                   {"file_type": "ir087"})
+def _get_fake_vis_counts(include_neg_first_pixel: bool = False) -> np.ndarray:
+    rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
+    rad_data = (rad_data + 1.) / 0.5
+    if include_neg_first_pixel:
+        # If testing IR clipping, set one pixel to negative radiance
+        rad_data[0, 0] = 16364
+    return rad_data.astype(np.uint16)
 
 
-class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
+def _get_fake_ir_counts(include_neg_first_pixel: bool = False) -> np.ndarray:
+    rad_data = (np.arange(10).reshape((2, 5))) + 7000
+    rad_data = rad_data.astype(np.uint16)
+    if include_neg_first_pixel:
+        # If testing IR clipping, set one pixel to negative radiance
+        rad_data[0, 0] = 16364
+    return rad_data
+
+
+def _get_fake_counts(rad_data: np.ndarray, attrs: dict) -> xr.DataArray:
+    counts = xr.DataArray(
+        da.from_array(rad_data, chunks="auto"),
+        dims=("y", "x"),
+        attrs=attrs,
+    )
+    return counts
+
+
+@contextlib.contextmanager
+def _fake_reader(counts_data: xr.DataArray, gain: float, offset: float) -> Iterator[AMIL1bNetCDF]:
+    sc_position = xr.DataArray(0., attrs={
+        "sc_position_center_pixel": [-26113466.1974016, 33100139.1630508, 3943.75470244799],
+    })
+    fake_ds = FakeDataset(
+        {
+            "image_pixel_values": counts_data,
+            "sc_position": sc_position,
+            "gsics_coeff_intercept": [0.1859369],
+            "gsics_coeff_slope": [0.9967594],
+        },
+        {
+            "satellite_name": "GK-2A",
+            "observation_start_time": 623084431.957882,
+            "observation_end_time": 623084975.606133,
+            "projection_type": "GEOS",
+            "sub_longitude": 2.23751210105673,
+            "cfac": 81701355.6133574,
+            "lfac": -81701355.6133574,
+            "coff": 11000.5,
+            "loff": 11000.5,
+            "nominal_satellite_height": 42164000.,
+            "earth_equatorial_radius": 6378137.,
+            "earth_polar_radius": 6356752.3,
+            "number_of_columns": 22000,
+            "number_of_lines": 22000,
+            "observation_mode": "FD",
+            "channel_spatial_resolution": "0.5",
+            "Radiance_to_Albedo_c": 1,
+            "DN_to_Radiance_Gain": gain,
+            "DN_to_Radiance_Offset": offset,
+            "Teff_to_Tbb_c0": -0.141418528203155,
+            "Teff_to_Tbb_c1": 1.00052232906885,
+            "Teff_to_Tbb_c2": -0.00000036287276076109,
+            "light_speed": 2.9979245800E+08,
+            "Boltzmann_constant_k": 1.3806488000E-23,
+            "Plank_constant_h": 6.6260695700E-34,
+        }
+    )
+    with mock.patch("satpy.readers.ami_l1b.xr") as xr_:
+        xr_.open_dataset.return_value = fake_ds
+        yield AMIL1bNetCDF("filename",
+                            {"platform_shortname": "gk2a"},
+                            {"file_type": "ir087"})
+
+
+@pytest.fixture()
+def fake_vis_reader():
+    """Create fake reader for loading visible data."""
+    counts_arr = _get_fake_vis_counts()
+    attrs = _fake_vis_attrs()
+    counts_data_arr = _get_fake_counts(counts_arr, attrs)
+    dn_to_Radiance_Gain = -0.0144806550815701
+    dn_to_Radiance_Offset = 118.050903320312
+    with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
+        yield reader
+
+
+def _fake_vis_attrs(irtest: bool = False):
+    bpp = 12 if not irtest else 14
+    return {
+        "channel_name": "VI006",
+        "detector_side": 2,
+        "number_of_total_pixels": 484000000,
+        "number_of_error_pixels": 113892451,
+        "max_pixel_value": 32768,
+        "min_pixel_value": 6,
+        "average_pixel_value": 8228.98770845248,
+        "stddev_pixel_value": 13621.130386551,
+        "number_of_total_bits_per_pixel": 16,
+        "number_of_data_quality_flag_bits_per_pixel": 2,
+        "number_of_valid_bits_per_pixel": bpp,
+        "data_quality_flag_meaning":
+            "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
+        "ground_sample_distance_ew": 1.4e-05,
+        "ground_sample_distance_ns": 1.4e-05,
+    }
+
+
+@pytest.fixture()
+def fake_ir_reader():
+    """Create fake reader for loading IR data."""
+    counts_arr = _get_fake_ir_counts()
+    attrs = _fake_ir_attrs()
+    counts_data_arr = _get_fake_counts(counts_arr, attrs)
+    dn_to_Radiance_Gain = -0.0144806550815701
+    dn_to_Radiance_Offset = 118.050903320312
+    with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
+        yield reader
+
+
+def _fake_ir_attrs():
+    return {
+        "channel_name": "IR087",
+        "detector_side": 2,
+        "number_of_total_pixels": 484000000,
+        "number_of_error_pixels": 113892451,
+        "max_pixel_value": 32768,
+        "min_pixel_value": 6,
+        "average_pixel_value": 8228.98770845248,
+        "stddev_pixel_value": 13621.130386551,
+        "number_of_total_bits_per_pixel": 16,
+        "number_of_data_quality_flag_bits_per_pixel": 2,
+        "number_of_valid_bits_per_pixel": 13,
+        "data_quality_flag_meaning":
+            "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
+        "ground_sample_distance_ew": 1.4e-05,
+        "ground_sample_distance_ns": 1.4e-05,
+    }
+
+
+@pytest.fixture()
+def fake_ir_reader2():
+    """Create fake reader for testing radiance clipping."""
+    counts_arr = _get_fake_vis_counts(include_neg_first_pixel=True)
+    attrs = _fake_vis_attrs(irtest=True)
+    counts_data_arr = _get_fake_counts(counts_arr, attrs)
+    dn_to_Radiance_Gain = -0.00108296517282724
+    dn_to_Radiance_Offset = 17.699987411499
+    with _fake_reader(counts_data_arr, dn_to_Radiance_Gain, dn_to_Radiance_Offset) as reader:
+        yield reader
+
+
+class TestAMIL1bNetCDF:
     """Test the AMI L1b reader."""
 
     def _check_orbital_parameters(self, orb_params):
@@ -187,17 +249,17 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         assert len(groups) == 1
         assert len(groups[0]["ami_l1b"]) == 16
 
-    def test_basic_attributes(self):
+    def test_basic_attributes(self, fake_vis_reader):
         """Test getting basic file attributes."""
         import datetime as dt
-        assert self.reader.start_time == dt.datetime(2019, 9, 30, 3, 0, 31, 957882)
-        assert self.reader.end_time == dt.datetime(2019, 9, 30, 3, 9, 35, 606133)
+        assert fake_vis_reader.start_time == dt.datetime(2019, 9, 30, 3, 0, 31, 957882)
+        assert fake_vis_reader.end_time == dt.datetime(2019, 9, 30, 3, 9, 35, 606133)
 
-    def test_get_dataset(self):
+    def test_get_dataset(self, fake_vis_reader):
         """Test getting radiance data."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name="VI006", calibration="radiance")
-        res = self.reader.get_dataset(key, {
+        res = fake_vis_reader.get_dataset(key, {
             "file_key": "image_pixel_values",
             "standard_name": "toa_outgoing_radiance_per_unit_wavelength",
             "units": "W m-2 um-1 sr-1",
@@ -218,9 +280,9 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
             _ = make_dataid(name="VI006", calibration="_bad_")
 
     @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
-    def test_get_area_def(self, adef):
+    def test_get_area_def(self, adef, fake_vis_reader):
         """Test the area generation."""
-        self.reader.get_area_def(None)
+        fake_vis_reader.get_area_def(None)
 
         assert adef.call_count == 1
         call_args = tuple(adef.call_args)[0]
@@ -229,16 +291,16 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         for key, val in exp.items():
             assert key in call_args[3]
             assert val == approx(call_args[3][key])
-        assert call_args[4] == self.reader.nc.attrs["number_of_columns"]
-        assert call_args[5] == self.reader.nc.attrs["number_of_lines"]
+        assert call_args[4] == fake_vis_reader.nc.attrs["number_of_columns"]
+        assert call_args[5] == fake_vis_reader.nc.attrs["number_of_lines"]
         np.testing.assert_allclose(call_args[6],
                                    [-5511022.902, -5511022.902, 5511022.902, 5511022.902])
 
-    def test_get_dataset_vis(self):
+    def test_get_dataset_vis(self, fake_vis_reader):
         """Test get visible calibrated data."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name="VI006", calibration="reflectance")
-        res = self.reader.get_dataset(key, {
+        res = fake_vis_reader.get_dataset(key, {
             "file_key": "image_pixel_values",
             "standard_name": "toa_bidirectional_reflectance",
             "units": "%",
@@ -252,11 +314,11 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
             assert val == res.attrs[key]
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
-    def test_get_dataset_counts(self):
+    def test_get_dataset_counts(self, fake_vis_reader):
         """Test get counts data."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name="VI006", calibration="counts")
-        res = self.reader.get_dataset(key, {
+        res = fake_vis_reader.get_dataset(key, {
             "file_key": "image_pixel_values",
             "standard_name": "counts",
             "units": "1",
@@ -271,50 +333,22 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
 
 
-class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
+class TestAMIL1bNetCDFIRCal:
     """Test IR specific things about the AMI reader."""
+    ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
+                        calibration="brightness_temperature")
+    ds_info = {
+        "file_key": "image_pixel_values",
+        "wavelength": [8.415, 8.59, 8.765],
+        "standard_name": "toa_brightness_temperature",
+        "units": "K",
+    }
 
-    def setUp(self):
-        """Create test data for IR calibration tests."""
-        from satpy.tests.utils import make_dataid
-        count_data = (np.arange(10).reshape((2, 5))) + 7000
-        count_data = count_data.astype(np.uint16)
-        self.counts = xr.DataArray(
-            da.from_array(count_data, chunks="auto"),
-            dims=("y", "x"),
-            attrs={
-                "channel_name": "IR087",
-                "detector_side": 2,
-                "number_of_total_pixels": 484000000,
-                "number_of_error_pixels": 113892451,
-                "max_pixel_value": 32768,
-                "min_pixel_value": 6,
-                "average_pixel_value": 8228.98770845248,
-                "stddev_pixel_value": 13621.130386551,
-                "number_of_total_bits_per_pixel": 16,
-                "number_of_data_quality_flag_bits_per_pixel": 2,
-                "number_of_valid_bits_per_pixel": 13,
-                "data_quality_flag_meaning":
-                    "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
-                "ground_sample_distance_ew": 1.4e-05,
-                "ground_sample_distance_ns": 1.4e-05,
-            }
-        )
-        self.ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
-                                 calibration="brightness_temperature")
-        self.ds_info = {
-            "file_key": "image_pixel_values",
-            "wavelength": [8.415, 8.59, 8.765],
-            "standard_name": "toa_brightness_temperature",
-            "units": "K",
-        }
-        super(TestAMIL1bNetCDFIRCal, self).setUp()
-
-    def test_default_calibrate(self):
+    def test_default_calibrate(self, fake_ir_reader):
         """Test default (pyspectral) IR calibration."""
         from satpy.readers.ami_l1b import rad2temp
         with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(self.ds_id, self.ds_info)
+            res = fake_ir_reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_called_once()
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
@@ -322,12 +356,13 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # make sure the attributes from the file are in the data array
         assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
-    def test_infile_calibrate(self):
+    def test_infile_calibrate(self, fake_ir_reader):
         """Test IR calibration using in-file coefficients."""
         from satpy.readers.ami_l1b import rad2temp
-        self.reader.calib_mode = "FILE"
+        fake_ir_reader.calib_mode = "FILE"
+        # TODO: Create a separate fixture with the different calib modes
         with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(self.ds_id, self.ds_info)
+            res = fake_ir_reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
@@ -336,30 +371,30 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # make sure the attributes from the file are in the data array
         assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
-    def test_gsics_radiance_corr(self):
+    def test_gsics_radiance_corr(self, fake_ir_reader):
         """Test IR radiance adjustment using in-file GSICS coefs."""
         from satpy.readers.ami_l1b import rad2temp
-        self.reader.calib_mode = "GSICS"
+        fake_ir_reader.calib_mode = "GSICS"
         expected = np.array([[238.036797, 238.007106, 237.977396, 237.947668, 237.91792],
                              [237.888154, 237.85837, 237.828566, 237.798743, 237.768902]])
         with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(self.ds_id, self.ds_info)
+            res = fake_ir_reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
         assert res.attrs["standard_name"] == "toa_brightness_temperature"
 
-    def test_user_radiance_corr(self):
+    def test_user_radiance_corr(self, fake_ir_reader):
         """Test IR radiance adjustment using user-supplied coefs."""
         from satpy.readers.ami_l1b import rad2temp
-        self.reader.calib_mode = "FILE"
-        self.reader.user_calibration = {"IR087": {"slope": 0.99669,
+        fake_ir_reader.calib_mode = "FILE"
+        fake_ir_reader.user_calibration = {"IR087": {"slope": 0.99669,
                                                   "offset": 0.16907}}
         expected = np.array([[238.073713, 238.044043, 238.014354, 237.984647, 237.954921],
                              [237.925176, 237.895413, 237.865631, 237.835829, 237.806009]])
         with mock.patch("satpy.readers.ami_l1b.rad2temp", wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(self.ds_id, self.ds_info)
+            res = fake_ir_reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
@@ -368,30 +403,24 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
 
 
 
-class TestAMIL1bNetCDFIRClip(TestAMIL1bNetCDFBase):
+class TestAMIL1bNetCDFIRClip:
     """Test IR specific things about the AMI reader."""
 
-    def setUp(self):
-        """Create test data for IR calibration tests."""
-        from satpy.tests.utils import make_dataid
+    ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
+                        calibration="radiance")
+    ds_info = {
+        "file_key": "image_pixel_values",
+        "wavelength": [8.415, 8.59, 8.765],
+        "standard_name": "toa_brightness_temperature",
+        "units": "K",
+    }
 
-        self.ds_id = make_dataid(name="IR087", wavelength=[8.415, 8.59, 8.765],
-                                 calibration="radiance")
-        self.ds_info = {
-            "file_key": "image_pixel_values",
-            "wavelength": [8.415, 8.59, 8.765],
-            "standard_name": "toa_brightness_temperature",
-            "units": "K",
-        }
-        self.irtest = True
-        super(TestAMIL1bNetCDFIRClip, self).setUp()
-
-    def test_clipneg(self):
+    def test_clipneg(self, fake_ir_reader2):
         """Test that negative radiances are clipped."""
-        self.reader.clip_negative_radiances = True
-        res = np.array(self.reader.get_dataset(self.ds_id, self.ds_info))
+        fake_ir_reader2.clip_negative_radiances = True
+        res = np.array(fake_ir_reader2.get_dataset(self.ds_id, self.ds_info))
         assert np.isclose(res[0, 0], 4.6268106e-06)
 
-        self.reader.clip_negative_radiances = False
-        res = np.array(self.reader.get_dataset(self.ds_id, self.ds_info))
+        fake_ir_reader2.clip_negative_radiances = False
+        res = np.array(fake_ir_reader2.get_dataset(self.ds_id, self.ds_info))
         assert res[0, 0] < 0
