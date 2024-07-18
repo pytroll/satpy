@@ -708,7 +708,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             middle_time_diff = (self.observation_end_time-self.observation_start_time)/2
             utc_date = self.observation_start_time + middle_time_diff
             sun_earth_distance = sun_earth_distance_correction(utc_date)
-            logger.info(f"The value sun_earth_distance is set to {sun_earth_distance}")
+            logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
         else:
             sun_earth_distance = np.nanmean(
                 self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]

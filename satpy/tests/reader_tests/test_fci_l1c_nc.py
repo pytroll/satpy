@@ -829,7 +829,8 @@ class TestFCIL1cNCReader:
         for ch, grid_type in zip(list_chan,
                                  list_grid):
             self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
-            self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],fh_param["filenames"][0])
+            self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],
+                                  fh_param["filenames"][0])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
     (calibration, channel, resolution)
@@ -848,7 +849,8 @@ class TestFCIL1cNCReader:
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
             self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
-            self._get_assert_load(res,ch,DICT_CALIBRATION[calibration],fh_param["filenames"][0])
+            self._get_assert_load(res,ch,DICT_CALIBRATION[calibration],
+                                  fh_param["filenames"][0])
 
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
