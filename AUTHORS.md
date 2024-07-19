@@ -95,3 +95,4 @@ The following people have made contributions to this project:
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Antonio Valentino](https://github.com/avalentino)
 - [Pouria Khalaj](https://github.com/pkhalaj)
+- [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
