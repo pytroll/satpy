@@ -114,6 +114,7 @@ import logging
 import numpy as np
 import xarray as xr
 
+import satpy.utils
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.hrit_base import (
     HRITFileHandler,
@@ -474,10 +475,10 @@ class HRITJMAFileHandler(HRITFileHandler):
     def start_time(self):
         """Get start time of the scan."""
         if self._use_acquisition_time_as_start_time:
-            return self.acq_time[0].astype(dt.datetime)
+            return satpy.utils.datetime64_to_pydatetime(self.acq_time[0])
         return self._start_time
 
     @property
     def end_time(self):
         """Get end time of the scan."""
-        return self.acq_time[-1].astype(dt.datetime)
+        return satpy.utils.datetime64_to_pydatetime(self.acq_time[-1])
