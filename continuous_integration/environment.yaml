@@ -57,6 +57,7 @@ dependencies:
   - pint-xarray
   - ephem
   - bokeh
+  - pytest-xdist
   - pip:
     - pytest-lazy-fixtures
     - trollsift
