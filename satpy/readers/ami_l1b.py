@@ -202,7 +202,7 @@ class AMIL1bNetCDF(BaseFileHandler):
             qf = data & 0b1100000000000000
 
         # mask DQF bits
-        bits = attrs["number_of_valid_bits_per_pixel"]
+        bits = attrs["number_of_valid_bits_per_pixel"].astype(data.dtype)
         data &= 2**bits - 1
         # only take "no error" pixels as valid
         data = data.where(qf == 0)
