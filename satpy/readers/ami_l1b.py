@@ -184,7 +184,6 @@ class AMIL1bNetCDF(BaseFileHandler):
         }
         return orbital_parameters
 
-
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
         file_key = ds_info.get("file_key", dataset_id["name"])
@@ -238,7 +237,6 @@ class AMIL1bNetCDF(BaseFileHandler):
         data.attrs = attrs
         return data
 
-
     def _clip_negative_radiance(self, data, gain, offset):
         """If requested, clip negative radiance from Rad DataArray."""
         if self.clip_negative_radiances:
@@ -247,7 +245,6 @@ class AMIL1bNetCDF(BaseFileHandler):
             count_pos = np.floor(count_zero_rad)
             min_rad = count_pos * gain + offset
             data = data.clip(min=min_rad)
-            return data
         return data
 
     def _calibrate_ir(self, dataset_id, data):
@@ -261,10 +258,9 @@ class AMIL1bNetCDF(BaseFileHandler):
             bt_data = rad2temp(wn, data.data * 1e-5)
             if isinstance(bt_data, np.ndarray):
                 # old versions of pyspectral produce numpy arrays
-                data.data = da.from_array(bt_data, chunks=data.data.chunks)
-            else:
-                # new versions of pyspectral can do dask arrays
-                data.data = bt_data
+                bt_data = da.from_array(bt_data, chunks=data.data.chunks)
+            # new versions of pyspectral can do dask arrays
+            data.data = bt_data
         else:
             # IR coefficients from the file
             # Channel specific
