@@ -29,7 +29,7 @@ For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
-    This reader supports datas from both DPF-I and IQT-I processing facilities.
+    This reader supports datas from both IDPF-I and IQT-I processing facilities.
     This reader currently supports Full Disk High Spectral Resolution Imagery
     (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS scanning mode.
     In addition it also supports the L1C format for the African dissemination ("AF"), where each file
