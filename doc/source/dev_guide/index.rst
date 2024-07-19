@@ -19,6 +19,7 @@ at the pages listed below.
     satpy_internals
     aux_data
     writing_tests
+    testing
 
 Coding guidelines
 =================
