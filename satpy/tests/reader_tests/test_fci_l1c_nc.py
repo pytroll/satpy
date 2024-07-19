@@ -666,7 +666,7 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
 # Tests ----------------------------------------------
 # ----------------------------------------------------
 class ModuleTestFCIL1cNcReader:
-    """Class containing parameters and modules usefull for the test related to L1c reader."""
+    """Class containing parameters and modules useful for the test related to L1c reader."""
     fh_param_for_filetype = {"hrfi": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi"]},
                             "fdhsi": {"channels": CHANS_FHDSI,
