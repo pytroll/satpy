@@ -138,7 +138,7 @@ def _fake_vis_attrs():
         "stddev_pixel_value": 13621.130386551,
         "number_of_total_bits_per_pixel": 16,
         "number_of_data_quality_flag_bits_per_pixel": 2,
-        "number_of_valid_bits_per_pixel": 12,
+        "number_of_valid_bits_per_pixel": np.array([12]).astype(np.uint8),
         "data_quality_flag_meaning":
             "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
         "ground_sample_distance_ew": 1.4e-05,
@@ -167,7 +167,7 @@ def _fake_ir_attrs():
         "stddev_pixel_value": 13621.130386551,
         "number_of_total_bits_per_pixel": 16,
         "number_of_data_quality_flag_bits_per_pixel": 2,
-        "number_of_valid_bits_per_pixel": 13,
+        "number_of_valid_bits_per_pixel": np.array([13]).astype(np.uint8),
         "data_quality_flag_meaning":
             "0:good_pixel, 1:conditionally_usable_pixel, 2:out_of_scan_area_pixel, 3:error_pixel",
         "ground_sample_distance_ew": 1.4e-05,

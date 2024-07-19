@@ -248,9 +248,7 @@ class AMIL1bNetCDF(BaseFileHandler):
             min_rad = count_pos * gain + offset
             data = data.clip(min=min_rad)
             return data
-        else:
-            return data
-
+        return data
 
     def _calibrate_ir(self, dataset_id, data):
         """Calibrate radiance data to BTs using either pyspectral or in-file coefficients."""
