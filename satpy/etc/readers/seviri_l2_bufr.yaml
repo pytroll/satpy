@@ -1159,7 +1159,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: "\u00B0C"
+    units: "°C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
