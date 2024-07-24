@@ -721,9 +721,10 @@ class TestDistributed:
         # ways) without map_blocks.
 
         def doubler(x):
-            return x * 2
+            # with a workaround for https://github.com/numpy/numpy/issues/27029
+            return x * x.dtype.type(2)
 
-        dask_doubler = arr.map_blocks(doubler)
+        dask_doubler = arr.map_blocks(doubler, dtype=arr.dtype)
         res = dask_doubler.compute()
         # test before and after computation, as to confirm we have the correct
         # shape and dtype and that computing doesn't change them
