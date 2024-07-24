@@ -739,11 +739,13 @@ def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
             method set_auto_maskandscale, such as is the case for
             NetCDF4.Dataset.
     """
-    def get_chunk():
+    def get_chunk(block_info=None):
+        arrloc = block_info[None]["array-location"]
         with manager.acquire_context() as nc:
             if auto_maskandscale is not None:
                 nc.set_auto_maskandscale(auto_maskandscale)
-            return nc["/".join([group, varname])][:]
+            var = nc["/".join([group, varname])]
+            return var[tuple(slice(*x) for x in arrloc)]
 
     return da.map_blocks(
             get_chunk,
