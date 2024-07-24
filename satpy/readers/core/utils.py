@@ -716,9 +716,9 @@ def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
 
     Example::
 
-        >>> import NetCDF4
+        >>> import netCDF4
         >>> from xarray.backends import CachingFileManager
-        >>> cfm = CachingFileManager(NetCDF4.Dataset, fn, mode="r")
+        >>> cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
         >>> arr = get_distributed_friendly_dask_array(cfm, "my_var")
 
     Args:
