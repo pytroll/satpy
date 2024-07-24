@@ -455,7 +455,7 @@ class HRITMSGFileHandler(HRITFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue, calib_mode="nominal",
+                 prologue, epilogue, calib_mode="nominal", calib_fallback=None,
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=100, fill_hrv=True,
                  mask_bad_quality_scan_lines=True):
@@ -475,6 +475,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda_max_array_size = mda_max_array_size
         self.fill_hrv = fill_hrv
         self.calib_mode = calib_mode
+        self.calib_fallback = calib_fallback
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self._get_header()
@@ -722,13 +723,17 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        calib = SEVIRICalibrationHandler(
-            platform_id=self.platform_id,
-            channel_name=self.channel_name,
-            coefs=self._get_calib_coefs(self.channel_name),
-            calib_mode=self.calib_mode,
-            scan_time=self.observation_start_time
-        )
+        calib_params = {
+            "mode": self.calib_mode,
+            "coefs": self._get_calib_coefs(),
+            "ext_calib_coefs": self.ext_calib_coefs
+        }
+        scan_params = {
+            "platform_id": self.platform_id,
+            "channel_name": self.channel_name,
+            "scan_time": self.observation_start_time
+        }
+        calib = SEVIRICalibrationHandler(calib_params, scan_params)
         res = calib.calibrate(data, calibration)
         return res
 
@@ -783,7 +788,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         if self.include_raw_metadata:
             res.attrs["raw_metadata"] = self._get_raw_mda()
 
-    def _get_calib_coefs(self, channel_name):
+    def _get_calib_coefs(self):
         """Get coefficients for calibration from counts to radiance."""
         band_idx = self.mda["spectral_channel_id"] - 1
         coefs_nominal = self.prologue["RadiometricProcessing"][
@@ -800,7 +805,9 @@ class HRITMSGFileHandler(HRITFileHandler):
                 coefs_gsics["GSICSCalCoeff"][band_idx],
                 coefs_gsics["GSICSOffsetCount"][band_idx]
             ),
-            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
+            platform_id=self.platform_id,
+            channel={"name": self.channel_name, "index": band_idx},
+            scan_time=self.observation_start_time,
             radiance_type=radiance_types[band_idx]
         )
 
