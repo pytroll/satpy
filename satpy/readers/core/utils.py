@@ -722,7 +722,7 @@ def get_serializable_dask_array(manager, varname, chunks, dtype):
 
     Args:
         manager (xarray.backends.CachingFileManager):
-            Instance of xarray.backends.CachingFileManager encapsulating the
+            Instance of :class:`~xarray.backends.CachingFileManager` encapsulating the
             dataset to be read.
         varname (str):
             Name of the variable (possibly including a group path).
@@ -741,4 +741,4 @@ def get_serializable_dask_array(manager, varname, chunks, dtype):
             get_chunk,
             chunks=chunks,
             dtype=dtype,
-            meta=np.array([]))
+            meta=np.array([], dtype=dtype))
