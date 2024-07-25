@@ -702,11 +702,11 @@ def _make_coefs(coefs, mode):
     return {"coefs": coefs, "mode": mode}
 
 
-def get_serialisable_dask_array(manager, varname, chunks, dtype):
-    """Construct a serialisable dask array from a variable.
+def get_serializable_dask_array(manager, varname, chunks, dtype):
+    """Construct a serializable dask array from a variable.
 
     When we construct a dask array using da.array and use that to create an
-    xarray dataarray, the result is not serialisable and dask graphs using
+    xarray dataarray, the result is not serializable and dask graphs using
     this dataarray cannot be computed when the dask distributed scheduler
     is in use.  To circumvent this problem, xarray provides the
     CachingFileManager.  See GH#2815 for more information.
@@ -718,7 +718,7 @@ def get_serialisable_dask_array(manager, varname, chunks, dtype):
         >>> import netCDF4
         >>> from xarray.backends import CachingFileManager
         >>> cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
-        >>> arr = get_serialisable_dask_array(cfm, "my_var")
+        >>> arr = get_serializable_dask_array(cfm, "my_var")
 
     Args:
         manager (xarray.backends.CachingFileManager):
