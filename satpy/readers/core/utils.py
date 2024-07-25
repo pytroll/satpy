@@ -702,8 +702,7 @@ def _make_coefs(coefs, mode):
     return {"coefs": coefs, "mode": mode}
 
 
-def get_serialisable_dask_array(manager, varname, chunks, dtype,
-                                auto_maskandscale=None):
+def get_serialisable_dask_array(manager, varname, chunks, dtype):
     """Construct a serialisable dask array from a variable.
 
     When we construct a dask array using da.array and use that to create an
@@ -719,7 +718,7 @@ def get_serialisable_dask_array(manager, varname, chunks, dtype,
         >>> import netCDF4
         >>> from xarray.backends import CachingFileManager
         >>> cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
-        >>> arr = get_distributed_friendly_dask_array(cfm, "my_var")
+        >>> arr = get_serialisable_dask_array(cfm, "my_var")
 
     Args:
         manager (xarray.backends.CachingFileManager):
@@ -731,18 +730,11 @@ def get_serialisable_dask_array(manager, varname, chunks, dtype,
             Chunks to use when creating the dask array.
         dtype (dtype):
             What dtype to use.
-        auto_maskandscale (bool, optional):
-            Apply automatic masking and scaling.  This will only
-            work if CachingFileManager.acquire returns a handler with a
-            method set_auto_maskandscale, such as is the case for
-            NetCDF4.Dataset.
     """
     def get_chunk(block_info=None):
         arrloc = block_info[None]["array-location"]
         with manager.acquire_context() as nc:
-            if auto_maskandscale is not None:
-                nc.set_auto_maskandscale(auto_maskandscale)
-            var = nc[varname] #"/".join([group, varname])]
+            var = nc[varname]
             return var[tuple(slice(*x) for x in arrloc)]
 
     return da.map_blocks(

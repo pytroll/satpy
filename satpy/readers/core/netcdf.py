@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
 
+import functools
 import logging
 import warnings
 
@@ -122,7 +123,9 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         if cache_handle:
             self.manager = xr.backends.CachingFileManager(
-                    netCDF4.Dataset, self.filename, mode="r")
+                    functools.partial(_NCDatasetWrapper,
+                                      auto_maskandscale=auto_maskandscale),
+                    self.filename, mode="r")
         else:
             file_handle.close()
 
@@ -477,3 +480,24 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
         if self._use_h5netcdf:
             return obj.attrs[key]
         return super()._get_attr(obj, key)
+
+class _NCDatasetWrapper(netCDF4.Dataset):
+    """Wrap netcdf4.Dataset setting auto_maskandscale globally.
+
+    Helper class that wraps netcdf4.Dataset while setting extra parameters.
+    By encapsulating this in a helper class, we can
+    pass it to CachingFileManager directly.  Currently sets
+    auto_maskandscale globally (for all variables).
+    """
+
+    def __init__(self, *args, auto_maskandscale=False, **kwargs):
+        """Initialise object."""
+        super().__init__(*args, **kwargs)
+        self._set_extra_settings(auto_maskandscale=auto_maskandscale)
+
+    def _set_extra_settings(self, auto_maskandscale):
+        """Set our own custom settings.
+
+        Currently only applies set_auto_maskandscale.
+        """
+        self.set_auto_maskandscale(auto_maskandscale)

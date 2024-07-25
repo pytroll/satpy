@@ -697,7 +697,7 @@ class TestDistributed:
     @pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
     @pytest.mark.parametrize("grp", ["/", "/in/a/group"])
     def test_get_serialisable_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):
-        """Test getting a dask distributed friendly dask array."""
+        """Test getting a dask distributed friendly serialisable dask array."""
         import netCDF4
         from xarray.backends import CachingFileManager
 
