@@ -296,27 +296,78 @@ class TestOLCIReader(unittest.TestCase):
         assert res.values[-1, -1] == 1e29
 
 
-def test_bitflags():
-    """Test the BitFlags class."""
-    from functools import reduce
+class TestL2BitFlags(unittest.TestCase):
+    """Test the bitflag reading."""
 
-    import numpy as np
+    def test_bitflags(self):
+        """Test the BitFlags class."""
+        from functools import reduce
 
-    from satpy.readers.olci_nc import DEFAULT_L1B_MASK_ITEMS, L1B_QUALITY_FLAGS, BitFlags
+        import numpy as np
 
-    bits = np.array([1 << x for x in range(len(L1B_QUALITY_FLAGS))])
+        from satpy.readers.olci_nc import BitFlags
+        flag_list = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
+                     "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT", "HISOLZEN",
+                     "SATURATED", "MEGLINT", "HIGHGLINT", "WHITECAPS",
+                     "ADJAC", "WV_FAIL", "PAR_FAIL", "AC_FAIL", "OC4ME_FAIL",
+                     "OCNN_FAIL", "Extra_1", "KDM_FAIL", "Extra_2",
+                     "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON",
+                     "WHITE_SCATT", "LOWRW", "HIGHRW"]
 
-    bflags = BitFlags(bits, flag_list=L1B_QUALITY_FLAGS)
+        bits = np.array([1 << x for x in range(len(flag_list))])
 
-    mask = reduce(np.logical_or, [bflags[item] for item in DEFAULT_L1B_MASK_ITEMS])
+        bflags = BitFlags(bits)
 
-    expected = np.array([False, False, False, False,
-                         False, False, False, False,
-                         False, False, False, False,
-                         False, False, False, False,
-                         False, False, False, False,
-                         False, True, True, True,
-                         True, True, True, True,
-                         True, False, True, True,
-                       ])
-    assert all(mask == expected)
+        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+
+        mask = reduce(np.logical_or, [bflags[item] for item in items])
+        expected = np.array([True, False,  True,  True,  True,  True, False,
+                             False,  True, True, False, False, False, False,
+                             False, False, False,  True, False,  True, False,
+                             False, False,  True,  True, False, False, True,
+                             False])
+        assert all(mask == expected)
+
+
+class TestL1bBitFlags(unittest.TestCase):
+    """Test the bitflag reading."""
+
+    def test_bitflags(self):
+        """Test the BitFlags class."""
+        from functools import reduce
+
+        import numpy as np
+
+        from satpy.readers.olci_nc import BitFlags
+
+
+        L1B_QUALITY_FLAGS = ["saturated@Oa21", "saturated@Oa20", "saturated@Oa19", "saturated@Oa18",
+                             "saturated@Oa17", "saturated@Oa16", "saturated@Oa15", "saturated@Oa14",
+                             "saturated@Oa13", "saturated@Oa12", "saturated@Oa11", "saturated@Oa10",
+                             "saturated@Oa09", "saturated@Oa08", "saturated@Oa07", "saturated@Oa06",
+                             "saturated@Oa05", "saturated@Oa04", "saturated@Oa03", "saturated@Oa02",
+                             "saturated@Oa01", "dubious", "sun-glint_risk", "duplicated",
+                             "cosmetic", "invalid", "straylight_risk", "bright",
+                             "tidal_region", "fresh_inland_water", "coastline", "land"]
+
+        DEFAULT_L1B_MASK_ITEMS = ["dubious", "sun-glint_risk", "duplicated", "cosmetic", "invalid",
+                                  "straylight_risk", "bright", "tidal_region", "coastline", "land"]
+
+        bits = np.array([1 << x for x in range(len(L1B_QUALITY_FLAGS))])
+
+        bflags = BitFlags(bits, flag_list=L1B_QUALITY_FLAGS)
+
+        mask = reduce(np.logical_or, [bflags[item] for item in DEFAULT_L1B_MASK_ITEMS])
+
+        expected = np.array([False, False, False, False,
+                             False, False, False, False,
+                             False, False, False, False,
+                             False, False, False, False,
+                             False, False, False, False,
+                             False, True, True, True,
+                             True, True, True, True,
+                             True, False, True, True,
+                            ])
+        assert all(mask == expected)
