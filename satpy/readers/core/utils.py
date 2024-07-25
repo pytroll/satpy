@@ -702,9 +702,9 @@ def _make_coefs(coefs, mode):
     return {"coefs": coefs, "mode": mode}
 
 
-def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
-                                        group="/", auto_maskandscale=None):
-    """Construct a dask array from a variable for dask distributed.
+def get_serialisable_dask_array(manager, varname, chunks, dtype,
+                                auto_maskandscale=None):
+    """Construct a serialisable dask array from a variable.
 
     When we construct a dask array using da.array and use that to create an
     xarray dataarray, the result is not serialisable and dask graphs using
@@ -726,13 +726,11 @@ def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
             Instance of xarray.backends.CachingFileManager encapsulating the
             dataset to be read.
         varname (str):
-            Name of the variable.
+            Name of the variable (possibly including a group path).
         chunks (tuple):
             Chunks to use when creating the dask array.
         dtype (dtype):
             What dtype to use.
-        group (str):
-            What group to read the variable from.
         auto_maskandscale (bool, optional):
             Apply automatic masking and scaling.  This will only
             work if CachingFileManager.acquire returns a handler with a
@@ -744,7 +742,7 @@ def get_distributed_friendly_dask_array(manager, varname, chunks, dtype,
         with manager.acquire_context() as nc:
             if auto_maskandscale is not None:
                 nc.set_auto_maskandscale(auto_maskandscale)
-            var = nc["/".join([group, varname])]
+            var = nc[varname] #"/".join([group, varname])]
             return var[tuple(slice(*x) for x in arrloc)]
 
     return da.map_blocks(

@@ -696,7 +696,7 @@ class TestDistributed:
     @pytest.mark.parametrize("shape", [(2,), (2, 3), (2, 3, 4)])
     @pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
     @pytest.mark.parametrize("grp", ["/", "/in/a/group"])
-    def test_get_distributed_friendly_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):
+    def test_get_serialisable_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):
         """Test getting a dask distributed friendly dask array."""
         import netCDF4
         from xarray.backends import CachingFileManager
@@ -710,9 +710,8 @@ class TestDistributed:
         ds.to_netcdf(fn, group=grp)
 
         cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
-        arr = hf.get_distributed_friendly_dask_array(cfm, "kaitum",
-                                                     chunks=shape, dtype=dtype,
-                                                     group=grp)
+        arr = hf.get_serialisable_dask_array(cfm, "/".join([grp, "kaitum"]),
+                                             chunks=shape, dtype=dtype)
 
         # As documented in GH issue 2815, using dask distributed with the file
         # handle cacher might fail in non-trivial ways, such as giving incorrect

@@ -31,7 +31,7 @@ import xarray as xr
 import satpy
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
-from satpy.readers.core.utils import get_distributed_friendly_dask_array, np2str
+from satpy.readers.core.utils import get_serialisable_dask_array, np2str
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -357,13 +357,13 @@ class NetCDF4FileHandler(BaseFileHandler):
             else:
                 v = ds[key]
         if group is None:
-            dv = get_distributed_friendly_dask_array(
+            dv = get_serialisable_dask_array(
                     self.manager, key,
                     chunks=v.shape, dtype=v.dtype,
                     auto_maskandscale=self._auto_maskandscale)
         else:
-            dv = get_distributed_friendly_dask_array(
-                    self.manager, key, group=group,
+            dv = get_serialisable_dask_array(
+                    self.manager, "/".join([group, key]),
                     chunks=v.shape, dtype=v.dtype,
                     auto_maskandscale=self._auto_maskandscale)
         attrs = self._get_object_attrs(v)
