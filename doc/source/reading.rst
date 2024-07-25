@@ -23,6 +23,124 @@ To return additional reader information use `available_readers(as_dict=True)`::
     >>> from satpy import available_readers
     >>> available_readers()
 
+
+.. _reader_table:
+
+Reader Table
+------------
+
+.. include:: reader_table.rst
+
+.. _Status Description:
+.. note::
+
+    Status description:
+
+    Defunct
+        Most likely the reader is not functional. If it is there is a good chance of
+        bugs and/or performance problems (e.g. not ported to dask/xarray yet). Future
+        development is unclear. Users are encouraged to contribute (see section
+        :doc:`dev_guide/CONTRIBUTING` and/or get help on Slack or by opening a Github issue).
+
+    Alpha
+        This denotes early development status. Reader is functional and implements some
+        or all of the nominal features. There might be bugs. Exactness of results is
+        not be guaranteed. Use at your own risk.
+
+    Beta
+        This denotes final developement status. Reader is functional and implements all
+        nominal features. Results should be dependable but there might be bugs. Users
+        are actively encouraged to test and report bugs.
+
+    Nominal
+        This denotes a finished status. Reader is functional and most likely no new
+        features will be introduced. It has been tested and there are no known bugs.
+
+Documentation for specific readers
+----------------------------------
+
+SEVIRI L1.5 data readers
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_base
+    :noindex:
+
+SEVIRI HRIT format reader
+"""""""""""""""""""""""""
+
+.. automodule:: satpy.readers.seviri_l1b_hrit
+    :noindex:
+
+SEVIRI Native format reader
+"""""""""""""""""""""""""""
+
+.. automodule:: satpy.readers.seviri_l1b_native
+    :noindex:
+
+SEVIRI netCDF format reader
+"""""""""""""""""""""""""""
+
+.. automodule:: satpy.readers.seviri_l1b_nc
+    :noindex:
+
+
+Other xRIT-based readers
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.hrit_base
+    :noindex:
+
+
+JMA HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^
+
+
+.. automodule:: satpy.readers.hrit_jma
+    :noindex:
+
+GOES HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.goes_imager_hrit
+    :noindex:
+
+Electro-L HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.electrol_hrit
+    :noindex:
+
+hdf-eos based readers
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.modis_l1b
+    :noindex:
+
+.. automodule:: satpy.readers.modis_l2
+    :noindex:
+
+satpy cf nc readers
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.satpy_cf_nc
+    :noindex:
+
+hdf5 based readers
+^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.agri_l1
+    :noindex:
+
+.. automodule:: satpy.readers.ghi_l1
+    :noindex:
+
+Arctica-M N1 HDF5 format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.msu_gsa_l1b
+    :noindex:
+
+
 Filter loaded files
 ===================
 
@@ -290,87 +408,3 @@ Adding a Reader to Satpy
 ========================
 
 This is described in the developer guide, see :doc:`dev_guide/custom_reader`.
-
-Implemented readers
-===================
-
-SEVIRI L1.5 data readers
-------------------------
-
-.. automodule:: satpy.readers.seviri_base
-    :noindex:
-
-SEVIRI HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.seviri_l1b_hrit
-    :noindex:
-
-SEVIRI Native format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.seviri_l1b_native
-    :noindex:
-
-SEVIRI netCDF format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.seviri_l1b_nc
-    :noindex:
-
-
-Other xRIT-based readers
-------------------------
-
-.. automodule:: satpy.readers.hrit_base
-    :noindex:
-
-
-JMA HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^
-
-
-.. automodule:: satpy.readers.hrit_jma
-    :noindex:
-
-GOES HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.goes_imager_hrit
-    :noindex:
-
-Electro-L HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.electrol_hrit
-    :noindex:
-
-hdf-eos based readers
----------------------
-
-.. automodule:: satpy.readers.modis_l1b
-    :noindex:
-
-.. automodule:: satpy.readers.modis_l2
-    :noindex:
-
-satpy cf nc readers
----------------------
-
-.. automodule:: satpy.readers.satpy_cf_nc
-    :noindex:
-
-hdf5 based readers
-------------------
-
-.. automodule:: satpy.readers.agri_l1
-    :noindex:
-
-.. automodule:: satpy.readers.ghi_l1
-    :noindex:
-
-Arctica-M N1 HDF5 format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.msu_gsa_l1b
-    :noindex:

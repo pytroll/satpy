@@ -272,8 +272,16 @@ class NCOLCILowResData(NCOLCIBase):
                  engine=None, **kwargs):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
-        self.l_step = self.nc.attrs["al_subsampling_factor"]
-        self.c_step = self.nc.attrs["ac_subsampling_factor"]
+
+    @property
+    def l_step(self):
+        """Get the line step."""
+        return self.nc.attrs["al_subsampling_factor"]
+
+    @property
+    def c_step(self):
+        """Get the column step."""
+        return self.nc.attrs["ac_subsampling_factor"]
 
     def _do_interpolate(self, data):
 

@@ -7,11 +7,11 @@ remote-sensing earth-observing satellite instruments. Satpy
 provides users with readers that convert geophysical parameters from various
 file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
-scientific python libraries. Satpy also provides interfaces for creating
-RGB (Red/Green/Blue) images and other composite types by combining data
-from multiple instrument bands or products. Various atmospheric corrections
-and visual enhancements are provided for improving the usefulness and quality
-of output images. Output data can be written to
+scientific python libraries. For a full list of available readers see :ref:`reader_table`.
+Satpy also provides interfaces for creating RGB (Red/Green/Blue) images and other
+composite types by combining data from multiple instrument bands or products.
+Various atmospheric corrections and visual enhancements are provided for
+improving the usefulness and quality of output images. Output data can be written to
 multiple output file formats such as PNG, GeoTIFF, and CF standard NetCDF
 files. Satpy also allows users to resample data to geographic projected grids
 (areas). Satpy is maintained by the open source
@@ -80,34 +80,11 @@ Documentation
     Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
-.. _reader_table:
 
-.. include:: reader_table.rst
-
-.. _Status Description:
 .. note::
 
-    Status description:
-
-    Defunct
-        Most likely the reader is not functional. If it is there is a good chance of
-        bugs and/or performance problems (e.g. not ported to dask/xarray yet). Future
-        development is unclear. Users are encouraged to contribute (see section
-        :doc:`dev_guide/CONTRIBUTING` and/or get help on Slack or by opening a Github issue).
-
-    Alpha
-        This denotes early development status. Reader is functional and implements some
-        or all of the nominal features. There might be bugs. Exactness of results is
-        not be guaranteed. Use at your own risk.
-
-    Beta
-        This denotes final developement status. Reader is functional and implements all
-        nominal features. Results should be dependable but there might be bugs. Users
-        are actively encouraged to test and report bugs.
-
-    Nominal
-        This denotes a finished status. Reader is functional and most likely no new
-        features will be introduced. It has been tested and there are no known bugs.
+    Please note that the reader table that used to be placed here has moved to the "reading"
+    section here:  :ref:`reader_table`.
 
 Indices and tables
 ==================

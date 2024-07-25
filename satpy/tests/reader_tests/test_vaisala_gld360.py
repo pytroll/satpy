@@ -17,18 +17,21 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Vaisala GLD360 reader."""
 
-import unittest
+import os
 from io import StringIO
 
 import numpy as np
+import pytest
 
 from satpy.readers.vaisala_gld360 import VaisalaGLD360TextFileHandler
 from satpy.tests.utils import make_dataid
 
 
-class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
+class TestVaisalaGLD360TextFileHandler:
     """Test the VaisalaGLD360TextFileHandler."""
 
+    @pytest.mark.xfail(os.getenv("UNSTABLE", "0") in ("1", "true"),
+                       reason="Vaisala GLD360 reader is not compatible with latest pandas")
     def test_vaisala_gld360(self):
         """Test basic functionality for vaisala file handler."""
         expected_power = np.array([12.3, 13.2, -31.])

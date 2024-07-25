@@ -229,7 +229,8 @@ class TestNetCDF4FileHandler:
         """Test that error is raised when file not found."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
-        with pytest.raises(IOError, match=".* file .*"):
+        # NOTE: Some versions of NetCDF C report unknown file format on Windows
+        with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
     def test_get_and_cache_npxr_is_xr(self, dummy_nc_file):

@@ -71,7 +71,7 @@ jobs:
         #   compatibility issues with numpy 2. When conda-forge has numpy 2 available
         #   this shouldn't be needed.
         run: |
-          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig
+          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
@@ -93,7 +93,6 @@ jobs:
           git+https://github.com/Unidata/netcdf4-python \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
-          git+https://github.com/zarr-developers/zarr \
           git+https://github.com/Unidata/cftime \
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
@@ -112,7 +111,7 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
+          pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v4
