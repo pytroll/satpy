@@ -43,7 +43,7 @@ from pygac.lac_klm import LACKLMReader
 from pygac.lac_pod import LACPODReader
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
 
@@ -185,8 +185,8 @@ class GACLACFile(BaseFileHandler):
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
-        self._start_time = times[0].astype(dt.datetime)
-        self._end_time = times[-1].astype(dt.datetime)
+        self._start_time = datetime64_to_pydatetime(times[0])
+        self._end_time = datetime64_to_pydatetime(times[-1])
 
         # Select user-defined scanlines and/or strip invalid coordinates
         if (self.start_line is not None or self.end_line is not None
@@ -224,8 +224,8 @@ class GACLACFile(BaseFileHandler):
         """
         sliced = self._slice(data)
         times = self._slice(times)
-        self._start_time = times[0].astype(dt.datetime)
-        self._end_time = times[-1].astype(dt.datetime)
+        self._start_time = datetime64_to_pydatetime(times[0])
+        self._end_time = datetime64_to_pydatetime(times[-1])
         return sliced, times
 
     def _slice(self, data):

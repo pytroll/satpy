@@ -606,11 +606,12 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
 
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
-            res = comp((self.data_a,))
-            res = res.compute()
+        # with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
+        res_dask = comp((self.data_a,))
+        res = res_dask.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res_dask.dtype == res.dtype
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands

@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 
-from satpy.tests.reader_tests.utils import get_jit_methods, skip_numba_unstable_if_missing
+from satpy.tests.reader_tests.utils import get_jit_methods
+from satpy.tests.utils import skip_numba_unstable_if_missing
 
 try:
     import satpy.readers.gms.gms5_vissr_navigation as nav

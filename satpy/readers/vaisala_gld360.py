@@ -54,7 +54,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         # Combine 'date' and 'time' into a datetime object
         parse_dates = {"time": ["gld360_date", "gld360_time"]}
 
-        self.data = pd.read_csv(filename, delim_whitespace=True, header=None,
+        self.data = pd.read_csv(filename, sep="\\s+", header=None,
                                 names=names, dtype=dtypes, parse_dates=parse_dates)
 
     @property

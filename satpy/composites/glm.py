@@ -50,10 +50,10 @@ class HighlightCompositor(GenericCompositor):
         Args:
             min_highlight (float): Minimum raw value of the "highlight" data
                 that will be used for linearly scaling the data along with
-                ``max_hightlight``.
+                ``max_highlight``.
             max_highlight (float): Maximum raw value of the "highlight" data
                 that will be used for linearly scaling the data along with
-                ``min_hightlight``.
+                ``min_highlight``.
             max_factor (tuple): Maximum effect that the highlight data can
                 have on each channel of the primary image data. This will be
                 multiplied by the linearly scaled highlight data and then
@@ -61,8 +61,8 @@ class HighlightCompositor(GenericCompositor):
                 docstring for more information. By default this is set to
                 ``(0.8, 0.8, -0.8, 0)`` meaning the Red and Green channel
                 will be added to by at most 0.8, the Blue channel will be
-                subtracted from by at most 0.8, and the Alpha channel will
-                not be effected.
+                subtracted from by at most 0.8 (resulting in yellow highlights),
+                and the Alpha channel will not be affected.
 
         """
         self.min_highlight = min_highlight

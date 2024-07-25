@@ -841,3 +841,17 @@ def find_in_ancillary(data, dataset):
             f"variables for dataset {data.attrs.get('name')!r}, "
             f"found {cnt:d}")
     return matches[0]
+
+
+def datetime64_to_pydatetime(dt64):
+    """Convert numpy.datetime64 timestamp to Python datetime.
+
+    Discards nanosecond precision, because Python datetime only has microsecond
+    precision.
+
+    Args:
+        dt64 (np.datetime64): Timestamp to be converted
+    Returns (dt.datetime):
+        Converted timestamp
+    """
+    return dt64.astype("datetime64[us]").astype(datetime.datetime)

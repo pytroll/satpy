@@ -19,7 +19,6 @@ from __future__ import annotations
 import datetime
 import logging
 import typing
-import unittest
 import warnings
 from math import sqrt
 from unittest import mock
@@ -32,6 +31,7 @@ import xarray as xr
 from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.utils import (
     angle2xyz,
+    datetime64_to_pydatetime,
     get_legacy_chunk_size,
     get_satpos,
     import_error_helper,
@@ -266,7 +266,7 @@ def test_make_fake_scene():
     assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
 
 
-class TestCheckSatpy(unittest.TestCase):
+class TestCheckSatpy:
     """Test the 'check_satpy' function."""
 
     def test_basic_check_satpy(self):
@@ -613,3 +613,21 @@ def test_find_in_ancillary():
             match=("Could not find dataset named thumb in "
                    "ancillary variables for dataset 'hand'")):
         find_in_ancillary(hand, "thumb")
+
+
+@pytest.mark.parametrize(
+    ("dt64", "expected"),
+    [
+        (
+                np.datetime64("2000-01-02T03:04:05.000000006"),
+                datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
+        ),
+        (
+                np.datetime64("2000-01-02T03:04:05.000006"),
+                datetime.datetime(2000, 1, 2, 3, 4, 5, 6)
+        )
+    ]
+)
+def test_datetime64_to_pydatetime(dt64, expected):
+    """Test conversion from datetime64 to Python datetime."""
+    assert datetime64_to_pydatetime(dt64) == expected

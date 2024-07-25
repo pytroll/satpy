@@ -73,12 +73,6 @@ class VGACFileHandler(BaseFileHandler):
             self._end_time = data.attrs["end_time"]
             self._start_time = data.attrs["start_time"]
 
-    def dt64_to_datetime(self, dt64):
-        """Conversion of numpy.datetime64 to datetime objects."""
-        if isinstance(dt64, np.datetime64):
-            return dt64.astype(dt.datetime)
-        return dt64
-
     def extract_time_data(self, data, nc):
         """Decode time data."""
         reference_time = np.datetime64(dt.datetime.strptime(nc["proj_time0"].attrs["units"],

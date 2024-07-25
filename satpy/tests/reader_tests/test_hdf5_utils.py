@@ -150,3 +150,13 @@ class TestHDF5FileHandler(unittest.TestCase):
         assert "fake_ds" not in file_handler
 
         assert isinstance(file_handler["ds2_f/attr/test_ref"], np.ndarray)
+
+    def test_array_name_uniqueness(self):
+        """Test the dask array generated from an hdf5 dataset stay constant and unique."""
+        from satpy.readers.hdf5_utils import HDF5FileHandler
+        file_handler = HDF5FileHandler("test.h5", {}, {})
+
+        dsname = "test_group/ds1_f"
+
+        assert file_handler[dsname].data.name == file_handler[dsname].data.name
+        assert file_handler[dsname].data.name.startswith("/" + dsname)

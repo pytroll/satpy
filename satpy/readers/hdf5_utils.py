@@ -18,19 +18,21 @@
 """Helpers for reading hdf5-based files."""
 
 import logging
+import os
 
 import dask.array as da
+import dask.config as dc
 import h5py
 import numpy as np
 import xarray as xr
+from dask.array.core import normalize_chunks
+from dask.base import tokenize
 
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
-from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
-CHUNK_SIZE = get_legacy_chunk_size()
 
 
 class HDF5FileHandler(BaseFileHandler):
@@ -102,7 +104,7 @@ class HDF5FileHandler(BaseFileHandler):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             f_obj = open_file_or_filename(self.filename)
             dset = h5py.File(f_obj, "r")[key]
-            dset_data = da.from_array(dset, chunks=CHUNK_SIZE)
+            dset_data = from_h5_array(dset)
             attrs = self._attrs_cache.get(key, dset.attrs)
             if dset.ndim == 2:
                 return xr.DataArray(dset_data, dims=["y", "x"], attrs=attrs)
@@ -120,3 +122,14 @@ class HDF5FileHandler(BaseFileHandler):
             return self[item]
         else:
             return default
+
+
+def from_h5_array(h5dset):
+    """Create a dask array from an h5py dataset, ensuring uniqueness of the dask array name."""
+    chunk_size = dc.get("array.chunk-size")
+
+    chunks = normalize_chunks(chunk_size, dtype=h5dset.dtype, previous_chunks=h5dset.chunks, shape=h5dset.shape)
+    name = h5dset.name + "-" + tokenize(os.fspath(h5dset.file.filename), h5dset.name, chunks)
+
+    dset_data = da.from_array(h5dset, chunks=chunks, name=name)
+    return dset_data

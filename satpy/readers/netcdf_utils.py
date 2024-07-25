@@ -15,6 +15,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
 
+import functools
 import glob
 import logging
 import os
@@ -31,7 +32,7 @@ import xarray as xr
 import satpy
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_distributed_friendly_dask_array, np2str
+from satpy.readers.utils import get_serializable_dask_array, np2str
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -127,7 +128,9 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         if cache_handle:
             self.manager = xr.backends.CachingFileManager(
-                    netCDF4.Dataset, self.filename, mode="r")
+                    functools.partial(_NCDatasetWrapper,
+                                      auto_maskandscale=auto_maskandscale),
+                    self.filename, mode="r")
         else:
             file_handle.close()
 
@@ -345,15 +348,13 @@ class NetCDF4FileHandler(BaseFileHandler):
             else:
                 v = ds[key]
         if group is None:
-            dv = get_distributed_friendly_dask_array(
+            dv = get_serializable_dask_array(
                     self.manager, key,
-                    chunks=v.shape, dtype=v.dtype,
-                    auto_maskandscale=self._auto_maskandscale)
+                    chunks=v.shape, dtype=v.dtype)
         else:
-            dv = get_distributed_friendly_dask_array(
-                    self.manager, key, group=group,
-                    chunks=v.shape, dtype=v.dtype,
-                    auto_maskandscale=self._auto_maskandscale)
+            dv = get_serializable_dask_array(
+                    self.manager, "/".join([group, key]),
+                    chunks=v.shape, dtype=v.dtype)
         attrs = self._get_object_attrs(v)
         x = xr.DataArray(
                 dv,
@@ -672,3 +673,25 @@ def _get_delayed_value_from_nc(fn, var, auto_maskandscale=False):
         (grp, var) = (None, var)
     with xr.open_dataset(fn, group=grp, mask_and_scale=auto_maskandscale, engine="h5netcdf") as nc:
         return nc[var][:]
+
+
+class _NCDatasetWrapper(netCDF4.Dataset):
+    """Wrap netcdf4.Dataset setting auto_maskandscale globally.
+
+    Helper class that wraps netcdf4.Dataset while setting extra parameters.
+    By encapsulating this in a helper class, we can
+    pass it to CachingFileManager directly.  Currently sets
+    auto_maskandscale globally (for all variables).
+    """
+
+    def __init__(self, *args, auto_maskandscale=False, **kwargs):
+        """Initialise object."""
+        super().__init__(*args, **kwargs)
+        self._set_extra_settings(auto_maskandscale=auto_maskandscale)
+
+    def _set_extra_settings(self, auto_maskandscale):
+        """Set our own custom settings.
+
+        Currently only applies set_auto_maskandscale.
+        """
+        self.set_auto_maskandscale(auto_maskandscale)

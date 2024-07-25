@@ -371,15 +371,17 @@ class TestAngleGeneration:
         assert isinstance(raa, xr.DataArray)
         np.testing.assert_allclose(expected_raa, raa)
 
-    def test_solazi_correction(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_solazi_correction(self, dtype):
         """Test that solar azimuth angles are corrected into the right range."""
         from satpy.modifiers.angles import _get_sun_azimuth_ndarray
 
-        lats = np.array([-80, 40, 0, 40, 80])
-        lons = np.array([-80, 40, 0, 40, 80])
+        lats = np.array([-80, 40, 0, 40, 80], dtype=dtype)
+        lons = np.array([-80, 40, 0, 40, 80], dtype=dtype)
 
         date = dt.datetime(2022, 1, 5, 12, 50, 0)
 
         azi = _get_sun_azimuth_ndarray(lats, lons, date)
 
         assert np.all(azi > 0)
+        assert azi.dtype == dtype

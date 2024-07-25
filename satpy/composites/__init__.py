@@ -764,8 +764,8 @@ class DayNightCompositor(GenericCompositor):
             self,
             projectables: Sequence[xr.DataArray],
     ) -> xr.DataArray:
-        lim_low = np.cos(np.deg2rad(self.lim_low))
-        lim_high = np.cos(np.deg2rad(self.lim_high))
+        lim_low = float(np.cos(np.deg2rad(self.lim_low)))
+        lim_high = float(np.cos(np.deg2rad(self.lim_high)))
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
             self._has_sza = True
@@ -775,8 +775,8 @@ class DayNightCompositor(GenericCompositor):
             # Get chunking that matches the data
             coszen = get_cos_sza(projectables[0])
         # Calculate blending weights
-        coszen -= np.min((lim_high, lim_low))
-        coszen /= np.abs(lim_low - lim_high)
+        coszen -= min(lim_high, lim_low)
+        coszen /= abs(lim_low - lim_high)
         return coszen.clip(0, 1)
 
     def _get_data_for_single_side_product(
