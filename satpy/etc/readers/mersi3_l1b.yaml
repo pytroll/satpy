@@ -599,7 +599,7 @@ datasets:
         file_key: Geolocation/Longitude
       250:
         file_type: mersi3_l1b_250_geo
-        file_key: GEO/Longitude
+        file_key: Longitude
   latitude:
     name: latitude
     units: degrees_north
@@ -610,7 +610,7 @@ datasets:
         file_key: Geolocation/Latitude
       250:
         file_type: mersi3_l1b_250_geo
-        file_key: GEO/Latitude
+        file_key: Latitude
   solar_zenith_angle:
     name: solar_zenith_angle
     units: degree
