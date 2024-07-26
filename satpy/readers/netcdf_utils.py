@@ -118,7 +118,7 @@ class NetCDF4FileHandler(BaseFileHandler):
                 raise
 
             self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
-            self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
+        self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
         if listed_variables:
