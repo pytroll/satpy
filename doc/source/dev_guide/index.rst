@@ -73,7 +73,7 @@ All the required dependencies for a full development environment, i.e. running t
 tests and building the documentation, can be installed with::
 
     conda install eccodes
-    pip install -e ".[all]"
+    pip install -e ".[dev]"
 
 Running tests
 =============
@@ -126,7 +126,7 @@ Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. For building the documentation,
 additional packages are needed. These can be installed with ::
 
-    pip install -e ".[all]"
+    pip install -e ".[doc]"
 
 After editing the source files there the documentation can be generated locally::
 
