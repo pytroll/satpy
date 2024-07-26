@@ -111,7 +111,9 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         listed_variables = filetype_info.get("required_netcdf_variables")
         if listed_variables:
-            self._collect_listed_variables(file_handle, listed_variables)
+            variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+            listed_variables = self._get_required_variable_names(listed_variables, variable_name_replacements)
+            self._collect_listed_variables(file_handle, listed_variables, filetype_info)
         else:
             self.collect_metadata("", file_handle)
             self.collect_dimensions("", file_handle)
@@ -168,9 +170,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content[var_name + "/dimensions"] = var_obj.dimensions
         self._collect_attrs(var_name, var_obj)
 
-    def _collect_listed_variables(self, file_handle, listed_variables):
-        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
-        for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
+    def _collect_listed_variables(self, file_handle, listed_variables, filetype_info):
+        for itm in listed_variables:
             parts = itm.split("/")
             grp = file_handle
             for p in parts[:-1]:

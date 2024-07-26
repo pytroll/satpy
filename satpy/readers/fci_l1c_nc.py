@@ -158,6 +158,15 @@ LOW_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "1km",
                                        "grid_width": 5568},
                      }
 
+NONSHAREABLE_VARIABLE_ENDINGS = [
+    "index",
+    "time",
+    "measured/effective_radiance",
+    "measured/y",
+    "position_row",
+    "index_map",
+    "pixel_quality"]
+
 
 def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
@@ -699,6 +708,31 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
+
+    def _collect_listed_variables(self, file_handle, listed_variables, filetype_info):
+        listed_variables = self._collect_from_inter_segment_cache(listed_variables, filetype_info)
+        super()._collect_listed_variables(file_handle, listed_variables, filetype_info)
+        self._store_shared_info(filetype_info)
+
+    def _collect_from_inter_segment_cache(self, listed_variables, filetype_info):
+        if "shared_info" in filetype_info:
+            shared_info = filetype_info["shared_info"]
+            for key in shared_info:
+                self.file_content[key] = shared_info[key]
+                try:
+                    listed_variables.remove(key)
+                except ValueError:
+                    pass
+        return listed_variables
+
+    def _store_shared_info(self, filetype_info):
+        if "shared_info" not in filetype_info:
+            shared_info = {}
+            for key in self.file_content:
+                if any(key.endswith(k) for k in NONSHAREABLE_VARIABLE_ENDINGS):
+                    continue
+                shared_info[key] = self.file_content[key]
+            filetype_info["shared_info"] = shared_info
 
 
 def _ensure_dataarray(arr):

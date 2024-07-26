@@ -921,3 +921,81 @@ class TestFCIL1cNCReaderBadDataFromIDPF:
                                                  np.array([-5568000.227139, -5368000.221262,
                                                            5568000.100073, -5568000.227139]),
                                                  decimal=2)
+
+
+def _mock_np2str(val):
+    return val
+
+
+def parse_fdhsi_filename_info(filename):
+    """Parse filename info from the filename."""
+    from trollsift import parse
+
+    fmt = ("{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-"
+           "{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_"
+           "{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_"
+           "{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc")
+    filename_info = parse(fmt, filename)
+    return filename_info
+
+
+def test_reusing_shared_segment_info():
+    """Test that certain data are reused after the first segment has been handled.
+
+    This is the case where something has been already handled and stored to filetype_info["shared_info"] dict.
+    """
+    filename = TEST_FILENAMES["fdhsi"][0]
+    filename_info = parse_fdhsi_filename_info(filename)
+    filetype_info = {
+        "shared_info": {
+            "attr/platform": "mock-satellite"
+        },
+        "required_netcdf_variables": ["attr/platform"]
+    }
+
+    with mock.patch("satpy.readers.netcdf_utils.NetCDF4FsspecFileHandler._get_file_handle"):
+        with mock.patch("satpy.readers.netcdf_utils.np2str", _mock_np2str):
+            fh_ = FCIL1cNCFileHandler(filename, filename_info, filetype_info)
+
+    assert fh_.file_content["attr/platform"] == filetype_info["shared_info"]["attr/platform"]
+
+
+def test_store_shared_segment_info():
+    """Test that certain data are collected to filetype_info["shared_info"] from the first segment."""
+    filename = TEST_FILENAMES["fdhsi"][0]
+    filename_info = parse_fdhsi_filename_info(filename)
+    filetype_info = {"required_netcdf_variables": ["attr/platform"]}
+
+    with mock.patch("satpy.readers.netcdf_utils.NetCDF4FsspecFileHandler._get_file_handle") as get_file_handle:
+        get_file_handle.return_value.platform = "mock-satellite"
+        with mock.patch("satpy.readers.netcdf_utils.np2str", _mock_np2str):
+            _ = FCIL1cNCFileHandler(filename, filename_info, filetype_info)
+
+    assert filetype_info["shared_info"]["attr/platform"] == "mock-satellite"
+
+
+def test_store_shared_segment_info_ignore_nonshareable():
+    """Test that nonshareable segment info are not collected for sharing."""
+    variables = [
+        "data/ir105/measured/effective_radiance",
+        "data/ir105/measured/y",
+        "data/ir105/measured/end_position_row",
+        "data/ir105/measured/start_position_row",
+        "data/ir105/measured/index_map",
+        "data/ir105/measured/pixel_quality",
+        "index",
+        "time",
+    ]
+
+    filename = TEST_FILENAMES["fdhsi"][0]
+    filename_info = parse_fdhsi_filename_info(filename)
+    filetype_info = {"required_netcdf_variables": variables}
+
+    with mock.patch("satpy.readers.netcdf_utils.NetCDF4FsspecFileHandler._get_file_handle") as get_file_handle:
+        for itm in variables:
+            setattr(get_file_handle.return_value, itm, "mock-value")
+        with mock.patch("satpy.readers.netcdf_utils.np2str", _mock_np2str):
+            _ = FCIL1cNCFileHandler(filename, filename_info, filetype_info)
+
+    for itm in variables:
+        assert itm not in filetype_info["shared_info"]
