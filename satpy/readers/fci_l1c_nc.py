@@ -409,23 +409,40 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         return res
 
+    def get_iqt_parameters_lon_lat_alt(self):
+        """Compute the orbital parameters for IQT data.
+
+        Compute satellite_actual_longitude,satellite_actual_latitude,satellite_actual_altitude.add_constant.
+        """
+        actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
+                                                          "longitude_of_projection_origin"))
+        actual_subsat_lat = 0.0
+        actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        logger.info("IQT data the following parameter is hardcoded "
+                    f" satellite_actual_latitude = {actual_subsat_lat} ,"
+                    " These parameters are taken from the projection's dictionary"
+                    f"satellite_actual_longitude = {actual_subsat_lon} ,"
+                    f"satellite_sat_alt = {actual_sat_alt}")
+        return actual_subsat_lon,actual_subsat_lat,actual_sat_alt
+
+    def get_parameters_lon_lat_alt(self):
+        """Compute the orbital parameters.
+
+        Compute satellite_actual_longitude,satellite_actual_latitude,satellite_actual_altitude.
+        """
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        return actual_subsat_lon,actual_subsat_lat,actual_sat_alt
+
+
     @cached_property
     def orbital_param(self):
         """Compute the orbital parameters for the current segment."""
         if self.is_iqt:
-            actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
-                                                              "longitude_of_projection_origin"))
-            actual_subsat_lat = 0.0
-            actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
-            logger.info("IQT data the following parameter is hardcoded "
-                        f" satellite_actual_latitude = {actual_subsat_lat} ,"
-                        " These parameters are taken from the projection's dictionary"
-                        f"satellite_actual_longitude = {actual_subsat_lon} ,"
-                        f"satellite_sat_alt = {actual_sat_alt}")
+           actual_subsat_lon,actual_subsat_lat,actual_sat_alt = self.get_iqt_parameters_lon_lat_alt()
         else:
-             actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
-             actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
-             actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+            actual_subsat_lon,actual_subsat_lat,actual_sat_alt = self.get_parameters_lon_lat_alt()
         # The "try" is a temporary part of the code as long as the AF data are not modified
         try :
             nominal_and_proj_subsat_lon = float(
