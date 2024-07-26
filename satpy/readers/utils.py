@@ -98,8 +98,8 @@ def get_geostationary_angle_extent(geos_area):
     h = float(h) / 1000 + req
 
     # compute some constants
-    aeq = 1 - req**2 / (h ** 2)
-    ap_ = 1 - rp**2 / (h ** 2)
+    aeq = 1 - req ** 2 / (h ** 2)
+    ap_ = 1 - rp ** 2 / (h ** 2)
 
     # generate points around the north hemisphere in satellite projection
     # make it a bit smaller so that we stay inside the valid area
@@ -142,15 +142,15 @@ def _lonlat_from_geos_angle(x, y, geos_area):
     b__ = (a / float(b)) ** 2
 
     sd = np.sqrt((h__ * np.cos(x) * np.cos(y)) ** 2 -
-                 (np.cos(y)**2 + b__ * np.sin(y)**2) *
-                 (h__**2 - (float(a) / 1000)**2))
+                 (np.cos(y) ** 2 + b__ * np.sin(y) ** 2) *
+                 (h__ ** 2 - (float(a) / 1000) ** 2))
     # sd = 0
 
-    sn = (h__ * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
+    sn = (h__ * np.cos(x) * np.cos(y) - sd) / (np.cos(y) ** 2 + b__ * np.sin(y) ** 2)
     s1 = h__ - sn * np.cos(x) * np.cos(y)
     s2 = sn * np.sin(x) * np.cos(y)
     s3 = -sn * np.sin(y)
-    sxy = np.sqrt(s1**2 + s2**2)
+    sxy = np.sqrt(s1 ** 2 + s2 ** 2)
 
     lons = np.rad2deg(np.arctan2(s2, s1)) + lon_0
     lats = np.rad2deg(-np.arctan2(b__ * s3, sxy))
@@ -256,7 +256,7 @@ def _unzip_with_pbzip(filename, tmpfilepath, fdn):
     if n_thr:
         runner = [pbzip,
                   "-dc",
-                  "-p"+str(n_thr),
+                  "-p" + str(n_thr),
                   filename]
     else:
         runner = [pbzip,
@@ -416,7 +416,7 @@ def get_earth_radius(lon, lat, a, b):
     latlong = pyproj.CRS.from_dict({"proj": "latlong", "a": a, "b": b, "units": "m"})
     transformer = pyproj.Transformer.from_crs(latlong, geocent)
     x, y, z = transformer.transform(lon, lat, 0.0)
-    return np.sqrt(x**2 + y**2 + z**2)
+    return np.sqrt(x ** 2 + y ** 2 + z ** 2)
 
 
 def reduce_mda(mda, max_size=100):
