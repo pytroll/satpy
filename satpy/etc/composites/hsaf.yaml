@@ -1,4 +1,4 @@
-sensor_name: hsaf
+sensor_name: visir/hsaf
 
 composites:
   instantaneous_rainrate_3:
@@ -21,3 +21,9 @@ composites:
     prerequisites:
     - name: h05B
     standard_name: accum_rainrate_5b
+
+  instantaneous_rainfall_rate:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h63
+    standard_name: instantaneous_rainfall_rate

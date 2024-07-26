@@ -1,0 +1,34 @@
+reader:
+  name: hsaf_nc
+  short_name: Hydrology SAF
+  long_name: Hydrology SAF products in NetCDF format
+  description: Reader for Hydrology SAF products
+  status: Beta, only h63 currently supported
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  sensors: [hsaf]
+
+file_types:
+  hsafnc_63:
+    file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
+    file_patterns: ['h63_{start_time:%Y%m%d_%H%M}_{region:s}.nc']
+  hsafnc_90:
+    file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
+    file_patterns: ['h90_{start_time:%Y%m%d_%H%M}_{acc_time:2s}_{region:s}.nc']
+datasets:
+  h63:
+    name: h63
+    file_key: rr
+    sensor: hsaf
+    resolution: 3000
+    standard_name: instantaneous_rainfall_rate
+    units: mm/h
+    file_type: hsafnc_63
+  h90:
+    name: h90
+    file_key: acc_rr
+    sensor: hsaf
+    resolution: 3000
+    standard_name: accumulated_precipitation_estimate
+    units: mm
+    file_type: hsafnc_90
