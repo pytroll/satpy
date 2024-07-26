@@ -21,7 +21,7 @@
 The files for this reader are HDF5 and come in four varieties; band data
 and geolocation data, both at 250m and 1000m resolution.
 
-This reader was tested on FY-3A/B/C MERSI-1, FY-3D MERSI-2, FY-3E MERSI-LL and FY-3G MERSI-RM data,
+This reader was tested on FY-3A/B/C MERSI-1, FY-3D MERSI-2, FY-3E MERSI-LL, FY-3F MERSI-3 and FY-3G MERSI-RM data,
 but should work on future platforms as well assuming no file format changes.
 
 """
@@ -238,10 +238,10 @@ class MERSIL1B(HDF5FileHandler):
         After applying slope and intercept, we just get it. And Same way for IR bands, no matter which sensor it is.
 
         """
-        mersi_2_vis = [str(i) for i in range(1, 20)]
+        mersi_2_3_vis = [str(i) for i in range(1, 20)]
         mersi_rm_vis = [str(i) for i in range(1, 6)]
 
-        if self.sensor_name == "mersi-2" and datset_id["name"] in mersi_2_vis:
+        if (self.sensor_name == "mersi-2" or self.sensor_name == "mersi-3") and datset_id["name"] in mersi_2_3_vis:
             E0 = self["/attr/Solar_Irradiance"]
             rad = self._get_ref_dataset(data, ds_info) / 100 * E0[mersi_2_vis.index(datset_id["name"])] / np.pi
         elif self.sensor_name == "mersi-rm" and datset_id["name"] in mersi_rm_vis:
@@ -285,7 +285,7 @@ class MERSIL1B(HDF5FileHandler):
         elif self.sensor_name == "mersi-2":
             corr_coeff_a = float(self["/attr/TBB_Trans_Coefficient_A"][calibration_index])
             corr_coeff_b = float(self["/attr/TBB_Trans_Coefficient_B"][calibration_index])
-        elif self.sensor_name == "mersi-ll":
+        elif self.sensor_name == "mersi-ll" or self.sensor_name == "mersi-3":
             # MERSI-LL stores these coefficients differently
             try:
                 coeffs = self["/attr/TBB_Trans_Coefficient"]
