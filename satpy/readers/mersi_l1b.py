@@ -243,7 +243,7 @@ class MERSIL1B(HDF5FileHandler):
 
         if (self.sensor_name == "mersi-2" or self.sensor_name == "mersi-3") and datset_id["name"] in mersi_2_3_vis:
             E0 = self["/attr/Solar_Irradiance"]
-            rad = self._get_ref_dataset(data, ds_info) / 100 * E0[mersi_2_vis.index(datset_id["name"])] / np.pi
+            rad = self._get_ref_dataset(data, ds_info) / 100 * E0[mersi_2_3_vis.index(datset_id["name"])] / np.pi
         elif self.sensor_name == "mersi-rm" and datset_id["name"] in mersi_rm_vis:
             E0 = self._get_coefficients("Calibration/Solar_Irradiance", mersi_rm_vis.index(datset_id["name"]))
             rad = self._get_ref_dataset(data, ds_info) / 100 * E0 / np.pi
