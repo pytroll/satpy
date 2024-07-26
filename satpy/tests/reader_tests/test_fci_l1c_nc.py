@@ -719,7 +719,7 @@ class ModuleTestFCIL1cNcReader:
     def _shape_test(self,res,ch,grid_type,dict_arg):
         """Test the shape."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
-                                GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+                                 GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
         assert res[ch].dtype == dict_arg["dtype"]
 
     def _get_assert_load(self,res,ch,dict_arg,filenames):
