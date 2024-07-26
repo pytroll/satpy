@@ -110,7 +110,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._auto_maskandscale = auto_maskandscale
         if cache_handle:
             self.manager = xr.backends.CachingFileManager(
-                    functools.partial(_NCDatasetWrapper,
+                    functools.partial(_nc_dataset_wrapper,
                                       auto_maskandscale=auto_maskandscale),
                     self.filename, mode="r")
             file_handle = self.manager.acquire()
@@ -487,26 +487,19 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
         return super()._get_attr(obj, key)
 
 
-class _NCDatasetWrapper(netCDF4.Dataset):
+def _nc_dataset_wrapper(*args, auto_maskandscale, **kwargs):
     """Wrap netcdf4.Dataset setting auto_maskandscale globally.
 
-    Helper class that wraps netcdf4.Dataset while setting extra parameters.
-    By encapsulating this in a helper class, we can
+    Helper function that wraps netcdf4.Dataset while setting extra parameters.
+    By encapsulating this in a helper function, we can
     pass it to CachingFileManager directly.  Currently sets
     auto_maskandscale globally (for all variables).
     """
 
-    def __init__(self, *args, auto_maskandscale=False, **kwargs):
-        """Initialise object."""
-        super().__init__(*args, **kwargs)
-        self._set_extra_settings(auto_maskandscale=auto_maskandscale)
+    nc = netCDF4.Dataset(*args, **kwargs)
+    nc.set_auto_maskandscale(auto_maskandscale)
+    return nc
 
-    def _set_extra_settings(self, auto_maskandscale):
-        """Set our own custom settings.
-
-        Currently only applies set_auto_maskandscale.
-        """
-        self.set_auto_maskandscale(auto_maskandscale)
 
 
 class PreloadableSegments:
