@@ -339,6 +339,10 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             global_attrs["/attr/Satellite Name"] = "FY-3E"
             global_attrs["/attr/Sensor Identification Code"] = "MERSI LL"
             ftype = "LL"
+        elif "mersi3_l1b" in self.filetype_info["file_type"]:
+            global_attrs["/attr/Satellite Name"] = "FY-3F"
+            global_attrs["/attr/Sensor Identification Code"] = "MERSI"
+            ftype = "VIS"
         elif "mersi_rm" in self.filetype_info["file_type"]:
             global_attrs["/attr/Satellite Name"] = "FY-3G"
             global_attrs["/attr/Sensor Identification Code"] = "MERSI RM"
@@ -555,14 +559,14 @@ class MERSI12llL1BTester(MERSIL1BTester):
         reader = _test_find_files_and_readers(self.reader_configs, filenames)
 
         ds_ids = []
-        test_bands = self.bands_1000 + self.bands_250 if self.yaml_file in ["mersi2_l1b.yaml", "mersi_ll_l1b.yaml"] \
+        test_bands = self.bands_1000 + self.bands_250 if self.yaml_file in ["mersi2_l1b.yaml", "mersi3_l1b.yaml", "mersi_ll_l1b.yaml"] \
             else self.ir_250_bands + self.ir_1000_bands
 
         for band_name in test_bands:
             ds_ids.append(make_dataid(name=band_name, calibration="radiance"))
         res = reader.load(ds_ids)
         assert len(res) == len(test_bands)
-        if self.yaml_file in ["mersi2_l1b.yaml", "mersi_ll_l1b.yaml"]:
+        if self.yaml_file in ["mersi2_l1b.yaml", "mersi3_l1b.yaml", "mersi_ll_l1b.yaml"]:
             _assert_bands_mda_as_exp(res, self.bands_250, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 40, 2048 * 2)))
             _assert_bands_mda_as_exp(res, self.bands_1000, ("radiance", "mW/ (m2 cm-1 sr)", (2 * 10, 2048)))
         else:
@@ -631,7 +635,7 @@ class TestFY3DMERSI2L1B(MERSI12llL1BTester):
 
 
 class TestFY3EMERSIllL1B(MERSI12llL1BTester):
-    """Test the FY3D MERSI2 L1B reader."""
+    """Test the FY3E MERSI2 L1B reader."""
 
     yaml_file = "mersi_ll_l1b.yaml"
     filenames_1000m = ["FY3E_MERSI_GRAN_L1_20230410_1910_1000M_V0.HDF", "FY3E_MERSI_GRAN_L1_20230410_1910_GEO1K_V0.HDF"]
@@ -645,8 +649,23 @@ class TestFY3EMERSIllL1B(MERSI12llL1BTester):
     bands_250 = vis_250_bands + ir_250_bands
 
 
+class TestFY3FMERSIllL1B(MERSI12llL1BTester):
+    """Test the FY3F MERSI2 L1B reader."""
+
+    yaml_file = "mersi3_l1b.yaml"
+    filenames_1000m = ["FY3F_MERSI_GRAN_L1_20230410_1910_1000M_V0.HDF", "FY3F_MERSI_GRAN_L1_20230410_1910_GEO1K_V0.HDF"]
+    filenames_250m = ["FY3F_MERSI_GRAN_L1_20230410_1910_0250M_V0.HDF", "FY3F_MERSI_GRAN_L1_20230410_1910_GEOQK_V0.HDF"]
+    filenames_all = filenames_1000m + filenames_250m
+    vis_250_bands = ["1", "2", "3", "4"]
+    ir_250_bands = ["24", "25"]
+    vis_1000_bands = ["5", "8", "9", "11", "15", "17", "19"]
+    ir_1000_bands = ["20", "21", "23"]
+    bands_1000 = vis_1000_bands + ir_1000_bands
+    bands_250 = vis_250_bands + ir_250_bands
+
+
 class TestMERSIRML1B(MERSIL1BTester):
-    """Test the FY3E MERSI-RM L1B reader."""
+    """Test the FY3G MERSI-RM L1B reader."""
 
     yaml_file = "mersi_rm_l1b.yaml"
     filenames_500m = ["FY3G_MERSI_GRAN_L1_20230410_1910_0500M_V1.HDF",
