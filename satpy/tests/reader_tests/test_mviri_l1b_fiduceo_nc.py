@@ -28,6 +28,7 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
@@ -36,6 +37,7 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     DatasetWrapper,
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
+    Interpolator,
 )
 from satpy.tests.utils import make_dataid
 
@@ -61,8 +63,8 @@ attrs_refl_exp.update(
     {"sun_earth_distance_correction_applied": True,
      "sun_earth_distance_correction_factor": 1.}
 )
-acq_time_vis_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
-                    np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+acq_time_vis_exp = [np.datetime64("NaT").astype("datetime64[ns]"),
+                    np.datetime64("NaT").astype("datetime64[ns]"),
                     np.datetime64("1970-01-01 02:30").astype("datetime64[ns]"),
                     np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 vis_counts_exp = xr.DataArray(
@@ -79,6 +81,7 @@ vis_counts_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
+
 vis_rad_exp = xr.DataArray(
     np.array(
         [[np.nan, 18.56, 38.28, 58.],
@@ -124,7 +127,7 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
-acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+acq_time_ir_wv_exp = [np.datetime64("NaT"),
                       np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
     np.array(
@@ -272,8 +275,13 @@ def fixture_fake_dataset():
             dtype=np.uint8
         )
     )
-    time = np.arange(4) * 60 * 60 * 1e9
-    time = time.astype("datetime64[ns]").reshape(2, 2)
+
+    cov = da.from_array([[1, 2], [3, 4]])
+    time = np.arange(4) * 60 * 60
+    time[0] = 4294967295
+    time[1] = 4294967295
+    time = time.reshape(2, 2)
+
     ds = xr.Dataset(
         data_vars={
             "count_vis": (("y", "x"), count_vis),
@@ -303,6 +311,7 @@ def fixture_fake_dataset():
             "sub_satellite_longitude_end": np.nan,
             "sub_satellite_latitude_start": np.nan,
             "sub_satellite_latitude_end": 0.1,
+            "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), cov),
         },
         coords={
             "y": [1, 2, 3, 4],
@@ -317,6 +326,10 @@ def fixture_fake_dataset():
     )
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
+    ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
+    ds["time_ir_wv"].attrs["_FillValue"] = 4294967295
+    ds["time_ir_wv"].attrs["add_offset"] = 0
+
     return ds
 
 
@@ -547,16 +560,43 @@ class TestFiduceoMviriFileHandlers:
             "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc",
             "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
             "FIDUCEO_FCDR_L15_MVIRI_MET7-00.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+            "MVIRI_FCDR-EASY_L15_MET7-E0000_200607060600_200607060630_0200.nc",
+            "MVIRI_FCDR-EASY_L15_MET7-E5700_200607060600_200607060630_0200.nc",
+            "MVIRI_FCDR-FULL_L15_MET7-E0000_200607060600_200607060630_0200.nc",
             "abcde",
         ]
 
         files = reader.select_files_from_pathnames(filenames)
         # only 3 out of 4 above should match
-        assert len(files) == 3
+        assert len(files) == 6
 
 
 class TestDatasetWrapper:
     """Unit tests for DatasetWrapper class."""
+
+    def test_fix_duplicate_dimensions(self):
+        """Test the renaming of duplicate dimensions.
+
+        If duplicate dimensions are within the Dataset, opening the datasets with chunks throws an error.
+        Thus, the chunking needs to be done after opening the dataset and after the dimensions are renamed.
+        """
+        foo = xr.Dataset(
+            data_vars={"covariance_spectral_response_function_vis":
+                      (("srf_size", "srf_size"), [[1, 2], [3, 4]])}
+        )
+        foo_ds = DatasetWrapper(foo, decode_nc=False)
+        foo_ds._fix_duplicate_dimensions(foo_ds.nc)
+
+        foo_exp = xr.Dataset(
+            data_vars={"covariance_spectral_response_function_vis":
+                      (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]])}
+        )
+
+        try:
+            foo_ds.nc.chunk("auto")
+            xr.testing.assert_allclose(foo_ds.nc, foo_exp)
+        except ValueError:
+            pytest.fail("Chunking failed.")
 
     def test_reassign_coords(self):
         """Test reassigning of coordinates.
@@ -588,6 +628,66 @@ class TestDatasetWrapper:
                 "x": [.3, .4]
             }
         )
-        ds = DatasetWrapper(nc)
+        ds = DatasetWrapper(nc, decode_nc=False)
         foo = ds["foo"]
         xr.testing.assert_equal(foo, foo_exp)
+
+class TestInterpolator:
+    """Unit tests for Interpolator class."""
+    @pytest.fixture(name="time_ir_wv")
+    def fixture_time_ir_wv(self):
+        """Returns time_ir_wv."""
+        return xr.DataArray(
+            [
+              [np.datetime64("1970-01-01 01:00"), np.datetime64("1970-01-01 02:00")],
+              [np.datetime64("1970-01-01 03:00"), np.datetime64("1970-01-01 04:00")],
+              [np.datetime64("NaT"), np.datetime64("1970-01-01 06:00")],
+              [np.datetime64("NaT"), np.datetime64("NaT")],
+            ],
+            dims=("y", "x"),
+            coords={"y": [1, 3, 5, 7]}
+        )
+
+    @pytest.fixture(name="acq_time_vis_exp")
+    def fixture_acq_time_vis_exp(self):
+        """Returns acq_time_vis_exp."""
+        return xr.DataArray(
+            [
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("NaT"),
+                np.datetime64("NaT")
+            ],
+            dims="y",
+            coords={"y": [1, 2, 3, 4, 5, 6, 7, 8]}
+        )
+
+    @pytest.fixture(name="acq_time_ir_exp")
+    def fixture_acq_time_ir_exp(self):
+        """Returns acq_time_ir_exp."""
+        return xr.DataArray(
+            [
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("NaT"),
+            ],
+            dims="y",
+            coords={"y": [1, 3, 5, 7]}
+        )
+
+    @pytest.mark.parametrize(
+        "acq_time_exp",
+        [
+            lazy_fixture("acq_time_ir_exp"),
+            lazy_fixture("acq_time_vis_exp")
+        ]
+    )
+    def test_interp_acq_time(self, time_ir_wv, acq_time_exp):
+        """Tests time interpolation."""
+        res = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp.coords["y"])
+        xr.testing.assert_allclose(res, acq_time_exp)

@@ -20,14 +20,18 @@ file_types:
     nc_easy:
         file_reader: !!python/name:satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriEasyFcdrFileHandler
         file_patterns: [
-          'FIDUCEO_FCDR_{level}_{sensor}_{platform}-{projection_longitude:f}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_EASY_{processor_version}_{format_version}.nc'
+          'FIDUCEO_FCDR_{level}_{sensor}_{platform}-{projection_longitude:f}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_EASY_{processor_version}_{format_version}.nc',
           # Example: FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc
+          '{sensor}_FCDR-EASY_{level}_{platform}-E{projection_longitude:s}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_{release}.nc'
+          # Example: MVIRI_FCDR-EASY_L15_MET7-E0000_200607060600_200607060630_0200.nc
         ]
     nc_full:
         file_reader: !!python/name:satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriFullFcdrFileHandler
         file_patterns: [
-          'FIDUCEO_FCDR_{level}_{sensor}_{platform}-{projection_longitude:f}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_FULL_{processor_version}_{format_version}.nc'
+          'FIDUCEO_FCDR_{level}_{sensor}_{platform}-{projection_longitude:f}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_FULL_{processor_version}_{format_version}.nc',
           # Example: FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc
+          '{sensor}_FCDR-FULL_{level}_{platform}-E{projection_longitude:s}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_{release}.nc'
+          # Example: MVIRI_FCDR-FULL_L15_MET7-E0000_200607060600_200607060630_0200.nc
         ]
 
 datasets:
