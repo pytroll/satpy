@@ -138,7 +138,7 @@ from satpy.readers.seviri_l1b_native_hdr import (
     get_native_header,
     native_trailer,
 )
-from satpy.readers.utils import reduce_mda
+from satpy.readers.utils import fromfile, generic_open, reduce_mda
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("native_msg")
@@ -193,7 +193,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Available channels are known only after the header has been read
         self.header_type = get_native_header(has_archive_header(self.filename))
         self._read_header()
-        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
+        self.dask_array = da.from_array(self._get_array(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
@@ -276,15 +276,11 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         return np.dtype(drec)
 
-    def _get_memmap(self):
-        """Get the memory map for the SEVIRI data."""
-        with open(self.filename) as fp:
-            data_dtype = self._get_data_dtype()
-            hdr_size = self.header_type.itemsize
-
-            return np.memmap(fp, dtype=data_dtype,
-                             shape=(self.mda["number_of_lines"],),
-                             offset=hdr_size, mode="r")
+    def _get_array(self):
+        """Get the numpy array for the SEVIRI data."""
+        data_dtype = self._get_data_dtype()
+        hdr_size = self.header_type.itemsize
+        return fromfile(self.filename, dtype=data_dtype, offset=hdr_size, count=self.mda["number_of_lines"])
 
     def _read_header(self):
         """Read the header info."""
@@ -387,9 +383,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         data_size = (self._get_data_dtype().itemsize *
                      self.mda["number_of_lines"])
 
-        with open(self.filename) as fp:
-            fp.seek(hdr_size + data_size)
-            data = np.fromfile(fp, dtype=native_trailer, count=1)
+        data = fromfile(self.filename, dtype=native_trailer, count=1, offset=hdr_size + data_size)
 
         self.trailer.update(recarray2dict(data))
 
@@ -888,12 +882,12 @@ def get_available_channels(header):
 
 def has_archive_header(filename):
     """Check whether the file includes an ASCII archive header."""
-    with open(filename, mode="rb") as istream:
+    with generic_open(filename, mode="rb") as istream:
         return istream.read(36) == ASCII_STARTSWITH
 
 
 def read_header(filename):
     """Read SEVIRI L1.5 native header."""
     dtype = get_native_header(has_archive_header(filename))
-    hdr = np.fromfile(filename, dtype=dtype, count=1)
+    hdr = fromfile(filename, dtype=dtype, count=1)
     return recarray2dict(hdr)
