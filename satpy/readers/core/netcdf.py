@@ -108,15 +108,22 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.cached_file_content = {}
         self._use_h5netcdf = False
         self._auto_maskandscale = auto_maskandscale
-        try:
-            file_handle = self._get_file_handle()
-        except IOError:
-            LOG.exception(
-                "Failed reading file %s. Possibly corrupted file", self.filename)
-            raise
+        if cache_handle:
+            self.manager = xr.backends.CachingFileManager(
+                    functools.partial(_NCDatasetWrapper,
+                                      auto_maskandscale=auto_maskandscale),
+                    self.filename, mode="r")
+            file_handle = self.manager.acquire()
+        else:
+            try:
+                file_handle = self._get_file_handle()
+            except IOError:
+                LOG.exception(
+                    "Failed reading file %s. Possibly corrupted file", self.filename)
+                raise
 
-        self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
-        self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
+            self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
+            self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
         if listed_variables is not None:
@@ -126,12 +133,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.collect_dimensions("", file_handle)
         self.collect_cache_vars(cache_var_size)
 
-        if cache_handle:
-            self.manager = xr.backends.CachingFileManager(
-                    functools.partial(_NCDatasetWrapper,
-                                      auto_maskandscale=auto_maskandscale),
-                    self.filename, mode="r")
-        else:
+        if not cache_handle:
             file_handle.close()
 
     def _get_file_handle(self):
