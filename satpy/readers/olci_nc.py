@@ -90,9 +90,16 @@ class BitFlags:
         self._value = value
 
         if flag_list is None:
-            flag_list = WQSF_FLAG_LIST
-
-        self.meaning = {f: i for i, f in enumerate(flag_list)}
+            try:
+                meanings = value.attrs["flag_meanings"].split()
+                masks = value.attrs["flag_masks"]
+            except (AttributeError, KeyError):
+                meanings = WQSF_FLAG_LIST
+                self.meaning = {meaning: mask for mask, meaning in enumerate(meanings)}
+            else:
+                self.meaning = {meaning: int(np.log2(mask)) for meaning, mask in zip(meanings, masks)}
+        else:
+            self.meaning = {meaning: mask for mask, meaning in enumerate(flag_list)}
 
     def __getitem__(self, item):
         """Get the item."""
@@ -292,8 +299,16 @@ class NCOLCILowResData(NCOLCIBase):
                  engine=None, **kwargs):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
-        self.l_step = self.nc.attrs["al_subsampling_factor"]
-        self.c_step = self.nc.attrs["ac_subsampling_factor"]
+
+    @property
+    def l_step(self):
+        """Get the line step."""
+        return self.nc.attrs["al_subsampling_factor"]
+
+    @property
+    def c_step(self):
+        """Get the column step."""
+        return self.nc.attrs["ac_subsampling_factor"]
 
     def _do_interpolate(self, data):
 

@@ -16,10 +16,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the satpy.readers.oceancolorcci_l3_nc module."""
 
+import datetime as dt
 import os
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -166,6 +167,8 @@ class TestOCCCIReader:
 
     def test_get_area_def(self, area_exp, fake_file_dict):
         """Test area definition."""
+        import warnings
+
         reader = self._create_reader_for_resolutions([fake_file_dict["ocprod_1m"]])
         res = reader.load([ds_list_all[0]])
         area = res[ds_list_all[0]].attrs["area"]
@@ -174,7 +177,12 @@ class TestOCCCIReader:
         assert area.area_extent == area_exp.area_extent
         assert area.width == area_exp.width
         assert area.height == area_exp.height
-        assert area.proj_dict == area_exp.proj_dict
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=r"You will likely lose important projection information",
+                                    category=UserWarning)
+            # The corresponding CRS objects do not match even if the proj dicts match, so use the dicts
+            assert area.proj_dict == area_exp.proj_dict
 
     def test_bad_fname(self, fake_dataset, fake_file_dict):
         """Test case where an incorrect composite period is given."""
@@ -236,12 +244,12 @@ class TestOCCCIReader:
     def test_start_time(self, fake_file_dict):
         """Test start time property."""
         reader = self._create_reader_for_resolutions([fake_file_dict["k490_1d"]])
-        assert reader.start_time == datetime(2021, 8, 1, 0, 0, 0)
+        assert reader.start_time == dt.datetime(2021, 8, 1, 0, 0, 0)
 
     def test_end_time(self, fake_file_dict):
         """Test end time property."""
         reader = self._create_reader_for_resolutions([fake_file_dict["iop_8d"]])
-        assert reader.end_time == datetime(2021, 8, 31, 23, 59, 0)
+        assert reader.end_time == dt.datetime(2021, 8, 31, 23, 59, 0)
 
     def test_correct_dimnames(self, fake_file_dict):
         """Check that the loaded dimension names are correct."""

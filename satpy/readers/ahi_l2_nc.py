@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for Himawari L2 cloud products from NOAA's big data programme.
 
 For more information about the data, see: <https://registry.opendata.aws/noaa-himawari/>.
@@ -43,8 +44,8 @@ All the simple data products are supported here, but multidimensional products a
 supported. These include the CldHgtFlag and the CloudMaskPacked variables.
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import xarray as xr
 
@@ -73,8 +74,8 @@ class HIML2NCFileHandler(BaseFileHandler):
             raise ValueError("File is not a full disk scene")
 
         self.sensor = self.nc.attrs["instrument_name"].lower()
-        self.nlines = self.nc.dims["Columns"]
-        self.ncols = self.nc.dims["Rows"]
+        self.nlines = self.nc.sizes["Columns"]
+        self.ncols = self.nc.sizes["Rows"]
         self.platform_name = self.nc.attrs["satellite_name"]
         self.platform_shortname = filename_info["platform"]
         self._meta = None
@@ -82,14 +83,14 @@ class HIML2NCFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        dt = self.nc.attrs["time_coverage_start"]
-        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
+        date_str = self.nc.attrs["time_coverage_start"]
+        return dt.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_time(self):
         """End timestamp of the dataset."""
-        dt = self.nc.attrs["time_coverage_end"]
-        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
+        date_str = self.nc.attrs["time_coverage_end"]
+        return dt.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -100,8 +101,8 @@ class HIML2NCFileHandler(BaseFileHandler):
         # Data has 'Latitude' and 'Longitude' coords, these must be replaced.
         variable = variable.rename({"Rows": "y", "Columns": "x"})
 
-        variable = variable.drop("Latitude")
-        variable = variable.drop("Longitude")
+        variable = variable.drop_vars("Latitude")
+        variable = variable.drop_vars("Longitude")
 
         variable.attrs.update(key.to_dict())
         return variable

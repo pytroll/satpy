@@ -75,14 +75,14 @@ around your code:
 
 .. code-block:: python
 
-    with dask.config.set("array.chunk-size": "32MiB"):
+    with dask.config.set({"array.chunk-size": "32MiB"}):
       # your code here
 
 Or by using:
 
 .. code-block:: python
 
-    dask.config.set("array.chunk-size": "32MiB")
+    dask.config.set({"array.chunk-size": "32MiB"})
 
 at the top of your code.
 

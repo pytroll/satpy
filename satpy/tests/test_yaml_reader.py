@@ -15,12 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Testing the yaml_reader module."""
 
+import datetime as dt
 import os
 import random
 import unittest
-from datetime import datetime
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, call, patch
 
@@ -182,8 +183,8 @@ class DummyReader(BaseFileHandler):
         """Initialize the dummy reader."""
         super(DummyReader, self).__init__(
             filename, filename_info, filetype_info)
-        self._start_time = datetime(2000, 1, 1, 12, 1)
-        self._end_time = datetime(2000, 1, 1, 12, 2)
+        self._start_time = dt.datetime(2000, 1, 1, 12, 1)
+        self._end_time = dt.datetime(2000, 1, 1, 12, 2)
         self.metadata = {}
 
     @property
@@ -227,8 +228,8 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader(self.config,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2)})
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2)})
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
@@ -280,8 +281,8 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
         self.config = MHS_YAML_READER_DICT
         self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2),
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2),
                                         })
 
     def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
@@ -321,8 +322,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2),
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2),
                                         })
 
     def test_deprecated_passing_config_files(self):
@@ -362,17 +363,18 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_filter_fh_by_time(self):
         """Check filtering filehandlers by time."""
-        fh0 = FakeFH(datetime(1999, 12, 30), datetime(1999, 12, 31))
-        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
-                     datetime(2000, 1, 2, 12, 30))
-        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
-                     datetime(2000, 1, 3, 12, 30))
-        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 3, 12, 30))
+        fh0 = FakeFH(dt.datetime(1999, 12, 30),
+                     dt.datetime(1999, 12, 31))
+        fh1 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(dt.datetime(2000, 1, 1, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(dt.datetime(2000, 1, 1, 12, 30),
+                     dt.datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(dt.datetime(2000, 1, 2, 12, 30),
+                     dt.datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 3, 12, 30))
 
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, fh.end_time)
@@ -388,8 +390,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
     @patch("satpy.readers.yaml_reader.Boundary")
     def test_file_covers_area(self, bnd, adb, gad):
         """Test that area coverage is checked properly."""
-        file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
-                              datetime(2000, 1, 3, 12, 30))
+        file_handler = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                              dt.datetime(2000, 1, 3, 12, 30))
 
         self.reader.filter_parameters["area"] = True
         bnd.return_value.contour_poly.intersection.return_value = True
@@ -417,18 +419,18 @@ class TestFileFileYAMLReader(unittest.TestCase):
         with pytest.raises(RuntimeError):
             self.reader.end_time
 
-        fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
-                     datetime(1999, 12, 31, 0, 0))
-        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
-                     datetime(2000, 1, 1, 12, 30))
-        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
-                     datetime(2000, 1, 2, 12, 30))
-        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
-                     datetime(2000, 1, 3, 12, 30))
-        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
-                     datetime(2000, 1, 3, 12, 30))
+        fh0 = FakeFH(dt.datetime(1999, 12, 30, 0, 0),
+                     dt.datetime(1999, 12, 31, 0, 0))
+        fh1 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(dt.datetime(2000, 1, 1, 10, 0),
+                     dt.datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(dt.datetime(2000, 1, 1, 12, 30),
+                     dt.datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(dt.datetime(2000, 1, 2, 12, 30),
+                     dt.datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
+                     dt.datetime(2000, 1, 3, 12, 30))
 
         self.reader.file_handlers = {
             "0": [fh1, fh2, fh3, fh4, fh5],
@@ -436,8 +438,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
             "2": [fh2, fh3],
         }
 
-        assert self.reader.start_time == datetime(1999, 12, 30, 0, 0)
-        assert self.reader.end_time == datetime(2000, 1, 3, 12, 30)
+        assert self.reader.start_time == dt.datetime(1999, 12, 30, 0, 0)
+        assert self.reader.end_time == dt.datetime(2000, 1, 3, 12, 30)
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
@@ -572,8 +574,8 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
-                                            "start_time": datetime(2000, 1, 1),
-                                            "end_time": datetime(2000, 1, 2),
+                                            "start_time": dt.datetime(2000, 1, 1),
+                                            "end_time": dt.datetime(2000, 1, 2),
                                         })
         fake_fh = FakeFH(None, None)
         self.lons = xr.DataArray(np.ones((2, 2)) * 2,
@@ -971,10 +973,11 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
     get_segment_position_info = MagicMock()
     get_segment_position_info.return_value = chk_pos_info
 
-    fh = MagicMock()
     filetype_info = {"expected_segments": expected_segments,
                      "file_type": "filetype1"}
     filename_info = {"segment": segment}
+
+    fh = _create_mocked_basic_fh()
     fh.filetype_info = filetype_info
     fh.filename_info = filename_info
     fh.get_area_def = get_area_def
@@ -982,6 +985,12 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
 
     return fh, seg_area
 
+
+def _create_mocked_basic_fh():
+    fake_fh = MagicMock()
+    fake_fh.filename_info = {}
+    fake_fh.filetype_info = {}
+    return fake_fh
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
@@ -993,9 +1002,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
-        fake_fh = MagicMock()
-        fake_fh.filename_info = {}
-        fake_fh.filetype_info = {}
+        fake_fh = _create_mocked_basic_fh()
         cfh.return_value = {"ft1": [fake_fh]}
 
         # default (1)
@@ -1029,6 +1036,28 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         created_fhs = reader.create_filehandlers(["fake.nc"])
         es = created_fhs["ft1"][0].filename_info["segment"]
         assert es == 5
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    def test_segments_sorting(self, cfh):
+        """Test that segment filehandlers are sorted by segment number."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
+        # create filehandlers with different segment numbers
+        fake_fh_1 = _create_mocked_basic_fh()
+        fake_fh_1.filename_info["segment"] = 1
+        fake_fh_2 = _create_mocked_basic_fh()
+        fake_fh_2.filename_info["segment"] = 2
+        fake_fh_3 = _create_mocked_basic_fh()
+        fake_fh_3.filename_info["segment"] = 3
+
+        # put the filehandlers in an unsorted order
+        reader.file_handlers = {"ft1": [fake_fh_1, fake_fh_3, fake_fh_2]}
+
+        # check that the created filehandlers are sorted by segment number
+        reader.create_filehandlers(["fake.nc"])
+        assert [fh.filename_info["segment"] for fh in reader.file_handlers["ft1"]] == [1, 2, 3]
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")

@@ -28,13 +28,14 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
 
-L1B format description for the files read here:
+L1C/L2A format description for the files read here:
 
-  https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
+  https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
 
 """
 
 import logging
+from datetime import datetime
 
 import dask.array as da
 import defusedxml.ElementTree as ET
@@ -63,12 +64,13 @@ class SAFEMSIL1C(BaseFileHandler):
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
         del mask_saturated
-        self._start_time = filename_info["observation_time"]
-        self._end_time = filename_info["observation_time"]
         self._channel = filename_info["band_name"]
+        self.process_level = filename_info["process_level"]
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
+        self._start_time = self._tile_mda.start_time()
+        self._end_time = filename_info["observation_time"]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -76,7 +78,10 @@ class SAFEMSIL1C(BaseFileHandler):
             return
 
         logger.debug("Reading %s.", key["name"])
+
         proj = self._read_from_file(key)
+        if proj is None:
+            return
         proj.attrs = info.copy()
         proj.attrs["units"] = "%"
         proj.attrs["platform_name"] = self.platform_name
@@ -89,6 +94,10 @@ class SAFEMSIL1C(BaseFileHandler):
             return self._mda.calibrate_to_reflectances(proj, self._channel)
         if key["calibration"] == "radiance":
             return self._mda.calibrate_to_radiances(proj, self._channel)
+        if key["calibration"] == "counts":
+            return self._mda._sanitize_data(proj)
+        if key["calibration"] in ["aerosol_thickness", "water_vapor"]:
+            return self._mda.calibrate_to_atmospheric(proj, self._channel)
 
     @property
     def start_time(self):
@@ -104,6 +113,7 @@ class SAFEMSIL1C(BaseFileHandler):
         """Get the area def."""
         if self._channel != dsid["name"]:
             return
+
         return self._tile_mda.get_area_def(dsid)
 
 
@@ -117,6 +127,7 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
         self._end_time = filename_info["observation_time"]
         self.root = ET.parse(self.filename)
         self.tile = filename_info["dtile_number"]
+        self.process_level = filename_info["process_level"]
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
         self.mask_saturated = mask_saturated
         import bottleneck  # noqa
@@ -138,9 +149,22 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
     def calibrate_to_reflectances(self, data, band_name):
         """Calibrate *data* using the radiometric information for the metadata."""
-        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text)
+        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text) if self.process_level == "L1C" else \
+            int(self.root.find(".//BOA_QUANTIFICATION_VALUE").text)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / quantification * 100
+
+    def calibrate_to_atmospheric(self, data, band_name):
+        """Calibrate L2A AOT/WVP product."""
+        atmospheric_bands = ["AOT", "WVP"]
+        if self.process_level == "L1C":
+            return
+        elif self.process_level == "L2A" and band_name not in atmospheric_bands:
+            return
+
+        quantification = float(self.root.find(f".//{band_name}_QUANTIFICATION_VALUE").text)
+        data = self._sanitize_data(data)
+        return data / quantification
 
     def _sanitize_data(self, data):
         data = data.where(data != self.no_data)
@@ -170,7 +194,8 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def band_offsets(self):
         """Get the band offsets from the metadata."""
-        offsets = self.root.find(".//Radiometric_Offset_List")
+        offsets = self.root.find(".//Radiometric_Offset_List") if self.process_level == "L1C" else \
+            self.root.find(".//BOA_ADD_OFFSET_VALUES_LIST")
         if offsets is not None:
             band_offsets = {int(off.attrib["band_id"]): float(off.text) for off in offsets}
         else:
@@ -266,6 +291,11 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         rows = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NROWS').text)
         cols = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NCOLS').text)
         return cols, rows
+
+    def start_time(self):
+        """Get the observation time from the tile metadata."""
+        timestr = self.root.find(".//SENSING_TIME").text
+        return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):

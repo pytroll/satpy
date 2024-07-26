@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 r"""IASI L2 SO2 BUFR format reader.
 
 Introduction
@@ -84,8 +85,8 @@ https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_20
 
 # TDB: this reader is based on iasi_l2.py and seviri_l2_bufr.py
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -154,7 +155,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
             minute = ec.codes_get(bufr, "minute")
             second = ec.codes_get(bufr, "second")
 
-            obs_time = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
+            obs_time = dt.datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
 
             if i == 0:
                 start_time = obs_time

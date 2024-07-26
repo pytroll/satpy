@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the MSG common (native and hrit format) functionionalities."""
 
+import datetime as dt
 import unittest
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -74,23 +74,28 @@ class SeviriBaseTest(unittest.TestCase):
         exp = chebyshev4(coefs, time, domain)
         np.testing.assert_allclose(res, exp)
 
-    def test_get_cds_time(self):
-        """Test the get_cds_time function."""
-        # Scalar
+    def test_get_cds_time_scalar(self):
+        """Test the get_cds_time function for scalar inputs."""
         assert get_cds_time(days=21246, msecs=12 * 3600 * 1000) == np.datetime64("2016-03-03 12:00")
 
-        # Array
+    def test_get_cds_time_array(self):
+        """Test the get_cds_time function for array inputs."""
         days = np.array([21246, 21247, 21248])
         msecs = np.array([12*3600*1000, 13*3600*1000 + 1, 14*3600*1000 + 2])
         expected = np.array([np.datetime64("2016-03-03 12:00:00.000"),
                              np.datetime64("2016-03-04 13:00:00.001"),
                              np.datetime64("2016-03-05 14:00:00.002")])
-        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+        res = get_cds_time(days=days, msecs=msecs)
+        np.testing.assert_equal(res, expected)
 
+    def test_get_cds_time_nanoseconds(self):
+        """Test the get_cds_time function for having nanosecond precision."""
         days = 21246
-        msecs = 12*3600*1000
+        msecs = 12 * 3600 * 1000
         expected = np.datetime64("2016-03-03 12:00:00.000")
-        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+        res = get_cds_time(days=days, msecs=msecs)
+        np.testing.assert_equal(res, expected)
+        assert res.dtype == np.dtype("datetime64[ns]")
 
     def test_pad_data_horizontally_bad_shape(self):
         """Test the error handling for the horizontal hrv padding."""
@@ -112,18 +117,18 @@ class SeviriBaseTest(unittest.TestCase):
 
     def observation_start_time(self):
         """Get scan start timestamp for testing."""
-        return datetime(2023, 3, 20, 15, 0, 10, 691000)
+        return dt.datetime(2023, 3, 20, 15, 0, 10, 691000)
 
     def observation_end_time(self):
         """Get scan end timestamp for testing."""
-        return datetime(2023, 3, 20, 15, 12, 43, 843000)
+        return dt.datetime(2023, 3, 20, 15, 12, 43, 843000)
 
     def test_round_nom_time(self):
         """Test the rouding of start/end_time."""
-        assert round_nom_time(dt=self.observation_start_time(),
-                              time_delta=timedelta(minutes=15)) == datetime(2023, 3, 20, 15, 0)
-        assert round_nom_time(dt=self.observation_end_time(),
-                              time_delta=timedelta(minutes=15)) == datetime(2023, 3, 20, 15, 15)
+        assert round_nom_time(date=self.observation_start_time(),
+                              time_delta=dt.timedelta(minutes=15)) == dt.datetime(2023, 3, 20, 15, 0)
+        assert round_nom_time(date=self.observation_end_time(),
+                              time_delta=dt.timedelta(minutes=15)) == dt.datetime(2023, 3, 20, 15, 15)
 
     @staticmethod
     def test_pad_data_horizontally():
@@ -172,13 +177,13 @@ class SeviriBaseTest(unittest.TestCase):
 ORBIT_POLYNOMIALS = {
     "StartTime": np.array([
         [
-            datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12),
-            datetime(2006, 1, 1, 18), datetime(1958, 1, 1, 0)]
+            dt.datetime(2006, 1, 1, 6), dt.datetime(2006, 1, 1, 12),
+            dt.datetime(2006, 1, 1, 18), dt.datetime(1958, 1, 1, 0)]
     ]),
     "EndTime": np.array([
         [
-            datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
-            datetime(2006, 1, 2, 0), datetime(1958, 1, 1, 0)
+            dt.datetime(2006, 1, 1, 12), dt.datetime(2006, 1, 1, 18),
+            dt.datetime(2006, 1, 2, 0), dt.datetime(1958, 1, 1, 0)
         ]
     ]),
     "X": [np.zeros(8),
@@ -207,18 +212,18 @@ ORBIT_POLYNOMIALS_SYNTH = {
     # 01-03: Overlap (10:00 - 13:00)
     "StartTime": np.array([
         [
-            datetime(2005, 12, 31, 10), datetime(2005, 12, 31, 12),
-            datetime(2006, 1, 1, 10), datetime(2006, 1, 1, 13),
-            datetime(2006, 1, 2, 0), datetime(2006, 1, 2, 18),
-            datetime(2006, 1, 3, 6), datetime(2006, 1, 3, 10),
+            dt.datetime(2005, 12, 31, 10), dt.datetime(2005, 12, 31, 12),
+            dt.datetime(2006, 1, 1, 10), dt.datetime(2006, 1, 1, 13),
+            dt.datetime(2006, 1, 2, 0), dt.datetime(2006, 1, 2, 18),
+            dt.datetime(2006, 1, 3, 6), dt.datetime(2006, 1, 3, 10),
         ]
     ]),
     "EndTime": np.array([
         [
-            datetime(2005, 12, 31, 12), datetime(2005, 12, 31, 18),
-            datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
-            datetime(2006, 1, 2, 4), datetime(2006, 1, 2, 22),
-            datetime(2006, 1, 3, 13), datetime(2006, 1, 3, 18),
+            dt.datetime(2005, 12, 31, 12), dt.datetime(2005, 12, 31, 18),
+            dt.datetime(2006, 1, 1, 12), dt.datetime(2006, 1, 1, 18),
+            dt.datetime(2006, 1, 2, 4), dt.datetime(2006, 1, 2, 22),
+            dt.datetime(2006, 1, 3, 13), dt.datetime(2006, 1, 3, 18),
         ]
     ]),
     "X": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
@@ -228,12 +233,12 @@ ORBIT_POLYNOMIALS_SYNTH = {
 ORBIT_POLYNOMIALS_INVALID = {
     "StartTime": np.array([
         [
-            datetime(1958, 1, 1), datetime(1958, 1, 1)
+            dt.datetime(1958, 1, 1), dt.datetime(1958, 1, 1)
         ]
     ]),
     "EndTime": np.array([
         [
-            datetime(1958, 1, 1), datetime(1958, 1, 1)
+            dt.datetime(1958, 1, 1), dt.datetime(1958, 1, 1)
         ]
     ]),
     "X": [1, 2],
@@ -249,8 +254,8 @@ class TestSatellitePosition:
     def orbit_polynomial(self):
         """Get an orbit polynomial for testing."""
         return OrbitPolynomial(
-            start_time=datetime(2006, 1, 1, 12),
-            end_time=datetime(2006, 1, 1, 18),
+            start_time=dt.datetime(2006, 1, 1, 12),
+            end_time=dt.datetime(2006, 1, 1, 18),
             coefs=(
                 np.array([8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
                           -2.70135453e-01, -3.84364650e-02, 8.48718433e-03,
@@ -267,7 +272,7 @@ class TestSatellitePosition:
     @pytest.fixture()
     def time(self):
         """Get scan timestamp for testing."""
-        return datetime(2006, 1, 1, 12, 15, 9, 304888)
+        return dt.datetime(2006, 1, 1, 12, 15, 9, 304888)
 
     def test_eval_polynomial(self, orbit_polynomial, time):
         """Test getting the position in cartesian coordinates."""
@@ -300,7 +305,7 @@ class TestOrbitPolynomialFinder:
             # Contiguous validity intervals (that's the norm)
             (
                 ORBIT_POLYNOMIALS_SYNTH,
-                datetime(2005, 12, 31, 12, 15),
+                dt.datetime(2005, 12, 31, 12, 15),
                 OrbitPolynomial(
                     coefs=(2.0, 2.1, 2.2),
                     start_time=np.datetime64("2005-12-31 12:00"),
@@ -311,7 +316,7 @@ class TestOrbitPolynomialFinder:
             # not too far away
             (
                     ORBIT_POLYNOMIALS_SYNTH,
-                    datetime(2006, 1, 1, 12, 15),
+                    dt.datetime(2006, 1, 1, 12, 15),
                     OrbitPolynomial(
                         coefs=(3.0, 3.1, 3.2),
                         start_time=np.datetime64("2006-01-01 10:00"),
@@ -321,7 +326,7 @@ class TestOrbitPolynomialFinder:
             # Overlapping intervals
             (
                     ORBIT_POLYNOMIALS_SYNTH,
-                    datetime(2006, 1, 3, 12, 15),
+                    dt.datetime(2006, 1, 3, 12, 15),
                     OrbitPolynomial(
                         coefs=(8.0, 8.1, 8.2),
                         start_time=np.datetime64("2006-01-03 10:00"),
@@ -333,8 +338,12 @@ class TestOrbitPolynomialFinder:
     def test_get_orbit_polynomial(self, orbit_polynomials, time,
                                   orbit_polynomial_exp):
         """Test getting the satellite locator."""
+        import warnings
         finder = OrbitPolynomialFinder(orbit_polynomials)
-        orbit_polynomial = finder.get_orbit_polynomial(time=time)
+        with warnings.catch_warnings():
+            # There's no exact polynomial time match, filter the warning
+            warnings.filterwarnings("ignore", category=UserWarning, message=r"No orbit polynomial valid")
+            orbit_polynomial = finder.get_orbit_polynomial(time=time)
         assert orbit_polynomial == orbit_polynomial_exp
 
     @pytest.mark.parametrize(
@@ -342,16 +351,17 @@ class TestOrbitPolynomialFinder:
         [
             # No interval enclosing the given timestamp and closest interval
             # too far away
-            (ORBIT_POLYNOMIALS_SYNTH, datetime(2006, 1, 2, 12, 15)),
+            (ORBIT_POLYNOMIALS_SYNTH, dt.datetime(2006, 1, 2, 12, 15)),
             # No valid polynomials at all
-            (ORBIT_POLYNOMIALS_INVALID, datetime(2006, 1, 1, 12, 15))
+            (ORBIT_POLYNOMIALS_INVALID, dt.datetime(2006, 1, 1, 12, 15))
         ]
     )
     def test_get_orbit_polynomial_exceptions(self, orbit_polynomials, time):
         """Test exceptions thrown while getting the satellite locator."""
         finder = OrbitPolynomialFinder(orbit_polynomials)
         with pytest.raises(NoValidOrbitParams):
-            finder.get_orbit_polynomial(time=time)
+            with pytest.warns(UserWarning, match=r"No orbit polynomial valid"):
+                finder.get_orbit_polynomial(time=time)
 
 
 class TestMeirinkSlope:
@@ -368,14 +378,14 @@ class TestMeirinkSlope:
         assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS["2023"][platform_id][channel_name][0]/1000.
 
     @pytest.mark.parametrize(("platform_id", "time", "expected"), [
-        (321, datetime(2005, 1, 18, 0, 0), [0.0250354716, 0.0315626684, 0.022880986]),
-        (321, datetime(2010, 12, 31, 0, 0), [0.0258479563, 0.0322386887, 0.022895110500000003]),
-        (322, datetime(2010, 1, 18, 0, 0), [0.021964051999999998, 0.027548445, 0.021576766]),
-        (322, datetime(2015, 6, 1, 0, 0), [0.022465028, 0.027908105, 0.021674373999999996]),
-        (323, datetime(2005, 1, 18, 0, 0), [0.0209088464, 0.0265355228, 0.0230132616]),
-        (323, datetime(2010, 12, 31, 0, 0), [0.022181355200000002, 0.0280103379, 0.0229511138]),
-        (324, datetime(2010, 1, 18, 0, 0), [0.0218362, 0.027580748, 0.022285370999999998]),
-        (324, datetime(2015, 6, 1, 0, 0), [0.0225418, 0.028530172, 0.022248718999999997]),
+        (321, dt.datetime(2005, 1, 18, 0, 0), [0.0250354716, 0.0315626684, 0.022880986]),
+        (321, dt.datetime(2010, 12, 31, 0, 0), [0.0258479563, 0.0322386887, 0.022895110500000003]),
+        (322, dt.datetime(2010, 1, 18, 0, 0), [0.021964051999999998, 0.027548445, 0.021576766]),
+        (322, dt.datetime(2015, 6, 1, 0, 0), [0.022465028, 0.027908105, 0.021674373999999996]),
+        (323, dt.datetime(2005, 1, 18, 0, 0), [0.0209088464, 0.0265355228, 0.0230132616]),
+        (323, dt.datetime(2010, 12, 31, 0, 0), [0.022181355200000002, 0.0280103379, 0.0229511138]),
+        (324, dt.datetime(2010, 1, 18, 0, 0), [0.0218362, 0.027580748, 0.022285370999999998]),
+        (324, dt.datetime(2015, 6, 1, 0, 0), [0.0225418, 0.028530172, 0.022248718999999997]),
     ])
     def test_get_meirink_slope_2020(self, platform_id, time, expected):
         """Test the value of the slope of the Meirink calibration."""

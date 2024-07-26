@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Geostationary Lightning Mapper reader for the Level 2 format from glmtools.
 
 More information about `glmtools` and the files it produces can be found on
@@ -23,8 +24,9 @@ the project's GitHub repository:
     https://github.com/deeplycloudy/glmtools
 
 """
+
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 
@@ -52,12 +54,12 @@ class NCGriddedGLML2(NC_ABI_BASE):
     @property
     def start_time(self):
         """Start time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs["time_coverage_start"], "%Y-%m-%dT%H:%M:%SZ")
+        return dt.datetime.strptime(self.nc.attrs["time_coverage_start"], "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def end_time(self):
         """End time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs["time_coverage_end"], "%Y-%m-%dT%H:%M:%SZ")
+        return dt.datetime.strptime(self.nc.attrs["time_coverage_end"], "%Y-%m-%dT%H:%M:%SZ")
 
     def _is_category_product(self, data_arr):
         # if after autoscaling we still have an integer

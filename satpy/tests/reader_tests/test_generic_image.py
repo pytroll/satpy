@@ -21,9 +21,10 @@ import unittest
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 
 class TestGenericImage(unittest.TestCase):
@@ -31,14 +32,14 @@ class TestGenericImage(unittest.TestCase):
 
     def setUp(self):
         """Create temporary images to test on."""
+        import datetime as dt
         import tempfile
-        from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
 
         from satpy.scene import Scene
 
-        self.date = datetime(2018, 1, 1)
+        self.date = dt.datetime(2018, 1, 1)
 
         # Create area definition
         pcs_id = "ETRS89 / LAEA Europe"
@@ -61,7 +62,7 @@ class TestGenericImage(unittest.TestCase):
         a__[:10, :10] = 0
         a__ = da.from_array(a__, chunks=(50, 50))
 
-        r_nan__ = np.random.uniform(0., 1., size=(self.y_size, self.x_size))
+        r_nan__ = RANDOM_GEN.uniform(0., 1., size=(self.y_size, self.x_size))
         r_nan__[:10, :10] = np.nan
         r_nan__ = da.from_array(r_nan__, chunks=(50, 50))
 
@@ -128,10 +129,13 @@ class TestGenericImage(unittest.TestCase):
 
     def test_png_scene(self):
         """Test reading PNG images via satpy.Scene()."""
+        from rasterio.errors import NotGeoreferencedWarning
+
         from satpy import Scene
 
         fname = os.path.join(self.base_dir, "test_l.png")
-        scn = Scene(reader="generic_image", filenames=[fname])
+        with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
+            scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
         assert scn["image"].shape == (1, self.y_size, self.x_size)
         assert scn.sensor_names == {"images"}
@@ -140,7 +144,8 @@ class TestGenericImage(unittest.TestCase):
         assert "area" not in scn["image"].attrs
 
         fname = os.path.join(self.base_dir, "20180101_0000_test_la.png")
-        scn = Scene(reader="generic_image", filenames=[fname])
+        with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
+            scn = Scene(reader="generic_image", filenames=[fname])
         scn.load(["image"])
         data = da.compute(scn["image"].data)
         assert scn["image"].shape == (1, self.y_size, self.x_size)

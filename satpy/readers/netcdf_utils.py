@@ -258,13 +258,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         cache_vars = self._collect_cache_var_names(cache_var_size)
         for var_name in cache_vars:
             v = self.file_content[var_name]
-            try:
-                arr = xr.DataArray(
-                    v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
-            except ValueError:
-                # Handle scalars for h5netcdf backend
-                arr = xr.DataArray(
-                    v.__array__(), dims=v.dimensions, attrs=v.__dict__, name=v.name)
+            arr = get_data_as_xarray(v)
             self.cached_file_content[var_name] = arr
 
     def _collect_cache_var_names(self, cache_var_size):
@@ -378,6 +372,24 @@ def _compose_replacement_names(variable_name_replacements, var, variable_names):
         for val in vals:
             if key in var:
                 variable_names.append(var.format(**{key: val}))
+
+
+def get_data_as_xarray(variable):
+    """Get data in variable as xr.DataArray."""
+    try:
+        attrs = variable.attrs
+    except AttributeError:
+        # netCDF4 backend requires usage of __dict__ to get the attributes
+        attrs = variable.__dict__
+    try:
+        data = variable[:]
+    except (ValueError, IndexError):
+        # Handle scalars for h5netcdf backend
+        data = variable.__array__()
+
+    arr = xr.DataArray(data, dims=variable.dimensions, attrs=attrs, name=variable.name)
+
+    return arr
 
 
 class NetCDF4FsspecFileHandler(NetCDF4FileHandler):

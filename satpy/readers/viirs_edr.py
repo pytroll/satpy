@@ -56,12 +56,28 @@ regions. This behavior can be disabled by providing the reader keyword argument
 
     scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"filter_veg": False})
 
+AOD Filtering
+^^^^^^^^^^^^^
+
+The AOD (Aerosol Optical Depth) product can be optionally filtered based on
+Quality Control (QC) values in the file. By default no filtering is performed.
+By providing the ``aod_qc_filter`` keyword argument and specifying the maximum
+value of the ``QCAll`` variable to include (not mask). For example::
+
+    scene = satpy.Scene(filenames, reader='viirs_edr', reader_kwargs={"aod_qc_filter": 1})
+
+will only preserve AOD550 values where the quality is 0 ("high") or
+1 ("medium"). At the time of writing the ``QCAll`` variable has 1 ("medium"),
+2 ("low"), and 3 ("no retrieval").
+
+
 """
 from __future__ import annotations
 
 import logging
 from typing import Iterable
 
+import dask.array as da
 import xarray as xr
 
 from satpy import DataID
@@ -75,7 +91,7 @@ M_COLS = 3200
 class VIIRSJRRFileHandler(BaseFileHandler):
     """NetCDF4 reader for VIIRS Active Fires."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geo filehandler."""
         super(VIIRSJRRFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
@@ -93,11 +109,6 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                       "Along_Scan_750m": -1,
                                       "Along_Track_750m": row_chunks_m,
                                   })
-        if "Columns" in self.nc.dims:
-            self.nc = self.nc.rename({"Columns": "x", "Rows": "y"})
-        elif "Along_Track_375m" in self.nc.dims:
-            self.nc = self.nc.rename({"Along_Scan_375m": "x", "Along_Track_375m": "y"})
-            self.nc = self.nc.rename({"Along_Scan_750m": "x", "Along_Track_750m": "y"})
 
         # For some reason, no 'standard_name' is defined in some netCDF files, so
         # here we manually make the definitions.
@@ -117,24 +128,20 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         """Get the dataset."""
         data_arr = self.nc[info["file_key"]]
         data_arr = self._mask_invalid(data_arr, info)
+        data_arr = self._sanitize_metadata(data_arr, info)
         units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
             units = "1"
         if units == "%" and data_arr.attrs.get("units") in ("1", "unitless"):
             data_arr *= 100.0  # turn into percentages
         data_arr.attrs["units"] = units
-        if "standard_name" in info:
-            data_arr.attrs["standard_name"] = info["standard_name"]
-        self._decode_flag_meanings(data_arr)
-        data_arr.attrs["platform_name"] = self.platform_name
-        data_arr.attrs["sensor"] = self.sensor_name
-        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         if data_arr.attrs.get("standard_name") in ("longitude", "latitude"):
             # recursive swath definitions are a problem for the base reader right now
             # delete the coordinates here so the base reader doesn't try to
             # make a SwathDefinition
             data_arr = data_arr.reset_coords(drop=True)
-        return data_arr
+
+        return self._rename_dims(data_arr)
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
         # xarray auto mask and scale handled any fills from the file
@@ -145,12 +152,34 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
         return data_arr
 
+    def _sanitize_metadata(self, data_arr: xr.DataArray, info: dict) -> xr.DataArray:
+        if "valid_range" in data_arr.attrs:
+            # don't use numpy arrays for simple metadata
+            data_arr.attrs["valid_range"] = tuple(data_arr.attrs["valid_range"])
+        if "standard_name" in info:
+            data_arr.attrs["standard_name"] = info["standard_name"]
+        self._decode_flag_meanings(data_arr)
+        data_arr.attrs["platform_name"] = self.platform_name
+        data_arr.attrs["sensor"] = self.sensor_name
+        data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
+        return data_arr
+
     @staticmethod
     def _decode_flag_meanings(data_arr: xr.DataArray):
         flag_meanings = data_arr.attrs.get("flag_meanings", None)
         if isinstance(flag_meanings, str) and "\n" not in flag_meanings:
             # only handle CF-standard flag meanings
             data_arr.attrs["flag_meanings"] = [flag for flag in data_arr.attrs["flag_meanings"].split(" ")]
+
+    @staticmethod
+    def _rename_dims(data_arr: xr.DataArray) -> xr.DataArray:
+        if "Columns" in data_arr.dims:
+            data_arr = data_arr.rename({"Columns": "x", "Rows": "y"})
+        if "Along_Track_375m" in data_arr.dims:
+            data_arr = data_arr.rename({"Along_Scan_375m": "x", "Along_Track_375m": "y"})
+        if "Along_Track_750m" in data_arr.dims:
+            data_arr = data_arr.rename({"Along_Scan_750m": "x", "Along_Track_750m": "y"})
+        return data_arr
 
     @property
     def start_time(self):
@@ -221,6 +250,52 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         yield from self._dynamic_variables_from_file(handled_var_names)
 
     def _dynamic_variables_from_file(self, handled_var_names: set) -> Iterable[tuple[bool, dict]]:
+        coords: dict[str, dict] = {}
+        for is_avail, ds_info in self._generate_dynamic_metadata(self.nc.variables.keys(), coords):
+            var_name = ds_info["file_key"]
+            if var_name in handled_var_names and not ("longitude_" in var_name or "latitude_" in var_name):
+                continue
+            handled_var_names.add(var_name)
+            yield is_avail, ds_info
+
+        for coord_info in coords.values():
+            yield True, coord_info
+
+    def _generate_dynamic_metadata(self, variable_names: Iterable[str], coords: dict) -> Iterable[tuple[bool, dict]]:
+        for var_name in variable_names:
+            data_arr = self.nc[var_name]
+            if data_arr.ndim != 2:
+                # only 2D arrays supported at this time
+                continue
+            res = 750 if data_arr.shape[1] == M_COLS else 375
+            ds_info = {
+                "file_key": var_name,
+                "file_type": self.filetype_info["file_type"],
+                "name": var_name,
+                "resolution": res,
+                "coordinates": self._coord_names_for_resolution(res),
+            }
+
+            is_lon = "longitude" in var_name.lower()
+            is_lat = "latitude" in var_name.lower()
+            if not (is_lon or is_lat):
+                yield True, ds_info
+                continue
+
+            ds_info["standard_name"] = "longitude" if is_lon else "latitude"
+            ds_info["units"] = "degrees_east" if is_lon else "degrees_north"
+            # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
+            del ds_info["coordinates"]
+            yield True, ds_info
+
+            # "standard" geolocation coordinate (assume shorter variable name is "better")
+            new_name = self._coord_names_for_resolution(res)[int(not is_lon)]
+            if new_name not in coords or len(var_name) < len(coords[new_name]["file_key"]):
+                ds_info = ds_info.copy()
+                ds_info["name"] = new_name
+                coords[ds_info["name"]] = ds_info
+
+    def _coord_names_for_resolution(self, res: int):
         ftype = self.filetype_info["file_type"]
         m_lon_name = f"longitude_{ftype}"
         m_lat_name = f"latitude_{ftype}"
@@ -228,38 +303,11 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         i_lon_name = f"longitude_i_{ftype}"
         i_lat_name = f"latitude_i_{ftype}"
         i_coords = (i_lon_name, i_lat_name)
-        for var_name in self.nc.variables.keys():
-            data_arr = self.nc[var_name]
-            is_lon = "longitude" in var_name.lower()
-            is_lat = "latitude" in var_name.lower()
-            if var_name in handled_var_names and not (is_lon or is_lat):
-                # skip variables that YAML had configured, but allow lon/lats
-                # to be reprocessed due to our dynamic coordinate naming
-                continue
-            if data_arr.ndim != 2:
-                # only 2D arrays supported at this time
-                continue
-            res = 750 if data_arr.shape[1] == M_COLS else 375
-            ds_info = {
-                "file_key": var_name,
-                "file_type": ftype,
-                "name": var_name,
-                "resolution": res,
-                "coordinates": m_coords if res == 750 else i_coords,
-            }
-            if is_lon:
-                ds_info["standard_name"] = "longitude"
-                ds_info["units"] = "degrees_east"
-                ds_info["name"] = m_lon_name if res == 750 else i_lon_name
-                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
-                del ds_info["coordinates"]
-            elif is_lat:
-                ds_info["standard_name"] = "latitude"
-                ds_info["units"] = "degrees_north"
-                ds_info["name"] = m_lat_name if res == 750 else i_lat_name
-                # recursive coordinate/SwathDefinitions are not currently handled well in the base reader
-                del ds_info["coordinates"]
-            yield True, ds_info
+        if res == 750:
+            return m_coords
+        else:
+            return i_coords
+
 
 
 class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
@@ -277,7 +325,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
             new_data_arr = new_data_arr.where(good_mask)
         return new_data_arr
 
-    def _get_veg_index_good_mask(self) -> xr.DataArray:
+    def _get_veg_index_good_mask(self) -> da.Array:
         # each mask array should be TRUE when pixels are UNACCEPTABLE
         qf1 = self.nc["QF1 Surface Reflectance"]
         has_sun_glint = (qf1 & 0b11000000) > 0
@@ -306,8 +354,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
         )
         # upscale from M-band resolution to I-band resolution
         bad_mask_iband_dask = bad_mask.data.repeat(2, axis=1).repeat(2, axis=0)
-        good_mask_iband = xr.DataArray(~bad_mask_iband_dask, dims=qf1.dims)
-        return good_mask_iband
+        return ~bad_mask_iband_dask
 
 
 class VIIRSLSTHandler(VIIRSJRRFileHandler):
@@ -337,3 +384,20 @@ class VIIRSLSTHandler(VIIRSJRRFileHandler):
             add_offset = self.nc[self._manual_scalings[var_name][1]]
             data_arr.data = data_arr.data * scale_factor.data + add_offset.data
             self.nc[var_name] = data_arr
+
+
+class VIIRSAODHandler(VIIRSJRRFileHandler):
+    """File handler for AOD data files."""
+
+    def __init__(self, *args, aod_qc_filter: int | None = None, **kwargs) -> None:
+        """Initialize file handler and keep track of QC filtering."""
+        super().__init__(*args, **kwargs)
+        self._aod_qc_filter = aod_qc_filter
+
+    def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
+        new_data_arr = super()._mask_invalid(data_arr, ds_info)
+        if self._aod_qc_filter is None or ds_info["name"] != "AOD550":
+            return new_data_arr
+        LOG.debug(f"Filtering AOD data to include quality <= {self._aod_qc_filter}")
+        qc_all = self.nc["QCAll"]
+        return new_data_arr.where(qc_all <= self._aod_qc_filter)

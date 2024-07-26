@@ -15,22 +15,24 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The HRIT msg reader tests package."""
 
+import datetime as dt
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
 import pytest
 import xarray as xr
 from numpy import testing as npt
+from pyproj import CRS
 
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
-from satpy.tests.utils import assert_attrs_equal, make_dataid
+from satpy.tests.utils import RANDOM_GEN, assert_attrs_equal, make_dataid
 
 
 class TestHRITMSGBase(unittest.TestCase):
@@ -46,7 +48,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing HRV."""
-        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
+        self.observation_start_time = dt.datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.reader = setup.get_fake_file_handler(
             observation_start_time=self.observation_start_time,
@@ -63,9 +65,9 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     def test_read_hrv_band(self, memmap):
         """Test reading the hrv band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
-        memmap.return_value = np.random.randint(0, 256,
-                                                size=int((464 * 5568 * nbits) / 8),
-                                                dtype=np.uint8)
+        memmap.return_value = RANDOM_GEN.integers(0, 256,
+                                                  size=int((464 * 5568 * nbits) / 8),
+                                                  dtype=np.uint8)
         res = self.reader.read_band("HRV", None)
         assert res.shape == (464, 5568)
 
@@ -116,17 +118,12 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
-        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
         assert area.area_extent == (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356)
-        proj_dict = area.proj_dict
-        a, b = proj4_radius_parameters(proj_dict)
-        assert a == 6378169.0
-        assert b == pytest.approx(6356583.8)
-        assert proj_dict["h"] == 35785831.0
-        assert proj_dict["lon_0"] == 0.0
-        assert proj_dict["proj"] == "geos"
-        assert proj_dict["units"] == "m"
+
+        expected_crs = CRS(dict(a=6378169.0, b=6356583.8, h=35785831.0, lon_0=0.0, proj="geos", units="m"))
+        assert expected_crs == area.crs
+
         self.reader.fill_hrv = False
         area = self.reader.get_area_def(make_dataid(name="HRV", resolution=1000))
         npt.assert_allclose(area.defs[0].area_extent,
@@ -143,7 +140,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing."""
-        self.observation_start_time = datetime(2006, 1, 1, 12, 15, 9, 304888)
+        self.observation_start_time = dt.datetime(2006, 1, 1, 12, 15, 9, 304888)
         self.nlines = 464
         self.ncols = 3712
         self.projection_longitude = 9.5
@@ -166,16 +163,12 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
-        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(make_dataid(name="VIS006", resolution=3000))
-        proj_dict = area.proj_dict
-        a, b = proj4_radius_parameters(proj_dict)
-        assert a == 6378169.0
-        assert b == pytest.approx(6356583.8)
-        assert proj_dict["h"] == 35785831.0
-        assert proj_dict["lon_0"] == self.projection_longitude
-        assert proj_dict["proj"] == "geos"
-        assert proj_dict["units"] == "m"
+
+        expected_crs = CRS(dict(a=6378169.0, b=6356583.8, h=35785831.0, lon_0=self.projection_longitude,
+                                proj="geos", units="m"))
+        assert area.crs == expected_crs
+
         assert area.area_extent == (-77771774058.38356, -3720765401003.719, 30310525626438.438, 77771774058.38356)
 
         # Data shifted by 1.5km to N-W
@@ -189,9 +182,9 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     def test_read_band(self, memmap):
         """Test reading a band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
-        memmap.return_value = np.random.randint(0, 256,
-                                                size=int((464 * 3712 * nbits) / 8),
-                                                dtype=np.uint8)
+        memmap.return_value = RANDOM_GEN.integers(0, 256,
+                                                  size=int((464 * 3712 * nbits) / 8),
+                                                  dtype=np.uint8)
         res = self.reader.read_band("VIS006", None)
         assert res.shape == (464, 3712)
 
@@ -222,13 +215,13 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             setup.get_attrs_exp(self.projection_longitude)
         )
         # testing start/end time
-        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == self.reader.observation_start_time
-        assert datetime(2006, 1, 1, 12, 15) == self.reader.start_time
+        assert dt.datetime(2006, 1, 1, 12, 15, 9, 304888) == self.reader.observation_start_time
+        assert dt.datetime(2006, 1, 1, 12, 15) == self.reader.start_time
         assert self.reader.start_time == self.reader.nominal_start_time
 
-        assert datetime(2006, 1, 1, 12, 27, 39) == self.reader.observation_end_time
+        assert dt.datetime(2006, 1, 1, 12, 27, 39) == self.reader.observation_end_time
         assert self.reader.end_time == self.reader.nominal_end_time
-        assert datetime(2006, 1, 1, 12, 30) == self.reader.end_time
+        assert dt.datetime(2006, 1, 1, 12, 30) == self.reader.end_time
         # test repeat cycle duration
         assert 15 == self.reader._repeat_cycle_duration
         # Change the reducescan scenario to test the repeat cycle duration handling
@@ -300,7 +293,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     def setUp(self, *mocks):
         """Set up the test case."""
         fh = setup.get_fake_file_handler(
-            observation_start_time=datetime(2016, 3, 3, 0, 0),
+            observation_start_time=dt.datetime(2016, 3, 3, 0, 0),
             nlines=464,
             ncols=3712,
         )
