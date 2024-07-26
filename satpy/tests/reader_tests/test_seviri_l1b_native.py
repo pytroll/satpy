@@ -632,7 +632,7 @@ def prepare_area_definitions(test_dict):
     trailer = create_test_trailer(is_rapid_scan)
     expected_area_def = test_dict["expected_area_def"]
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
@@ -716,7 +716,7 @@ def prepare_is_roi(test_dict):
     trailer = create_test_trailer(is_rapid_scan)
     expected = test_dict["is_roi"]
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
@@ -1166,11 +1166,11 @@ def test_header_type(file_content, exp_header_size):
     )
     if file_content == b"foobar":
         header.pop("15_SECONDARY_PRODUCT_HEADER")
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
-            mock.patch("builtins.open", mock.mock_open(read_data=file_content)):
+            mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=file_content)):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_array.return_value = np.arange(3)
@@ -1196,11 +1196,11 @@ def test_header_warning():
         good_qual="NOK"
     )
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
-            mock.patch("builtins.open", mock.mock_open(read_data=ASCII_STARTSWITH)):
+            mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=ASCII_STARTSWITH)):
         recarray2dict.side_effect = (lambda x: x)
         _get_array.return_value = np.arange(3)
 
@@ -1233,7 +1233,7 @@ def test_header_warning():
 )
 def test_has_archive_header(starts_with, expected):
     """Test if the file includes an ASCII archive header."""
-    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
+    with mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=starts_with)):
         actual = has_archive_header("filename")
     assert actual == expected
 
@@ -1248,7 +1248,7 @@ def test_read_header():
     dtypes = np.dtype([(k, t) for k, t in zip(keys, types)])
     hdr_data = np.array([values], dtype=dtypes)
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile:
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile:
         fromfile.return_value = hdr_data
         actual = recarray2dict(hdr_data)
     assert actual == expected
