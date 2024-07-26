@@ -361,6 +361,27 @@ def generic_open(filename, *args, **kwargs):
     fp.close()
 
 
+def fromfile(filename, dtype, count=1, offset=0):
+    """Reads the numpy array from a (remote or local) file using a buffer.
+
+    Note:
+        This function relies on the :func:`generic_open` context manager to read a file remotely.
+
+    Args:
+        filename: Either the name of the file to read or a :class:`satpy.readers.FSFile` object.
+        dtype: The data type of the numpy array
+        count (Optional, default ``1``): Number of items to read
+        offset (Optional, default ``0``): Starting point for reading the buffer from
+
+    Returns:
+        The content of the filename as a numpy array with the given data type.
+    """
+    with generic_open(filename, mode="rb") as istream:
+        istream.seek(offset)
+        content = np.frombuffer(istream.read(dtype.itemsize * count), dtype=dtype, count=count)
+    return content
+
+
 def bbox(img):
     """Find the bounding box around nonzero elements in the given array.
 
