@@ -39,6 +39,8 @@ from satpy.readers.seviri_l1b_native import (
     get_available_channels,
     has_archive_header,
 )
+from satpy.readers.seviri_l1b_native_hdr import Msg15NativeHeaderRecord
+from satpy.scene import Scene
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
@@ -1252,3 +1254,123 @@ def test_read_header():
         fromfile.return_value = hdr_data
         actual = recarray2dict(hdr_data)
     assert actual == expected
+
+
+def generate_seviri_native_null_header():
+    """Generates the header of the seviri native format which is filled with zeros, hence, the term null!"""
+    header_type = Msg15NativeHeaderRecord().get(True)
+    null_header = np.zeros(header_type.shape, dtype=header_type).reshape(1, )
+    return header_type, null_header
+
+
+def scene_from_physical_seviri_nat_file(filename):
+    """Generates a Scene object from the given seviri native file."""
+    return Scene([filename], reader="seviri_l1b_native", reader_kwargs={"fill_disk": True})
+
+
+def amend_seviri_native_null_header(hdr_null_numpy):
+    """Amends the given null header so that the ``seviri_l1b_native`` reader can properly parse it.
+
+    This is achieved by setting values for the bare minimum number of header fields so that the reader can make sense of
+    the given header. This function relies on a number of auxiliary functions all of which are enclosed in the body of
+    the present function.
+
+    Note:
+        The naming scheme of the auxiliary functions is as follows: ``_amend_<KEY1>__<KEY2>__...``, where <KEY{n}>
+        corresponds to keys in the header when it is represented as a dictionary, i.e. when calling ``recarray2dict()``
+        on the given header array.
+
+        For example, ``_amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId()`` corresponds to an
+        auxiliary function which manipulates the following entry:
+            ``hdr_null_numpy_as_dict["15_DATA_HEADER"]["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"]``
+    """
+
+    def _amend_15_MAIN_PRODUCT_HEADER():
+        hdr_null_numpy[0][0][0] = (b"FormatName                  : ", b"NATIVE\n")
+
+    def _amend_15_SECONDARY_PRODUCT_HEADER():
+        hdr_null_numpy[0][1][9] = (b"SelectedBandIDs", b"XXXXXXXXXXXX")
+        hdr_null_numpy[0][1][10] = (b"SouthLineSelectedRectangle", b"1")
+        hdr_null_numpy[0][1][11] = (b"NorthLineSelectedRectangle", b"3712")
+        hdr_null_numpy[0][1][12] = (b"EastColumnSelectedRectangle", b"1")
+        hdr_null_numpy[0][1][13] = (b"WestColumnSelectedRectangle", b"3712")
+        hdr_null_numpy[0][1][14] = (b"NumberLinesVISIR", b"3712")
+        hdr_null_numpy[0][1][15] = (b"NumberColumnsVISIR", b"3712")
+        hdr_null_numpy[0][1][16] = (b"NumberLinesHRV", b"11136")
+        hdr_null_numpy[0][1][17] = (b"NumberColumnsHRV", b"11136")
+
+    def _amend_GP_PK_SH1__PacketTime():
+        hdr_null_numpy[0][3][5] = (23158, 27921912)
+
+    def _amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId():
+        hdr_null_numpy[0][4][1][0][0] = 324
+
+    def _amend_15_DATA_HEADER__GeometricProcessing__EarthModel():
+        hdr_null_numpy[0][4][6][1] = (2, 6378.169, 6356.5838, 6356.5838)
+
+    def _amend_15_DATA_HEADER__ImageAcquisition__PlannedAcquisitionTime():
+        hdr_null_numpy[0][4][2][0] = (
+            (23158, 27911177, 286, 223),
+            (23158, 28663675, 401, 687),
+            (23158, 28810078, 157, 663)
+        )
+
+    # Apply all the header amendments
+    _amend_15_MAIN_PRODUCT_HEADER()
+    _amend_15_SECONDARY_PRODUCT_HEADER()
+    _amend_GP_PK_SH1__PacketTime()
+    _amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId()
+    _amend_15_DATA_HEADER__GeometricProcessing__EarthModel()
+    _amend_15_DATA_HEADER__ImageAcquisition__PlannedAcquisitionTime()
+
+
+@pytest.fixture()
+def tmp_seviri_nat_filename(tmp_path):
+    """Creates a fully-qualified filename for a seviri native format file."""
+    tmp_filename = "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-NA"
+    return tmp_path / f"{tmp_filename}.nat"
+
+
+def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_numpy):
+    """Generates the data and trailer part (null content) of the file and appends them to the null header.
+
+    The data and trailer are also null and appending them to the header results in a complete seviri nat file.
+    """
+    # size of different parts of the seviri native file in bytes
+    size = dict(header_with_archive=450400, data=270344960, trailer=380363)
+
+    zero_bytes = bytearray(size["data"] + size["trailer"])
+    bytes_data = bytes(zero_bytes)
+
+    hdr_null_numpy.tofile(filename)
+    with open(filename, "ab") as f:
+        f.write(bytes_data)
+
+
+@pytest.fixture()
+def physical_seviri_native_file(tmp_seviri_nat_filename):
+    """Creates a physical seviri native file on disk."""
+    hdr_null_type, hdr_null = generate_seviri_native_null_header()
+    amend_seviri_native_null_header(hdr_null)
+    append_data_and_trailer_content_to_seviri_native_header(tmp_seviri_nat_filename, hdr_null)
+
+    return dict(header_type=hdr_null_type, header=hdr_null, filename=tmp_seviri_nat_filename)
+
+
+def test_read_physical_seviri_nat_file(physical_seviri_native_file):
+    """Tests that the physical seviri native file has been read successfully.
+
+    Note:
+        The purpose of this function is not to fully test the properties of the scene. It only provides a test for
+        reading a physical file from disk.
+    """
+    scene = scene_from_physical_seviri_nat_file(physical_seviri_native_file["filename"])
+
+    assert physical_seviri_native_file["header_type"] == physical_seviri_native_file["header"].dtype
+    assert scene.sensor_names == {"seviri"}
+    assert len(scene.available_dataset_ids()) == 36
+    assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
+
+    scene.load(["VIS006"])
+    assert scene["VIS006"].shape == (3712, 3712)
+    assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
