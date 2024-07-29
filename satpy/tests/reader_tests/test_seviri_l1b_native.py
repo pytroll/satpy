@@ -1345,15 +1345,15 @@ def amend_seviri_native_null_header(hdr_null_numpy):
         hdr_null_numpy[0][0][0] = (b"FormatName                  : ", b"NATIVE\n")
 
     def _amend_15_SECONDARY_PRODUCT_HEADER():
-        hdr_null_numpy[0][1][9] = (b"SelectedBandIDs", b"XXXXXXXXXXXX")
-        hdr_null_numpy[0][1][10] = (b"SouthLineSelectedRectangle", b"1")
-        hdr_null_numpy[0][1][11] = (b"NorthLineSelectedRectangle", b"3712")
-        hdr_null_numpy[0][1][12] = (b"EastColumnSelectedRectangle", b"1")
-        hdr_null_numpy[0][1][13] = (b"WestColumnSelectedRectangle", b"3712")
-        hdr_null_numpy[0][1][14] = (b"NumberLinesVISIR", b"3712")
-        hdr_null_numpy[0][1][15] = (b"NumberColumnsVISIR", b"3712")
-        hdr_null_numpy[0][1][16] = (b"NumberLinesHRV", b"11136")
-        hdr_null_numpy[0][1][17] = (b"NumberColumnsHRV", b"11136")
+        hdr_null_numpy[0][1][9] = (b"SelectedBandIDs", b"XXXXXXXXXXX-")
+        hdr_null_numpy[0][1][10] = (b"SouthLineSelectedRectangle", b"3360")
+        hdr_null_numpy[0][1][11] = (b"NorthLineSelectedRectangle", b"3373")
+        hdr_null_numpy[0][1][12] = (b"EastColumnSelectedRectangle", b"1714")
+        hdr_null_numpy[0][1][13] = (b"WestColumnSelectedRectangle", b"1729")
+        hdr_null_numpy[0][1][14] = (b"NumberLinesVISIR", b"14")
+        hdr_null_numpy[0][1][15] = (b"NumberColumnsVISIR", b"16")
+        hdr_null_numpy[0][1][16] = (b"NumberLinesHRV", b"42")
+        hdr_null_numpy[0][1][17] = (b"NumberColumnsHRV", b"48")
 
     def _amend_GP_PK_SH1__PacketTime():
         hdr_null_numpy[0][3][5] = (23158, 27921912)
@@ -1386,7 +1386,7 @@ def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_n
     The data and trailer are also null and appending them to the header results in a complete seviri nat file.
     """
     # size of different parts of the seviri native file in bytes
-    size = dict(header_with_archive=450400, data=270344960, trailer=380363)
+    size = {"header_with_archive": 450400, "data": 13090, "trailer": 380363}
     zero_bytes = bytearray(size["data"] + size["trailer"])
     bytes_data = bytes(zero_bytes)
 
