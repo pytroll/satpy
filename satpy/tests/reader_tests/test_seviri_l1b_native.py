@@ -1258,37 +1258,44 @@ def test_read_header():
     assert actual == expected
 
 
-@pytest.fixture()
-def tmp_seviri_nat_filename(tmp_path):
+@pytest.fixture(scope="session")
+def session_tmp_path(tmp_path_factory):
+    """Generates a single temp path to use for the entire session."""
+    return tmp_path_factory.mktemp("data")
+
+
+@pytest.fixture(scope="session")
+def tmp_seviri_nat_filename(session_tmp_path):
     """Creates a fully-qualified filename for a seviri native format file."""
-    tmp_filename = "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-NA"
-    return dict(path=tmp_path, filename=tmp_filename, full_path=tmp_path / f"{tmp_filename}.nat")
+    full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
+    create_physical_seviri_native_file(full_file_path)
+    return full_file_path
 
 
-def compress_seviri_native_file(path, seviri_native_filename):
+@pytest.fixture(scope="session")
+def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     """Compresses the given seviri native file into a zip file."""
-    zip_full_path = path / f"{seviri_native_filename}.zip"
+    zip_full_path = session_tmp_path / "test_seviri_native.zip"
     with zipfile.ZipFile(zip_full_path, mode="w") as archive:
-        archive.write(path / f"{seviri_native_filename}.nat", f"{seviri_native_filename}.nat")
+        archive.write(tmp_seviri_nat_filename, os.path.basename(tmp_seviri_nat_filename))
     return f"zip://*.nat::{zip_full_path}"
 
 
-@pytest.mark.parametrize(("treat_native_file", "args"), [
-    (lambda path, filename: path / f"{filename}.nat", lf("tmp_seviri_nat_filename")),
-    (compress_seviri_native_file, lf("tmp_seviri_nat_filename"))
+@pytest.mark.slow()
+@pytest.mark.order("last")
+@pytest.mark.parametrize(("full_path"), [
+    lf("tmp_seviri_nat_filename"),
+    lf("compress_seviri_native_file")
 ])
-def test_read_physical_seviri_nat_file(tmp_seviri_nat_filename, treat_native_file, args):
+def test_read_physical_seviri_nat_file(full_path):
     """Tests that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
 
     Note:
         The purpose of this function is not to fully test the properties of the scene. It only provides a test for
         reading a physical file from disk.
     """
-    native_file = physical_seviri_native_file(tmp_seviri_nat_filename["full_path"])
-    full_path = treat_native_file(args["path"], args["filename"])
     scene = scene_from_physical_seviri_nat_file(full_path)
 
-    assert native_file["header_type"] == native_file["header"].dtype
     assert scene.sensor_names == {"seviri"}
     assert len(scene.available_dataset_ids()) == 36
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
@@ -1303,17 +1310,15 @@ def scene_from_physical_seviri_nat_file(filename):
     return Scene([filename], reader="seviri_l1b_native", reader_kwargs={"fill_disk": True})
 
 
-def physical_seviri_native_file(seviri_nat_full_file_path):
+def create_physical_seviri_native_file(seviri_nat_full_file_path):
     """Creates a physical seviri native file on disk."""
     header_type, header_null = generate_seviri_native_null_header()
     amend_seviri_native_null_header(header_null)
     append_data_and_trailer_content_to_seviri_native_header(seviri_nat_full_file_path, header_null)
 
-    return dict(header_type=header_type, header=header_null)
-
 
 def generate_seviri_native_null_header():
-    """Generates the header of the seviri native format which is filled with zeros, hence, the term null!"""
+    """Generates the header of the seviri native format which is filled with zeros, hence the term null!"""
     header_type = Msg15NativeHeaderRecord().get(True)
     null_header = np.zeros(header_type.shape, dtype=header_type).reshape(1, )
     return header_type, null_header
@@ -1382,7 +1387,6 @@ def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_n
     """
     # size of different parts of the seviri native file in bytes
     size = dict(header_with_archive=450400, data=270344960, trailer=380363)
-
     zero_bytes = bytearray(size["data"] + size["trailer"])
     bytes_data = bytes(zero_bytes)
 
