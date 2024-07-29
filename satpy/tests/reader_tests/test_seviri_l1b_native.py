@@ -1278,7 +1278,7 @@ def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     zip_full_path = session_tmp_path / "test_seviri_native.zip"
     with zipfile.ZipFile(zip_full_path, mode="w") as archive:
         archive.write(tmp_seviri_nat_filename, os.path.basename(tmp_seviri_nat_filename))
-    return f"zip://*.nat::{zip_full_path}"
+    return f"zip://*.nat::file://{zip_full_path.as_posix()}"
 
 
 @pytest.mark.slow()
