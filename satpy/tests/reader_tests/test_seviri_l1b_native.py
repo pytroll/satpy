@@ -1281,8 +1281,6 @@ def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     return f"zip://*.nat::file://{zip_full_path.as_posix()}"
 
 
-@pytest.mark.slow()
-@pytest.mark.order("last")
 @pytest.mark.parametrize(("full_path"), [
     lf("tmp_seviri_nat_filename"),
     lf("compress_seviri_native_file")
