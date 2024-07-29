@@ -1298,9 +1298,11 @@ def test_read_physical_seviri_nat_file(full_path):
     assert len(scene.available_dataset_ids()) == 36
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
 
-    scene.load(["VIS006"])
-    assert scene["VIS006"].shape == (3712, 3712)
-    assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        scene.load(["VIS006"])
+        assert scene["VIS006"].shape == (3712, 3712)
+        assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
 
 
 def scene_from_physical_seviri_nat_file(filename):
