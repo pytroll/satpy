@@ -23,12 +23,14 @@ import datetime as dt
 import os
 import unittest
 import warnings
+import zipfile
 from unittest import mock
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pytest_lazy_fixtures import lf
 
 from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.seviri_l1b_native import (
@@ -1328,7 +1330,15 @@ def amend_seviri_native_null_header(hdr_null_numpy):
 def tmp_seviri_nat_filename(tmp_path):
     """Creates a fully-qualified filename for a seviri native format file."""
     tmp_filename = "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-NA"
-    return tmp_path / f"{tmp_filename}.nat"
+    return dict(path=tmp_path, filename=tmp_filename, full_path=tmp_path / f"{tmp_filename}.nat")
+
+
+def compress_seviri_native_file(path, seviri_native_filename):
+    """Compresses the given seviri native file into a zip file."""
+    zip_full_path = path / f"{seviri_native_filename}.zip"
+    with zipfile.ZipFile(zip_full_path, mode="w") as archive:
+        archive.write(path / f"{seviri_native_filename}.nat", f"{seviri_native_filename}.nat")
+    return f"zip://*.nat::{zip_full_path}"
 
 
 def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_numpy):
@@ -1347,26 +1357,31 @@ def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_n
         f.write(bytes_data)
 
 
-@pytest.fixture()
-def physical_seviri_native_file(tmp_seviri_nat_filename):
+def physical_seviri_native_file(seviri_nat_full_file_path):
     """Creates a physical seviri native file on disk."""
     hdr_null_type, hdr_null = generate_seviri_native_null_header()
     amend_seviri_native_null_header(hdr_null)
-    append_data_and_trailer_content_to_seviri_native_header(tmp_seviri_nat_filename, hdr_null)
+    append_data_and_trailer_content_to_seviri_native_header(seviri_nat_full_file_path, hdr_null)
 
-    return dict(header_type=hdr_null_type, header=hdr_null, filename=tmp_seviri_nat_filename)
+    return dict(header_type=hdr_null_type, header=hdr_null)
 
 
-def test_read_physical_seviri_nat_file(physical_seviri_native_file):
-    """Tests that the physical seviri native file has been read successfully.
+@pytest.mark.parametrize(("treat_native_file", "args"), [
+    (lambda path, filename: path / f"{filename}.nat", lf("tmp_seviri_nat_filename")),
+    (compress_seviri_native_file, lf("tmp_seviri_nat_filename"))
+])
+def test_read_physical_seviri_nat_file(tmp_seviri_nat_filename, treat_native_file, args):
+    """Tests that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
 
     Note:
         The purpose of this function is not to fully test the properties of the scene. It only provides a test for
         reading a physical file from disk.
     """
-    scene = scene_from_physical_seviri_nat_file(physical_seviri_native_file["filename"])
+    native_file = physical_seviri_native_file(tmp_seviri_nat_filename["full_path"])
+    full_path = treat_native_file(args["path"], args["filename"])
+    scene = scene_from_physical_seviri_nat_file(full_path)
 
-    assert physical_seviri_native_file["header_type"] == physical_seviri_native_file["header"].dtype
+    assert native_file["header_type"] == native_file["header"].dtype
     assert scene.sensor_names == {"seviri"}
     assert len(scene.available_dataset_ids()) == 36
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
