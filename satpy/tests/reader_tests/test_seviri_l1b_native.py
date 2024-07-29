@@ -1258,16 +1258,65 @@ def test_read_header():
     assert actual == expected
 
 
-def generate_seviri_native_null_header():
-    """Generates the header of the seviri native format which is filled with zeros, hence, the term null!"""
-    header_type = Msg15NativeHeaderRecord().get(True)
-    null_header = np.zeros(header_type.shape, dtype=header_type).reshape(1, )
-    return header_type, null_header
+@pytest.fixture()
+def tmp_seviri_nat_filename(tmp_path):
+    """Creates a fully-qualified filename for a seviri native format file."""
+    tmp_filename = "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-NA"
+    return dict(path=tmp_path, filename=tmp_filename, full_path=tmp_path / f"{tmp_filename}.nat")
+
+
+def compress_seviri_native_file(path, seviri_native_filename):
+    """Compresses the given seviri native file into a zip file."""
+    zip_full_path = path / f"{seviri_native_filename}.zip"
+    with zipfile.ZipFile(zip_full_path, mode="w") as archive:
+        archive.write(path / f"{seviri_native_filename}.nat", f"{seviri_native_filename}.nat")
+    return f"zip://*.nat::{zip_full_path}"
+
+
+@pytest.mark.parametrize(("treat_native_file", "args"), [
+    (lambda path, filename: path / f"{filename}.nat", lf("tmp_seviri_nat_filename")),
+    (compress_seviri_native_file, lf("tmp_seviri_nat_filename"))
+])
+def test_read_physical_seviri_nat_file(tmp_seviri_nat_filename, treat_native_file, args):
+    """Tests that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
+
+    Note:
+        The purpose of this function is not to fully test the properties of the scene. It only provides a test for
+        reading a physical file from disk.
+    """
+    native_file = physical_seviri_native_file(tmp_seviri_nat_filename["full_path"])
+    full_path = treat_native_file(args["path"], args["filename"])
+    scene = scene_from_physical_seviri_nat_file(full_path)
+
+    assert native_file["header_type"] == native_file["header"].dtype
+    assert scene.sensor_names == {"seviri"}
+    assert len(scene.available_dataset_ids()) == 36
+    assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
+
+    scene.load(["VIS006"])
+    assert scene["VIS006"].shape == (3712, 3712)
+    assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
 
 
 def scene_from_physical_seviri_nat_file(filename):
     """Generates a Scene object from the given seviri native file."""
     return Scene([filename], reader="seviri_l1b_native", reader_kwargs={"fill_disk": True})
+
+
+def physical_seviri_native_file(seviri_nat_full_file_path):
+    """Creates a physical seviri native file on disk."""
+    header_type, header_null = generate_seviri_native_null_header()
+    amend_seviri_native_null_header(header_null)
+    append_data_and_trailer_content_to_seviri_native_header(seviri_nat_full_file_path, header_null)
+
+    return dict(header_type=header_type, header=header_null)
+
+
+def generate_seviri_native_null_header():
+    """Generates the header of the seviri native format which is filled with zeros, hence, the term null!"""
+    header_type = Msg15NativeHeaderRecord().get(True)
+    null_header = np.zeros(header_type.shape, dtype=header_type).reshape(1, )
+    return header_type, null_header
 
 
 def amend_seviri_native_null_header(hdr_null_numpy):
@@ -1326,21 +1375,6 @@ def amend_seviri_native_null_header(hdr_null_numpy):
     _amend_15_DATA_HEADER__ImageAcquisition__PlannedAcquisitionTime()
 
 
-@pytest.fixture()
-def tmp_seviri_nat_filename(tmp_path):
-    """Creates a fully-qualified filename for a seviri native format file."""
-    tmp_filename = "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-NA"
-    return dict(path=tmp_path, filename=tmp_filename, full_path=tmp_path / f"{tmp_filename}.nat")
-
-
-def compress_seviri_native_file(path, seviri_native_filename):
-    """Compresses the given seviri native file into a zip file."""
-    zip_full_path = path / f"{seviri_native_filename}.zip"
-    with zipfile.ZipFile(zip_full_path, mode="w") as archive:
-        archive.write(path / f"{seviri_native_filename}.nat", f"{seviri_native_filename}.nat")
-    return f"zip://*.nat::{zip_full_path}"
-
-
 def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_numpy):
     """Generates the data and trailer part (null content) of the file and appends them to the null header.
 
@@ -1355,37 +1389,3 @@ def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_n
     hdr_null_numpy.tofile(filename)
     with open(filename, "ab") as f:
         f.write(bytes_data)
-
-
-def physical_seviri_native_file(seviri_nat_full_file_path):
-    """Creates a physical seviri native file on disk."""
-    hdr_null_type, hdr_null = generate_seviri_native_null_header()
-    amend_seviri_native_null_header(hdr_null)
-    append_data_and_trailer_content_to_seviri_native_header(seviri_nat_full_file_path, hdr_null)
-
-    return dict(header_type=hdr_null_type, header=hdr_null)
-
-
-@pytest.mark.parametrize(("treat_native_file", "args"), [
-    (lambda path, filename: path / f"{filename}.nat", lf("tmp_seviri_nat_filename")),
-    (compress_seviri_native_file, lf("tmp_seviri_nat_filename"))
-])
-def test_read_physical_seviri_nat_file(tmp_seviri_nat_filename, treat_native_file, args):
-    """Tests that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
-
-    Note:
-        The purpose of this function is not to fully test the properties of the scene. It only provides a test for
-        reading a physical file from disk.
-    """
-    native_file = physical_seviri_native_file(tmp_seviri_nat_filename["full_path"])
-    full_path = treat_native_file(args["path"], args["filename"])
-    scene = scene_from_physical_seviri_nat_file(full_path)
-
-    assert native_file["header_type"] == native_file["header"].dtype
-    assert scene.sensor_names == {"seviri"}
-    assert len(scene.available_dataset_ids()) == 36
-    assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
-
-    scene.load(["VIS006"])
-    assert scene["VIS006"].shape == (3712, 3712)
-    assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
