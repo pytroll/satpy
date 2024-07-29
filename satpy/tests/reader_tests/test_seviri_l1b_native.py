@@ -1338,7 +1338,7 @@ def amend_seviri_native_null_header(hdr_null_numpy):
 
         For example, ``_amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId()`` corresponds to an
         auxiliary function which manipulates the following entry:
-            ``hdr_null_numpy_as_dict["15_DATA_HEADER"]["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"]``
+        ``hdr_null_numpy_as_dict["15_DATA_HEADER"]["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"]``
     """
 
     def _amend_15_MAIN_PRODUCT_HEADER():
