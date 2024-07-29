@@ -1004,12 +1004,12 @@ class TestNativeMSGDataset:
     def test_time(self, file_handler):
         """Test start/end nominal/observation time handling."""
         assert dt.datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
-        assert dt.datetime(2006, 1, 1, 12, 15,) == file_handler.start_time
+        assert dt.datetime(2006, 1, 1, 12, 15, ) == file_handler.start_time
         assert file_handler.start_time == file_handler.nominal_start_time
 
         assert dt.datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
         assert file_handler.end_time == file_handler.nominal_end_time
-        assert dt.datetime(2006, 1, 1, 12, 30,) == file_handler.end_time
+        assert dt.datetime(2006, 1, 1, 12, 30, ) == file_handler.end_time
 
     def test_repeat_cycle_duration(self, file_handler):
         """Test repeat cycle handling for FD or ReduscedScan."""
