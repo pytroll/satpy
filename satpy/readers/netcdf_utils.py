@@ -108,14 +108,21 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.cached_file_content = {}
         self._use_h5netcdf = False
         self._auto_maskandscale = auto_maskandscale
-        try:
-            file_handle = self._get_file_handle()
-        except IOError:
-            LOG.exception(
-                "Failed reading file %s. Possibly corrupted file", self.filename)
-            raise
+        if cache_handle:
+            self.manager = xr.backends.CachingFileManager(
+                    functools.partial(_nc_dataset_wrapper,
+                                      auto_maskandscale=auto_maskandscale),
+                    self.filename, mode="r")
+            file_handle = self.manager.acquire()
+        else:
+            try:
+                file_handle = self._get_file_handle()
+            except IOError:
+                LOG.exception(
+                    "Failed reading file %s. Possibly corrupted file", self.filename)
+                raise
 
-        self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
+            self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
         self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
@@ -126,12 +133,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.collect_dimensions("", file_handle)
         self.collect_cache_vars(cache_var_size)
 
-        if cache_handle:
-            self.manager = xr.backends.CachingFileManager(
-                    functools.partial(_NCDatasetWrapper,
-                                      auto_maskandscale=auto_maskandscale),
-                    self.filename, mode="r")
-        else:
+        if not cache_handle:
             file_handle.close()
 
     def _get_file_handle(self):
@@ -472,7 +474,6 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
             return obj.attrs[key]
         return super()._get_attr(obj, key)
 
-
 class PreloadableSegments:
     """Mixin class for pre-loading segments.
 
@@ -675,23 +676,14 @@ def _get_delayed_value_from_nc(fn, var, auto_maskandscale=False):
         return nc[var][:]
 
 
-class _NCDatasetWrapper(netCDF4.Dataset):
+def _nc_dataset_wrapper(*args, auto_maskandscale, **kwargs):
     """Wrap netcdf4.Dataset setting auto_maskandscale globally.
 
-    Helper class that wraps netcdf4.Dataset while setting extra parameters.
-    By encapsulating this in a helper class, we can
+    Helper function that wraps netcdf4.Dataset while setting extra parameters.
+    By encapsulating this in a helper function, we can
     pass it to CachingFileManager directly.  Currently sets
     auto_maskandscale globally (for all variables).
     """
-
-    def __init__(self, *args, auto_maskandscale=False, **kwargs):
-        """Initialise object."""
-        super().__init__(*args, **kwargs)
-        self._set_extra_settings(auto_maskandscale=auto_maskandscale)
-
-    def _set_extra_settings(self, auto_maskandscale):
-        """Set our own custom settings.
-
-        Currently only applies set_auto_maskandscale.
-        """
-        self.set_auto_maskandscale(auto_maskandscale)
+    nc = netCDF4.Dataset(*args, **kwargs)
+    nc.set_auto_maskandscale(auto_maskandscale)
+    return nc
