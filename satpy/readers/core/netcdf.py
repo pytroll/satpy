@@ -109,11 +109,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._use_h5netcdf = False
         self._auto_maskandscale = auto_maskandscale
         if cache_handle:
-            self.manager = xr.backends.CachingFileManager(
-                    functools.partial(_nc_dataset_wrapper,
-                                      auto_maskandscale=auto_maskandscale),
-                    self.filename, mode="r")
-            file_handle = self.manager.acquire()
+            file_handle = self._get_cached_file_handle(auto_maskandscale)
         else:
             try:
                 file_handle = self._get_file_handle()
@@ -138,6 +134,13 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def _get_file_handle(self):
         return netCDF4.Dataset(self.filename, "r")
+
+    def _get_cached_file_handle(self, auto_maskandscale):
+        self.manager = xr.backends.CachingFileManager(
+                functools.partial(_nc_dataset_wrapper,
+                                  auto_maskandscale=auto_maskandscale),
+                self.filename, mode="r")
+        return self.manager.acquire()
 
     @property
     def file_handle(self):
@@ -639,6 +642,11 @@ class PreloadableSegments:
         if self.preload:
             return open(os.devnull, "r")
         return super()._get_file_handle()
+
+    def _get_cached_file_handle(self, auto_maskandscale):
+        if self.preload:
+            return open(os.devnull, "r")
+        return super()._get_cached_file_handle(auto_maskandscale)
 
     def store_cache(self, filename=None):
         """Store RC-cachable data to cache."""
