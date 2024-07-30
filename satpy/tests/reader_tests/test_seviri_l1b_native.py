@@ -638,7 +638,9 @@ def prepare_area_definitions(test_dict):
 
     with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
             mock.patch(
                 "satpy.readers.seviri_l1b_native.has_archive_header"
@@ -647,6 +649,7 @@ def prepare_area_definitions(test_dict):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_array.return_value = np.arange(3)
+        _n_visir_ch.return_value = 11
         fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         fh.fill_disk = fill_disk
         fh.header = header
@@ -722,7 +725,9 @@ def prepare_is_roi(test_dict):
 
     with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
             mock.patch(
                 "satpy.readers.seviri_l1b_native.has_archive_header"
@@ -731,6 +736,7 @@ def prepare_is_roi(test_dict):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_array.return_value = np.arange(3)
+        _n_visir_ch.return_value = 11
         fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         fh.header = header
         fh.trailer = trailer
@@ -1172,12 +1178,15 @@ def test_header_type(file_content, exp_header_size):
         header.pop("15_SECONDARY_PRODUCT_HEADER")
     with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
             mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=file_content)):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
         _get_array.return_value = np.arange(3)
+        _n_visir_ch.return_value = 11
         fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         assert fh.header_type.itemsize == exp_header_size
         assert "15_SECONDARY_PRODUCT_HEADER" in fh.header
@@ -1202,7 +1211,9 @@ def test_header_warning():
 
     with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_array") as _get_array, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
             mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=ASCII_STARTSWITH)):
         recarray2dict.side_effect = (lambda x: x)
@@ -1211,6 +1222,8 @@ def test_header_warning():
         exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
 
         fromfile.return_value = header_good
+        _n_visir_ch.return_value = 11
+
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
