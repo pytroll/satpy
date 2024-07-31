@@ -138,7 +138,7 @@ from satpy.readers.seviri_l1b_native_hdr import (
     get_native_header,
     native_trailer,
 )
-from satpy.readers.utils import reduce_mda
+from satpy.readers.utils import fromfile, generic_open, reduce_mda
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("native_msg")
@@ -193,9 +193,26 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Available channels are known only after the header has been read
         self.header_type = get_native_header(has_archive_header(self.filename))
         self._read_header()
-        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
+        self._make_dask_array_with_map_blocks()
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
+
+    def _make_dask_array_with_map_blocks(self):
+        """Makes the dask array using the ``da.map_blocks()`` functionality."""
+        dtype = self._get_data_dtype()
+        chunks = da.core.normalize_chunks(
+            "auto",
+            shape=(self.mda["number_of_lines"],),
+            dtype=dtype)
+        self.dask_array = da.map_blocks(
+            _get_array,
+            dtype=dtype,
+            chunks=chunks,
+            meta=np.zeros(1, dtype=dtype),
+            # The following will be passed as keyword arguments to the `_get_array()` function.
+            filename=self.filename,
+            hdr_size=self.header_type.itemsize
+        )
 
     @property
     def _repeat_cycle_duration(self):
@@ -266,9 +283,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         # each pixel is 10-bits -> one line of data has 25% more bytes
         # than the number of columns suggest (10/8 = 1.25)
         visir_rec = get_lrec(int(self.mda["number_of_columns"] * 1.25))
-        number_of_visir_channels = len(
-            [s for s in self.mda["channel_list"] if not s == "HRV"])
-        drec = [("visir", (visir_rec, number_of_visir_channels))]
+        drec = [("visir", (visir_rec, self._number_of_visir_channels()))]
 
         if self.mda["available_channels"]["HRV"]:
             hrv_rec = get_lrec(int(self.mda["hrv_number_of_columns"] * 1.25))
@@ -276,15 +291,9 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         return np.dtype(drec)
 
-    def _get_memmap(self):
-        """Get the memory map for the SEVIRI data."""
-        with open(self.filename) as fp:
-            data_dtype = self._get_data_dtype()
-            hdr_size = self.header_type.itemsize
-
-            return np.memmap(fp, dtype=data_dtype,
-                             shape=(self.mda["number_of_lines"],),
-                             offset=hdr_size, mode="r")
+    def _number_of_visir_channels(self):
+        """Returns the number of visir channels, i.e. all channels excluding ``HRV``."""
+        return len([s for s in self.mda["channel_list"] if not s == "HRV"])
 
     def _read_header(self):
         """Read the header info."""
@@ -387,9 +396,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         data_size = (self._get_data_dtype().itemsize *
                      self.mda["number_of_lines"])
 
-        with open(self.filename) as fp:
-            fp.seek(hdr_size + data_size)
-            data = np.fromfile(fp, dtype=native_trailer, count=1)
+        data = fromfile(self.filename, dtype=native_trailer, count=1, offset=hdr_size + data_size)
 
         self.trailer.update(recarray2dict(data))
 
@@ -888,12 +895,23 @@ def get_available_channels(header):
 
 def has_archive_header(filename):
     """Check whether the file includes an ASCII archive header."""
-    with open(filename, mode="rb") as istream:
+    with generic_open(filename, mode="rb") as istream:
         return istream.read(36) == ASCII_STARTSWITH
 
 
 def read_header(filename):
     """Read SEVIRI L1.5 native header."""
     dtype = get_native_header(has_archive_header(filename))
-    hdr = np.fromfile(filename, dtype=dtype, count=1)
+    hdr = fromfile(filename, dtype=dtype, count=1)
     return recarray2dict(hdr)
+
+
+def _get_array(filename=None, hdr_size=None, block_info=None):
+    """Get the numpy array for the SEVIRI data."""
+    output_block_info = block_info[None]
+    data_dtype = output_block_info["dtype"]
+    return fromfile(
+        filename,
+        dtype=data_dtype,
+        offset=hdr_size + output_block_info["array-location"][0][0] * data_dtype.itemsize,
+        count=output_block_info["chunk-shape"][0])
