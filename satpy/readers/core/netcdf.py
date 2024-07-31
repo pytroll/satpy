@@ -583,7 +583,7 @@ class PreloadableSegments:
             for subst_name in self._get_required_variable_names(
                     [raw_name], variable_name_replacements):
                 if self._can_get_from_other_segment(raw_name):
-                    self.file_content[subst_name] = self.ref_fh[subst_name]
+                    self.file_content[subst_name] = self.ref_fh.file_content[subst_name]
                 elif not self._can_get_from_other_rc(raw_name):
                     self._collect_variable_delayed(subst_name)
 
