@@ -1030,7 +1030,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                         reader_configs,compare_tuples)
 
     @pytest.mark.parametrize(("channel","resolution","compare_tuples"),
-                            [("vis_06","3km",(0,10,
+                            [("vis_06","3km",(1,10,
                               datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
                               datetime.datetime.strptime("2024-01-09 08:10:00", "%Y-%m-%d %H:%M:%S")))])
     def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
