@@ -71,8 +71,8 @@ LIST_CHANNEL_SOLAR = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
 LIST_CHANNEL_TERRAN = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
                        "ir_123", "ir_133"]
 LIST_TOTAL_CHANNEL = LIST_CHANNEL_SOLAR + LIST_CHANNEL_TERRAN
-LIST_RESOLUTION_V06 = ["1km", "3km"]
-LIST_RESOLUTION = ["3km"]
+LIST_RESOLUTION_VIS06_AF = ["1km", "3km"]
+LIST_RESOLUTION_AF = ["3km"]
 EXPECTED_POS_INFO_FOR_FILETYPE = {
     "fdhsi": {"1km": {"start_position_row": 1,
                       "end_position_row": 200,
@@ -184,19 +184,19 @@ TEST_FILENAMES = {"fdhsi": [
 }
 
 
-def resolutions(channel):
-    """Get the resolutions."""
+def resolutions_AF_products(channel):
+    """Get the resolutions of the African products."""
     if channel == "vis_06":
-        return LIST_RESOLUTION_V06
+        return LIST_RESOLUTION_VIS06_AF
     else:
-        return LIST_RESOLUTION
+        return LIST_RESOLUTION_AF
 
 
 def fill_chans_af():
     """Fill the dict CHANS_AF and the list TEST_FILENAMES with the right channel and resolution."""
     CHANS_AF = {}
     for channel in LIST_TOTAL_CHANNEL:
-        list_resol = resolutions(channel)
+        list_resol = resolutions_AF_products(channel)
         for resol in list_resol:
             chann_upp = channel.replace("_", "").upper()
             TEST_FILENAMES[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
@@ -208,10 +208,10 @@ def fill_chans_af():
             elif channel.split("_")[0] in ["ir", "wv"]:
                 CHANS_AF[f"{channel}_{resol}"] = {"terran": [channel],
                                                   "terran_grid_type": [resol]}
-    return CHANS_AF, TEST_FILENAMES
+    return CHANS_AF
 
 
-CHANS_AF, TEST_FILENAMES = fill_chans_af()
+CHANS_AF = fill_chans_af()
 
 
 # ----------------------------------------------------
@@ -568,8 +568,8 @@ def get_list_channel_calibration(calibration):
 def generate_parameters(calibration):
     """Generate dinamicaly the parameters."""
     for channel in get_list_channel_calibration(calibration):
-        for resolution in resolutions(channel):
-            yield (channel, resolution)
+        for resolution in resolutions_AF_products(channel):
+            yield channel, resolution
 
 
 @contextlib.contextmanager
