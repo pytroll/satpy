@@ -397,7 +397,7 @@ def _get_test_content_aux_data():
         # skip population of earth_sun_distance as this is already defined for reflectance calculation
         if key == "earth_sun_distance":
             continue
-        data[value] = xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index"))
+        data[value] = xr.DataArray(da.arange(indices_dim, dtype=np.dtype("float32")), dims="index")
 
     # compute the last data entry to simulate the FCI caching
     # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
