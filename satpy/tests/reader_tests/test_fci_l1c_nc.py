@@ -903,7 +903,13 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         with mock.patch("satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info") as gspi:
             fh_param = FakeFCIFileHandlerAF_fixture
             reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-            reader.load([channel])
+            try:
+                # attempt to load the channel
+                reader.load([channel])
+            except KeyError:
+                # if get_segment_position_info is called, the code will fail with a KeyError because of the mocking.
+                # So we catch the error here for now, but the test will still fail with the following assert_not_called
+                pass
             gspi.assert_not_called()
 
     @pytest.mark.parametrize("calibration", ["index_map","pixel_quality"])
