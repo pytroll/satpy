@@ -222,6 +222,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             # change number of chunk so that padding gets activated correctly on missing chunks
             self.filename_info["count_in_repeat_cycle"] += 28
 
+        if self.filename_info["coverage"] == "AF":
+            # change number of chunk from 0 to 1 so that the padding is not activated (chunk 1 is present and only 1
+            # chunk is expected), as the African dissemination products come in one file per full disk.
+            self.filename_info["count_in_repeat_cycle"] = 1
+
         if self.filename_info["facility_or_tool"] == "IQTI":
             self.is_iqt = True
         else :
