@@ -271,7 +271,7 @@ def _get_test_calib_for_channel_ir(data, meas_path):
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
         da.repeat(da.array([149597870.7]), 6000), dims=("index"))
-    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array((50.0), dtype=np.float32))
+    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array(50.0, dtype=np.float32))
     return data
 
 
@@ -477,7 +477,7 @@ class FakeFCIFileHandlerFDHSIIQTI(FakeFCIFileHandlerFDHSI):
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
         data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
-            da.repeat(da.array([np.nan]), 6000), dims=("index"))})
+            da.repeat(da.array([np.nan]), 6000), dims="index")})
         return data
 
 
@@ -517,7 +517,7 @@ class FakeFCIFileHandlerHRFIIQTI(FakeFCIFileHandlerHRFI):
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
         data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
-            da.repeat(da.array([np.nan]), 6000), dims=("x"))})
+            da.repeat(da.array([np.nan]), 6000), dims="x")})
         return data
 
 
