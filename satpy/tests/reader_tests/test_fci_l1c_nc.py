@@ -108,7 +108,7 @@ EXPECTED_POS_INFO_FOR_FILETYPE = {
                       }
 }
 
-CHANS_FHDSI = {"solar": LIST_CHANNEL_SOLAR,
+CHANS_FDHSI = {"solar": LIST_CHANNEL_SOLAR,
                "solar_grid_type": ["1km"] * 8,
                "terran": LIST_CHANNEL_TERRAN,
                "terran_grid_type": ["2km"] * 8}
@@ -194,21 +194,22 @@ def resolutions_AF_products(channel):
 
 def fill_chans_af():
     """Fill the dict CHANS_AF and the list TEST_FILENAMES with the right channel and resolution."""
-    CHANS_AF = {}
+    chans_af = {}
     for channel in LIST_TOTAL_CHANNEL:
         list_resol = resolutions_AF_products(channel)
         for resol in list_resol:
             chann_upp = channel.replace("_", "").upper()
             TEST_FILENAMES[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
-                                                       f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
+                                                       f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_"
+                                                       f"20240125144655_DT_OPE"
                                                        f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
             if channel.split("_")[0] in ["vis", "nir"]:
-                CHANS_AF[f"{channel}_{resol}"] = {"solar": [channel],
+                chans_af[f"{channel}_{resol}"] = {"solar": [channel],
                                                   "solar_grid_type": [resol]}
             elif channel.split("_")[0] in ["ir", "wv"]:
-                CHANS_AF[f"{channel}_{resol}"] = {"terran": [channel],
+                chans_af[f"{channel}_{resol}"] = {"terran": [channel],
                                                   "terran_grid_type": [resol]}
-    return CHANS_AF
+    return chans_af
 
 
 CHANS_AF = fill_chans_af()
@@ -235,7 +236,7 @@ class FakeH5Variable:
             self.dtype = self._data.dtype
 
     def __array__(self):
-        """Get the array data.."""
+        """Get the array data."""
         return self._data.__array__()
 
     def __getitem__(self, key):
@@ -270,7 +271,7 @@ def _get_test_calib_for_channel_ir(data, meas_path):
 
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
-        da.repeat(da.array([149597870.7]), 6000), dims=("index"))
+        da.repeat(da.array([149597870.7]), 6000), dims="index")
     data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array(50.0, dtype=np.float32))
     return data
 
@@ -403,7 +404,7 @@ def _get_test_content_aux_data():
     # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
     data["index"] = xr.DataArray(
-        da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
+        da.ones(indices_dim, dtype="uint16") * 100, dims="index")
     return data
 
 
@@ -566,7 +567,7 @@ def get_list_channel_calibration(calibration):
 
 
 def generate_parameters(calibration):
-    """Generate dinamicaly the parameters."""
+    """Generate dynamically the parameters."""
     for channel in get_list_channel_calibration(calibration):
         for resolution in resolutions_AF_products(channel):
             yield channel, resolution
@@ -587,7 +588,7 @@ def FakeFCIFileHandlerFDHSI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi"]
         }
         yield param_dict
@@ -599,7 +600,7 @@ def FakeFCIFileHandlerFDHSIError_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi_error"]
         }
         yield param_dict
@@ -611,7 +612,7 @@ def FakeFCIFileHandlerFDHSIIQTI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSIIQTI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi_iqti"]
         }
         yield param_dict
@@ -623,7 +624,7 @@ def FakeFCIFileHandlerFDHSIQ4_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi_q4"]
         }
         yield param_dict
@@ -687,15 +688,15 @@ class ModuleTestFCIL1cNcReader:
     """Class containing parameters and modules useful for the test related to L1c reader."""
     fh_param_for_filetype = {"hrfi": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi"]},
-                             "fdhsi": {"channels": CHANS_FHDSI,
+                             "fdhsi": {"channels": CHANS_FDHSI,
                                        "filenames": TEST_FILENAMES["fdhsi"]},
-                             "fdhsi_iqti": {"channels": CHANS_FHDSI,
+                             "fdhsi_iqti": {"channels": CHANS_FDHSI,
                                             "filenames": TEST_FILENAMES["fdhsi_iqti"]},
                              "hrfi_q4": {"channels": CHANS_HRFI,
                                          "filenames": TEST_FILENAMES["hrfi_q4"]},
                              "hrfi_iqti": {"channels": CHANS_HRFI,
                                            "filenames": TEST_FILENAMES["hrfi_iqti"]},
-                             "fdhsi_q4": {"channels": CHANS_FHDSI,
+                             "fdhsi_q4": {"channels": CHANS_FDHSI,
                                           "filenames": TEST_FILENAMES["fdhsi_q4"]}}
 
     @staticmethod
@@ -708,7 +709,7 @@ class ModuleTestFCIL1cNcReader:
 
     @staticmethod
     def _get_assert_attrs(res, ch, attrs_dict):
-        """Test the differents attributes values."""
+        """Test the different attributes values."""
         for key, item in attrs_dict.items():
             assert res[ch].attrs[key] == item
 
@@ -747,7 +748,7 @@ class ModuleTestFCIL1cNcReader:
         assert res[ch].dtype == dict_arg["dtype"]
 
     def _get_assert_load(self, res, ch, dict_arg, filenames):
-        """Test the value for differents channels."""
+        """Test the value for different channels."""
         self._get_assert_attrs(res, ch, dict_arg["attrs_dict"])
         if dict_arg["attrs_dict"]["calibration"] in ["radiance", "brightness_temperature", "reflectance"]:
             self._get_assert_erased_attrs(res, ch)
@@ -930,7 +931,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 # attempt to load the channel
                 reader.load([channel])
             except KeyError:
-                # if get_segment_position_info is called, the code will fail with a KeyError because of the mocking.
+                # If get_segment_position_info is called, the code will fail with a KeyError because of the mocking.
                 # So we catch the error here for now, but the test will still fail with the following assert_not_called
                 pass
             gspi.assert_not_called()
@@ -1071,7 +1072,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                                                                          "%Y-%m-%d %H:%M:%S"))),
                               ])
     def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param, compare_tuples):
-        """Test the rc_period_min value for each configurations."""
+        """Test the rc_period_min value for each configuration."""
         self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"], fh_param,
                                                           reader_configs, compare_tuples)
 
@@ -1082,7 +1083,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                                                             "%Y-%m-%d %H:%M:%S")))])
     def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
                                                     channel, compare_tuples):
-        """Test the rc_period_min value for each configurations."""
+        """Test the rc_period_min value for each configuration."""
         fh_param = FakeFCIFileHandlerAF_fixture
         self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}", fh_param,
                                                           reader_configs, compare_tuples)
@@ -1102,7 +1103,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
     @pytest.mark.parametrize(("channel", "resolution"), [("vis_06", "3km")])
     def test_compute_earth_sun_parameter_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
                                             channel):
-        """Test the rc_period_min value for each configurations."""
+        """Test the rc_period_min value for each configuration."""
         fh_param = FakeFCIFileHandlerAF_fixture
         self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}", fh_param, reader_configs)
 
