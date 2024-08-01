@@ -897,7 +897,6 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             segpos_info = filetype_handler.get_segment_position_info()
             assert segpos_info == expected_pos_info
 
-    @mock.patch("satpy.readers.yaml_reader.GEOVariableSegmentYAMLReader")
     @pytest.mark.parametrize(("channel", "resolution"), generate_parameters("radiance"))
     def test_not_get_segment_info_called_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
         """Test that checks that the get_segment_position_info has not been called for AF data."""
