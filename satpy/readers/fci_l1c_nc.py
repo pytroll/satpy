@@ -20,9 +20,9 @@
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Level-1c data.  FCI will fly
+Imager (FCI) Level-1c data.  FCI flies
 on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
-scheduled to be launched on the 13th of December 2022.
+launched on the 13th of December 2022.
 For more information about FCI, see `EUMETSAT`_.
 
 For simulated test data to be used with this reader, see `test data releases`_.
@@ -110,7 +110,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 
 .. _AF PUG: https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
-.. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
+.. _EUMETSAT: https://user.eumetsat.int/resources/user-guides/mtg-fci-level-1c-data-guide  # noqa: E501
 .. _test data releases: https://www.eumetsat.int/mtg-test-data
 """
 
@@ -219,7 +219,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         logger.debug("End: {}".format(self.end_time))
 
         if self.filename_info["coverage"] == "Q4":
-            # change number of chunk so that padding gets activated correctly on missing chunks
+            # change the chunk number so that padding gets activated correctly for Q4, which corresponds to the upper
+            # quarter of the disc
             self.filename_info["count_in_repeat_cycle"] += 28
 
         if self.filename_info["coverage"] == "AF":
