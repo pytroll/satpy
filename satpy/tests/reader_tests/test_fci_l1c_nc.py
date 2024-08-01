@@ -698,26 +698,30 @@ class ModuleTestFCIL1cNcReader:
                              "fdhsi_q4": {"channels": CHANS_FHDSI,
                                           "filenames": TEST_FILENAMES["fdhsi_q4"]}}
 
-    def _get_type_ter_AF(self, channel):
+    @staticmethod
+    def _get_type_ter_AF(channel):
         """Get the type_ter."""
         if channel.split("_")[0] in ["vis", "nir"]:
             return "solar"
         elif channel.split("_")[0] in ["wv", "ir"]:
             return "terran"
 
-    def _get_assert_attrs(self, res, ch, attrs_dict):
+    @staticmethod
+    def _get_assert_attrs(res, ch, attrs_dict):
         """Test the differents attributes values."""
         for key, item in attrs_dict.items():
             assert res[ch].attrs[key] == item
 
-    def _get_assert_erased_attrs(self, res, ch):
+    @staticmethod
+    def _get_assert_erased_attrs(res, ch):
         """Test that the attributes listed have been erased."""
         LIST_ATTRIBUTES = ["add_offset", "warm_add_offset", "scale_factor",
                            "warm_scale_factor", "valid_range"]
         for atr in LIST_ATTRIBUTES:
             assert atr not in res[ch].attrs
 
-    def _reflectance_test(self, tab, filenames):
+    @staticmethod
+    def _reflectance_test(tab, filenames):
         """Test of with the reflectance test."""
         if "IQTI" in filenames:
             numpy.testing.assert_array_almost_equal(tab,
@@ -726,7 +730,8 @@ class ModuleTestFCIL1cNcReader:
             numpy.testing.assert_array_almost_equal(tab,
                                                     100 * 15 * 1 * np.pi / 50)
 
-    def _other_calibration_test(self, res, ch, dict_arg):
+    @staticmethod
+    def _other_calibration_test(res, ch, dict_arg):
         """Test of other calibration test."""
         if ch == "ir_38":
             numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
@@ -734,7 +739,8 @@ class ModuleTestFCIL1cNcReader:
         else:
             numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
 
-    def _shape_test(self, res, ch, grid_type, dict_arg):
+    @staticmethod
+    def _shape_test(res, ch, grid_type, dict_arg):
         """Test the shape."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                  GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
@@ -758,8 +764,9 @@ class ModuleTestFCIL1cNcReader:
                            for name in fh_param["channels"][type_ter]], pad_data=False)
         return res
 
-    def _compare_sun_earth_distance(self, filetype, fh_param, reader_configs):
-        """Test the sun earth distance."""
+    @staticmethod
+    def _compare_sun_earth_distance(filetype, fh_param, reader_configs):
+        """Test the sun earth distance calculation."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         if "IQTI" in fh_param["filenames"][0]:
             np.testing.assert_almost_equal(
@@ -770,7 +777,8 @@ class ModuleTestFCIL1cNcReader:
                 reader.file_handlers[filetype][0]._compute_sun_earth_distance,
                 1.0, decimal=7)
 
-    def _compare_rc_period_min_count_in_repeat_cycle(self, filetype, fh_param,
+    @staticmethod
+    def _compare_rc_period_min_count_in_repeat_cycle(filetype, fh_param,
                                                      reader_configs, compare_parameters_tuple):
         """Test the count_in_repeat_cycle, rc_period_min."""
         count_in_repeat_cycle_imp, rc_period_min_imp, start_nominal_time, end_nominal_time = compare_parameters_tuple
