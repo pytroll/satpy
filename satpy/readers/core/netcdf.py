@@ -672,8 +672,7 @@ def _wait_for_file(pat, max_tries=300, wait=2, use_distributed=False):
     """Wait for file to appear."""
     for i in range(max_tries):
         if (match := _check_for_matching_file(i, pat, wait, use_distributed)):
-            if i > 0:  # only log if not found immediately
-                LOG.debug(f"Found {match!s} matching {pat!s}!")
+            LOG.debug(f"Found {match!s} matching {pat!s}!")
             return match
     else:
         raise TimeoutError(f"File matching {pat!s} failed to materialise")
@@ -691,7 +690,7 @@ def _check_for_matching_file(i, pat, wait, use_distributed=False):
 
 def _log_and_wait(i, pat, wait, use_distributed=False):
     """Maybe log that we're waiting for pat, then wait."""
-    if i == 0:  # only log if not yet present
+    if i == 0:
         LOG.debug(f"Waiting for {pat!s} to appear.")
     if i % 60 == 30:
         LOG.debug(f"Still waiting for {pat!s}")
