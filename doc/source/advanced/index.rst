@@ -21,7 +21,7 @@ would wait for all needed segments to arrive, before they start processing
 any data by passing all segments to the :class:`~satpy.scene.Scene`.
 For a more timely imagery production, users can create the Scene, load the
 data, resample, and even call :meth:`~satpy.scene.Scene.save_datasets`
-before the data are complete (:meth:`~satpy.scene.Scene.`save_datasets` will wait until the data
+before the data are complete (:meth:`~satpy.scene.Scene.save_datasets` will wait until the data
 are available, unless ``compute=False``).
 Upon computation, much of the overhead in Satpy
 internals has already been completed, and Satpy will process each segment
