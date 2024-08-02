@@ -1188,7 +1188,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
     def __init__(self, *args, **kwargs):
         """Initialise object."""
-        self.preload = satpy.config.get("readers.preload_segments")
+        self.preload = satpy.config.get("readers.preload.enable")
         super().__init__(*args, **kwargs)
 
     def create_filehandlers(self, filenames, fh_kwargs=None):

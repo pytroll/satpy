@@ -1166,7 +1166,7 @@ def test_create_preloadable_cache(tmp_path):
             rc_cache=tmp_path / "test.pkl",
             preload=False)
     dph.file_content["/iceland/reykjavík"] = xr.DataArray(da.from_array([[0, 1, 2]]))
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(fake_config)
     gsyr.file_handlers["handler"] = [dph]
 

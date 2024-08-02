@@ -548,9 +548,9 @@ class PreloadableSegments:
     def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
         """Store attributes needed for preloading to work."""
         self.preload = preload
-        self.preload_tries = satpy.config.get("readers.preload_tries")
-        self.preload_step = satpy.config.get("readers.preload_step")
-        self.use_distributed = satpy.config.get("readers.preload_dask_distributed")
+        self.preload_attempts = satpy.config.get("readers.preload.attempts")
+        self.preload_step = satpy.config.get("readers.preload.step")
+        self.use_distributed = satpy.config.get("readers.preload.assume_distributed")
         if preload:
             if not isinstance(ref_fh, BaseFileHandler):
                 raise TypeError(
@@ -622,7 +622,7 @@ class PreloadableSegments:
 
     def _collect_variable_delayed(self, subst_name):
         md = self.ref_fh[subst_name]  # some metadata from reference segment
-        fn_matched = _wait_for_file(self.filename, self.preload_tries,
+        fn_matched = _wait_for_file(self.filename, self.preload_attempts,
                                     self.preload_step,
                                     self.use_distributed)
         dade = _get_delayed_value_from_nc(fn_matched, subst_name)
