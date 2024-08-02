@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'fci_l1c_nc' reader."""
 import contextlib
+import datetime
 import logging
 import os
 from typing import Dict, List, Union
@@ -153,11 +154,33 @@ TEST_FILENAMES = {"fdhsi": [
     "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
     "20170410113925_20170410113934_N__C_0070_0067.nc"
 ],
+    "fdhsi_error": [
+    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FDD--"
+    "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+    "20170410113925_20170410113934_N__C_0070_0067.nc"
+],
+    "fdhsi_iqti": [
+    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+    "CHK-BODY--MON-NC4_C_EUMT_20240307233956_IQTI_DEV_"
+    "20231016125007_20231016125017_N__C_0078_0001.nc"
+],
     "hrfi": [
         "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
         "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
         "20170410113925_20170410113934_N__C_0070_0067.nc"
-    ]
+    ],
+    "hrfi_iqti": [
+        "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
+        "CHK-BODY--MON-NC4_C_EUMT_20240307233956_IQTI_DEV_"
+        "20231016125007_20231016125017_N__C_0078_0001.nc"
+    ],
+    "fdhsi_q4": ["W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-Q4--"
+    "CHK-BODY--DIS-NC4E_C_EUMT_20230723025408_IDPFI_DEV_"
+    "20230722120000_20230722120027_N_JLS_C_0289_0001.nc"
+    ],
+    "hrfi_q4": ["W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-Q4--"
+                "CHK-BODY--DIS-NC4E_C_EUMT_20230723025408_IDPFI_DEV"
+                "_20230722120000_20230722120027_N_JLS_C_0289_0001.nc"]
 }
 
 def resolutions(channel):
@@ -242,7 +265,7 @@ def _get_test_calib_for_channel_ir(data, meas_path):
 
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
-        da.repeat(da.array([149597870.7]), 6000), dims=("x"))
+        da.repeat(da.array([149597870.7]), 6000), dims=("index"))
     data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array((50.0), dtype=np.float32))
     return data
 
@@ -442,6 +465,15 @@ class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
                        "grid_type": "2km"},
     }
 
+class FakeFCIFileHandlerFDHSIIQTI(FakeFCIFileHandlerFDHSI):
+    """Mock IQTI for FHDSI data."""
+
+    def _get_test_content_all_channels(self):
+        data = super()._get_test_content_all_channels()
+        data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
+            da.repeat(da.array([np.nan]), 6000), dims=("index"))})
+        return data
+
 
 class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
     """Mock bad data."""
@@ -460,25 +492,6 @@ class FakeFCIFileHandlerWithBadData(FakeFCIFileHandlerFDHSI):
         return data
 
 
-class FakeFCIFileHandlerWithBadIDPFData(FakeFCIFileHandlerFDHSI):
-    """Mock bad data for IDPF TO-DO's."""
-
-    def _get_test_content_all_channels(self):
-        data = super()._get_test_content_all_channels()
-        data["data/vis_06/measured/x"].attrs["scale_factor"] *= -1
-        data["data/vis_06/measured/x"].attrs["scale_factor"] = \
-            np.float32(data["data/vis_06/measured/x"].attrs["scale_factor"])
-        data["data/vis_06/measured/x"].attrs["add_offset"] = \
-            np.float32(data["data/vis_06/measured/x"].attrs["add_offset"])
-        data["data/vis_06/measured/y"].attrs["scale_factor"] = \
-            np.float32(data["data/vis_06/measured/y"].attrs["scale_factor"])
-        data["data/vis_06/measured/y"].attrs["add_offset"] = \
-            np.float32(data["data/vis_06/measured/y"].attrs["add_offset"])
-
-        data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([30000000]), 6000))
-        return data
-
-
 class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
     """Mock HRFI data."""
 
@@ -490,6 +503,15 @@ class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
         "ir_{:>02d}_hr": {"channels": [38, 105],
                           "grid_type": "1km"},
     }
+
+class FakeFCIFileHandlerHRFIIQTI(FakeFCIFileHandlerHRFI):
+    """Mock IQTI for HRFI data."""
+
+    def _get_test_content_all_channels(self):
+        data = super()._get_test_content_all_channels()
+        data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
+            da.repeat(da.array([np.nan]), 6000), dims=("x"))})
+        return data
 
 
 class FakeFCIFileHandlerAF(FakeFCIFileHandlerBase):
@@ -558,6 +580,39 @@ def FakeFCIFileHandlerFDHSI_fixture():
         }
         yield param_dict
 
+@pytest.fixture()
+def FakeFCIFileHandlerFDHSIError_fixture():
+    """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+        param_dict = {
+            "filetype": "fci_l1c_fdhsi",
+            "channels": CHANS_FHDSI,
+            "filenames": TEST_FILENAMES["fdhsi_error"]
+        }
+        yield param_dict
+
+
+@pytest.fixture()
+def FakeFCIFileHandlerFDHSIIQTI_fixture():
+    """Get a fixture for the fake FDHSI IQTI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSIIQTI):
+        param_dict = {
+            "filetype": "fci_l1c_fdhsi",
+            "channels": CHANS_FHDSI,
+            "filenames": TEST_FILENAMES["fdhsi_iqti"]
+        }
+        yield param_dict
+
+@pytest.fixture()
+def FakeFCIFileHandlerFDHSIQ4_fixture():
+    """Get a fixture for the fake FDHSI Q4 filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
+        param_dict = {
+            "filetype": "fci_l1c_fdhsi",
+            "channels": CHANS_FHDSI,
+            "filenames": TEST_FILENAMES["fdhsi_q4"]
+        }
+        yield param_dict
 
 @pytest.fixture()
 def FakeFCIFileHandlerHRFI_fixture():
@@ -569,6 +624,29 @@ def FakeFCIFileHandlerHRFI_fixture():
             "filenames": TEST_FILENAMES["hrfi"]
         }
         yield param_dict
+
+@pytest.fixture()
+def FakeFCIFileHandlerHRFIIQTI_fixture():
+    """Get a fixture for the fake HRFI IQTI filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerHRFIIQTI):
+        param_dict = {
+            "filetype": "fci_l1c_hrfi",
+            "channels": CHANS_HRFI,
+            "filenames": TEST_FILENAMES["hrfi_iqti"]
+        }
+        yield param_dict
+
+@pytest.fixture()
+def FakeFCIFileHandlerHRFIQ4_fixture():
+    """Get a fixture for the fake HRFI Q4 filehandler, including channel and file names."""
+    with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
+        param_dict = {
+            "filetype": "fci_l1c_hrfi",
+            "channels": CHANS_HRFI,
+            "filenames": TEST_FILENAMES["hrfi_q4"]
+        }
+        yield param_dict
+
 
 @pytest.fixture()
 def FakeFCIFileHandlerAF_fixture(channel,resolution):
@@ -587,15 +665,20 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
 # ----------------------------------------------------
 # Tests ----------------------------------------------
 # ----------------------------------------------------
-
-
-class TestFCIL1cNCReader:
-    """Test FCI L1c NetCDF reader with nominal data."""
-
+class ModuleTestFCIL1cNcReader:
+    """Class containing parameters and modules useful for the test related to L1c reader."""
     fh_param_for_filetype = {"hrfi": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi"]},
-                             "fdhsi": {"channels": CHANS_FHDSI,
-                                       "filenames": TEST_FILENAMES["fdhsi"]}}
+                            "fdhsi": {"channels": CHANS_FHDSI,
+                                       "filenames": TEST_FILENAMES["fdhsi"]},
+                            "fdhsi_iqti": {"channels": CHANS_FHDSI,
+                                       "filenames": TEST_FILENAMES["fdhsi_iqti"]},
+                            "hrfi_q4": {"channels": CHANS_HRFI,
+                                      "filenames": TEST_FILENAMES["hrfi_q4"]},
+                            "hrfi_iqti": {"channels": CHANS_HRFI,
+                                      "filenames": TEST_FILENAMES["hrfi_iqti"]},
+                            "fdhsi_q4": {"channels": CHANS_FHDSI,
+                                       "filenames": TEST_FILENAMES["fdhsi_q4"]}}
 
     def _get_type_ter_AF(self,channel):
         """Get the type_ter."""
@@ -609,20 +692,47 @@ class TestFCIL1cNCReader:
         for key,item in attrs_dict.items():
             assert res[ch].attrs[key] == item
 
-    def _get_assert_load(self,res,ch,grid_type,dict_arg):
-        """Test the value for differents channels."""
-        assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
-                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-        assert res[ch].dtype == dict_arg["dtype"]
-        self._get_assert_attrs(res,ch,dict_arg["attrs_dict"])
-        if dict_arg["attrs_dict"]["calibration"] == "reflectance":
-            numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
+    def _get_assert_erased_attrs(self,res,ch):
+        """Test that the attributes listed have been erased."""
+        LIST_ATTRIBUTES = ["add_offset","warm_add_offset","scale_factor",
+                           "warm_scale_factor","valid_range"]
+        for atr in LIST_ATTRIBUTES:
+            assert atr not in res[ch].attrs
+
+    def _reflectance_test(self,tab,filenames):
+        """Test of with the reflectance test."""
+        if "IQTI" in filenames:
+                numpy.testing.assert_array_almost_equal(tab,
+                                        93.6462,decimal=4)
         else :
-            if ch == "ir_38":
-                numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
-                numpy.testing.assert_array_equal(res[ch][0], dict_arg["value_0"])
-            else:
-                numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
+            numpy.testing.assert_array_almost_equal(tab,
+                                            100 * 15 * 1 * np.pi / 50)
+
+    def _other_calibration_test(self,res,ch,dict_arg):
+        """Test of other calibration test."""
+        if ch == "ir_38":
+            numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
+            numpy.testing.assert_array_equal(res[ch][0], dict_arg["value_0"])
+        else:
+            numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
+
+    def _shape_test(self,res,ch,grid_type,dict_arg):
+        """Test the shape."""
+        assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
+                                 GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+        assert res[ch].dtype == dict_arg["dtype"]
+
+    def _get_assert_load(self,res,ch,dict_arg,filenames):
+        """Test the value for differents channels."""
+        self._get_assert_attrs(res,ch,dict_arg["attrs_dict"])
+        if dict_arg["attrs_dict"]["calibration"] in ["radiance","brightness_temperature","reflectance"]:
+           self._get_assert_erased_attrs(res,ch)
+        if dict_arg["attrs_dict"]["calibration"] == "reflectance":
+            self._reflectance_test(res[ch],filenames)
+        else :
+            self._other_calibration_test(res,ch,dict_arg)
+
+
 
     def _get_res_AF(self,channel,fh_param,calibration,reader_configs):
         """Load the reader for AF data."""
@@ -631,6 +741,34 @@ class TestFCIL1cNCReader:
         res = reader.load([make_dataid(name=name, calibration=calibration)
                 for name in fh_param["channels"][type_ter]], pad_data=False)
         return res
+
+    def _compare_sun_earth_distance(self,filetype,fh_param,reader_configs):
+        """Test the sun earth distance."""
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        if "IQTI" in fh_param["filenames"][0]:
+            np.testing.assert_almost_equal(
+            reader.file_handlers[filetype][0]._compute_sun_earth_distance,
+                      0.996803423,decimal=7)
+        else :
+            np.testing.assert_almost_equal(
+            reader.file_handlers[filetype][0]._compute_sun_earth_distance,
+                      1.0,decimal=7)
+
+    def _compare_rc_period_min_count_in_repeat_cycle(self,filetype,fh_param,
+                                reader_configs,compare_parameters_tuple):
+        """Test the count_in_repeat_cycle, rc_period_min."""
+        count_in_repeat_cycle_imp,rc_period_min_imp,start_nominal_time,end_nominal_time = compare_parameters_tuple
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        assert count_in_repeat_cycle_imp == \
+        reader.file_handlers[filetype][0].filename_info["count_in_repeat_cycle"]
+        assert rc_period_min_imp == \
+        reader.file_handlers[filetype][0].rc_period_min
+        assert start_nominal_time == reader.file_handlers[filetype][0].nominal_start_time
+        assert end_nominal_time == reader.file_handlers[filetype][0].nominal_end_time
+
+
+class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
+    """Test FCI L1c NetCDF reader with nominal data."""
 
     @pytest.mark.parametrize("filenames", [TEST_FILENAMES[filename] for filename in TEST_FILENAMES.keys()])
     def test_file_pattern(self, reader_configs, filenames):
@@ -642,7 +780,11 @@ class TestFCIL1cNCReader:
         assert len(files) == 1
 
     @pytest.mark.parametrize("filenames", [TEST_FILENAMES["fdhsi"][0].replace("BODY", "TRAIL"),
-                                           TEST_FILENAMES["hrfi"][0].replace("BODY", "TRAIL")])
+                                           TEST_FILENAMES["hrfi"][0].replace("BODY", "TRAIL"),
+                                           TEST_FILENAMES["hrfi_q4"][0].replace("BODY", "TRAIL"),
+                                           TEST_FILENAMES["fdhsi_q4"][0].replace("BODY", "TRAIL"),
+                                           TEST_FILENAMES["fdhsi_iqti"][0].replace("BODY", "TRAIL"),
+                                           TEST_FILENAMES["hrfi_iqti"][0].replace("BODY", "TRAIL")])
     def test_file_pattern_for_TRAIL_file(self, reader_configs, filenames):
         """Test file pattern matching for TRAIL files, which should not be picked up."""
         from satpy.readers import load_reader
@@ -653,7 +795,11 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("calibration", ["counts","radiance","brightness_temperature","reflectance"])
     @pytest.mark.parametrize(("fh_param","res_type"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),"hdfi"),
-                                            (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),"hrfi")])
+                                            (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),"hrfi"),
+                                            (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),"hrfi"),
+                                            (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),"hdfi"),
+                                            (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),"hrfi"),
+                                            (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),"hdfi")])
     def test_load_calibration(self, reader_configs, fh_param,
                          caplog,calibration,res_type):
         """Test loading with counts,radiance,reflectance and bt."""
@@ -682,7 +828,9 @@ class TestFCIL1cNCReader:
         assert expected_res_n[res_type] == len(res)
         for ch, grid_type in zip(list_chan,
                                  list_grid):
-            self._get_assert_load(res, ch, grid_type, DICT_CALIBRATION[calibration])
+            self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],
+                                  fh_param["filenames"][0])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
     (calibration, channel, resolution)
@@ -700,11 +848,17 @@ class TestFCIL1cNCReader:
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
-            self._get_assert_load(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._get_assert_load(res,ch,DICT_CALIBRATION[calibration],
+                                  fh_param["filenames"][0])
 
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                                           (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                            (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                            (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                            (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"))])
     def test_orbital_parameters_attr(self, reader_configs, fh_param):
         """Test the orbital parameter attribute."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
@@ -714,9 +868,12 @@ class TestFCIL1cNCReader:
 
         for ch in fh_param["channels"]["solar"] + fh_param["channels"]["terran"]:
             assert res[ch].attrs["orbital_parameters"] == {
-                "satellite_actual_longitude": np.mean(np.arange(6000)),
-                "satellite_actual_latitude": np.mean(np.arange(6000)),
-                "satellite_actual_altitude": np.mean(np.arange(6000)),
+                "satellite_actual_longitude": np.mean(np.arange(6000)) if "IQTI" not in
+                                               fh_param["filenames"][0] else 0.0,
+                "satellite_actual_latitude": np.mean(np.arange(6000)) if "IQTI" not in
+                                              fh_param["filenames"][0] else 0.0,
+                "satellite_actual_altitude": np.mean(np.arange(6000)) if "IQTI" not in
+                                              fh_param["filenames"][0] else 35786400.0,
                 "satellite_nominal_longitude": 0.0,
                 "satellite_nominal_latitude": 0,
                 "satellite_nominal_altitude": 35786400.0,
@@ -727,7 +884,11 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize(("fh_param", "expected_pos_info"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"]),
-        (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"])
+        (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
+        (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
+        (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"]),
+        (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
+        (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"])
     ])
     def test_get_segment_position_info(self, reader_configs, fh_param, expected_pos_info):
         """Test the segment position info method."""
@@ -748,7 +909,11 @@ class TestFCIL1cNCReader:
 
     @pytest.mark.parametrize("calibration", ["index_map","pixel_quality"])
     @pytest.mark.parametrize(("fh_param", "expected_res_n"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), 16),
-                                                              (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), 4)])
+                                                            (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), 4),
+                                                            (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), 4),
+                                                            (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), 16),
+                                                            (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), 4),
+                                                            (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), 16)])
     def test_load_map_and_pixel(self, reader_configs, fh_param, expected_res_n,calibration):
         """Test loading of index_map and pixel_quality."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
@@ -793,7 +958,11 @@ class TestFCIL1cNCReader:
 
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"))])
     def test_load_aux_data(self, reader_configs, fh_param):
         """Test loading of auxiliary data."""
         from satpy.readers.fci_l1c_nc import AUX_DATA
@@ -804,13 +973,21 @@ class TestFCIL1cNCReader:
         for aux in [fh_param["channels"]["solar"][0] + "_" + key for key in AUX_DATA.keys()]:
             assert res[aux].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                       GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-            if aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance":
+            if (aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance") and ("IQTI" not in
+            fh_param["filenames"][0]):
                 numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
+            elif aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance":
+                numpy.testing.assert_array_equal(res[aux][1,1], np.nan)
             else:
                 numpy.testing.assert_array_equal(res[aux][1, 1], 10)
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                                          ])
     def test_platform_name(self, reader_configs, fh_param):
         """Test that platform name is exposed.
 
@@ -821,9 +998,77 @@ class TestFCIL1cNCReader:
         res = reader.load(["vis_06"], pad_data=False)
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
+
+    @pytest.mark.parametrize(("fh_param","compare_tuples"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),(67,10,
+                                        datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),(67,10,
+                                        datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),(29,2.5,
+                                        datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),(29,2.5,
+                                        datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),(1,10,
+                                        datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S"))),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),(1,10,
+                                        datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
+                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S"))),
+                                                                                              ])
+    def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param,compare_tuples):
+        """Test the rc_period_min value for each configurations."""
+        self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"],fh_param,
+                        reader_configs,compare_tuples)
+
+    @pytest.mark.parametrize(("channel","resolution","compare_tuples"),
+                            [("vis_06","3km",(0,10,
+                              datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
+                              datetime.datetime.strptime("2024-01-09 08:10:00", "%Y-%m-%d %H:%M:%S")))])
+    def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
+                                      channel,compare_tuples):
+        """Test the rc_period_min value for each configurations."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}",fh_param,
+                        reader_configs,compare_tuples)
+
+    @pytest.mark.parametrize(("fh_param"),
+                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                                                                                              ])
+    def test_compute_earth_sun_parameter(self, reader_configs, fh_param):
+        """Test the computation of the sun_earth_parameter."""
+        self._compare_sun_earth_distance(fh_param["filetype"],fh_param,reader_configs)
+
+
+    @pytest.mark.parametrize(("channel","resolution"),[("vis_06","3km")])
+    def test_compute_earth_sun_parameter_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
+                                      channel):
+        """Test the rc_period_min value for each configurations."""
+        fh_param = FakeFCIFileHandlerAF_fixture
+        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}",fh_param,reader_configs)
+
+    @pytest.mark.parametrize(("fh_param"), [(lazy_fixture("FakeFCIFileHandlerFDHSIError_fixture"))])
+    def test_rc_period_min_error(self, reader_configs, fh_param):
+        """Test the rc_period_min error."""
+        with pytest.raises(NotImplementedError):
+            _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+
+
     @pytest.mark.parametrize(("fh_param", "expected_area"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), ["mtg_fci_fdss_1km", "mtg_fci_fdss_2km"]),
         (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), ["mtg_fci_fdss_500m", "mtg_fci_fdss_1km"]),
+        (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), ["mtg_fci_fdss_500m", "mtg_fci_fdss_1km"]),
+        (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), ["mtg_fci_fdss_1km", "mtg_fci_fdss_2km"]),
+        (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), ["mtg_fci_fdss_500m", "mtg_fci_fdss_1km"]),
+        (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), ["mtg_fci_fdss_1km", "mtg_fci_fdss_2km"])
     ])
     def test_area_definition_computation(self, reader_configs, fh_param, expected_area):
         """Test that the geolocation computation is correct."""
@@ -850,7 +1095,12 @@ class TestFCIL1cNCReader:
         assert area_def.crs.ellipsoid.is_semi_minor_computed
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                                          ])
     def test_excs(self, reader_configs, fh_param):
         """Test that exceptions are raised where expected."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
@@ -896,28 +1146,3 @@ class TestFCIL1cNCReaderBadData:
                     name="vis_06",
                     calibration="reflectance")], pad_data=False)
                 assert "cannot produce reflectance" in caplog.text
-
-
-class TestFCIL1cNCReaderBadDataFromIDPF:
-    """Test the FCI L1c NetCDF Reader for bad data input, specifically the IDPF issues."""
-
-    def test_handling_bad_earthsun_distance(self, reader_configs):
-        """Test handling of bad earth-sun distance data."""
-        with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
-            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
-            res = reader.load([make_dataid(name=["vis_06"], calibration="reflectance")], pad_data=False)
-
-            numpy.testing.assert_array_almost_equal(res["vis_06"], 100 * 15 * 1 * np.pi / 50)
-
-    def test_bad_xy_coords(self, reader_configs):
-        """Test that the geolocation computation is correct."""
-        with mocked_basefilehandler(FakeFCIFileHandlerWithBadIDPFData):
-            reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
-            res = reader.load(["vis_06"], pad_data=False)
-
-            area_def = res["vis_06"].attrs["area"]
-            # test area extents computation
-            np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
-                                                 np.array([-5568000.227139, -5368000.221262,
-                                                           5568000.100073, -5568000.227139]),
-                                                 decimal=2)

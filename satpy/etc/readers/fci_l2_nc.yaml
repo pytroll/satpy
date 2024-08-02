@@ -183,7 +183,7 @@ datasets:
 
   intm_pressure:
     name: intm_pressure
-    standard_name: wind_pressure
+    standard_name: air_pressure_at_wind_level
     file_type: nc_fci_amvi
     nc_key: intm_pressure
     coordinates:
@@ -192,7 +192,7 @@ datasets:
 
   intm_temperature:
     name: intm_temperature
-    standard_name: wind_temperature
+    standard_name: air_temperature_at_wind_level
     file_type: nc_fci_amvi
     nc_key: intm_temperature
     coordinates:
@@ -275,7 +275,7 @@ datasets:
 
   pressure:
     name: pressure
-    standard_name: wind_pressure
+    standard_name: air_pressure_at_wind_level
     file_type: nc_fci_amv
     nc_key: pressure
     coordinates:
@@ -284,7 +284,7 @@ datasets:
 
   temperature:
     name: temperature
-    standard_name: wind_temperature
+    standard_name: air_temperature_at_wind_level
     file_type: nc_fci_amv
     nc_key: temperature
     coordinates:

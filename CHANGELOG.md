@@ -1,3 +1,71 @@
+## Version 0.50.0 (2024/07/26)
+
+### Issues Closed
+
+* [Issue 2860](https://github.com/pytroll/satpy/issues/2860) - Something is wrong with ami_l1b reader
+* [Issue 2856](https://github.com/pytroll/satpy/issues/2856) - Typo or wrong syntax in examples setting chunk size - documentation ([PR 2857](https://github.com/pytroll/satpy/pull/2857) by [@djhoese](https://github.com/djhoese))
+* [Issue 2855](https://github.com/pytroll/satpy/issues/2855) - MTG LI data
+* [Issue 2834](https://github.com/pytroll/satpy/issues/2834) - geotiff writer fails with dask distributed
+* [Issue 2830](https://github.com/pytroll/satpy/issues/2830) - Sentinel-1 sar-c safe reader consumes too much memory and a lot of time
+* [Issue 2826](https://github.com/pytroll/satpy/issues/2826) - Speed up the test with satpy
+* [Issue 2823](https://github.com/pytroll/satpy/issues/2823) - Documentation under "Developer's Guide" wrong for "Development installation"
+* [Issue 2820](https://github.com/pytroll/satpy/issues/2820) - Problems in creating hrv_clouds RGB composite with FES Seviri data
+* [Issue 2805](https://github.com/pytroll/satpy/issues/2805) - `bucket_sum` resampler fails due to unexpected `fill_value` kwarg
+* [Issue 2732](https://github.com/pytroll/satpy/issues/2732) - Replace pytest-lazyfixture for pytest >= 8.0
+* [Issue 2724](https://github.com/pytroll/satpy/issues/2724) - Composite snow_age fails (no 'area') after composite cloud_phase ([PR 2818](https://github.com/pytroll/satpy/pull/2818) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 2705](https://github.com/pytroll/satpy/issues/2705) - olci_l1b-reader and xarray=2023.12.0 are seemingly incompatible
+* [Issue 2365](https://github.com/pytroll/satpy/issues/2365) - satpy slstr l1b reading issue
+* [Issue 1746](https://github.com/pytroll/satpy/issues/1746) - bucket sum resampler: TypeError: get_sum() got an unexpected keyword argument 'fill_value'
+* [Issue 1209](https://github.com/pytroll/satpy/issues/1209) - OLCI reader can't process quality flags ([PR 2687](https://github.com/pytroll/satpy/pull/2687) by [@yufeizhu600](https://github.com/yufeizhu600))
+* [Issue 1206](https://github.com/pytroll/satpy/issues/1206) - Add gallery of areas to documentation ([PR 2167](https://github.com/pytroll/satpy/pull/2167) by [@BENR0](https://github.com/BENR0))
+* [Issue 368](https://github.com/pytroll/satpy/issues/368) - Add ability to set output image size for `Scene.show` ([PR 2816](https://github.com/pytroll/satpy/pull/2816) by [@ludwigVonKoopa](https://github.com/ludwigVonKoopa))
+
+In this release 17 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2858](https://github.com/pytroll/satpy/pull/2858) - Fix default AWIPS tiled _FillValue of -1 for newer versions of xarray
+* [PR 2851](https://github.com/pytroll/satpy/pull/2851) - Fix start/end time properties of `hrit_jma` reader ([](https://github.com/`start/issues/))
+* [PR 2842](https://github.com/pytroll/satpy/pull/2842) - Fix VIIRS EDR using the wrong geolocation arrays
+* [PR 2835](https://github.com/pytroll/satpy/pull/2835) - Fix DayNightCompositor compatibility with numpy 2
+* [PR 2833](https://github.com/pytroll/satpy/pull/2833) - Fix conversion of valid_range metadata to tuple in viirs_edr reader
+* [PR 2824](https://github.com/pytroll/satpy/pull/2824) - add import rioxarray where readers actually need them
+* [PR 2819](https://github.com/pytroll/satpy/pull/2819) - Ensure lazyness of the olci nc reader
+* [PR 2818](https://github.com/pytroll/satpy/pull/2818) - Fix uniqueness of hdf5-based dask arrays ([2724](https://github.com/pytroll/satpy/issues/2724))
+
+#### Features added
+
+* [PR 2853](https://github.com/pytroll/satpy/pull/2853) - Add first version of LI composites and enhancements for point and accumulated products
+* [PR 2850](https://github.com/pytroll/satpy/pull/2850) - Add parallel test execution to CI with pytest-xdist library
+* [PR 2840](https://github.com/pytroll/satpy/pull/2840) - Add a testing utility for faking reading
+* [PR 2838](https://github.com/pytroll/satpy/pull/2838) - Add MERSI3 / FY3F support.
+* [PR 2837](https://github.com/pytroll/satpy/pull/2837) - Fix gcps type for newer rioxarray versions
+* [PR 2832](https://github.com/pytroll/satpy/pull/2832) - Add a read-only FSFile.fs property
+* [PR 2817](https://github.com/pytroll/satpy/pull/2817) - Implement support to set alpha range in create_colormap and yaml colorize enhancements
+* [PR 2806](https://github.com/pytroll/satpy/pull/2806) - Add ability to clip AMI negative radiances
+* [PR 2783](https://github.com/pytroll/satpy/pull/2783) - Add support for Sentinel-2 MSI L2A SAFE datasets
+* [PR 2687](https://github.com/pytroll/satpy/pull/2687) - add support of masking olci l1b products by using quality flags ([1209](https://github.com/pytroll/satpy/issues/1209))
+* [PR 2603](https://github.com/pytroll/satpy/pull/2603) - Changes to Eumetsat L2 BUFR reader
+* [PR 2167](https://github.com/pytroll/satpy/pull/2167) - Automatic list with overviews of inlcuded area definitions for the documentation ([1206](https://github.com/pytroll/satpy/issues/1206))
+* [PR 1637](https://github.com/pytroll/satpy/pull/1637) - Change default filename for cf writer to be compatible with satpy_cf_nc reader
+
+#### Documentation changes
+
+* [PR 2857](https://github.com/pytroll/satpy/pull/2857) - Fix typo in chunk setting example ([2856](https://github.com/pytroll/satpy/issues/2856))
+* [PR 2817](https://github.com/pytroll/satpy/pull/2817) - Implement support to set alpha range in create_colormap and yaml colorize enhancements
+* [PR 2816](https://github.com/pytroll/satpy/pull/2816) - Add resized area example to resampling documentation ([368](https://github.com/pytroll/satpy/issues/368))
+* [PR 2812](https://github.com/pytroll/satpy/pull/2812) - doc: move reader table to reading section
+
+#### Clean ups
+
+* [PR 2844](https://github.com/pytroll/satpy/pull/2844) - Add more test skips when numba is involved in the unstable CI
+* [PR 2841](https://github.com/pytroll/satpy/pull/2841) - Revert CI env change so geotiepoints comes from conda-forge
+
+In this release 27 pull requests were closed.
+
+
 ## Version 0.49.0 (2024/06/05)
 
 ### Issues Closed
