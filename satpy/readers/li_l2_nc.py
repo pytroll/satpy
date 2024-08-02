@@ -130,21 +130,35 @@ class LIL2NCFileHandler(LINCFileHandler):
         cols = self.get_measured_variable("x")
         attrs = data_array.attrs
 
-        rows, cols = da.compute(rows, cols)
-
         # origin is in the south-west corner, so we flip the rows (applying
         # offset of 1 implicitly)
         # And we manually offset the columns by 1 too:
         rows = (LI_GRID_SHAPE[0] - rows.astype(int))
         cols = cols.astype(int) - 1
 
-        # Create an empyt 1-D array for the results
-        flattened_result = np.nan * da.zeros((LI_GRID_SHAPE[0] * LI_GRID_SHAPE[1]), dtype=data_array.dtype)
-        # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
-        flattened_result[rows * LI_GRID_SHAPE[0] + cols] = data_array
+        # Create an empty 1-D array for the results
+        li_grid_flat_size = LI_GRID_SHAPE[0] * LI_GRID_SHAPE[1]
+        flattened_result = da.zeros((LI_GRID_SHAPE[0] * LI_GRID_SHAPE[1]), dtype=data_array.dtype,
+                                    chunks=(li_grid_flat_size,))
+
+        # Insert the data. If a pixel has more than one entry, the values are added up (np.add.at functionality)
+        indices = xr.DataArray(da.asarray(rows * LI_GRID_SHAPE[0] + cols))
+        flattened_result = da.map_blocks(_np_add_at_wrapper, flattened_result, indices, data_array,
+                                         dtype=data_array.dtype,
+                                         chunks=(li_grid_flat_size,))
+        flattened_result = da.where(flattened_result > 0, flattened_result, np.nan)
+
         # ... reshape to final 2D grid
         data_2d = da.reshape(flattened_result, LI_GRID_SHAPE)
         xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=("y", "x"))
         xarr.attrs = attrs
 
         return xarr
+
+
+def _np_add_at_wrapper(target_array, indices, data):
+    # copy needed for correct computation in-place inside the da.map_blocks
+    ta = target_array.copy()
+    # add.at is not implemented in xarray, so we explicitly need the np.array
+    np.add.at(ta, indices.values, data.values)
+    return ta
