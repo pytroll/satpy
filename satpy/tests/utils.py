@@ -17,6 +17,7 @@
 """Utilities for various satpy tests."""
 
 import datetime as dt
+import os
 from contextlib import contextmanager
 from typing import Any
 from unittest import mock
@@ -462,3 +463,23 @@ def xfail_h5py_unstable_numpy2():
     is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
     is_np2 = np.__version__.startswith("2.")
     return is_broken_h5py and is_np2 and is_unstable_ci
+
+
+def skip_numba_unstable_if_missing():
+    """Determine if numba-based tests should be skipped during unstable CI tests.
+
+    If numba fails to import it could be because numba is not compatible with
+    a newer version of numpy. This is very likely to happen in the
+    unstable/experimental CI environment. This function returns ``True`` if
+    numba-based tests should be skipped if ``numba`` could not
+    be imported *and* we're in the unstable environment. We determine if we're
+    in this CI environment by looking for the ``UNSTABLE="1"``
+    environment variable.
+
+    """
+    try:
+        import numba
+    except ImportError:
+        numba = None
+
+    return numba is None and os.environ.get("UNSTABLE", "0") in ("1", "true")

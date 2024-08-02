@@ -29,8 +29,9 @@ For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
+    This reader supports data from both IDPF-I and IQT-I processing facilities.
     This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") scanning mode.
+    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
     In addition it also supports the L1C format for the African dissemination ("AF"), where each file
     contains the masked full-dic of a single channel see `AF PUG`_.
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
@@ -123,6 +124,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
+from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
 from satpy.readers._geos_area import get_geos_area_naming
@@ -216,18 +218,27 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))
 
+        if self.filename_info["coverage"] == "Q4":
+            # change number of chunk so that padding gets activated correctly on missing chunks
+            self.filename_info["count_in_repeat_cycle"] += 28
+
+        if self.filename_info["facility_or_tool"] == "IQTI":
+            self.is_iqt = True
+        else :
+            self.is_iqt = False
+
         self._cache = {}
 
     @property
     def rc_period_min(self):
-        """Get nominal repeat cycle duration.
-
-        As RSS is not yet implemented an error will be raised if RSS are tried to be read.
-        """
-        if self.filename_info["coverage"] not in ["FD","AF"]:
-            raise NotImplementedError(f"coverage for {self.filename_info['coverage']} not supported by this reader")
+        """Get nominal repeat cycle duration."""
+        if "Q4" in self.filename_info["coverage"]:
             return 2.5
-        return 10
+        elif self.filename_info["coverage"] in ["FD","AF"]:
+            return 10
+        else:
+            raise NotImplementedError(f"coverage for {self.filename_info['coverage']}"
+                                      " not supported by this reader")
 
     @property
     def nominal_start_time(self):
@@ -378,11 +389,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
-        if key["calibration"] in ["brightness_temperature", "reflectance"]:
+        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
             res.attrs.pop("add_offset")
             res.attrs.pop("warm_add_offset")
             res.attrs.pop("scale_factor")
             res.attrs.pop("warm_scale_factor")
+            res.attrs.pop("valid_range")
 
         # remove attributes from original file which don't apply anymore
         res.attrs.pop("long_name")
@@ -397,12 +409,40 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         return res
 
-    @cached_property
-    def orbital_param(self):
-        """Compute the orbital parameters for the current segment."""
+    def get_iqt_parameters_lon_lat_alt(self):
+        """Compute the orbital parameters for IQT data.
+
+        Compute satellite_actual_longitude,satellite_actual_latitude,satellite_actual_altitude.add_constant.
+        """
+        actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
+                                                          "longitude_of_projection_origin"))
+        actual_subsat_lat = 0.0
+        actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        logger.info("IQT data the following parameter is hardcoded "
+                    f" satellite_actual_latitude = {actual_subsat_lat} ,"
+                    " These parameters are taken from the projection's dictionary"
+                    f"satellite_actual_longitude = {actual_subsat_lon} ,"
+                    f"satellite_sat_alt = {actual_sat_alt}")
+        return actual_subsat_lon,actual_subsat_lat,actual_sat_alt
+
+    def get_parameters_lon_lat_alt(self):
+        """Compute the orbital parameters.
+
+        Compute satellite_actual_longitude,satellite_actual_latitude,satellite_actual_altitude.
+        """
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        return actual_subsat_lon,actual_subsat_lat,actual_sat_alt
+
+
+    @cached_property
+    def orbital_param(self):
+        """Compute the orbital parameters for the current segment."""
+        if self.is_iqt:
+           actual_subsat_lon,actual_subsat_lat,actual_sat_alt = self.get_iqt_parameters_lon_lat_alt()
+        else:
+            actual_subsat_lon,actual_subsat_lat,actual_sat_alt = self.get_parameters_lon_lat_alt()
         # The "try" is a temporary part of the code as long as the AF data are not modified
         try :
             nominal_and_proj_subsat_lon = float(
@@ -466,7 +506,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         # get lut values from 1-d vector variable
         lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
-
         # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut.data, dtype=lut.data.dtype)
         aux = xr.DataArray(aux, dims=index_map.dims, attrs=index_map.attrs, coords=index_map.coords)
@@ -496,16 +535,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         extents = {}
         for coord in "xy":
             coord_radian = self.get_and_cache_npxr(measured + "/{:s}".format(coord))
-
-            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
-            if coord == "x" and coord_radian.attrs["scale_factor"] > 0:
-                coord_radian.attrs["scale_factor"] *= -1
-
-            # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-            if type(coord_radian.attrs["scale_factor"]) is np.float32:
-                coord_radian.attrs["scale_factor"] = coord_radian.attrs["scale_factor"].astype("float64")
-            if type(coord_radian.attrs["add_offset"]) is np.float32:
-                coord_radian.attrs["add_offset"] = coord_radian.attrs["add_offset"].astype("float64")
 
             coord_radian_num = coord_radian[:] * coord_radian.attrs["scale_factor"] + coord_radian.attrs["add_offset"]
 
@@ -686,20 +715,22 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
             return radiance * np.float32(np.nan)
-
-        sun_earth_distance = np.mean(
-            self.get_and_cache_npxr("state/celestial/earth_sun_distance")) / 149597870.7  # [AU]
-
-        # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-        if sun_earth_distance < 0.9 or sun_earth_distance > 1.1:
-            logger.info("The variable state/celestial/earth_sun_distance contains unexpected values"
-                        "(mean value is {} AU). Defaulting to 1 AU for reflectance calculation."
-                        "".format(sun_earth_distance))
-            sun_earth_distance = 1
-
+        sun_earth_distance = self._compute_sun_earth_distance
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
         return res
 
+    @cached_property
+    def _compute_sun_earth_distance(self) -> float :
+        """Compute the sun_earth_distance."""
+        if self.is_iqt:
+            middle_time_diff = (self.observation_end_time-self.observation_start_time)/2
+            utc_date = self.observation_start_time + middle_time_diff
+            sun_earth_distance = sun_earth_distance_correction(utc_date)
+            logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
+        else:
+            sun_earth_distance = np.nanmean(
+                self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
+        return sun_earth_distance
 
 def _ensure_dataarray(arr):
     if not isinstance(arr, xr.DataArray):
