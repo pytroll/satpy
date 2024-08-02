@@ -101,7 +101,7 @@ class Scene:
         will be searched for a Reader that can support the provided files. This
         can take a considerable amount of time so it is recommended that
         ``reader`` always be provided. Note without ``filenames`` the Scene is
-        created with no Readers available.  When a Scene is created with no Readers,
+        created with no Readers available. When a Scene is created with no Readers,
         each xarray.DataArray must be added manually::
 
             scn = Scene()
