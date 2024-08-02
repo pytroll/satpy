@@ -1739,17 +1739,35 @@ def test_preloaded_instances_not_implemented(tmp_path, fake_gsyreader,
         list(g)
 
 
-def test_get_cache_filename_segment_only(tmp_path):
-    """Test getting cache filename, segment only."""
+@pytest.mark.parametrize("include", [(), ("rc",), ("rc", "time")])
+def test_get_cache_filename(tmp_path, include):
+    """Test getting the pre-loading cache filename."""
     from satpy.readers.yaml_reader import GEOSegmentYAMLReader
 
-    fn = tmp_path / "a-01.nc"
+    fn = fp = "a-"
     fn_info = {"segment": 1}
     ft_info = {
             "file_reader": BaseFileHandler,
-            "file_patterns": ["a-{segment:>02d}.nc"],
             "segment_tag": "segment",
             "expected_segments": 5}
+    if "time" in include:
+        fn += "20421015234500-234600-"
+        fp += "{start_time:%Y%m%d%H%M%S}-{end_time:%H%M%S}-"
+        fn_info["start_time"] = dt.datetime(2042, 10, 15, 23, 45)
+        fn_info["end_time"] = dt.datetime(2042, 10, 15, 23, 46)
+        ft_info["time_tags"] = ["start_time", "end_time"]
+    if "rc" in include:
+        fn += "04-"
+        fp += "{rc:>02d}-"
+        fn_info["rc"] = 4
+    fn += "01.nc"
+    fp += "{segment:>02d}.nc"
+
+    ft_info["file_patterns"] = [fp]
+    if "time" in include:
+        ref_fn = "a-99991231235959-235959-04-01.pkl"
+    else:
+        ref_fn = fn[:-2] + "pkl"
 
     with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(
@@ -1763,60 +1781,4 @@ def test_get_cache_filename_segment_only(tmp_path):
         au.return_value = os.fspath(tmp_path / "cache")
         cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
-            "BaseFileHandler" / "a-01.pkl")
-
-
-def test_get_cache_filename_cache_and_segment(tmp_path):
-    """Test getting the cache filename with segment and repeat cycle."""
-    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-
-    fn = tmp_path / "a-04-01.nc"
-    fn_info = {"rc": 4, "segment": 1}
-    ft_info = {
-            "file_reader": BaseFileHandler,
-            "file_patterns": ["a-{rc:>02d}-{segment:>02d}.nc"],
-            "segment_tag": "segment",
-            "expected_segments": 5}
-
-    with satpy.config.set({"readers.preload.enable": True}):
-        gsyr = GEOSegmentYAMLReader(
-                {"reader": {
-                    "name": "salina"},
-                 "file_types": {
-                     "m9g": ft_info}})
-    fh = BaseFileHandler(fn, fn_info, ft_info)
-
-    with unittest.mock.patch("appdirs.user_cache_dir") as au:
-        au.return_value = os.fspath(tmp_path / "cache")
-        cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
-        assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
-            "BaseFileHandler" / "a-04-01.pkl")
-
-
-def test_get_cache_filename_including_time(tmp_path):
-    """Test getting the cache filename including a dummpy time."""
-    from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-
-    fn = tmp_path / "a-20421015234500-234600-04-01.nc"
-    fn_info = {"start_time": dt.datetime(2042, 10, 15, 23, 45),
-               "end_time": dt.datetime(2042, 10, 15, 23, 46), "rc": 4, "segment": 1}
-    ft_info = {
-            "file_reader": BaseFileHandler,
-            "file_patterns": ["a-{start_time:%Y%m%d%H%M%S}-{end_time:%H%M%S}-{rc:>02d}-{segment:>02d}.nc"],
-            "segment_tag": "segment",
-            "expected_segments": 5,
-            "time_tags": ["start_time", "end_time"]}
-
-    with satpy.config.set({"readers.preload.enable": True}):
-        gsyr = GEOSegmentYAMLReader(
-                {"reader": {
-                    "name": "salina"},
-                 "file_types": {
-                     "m9g": ft_info}})
-    fh = BaseFileHandler(fn, fn_info, ft_info)
-
-    with unittest.mock.patch("appdirs.user_cache_dir") as au:
-        au.return_value = os.fspath(tmp_path / "cache")
-        cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
-        assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
-            "BaseFileHandler" / "a-99991231235959-235959-04-01.pkl")
+                               "BaseFileHandler" / ref_fn)
