@@ -1575,7 +1575,7 @@ def test_predict_filename_info(tmp_path):
 def fake_gsyreader():
     """Create a fake GeoSegmentYAMLReader."""
     from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         return GEOSegmentYAMLReader(
                 {"reader": {
                     "name": "alicudi"},
@@ -1678,7 +1678,7 @@ def test_preloaded_instances_works(
                 "{platform}-c-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc",
                 "{platform}-d-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}-{segment:>02d}.nc"]}
 
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(
                 {"reader": {
                     "name": "island-reader"},
@@ -1717,7 +1717,7 @@ def test_preloaded_instances_requirement(
     ft_info = {**fake_filetype_info,
                "requires": ["pergola"]}
 
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(
                 {"reader": {
                     "name": "alicudi"},
@@ -1758,7 +1758,7 @@ def test_get_cache_filename_segment_only(tmp_path):
             "segment_tag": "segment",
             "expected_segments": 5}
 
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(
                 {"reader": {
                     "name": "filicudi"},
@@ -1785,7 +1785,7 @@ def test_get_cache_filename_cache_and_segment(tmp_path):
             "segment_tag": "segment",
             "expected_segments": 5}
 
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(
                 {"reader": {
                     "name": "salina"},
@@ -1814,7 +1814,7 @@ def test_get_cache_filename_including_time(tmp_path):
             "expected_segments": 5,
             "time_tags": ["start_time", "end_time"]}
 
-    with satpy.config.set({"readers.preload_segments": True}):
+    with satpy.config.set({"readers.preload.enable": True}):
         gsyr = GEOSegmentYAMLReader(
                 {"reader": {
                     "name": "salina"},
