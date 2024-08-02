@@ -107,9 +107,8 @@ class Scene:
             scn = Scene()
             scn['my_dataset'] = DataArray(my_data_array, attrs={})
 
-        The `attrs` dictionary contains the metadata for the data. Some important keys include the
-        platform_name, sensor, name, wavelength, units, calibration, standard_name, start_time,
-        and the area which contains the projection information (AreaDefinition or SwathDefinition) for this data. 
+        The `attrs` dictionary contains the metadata for the data. See
+        :ref:`dataset_metadata` for more information.
 
         Further, notice that it is also possible to load a combination of files
         or sets of files each requiring their specific reader. For that
