@@ -12,7 +12,7 @@ from datetime import datetime
 # Define a before_all hook to create the timestamp and test results directory
 def before_all(context):
     context.timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    context.test_results_dir = f"../test_results/image_comparison/{context.timestamp}"
+    context.test_results_dir = f"/home/ubuntu/pytroll-image-comparison-tests/test_results/image_comparison/{context.timestamp}"
     os.makedirs(os.path.join(context.test_results_dir, 'generated'), exist_ok=True)
     os.makedirs(os.path.join(context.test_results_dir, 'difference'), exist_ok=True)
 
