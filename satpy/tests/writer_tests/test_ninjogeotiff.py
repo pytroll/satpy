@@ -577,8 +577,8 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
         test_image_small_arctic_P,
         filename=fn,
         fill_value=255,
-        PhysicUnit="N/A",
-        PhysicValue="N/A",
+        PhysicUnit="satdata",
+        PhysicValue="satdata",
         SatelliteNameID=6400014,
         ChannelID=900015,
         DataType="PPRN",
@@ -591,8 +591,8 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
-    assert "ninjo_Gradient" not in tgs
-    assert "ninjo_AxisIntercept" not in tgs
+    assert tgs["ninjo_Gradient"] == "1.0"
+    assert tgs["ninjo_AxisIntercept"] == "0.0"
 
 
 def test_write_and_read_file_units(

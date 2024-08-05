@@ -74,11 +74,13 @@ For images where the pixel value corresponds directly to a physical value,
 NinJo has a functionality to read the corresponding quantity (example:
 brightness temperature or reflectance).  To make this possible, the writer
 adds the tags ``Gradient`` and ``AxisIntercept``.  Those tags are added if
-and only if the image has mode ``L`` or ``LA`` and ``PhysicUnit`` is not set
+and only if the image has mode ``L``, ``P``, or ``LA`` and ``PhysicUnit`` is not set
 to ``"N/A"``.  In other words, to suppress those tags for images with mode
 ``L`` or ``LA`` (for example, for the composite ``vis_with_ir``, where the
 physical interpretation of individual pixels is lost), one should set
 ``PhysicUnit`` to ``"N/A"``, ``"n/a"``, ``"1"``, or ``""`` (empty string).
+If the image has mode ``P``, ``Gradient`` is set to ``1.0`` and ``AxisIntercept``
+to ``0.0`` (as expected by NinJo).
 """
 
 import copy
@@ -236,7 +238,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     def _check_include_scale_offset(self, image, unit):
         """Check if scale-offset tags should be included."""
-        if image.mode.startswith("L") and unit.lower() not in ("n/a", "1", ""):
+        if image.mode[0] in "LP" and unit.lower() not in ("n/a", "1", ""):
             return True
         return False
 
