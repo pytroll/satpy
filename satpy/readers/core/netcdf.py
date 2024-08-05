@@ -542,7 +542,7 @@ class PreloadableSegments:
 
     This feature is experimental.
 
-    .. versionadded:: 0.50
+    .. versionadded:: 0.51
     """
 
     def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
