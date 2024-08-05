@@ -1,0 +1,8 @@
+Test for GOES17 - airmass
+Non-zero pixel differences: 6607692
+Result: Failed - 6607692 pixel differences exceed the threshold of 100.
+
+Test for GOES16 - airmass
+Non-zero pixel differences: 1590
+Result: Failed - 1590 pixel differences exceed the threshold of 100.
+
