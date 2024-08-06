@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2018 Satpy developers
+# Copyright (c) 2015-2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -808,3 +806,31 @@ def open_file_or_filename(unknown_file_thing, mode=None):
         except AttributeError:
             f_obj = unknown_file_thing
     return f_obj
+
+
+def create_preloadable_cache(reader_name, filenames):
+    """Create on-disk cache for preloadables.
+
+    Some readers allow on-disk caching of metadata.  This can be used to
+    preload data, creating file handlers and a scene object before data files
+    are available.  This utility function creates the associated cache for
+    multiple filenames.
+
+    Args:
+        reader_name (str):
+            Reader for which to create the cache.
+        filenames (List[str]):
+            Files for which to create the cache.  Typically, this would be
+            the same set of files to create a single scene.
+    """
+    reader_instances = load_readers(filenames, reader_name)
+    for (nm, reader_inst) in reader_instances.items():
+        for (tp, handlers) in reader_inst.file_handlers.items():
+            for handler in handlers:
+                filename = reader_inst._get_cache_filename(
+                        handler.filename,
+                        handler.filename_info,
+                        handler)
+                p = pathlib.Path(filename)
+                p.parent.mkdir(exist_ok=True, parents=True)
+                handler.store_cache(filename)

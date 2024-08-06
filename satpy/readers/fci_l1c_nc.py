@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,12 +18,10 @@
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Level-1c data.  FCI will fly
-on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
-scheduled to be launched on the 13th of December 2022.
-For more information about FCI, see `EUMETSAT`_.
+Imager (FCI) Level-1c data.  FCI flies on the MTG Imager (MTG-I) series
+of satellites, with the first satellite (MTG-I1) launched on the 13th
+of December 2022.  For more information about FCI, see `EUMETSAT`_.
 
-For simulated test data to be used with this reader, see `test data releases`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
@@ -130,7 +126,7 @@ from pyresample import geometry
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
-from .netcdf_utils import NetCDF4FsspecFileHandler
+from .netcdf_utils import NetCDF4FsspecFileHandler, PreloadableSegments
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +179,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
+class FCIL1cNCFileHandler(PreloadableSegments, NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -208,12 +204,15 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         "MTI3": "MTG-I3",
         "MTI4": "MTG-I4"}
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 *args, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
+                         *args,
                          cache_var_size=0,
-                         cache_handle=True)
+                         cache_handle=True,
+                         **kwargs)
         logger.debug("Reading: {}".format(self.filename))
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))
