@@ -29,6 +29,7 @@ from pyresample.area_config import (  # noqa: E402
     _read_yaml_area_file_content,
     generate_area_def_rst_list,
 )
+from pyresample.utils.proj4 import ignore_pyproj_proj_warnings
 from reader_table import generate_reader_table, rst_table_header, rst_table_row  # noqa: E402
 
 import satpy  # noqa: E402
@@ -98,8 +99,9 @@ for aname, params in area_dict.items():
     if not hasattr(area, "_repr_html_"):
         continue
 
-    area_table.append(rst_table_row([f"`{aname}`_", area.description,
-                                     area.proj_dict.get("proj")]))
+    with ignore_pyproj_proj_warnings():
+        area_proj = area.proj_dict.get("proj")
+    area_table.append(rst_table_row([f"`{aname}`_", area.description, area_proj]))
 
 with open("area_def_list.rst", mode="w") as f:
     f.write("".join(area_table))
