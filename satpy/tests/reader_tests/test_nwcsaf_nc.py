@@ -326,6 +326,14 @@ class TestNcNWCSAFGeo:
         assert "add_offset" not in var.attrs
         np.testing.assert_equal(var.attrs["valid_range"], (-2000., 25000.))
 
+    def test_scale_dataset_uint8_noop(self, nwcsaf_geo_ct_filehandler):
+        """Test that uint8 is not accidentally casted when no scaling is done."""
+        attrs = {}
+        var = xr.DataArray(np.array([1, 2, 3], dtype=np.uint8), attrs=attrs)
+        var = nwcsaf_geo_ct_filehandler.scale_dataset(var, "dummy")
+        np.testing.assert_equal(var, np.array([1, 2, 3], dtype=np.uint8))
+        assert var.dtype == np.uint8
+
     def test_orbital_parameters_are_correct(self, nwcsaf_geo_ct_filehandler):
         """Test that orbital parameters are present in the dataset attributes."""
         dsid = {"name": "ct"}
