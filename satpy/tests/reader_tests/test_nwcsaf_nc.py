@@ -103,7 +103,7 @@ def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
         nc_file.attrs.update(attrs)
         var_name = "ct"
 
-        var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint16,
+        var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint8,
                                       chunks=(256, 256))
         var[:] = RANDOM_GEN.integers(0, 255, size=(928, 1530), dtype=np.uint8)
 
@@ -352,6 +352,13 @@ class TestNcNWCSAFGeo:
     def test_end_time(self, nwcsaf_geo_ct_filehandler):
         """Test the end time property."""
         assert nwcsaf_geo_ct_filehandler.end_time == read_nwcsaf_time(END_TIME)
+
+    def test_uint8_remains_uint8(self, nwcsaf_geo_ct_filehandler):
+        """Test that loading uint8 remains uint8."""
+        ct = nwcsaf_geo_ct_filehandler.get_dataset(
+                {"name": "ct"},
+                {"name": "ct", "file_type": "nc_nwcsaf_geo"})
+        assert ct.dtype == np.dtype("uint8")
 
 
 class TestNcNWCSAFPPS:
