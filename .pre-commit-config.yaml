@@ -24,6 +24,7 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-docutils
+          - types-setuptools
           - types-PyYAML
           - types-requests
         args: ["--python-version", "3.9", "--ignore-missing-imports"]
