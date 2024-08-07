@@ -44,14 +44,14 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 class TestIASINGL2NCReader:
     """Main test class for the IASI NG L2 reader."""
 
-    yaml_file = "iasi_ng_l2_nc.yaml"
+    reader_name = "iasi_ng_l2_nc"
 
     def setup_method(self):
         """Setup the reade config"""
         from satpy._config import config_search_paths
 
         self.reader_configs = config_search_paths(
-            os.path.join("readers", self.yaml_file)
+            os.path.join("readers", self.reader_name + ".yaml")
         )
 
     @pytest.fixture(autouse=True, scope="class")
@@ -65,15 +65,14 @@ class TestIASINGL2NCReader:
             patch_ctx.is_local = True
             yield patch_ctx
 
-    def test_filename_matching(self):
-        # Example filename
-        filename = "W_fr-meteo-sat,GRAL,MTI1-IASING-2-l2p_C_EUMS_20220101120000_LEO_O_D_20220101115425-20220101115728_____W______.nc"
+    def _create_file_handler(self, filename):
+        """Create an handler for the given file checking that it can
+        be parsed correctly"""
 
         reader = load_reader(self.reader_configs)
 
         # Test if the file is recognized by the reader
         files = reader.select_files_from_pathnames([filename])
-
         assert len(files) == 1, "File should be recognized by the reader"
 
         # Create the file handler:
@@ -83,12 +82,34 @@ class TestIASINGL2NCReader:
         assert len(reader.file_handlers) == 1
 
         # logger.info("File handlers are: %s", reader.file_handlers)
+        assert self.reader_name in reader.file_handlers
 
-        assert "iasi_ng_l2_nc" in reader.file_handlers
-
-        handlers = reader.file_handlers["iasi_ng_l2_nc"]
+        handlers = reader.file_handlers[self.reader_name]
 
         # We should have a single handler for a single file:
         assert len(handlers) == 1
-
         assert isinstance(handlers[0], IASINGL2NCFileHandler)
+
+        return handlers[0]
+
+    def test_filename_matching(self):
+        """Test filename matching against some random name"""
+
+        # Example filename
+        filename = "W_fr-meteo-sat,GRAL,MTI1-IASING-2-l2p_C_EUMS_20220101120000_LEO_O_D_20220101115425_20220101115728_____W______.nc"
+
+        self._create_file_handler(filename)
+
+    def test_real_filename_matching(self):
+        """Test that we will match an actual IASI NG L2 product file name"""
+
+        # Below we test the TWV,CLD,GHG and SFC products:
+        filenames = {
+            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc",
+            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-CLD_C_EUMT_20170616120000_G_V_20070912094037_20070912094308_O_N____.nc",
+            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-GHG_C_EUMT_20170616120000_G_V_20070912090651_20070912090922_O_N____.nc",
+            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-SFC_C_EUMT_20170616120000_G_V_20070912100911_20070912101141_O_N____.nc",
+        }
+
+        for filename in filenames:
+            self._create_file_handler(filename)

@@ -42,7 +42,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
-        logger.info("Creating reader with infos: %s", filename_info)
+        # logger.info("Creating reader with infos: %s", filename_info)
 
     # def get_dataset(self, data_id, ds_info):
     #     """Obtain dataset."""
