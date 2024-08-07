@@ -1269,3 +1269,7 @@ enhancements:
          stretch: crude
          min_stretch: [0,0,0]
          max_stretch: [1,1,1]
+
+  imager_with_lightning:
+    standard_name: imager_with_lightning
+    operations: []

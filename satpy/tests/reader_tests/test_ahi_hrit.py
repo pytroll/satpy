@@ -343,4 +343,5 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 mda=mda,
                 filename_info={"start_time": start_time},
                 reader_kwargs={"use_acquisition_time_as_start_time": True})
-            assert reader.start_time == reader.acq_time[0].astype(dt.datetime)
+            assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
+            assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)

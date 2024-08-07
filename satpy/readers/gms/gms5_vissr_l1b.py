@@ -164,7 +164,7 @@ import satpy.readers.gms.gms5_vissr_navigation as nav
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.readers.utils import generic_open
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
@@ -307,8 +307,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def _get_time_parameters(self):
-        start_time = mjd2datetime64(self._mode_block["observation_time_mjd"]).astype("datetime64[us]")
-        start_time = start_time.astype(dt.datetime).replace(second=0, microsecond=0)
+        start_time = self._get_start_time()
         end_time = start_time + dt.timedelta(
             minutes=25
         )  # Source: GMS User Guide, section 3.3.1
@@ -316,6 +315,11 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             "nominal_start_time": start_time,
             "nominal_end_time": end_time,
         }
+
+    def _get_start_time(self):
+        start_time = mjd2datetime64(self._mode_block["observation_time_mjd"])
+        start_time = datetime64_to_pydatetime(start_time)
+        return start_time.replace(second=0, microsecond=0)
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset from file."""

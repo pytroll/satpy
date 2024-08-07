@@ -18,7 +18,7 @@ dependencies = [
     "pyproj>=2.2",
     "pyresample>=1.24.0",
     "pyyaml>=5.1",
-    "trollimage>=1.23",
+    "trollimage>=1.24",
     "trollsift",
     "xarray>=0.14.1",
     "zarr",
@@ -41,6 +41,7 @@ avhrr_l1b_gaclac = ["pygac >= 1.3.0"]
 modis_l1b = ["pyhdf", "python-geotiepoints >= 1.1.7"]
 geocat = ["pyhdf"]
 goci2 = ["netCDF4 >= 1.1.8"]
+generic_image = ["rasterio", "rioxarray"]
 acspo = ["netCDF4 >= 1.1.8"]
 clavrx = ["netCDF4 >= 1.1.8"]
 viirs_l1b = ["netCDF4 >= 1.1.8"]
@@ -88,6 +89,7 @@ tests = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
          "rioxarray", "pytest", "pytest-lazy-fixtures", "defusedxml",
          "s3fs", "eccodes", "h5netcdf", "xarray-datatree",
          "skyfield", "ephem", "pint-xarray", "astropy", "dask-image", "python-geotiepoints", "numba"]
+dev = ["satpy[doc,tests]"]
 
 [project.scripts]
 satpy_retrieve_all_aux_data = "satpy.aux_download:retrieve_all_cmd"

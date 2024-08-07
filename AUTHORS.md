@@ -66,6 +66,7 @@ The following people have made contributions to this project:
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
+- [Benjamin Rösner (BENR0)](https://github.com/BENR0)
 - [Pascale Roquet (roquetp)](https://github.com/roquetp)
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
@@ -94,3 +95,5 @@ The following people have made contributions to this project:
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Antonio Valentino](https://github.com/avalentino)
+- [Pouria Khalaj](https://github.com/pkhalaj)
+- [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)

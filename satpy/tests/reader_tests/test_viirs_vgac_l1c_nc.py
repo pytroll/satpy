@@ -113,17 +113,6 @@ class TestVGACREader:
         assert scn_.end_time == dt.datetime(year=2023, month=3, day=28,
                                             hour=10, minute=11, second=12)
 
-    def test_dt64_to_datetime(self):
-        """Test datetime conversion branch."""
-        from satpy.readers.viirs_vgac_l1c_nc import VGACFileHandler
-        fh = VGACFileHandler(filename="",
-                             filename_info={"start_time": "2023-03-28T09:08:07"},
-                             filetype_info="")
-        in_dt = dt.datetime(year=2023, month=3, day=28,
-                            hour=9, minute=8, second=7)
-        out_dt = fh.dt64_to_datetime(in_dt)
-        assert out_dt == in_dt
-
     def test_decode_time_variable(self):
         """Test decode time variable branch."""
         from satpy.readers.viirs_vgac_l1c_nc import VGACFileHandler
