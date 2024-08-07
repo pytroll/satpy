@@ -21,4 +21,4 @@ class TestIasiNGL2:
 
     def test_sanity(self):
         """Minimal temporary sanity check unit test."""
-        assert 1 == 0
+        assert 1 == 1
