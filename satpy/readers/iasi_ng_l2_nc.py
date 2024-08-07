@@ -42,7 +42,40 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
-        # logger.info("Creating reader with infos: %s", filename_info)
+        self.sensors = {"iasi_ng"}
+
+        # List of datasets provided by this handler:
+        self.dataset_infos = []
+
+        logger.info("Creating reader with infos: %s", filename_info)
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return self.filename_info["sensing_start_time"]
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return self.filename_info["sensing_end_time"]
+
+    @property
+    def sensor_names(self):
+        """List of sensors represented in this file."""
+        return self.sensors
+
+    def available_datasets(self, configured_datasets=None):
+        """Determine automatically the datasets provided by this file.
+
+        Uses a per product type dataset registration mechanism.
+        """
+
+        # pass along existing datasets
+        for is_avail, ds_info in configured_datasets or []:
+            yield is_avail, ds_info
+
+        for ds_info in self.dataset_infos:
+            yield True, ds_info
 
     # def get_dataset(self, data_id, ds_info):
     #     """Obtain dataset."""

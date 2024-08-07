@@ -19,7 +19,7 @@ import logging
 import os
 from unittest import mock
 from satpy.readers.iasi_ng_l2_nc import IASINGL2NCFileHandler
-
+from datetime import datetime
 from satpy.readers import load_reader
 
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
@@ -64,6 +64,12 @@ class TestIASINGL2NCReader:
         with patch_ctx:
             patch_ctx.is_local = True
             yield patch_ctx
+
+    @pytest.fixture()
+    def twv_handler(self):
+        """Create a simple (and fake) default handler on a TWV product"""
+        filename = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
+        return self._create_file_handler(filename)
 
     def _create_file_handler(self, filename):
         """Create an handler for the given file checking that it can
@@ -113,3 +119,15 @@ class TestIASINGL2NCReader:
 
         for filename in filenames:
             self._create_file_handler(filename)
+
+    def test_sensing_times(self, twv_handler):
+        """Test that we read the sensing start/end times correctly
+        from filename"""
+
+        assert twv_handler.start_time == datetime(2007, 9, 12, 8, 43, 29)
+        assert twv_handler.end_time == datetime(2007, 9, 12, 8, 46, 0)
+
+    def test_sensor_names(self, twv_handler):
+        """Test that the handler reports iasi_ng as sensor"""
+
+        assert twv_handler.sensor_names == {"iasi_ng"}
