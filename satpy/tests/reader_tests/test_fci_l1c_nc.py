@@ -927,13 +927,12 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         with mock.patch("satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info") as gspi:
             fh_param = FakeFCIFileHandlerAF_fixture
             reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-            try:
+            with contextlib.suppress(KeyError):
                 # attempt to load the channel
-                reader.load([channel])
-            except KeyError:
                 # If get_segment_position_info is called, the code will fail with a KeyError because of the mocking.
-                # So we catch the error here for now, but the test will still fail with the following assert_not_called
-                pass
+                # However, the point of the test is to check if the function has been called, not if the function
+                # would work with this case, so the expected KeyError is suppressed, and we assert_not_called below.
+                reader.load([channel])
             gspi.assert_not_called()
 
     @pytest.mark.parametrize("calibration", ["index_map", "pixel_quality"])
