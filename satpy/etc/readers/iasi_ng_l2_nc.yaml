@@ -22,12 +22,12 @@ file_types:
       - group: data/geolocation_information
         variables:
           - onboard_utc
-          - sounder_pixel_latitude:latitude
-          - sounder_pixel_longitude:longitude
-          - sounder_pixel_azimuth:azimuth
-          - sounder_pixel_zenith:zenith
-          - sounder_pixel_sun_azimuth:sun_azimuth
-          - sounder_pixel_sun_zenith:sun_zenith
+          - sounder_pixel_latitude => latitude
+          - sounder_pixel_longitude => longitude
+          - sounder_pixel_azimuth => azimuth
+          - sounder_pixel_zenith => zenith
+          - sounder_pixel_sun_azimuth => sun_azimuth
+          - sounder_pixel_sun_zenith => sun_zenith
       - group: data/statistical_retrieval
         variables:
           - air_temperature

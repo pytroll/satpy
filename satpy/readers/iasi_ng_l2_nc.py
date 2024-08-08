@@ -115,8 +115,8 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             for vname in grp_desc["variables"]:
                 # Check if we have an alias for this variable:
                 ds_name = vname
-                if ":" in vname:
-                    vname, ds_name = vname.split(":")
+                if "=>" in vname:
+                    vname, ds_name = (v.strip() for v in vname.split("=>"))
 
                 desc = {"location": f"{prefix}/{vname}"}
 
