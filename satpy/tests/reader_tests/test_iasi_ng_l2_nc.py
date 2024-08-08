@@ -31,6 +31,37 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
+DATASET_DESCS = [
+    {
+        "key": "data/geolocation_information/sounder_pixel_latitude",
+        "dims": ("n_lines", "n_for", "n_fov"),
+        "data_type": "int32",
+        "rand_min": -2147483647,
+        "rand_max": 2147483647,
+        "attribs": {
+            "valid_min": -1800000000,
+            "valid_max": 1800000000,
+            "scale_factor": 5.0e-8,
+            "add_offset": 0.0,
+            "missing_value": -2147483648,
+        },
+    },
+    {
+        "key": "data/geolocation_information/sounder_pixel_longitude",
+        "dims": ("n_lines", "n_for", "n_fov"),
+        "data_type": "int32",
+        "rand_min": -2147483647,
+        "rand_max": 2147483647,
+        "attribs": {
+            "valid_min": -1843200000,
+            "valid_max": 1843200000,
+            "scale_factor": 9.765625e-8,
+            "add_offset": 0.0,
+            "missing_value": -2147483648,
+        },
+    },
+]
+
 
 class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
     """Fake base class for IASI NG handler"""
@@ -49,7 +80,7 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         dims = desc["dims"]
         key = desc["key"]
 
-        shape = tuple(dims.values())
+        shape = [self.dims[k] for k in dims]
 
         if dtype == "int32":
             dask_array = da.random.randint(
@@ -88,7 +119,7 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
             dask_array = dask_array.map_blocks(set_missing_values, dtype=dask_array.dtype)
 
         # Wrap the dask array with xarray.DataArray
-        data_array = xr.DataArray(dask_array, dims=list(dims.keys()))
+        data_array = xr.DataArray(dask_array, dims=dims)
 
         data_array.attrs.update(attribs)
 
@@ -103,45 +134,15 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         n_lines = 10
         n_for = 14
         n_fov = 16
-        def_dims = {"n_lines": n_lines, "n_for": n_for, "n_fov": n_fov}
+        self.dims = {"n_lines": n_lines, "n_for": n_for, "n_fov": n_fov}
 
         self.content = {}
 
         # Note: below we use the full range of int32 to generate the random
         # values, we expect the handler to "fix" out of range values replacing
         # them with NaNs.
-        self.add_rand_data(
-            {
-                "key": "data/geolocation_information/sounder_pixel_latitude",
-                "dims": def_dims,
-                "data_type": "int32",
-                "rand_min": -2147483647,
-                "rand_max": 2147483647,
-                "attribs": {
-                    "valid_min": -1800000000,
-                    "valid_max": 1800000000,
-                    "scale_factor": 5.0e-8,
-                    "add_offset": 0.0,
-                    "missing_value": -2147483648,
-                },
-            }
-        )
-        self.add_rand_data(
-            {
-                "key": "data/geolocation_information/sounder_pixel_longitude",
-                "dims": def_dims,
-                "data_type": "int32",
-                "rand_min": -2147483647,
-                "rand_max": 2147483647,
-                "attribs": {
-                    "valid_min": -1843200000,
-                    "valid_max": 1843200000,
-                    "scale_factor": 9.765625e-8,
-                    "add_offset": 0.0,
-                    "missing_value": -2147483648,
-                },
-            }
-        )
+        for desc in DATASET_DESCS:
+            self.add_rand_data(desc)
 
         return self.content
 
