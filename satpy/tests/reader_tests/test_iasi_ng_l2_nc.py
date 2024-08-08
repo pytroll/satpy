@@ -19,8 +19,12 @@ import os
 from datetime import datetime
 from unittest import mock
 
+import dask.array as da
+import numpy as np
 import pytest
+import xarray as xr
 
+from satpy import Scene
 from satpy.readers import load_reader
 from satpy.readers.iasi_ng_l2_nc import IASINGL2NCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
@@ -31,15 +35,84 @@ logger = logging.getLogger(__name__)
 class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
     """Fake base class for IASI NG handler"""
 
+    chunks = (10, 10, 10)  # Define the chunk size for dask array
+
+    def add_rand_data(self, desc):
+        """
+        Build a random DataArray from a given description, and add it as content.
+        """
+
+        # Create a lazy dask array with random int32 values
+        dtype = desc.get("data_type", "int32")
+        rand_min = desc.get("rand_min", 0)
+        rand_max = desc.get("rand_max", 100)
+        dims = desc["dims"]
+        key = desc["key"]
+
+        shape = tuple(dims.values())
+
+        if dtype == "int32":
+            dask_array = da.random.randint(
+                rand_min, rand_max, size=shape, chunks=self.chunks, dtype="int32"
+            )
+        else:
+            raise ValueError(f"Unsupported data type: {dtype}")
+
+        # Wrap the dask array with xarray.DataArray
+        data_array = xr.DataArray(dask_array, dims=list(dims.keys()))
+
+        data_array.attrs.update(desc.get("attribs", {}))
+
+        self.content[key] = data_array
+
     def get_test_content(self, _filename, _filename_info, _filetype_info):
         """Get the content of the test data.
 
         Here we generate the default content we want to provide depending
         on the provided filename infos.
         """
+        n_lines = 10
+        n_for = 14
+        n_fov = 16
+        def_dims = {"n_lines": n_lines, "n_for": n_for, "n_fov": n_fov}
 
-        dset = {}
-        return dset
+        self.content = {}
+
+        # Note: below we use the full range of int32 to generate the random
+        # values, we expect the handler to "fix" out of range values replacing
+        # them with NaNs.
+        self.add_rand_data(
+            {
+                "key": "data/geolocation_information/sounder_pixel_latitude",
+                "dims": def_dims,
+                "data_type": "int32",
+                "rand_min": -2147483647,
+                "rand_max": 2147483647,
+                "attribs": {
+                    "valid_min": -1800000000,
+                    "valid_max": 1800000000,
+                    "scale_factor": 5.0e-8,
+                    "add_offset": 0.0,
+                },
+            }
+        )
+        self.add_rand_data(
+            {
+                "key": "data/geolocation_information/sounder_pixel_longitude",
+                "dims": def_dims,
+                "data_type": "int32",
+                "rand_min": -2147483647,
+                "rand_max": 2147483647,
+                "attribs": {
+                    "valid_min": -1843200000,
+                    "valid_max": 1843200000,
+                    "scale_factor": 9.765625e-8,
+                    "add_offset": 0.0,
+                },
+            }
+        )
+
+        return self.content
 
 
 class TestIASINGL2NCReader:
@@ -71,6 +144,12 @@ class TestIASINGL2NCReader:
         """Create a simple (and fake) default handler on a TWV product"""
         filename = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
         return self._create_file_handler(filename)
+
+    @pytest.fixture()
+    def twv_scene(self):
+        """Create a simple (and fake) satpy scene on a TWV product"""
+        filename = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
+        return Scene(filenames=[filename], reader=self.reader_name)
 
     def _create_file_handler(self, filename):
         """Create an handler for the given file checking that it can
@@ -132,3 +211,53 @@ class TestIASINGL2NCReader:
         """Test that the handler reports iasi_ng as sensor"""
 
         assert twv_handler.sensor_names == {"iasi_ng"}
+
+    def test_available_datasets(self, twv_scene):
+        """Test the list of available datasets in scene"""
+
+        dnames = twv_scene.available_dataset_names()
+
+        assert "latitude" in dnames
+        assert "longitude" in dnames
+
+    def test_latitude_dataset(self, twv_scene):
+        """Test loading the latitude dataset"""
+
+        twv_scene.load(["latitude"])
+        dset = twv_scene["latitude"]
+
+        # Should be 2D now:
+        assert len(dset.dims) == 2
+        assert dset.dims[0] == "x"
+        assert dset.dims[1] == "y"
+
+        # Should have been converted to float32:
+        assert dset.dtype == np.float32
+
+        # All valid values should be in range [-90.0,90.0]
+        vmin = np.nanmin(dset)
+        vmax = np.nanmax(dset)
+
+        assert vmin >= -90.0
+        assert vmax <= 90.0
+
+    def test_longitude_dataset(self, twv_scene):
+        """Test loading the longitude dataset"""
+
+        twv_scene.load(["longitude"])
+        dset = twv_scene["longitude"]
+
+        # Should be 2D now:
+        assert len(dset.dims) == 2
+        assert dset.dims[0] == "x"
+        assert dset.dims[1] == "y"
+
+        # Should have been converted to float32:
+        assert dset.dtype == np.float32
+
+        # All valid values should be in range [-90.0,90.0]
+        vmin = np.nanmin(dset)
+        vmax = np.nanmax(dset)
+
+        assert vmin >= -180.0
+        assert vmax <= 180.0

@@ -146,21 +146,28 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if ds_info.get("apply_fill_value", True) is not True:
             return data_array
 
+        if data_array.dtype == np.int32:
+            data_array = data_array.astype(np.float32)
+        else:
+            raise ValueError(f"Unexpected raw dataarray data type: {data_array.dtype}")
+
         attribs = data_array.attrs
+
+        nan_val = np.float32(np.nan)
 
         # Apply the min/max valid range:
         if "valid_min" in attribs:
             vmin = attribs["valid_min"]
-            data_array = data_array.where(data_array < vmin, np.float32(np.nan))
+            data_array = data_array.where(data_array >= vmin, other=nan_val)
 
         if "valid_max" in attribs:
             vmax = attribs["valid_max"]
-            data_array = data_array.where(data_array > vmax, np.float32(np.nan))
+            data_array = data_array.where(data_array <= vmax, other=nan_val)
 
         if "valid_range" in attribs:
             vrange = attribs["valid_range"]
-            data_array = data_array.where(data_array < vrange[0], np.float32(np.nan))
-            data_array = data_array.where(data_array > vrange[1], np.float32(np.nan))
+            data_array = data_array.where(data_array >= vrange[0], other=nan_val)
+            data_array = data_array.where(data_array <= vrange[1], other=nan_val)
 
         # Check the missing value:
         missing_val = attribs.get("missing_value", None)
@@ -169,7 +176,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if missing_val is None:
             return data_array
 
-        return data_array.where(data_array != missing_val, np.float32(np.nan))
+        return data_array.where(data_array != missing_val, nan_val)
 
     def apply_rescaling(self, data_array, ds_info):
         """Apply the rescaling transform on a given array."""
@@ -188,10 +195,9 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             data_array = (data_array * scale_factor) + add_offset
 
             # rescale the valid range accordingly
-            if "valid_range" in attribs:
-                attribs["valid_range"] = (
-                    attribs["valid_range"] * scale_factor + add_offset
-                )
+            for key in ["valid_range", "valid_min", "valid_max"]:
+                if key in attribs:
+                    attribs[key] = attribs[key] * scale_factor + add_offset
 
             data_array.attrs.update(attribs)
 
