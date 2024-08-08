@@ -9,6 +9,8 @@ from behave import given, when, then
 from satpy import Scene
 from datetime import datetime
 
+ext_data_path = "/app/ext_data"
+
 # Define a before_all hook to create the timestamp and test results directory
 def before_all(context):
     context.timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -46,7 +48,7 @@ def step_when_generate_image(context, composite, satellite):
     dask.config.set(scheduler='threads', num_workers=4)
 
     # Get the list of satellite files to open
-    filenames = glob(f'./features/data/satellite_data/{satellite}/*.nc')
+    filenames = glob(f'{ext_data_path}/satellite_data/{satellite}/*.nc')
 
     scn = Scene(reader='abi_l1b', filenames=filenames)
 
