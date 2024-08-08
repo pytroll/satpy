@@ -197,10 +197,13 @@ def fill_chans_af():
     chans_af = {}
     for channel in LIST_TOTAL_CHANNEL:
         list_resol = resolutions_AF_products(channel)
+        if channel in ["wv_63", "wv_73"]:
+            ch_name_for_file = channel.replace("wv", "ir").replace("_", "").upper()
+        else:
+            ch_name_for_file = channel.replace("_", "").upper()
         for resol in list_resol:
-            chann_upp = channel.replace("_", "").upper()
             TEST_FILENAMES[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
-                                                       f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_"
+                                                       f"-{resol.upper()}-AF-{ch_name_for_file}-x-x---NC4E_C_EUMT_"
                                                        f"20240125144655_DT_OPE"
                                                        f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
             if channel.split("_")[0] in ["vis", "nir"]:
