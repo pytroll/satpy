@@ -46,6 +46,18 @@ Hence, these products are provided by the reader as 2-D arrays in the FCI 2km
 grid as per intended usage, with a ``pyresample.geometry.AreaDefinition`` area
 attribute containing the grid geolocation information.
 In this way, the products can directly be overlaid to FCI data.
+
+.. note::
+
+    L2 accumulated products retrieved from the archive
+    (that have "ARC" in the filename) contain data for 20 repeat cycles (timesteps) covering
+    10 minutes of sensing time. For these files, when loading the main variables
+    (``accumulated_flash_area``, ``flash_accumulation``, ``flash_radiance``),
+    the reader will cumulate (sum up) the data for the entire sensing period of the file.
+    A solution to access easily each timestep is being worked on. See https://github.com/pytroll/satpy/issues/2878
+    for possible workarounds in the meanwhile.
+
+
 If needed, the accumulated products can also be accessed as 1-d array by
 setting the reader kwarg ``with_area_definition=False``,
 e.g.::
