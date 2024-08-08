@@ -35,6 +35,16 @@ d_lff = ("n_lines", "n_for", "n_fov")
 
 DATA_DESC = [
     {
+        "group": "data/diagnostics",
+        "attrs": ["missing_value"],
+        "variables": {
+            "fg_cost": [d_lff, "float32", (3.4e38,)],
+            "nbr_iterations": [d_lff, "int32", (2147483647,)],
+            "rt_cost_x": [d_lff, "float32", (3.4e38,)],
+            "rt_cost_y": [d_lff, "float32", (3.4e38,)],
+        },
+    },
+    {
         "group": "data/geolocation_information",
         "attrs": [
             "unit",
@@ -135,8 +145,10 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
             if dtype == "float32":
                 dask_array = dask_array.astype(np.float32)
 
-            vmin = attribs["valid_min"]
-            vmax = attribs["valid_max"]
+            # Max flaot32 value is 3.4028235e38, we use a smaller value
+            # by default here:
+            vmin = attribs.get("valid_min", -1e16)
+            vmax = attribs.get("valid_max", 1e16)
             rand_min = vmin - (vmax - vmin) * 0.1
             rand_max = vmax + (vmax - vmin) * 0.1
 
@@ -396,3 +408,13 @@ class TestIASINGL2NCReader:
 
         # Should have been converted to datetime:
         assert dset.dtype == np.dtype("datetime64[ns]")
+
+    def test_nbr_iterations_dataset(self, twv_scene):
+        """Test loading the nbr_iterations dataset"""
+
+        twv_scene.load(["nbr_iterations"])
+        dset = twv_scene["nbr_iterations"]
+
+        assert len(dset.dims) == 2
+        # Should still be in int32 type:
+        assert dset.dtype == np.int32

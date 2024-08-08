@@ -166,10 +166,16 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         dtype = ds_info.get("data_type", "auto")
         convert = False
+        attribs = data_array.attrs
 
         if data_array.dtype == np.int32:
             if dtype == "auto":
-                dtype = "float64"
+                # Only convert to float if we have the scale factor or add_offset:
+                dtype = (
+                    "float64"
+                    if ("scale_factor" in attribs or "add_offset" in attribs)
+                    else "int32"
+                )
             convert = dtype != "int32"
         elif data_array.dtype == np.float64:
             if dtype == "auto":
@@ -189,7 +195,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             # We won't be able to use NaN in the other cases:
             return data_array
 
-        attribs = data_array.attrs
         nan_val = np.nan if dtype == "float64" else np.float32(np.nan)
 
         # Apply the min/max valid range:

@@ -19,6 +19,12 @@ file_types:
     onboard_utc_epoch: "2020-01-01"
 
     datasets:
+      - group: data/diagnostics
+        variables:
+          - fg_cost
+          - nbr_iterations
+          - rt_cost_x
+          - rt_cost_y
       - group: data/geolocation_information
         variables:
           - onboard_utc
