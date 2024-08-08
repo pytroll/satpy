@@ -278,9 +278,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # Note: below could convert the resulting data to another type
         # with .astype("datetime64[us]") for instance
         data_array = xr.DataArray(
-            data=da.from_array(
-                pd.to_datetime(epoch) + data_array.astype("timedelta64[s]")
-            ),
+            data=pd.to_datetime(epoch) + data_array.astype("timedelta64[s]"),
             dims=data_array.dims,
             attrs=data_array.attrs,
         )
