@@ -109,6 +109,16 @@ DATA_DESC = [
             "surface_speciﬁc_humidity": [d_lff, "float32", ("K", 100, 400, 3.4e38)],
         },
     },
+    {
+        "group": "data/surface_info",
+        "attrs": ["unit", "valid_min", "valid_max", "missing_value"],
+        "variables": {
+            "height": [d_lff, "float32", ("m", -418, 8848, 3.4e38)],
+            "height_std": [d_lff, "float32", ("m", 0, 999.0, 3.4e38)],
+            "ice_fraction": [d_lff, "float32", ("%", 0, 100.0, 3.4e38)],
+            "land_fraction": [d_lff, "float32", ("%", 0, 100.0, 3.4e38)],
+        },
+    },
 ]
 
 

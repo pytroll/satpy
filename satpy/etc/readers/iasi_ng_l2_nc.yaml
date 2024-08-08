@@ -43,3 +43,9 @@ file_types:
           - specific_humidity
           - surface_air_temperature
           - surface_specific_humidity
+      - group: data/surface_info
+        variables:
+          - height
+          - height_std
+          - ice_fraction
+          - land_fraction
