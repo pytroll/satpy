@@ -58,10 +58,39 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         else:
             raise ValueError(f"Unsupported data type: {dtype}")
 
+        attribs = desc.get("attribs", {})
+
+        if "missing_value" in attribs:
+            # Force setting a few elements to this missing value (but still lazily with
+            # dask map_blocks function)
+            missing_value = attribs["missing_value"]
+
+            # Ratio of elements to replace with missing value:
+            missing_ratio = 0.05
+
+            def set_missing_values(block):
+                # Generate random indices to set as missing values within this block
+                block_shape = block.shape
+
+                block_size = np.prod(block_shape)
+                block_num_to_replace = int(block_size * missing_ratio)
+
+                # Generate unique random indices to set as missing values within this block
+                flat_indices = np.random.choice(
+                    block_size, block_num_to_replace, replace=False
+                )
+                unraveled_indices = np.unravel_index(flat_indices, block_shape)
+                block[unraveled_indices] = missing_value
+
+                return block
+
+            # Apply the function lazily to each block
+            dask_array = dask_array.map_blocks(set_missing_values, dtype=dask_array.dtype)
+
         # Wrap the dask array with xarray.DataArray
         data_array = xr.DataArray(dask_array, dims=list(dims.keys()))
 
-        data_array.attrs.update(desc.get("attribs", {}))
+        data_array.attrs.update(attribs)
 
         self.content[key] = data_array
 
@@ -93,6 +122,7 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
                     "valid_max": 1800000000,
                     "scale_factor": 5.0e-8,
                     "add_offset": 0.0,
+                    "missing_value": -2147483648,
                 },
             }
         )
@@ -108,6 +138,7 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
                     "valid_max": 1843200000,
                     "scale_factor": 9.765625e-8,
                     "add_offset": 0.0,
+                    "missing_value": -2147483648,
                 },
             }
         )
