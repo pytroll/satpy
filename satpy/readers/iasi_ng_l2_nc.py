@@ -110,8 +110,23 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # Otherwise, we need to perform the registration:
         self.dataset_infos = {}
 
-        for ds_name, desc in self.ds_desc.items():
-            self.register_dataset(ds_name, desc)
+        for grp_desc in self.ds_desc:
+            prefix = grp_desc["group"]
+            for vname in grp_desc["variables"]:
+                # Check if we have an alias for this variable:
+                ds_name = vname
+                if ":" in vname:
+                    vname, ds_name = vname.split(":")
+
+                desc = {"location": f"{prefix}/{vname}"}
+
+                if ds_name == "onboard_utc":
+                    # add the seconds_since_epoch:
+                    desc["seconds_since_epoch"] = self.filetype_info["onboard_utc_epoch"]
+
+                # print(f"Registering {ds_name} with desc: {desc}")
+
+                self.register_dataset(ds_name, desc)
 
     def get_dataset_infos(self, ds_name):
         """Retrieve the dataset infos corresponding to one of the registered
