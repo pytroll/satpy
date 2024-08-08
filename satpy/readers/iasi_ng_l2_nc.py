@@ -149,15 +149,26 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if ds_info.get("apply_fill_value", True) is not True:
             return data_array
 
-        dtype = ds_info.get("data_type", "float64")
+        dtype = ds_info.get("data_type", "auto")
+        convert = False
 
         if data_array.dtype == np.int32:
-            data_array = data_array.astype(dtype)
+            if dtype == "auto":
+                dtype = "float64"
+            convert = dtype != "int32"
         elif data_array.dtype == np.float64:
-            if dtype != "float64":
-                data_array = data_array.astype(dtype)
+            if dtype == "auto":
+                dtype = "float64"
+            convert = dtype != "float64"
+        elif data_array.dtype == np.float32:
+            if dtype == "auto":
+                dtype = "float32"
+            convert = dtype != "float32"
         else:
             raise ValueError(f"Unexpected raw dataarray data type: {data_array.dtype}")
+
+        if convert:
+            data_array = data_array.astype(dtype)
 
         if dtype not in ["float32", "float64"]:
             # We won't be able to use NaN in the other cases:

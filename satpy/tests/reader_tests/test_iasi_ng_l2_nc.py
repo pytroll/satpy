@@ -31,101 +31,72 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
-DATASET_DESCS = [
+d_lff = ("n_lines", "n_for", "n_fov")
+
+DATA_DESC = [
     {
-        "key": "data/geolocation_information/onboard_utc",
-        "dims": ("n_lines", "n_for"),
-        "data_type": "float64",
-        "rand_min": -1100000000.0,
-        "rand_max": 1100000000.0,
-        "attribs": {
-            "valid_min": -1000000000.0,
-            "valid_max": 1000000000.0,
-            "missing_value": -9000000000.0,
+        "group": "data/geolocation_information",
+        "attrs": [
+            "unit",
+            "valid_min",
+            "valid_max",
+            "scale_factor",
+            "add_offset",
+            "missing_value",
+        ],
+        "variables": {
+            "onboard_utc": [
+                ("n_lines", "n_for"),
+                "float64",
+                ("seconds", -1e9, 1e9, None, None, -9e9),
+            ],
+            "sounder_pixel_latitude": [
+                d_lff,
+                "int32",
+                ("degrees_north", -18e8, 18e8, 5.0e-8, 0.0, -2147483648),
+            ],
+            "sounder_pixel_longitude": [
+                d_lff,
+                "int32",
+                ("degrees_east", -18.432e8, 18.432e8, 9.765625e-8, 0.0, -2147483648),
+            ],
+            "sounder_pixel_sun_azimuth": [
+                d_lff,
+                "int32",
+                ("degrees", -18.432e8, 18.432e8, 9.765625e-8, 0.0, -2147483648),
+            ],
+            "sounder_pixel_sun_zenith": [
+                d_lff,
+                "int32",
+                ("degrees", -18e8, 18e8, 5.0e-8, 90.0, -2147483648),
+            ],
+            "sounder_pixel_azimuth": [
+                d_lff,
+                "int32",
+                ("degrees", -18.432e8, 18.432e8, 9.765625e-8, 0.0, -2147483648),
+            ],
+            "sounder_pixel_zenith": [
+                d_lff,
+                "int32",
+                ("degrees", -18e8, 18e8, 2.5e-8, 45.0, -2147483648),
+            ],
         },
     },
     {
-        "key": "data/geolocation_information/sounder_pixel_latitude",
-        "dims": ("n_lines", "n_for", "n_fov"),
-        "data_type": "int32",
-        "rand_min": -2147483647,
-        "rand_max": 2147483647,
-        "attribs": {
-            "valid_min": -1800000000,
-            "valid_max": 1800000000,
-            "scale_factor": 5.0e-8,
-            "add_offset": 0.0,
-            "missing_value": -2147483648,
-        },
-    },
-    {
-        "key": "data/geolocation_information/sounder_pixel_longitude",
-        "dims": ("n_lines", "n_for", "n_fov"),
-        "data_type": "int32",
-        "rand_min": -2147483647,
-        "rand_max": 2147483647,
-        "attribs": {
-            "valid_min": -1843200000,
-            "valid_max": 1843200000,
-            "scale_factor": 9.765625e-8,
-            "add_offset": 0.0,
-            "missing_value": -2147483648,
-        },
-    },
-    {
-        "key": "data/geolocation_information/sounder_pixel_sun_azimuth",
-        "dims": ("n_lines", "n_for", "n_fov"),
-        "data_type": "int32",
-        "rand_min": -2147483647,
-        "rand_max": 2147483647,
-        "attribs": {
-            "valid_min": -1843200000,
-            "valid_max": 1843200000,
-            "scale_factor": 9.765625e-8,
-            "add_offset": 0.0,
-            "missing_value": -2147483648,
-        },
-    },
-    {
-        "key": "data/geolocation_information/sounder_pixel_sun_zenith",
-        "dims": ("n_lines", "n_for", "n_fov"),
-        "data_type": "int32",
-        "rand_min": -2147483647,
-        "rand_max": 2147483647,
-        "attribs": {
-            "valid_min": -1800000000,
-            "valid_max": 1800000000,
-            "scale_factor": 5.0e-8,
-            "add_offset": 90.0,
-            "missing_value": -2147483648,
-        },
-    },
-    {
-        "key": "data/geolocation_information/sounder_pixel_zenith",
-        "dims": ("n_lines", "n_for", "n_fov"),
-        "data_type": "int32",
-        "rand_min": -2147483647,
-        "rand_max": 2147483647,
-        "attribs": {
-            "valid_min": -1800000000,
-            "valid_max": 1800000000,
-            "scale_factor": 2.5e-8,
-            "add_offset": 45.0,
-            "missing_value": -2147483648,
-        },
-    },
-    {
-        "key": "data/geolocation_information/sounder_pixel_azimuth",
-        "dims": ("n_lines", "n_for", "n_fov"),
-        "data_type": "int32",
-        "rand_min": -2147483647,
-        "rand_max": 2147483647,
-        "attribs": {
-            "valid_min": -1843200000,
-            "valid_max": 1843200000,
-            "scale_factor": 9.765625e-8,
-            "add_offset": 0.0,
-            "missing_value": -2147483648,
+        "group": "data/statistical_retrieval",
+        "attrs": ["unit", "valid_min", "valid_max", "missing_value"],
+        "variables": {
+            "air_temperature": [d_lff, "float32", ("K", 100.0, 400.0, 3.4e38)],
+            "atmosphere_mass_content_of_water": [
+                d_lff,
+                "float32",
+                ("kg.m-2", 0, 300, 3.4e38),
+            ],
+            "qi_air_temperature": [d_lff, "float32", ("", 0, 25, 3.4e38)],
+            "qi_speciﬁc_humidity": [d_lff, "float32", ("", 0, 25, 3.4e38)],
+            "speciﬁc_humidity": [d_lff, "float32", ("kg/kg", 0, 1, 3.4e38)],
+            "surface_air_temperature": [d_lff, "float32", ("K", 100, 400, 3.4e38)],
+            "surface_speciﬁc_humidity": [d_lff, "float32", ("K", 100, 400, 3.4e38)],
         },
     },
 ]
@@ -143,8 +114,6 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
         # Create a lazy dask array with random int32 values
         dtype = desc.get("data_type", "int32")
-        rand_min = desc.get("rand_min", 0)
-        rand_max = desc.get("rand_max", 100)
         dims = desc["dims"]
         key = desc["key"]
 
@@ -152,20 +121,29 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
         # Define the chunk size for dask array
         chunks = [10] * len(dims)
+        attribs = desc["attribs"]
 
         if dtype == "int32":
+            rand_min = -2147483647
+            rand_max = 2147483647
             dask_array = da.random.randint(
                 rand_min, rand_max, size=shape, chunks=chunks, dtype=np.int32
             )
-        elif dtype == "float64":
+        elif dtype == "float64" or dtype == "float32":
             dask_array = da.random.random(shape, chunks=chunks)
+
+            if dtype == "float32":
+                dask_array = dask_array.astype(np.float32)
+
+            vmin = attribs["valid_min"]
+            vmax = attribs["valid_max"]
+            rand_min = vmin - (vmax - vmin) * 0.1
+            rand_max = vmax + (vmax - vmin) * 0.1
 
             # Scale and shift to the desired range [min_val, max_val]
             dask_array = dask_array * (rand_max - rand_min) + rand_min
         else:
             raise ValueError(f"Unsupported data type: {dtype}")
-
-        attribs = desc.get("attribs", {})
 
         if "missing_value" in attribs:
             # Force setting a few elements to this missing value (but still lazily with
@@ -217,8 +195,26 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         # Note: below we use the full range of int32 to generate the random
         # values, we expect the handler to "fix" out of range values replacing
         # them with NaNs.
-        for desc in DATASET_DESCS:
-            self.add_rand_data(desc)
+        for grp_desc in DATA_DESC:
+            # get the group prefix:
+            prefix = grp_desc["group"]
+            anames = grp_desc["attrs"]
+            for vname, vdesc in grp_desc["variables"].items():
+                # For each variable we create a dataset descriptor:
+                attribs = {}
+                for idx, val in enumerate(vdesc[2]):
+                    # AEnsure we do not inject "None" attribute values:
+                    if val is not None:
+                        attribs[anames[idx]] = val
+
+                desc = {
+                    "key": f"{prefix}/{vname}",
+                    "dims": vdesc[0],
+                    "data_type": vdesc[1],
+                    "attribs": attribs,
+                }
+
+                self.add_rand_data(desc)
 
         return self.content
 
