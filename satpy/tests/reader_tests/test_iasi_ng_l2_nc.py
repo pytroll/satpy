@@ -321,13 +321,25 @@ class TestIASINGL2NCReader:
 
         dnames = twv_scene.available_dataset_names()
 
-        assert "onboard_utc" in dnames
-        assert "latitude" in dnames
-        assert "longitude" in dnames
-        assert "azimuth" in dnames
-        assert "zenith" in dnames
-        assert "sun_azimuth" in dnames
-        assert "sun_zenith" in dnames
+        expected_names = [
+            "onboard_utc",
+            "latitude",
+            "longitude",
+            "azimuth",
+            "zenith",
+            "sun_azimuth",
+            "sun_zenith",
+            "air_temperature",
+            "atmosphere_mass_content_of_water",
+            "qi_air_temperature",
+            "qi_specific_humidity",
+            "specific_humidity",
+            "surface_air_temperature",
+            "surface_specific_humidity",
+        ]
+
+        for dname in expected_names:
+            assert dname in dnames
 
     def test_latitude_dataset(self, twv_scene):
         """Test loading the latitude dataset"""
