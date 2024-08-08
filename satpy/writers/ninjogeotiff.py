@@ -213,7 +213,11 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         """Get scale offset tags (tuple or dict)."""
         if self._check_include_scale_offset(image, unit):
             # image.mode cannot be trusted https://github.com/pytroll/satpy/issues/2300
-            if image.data.attrs["mode"][0] == "P":
+            try:
+                mod = image.data.attrs["mode"]
+            except KeyError:
+                mod = image.mode
+            if mod == "P":
                 return dict(zip(self.scale_offset_tag_names, (1, 0)))
             return self.scale_offset_tag_names
         return None  # explicit is better than implicit
@@ -245,7 +249,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     def _check_include_scale_offset(self, image, unit):
         """Check if scale-offset tags should be included."""
-        if image.data.attrs["mode"][0] in "LP" and unit.lower() not in ("n/a", "1", ""):
+        if image.mode[0] in "LP" and unit.lower() not in ("n/a", "1", ""):
             return True
         return False
 
@@ -387,17 +391,16 @@ class NinJoTagGenerator:
 
     def get_color_depth(self):
         """Return the color depth."""
-        # image.mode cannot be trusted https://github.com/pytroll/satpy/issues/2300
-        if self.image.data.attrs["mode"] in ("L", "P"):
+        if self.image.mode in ("L", "P"):
             return 8
-        if self.image.data.attrs["mode"] in ("LA", "PA"):
+        if self.image.mode in ("LA", "PA"):
             return 16
-        if self.image.data.attrs["mode"] == "RGB":
+        if self.image.mode == "RGB":
             return 24
-        if self.image.data.attrs["mode"] == "RGBA":
+        if self.image.mode == "RGBA":
             return 32
         raise ValueError(
-                f"Unsupported image mode: {self.image.data.attrs['mode']:s}")
+                f"Unsupported image mode: {self.image.mode:s}")
 
     # Set unix epoch here explicitly, because datetime.timestamp() is
     # apparently not supported on Windows.
