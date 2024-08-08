@@ -20,6 +20,7 @@
 import datetime
 import logging
 import os
+from unittest.mock import Mock
 
 import dask.array as da
 import numpy as np
@@ -247,6 +248,12 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
             "start_time": datetime.datetime(2027, 8, 2, 8, 20),
             "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
+    # simulate an enhancement history such as palettize may add
+    arr.attrs["enhancement_history"] = [
+            {"scale": np.float64(0.01),
+            "offset": np.float64(0.0),
+            "colormap": Mock()}]
+
     return to_image(arr)
 
 
