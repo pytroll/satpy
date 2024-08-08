@@ -16,9 +16,18 @@ file_types:
         "{pflag}_{country}-{organization}-{location},{data_designator},{spacecraft}-{instrument}-{processing_level}-{product_type}_{oflag}_{originator}_{generation_time}_{mission_type}_{environment}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text1}_{free_text2}_{free_text3}_{extension}.nc",
       ]
     datasets:
+      onboard_utc:
+        location: data/geolocation_information/onboard_utc
+        seconds_since_epoch: "2020-01-01"
       latitude:
         location: data/geolocation_information/sounder_pixel_latitude
-        data_type: float64
       longitude:
         location: data/geolocation_information/sounder_pixel_longitude
-        data_type: float64
+      azimuth:
+        location: data/geolocation_information/sounder_pixel_azimuth
+      zenith:
+        location: data/geolocation_information/sounder_pixel_zenith
+      sun_azimuth:
+        location: data/geolocation_information/sounder_pixel_sun_azimuth
+      sun_zenith:
+        location: data/geolocation_information/sounder_pixel_sun_zenith

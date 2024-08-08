@@ -33,6 +33,18 @@ logger = logging.getLogger(__name__)
 
 DATASET_DESCS = [
     {
+        "key": "data/geolocation_information/onboard_utc",
+        "dims": ("n_lines", "n_for"),
+        "data_type": "float64",
+        "rand_min": -1100000000.0,
+        "rand_max": 1100000000.0,
+        "attribs": {
+            "valid_min": -1000000000.0,
+            "valid_max": 1000000000.0,
+            "missing_value": -9000000000.0,
+        },
+    },
+    {
         "key": "data/geolocation_information/sounder_pixel_latitude",
         "dims": ("n_lines", "n_for", "n_fov"),
         "data_type": "int32",
@@ -60,13 +72,69 @@ DATASET_DESCS = [
             "missing_value": -2147483648,
         },
     },
+    {
+        "key": "data/geolocation_information/sounder_pixel_sun_azimuth",
+        "dims": ("n_lines", "n_for", "n_fov"),
+        "data_type": "int32",
+        "rand_min": -2147483647,
+        "rand_max": 2147483647,
+        "attribs": {
+            "valid_min": -1843200000,
+            "valid_max": 1843200000,
+            "scale_factor": 9.765625e-8,
+            "add_offset": 0.0,
+            "missing_value": -2147483648,
+        },
+    },
+    {
+        "key": "data/geolocation_information/sounder_pixel_sun_zenith",
+        "dims": ("n_lines", "n_for", "n_fov"),
+        "data_type": "int32",
+        "rand_min": -2147483647,
+        "rand_max": 2147483647,
+        "attribs": {
+            "valid_min": -1800000000,
+            "valid_max": 1800000000,
+            "scale_factor": 5.0e-8,
+            "add_offset": 90.0,
+            "missing_value": -2147483648,
+        },
+    },
+    {
+        "key": "data/geolocation_information/sounder_pixel_zenith",
+        "dims": ("n_lines", "n_for", "n_fov"),
+        "data_type": "int32",
+        "rand_min": -2147483647,
+        "rand_max": 2147483647,
+        "attribs": {
+            "valid_min": -1800000000,
+            "valid_max": 1800000000,
+            "scale_factor": 2.5e-8,
+            "add_offset": 45.0,
+            "missing_value": -2147483648,
+        },
+    },
+    {
+        "key": "data/geolocation_information/sounder_pixel_azimuth",
+        "dims": ("n_lines", "n_for", "n_fov"),
+        "data_type": "int32",
+        "rand_min": -2147483647,
+        "rand_max": 2147483647,
+        "attribs": {
+            "valid_min": -1843200000,
+            "valid_max": 1843200000,
+            "scale_factor": 9.765625e-8,
+            "add_offset": 0.0,
+            "missing_value": -2147483648,
+        },
+    },
 ]
 
 
 class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
     """Fake base class for IASI NG handler"""
 
-    chunks = (10, 10, 10)  # Define the chunk size for dask array
+    chunks = (10, 10, 10)
 
     def add_rand_data(self, desc):
         """
@@ -82,10 +150,18 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
         shape = [self.dims[k] for k in dims]
 
+        # Define the chunk size for dask array
+        chunks = [10] * len(dims)
+
         if dtype == "int32":
             dask_array = da.random.randint(
-                rand_min, rand_max, size=shape, chunks=self.chunks, dtype="int32"
+                rand_min, rand_max, size=shape, chunks=chunks, dtype=np.int32
             )
+        elif dtype == "float64":
+            dask_array = da.random.random(shape, chunks=chunks)
+
+            # Scale and shift to the desired range [min_val, max_val]
+            dask_array = dask_array * (rand_max - rand_min) + rand_min
         else:
             raise ValueError(f"Unsupported data type: {dtype}")
 
@@ -249,8 +325,13 @@ class TestIASINGL2NCReader:
 
         dnames = twv_scene.available_dataset_names()
 
+        assert "onboard_utc" in dnames
         assert "latitude" in dnames
         assert "longitude" in dnames
+        assert "azimuth" in dnames
+        assert "zenith" in dnames
+        assert "sun_azimuth" in dnames
+        assert "sun_zenith" in dnames
 
     def test_latitude_dataset(self, twv_scene):
         """Test loading the latitude dataset"""
@@ -293,3 +374,17 @@ class TestIASINGL2NCReader:
 
         assert vmin >= -180.0
         assert vmax <= 180.0
+
+    def test_onboard_utc_dataset(self, twv_scene):
+        """Test loading the onboard_utc dataset"""
+
+        twv_scene.load(["onboard_utc"])
+        dset = twv_scene["onboard_utc"]
+
+        # Should be 2D now:
+        assert len(dset.dims) == 2
+        assert dset.dims[0] == "x"
+        assert dset.dims[1] == "y"
+
+        # Should have been converted to datetime:
+        assert dset.dtype == np.dtype("datetime64[ns]")

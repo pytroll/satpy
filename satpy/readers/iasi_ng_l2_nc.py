@@ -26,8 +26,11 @@ level:
 
 import logging
 
+import dask.array as da
 import netCDF4
 import numpy as np
+import pandas as pd
+import xarray as xr
 
 from .netcdf_utils import NetCDF4FsspecFileHandler
 
@@ -146,10 +149,13 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if ds_info.get("apply_fill_value", True) is not True:
             return data_array
 
-        dtype = ds_info.get("data_type", "float32")
+        dtype = ds_info.get("data_type", "float64")
 
         if data_array.dtype == np.int32:
             data_array = data_array.astype(dtype)
+        elif data_array.dtype == np.float64:
+            if dtype != "float64":
+                data_array = data_array.astype(dtype)
         else:
             raise ValueError(f"Unexpected raw dataarray data type: {data_array.dtype}")
 
@@ -220,11 +226,33 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if ds_info.get("apply_reshaping", True) is not True:
             return data_array
 
+        if len(data_array.dims) > 2:
+            data_array = data_array.stack(y=(data_array.dims[1:]))
+
         if data_array.dims[0] != "x":
             data_array = data_array.rename({data_array.dims[0]: "x"})
 
-        if len(data_array.dims) > 2:
-            return data_array.stack(y=(data_array.dims[1:]))
+        if data_array.dims[1] != "y":
+            data_array = data_array.rename({data_array.dims[1]: "y"})
+
+        return data_array
+
+    def apply_to_datetime(self, data_array, ds_info):
+        """Convert the data to datetime values."""
+
+        if "seconds_since_epoch" not in ds_info:
+            return data_array
+
+        epoch = ds_info["seconds_since_epoch"]
+        # Note: below could convert the resulting data to another type
+        # with .astype("datetime64[us]") for instance
+        data_array = xr.DataArray(
+            data=da.from_array(
+                pd.to_datetime(epoch) + data_array.astype("timedelta64[s]")
+            ),
+            dims=data_array.dims,
+            attrs=data_array.attrs,
+        )
 
         return data_array
 
@@ -244,6 +272,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         arr = self.apply_fill_value(arr, ds_info)
         arr = self.apply_rescaling(arr, ds_info)
         arr = self.apply_reshaping(arr, ds_info)
+        arr = self.apply_to_datetime(arr, ds_info)
 
         return arr
 
