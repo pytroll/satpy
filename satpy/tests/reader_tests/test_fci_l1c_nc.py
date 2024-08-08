@@ -1082,12 +1082,17 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                              [("vis_06", "3km", (1, 10,
                                                  datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
                                                  datetime.datetime.strptime("2024-01-09 08:10:00",
-                                                                            "%Y-%m-%d %H:%M:%S")))])
+                                                                            "%Y-%m-%d %H:%M:%S"))),
+                              ("vis_06", "1km", (1, 10,
+                                                 datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
+                                                 datetime.datetime.strptime("2024-01-09 08:10:00",
+                                                                            "%Y-%m-%d %H:%M:%S")))
+                              ])
     def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                                    channel, compare_tuples):
+                                                    channel, resolution, compare_tuples):
         """Test the rc_period_min value for each configuration."""
         fh_param = FakeFCIFileHandlerAF_fixture
-        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}", fh_param,
+        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}_{resolution}", fh_param,
                                                           reader_configs, compare_tuples)
 
     @pytest.mark.parametrize(("fh_param"),
@@ -1102,12 +1107,13 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         """Test the computation of the sun_earth_parameter."""
         self._compare_sun_earth_distance(fh_param["filetype"], fh_param, reader_configs)
 
-    @pytest.mark.parametrize(("channel", "resolution"), [("vis_06", "3km")])
+    @pytest.mark.parametrize(("channel", "resolution"), [("vis_06", "3km"),
+                                                         ("vis_06", "1km")])
     def test_compute_earth_sun_parameter_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                            channel):
+                                            channel, resolution):
         """Test the rc_period_min value for each configuration."""
         fh_param = FakeFCIFileHandlerAF_fixture
-        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}", fh_param, reader_configs)
+        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}_{resolution}", fh_param, reader_configs)
 
     @pytest.mark.parametrize(("fh_param"), [(lazy_fixture("FakeFCIFileHandlerFDHSIError_fixture"))])
     def test_rc_period_min_error(self, reader_configs, fh_param):
