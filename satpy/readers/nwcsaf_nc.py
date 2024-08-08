@@ -205,8 +205,8 @@ class NcNWCSAF(BaseFileHandler):
         """
         variable = remove_empties(variable)
 
-        scale = variable.attrs.get("scale_factor", np.array(1))
-        offset = variable.attrs.get("add_offset", np.array(0))
+        scale = variable.attrs.get("scale_factor", np.array(1, dtype=variable.dtype))
+        offset = variable.attrs.get("add_offset", np.array(0, dtype=variable.dtype))
         if "_FillValue" in variable.attrs:
             variable.attrs["scaled_FillValue"] = variable.attrs["_FillValue"] * scale + offset
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
