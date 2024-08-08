@@ -146,14 +146,19 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if ds_info.get("apply_fill_value", True) is not True:
             return data_array
 
+        dtype = ds_info.get("data_type", "float32")
+
         if data_array.dtype == np.int32:
-            data_array = data_array.astype(np.float32)
+            data_array = data_array.astype(dtype)
         else:
             raise ValueError(f"Unexpected raw dataarray data type: {data_array.dtype}")
 
-        attribs = data_array.attrs
+        if dtype not in ["float32", "float64"]:
+            # We won't be able to use NaN in the other cases:
+            return data_array
 
-        nan_val = np.float32(np.nan)
+        attribs = data_array.attrs
+        nan_val = np.nan if dtype == "float64" else np.float32(np.nan)
 
         # Apply the min/max valid range:
         if "valid_min" in attribs:

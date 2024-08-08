@@ -262,8 +262,8 @@ class TestIASINGL2NCReader:
         assert dset.dims[0] == "x"
         assert dset.dims[1] == "y"
 
-        # Should have been converted to float32:
-        assert dset.dtype == np.float32
+        # Should have been converted to float64:
+        assert dset.dtype == np.float64
 
         # All valid values should be in range [-90.0,90.0]
         vmin = np.nanmin(dset)
@@ -283,8 +283,8 @@ class TestIASINGL2NCReader:
         assert dset.dims[0] == "x"
         assert dset.dims[1] == "y"
 
-        # Should have been converted to float32:
-        assert dset.dtype == np.float32
+        # Should have been converted to float64:
+        assert dset.dtype == np.float64
 
         # All valid values should be in range [-90.0,90.0]
         vmin = np.nanmin(dset)

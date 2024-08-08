@@ -18,5 +18,7 @@ file_types:
     datasets:
       latitude:
         location: data/geolocation_information/sounder_pixel_latitude
+        data_type: float64
       longitude:
         location: data/geolocation_information/sounder_pixel_longitude
+        data_type: float64
