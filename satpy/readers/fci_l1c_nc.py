@@ -20,9 +20,9 @@
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Level-1c data.  FCI will fly
+Imager (FCI) Level-1c data.  FCI flies
 on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
-scheduled to be launched on the 13th of December 2022.
+launched on the 13th of December 2022.
 For more information about FCI, see `EUMETSAT`_.
 
 For simulated test data to be used with this reader, see `test data releases`_.
@@ -110,7 +110,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 
 .. _AF PUG: https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
-.. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
+.. _EUMETSAT: https://user.eumetsat.int/resources/user-guides/mtg-fci-level-1c-data-guide  # noqa: E501
 .. _test data releases: https://www.eumetsat.int/mtg-test-data
 """
 
@@ -219,12 +219,18 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         logger.debug("End: {}".format(self.end_time))
 
         if self.filename_info["coverage"] == "Q4":
-            # change number of chunk so that padding gets activated correctly on missing chunks
+            # change the chunk number so that padding gets activated correctly for Q4, which corresponds to the upper
+            # quarter of the disc
             self.filename_info["count_in_repeat_cycle"] += 28
+
+        if self.filename_info["coverage"] == "AF":
+            # change number of chunk from 0 to 1 so that the padding is not activated (chunk 1 is present and only 1
+            # chunk is expected), as the African dissemination products come in one file per full disk.
+            self.filename_info["count_in_repeat_cycle"] = 1
 
         if self.filename_info["facility_or_tool"] == "IQTI":
             self.is_iqt = True
-        else :
+        else:
             self.is_iqt = False
 
         self._cache = {}
@@ -234,7 +240,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         """Get nominal repeat cycle duration."""
         if "Q4" in self.filename_info["coverage"]:
             return 2.5
-        elif self.filename_info["coverage"] in ["FD","AF"]:
+        elif self.filename_info["coverage"] in ["FD", "AF"]:
             return 10
         else:
             raise NotImplementedError(f"coverage for {self.filename_info['coverage']}"
@@ -245,7 +251,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         """Get nominal start time."""
         rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
         return rc_date + dt.timedelta(
-            minutes=(self.filename_info["repeat_cycle_in_day"]-1)*self.rc_period_min)
+            minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
 
     @property
     def nominal_end_time(self):
@@ -297,21 +303,21 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
         ir_105_measured_path = self.get_channel_measured_group_path("ir_105")
         segment_position_info = {
-             HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
-                 "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
-                 "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
-                 "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
-                 self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
-                 "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
-             },
-             LOW_RES_GRID_INFO[file_type]["grid_type"]: {
-                 "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
-                 "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
-                 "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
-                 self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
-                 "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
-             }
-         }
+            HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
+                "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
+                "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
+                "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
+                                  self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
+                "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
+            },
+            LOW_RES_GRID_INFO[file_type]["grid_type"]: {
+                "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
+                "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
+                "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
+                                  self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
+                "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
+            }
+        }
         return segment_position_info
 
     def get_dataset(self, key, info=None):
@@ -404,7 +410,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             "nominal_end_time": self.nominal_end_time,
             "observation_start_time": self.observation_start_time,
             "observation_end_time": self.observation_end_time,
-            }
+        }
         res.attrs.update(self.orbital_param)
 
         return res
@@ -412,39 +418,38 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def get_iqt_parameters_lon_lat_alt(self):
         """Compute the orbital parameters for IQT data.
 
-        Compute satellite_actual_longitude,satellite_actual_latitude,satellite_actual_altitude.add_constant.
+        Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
         actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
                                                           "longitude_of_projection_origin"))
         actual_subsat_lat = 0.0
         actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
-        logger.info("IQT data the following parameter is hardcoded "
-                    f" satellite_actual_latitude = {actual_subsat_lat} ,"
-                    " These parameters are taken from the projection's dictionary"
-                    f"satellite_actual_longitude = {actual_subsat_lon} ,"
-                    f"satellite_sat_alt = {actual_sat_alt}")
-        return actual_subsat_lon,actual_subsat_lat,actual_sat_alt
+        logger.info("For IQT data, the following parameter is hardcoded:"
+                    f" satellite_actual_latitude = {actual_subsat_lat}. "
+                    "The following parameters are taken from the projection dictionary: "
+                    f"satellite_actual_longitude = {actual_subsat_lon}, "
+                    f"satellite_actual_altitude = {actual_sat_alt}")
+        return actual_subsat_lon, actual_subsat_lat, actual_sat_alt
 
     def get_parameters_lon_lat_alt(self):
         """Compute the orbital parameters.
 
-        Compute satellite_actual_longitude,satellite_actual_latitude,satellite_actual_altitude.
+        Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
         actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
-        return actual_subsat_lon,actual_subsat_lat,actual_sat_alt
-
+        return actual_subsat_lon, actual_subsat_lat, actual_sat_alt
 
     @cached_property
     def orbital_param(self):
         """Compute the orbital parameters for the current segment."""
         if self.is_iqt:
-           actual_subsat_lon,actual_subsat_lat,actual_sat_alt = self.get_iqt_parameters_lon_lat_alt()
+            actual_subsat_lon, actual_subsat_lat, actual_sat_alt = self.get_iqt_parameters_lon_lat_alt()
         else:
-            actual_subsat_lon,actual_subsat_lat,actual_sat_alt = self.get_parameters_lon_lat_alt()
-        # The "try" is a temporary part of the code as long as the AF data are not modified
-        try :
+            actual_subsat_lon, actual_subsat_lat, actual_sat_alt = self.get_parameters_lon_lat_alt()
+        # The "try" is a temporary part of the code as long as the AF data are not fixed
+        try:
             nominal_and_proj_subsat_lon = float(
                 self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
         except ValueError:
@@ -669,7 +674,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         measured = self.get_channel_measured_group_path(key["name"])
         data.attrs.update({"radiance_unit_conversion_coefficient":
-                          self.get_and_cache_npxr(measured + "/radiance_unit_conversion_coefficient")})
+                               self.get_and_cache_npxr(measured + "/radiance_unit_conversion_coefficient")})
         return data
 
     def calibrate_rad_to_bt(self, radiance, key):
@@ -720,10 +725,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         return res
 
     @cached_property
-    def _compute_sun_earth_distance(self) -> float :
+    def _compute_sun_earth_distance(self) -> float:
         """Compute the sun_earth_distance."""
         if self.is_iqt:
-            middle_time_diff = (self.observation_end_time-self.observation_start_time)/2
+            middle_time_diff = (self.observation_end_time - self.observation_start_time) / 2
             utc_date = self.observation_start_time + middle_time_diff
             sun_earth_distance = sun_earth_distance_correction(utc_date)
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
@@ -731,6 +736,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = np.nanmean(
                 self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
         return sun_earth_distance
+
 
 def _ensure_dataarray(arr):
     if not isinstance(arr, xr.DataArray):
