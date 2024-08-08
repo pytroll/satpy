@@ -17,6 +17,7 @@ file_types:
       ]
 
     onboard_utc_epoch: "2020-01-01"
+    onboard_utc_broadcast: true
 
     datasets:
       - group: data/diagnostics

@@ -408,7 +408,7 @@ class TestIASINGL2NCReader:
     def test_onboard_utc_dataset(self, twv_scene):
         """Test loading the onboard_utc dataset"""
 
-        twv_scene.load(["onboard_utc"])
+        twv_scene.load(["onboard_utc", "latitude"])
         dset = twv_scene["onboard_utc"]
 
         # Should be 2D now:
@@ -418,6 +418,11 @@ class TestIASINGL2NCReader:
 
         # Should have been converted to datetime:
         assert dset.dtype == np.dtype("datetime64[ns]")
+
+        # Should also have the same size as "lattitude" for instance:
+        lat = twv_scene["latitude"]
+
+        assert lat.shape == dset.shape
 
     def test_nbr_iterations_dataset(self, twv_scene):
         """Test loading the nbr_iterations dataset"""

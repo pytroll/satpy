@@ -285,6 +285,12 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             attrs=data_array.attrs,
         )
 
+        # print(f"file_content keys: {self.file_content.keys()}")
+        lat_shape = self["data/geolocation_information/sounder_pixel_latitude"].shape
+
+        # Apply "repeat" with the last dimension size:
+        data_array = xr.concat([data_array] * lat_shape[2], dim=data_array.dims[-1])
+
         return data_array
 
     def get_transformed_dataset(self, ds_info):
