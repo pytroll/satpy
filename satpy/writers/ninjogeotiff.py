@@ -206,10 +206,17 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overviews_minsize=overviews_minsize,
             overviews_resampling=overviews_resampling,
             tags={**(tags or {}), **ninjo_tags},
-            scale_offset_tags=(self.scale_offset_tag_names
-                               if self._check_include_scale_offset(image, PhysicUnit)
-                               else None),
+            scale_offset_tags=self._get_scale_offset_tags(image, PhysicUnit),
             **gdal_opts)
+
+    def _get_scale_offset_tags(self, image, unit):
+        """Get scale offset tags (tuple or dict)."""
+        if self._check_include_scale_offset(image, unit):
+            # image.mode cannot be trusted https://github.com/pytroll/satpy/issues/2300
+            if image.data.attrs["mode"][0] == "P":
+                return dict(zip(self.scale_offset_tag_names, (1, 0)))
+            return self.scale_offset_tag_names
+        return None  # explicit is better than implicit
 
     def _fix_units(self, image, quantity, unit):
         """Adapt units between °C and K.
@@ -238,7 +245,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     def _check_include_scale_offset(self, image, unit):
         """Check if scale-offset tags should be included."""
-        if image.mode[0] in "LP" and unit.lower() not in ("n/a", "1", ""):
+        if image.data.attrs["mode"][0] in "LP" and unit.lower() not in ("n/a", "1", ""):
             return True
         return False
 
@@ -380,16 +387,17 @@ class NinJoTagGenerator:
 
     def get_color_depth(self):
         """Return the color depth."""
-        if self.image.mode in ("L", "P"):
+        # image.mode cannot be trusted https://github.com/pytroll/satpy/issues/2300
+        if self.image.data.attrs["mode"] in ("L", "P"):
             return 8
-        if self.image.mode in ("LA", "PA"):
+        if self.image.data.attrs["mode"] in ("LA", "PA"):
             return 16
-        if self.image.mode == "RGB":
+        if self.image.data.attrs["mode"] == "RGB":
             return 24
-        if self.image.mode == "RGBA":
+        if self.image.data.attrs["mode"] == "RGBA":
             return 32
         raise ValueError(
-                f"Unsupported image mode: {self.image.mode:s}")
+                f"Unsupported image mode: {self.image.data.attrs['mode']:s}")
 
     # Set unix epoch here explicitly, because datetime.timestamp() is
     # apparently not supported on Windows.
