@@ -119,65 +119,73 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         self.dataset_infos[ds_name] = ds_infos
 
+    def process_dimension(self, key, value):
+        """Process a dimension entry from the file_content."""
+        dim_name = key.split("/")[-1]
+        # print(f"Found dimension: {dim_name}={val}")
+        if dim_name in self.dimensions_desc and self.dimensions_desc[dim_name] != value:
+            # This might happen if we have the same dim name from different groups:
+            raise ValueError(f"Detected duplicated dim name: {dim_name}")
+
+        self.dimensions_desc[dim_name] = value
+
+    def process_attribute(self, key, value):
+        """Process a attribute entry from the file_content."""
+        var_path, aname = key.split("/attr/")
+        # print(f"Found attrib for: {var_path}: {aname}")
+
+        if var_path not in self.variable_desc:
+            # maybe this variable is ignored, or this is a group attr.
+            return
+
+        self.variable_desc[var_path]["attribs"][aname] = value
+
+    def process_variable(self, key):
+        """Process a variable entry from the file_content."""
+        shape = self.file_content[f"{key}/shape"]
+        # print(f"Found variable: {key}")
+        if np.prod(shape) <= 1:
+            # print(f"Ignoring scalar variable {key}")
+            return
+
+        # Check if this variable should be ignored:
+        if any(p.search(key) is not None for p in self.ignored_patterns):
+            # print(f"Ignoring variable {key}")
+            return
+
+        # Prepare a description for this variable:
+        prefix, var_name = key.rsplit("/", 1)
+        dims = self.file_content[f"{key}/dimensions"]
+        dtype = self.file_content[f"{key}/dtype"]
+
+        desc = {
+            "location": key,
+            "prefix": prefix,
+            "var_name": var_name,
+            "shape": shape,
+            "dtype": f"{dtype}",
+            "dims": dims,
+            "attribs": {},
+        }
+
+        self.variable_desc[key] = desc
+
     def parse_file_content(self):
         """Parse the file_content to discover the available datasets and dimensions."""
         for key, val in self.file_content.items():
             # print(f"Found key: {key}")
 
             if "/dimension/" in key:
-                dim_name = key.split("/")[-1]
-                # print(f"Found dimension: {dim_name}={val}")
-                if (
-                    dim_name in self.dimensions_desc
-                    and self.dimensions_desc[dim_name] != val
-                ):
-                    # This might happen if we have the same dim name from different groups:
-                    raise ValueError(f"Detected duplicated dim name: {dim_name}")
-
-                self.dimensions_desc[dim_name] = val
+                self.process_dimension(key, val)
                 continue
 
             if "/attr/" in key:
-                var_path, aname = key.split("/attr/")
-                # print(f"Found attrib for: {var_path}: {aname}")
-
-                if var_path not in self.variable_desc:
-                    # maybe this variable is ignored, or this is a group attr.
-                    continue
-
-                self.variable_desc[var_path]["attribs"][aname] = val
+                self.process_attribute(key, val)
                 continue
 
             # if isinstance(val, netCDF4.Variable):
             if f"{key}/shape" in self.file_content:
-                # print(f"Found variable: {key}")
-
-                shape = self.file_content[f"{key}/shape"]
-                if np.prod(shape) <= 1:
-                    # print(f"Ignoring scalar variable {key}")
-                    continue
-
-                # Check if this variable should be ignored:
-                if any(p.search(key) is not None for p in self.ignored_patterns):
-                    # print(f"Ignoring variable {key}")
-                    continue
-
-                # Prepare a description for this variable:
-                prefix, var_name = key.rsplit("/", 1)
-                dims = self.file_content[f"{key}/dimensions"]
-                dtype = self.file_content[f"{key}/dtype"]
-
-                desc = {
-                    "location": key,
-                    "prefix": prefix,
-                    "var_name": var_name,
-                    "shape": shape,
-                    "dtype": f"{dtype}",
-                    "dims": dims,
-                    "attribs": {},
-                }
-
-                self.variable_desc[key] = desc
+                self.process_variable(key)
                 continue
 
         # print(f"Found {len(self.variable_desc)} variables:")
