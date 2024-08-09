@@ -19,4 +19,6 @@ file_types:
     ignored_patterns:
       - /optimal_estimation/ # cf. eum respase2 task2 issue #4
 
-    onboard_utc_broadcast: true
+    # Define if we should broadcast the timestamps from
+    # dims (n_lines, n_for) to (n_lines, n_for, n_fov):
+    broadcast_timestamps: true

@@ -61,6 +61,10 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         # dataset aliases:
         self.dataset_aliases = self.filetype_info.get("dataset_aliases", {})
+
+        # broadcasts timestamps flag:
+        self.broadcast_timestamps = self.filetype_info.get("broadcast_timestamps", False)
+
         self.register_available_datasets()
 
     @property
@@ -179,9 +183,9 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
                 self.variable_desc[key] = desc
                 continue
 
-        print(f"Found {len(self.variable_desc)} variables:")
-        for vpath, desc in self.variable_desc.items():
-            print(f"{vpath}: {desc}")
+        # print(f"Found {len(self.variable_desc)} variables:")
+        # for vpath, desc in self.variable_desc.items():
+        #     print(f"{vpath}: {desc}")
 
     def register_available_datasets(self):
         """Register the available dataset in the current product file"""
@@ -203,13 +207,13 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
                 ds_name = self.dataset_aliases[vpath]
 
             unit = desc["attribs"].get("units", None)
-
             if unit is not None and unit.startswith("seconds since "):
                 # request conversion to datetime:
                 desc["seconds_since_epoch"] = unit.replace("seconds since ", "")
-                print(
-                    f"Converting {ds_name} in secs from epoch {desc['seconds_since_epoch']}"
-                )
+
+            if self.broadcast_timestamps and desc["var_name"] == "onboard_utc":
+                # Broadcast on the "n_fov" dimension:
+                desc["broadcast_on_dim"] = "n_fov"
 
             self.register_dataset(ds_name, desc)
 
@@ -245,11 +249,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def apply_fill_value(self, data_array, ds_info):
         """Apply the rescaling transform on a given array."""
 
-        # Check if we should apply:
-        if ds_info.get("apply_fill_value", True) is not True:
-            return data_array
-
-        dtype = ds_info.get("data_type", "auto")
+        dtype = ds_info.get("target_data_type", "auto")
         convert = False
         attribs = data_array.attrs
 
@@ -271,7 +271,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
                 dtype = "float32"
             convert = dtype != "float32"
         else:
-            raise ValueError(f"Unexpected raw dataarray data type: {data_array.dtype}")
+            raise ValueError(f"Unexpected raw array data type: {data_array.dtype}")
 
         if convert:
             data_array = data_array.astype(dtype)
@@ -303,15 +303,10 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         if missing_val is None:
             return data_array
 
-        return data_array.where(data_array != missing_val, nan_val)
+        return data_array.where(data_array != missing_val, other=nan_val)
 
-    def apply_rescaling(self, data_array, ds_info):
+    def apply_rescaling(self, data_array):
         """Apply the rescaling transform on a given array."""
-
-        # Here we should apply the rescaling except if it is explicitly
-        # requested not to rescale:
-        if ds_info.get("apply_rescaling", True) is not True:
-            return data_array
 
         # Check if we have the scaling elements:
         attribs = data_array.attrs
@@ -330,7 +325,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         return data_array
 
-    def apply_reshaping(self, data_array, ds_info):
+    def apply_reshaping(self, data_array):
         """Apply the reshaping transform on a given IASI-NG data array
 
         Those arrays may come as 3D array, in which case we collapse the
@@ -338,9 +333,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         In the process, we also rename the first axis to "x"
         """
-
-        if ds_info.get("apply_reshaping", True) is not True:
-            return data_array
 
         if len(data_array.dims) > 2:
             data_array = data_array.stack(y=(data_array.dims[1:]))
@@ -353,13 +345,11 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         return data_array
 
-    def apply_to_datetime(self, data_array, ds_info):
+    def convert_to_datetime(self, data_array, ds_info):
         """Convert the data to datetime values."""
 
-        if "seconds_since_epoch" not in ds_info:
-            return data_array
-
         epoch = ds_info["seconds_since_epoch"]
+
         # Note: below could convert the resulting data to another type
         # with .astype("datetime64[us]") for instance
         data_array = xr.DataArray(
@@ -368,11 +358,18 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             attrs=data_array.attrs,
         )
 
-        # print(f"file_content keys: {self.file_content.keys()}")
-        lat_shape = self["data/geolocation_information/sounder_pixel_latitude"].shape
+        return data_array
 
-        # Apply "repeat" with the last dimension size:
-        data_array = xr.concat([data_array] * lat_shape[2], dim=data_array.dims[-1])
+    def apply_broadcast(self, data_array, ds_info):
+        """Apply the broadcast of the data array"""
+
+        dim_name = ds_info["broadcast_on_dim"]
+        if dim_name not in self.dimensions_desc:
+            raise ValueError(f"Invalid dimension name {dim_name}")
+        rep_count = self.dimensions_desc[dim_name]
+
+        # Apply "a repeat operation" with the last dimension size:
+        data_array = xr.concat([data_array] * rep_count, dim=data_array.dims[-1])
 
         return data_array
 
@@ -390,9 +387,14 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         # Apply the transformations:
         arr = self.apply_fill_value(arr, ds_info)
-        arr = self.apply_rescaling(arr, ds_info)
-        arr = self.apply_reshaping(arr, ds_info)
-        arr = self.apply_to_datetime(arr, ds_info)
+        arr = self.apply_rescaling(arr)
+        arr = self.apply_reshaping(arr)
+
+        if "seconds_since_epoch" in ds_info:
+            arr = self.convert_to_datetime(arr, ds_info)
+
+        if "broadcast_on_dim" in ds_info:
+            arr = self.apply_broadcast(arr, ds_info)
 
         return arr
 

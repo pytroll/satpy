@@ -244,6 +244,10 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
                 self.add_rand_data(desc)
 
+        # We should also register the dimensions as we will need access to "n_fov" for instance:
+        for key, val in self.dims.items():
+            self.content[f"data/dimension/{key}"] = val
+
         return self.content
 
 
