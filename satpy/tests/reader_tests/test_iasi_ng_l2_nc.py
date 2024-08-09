@@ -216,6 +216,15 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         for aname, val in attribs.items():
             self.content[key + "/attr/" + aname] = val
 
+    def get_valid_attribs(self, anames, alist):
+        """Retrieve only the valid attributes from a list."""
+        attribs = {}
+        for idx, val in enumerate(alist):
+            # AEnsure we do not inject "None" attribute values:
+            if val is not None:
+                attribs[anames[idx]] = val
+        return attribs
+
     def get_test_content(self, _filename, _filename_info, _filetype_info):
         """Get the content of the test data.
 
@@ -238,11 +247,7 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
             anames = grp_desc["attrs"]
             for vname, vdesc in grp_desc["variables"].items():
                 # For each variable we create a dataset descriptor:
-                attribs = {}
-                for idx, val in enumerate(vdesc[2]):
-                    # AEnsure we do not inject "None" attribute values:
-                    if val is not None:
-                        attribs[anames[idx]] = val
+                attribs = self.get_valid_attribs(anames, vdesc[2])
 
                 desc = {
                     "key": f"{prefix}/{vname}",
