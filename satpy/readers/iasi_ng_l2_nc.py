@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-r"""IASI-NG L2 reader
+r"""IASI-NG L2 reader implementation.
 
 This reader supports reading all the products from the IASI-NG L2 processing
 level:
@@ -97,7 +97,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         Uses a per product type dataset registration mechanism.
         """
-
         # pass along existing datasets
         for is_avail, ds_info in configured_datasets or []:
             yield is_avail, ds_info
@@ -106,8 +105,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             yield True, ds_info
 
     def register_dataset(self, ds_name, desc):
-        """Register a simple dataset given its name and a desc dict"""
-
+        """Register a simple dataset given its name and a desc dict."""
         if ds_name in self.dataset_infos:
             raise ValueError(f"Dataset for {ds_name} already registered.")
 
@@ -122,8 +120,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         self.dataset_infos[ds_name] = ds_infos
 
     def parse_file_content(self):
-        """Parse the file_content to discover the available datasets and dimensions"""
-
+        """Parse the file_content to discover the available datasets and dimensions."""
         for key, val in self.file_content.items():
             # print(f"Found key: {key}")
 
@@ -188,8 +185,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         #     print(f"{vpath}: {desc}")
 
     def register_available_datasets(self):
-        """Register the available dataset in the current product file"""
-
+        """Register the available dataset in the current product file."""
         if self.dataset_infos is not None:
             # Datasets are already registered.
             return
@@ -218,16 +214,14 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             self.register_dataset(ds_name, desc)
 
     def get_dataset_infos(self, ds_name):
-        """Retrieve the dataset infos corresponding to one of the registered
-        datasets."""
+        """Retrieve the dataset infos corresponding to one of the registered datasets."""
         if ds_name not in self.dataset_infos:
             raise KeyError(f"No dataset registered for {ds_name}")
 
         return self.dataset_infos[ds_name]
 
     def variable_path_exists(self, var_path):
-        """Check if a given variable path is available in the underlying
-        netCDF file.
+        """Check if a given variable path is available in the underlying netCDF file.
 
         All we really need to do here is to access the file_content dictionary
         and check if we have a variable under that var_path key.
@@ -246,41 +240,34 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # Var path not in file_content:
         return False
 
-    def apply_fill_value(self, data_array, ds_info):
-        """Apply the rescaling transform on a given array."""
-
-        dtype = ds_info.get("target_data_type", "auto")
-        convert = False
+    def convert_data_type(self, data_array, dtype="auto"):
+        """Convert the data type if applicable."""
         attribs = data_array.attrs
 
-        if data_array.dtype == np.int32:
-            if dtype == "auto":
-                # Only convert to float if we have the scale factor or add_offset:
-                dtype = (
-                    "float64"
-                    if ("scale_factor" in attribs or "add_offset" in attribs)
-                    else "int32"
-                )
-            convert = dtype != "int32"
-        elif data_array.dtype == np.float64:
-            if dtype == "auto":
-                dtype = "float64"
-            convert = dtype != "float64"
-        elif data_array.dtype == np.float32:
-            if dtype == "auto":
-                dtype = "float32"
-            convert = dtype != "float32"
-        else:
-            raise ValueError(f"Unexpected raw array data type: {data_array.dtype}")
+        cur_dtype = np.dtype(data_array.dtype).name
 
-        if convert:
+        if dtype == "auto" and cur_dtype in ["float32", "float64"]:
+            dtype = cur_dtype
+
+        to_float = "scale_factor" in attribs or "add_offset" in attribs
+
+        if dtype == "auto":
+            dtype = "float64" if to_float else cur_dtype
+
+        if cur_dtype != dtype:
             data_array = data_array.astype(dtype)
 
+        return data_array
+
+    def apply_fill_value(self, data_array):
+        """Apply the rescaling transform on a given array."""
+        dtype = np.dtype(data_array.dtype).name
         if dtype not in ["float32", "float64"]:
             # We won't be able to use NaN in the other cases:
             return data_array
 
         nan_val = np.nan if dtype == "float64" else np.float32(np.nan)
+        attribs = data_array.attrs
 
         # Apply the min/max valid range:
         if "valid_min" in attribs:
@@ -307,7 +294,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def apply_rescaling(self, data_array):
         """Apply the rescaling transform on a given array."""
-
         # Check if we have the scaling elements:
         attribs = data_array.attrs
         if "scale_factor" in attribs or "add_offset" in attribs:
@@ -326,14 +312,13 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         return data_array
 
     def apply_reshaping(self, data_array):
-        """Apply the reshaping transform on a given IASI-NG data array
+        """Apply the reshaping transform on a given IASI-NG data array.
 
         Those arrays may come as 3D array, in which case we collapse the
         last 2 dimensions on a single axis (ie. the number of columns or "y")
 
         In the process, we also rename the first axis to "x"
         """
-
         if len(data_array.dims) > 2:
             data_array = data_array.stack(y=(data_array.dims[1:]))
 
@@ -347,7 +332,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def convert_to_datetime(self, data_array, ds_info):
         """Convert the data to datetime values."""
-
         epoch = ds_info["seconds_since_epoch"]
 
         # Note: below could convert the resulting data to another type
@@ -362,7 +346,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def apply_broadcast(self, data_array, ds_info):
         """Apply the broadcast of the data array."""
-
         dim_name = ds_info["broadcast_on_dim"]
         if dim_name not in self.dimensions_desc:
             raise ValueError(f"Invalid dimension name {dim_name}")
@@ -375,7 +358,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def get_transformed_dataset(self, ds_info):
         """Retrieve a dataset with all transformations applied on it."""
-
         # Extract location:
         vname = ds_info["location"]
 
@@ -386,7 +368,8 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         arr = self[vname]
 
         # Apply the transformations:
-        arr = self.apply_fill_value(arr, ds_info)
+        arr = self.convert_data_type(arr)
+        arr = self.apply_fill_value(arr)
         arr = self.apply_rescaling(arr)
         arr = self.apply_reshaping(arr)
 
@@ -400,7 +383,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def get_dataset(self, dataset_id, ds_info=None):
         """Get a dataset."""
-
         ds_name = dataset_id["name"]
 
         # In case this dataset name is not explicitly provided by this file

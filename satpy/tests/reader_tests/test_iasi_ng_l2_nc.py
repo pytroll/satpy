@@ -123,15 +123,12 @@ DATA_DESC = [
 
 
 class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
-    """Fake base class for IASI NG handler"""
+    """Fake base class for IASI NG handler."""
 
     chunks = (10, 10, 10)
 
     def add_rand_data(self, desc):
-        """
-        Build a random DataArray from a given description, and add it as content.
-        """
-
+        """Build a random DataArray from a given description."""
         # Create a lazy dask array with random int32 values
         dtype = desc.get("data_type", "int32")
         dims = desc["dims"]
@@ -182,10 +179,11 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
                 block_size = np.prod(block_shape)
                 block_num_to_replace = int(block_size * missing_ratio)
 
+                # Create a Generator instance
+                rng = np.random.default_rng()
+
                 # Generate unique random indices to set as missing values within this block
-                flat_indices = np.random.choice(
-                    block_size, block_num_to_replace, replace=False
-                )
+                flat_indices = rng.choice(block_size, block_num_to_replace, replace=False)
                 unraveled_indices = np.unravel_index(flat_indices, block_shape)
                 block[unraveled_indices] = missing_value
 
@@ -256,8 +254,12 @@ class TestIASINGL2NCReader:
 
     reader_name = "iasi_ng_l2_nc"
 
+    file_prefix = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02"
+    file_suffix = "C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
+    twv_filename = f"{file_prefix}-TWV_{file_suffix}"
+
     def setup_method(self):
-        """Setup the reade config"""
+        """Setup the reade config."""
         from satpy._config import config_search_paths
 
         self.reader_configs = config_search_paths(
@@ -277,20 +279,16 @@ class TestIASINGL2NCReader:
 
     @pytest.fixture()
     def twv_handler(self):
-        """Create a simple (and fake) default handler on a TWV product"""
-        filename = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
-        return self._create_file_handler(filename)
+        """Create a simple (and fake) default handler on a TWV product."""
+        return self._create_file_handler(self.twv_filename)
 
     @pytest.fixture()
     def twv_scene(self):
-        """Create a simple (and fake) satpy scene on a TWV product"""
-        filename = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
-        return Scene(filenames=[filename], reader=self.reader_name)
+        """Create a simple (and fake) satpy scene on a TWV product."""
+        return Scene(filenames=[self.twv_filename], reader=self.reader_name)
 
     def _create_file_handler(self, filename):
-        """Create an handler for the given file checking that it can
-        be parsed correctly"""
-
+        """Create an handler for the given file checking that it can be parsed correctly."""
         reader = load_reader(self.reader_configs)
 
         # Test if the file is recognized by the reader
@@ -315,42 +313,36 @@ class TestIASINGL2NCReader:
         return handlers[0]
 
     def test_filename_matching(self):
-        """Test filename matching against some random name"""
-
+        """Test filename matching against some random name."""
         # Example filename
-        filename = "W_fr-meteo-sat,GRAL,MTI1-IASING-2-l2p_C_EUMS_20220101120000_LEO_O_D_20220101115425_20220101115728_____W______.nc"
+        prefix = "W_fr-meteo-sat,GRAL,MTI1-IASING-2"
+        suffix = (
+            "C_EUMS_20220101120000_LEO_O_D_20220101115425_20220101115728_____W______.nc"
+        )
+        filename = f"{prefix}-l2p_{suffix}"
 
         self._create_file_handler(filename)
 
     def test_real_filename_matching(self):
-        """Test that we will match an actual IASI NG L2 product file name"""
-
+        """Test that we will match an actual IASI NG L2 product file name."""
         # Below we test the TWV,CLD,GHG and SFC products:
-        filenames = {
-            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-TWV_C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc",
-            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-CLD_C_EUMT_20170616120000_G_V_20070912094037_20070912094308_O_N____.nc",
-            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-GHG_C_EUMT_20170616120000_G_V_20070912090651_20070912090922_O_N____.nc",
-            "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02-SFC_C_EUMT_20170616120000_G_V_20070912100911_20070912101141_O_N____.nc",
-        }
+        ptypes = ["TWV", "CLD", "GHG", "SFC"]
+        filenames = [f"{self.file_prefix}-{ptype}_{self.file_suffix}" for ptype in ptypes]
 
         for filename in filenames:
             self._create_file_handler(filename)
 
     def test_sensing_times(self, twv_handler):
-        """Test that we read the sensing start/end times correctly
-        from filename"""
-
+        """Test that we read the sensing start/end times correctly from filename."""
         assert twv_handler.start_time == datetime(2007, 9, 12, 8, 43, 29)
         assert twv_handler.end_time == datetime(2007, 9, 12, 8, 46, 0)
 
     def test_sensor_names(self, twv_handler):
-        """Test that the handler reports iasi_ng as sensor"""
-
+        """Test that the handler reports iasi_ng as sensor."""
         assert twv_handler.sensor_names == {"iasi_ng"}
 
     def test_available_datasets(self, twv_scene):
-        """Test the list of available datasets in scene"""
-
+        """Test the list of available datasets in scene."""
         dnames = twv_scene.available_dataset_names()
 
         expected_names = [
@@ -374,8 +366,7 @@ class TestIASINGL2NCReader:
             assert dname in dnames
 
     def test_latitude_dataset(self, twv_scene):
-        """Test loading the latitude dataset"""
-
+        """Test loading the latitude dataset."""
         twv_scene.load(["sounder_pixel_latitude"])
         dset = twv_scene["sounder_pixel_latitude"]
 
@@ -395,8 +386,7 @@ class TestIASINGL2NCReader:
         assert vmax <= 90.0
 
     def test_longitude_dataset(self, twv_scene):
-        """Test loading the longitude dataset"""
-
+        """Test loading the longitude dataset."""
         twv_scene.load(["sounder_pixel_longitude"])
         dset = twv_scene["sounder_pixel_longitude"]
 
@@ -416,8 +406,7 @@ class TestIASINGL2NCReader:
         assert vmax <= 180.0
 
     def test_onboard_utc_dataset(self, twv_scene):
-        """Test loading the onboard_utc dataset"""
-
+        """Test loading the onboard_utc dataset."""
         twv_scene.load(["onboard_utc", "sounder_pixel_latitude"])
         dset = twv_scene["onboard_utc"]
 
@@ -435,8 +424,7 @@ class TestIASINGL2NCReader:
         assert lat.shape == dset.shape
 
     def test_nbr_iterations_dataset(self, twv_scene):
-        """Test loading the nbr_iterations dataset"""
-
+        """Test loading the nbr_iterations dataset."""
         twv_scene.load(["nbr_iterations"])
         dset = twv_scene["nbr_iterations"]
 
