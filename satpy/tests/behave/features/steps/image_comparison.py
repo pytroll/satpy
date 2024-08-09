@@ -8,12 +8,14 @@ import numpy as np
 from behave import given, when, then
 from satpy import Scene
 from datetime import datetime
+import pytz
 
 ext_data_path = "/app/ext_data"
 
 # Define a before_all hook to create the timestamp and test results directory
 def before_all(context):
-    context.timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    berlin_time = datetime.now(pytz.timezone('Europe/Berlin'))
+    context.timestamp = berlin_time.strftime("%Y-%m-%d-%H-%M-%S")
     context.test_results_dir = f"{ext_data_path}/test_results/image_comparison/{context.timestamp}"
     os.makedirs(os.path.join(context.test_results_dir, 'generated'), exist_ok=True)
     os.makedirs(os.path.join(context.test_results_dir, 'difference'), exist_ok=True)
