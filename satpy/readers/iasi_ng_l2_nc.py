@@ -361,7 +361,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         return data_array
 
     def apply_broadcast(self, data_array, ds_info):
-        """Apply the broadcast of the data array"""
+        """Apply the broadcast of the data array."""
 
         dim_name = ds_info["broadcast_on_dim"]
         if dim_name not in self.dimensions_desc:
