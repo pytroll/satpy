@@ -127,18 +127,41 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
     chunks = (10, 10, 10)
 
-    def add_rand_data(self, desc):
-        """Build a random DataArray from a given description."""
-        # Create a lazy dask array with random int32 values
-        dtype = desc.get("data_type", "int32")
-        dims = desc["dims"]
-        key = desc["key"]
+    def inject_missing_value(self, dask_array, attribs):
+        """Inject missing value in data array."""
+        # Force setting a few elements to this missing value (but still lazily with
+        # dask map_blocks function)
+        missing_value = attribs["missing_value"]
 
+        # Ratio of elements to replace with missing value:
+        missing_ratio = 0.05
+
+        def set_missing_values(block):
+            # Generate random indices to set as missing values within this block
+            block_shape = block.shape
+
+            block_size = np.prod(block_shape)
+            block_num_to_replace = int(block_size * missing_ratio)
+
+            # Create a Generator instance
+            rng = np.random.default_rng()
+
+            # Generate unique random indices to set as missing values within this block
+            flat_indices = rng.choice(block_size, block_num_to_replace, replace=False)
+            unraveled_indices = np.unravel_index(flat_indices, block_shape)
+            block[unraveled_indices] = missing_value
+
+            return block
+
+        # Apply the function lazily to each block
+        dask_array = dask_array.map_blocks(set_missing_values, dtype=dask_array.dtype)
+
+        return dask_array
+
+    def generate_dask_array(self, dims, dtype, attribs):
+        """Generate some random dask array of the given dtype."""
         shape = [self.dims[k] for k in dims]
-
-        # Define the chunk size for dask array
         chunks = [10] * len(dims)
-        attribs = desc["attribs"]
 
         if dtype == "int32":
             rand_min = -2147483647
@@ -164,33 +187,21 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         else:
             raise ValueError(f"Unsupported data type: {dtype}")
 
+        return dask_array
+
+    def add_rand_data(self, desc):
+        """Build a random DataArray from a given description."""
+        # Create a lazy dask array with random int32 values
+        dtype = desc.get("data_type", "int32")
+        dims = desc["dims"]
+        attribs = desc["attribs"]
+        key = desc["key"]
+
+        dask_array = self.generate_dask_array(dims, dtype, attribs)
+        # Define the chunk size for dask array
+
         if "missing_value" in attribs:
-            # Force setting a few elements to this missing value (but still lazily with
-            # dask map_blocks function)
-            missing_value = attribs["missing_value"]
-
-            # Ratio of elements to replace with missing value:
-            missing_ratio = 0.05
-
-            def set_missing_values(block):
-                # Generate random indices to set as missing values within this block
-                block_shape = block.shape
-
-                block_size = np.prod(block_shape)
-                block_num_to_replace = int(block_size * missing_ratio)
-
-                # Create a Generator instance
-                rng = np.random.default_rng()
-
-                # Generate unique random indices to set as missing values within this block
-                flat_indices = rng.choice(block_size, block_num_to_replace, replace=False)
-                unraveled_indices = np.unravel_index(flat_indices, block_shape)
-                block[unraveled_indices] = missing_value
-
-                return block
-
-            # Apply the function lazily to each block
-            dask_array = dask_array.map_blocks(set_missing_values, dtype=dask_array.dtype)
+            dask_array = self.inject_missing_value(dask_array, attribs)
 
         # Wrap the dask array with xarray.DataArray
         data_array = xr.DataArray(dask_array, dims=dims)
