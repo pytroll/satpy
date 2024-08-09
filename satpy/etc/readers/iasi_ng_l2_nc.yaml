@@ -16,37 +16,7 @@ file_types:
         "{pflag}_{country}-{organization}-{location},{data_designator},{spacecraft}-{instrument}-{processing_level}-{product_type}_{oflag}_{originator}_{generation_time}_{mission_type}_{environment}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text1}_{free_text2}_{free_text3}_{extension}.nc",
       ]
 
-    onboard_utc_epoch: "2020-01-01"
-    onboard_utc_broadcast: true
+    ignored_patterns:
+      - /optimal_estimation/ # cf. eum respase2 task2 issue #4
 
-    datasets:
-      - group: data/diagnostics
-        variables:
-          - fg_cost
-          - nbr_iterations
-          - rt_cost_x
-          - rt_cost_y
-      - group: data/geolocation_information
-        variables:
-          - onboard_utc
-          - sounder_pixel_latitude => latitude
-          - sounder_pixel_longitude => longitude
-          - sounder_pixel_azimuth => azimuth
-          - sounder_pixel_zenith => zenith
-          - sounder_pixel_sun_azimuth => sun_azimuth
-          - sounder_pixel_sun_zenith => sun_zenith
-      - group: data/statistical_retrieval
-        variables:
-          - air_temperature
-          - atmosphere_mass_content_of_water
-          - qi_air_temperature
-          - qi_specific_humidity
-          - specific_humidity
-          - surface_air_temperature
-          - surface_specific_humidity
-      - group: data/surface_info
-        variables:
-          - height
-          - height_std
-          - ice_fraction
-          - land_fraction
+    onboard_utc_broadcast: true

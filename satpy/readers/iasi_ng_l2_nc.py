@@ -25,8 +25,8 @@ level:
 """
 
 import logging
+import re
 
-import dask.array as da
 import netCDF4
 import numpy as np
 import pandas as pd
@@ -49,11 +49,18 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # List of datasets provided by this handler:
         self.dataset_infos = None
 
-        # Description of the available datasets:
-        self.ds_desc = self.filetype_info["datasets"]
+        # Description of the available variables:
+        self.variable_desc = {}
 
-        logger.info("Creating reader with infos: %s", filename_info)
+        # Description of the available dimensions:
+        self.dimensions_desc = {}
 
+        # Ignored variable patterns:
+        patterns = self.filetype_info.get("ignored_patterns", [])
+        self.ignored_patterns = [re.compile(pstr) for pstr in patterns]
+
+        # dataset aliases:
+        self.dataset_aliases = self.filetype_info.get("dataset_aliases", {})
         self.register_available_datasets()
 
     @property
@@ -70,6 +77,16 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def sensor_names(self):
         """List of sensors represented in this file."""
         return self.sensors
+
+    # Note: patching the collect_groups_info method below to
+    # also collect dimensions in sub groups.
+    def _collect_groups_info(self, base_name, obj):
+        for group_name, group_obj in obj.groups.items():
+            full_group_name = base_name + group_name
+            self.file_content[full_group_name] = group_obj
+            self._collect_attrs(full_group_name, group_obj)
+            self.collect_metadata(full_group_name, group_obj)
+            self.collect_dimensions(full_group_name, group_obj)
 
     def available_datasets(self, configured_datasets=None):
         """Determine automatically the datasets provided by this file.
@@ -100,6 +117,72 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         self.dataset_infos[ds_name] = ds_infos
 
+    def parse_file_content(self):
+        """Parse the file_content to discover the available datasets and dimensions"""
+
+        for key, val in self.file_content.items():
+            # print(f"Found key: {key}")
+
+            if "/dimension/" in key:
+                dim_name = key.split("/")[-1]
+                # print(f"Found dimension: {dim_name}={val}")
+                if (
+                    dim_name in self.dimensions_desc
+                    and self.dimensions_desc[dim_name] != val
+                ):
+                    # This might happen if we have the same dim name from different groups:
+                    raise ValueError(f"Detected duplicated dim name: {dim_name}")
+
+                self.dimensions_desc[dim_name] = val
+                continue
+
+            if "/attr/" in key:
+                var_path, aname = key.split("/attr/")
+                # print(f"Found attrib for: {var_path}: {aname}")
+
+                if var_path not in self.variable_desc:
+                    # maybe this variable is ignored, or this is a group attr.
+                    continue
+
+                self.variable_desc[var_path]["attribs"][aname] = val
+                continue
+
+            # if isinstance(val, netCDF4.Variable):
+            if f"{key}/shape" in self.file_content:
+                # print(f"Found variable: {key}")
+
+                shape = self.file_content[f"{key}/shape"]
+                if np.prod(shape) <= 1:
+                    # print(f"Ignoring scalar variable {key}")
+                    continue
+
+                # Check if this variable should be ignored:
+                if any(p.search(key) is not None for p in self.ignored_patterns):
+                    # print(f"Ignoring variable {key}")
+                    continue
+
+                # Prepare a description for this variable:
+                prefix, var_name = key.rsplit("/", 1)
+                dims = self.file_content[f"{key}/dimensions"]
+                dtype = self.file_content[f"{key}/dtype"]
+
+                desc = {
+                    "location": key,
+                    "prefix": prefix,
+                    "var_name": var_name,
+                    "shape": shape,
+                    "dtype": f"{dtype}",
+                    "dims": dims,
+                    "attribs": {},
+                }
+
+                self.variable_desc[key] = desc
+                continue
+
+        print(f"Found {len(self.variable_desc)} variables:")
+        for vpath, desc in self.variable_desc.items():
+            print(f"{vpath}: {desc}")
+
     def register_available_datasets(self):
         """Register the available dataset in the current product file"""
 
@@ -110,23 +193,25 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # Otherwise, we need to perform the registration:
         self.dataset_infos = {}
 
-        for grp_desc in self.ds_desc:
-            prefix = grp_desc["group"]
-            for vname in grp_desc["variables"]:
-                # Check if we have an alias for this variable:
-                ds_name = vname
-                if "=>" in vname:
-                    vname, ds_name = (v.strip() for v in vname.split("=>"))
+        # Parse the file content:
+        self.parse_file_content()
 
-                desc = {"location": f"{prefix}/{vname}"}
+        for vpath, desc in self.variable_desc.items():
+            # Check if we have an alias for this variable:
+            ds_name = desc["var_name"]
+            if vpath in self.dataset_aliases:
+                ds_name = self.dataset_aliases[vpath]
 
-                if ds_name == "onboard_utc":
-                    # add the seconds_since_epoch:
-                    desc["seconds_since_epoch"] = self.filetype_info["onboard_utc_epoch"]
+            unit = desc["attribs"].get("units", None)
 
-                # print(f"Registering {ds_name} with desc: {desc}")
+            if unit is not None and unit.startswith("seconds since "):
+                # request conversion to datetime:
+                desc["seconds_since_epoch"] = unit.replace("seconds since ", "")
+                print(
+                    f"Converting {ds_name} in secs from epoch {desc['seconds_since_epoch']}"
+                )
 
-                self.register_dataset(ds_name, desc)
+            self.register_dataset(ds_name, desc)
 
     def get_dataset_infos(self, ds_name):
         """Retrieve the dataset infos corresponding to one of the registered

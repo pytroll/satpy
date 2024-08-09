@@ -47,7 +47,7 @@ DATA_DESC = [
     {
         "group": "data/geolocation_information",
         "attrs": [
-            "unit",
+            "units",
             "valid_min",
             "valid_max",
             "scale_factor",
@@ -58,7 +58,7 @@ DATA_DESC = [
             "onboard_utc": [
                 ("n_lines", "n_for"),
                 "float64",
-                ("seconds", -1e9, 1e9, None, None, -9e9),
+                ("seconds since 2020-01-01 00:00:00.000", -1e9, 1e9, None, None, -9e9),
             ],
             "sounder_pixel_latitude": [
                 d_lff,
@@ -94,7 +94,7 @@ DATA_DESC = [
     },
     {
         "group": "data/statistical_retrieval",
-        "attrs": ["unit", "valid_min", "valid_max", "missing_value"],
+        "attrs": ["units", "valid_min", "valid_max", "missing_value"],
         "variables": {
             "air_temperature": [d_lff, "float32", ("K", 100.0, 400.0, 3.4e38)],
             "atmosphere_mass_content_of_water": [
@@ -103,15 +103,15 @@ DATA_DESC = [
                 ("kg.m-2", 0, 300, 3.4e38),
             ],
             "qi_air_temperature": [d_lff, "float32", ("", 0, 25, 3.4e38)],
-            "qi_speciﬁc_humidity": [d_lff, "float32", ("", 0, 25, 3.4e38)],
-            "speciﬁc_humidity": [d_lff, "float32", ("kg/kg", 0, 1, 3.4e38)],
+            "qi_specific_humidity": [d_lff, "float32", ("", 0, 25, 3.4e38)],
+            "specific_humidity": [d_lff, "float32", ("kg/kg", 0, 1, 3.4e38)],
             "surface_air_temperature": [d_lff, "float32", ("K", 100, 400, 3.4e38)],
-            "surface_speciﬁc_humidity": [d_lff, "float32", ("K", 100, 400, 3.4e38)],
+            "surface_specific_humidity": [d_lff, "float32", ("K", 100, 400, 3.4e38)],
         },
     },
     {
         "group": "data/surface_info",
-        "attrs": ["unit", "valid_min", "valid_max", "missing_value"],
+        "attrs": ["units", "valid_min", "valid_max", "missing_value"],
         "variables": {
             "height": [d_lff, "float32", ("m", -418, 8848, 3.4e38)],
             "height_std": [d_lff, "float32", ("m", 0, 999.0, 3.4e38)],
@@ -200,6 +200,12 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         data_array.attrs.update(attribs)
 
         self.content[key] = data_array
+        self.content[key + "/shape"] = data_array.shape
+        self.content[key + "/dtype"] = dask_array.dtype
+        self.content[key + "/dimensions"] = data_array.dims
+
+        for aname, val in attribs.items():
+            self.content[key + "/attr/" + aname] = val
 
     def get_test_content(self, _filename, _filename_info, _filetype_info):
         """Get the content of the test data.
@@ -345,12 +351,12 @@ class TestIASINGL2NCReader:
 
         expected_names = [
             "onboard_utc",
-            "latitude",
-            "longitude",
-            "azimuth",
-            "zenith",
-            "sun_azimuth",
-            "sun_zenith",
+            "sounder_pixel_latitude",
+            "sounder_pixel_longitude",
+            "sounder_pixel_azimuth",
+            "sounder_pixel_zenith",
+            "sounder_pixel_sun_azimuth",
+            "sounder_pixel_sun_zenith",
             "air_temperature",
             "atmosphere_mass_content_of_water",
             "qi_air_temperature",
@@ -366,8 +372,8 @@ class TestIASINGL2NCReader:
     def test_latitude_dataset(self, twv_scene):
         """Test loading the latitude dataset"""
 
-        twv_scene.load(["latitude"])
-        dset = twv_scene["latitude"]
+        twv_scene.load(["sounder_pixel_latitude"])
+        dset = twv_scene["sounder_pixel_latitude"]
 
         # Should be 2D now:
         assert len(dset.dims) == 2
@@ -387,8 +393,8 @@ class TestIASINGL2NCReader:
     def test_longitude_dataset(self, twv_scene):
         """Test loading the longitude dataset"""
 
-        twv_scene.load(["longitude"])
-        dset = twv_scene["longitude"]
+        twv_scene.load(["sounder_pixel_longitude"])
+        dset = twv_scene["sounder_pixel_longitude"]
 
         # Should be 2D now:
         assert len(dset.dims) == 2
@@ -408,7 +414,7 @@ class TestIASINGL2NCReader:
     def test_onboard_utc_dataset(self, twv_scene):
         """Test loading the onboard_utc dataset"""
 
-        twv_scene.load(["onboard_utc", "latitude"])
+        twv_scene.load(["onboard_utc", "sounder_pixel_latitude"])
         dset = twv_scene["onboard_utc"]
 
         # Should be 2D now:
@@ -420,7 +426,7 @@ class TestIASINGL2NCReader:
         assert dset.dtype == np.dtype("datetime64[ns]")
 
         # Should also have the same size as "lattitude" for instance:
-        lat = twv_scene["latitude"]
+        lat = twv_scene["sounder_pixel_latitude"]
 
         assert lat.shape == dset.shape
 
