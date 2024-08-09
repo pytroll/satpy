@@ -376,45 +376,31 @@ class TestIASINGL2NCReader:
         for dname in expected_names:
             assert dname in dnames
 
-    def test_latitude_dataset(self, twv_scene):
-        """Test loading the latitude dataset."""
-        twv_scene.load(["sounder_pixel_latitude"])
-        dset = twv_scene["sounder_pixel_latitude"]
+    def test_latlon_datasets(self, twv_scene):
+        """Test loading the latitude/longitude dataset."""
+        twv_scene.load(["sounder_pixel_latitude", "sounder_pixel_longitude"])
+        lat = twv_scene["sounder_pixel_latitude"]
+        lon = twv_scene["sounder_pixel_longitude"]
 
         # Should be 2D now:
-        assert len(dset.dims) == 2
-        assert dset.dims[0] == "x"
-        assert dset.dims[1] == "y"
+        assert len(lat.dims) == 2
+        assert len(lon.dims) == 2
+        assert lat.dims[0] == "x"
+        assert lat.dims[1] == "y"
+        assert lon.dims[0] == "x"
+        assert lon.dims[1] == "y"
 
         # Should have been converted to float64:
-        assert dset.dtype == np.float64
+        assert lat.dtype == np.float64
+        assert lon.dtype == np.float64
 
-        # All valid values should be in range [-90.0,90.0]
-        vmin = np.nanmin(dset)
-        vmax = np.nanmax(dset)
+        # All valid lat values should be in range [-90.0,90.0]
+        assert np.nanmin(lat) >= -90.0
+        assert np.nanmax(lat) <= 90.0
 
-        assert vmin >= -90.0
-        assert vmax <= 90.0
-
-    def test_longitude_dataset(self, twv_scene):
-        """Test loading the longitude dataset."""
-        twv_scene.load(["sounder_pixel_longitude"])
-        dset = twv_scene["sounder_pixel_longitude"]
-
-        # Should be 2D now:
-        assert len(dset.dims) == 2
-        assert dset.dims[0] == "x"
-        assert dset.dims[1] == "y"
-
-        # Should have been converted to float64:
-        assert dset.dtype == np.float64
-
-        # All valid values should be in range [-90.0,90.0]
-        vmin = np.nanmin(dset)
-        vmax = np.nanmax(dset)
-
-        assert vmin >= -180.0
-        assert vmax <= 180.0
+        # All valid lon values should be in range [-180.0,180.0]
+        assert np.nanmin(lon) >= -180.0
+        assert np.nanmax(lon) <= 180.0
 
     def test_onboard_utc_dataset(self, twv_scene):
         """Test loading the onboard_utc dataset."""
