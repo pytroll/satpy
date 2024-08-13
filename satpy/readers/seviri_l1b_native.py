@@ -208,7 +208,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             _get_array,
             dtype=dtype,
             chunks=chunks,
-            meta=np.zeros(1, dtype=dtype),
+            meta=np.empty(1, dtype=dtype),
             # The following will be passed as keyword arguments to the `_get_array()` function.
             filename=self.filename,
             hdr_size=self.header_type.itemsize
