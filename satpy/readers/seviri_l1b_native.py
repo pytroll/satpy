@@ -204,7 +204,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             "auto",
             shape=(self.mda["number_of_lines"],),
             dtype=dtype)
-        self.dask_array = da.map_blocks(
+        self._dask_array = da.map_blocks(
             _get_array,
             dtype=dtype,
             chunks=chunks,
@@ -594,10 +594,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Check if there is only 1 channel in the list as a change
         # is needed in the array assignment ie channel id is not present
         if len(self.mda["channel_list"]) == 1:
-            raw = self.dask_array["visir"]["line_data"]
+            raw = self._dask_array["visir"]["line_data"]
         else:
             i = self.mda["channel_list"].index(dataset_id["name"])
-            raw = self.dask_array["visir"]["line_data"][:, i, :]
+            raw = self._dask_array["visir"]["line_data"][:, i, :]
         data = dec10216(raw.flatten())
         data = data.reshape(shape)
         return data
@@ -608,7 +608,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         data_list = []
         for i in range(3):
-            raw = self.dask_array["hrv"]["line_data"][:, i, :]
+            raw = self._dask_array["hrv"]["line_data"][:, i, :]
             data = dec10216(raw.flatten())
             data = data.reshape(shape_layer)
             data_list.append(data)
@@ -667,7 +667,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _get_acq_time_hrv(self):
         """Get raw acquisition time for HRV channel."""
-        tline = self.dask_array["hrv"]["acq_time"]
+        tline = self._dask_array["hrv"]["acq_time"]
         tline0 = tline[:, 0]
         tline1 = tline[:, 1]
         tline2 = tline[:, 2]
@@ -679,9 +679,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Check if there is only 1 channel in the list as a change
         # is needed in the array assignment, i.e. channel id is not present
         if len(self.mda["channel_list"]) == 1:
-            return self.dask_array["visir"]["acq_time"].compute()
+            return self._dask_array["visir"]["acq_time"].compute()
         i = self.mda["channel_list"].index(dataset_id["name"])
-        return self.dask_array["visir"]["acq_time"][:, i].compute()
+        return self._dask_array["visir"]["acq_time"][:, i].compute()
 
     def _update_attrs(self, dataset, dataset_info):
         """Update dataset attributes."""

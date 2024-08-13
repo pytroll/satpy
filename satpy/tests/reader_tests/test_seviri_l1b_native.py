@@ -928,7 +928,7 @@ class TestNativeMSGDataset:
             fh.header = header
             fh.trailer = trailer
             fh.mda = mda
-            fh.dask_array = da.from_array(data)
+            fh._dask_array = da.from_array(data)
             fh.platform_id = 324
             fh.fill_disk = False
             fh.calib_mode = "NOMINAL"
