@@ -198,7 +198,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
     def _make_dask_array_with_map_blocks(self):
-        """Makes the dask array using the ``da.map_blocks()`` functionality."""
+        """Make the dask array using the ``da.map_blocks()`` functionality."""
         dtype = self._get_data_dtype()
         chunks = da.core.normalize_chunks(
             "auto",
@@ -292,7 +292,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         return np.dtype(drec)
 
     def _number_of_visir_channels(self):
-        """Returns the number of visir channels, i.e. all channels excluding ``HRV``."""
+        """Return the number of visir channels, i.e. all channels excluding ``HRV``."""
         return len([s for s in self.mda["channel_list"] if not s == "HRV"])
 
     def _read_header(self):

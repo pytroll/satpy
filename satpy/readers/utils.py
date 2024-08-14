@@ -362,7 +362,7 @@ def generic_open(filename, *args, **kwargs):
 
 
 def fromfile(filename, dtype, count=1, offset=0):
-    """Reads the numpy array from a (remote or local) file using a buffer.
+    """Read the numpy array from a (remote or local) file using a buffer.
 
     Note:
         This function relies on the :func:`generic_open` context manager to read a file remotely.

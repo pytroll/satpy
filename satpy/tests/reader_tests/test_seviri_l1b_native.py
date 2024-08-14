@@ -1273,13 +1273,13 @@ def test_read_header():
 
 @pytest.fixture(scope="session")
 def session_tmp_path(tmp_path_factory):
-    """Generates a single temp path to use for the entire session."""
+    """Generate a single temp path to use for the entire session."""
     return tmp_path_factory.mktemp("data")
 
 
 @pytest.fixture(scope="session")
 def tmp_seviri_nat_filename(session_tmp_path):
-    """Creates a fully-qualified filename for a seviri native format file."""
+    """Create a fully-qualified filename for a seviri native format file."""
     full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
     create_physical_seviri_native_file(full_file_path)
     return full_file_path
@@ -1287,7 +1287,7 @@ def tmp_seviri_nat_filename(session_tmp_path):
 
 @pytest.fixture(scope="session")
 def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
-    """Compresses the given seviri native file into a zip file."""
+    """Compress the given seviri native file into a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_native.zip"
     with zipfile.ZipFile(zip_full_path, mode="w") as archive:
         archive.write(tmp_seviri_nat_filename, os.path.basename(tmp_seviri_nat_filename))
@@ -1299,7 +1299,7 @@ def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     lf("compress_seviri_native_file")
 ])
 def test_read_physical_seviri_nat_file(full_path):
-    """Tests that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
+    """Test that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
 
     Note:
         The purpose of this function is not to fully test the properties of the scene. It only provides a test for
@@ -1319,26 +1319,26 @@ def test_read_physical_seviri_nat_file(full_path):
 
 
 def scene_from_physical_seviri_nat_file(filename):
-    """Generates a Scene object from the given seviri native file."""
+    """Generate a Scene object from the given seviri native file."""
     return Scene([filename], reader="seviri_l1b_native", reader_kwargs={"fill_disk": True})
 
 
 def create_physical_seviri_native_file(seviri_nat_full_file_path):
-    """Creates a physical seviri native file on disk."""
+    """Create a physical seviri native file on disk."""
     header_type, header_null = generate_seviri_native_null_header()
     amend_seviri_native_null_header(header_null)
     append_data_and_trailer_content_to_seviri_native_header(seviri_nat_full_file_path, header_null)
 
 
 def generate_seviri_native_null_header():
-    """Generates the header of the seviri native format which is filled with zeros, hence the term null!"""
+    """Generate the header of the seviri native format which is filled with zeros, hence the term null!"""
     header_type = Msg15NativeHeaderRecord().get(True)
     null_header = np.zeros(header_type.shape, dtype=header_type).reshape(1, )
     return header_type, null_header
 
 
 def amend_seviri_native_null_header(hdr_null_numpy):
-    """Amends the given null header so that the ``seviri_l1b_native`` reader can properly parse it.
+    """Amend the given null header so that the ``seviri_l1b_native`` reader can properly parse it.
 
     This is achieved by setting values for the bare minimum number of header fields so that the reader can make sense of
     the given header. This function relies on a number of auxiliary functions all of which are enclosed in the body of
@@ -1394,7 +1394,7 @@ def amend_seviri_native_null_header(hdr_null_numpy):
 
 
 def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_numpy):
-    """Generates the data and trailer part (null content) of the file and appends them to the null header.
+    """Generate the data and trailer part (null content) of the file and appends them to the null header.
 
     The data and trailer are also null and appending them to the header results in a complete seviri nat file.
     """
