@@ -43,6 +43,7 @@ The following people have made contributions to this project:
 - [Jactry Zeng](https://github.com/jactry)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
+- [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
@@ -94,5 +95,4 @@ The following people have made contributions to this project:
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Antonio Valentino](https://github.com/avalentino)
-- [Pouria Khalaj](https://github.com/pkhalaj)
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
