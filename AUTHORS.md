@@ -90,6 +90,7 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+- [Sven-Erik Enno (seenno)](https://github.com/seenno)
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
 - [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
