@@ -46,6 +46,18 @@ Hence, these products are provided by the reader as 2-D arrays in the FCI 2km
 grid as per intended usage, with a ``pyresample.geometry.AreaDefinition`` area
 attribute containing the grid geolocation information.
 In this way, the products can directly be overlaid to FCI data.
+
+.. note::
+
+    L2 accumulated products retrieved from the archive
+    (that have "ARC" in the filename) contain data for 20 repeat cycles (timesteps) covering
+    10 minutes of sensing time. For these files, when loading the main variables
+    (``accumulated_flash_area``, ``flash_accumulation``, ``flash_radiance``),
+    the reader will cumulate (sum up) the data for the entire sensing period of the file.
+    A solution to access easily each timestep is being worked on. See https://github.com/pytroll/satpy/issues/2878
+    for possible workarounds in the meanwhile.
+
+
 If needed, the accumulated products can also be accessed as 1-d array by
 setting the reader kwarg ``with_area_definition=False``,
 e.g.::
@@ -138,13 +150,25 @@ class LIL2NCFileHandler(LINCFileHandler):
         rows = (LI_GRID_SHAPE[0] - rows.astype(int))
         cols = cols.astype(int) - 1
 
-        # Create an empyt 1-D array for the results
-        flattened_result = np.nan * da.zeros((LI_GRID_SHAPE[0] * LI_GRID_SHAPE[1]), dtype=data_array.dtype)
-        # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
-        flattened_result[rows * LI_GRID_SHAPE[0] + cols] = data_array
-        # ... reshape to final 2D grid
-        data_2d = da.reshape(flattened_result, LI_GRID_SHAPE)
+        # initialise results array with zeros
+        data_2d = da.zeros((LI_GRID_SHAPE[0], LI_GRID_SHAPE[1]), dtype=data_array.dtype,
+                           chunks=(LI_GRID_SHAPE[0], LI_GRID_SHAPE[1]))
+
+        # insert the data. If a pixel has more than one entry, the values are added up (np.add.at functionality)
+        data_2d = da.map_blocks(_np_add_at_wrapper, data_2d, (rows, cols), data_array,
+                                dtype=data_array.dtype,
+                                chunks=(LI_GRID_SHAPE[0], LI_GRID_SHAPE[1]))
+        data_2d = da.where(data_2d > 0, data_2d, np.nan)
+
         xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=("y", "x"))
         xarr.attrs = attrs
 
         return xarr
+
+
+def _np_add_at_wrapper(target_array, indices, data):
+    # copy needed for correct computation in-place
+    ta = target_array.copy()
+    # add.at is not implemented in xarray, so we explicitly need the np.array
+    np.add.at(ta, indices, data.values)
+    return ta
