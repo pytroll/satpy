@@ -85,7 +85,7 @@ on how this could be extended to other readers, see the API documentations for
 :class:`~satpy.readers.netcdf_utils.PreloadableSegments` and
 :class:`~satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
 
-.. versionadded:: 0.51
+.. versionadded:: 0.52
 
 .. toctree::
     :hidden:
