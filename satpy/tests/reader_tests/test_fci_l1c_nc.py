@@ -67,103 +67,103 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
 }
 
 LIST_CHANNEL_SOLAR = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
-                          "nir_13", "nir_16", "nir_22"]
+                      "nir_13", "nir_16", "nir_22"]
 LIST_CHANNEL_TERRAN = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
-                           "ir_123", "ir_133"]
+                       "ir_123", "ir_133"]
 LIST_TOTAL_CHANNEL = LIST_CHANNEL_SOLAR + LIST_CHANNEL_TERRAN
-LIST_RESOLUTION_V06 = ["1km","3km"]
-LIST_RESOLUTION = ["3km"]
+LIST_RESOLUTION_VIS06_AF = ["1km", "3km"]
+LIST_RESOLUTION_AF = ["3km"]
 EXPECTED_POS_INFO_FOR_FILETYPE = {
-        "fdhsi": {"1km": {"start_position_row": 1,
-                          "end_position_row": 200,
-                          "segment_height": 200,
-                          "grid_width": 11136},
-                  "2km": {"start_position_row": 1,
-                          "end_position_row": 100,
-                          "segment_height": 100,
-                          "grid_width": 5568}},
-        "hrfi": {"500m": {"start_position_row": 1,
-                          "end_position_row": 400,
-                          "segment_height": 400,
-                          "grid_width": 22272},
-                 "1km": {"start_position_row": 1,
-                         "end_position_row": 200,
-                         "grid_width": 11136,
-                         "segment_height": 200}},
-        "fci_af" : {"3km": {"start_position_row": 1,
-                          "end_position_row": 67,
-                          "segment_height": 67,
-                          "grid_width": 3712
-                          },
-                    },
-        "fci_af_vis_06" : {"3km": {"start_position_row": 1,
-                          "end_position_row": 67,
-                          "segment_height": 67,
-                          "grid_width": 3712
-                          },
-                        "1km": {"start_position_row": 1,
-                         "end_position_row": 200,
-                         "grid_width": 11136,
-                         "segment_height": 200}
-                    }
-    }
+    "fdhsi": {"1km": {"start_position_row": 1,
+                      "end_position_row": 200,
+                      "segment_height": 200,
+                      "grid_width": 11136},
+              "2km": {"start_position_row": 1,
+                      "end_position_row": 100,
+                      "segment_height": 100,
+                      "grid_width": 5568}},
+    "hrfi": {"500m": {"start_position_row": 1,
+                      "end_position_row": 400,
+                      "segment_height": 400,
+                      "grid_width": 22272},
+             "1km": {"start_position_row": 1,
+                     "end_position_row": 200,
+                     "grid_width": 11136,
+                     "segment_height": 200}},
+    "fci_af": {"3km": {"start_position_row": 1,
+                       "end_position_row": 67,
+                       "segment_height": 67,
+                       "grid_width": 3712
+                       },
+               },
+    "fci_af_vis_06": {"3km": {"start_position_row": 1,
+                              "end_position_row": 67,
+                              "segment_height": 67,
+                              "grid_width": 3712
+                              },
+                      "1km": {"start_position_row": 1,
+                              "end_position_row": 200,
+                              "grid_width": 11136,
+                              "segment_height": 200}
+                      }
+}
 
-CHANS_FHDSI = {"solar": LIST_CHANNEL_SOLAR,
-                "solar_grid_type": ["1km"] * 8,
-                "terran": LIST_CHANNEL_TERRAN,
-                "terran_grid_type": ["2km"] * 8}
+CHANS_FDHSI = {"solar": LIST_CHANNEL_SOLAR,
+               "solar_grid_type": ["1km"] * 8,
+               "terran": LIST_CHANNEL_TERRAN,
+               "terran_grid_type": ["2km"] * 8}
 
 CHANS_HRFI = {"solar": ["vis_06", "nir_22"],
-               "solar_grid_type": ["500m"] * 2,
-               "terran": ["ir_38", "ir_105"],
-               "terran_grid_type": ["1km"] * 2}
+              "solar_grid_type": ["500m"] * 2,
+              "terran": ["ir_38", "ir_105"],
+              "terran_grid_type": ["1km"] * 2}
 
-DICT_CALIBRATION = { "radiance" : {"dtype": np.float32,
-                      "value_1": 15,
-                      "value_0":9700,
-                      "attrs_dict":{"calibration":"radiance",
-                                       "units":"mW m-2 sr-1 (cm-1)-1",
-                                      "radiance_unit_conversion_coefficient": np.float32(1234.56)
+DICT_CALIBRATION = {"radiance": {"dtype": np.float32,
+                                 "value_1": 15,
+                                 "value_0": 9700,
+                                 "attrs_dict": {"calibration": "radiance",
+                                                "units": "mW m-2 sr-1 (cm-1)-1",
+                                                "radiance_unit_conversion_coefficient": np.float32(1234.56)
+                                                },
+                                 },
+
+                    "reflectance": {"dtype": np.float32,
+                                    "attrs_dict": {"calibration": "reflectance",
+                                                   "units": "%"
+                                                   },
                                     },
-                    },
 
-                    "reflectance" : {"dtype": np.float32,
-                                    "attrs_dict":{"calibration":"reflectance",
-                                       "units":"%"
-                                    },
-                    },
+                    "counts": {"dtype": np.uint16,
+                               "value_1": 1,
+                               "value_0": 5000,
+                               "attrs_dict": {"calibration": "counts",
+                                              "units": "count",
+                                              },
+                               },
 
-                 "counts" : {"dtype": np.uint16,
-                    "value_1": 1,
-                    "value_0": 5000,
-                    "attrs_dict":{"calibration":"counts",
-                                       "units":"count",
-                                    },
-                    },
-
-            "brightness_temperature" : {"dtype": np.float32,
-                "value_1": np.float32(209.68275),
-                "value_0": np.float32(1888.8513),
-                "attrs_dict":{"calibration":"brightness_temperature",
-                                "units":"K",
-                                      },
-                },
-}
+                    "brightness_temperature": {"dtype": np.float32,
+                                               "value_1": np.float32(209.68275),
+                                               "value_0": np.float32(1888.8513),
+                                               "attrs_dict": {"calibration": "brightness_temperature",
+                                                              "units": "K",
+                                                              },
+                                               },
+                    }
 TEST_FILENAMES = {"fdhsi": [
     "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
     "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
     "20170410113925_20170410113934_N__C_0070_0067.nc"
 ],
     "fdhsi_error": [
-    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FDD--"
-    "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
-    "20170410113925_20170410113934_N__C_0070_0067.nc"
-],
+        "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FDD--"
+        "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+        "20170410113925_20170410113934_N__C_0070_0067.nc"
+    ],
     "fdhsi_iqti": [
-    "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
-    "CHK-BODY--MON-NC4_C_EUMT_20240307233956_IQTI_DEV_"
-    "20231016125007_20231016125017_N__C_0078_0001.nc"
-],
+        "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+        "CHK-BODY--MON-NC4_C_EUMT_20240307233956_IQTI_DEV_"
+        "20231016125007_20231016125017_N__C_0078_0001.nc"
+    ],
     "hrfi": [
         "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
         "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
@@ -175,40 +175,49 @@ TEST_FILENAMES = {"fdhsi": [
         "20231016125007_20231016125017_N__C_0078_0001.nc"
     ],
     "fdhsi_q4": ["W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-Q4--"
-    "CHK-BODY--DIS-NC4E_C_EUMT_20230723025408_IDPFI_DEV_"
-    "20230722120000_20230722120027_N_JLS_C_0289_0001.nc"
-    ],
+                 "CHK-BODY--DIS-NC4E_C_EUMT_20230723025408_IDPFI_DEV_"
+                 "20230722120000_20230722120027_N_JLS_C_0289_0001.nc"
+                 ],
     "hrfi_q4": ["W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-Q4--"
                 "CHK-BODY--DIS-NC4E_C_EUMT_20230723025408_IDPFI_DEV"
                 "_20230722120000_20230722120027_N_JLS_C_0289_0001.nc"]
 }
 
-def resolutions(channel):
-    """Get the resolutions."""
+
+def resolutions_AF_products(channel):
+    """Get the resolutions of the African products."""
     if channel == "vis_06":
-        return LIST_RESOLUTION_V06
+        return LIST_RESOLUTION_VIS06_AF
     else:
-        return LIST_RESOLUTION
+        return LIST_RESOLUTION_AF
+
 
 def fill_chans_af():
     """Fill the dict CHANS_AF and the list TEST_FILENAMES with the right channel and resolution."""
-    CHANS_AF = {}
+    chans_af = {}
     for channel in LIST_TOTAL_CHANNEL:
-        list_resol = resolutions(channel)
+        list_resol = resolutions_AF_products(channel)
+        if channel in ["wv_63", "wv_73"]:
+            ch_name_for_file = channel.replace("wv", "ir").replace("_", "").upper()
+        else:
+            ch_name_for_file = channel.replace("_", "").upper()
         for resol in list_resol:
-            chann_upp = channel.replace("_","").upper()
             TEST_FILENAMES[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
-                                                        f"-{resol.upper()}-AF-{chann_upp}-x-x---NC4E_C_EUMT_20240125144655_DT_OPE"
-                                                        f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
-            if channel.split("_")[0] in ["vis","nir"]:
-                CHANS_AF[f"{channel}_{resol}"] = {"solar":[channel],
-                                                   "solar_grid_type": [resol]}
-            elif channel.split("_")[0] in ["ir","wv"]:
-                CHANS_AF[f"{channel}_{resol}"] = {"terran":[channel],
-                                                   "terran_grid_type": [resol]}
-    return CHANS_AF,TEST_FILENAMES
+                                                       f"-{resol.upper()}-AF-{ch_name_for_file}-x-x---NC4E_C_EUMT_"
+                                                       f"20240125144655_DT_OPE"
+                                                       f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
+            if channel.split("_")[0] in ["vis", "nir"]:
+                chans_af[f"{channel}_{resol}"] = {"solar": [channel],
+                                                  "solar_grid_type": [resol]}
+            elif channel.split("_")[0] in ["ir", "wv"]:
+                chans_af[f"{channel}_{resol}"] = {"terran": [channel],
+                                                  "terran_grid_type": [resol]}
+    return chans_af
 
-CHANS_AF,TEST_FILENAMES = fill_chans_af()
+
+CHANS_AF = fill_chans_af()
+
+
 # ----------------------------------------------------
 # Filehandlers preparation ---------------------------
 # ----------------------------------------------------
@@ -230,7 +239,7 @@ class FakeH5Variable:
             self.dtype = self._data.dtype
 
     def __array__(self):
-        """Get the array data.."""
+        """Get the array data."""
         return self._data.__array__()
 
     def __getitem__(self, key):
@@ -265,8 +274,8 @@ def _get_test_calib_for_channel_ir(data, meas_path):
 
 def _get_test_calib_for_channel_vis(data, meas):
     data["state/celestial/earth_sun_distance"] = FakeH5Variable(
-        da.repeat(da.array([149597870.7]), 6000), dims=("index"))
-    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array((50.0), dtype=np.float32))
+        da.repeat(da.array([149597870.7]), 6000), dims="index")
+    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array(50.0, dtype=np.float32))
     return data
 
 
@@ -392,13 +401,13 @@ def _get_test_content_aux_data():
         # skip population of earth_sun_distance as this is already defined for reflectance calculation
         if key == "earth_sun_distance":
             continue
-        data[value] = xr.DataArray(da.arange(indices_dim, dtype="float32"), dims=("index"))
+        data[value] = xr.DataArray(da.arange(indices_dim, dtype=np.dtype("float32")), dims="index")
 
     # compute the last data entry to simulate the FCI caching
     # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
     data["index"] = xr.DataArray(
-        da.ones(indices_dim, dtype="uint16") * 100, dims=("index"))
+        da.ones(indices_dim, dtype="uint16") * 100, dims="index")
     return data
 
 
@@ -465,13 +474,14 @@ class FakeFCIFileHandlerFDHSI(FakeFCIFileHandlerBase):
                        "grid_type": "2km"},
     }
 
+
 class FakeFCIFileHandlerFDHSIIQTI(FakeFCIFileHandlerFDHSI):
     """Mock IQTI for FHDSI data."""
 
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
         data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
-            da.repeat(da.array([np.nan]), 6000), dims=("index"))})
+            da.repeat(da.array([np.nan]), 6000), dims="index")})
         return data
 
 
@@ -504,19 +514,21 @@ class FakeFCIFileHandlerHRFI(FakeFCIFileHandlerBase):
                           "grid_type": "1km"},
     }
 
+
 class FakeFCIFileHandlerHRFIIQTI(FakeFCIFileHandlerHRFI):
     """Mock IQTI for HRFI data."""
 
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
         data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
-            da.repeat(da.array([np.nan]), 6000), dims=("x"))})
+            da.repeat(da.array([np.nan]), 6000), dims="x")})
         return data
 
 
 class FakeFCIFileHandlerAF(FakeFCIFileHandlerBase):
     """Mock AF data."""
     chan_patterns = {}
+
 
 # ----------------------------------------------------
 # Fixtures preparation -------------------------------
@@ -538,12 +550,14 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
     clear_cache(reader)
     return reader
 
+
 def clear_cache(reader):
     """Clear the cache for file handlres in reader."""
     for key in reader.file_handlers:
         fhs = reader.file_handlers[key]
         for fh in fhs:
             fh.cached_file_content = {}
+
 
 def get_list_channel_calibration(calibration):
     """Get the channel's list according the calibration."""
@@ -554,11 +568,13 @@ def get_list_channel_calibration(calibration):
     else:
         return LIST_TOTAL_CHANNEL
 
+
 def generate_parameters(calibration):
-    """Generate dinamicaly the parameters."""
+    """Generate dynamically the parameters."""
     for channel in get_list_channel_calibration(calibration):
-        for resolution in resolutions(channel):
-            yield (channel, resolution)
+        for resolution in resolutions_AF_products(channel):
+            yield channel, resolution
+
 
 @contextlib.contextmanager
 def mocked_basefilehandler(filehandler):
@@ -575,10 +591,11 @@ def FakeFCIFileHandlerFDHSI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi"]
         }
         yield param_dict
+
 
 @pytest.fixture()
 def FakeFCIFileHandlerFDHSIError_fixture():
@@ -586,7 +603,7 @@ def FakeFCIFileHandlerFDHSIError_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi_error"]
         }
         yield param_dict
@@ -598,10 +615,11 @@ def FakeFCIFileHandlerFDHSIIQTI_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSIIQTI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi_iqti"]
         }
         yield param_dict
+
 
 @pytest.fixture()
 def FakeFCIFileHandlerFDHSIQ4_fixture():
@@ -609,10 +627,11 @@ def FakeFCIFileHandlerFDHSIQ4_fixture():
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
         param_dict = {
             "filetype": "fci_l1c_fdhsi",
-            "channels": CHANS_FHDSI,
+            "channels": CHANS_FDHSI,
             "filenames": TEST_FILENAMES["fdhsi_q4"]
         }
         yield param_dict
+
 
 @pytest.fixture()
 def FakeFCIFileHandlerHRFI_fixture():
@@ -625,6 +644,7 @@ def FakeFCIFileHandlerHRFI_fixture():
         }
         yield param_dict
 
+
 @pytest.fixture()
 def FakeFCIFileHandlerHRFIIQTI_fixture():
     """Get a fixture for the fake HRFI IQTI filehandler, including channel and file names."""
@@ -635,6 +655,7 @@ def FakeFCIFileHandlerHRFIIQTI_fixture():
             "filenames": TEST_FILENAMES["hrfi_iqti"]
         }
         yield param_dict
+
 
 @pytest.fixture()
 def FakeFCIFileHandlerHRFIQ4_fixture():
@@ -649,10 +670,10 @@ def FakeFCIFileHandlerHRFIQ4_fixture():
 
 
 @pytest.fixture()
-def FakeFCIFileHandlerAF_fixture(channel,resolution):
+def FakeFCIFileHandlerAF_fixture(channel, resolution):
     """Get a fixture for the fake AF filehandler, it contains only one channel and one resolution."""
-    chan_patterns = {channel.split("_")[0]+"_{:>02d}": {"channels": [int(channel.split("_")[1])],
-                           "grid_type": f"{resolution}"},}
+    chan_patterns = {channel.split("_")[0] + "_{:>02d}": {"channels": [int(channel.split("_")[1])],
+                                                          "grid_type": f"{resolution}"}, }
     FakeFCIFileHandlerAF.chan_patterns = chan_patterns
     with mocked_basefilehandler(FakeFCIFileHandlerAF):
         param_dict = {
@@ -662,6 +683,7 @@ def FakeFCIFileHandlerAF_fixture(channel,resolution):
         }
         yield param_dict
 
+
 # ----------------------------------------------------
 # Tests ----------------------------------------------
 # ----------------------------------------------------
@@ -669,46 +691,51 @@ class ModuleTestFCIL1cNcReader:
     """Class containing parameters and modules useful for the test related to L1c reader."""
     fh_param_for_filetype = {"hrfi": {"channels": CHANS_HRFI,
                                       "filenames": TEST_FILENAMES["hrfi"]},
-                            "fdhsi": {"channels": CHANS_FHDSI,
+                             "fdhsi": {"channels": CHANS_FDHSI,
                                        "filenames": TEST_FILENAMES["fdhsi"]},
-                            "fdhsi_iqti": {"channels": CHANS_FHDSI,
-                                       "filenames": TEST_FILENAMES["fdhsi_iqti"]},
-                            "hrfi_q4": {"channels": CHANS_HRFI,
-                                      "filenames": TEST_FILENAMES["hrfi_q4"]},
-                            "hrfi_iqti": {"channels": CHANS_HRFI,
-                                      "filenames": TEST_FILENAMES["hrfi_iqti"]},
-                            "fdhsi_q4": {"channels": CHANS_FHDSI,
-                                       "filenames": TEST_FILENAMES["fdhsi_q4"]}}
+                             "fdhsi_iqti": {"channels": CHANS_FDHSI,
+                                            "filenames": TEST_FILENAMES["fdhsi_iqti"]},
+                             "hrfi_q4": {"channels": CHANS_HRFI,
+                                         "filenames": TEST_FILENAMES["hrfi_q4"]},
+                             "hrfi_iqti": {"channels": CHANS_HRFI,
+                                           "filenames": TEST_FILENAMES["hrfi_iqti"]},
+                             "fdhsi_q4": {"channels": CHANS_FDHSI,
+                                          "filenames": TEST_FILENAMES["fdhsi_q4"]}}
 
-    def _get_type_ter_AF(self,channel):
+    @staticmethod
+    def _get_type_ter_AF(channel):
         """Get the type_ter."""
-        if channel.split("_")[0] in ["vis","nir"]:
+        if channel.split("_")[0] in ["vis", "nir"]:
             return "solar"
-        elif channel.split("_")[0] in ["wv","ir"]:
+        elif channel.split("_")[0] in ["wv", "ir"]:
             return "terran"
 
-    def _get_assert_attrs(self,res,ch,attrs_dict):
-        """Test the differents attributes values."""
-        for key,item in attrs_dict.items():
+    @staticmethod
+    def _get_assert_attrs(res, ch, attrs_dict):
+        """Test the different attributes values."""
+        for key, item in attrs_dict.items():
             assert res[ch].attrs[key] == item
 
-    def _get_assert_erased_attrs(self,res,ch):
+    @staticmethod
+    def _get_assert_erased_attrs(res, ch):
         """Test that the attributes listed have been erased."""
-        LIST_ATTRIBUTES = ["add_offset","warm_add_offset","scale_factor",
-                           "warm_scale_factor","valid_range"]
+        LIST_ATTRIBUTES = ["add_offset", "warm_add_offset", "scale_factor",
+                           "warm_scale_factor", "valid_range"]
         for atr in LIST_ATTRIBUTES:
             assert atr not in res[ch].attrs
 
-    def _reflectance_test(self,tab,filenames):
+    @staticmethod
+    def _reflectance_test(tab, filenames):
         """Test of with the reflectance test."""
         if "IQTI" in filenames:
-                numpy.testing.assert_array_almost_equal(tab,
-                                        93.6462,decimal=4)
-        else :
             numpy.testing.assert_array_almost_equal(tab,
-                                            100 * 15 * 1 * np.pi / 50)
+                                                    93.6462, decimal=4)
+        else:
+            numpy.testing.assert_array_almost_equal(tab,
+                                                    100 * 15 * 1 * np.pi / 50)
 
-    def _other_calibration_test(self,res,ch,dict_arg):
+    @staticmethod
+    def _other_calibration_test(res, ch, dict_arg):
         """Test of other calibration test."""
         if ch == "ir_38":
             numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
@@ -716,53 +743,54 @@ class ModuleTestFCIL1cNcReader:
         else:
             numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
 
-    def _shape_test(self,res,ch,grid_type,dict_arg):
+    @staticmethod
+    def _shape_test(res, ch, grid_type, dict_arg):
         """Test the shape."""
         assert res[ch].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                  GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
         assert res[ch].dtype == dict_arg["dtype"]
 
-    def _get_assert_load(self,res,ch,dict_arg,filenames):
-        """Test the value for differents channels."""
-        self._get_assert_attrs(res,ch,dict_arg["attrs_dict"])
-        if dict_arg["attrs_dict"]["calibration"] in ["radiance","brightness_temperature","reflectance"]:
-           self._get_assert_erased_attrs(res,ch)
+    def _get_assert_load(self, res, ch, dict_arg, filenames):
+        """Test the value for different channels."""
+        self._get_assert_attrs(res, ch, dict_arg["attrs_dict"])
+        if dict_arg["attrs_dict"]["calibration"] in ["radiance", "brightness_temperature", "reflectance"]:
+            self._get_assert_erased_attrs(res, ch)
         if dict_arg["attrs_dict"]["calibration"] == "reflectance":
-            self._reflectance_test(res[ch],filenames)
-        else :
-            self._other_calibration_test(res,ch,dict_arg)
+            self._reflectance_test(res[ch], filenames)
+        else:
+            self._other_calibration_test(res, ch, dict_arg)
 
-
-
-    def _get_res_AF(self,channel,fh_param,calibration,reader_configs):
+    def _get_res_AF(self, channel, fh_param, calibration, reader_configs):
         """Load the reader for AF data."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         type_ter = self._get_type_ter_AF(channel)
         res = reader.load([make_dataid(name=name, calibration=calibration)
-                for name in fh_param["channels"][type_ter]], pad_data=False)
+                           for name in fh_param["channels"][type_ter]], pad_data=False)
         return res
 
-    def _compare_sun_earth_distance(self,filetype,fh_param,reader_configs):
-        """Test the sun earth distance."""
+    @staticmethod
+    def _compare_sun_earth_distance(filetype, fh_param, reader_configs):
+        """Test the sun earth distance calculation."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         if "IQTI" in fh_param["filenames"][0]:
             np.testing.assert_almost_equal(
-            reader.file_handlers[filetype][0]._compute_sun_earth_distance,
-                      0.996803423,decimal=7)
-        else :
+                reader.file_handlers[filetype][0]._compute_sun_earth_distance,
+                0.996803423, decimal=7)
+        else:
             np.testing.assert_almost_equal(
-            reader.file_handlers[filetype][0]._compute_sun_earth_distance,
-                      1.0,decimal=7)
+                reader.file_handlers[filetype][0]._compute_sun_earth_distance,
+                1.0, decimal=7)
 
-    def _compare_rc_period_min_count_in_repeat_cycle(self,filetype,fh_param,
-                                reader_configs,compare_parameters_tuple):
+    @staticmethod
+    def _compare_rc_period_min_count_in_repeat_cycle(filetype, fh_param,
+                                                     reader_configs, compare_parameters_tuple):
         """Test the count_in_repeat_cycle, rc_period_min."""
-        count_in_repeat_cycle_imp,rc_period_min_imp,start_nominal_time,end_nominal_time = compare_parameters_tuple
+        count_in_repeat_cycle_imp, rc_period_min_imp, start_nominal_time, end_nominal_time = compare_parameters_tuple
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         assert count_in_repeat_cycle_imp == \
-        reader.file_handlers[filetype][0].filename_info["count_in_repeat_cycle"]
+               reader.file_handlers[filetype][0].filename_info["count_in_repeat_cycle"]
         assert rc_period_min_imp == \
-        reader.file_handlers[filetype][0].rc_period_min
+               reader.file_handlers[filetype][0].rc_period_min
         assert start_nominal_time == reader.file_handlers[filetype][0].nominal_start_time
         assert end_nominal_time == reader.file_handlers[filetype][0].nominal_end_time
 
@@ -793,15 +821,15 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         files = reader.select_files_from_pathnames(filenames)
         assert len(files) == 0
 
-    @pytest.mark.parametrize("calibration", ["counts","radiance","brightness_temperature","reflectance"])
-    @pytest.mark.parametrize(("fh_param","res_type"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),"hdfi"),
-                                            (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),"hrfi"),
-                                            (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),"hrfi"),
-                                            (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),"hdfi"),
-                                            (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),"hrfi"),
-                                            (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),"hdfi")])
+    @pytest.mark.parametrize("calibration", ["counts", "radiance", "brightness_temperature", "reflectance"])
+    @pytest.mark.parametrize(("fh_param", "res_type"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), "hdfi"),
+                                                        (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), "hrfi"),
+                                                        (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), "hrfi"),
+                                                        (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), "hdfi"),
+                                                        (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), "hrfi"),
+                                                        (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), "hdfi")])
     def test_load_calibration(self, reader_configs, fh_param,
-                         caplog,calibration,res_type):
+                              caplog, calibration, res_type):
         """Test loading with counts,radiance,reflectance and bt."""
         expected_res_n = {}
         if calibration == "reflectance":
@@ -828,37 +856,36 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         assert expected_res_n[res_type] == len(res)
         for ch, grid_type in zip(list_chan,
                                  list_grid):
-            self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
+            self._shape_test(res, ch, grid_type, DICT_CALIBRATION[calibration])
             self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],
                                   fh_param["filenames"][0])
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
-    (calibration, channel, resolution)
-    for calibration in ["counts", "radiance", "brightness_temperature", "reflectance"]
-    for channel, resolution in generate_parameters(calibration)
+        (calibration, channel, resolution)
+        for calibration in ["counts", "radiance", "brightness_temperature", "reflectance"]
+        for channel, resolution in generate_parameters(calibration)
     ])
-    def test_load_calibration_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,calibration,caplog):
+    def test_load_calibration_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, calibration, caplog):
         """Test loading with counts,radiance,reflectance and bt for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         type_ter = self._get_type_ter_AF(channel)
         with caplog.at_level(logging.WARNING):
-            res = self._get_res_AF(channel,fh_param,calibration,reader_configs)
+            res = self._get_res_AF(channel, fh_param, calibration, reader_configs)
             assert caplog.text == ""
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
-            self._shape_test(res,ch,grid_type,DICT_CALIBRATION[calibration])
-            self._get_assert_load(res,ch,DICT_CALIBRATION[calibration],
+            self._shape_test(res, ch, grid_type, DICT_CALIBRATION[calibration])
+            self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],
                                   fh_param["filenames"][0])
-
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
-                                           (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
-                                            (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
-                                            (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
-                                            (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"))])
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"))])
     def test_orbital_parameters_attr(self, reader_configs, fh_param):
         """Test the orbital parameter attribute."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
@@ -869,11 +896,11 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         for ch in fh_param["channels"]["solar"] + fh_param["channels"]["terran"]:
             assert res[ch].attrs["orbital_parameters"] == {
                 "satellite_actual_longitude": np.mean(np.arange(6000)) if "IQTI" not in
-                                               fh_param["filenames"][0] else 0.0,
+                                                                          fh_param["filenames"][0] else 0.0,
                 "satellite_actual_latitude": np.mean(np.arange(6000)) if "IQTI" not in
-                                              fh_param["filenames"][0] else 0.0,
+                                                                         fh_param["filenames"][0] else 0.0,
                 "satellite_actual_altitude": np.mean(np.arange(6000)) if "IQTI" not in
-                                              fh_param["filenames"][0] else 35786400.0,
+                                                                         fh_param["filenames"][0] else 35786400.0,
                 "satellite_nominal_longitude": 0.0,
                 "satellite_nominal_latitude": 0,
                 "satellite_nominal_altitude": 35786400.0,
@@ -885,7 +912,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
     @pytest.mark.parametrize(("fh_param", "expected_pos_info"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"]),
         (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
-        (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
+        (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
         (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"]),
         (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["hrfi"]),
         (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), EXPECTED_POS_INFO_FOR_FILETYPE["fdhsi"])
@@ -897,24 +924,29 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             segpos_info = filetype_handler.get_segment_position_info()
             assert segpos_info == expected_pos_info
 
-    @mock.patch("satpy.readers.yaml_reader.GEOVariableSegmentYAMLReader")
     @pytest.mark.parametrize(("channel", "resolution"), generate_parameters("radiance"))
-    def test_not_get_segment_info_called_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,resolution):
+    def test_not_get_segment_info_called_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, resolution):
         """Test that checks that the get_segment_position_info has not been called for AF data."""
         with mock.patch("satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info") as gspi:
             fh_param = FakeFCIFileHandlerAF_fixture
             reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-            reader.load([channel])
+            with contextlib.suppress(KeyError):
+                # attempt to load the channel
+                # If get_segment_position_info is called, the code will fail with a KeyError because of the mocking.
+                # However, the point of the test is to check if the function has been called, not if the function
+                # would work with this case, so the expected KeyError is suppressed, and we assert_not_called below.
+                reader.load([channel])
             gspi.assert_not_called()
 
-    @pytest.mark.parametrize("calibration", ["index_map","pixel_quality"])
+    @pytest.mark.parametrize("calibration", ["index_map", "pixel_quality"])
     @pytest.mark.parametrize(("fh_param", "expected_res_n"), [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), 16),
-                                                            (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), 4),
-                                                            (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), 4),
-                                                            (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), 16),
-                                                            (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), 4),
-                                                            (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), 16)])
-    def test_load_map_and_pixel(self, reader_configs, fh_param, expected_res_n,calibration):
+                                                              (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), 4),
+                                                              (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), 4),
+                                                              (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), 16),
+                                                              (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), 4),
+                                                              (
+                                                              lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), 16)])
+    def test_load_map_and_pixel(self, reader_configs, fh_param, expected_res_n, calibration):
         """Test loading of index_map and pixel_quality."""
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         res = reader.load(
@@ -925,7 +957,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                  fh_param["channels"]["solar_grid_type"] +
                                  fh_param["channels"]["terran_grid_type"]):
             assert res[f"{ch}_{calibration}"].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
-                                                    GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+                                                        GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             if calibration == "index_map":
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 110)
             elif calibration == "pixel_quality":
@@ -933,29 +965,28 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
-    (calibration, channel, resolution)
-    for calibration in ["index_map","pixel_quality"]
-    for channel, resolution in generate_parameters(calibration)
+        (calibration, channel, resolution)
+        for calibration in ["index_map", "pixel_quality"]
+        for channel, resolution in generate_parameters(calibration)
     ])
-    def test_load_map_and_pixel_af(self,FakeFCIFileHandlerAF_fixture,reader_configs,channel,calibration):
+    def test_load_map_and_pixel_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, calibration):
         """Test loading with of index_map and pixel_quality for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         type_ter = self._get_type_ter_AF(channel)
         res = reader.load([f"{name}_{calibration}"
-                for name in fh_param["channels"][type_ter]], pad_data=False)
+                           for name in fh_param["channels"][type_ter]], pad_data=False)
         assert expected_res_n == len(res)
         for ch, grid_type in zip(fh_param["channels"][type_ter],
                                  fh_param["channels"][f"{type_ter}_grid_type"]):
             assert res[f"{ch}_{calibration}"].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
-                                     GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
+                                                        GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             if calibration == "index_map":
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 110)
             elif calibration == "pixel_quality":
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 3)
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
-
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
@@ -974,10 +1005,10 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             assert res[aux].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                       GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             if (aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance") and ("IQTI" not in
-            fh_param["filenames"][0]):
+                                                                                      fh_param["filenames"][0]):
                 numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
             elif aux == fh_param["channels"]["solar"][0] + "_earth_sun_distance":
-                numpy.testing.assert_array_equal(res[aux][1,1], np.nan)
+                numpy.testing.assert_array_equal(res[aux][1, 1], np.nan)
             else:
                 numpy.testing.assert_array_equal(res[aux][1, 1], 10)
 
@@ -998,69 +1029,97 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         res = reader.load(["vis_06"], pad_data=False)
         assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
 
+    @pytest.mark.parametrize(("fh_param", "compare_tuples"),
+                             [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), (67, 10,
+                                                                                 datetime.datetime.strptime(
+                                                                                     "2017-04-10 11:30:00",
+                                                                                     "%Y-%m-%d %H:%M:%S"),
+                                                                                 datetime.datetime.strptime(
+                                                                                     "2017-04-10 11:40:00",
+                                                                                     "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), (67, 10,
+                                                                                datetime.datetime.strptime(
+                                                                                    "2017-04-10 11:30:00",
+                                                                                    "%Y-%m-%d %H:%M:%S"),
+                                                                                datetime.datetime.strptime(
+                                                                                    "2017-04-10 11:40:00",
+                                                                                    "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"), (29, 2.5,
+                                                                                  datetime.datetime.strptime(
+                                                                                      "2023-07-22 12:00:00",
+                                                                                      "%Y-%m-%d %H:%M:%S"),
+                                                                                  datetime.datetime.strptime(
+                                                                                      "2023-07-22 12:02:30",
+                                                                                      "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"), (29, 2.5,
+                                                                                   datetime.datetime.strptime(
+                                                                                       "2023-07-22 12:00:00",
+                                                                                       "%Y-%m-%d %H:%M:%S"),
+                                                                                   datetime.datetime.strptime(
+                                                                                       "2023-07-22 12:02:30",
+                                                                                       "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"), (1, 10,
+                                                                                    datetime.datetime.strptime(
+                                                                                        "2023-10-16 12:50:00",
+                                                                                        "%Y-%m-%d %H:%M:%S"),
+                                                                                    datetime.datetime.strptime(
+                                                                                        "2023-10-16 13:00:00",
+                                                                                        "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), (1, 10,
+                                                                                     datetime.datetime.strptime(
+                                                                                         "2023-10-16 12:50:00",
+                                                                                         "%Y-%m-%d %H:%M:%S"),
+                                                                                     datetime.datetime.strptime(
+                                                                                         "2023-10-16 13:00:00",
+                                                                                         "%Y-%m-%d %H:%M:%S"))),
+                              ])
+    def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param, compare_tuples):
+        """Test the rc_period_min value for each configuration."""
+        self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"], fh_param,
+                                                          reader_configs, compare_tuples)
 
-    @pytest.mark.parametrize(("fh_param","compare_tuples"),
-                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"),(67,10,
-                                        datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S"))),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"),(67,10,
-                                        datetime.datetime.strptime("2017-04-10 11:30:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2017-04-10 11:40:00", "%Y-%m-%d %H:%M:%S"))),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture"),(29,2.5,
-                                        datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S"))),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture"),(29,2.5,
-                                        datetime.datetime.strptime("2023-07-22 12:00:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-07-22 12:02:30", "%Y-%m-%d %H:%M:%S"))),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture"),(1,10,
-                                        datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S"))),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"),(1,10,
-                                        datetime.datetime.strptime("2023-10-16 12:50:00", "%Y-%m-%d %H:%M:%S"),
-                                        datetime.datetime.strptime("2023-10-16 13:00:00", "%Y-%m-%d %H:%M:%S"))),
-                                                                                              ])
-    def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param,compare_tuples):
-        """Test the rc_period_min value for each configurations."""
-        self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"],fh_param,
-                        reader_configs,compare_tuples)
-
-    @pytest.mark.parametrize(("channel","resolution","compare_tuples"),
-                            [("vis_06","3km",(0,10,
-                              datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
-                              datetime.datetime.strptime("2024-01-09 08:10:00", "%Y-%m-%d %H:%M:%S")))])
+    @pytest.mark.parametrize(("channel", "resolution", "compare_tuples"),
+                             [("vis_06", "3km", (1, 10,
+                                                 datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
+                                                 datetime.datetime.strptime("2024-01-09 08:10:00",
+                                                                            "%Y-%m-%d %H:%M:%S"))),
+                              ("vis_06", "1km", (1, 10,
+                                                 datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
+                                                 datetime.datetime.strptime("2024-01-09 08:10:00",
+                                                                            "%Y-%m-%d %H:%M:%S")))
+                              ])
     def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                      channel,compare_tuples):
-        """Test the rc_period_min value for each configurations."""
+                                                    channel, resolution, compare_tuples):
+        """Test the rc_period_min value for each configuration."""
         fh_param = FakeFCIFileHandlerAF_fixture
-        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}",fh_param,
-                        reader_configs,compare_tuples)
+        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}_{resolution}", fh_param,
+                                                          reader_configs, compare_tuples)
 
     @pytest.mark.parametrize(("fh_param"),
-                                          [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
-                                          (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
-                                                                                              ])
+                             [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
+                              (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
+                              (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
+                              (lazy_fixture("FakeFCIFileHandlerFDHSIQ4_fixture")),
+                              (lazy_fixture("FakeFCIFileHandlerHRFIIQTI_fixture")),
+                              (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture")),
+                              ])
     def test_compute_earth_sun_parameter(self, reader_configs, fh_param):
         """Test the computation of the sun_earth_parameter."""
-        self._compare_sun_earth_distance(fh_param["filetype"],fh_param,reader_configs)
+        self._compare_sun_earth_distance(fh_param["filetype"], fh_param, reader_configs)
 
-
-    @pytest.mark.parametrize(("channel","resolution"),[("vis_06","3km")])
+    @pytest.mark.parametrize(("channel", "resolution"), [("vis_06", "3km"),
+                                                         ("vis_06", "1km")])
     def test_compute_earth_sun_parameter_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                      channel):
-        """Test the rc_period_min value for each configurations."""
+                                            channel, resolution):
+        """Test the rc_period_min value for each configuration."""
         fh_param = FakeFCIFileHandlerAF_fixture
-        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}",fh_param,reader_configs)
+        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}_{resolution}", fh_param, reader_configs)
 
     @pytest.mark.parametrize(("fh_param"), [(lazy_fixture("FakeFCIFileHandlerFDHSIError_fixture"))])
     def test_rc_period_min_error(self, reader_configs, fh_param):
         """Test the rc_period_min error."""
         with pytest.raises(NotImplementedError):
             _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-
 
     @pytest.mark.parametrize(("fh_param", "expected_area"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), ["mtg_fci_fdss_1km", "mtg_fci_fdss_2km"]),

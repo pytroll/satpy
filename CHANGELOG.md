@@ -1,3 +1,40 @@
+## Version 0.51.0 (2024/08/15)
+
+### Issues Closed
+
+* [Issue 2881](https://github.com/pytroll/satpy/issues/2881) - seviri_l2_grib-reader support for filename patterns of files coming from EUMETCast-Europe ([PR 2882](https://github.com/pytroll/satpy/pull/2882) by [@fwfichtner](https://github.com/fwfichtner))
+* [Issue 2877](https://github.com/pytroll/satpy/issues/2877) - NWCSAF GEO images black with numpy 2
+* [Issue 2872](https://github.com/pytroll/satpy/issues/2872) - nwcsaf-geo reader turns uint8 into int64 on numpy 2.0 ([PR 2874](https://github.com/pytroll/satpy/pull/2874) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2859](https://github.com/pytroll/satpy/issues/2859) - LI L2 Accumulated products retrieved from archive ("ARC" 10-min files) have faulty reading ([PR 2867](https://github.com/pytroll/satpy/pull/2867) by [@ameraner](https://github.com/ameraner))
+* [Issue 2836](https://github.com/pytroll/satpy/issues/2836) - Confusing documentation for creating a Scene without a filename or reader ([PR 2868](https://github.com/pytroll/satpy/pull/2868) by [@joleenf](https://github.com/joleenf))
+
+In this release 5 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2876](https://github.com/pytroll/satpy/pull/2876) - Fix AWIPS tiled writer handling of odd units in VIIRS EDR products
+* [PR 2874](https://github.com/pytroll/satpy/pull/2874) - Avoid accidental NWCSAF-GEO type promotion ([2872](https://github.com/pytroll/satpy/issues/2872))
+* [PR 2867](https://github.com/pytroll/satpy/pull/2867) - Fix LI L2 reader for accumulated products from archive ([2859](https://github.com/pytroll/satpy/issues/2859))
+* [PR 2866](https://github.com/pytroll/satpy/pull/2866) - Fix FCI L1c reader for African products
+
+#### Features added
+
+* [PR 2882](https://github.com/pytroll/satpy/pull/2882) - support FIRG file-patterns coming from EUMETCast-Europe ([2881](https://github.com/pytroll/satpy/issues/2881))
+* [PR 2867](https://github.com/pytroll/satpy/pull/2867) - Fix LI L2 reader for accumulated products from archive ([2859](https://github.com/pytroll/satpy/issues/2859))
+* [PR 2863](https://github.com/pytroll/satpy/pull/2863) - Adapt the SEVIRI native format reader in Satpy to support remote reading
+* [PR 2862](https://github.com/pytroll/satpy/pull/2862) - Update thresholds for FCI geo_color low-level cloud layer
+* [PR 2843](https://github.com/pytroll/satpy/pull/2843) - feat: Enable to read for the Q4 coverage and the IQTI files for the fci l1c data
+* [PR 1916](https://github.com/pytroll/satpy/pull/1916) - Add Gld360 ualf2 reader
+
+#### Documentation changes
+
+* [PR 2868](https://github.com/pytroll/satpy/pull/2868) - Clarify Scene Documentation without Readers ([2836](https://github.com/pytroll/satpy/issues/2836))
+
+In this release 11 pull requests were closed.
+
+
 ## Version 0.50.0 (2024/07/26)
 
 ### Issues Closed
