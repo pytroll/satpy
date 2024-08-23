@@ -47,7 +47,7 @@ HTYPE_TO_DTYPE = {
 }
 
 
-def from_sds(var, src_path, *args, **kwargs):
+def from_sds(var, src_path, **kwargs):
     """Create a dask array from a SD dataset."""
     var_info = var.info()
     var.__dict__["dtype"] = np.dtype(HTYPE_TO_DTYPE[var_info[3]])
@@ -58,8 +58,6 @@ def from_sds(var, src_path, *args, **kwargs):
     if name is None:
         var_name = var_info[0]
         tokenize_args = (os.fspath(src_path), var_name)
-        if args:
-            tokenize_args += (args,)
         if kwargs:
             tokenize_args += (kwargs,)
         # put variable name in the front for easier dask debugging
