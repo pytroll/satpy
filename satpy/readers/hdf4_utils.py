@@ -62,7 +62,7 @@ def from_sds(var, src_path, **kwargs):
             tokenize_args += (kwargs,)
         # put variable name in the front for easier dask debugging
         name = var_name + "-" + tokenize(*tokenize_args)
-    return da.from_array(var, *args, name=name, **kwargs)
+    return da.from_array(var, name=name, **kwargs)
 
 
 class HDF4FileHandler(BaseFileHandler):
