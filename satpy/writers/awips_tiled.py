@@ -246,6 +246,7 @@ UNIT_CONV = {
     "percent": "%",
     "Kelvin": "kelvin",
     "K": "kelvin",
+    "Meter": "meters",
 }
 
 TileInfo = namedtuple("TileInfo", ["tile_count", "image_shape", "tile_shape",
