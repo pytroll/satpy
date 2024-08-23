@@ -216,7 +216,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
         dataset = self._read_dataset_in_file(dataset_name)
         chunks = self._chunks_for_variable(dataset)
-        dask_arr = from_sds(dataset, chunks=chunks)
+        dask_arr = from_sds(dataset, self.filename, chunks=chunks)
         dims = ("y", "x") if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())

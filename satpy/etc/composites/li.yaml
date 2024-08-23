@@ -1,5 +1,8 @@
 ---
-sensor_name: visir/li
+# we use li only here, and not visir/li, since the second can cause dependency issues when creating composites
+# combined with imagers in a multi-reader Scene. visir composites do not apply to LI anyway.
+sensor_name: li
+
 # these are tentative recipes that will need to be further tuned as we gain experience with LI data
 composites:
   acc_flash:
