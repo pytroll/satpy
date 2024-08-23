@@ -18,10 +18,12 @@
 """Helpers for reading hdf4-based files."""
 
 import logging
+import os
 
 import dask.array as da
 import numpy as np
 import xarray as xr
+from dask.base import tokenize
 from pyhdf.SD import SD, SDC, SDS
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -45,12 +47,22 @@ HTYPE_TO_DTYPE = {
 }
 
 
-def from_sds(var, *args, **kwargs):
+def from_sds(var, src_path, **kwargs):
     """Create a dask array from a SD dataset."""
-    var.__dict__["dtype"] = np.dtype(HTYPE_TO_DTYPE[var.info()[3]])
-    shape = var.info()[2]
+    var_info = var.info()
+    var.__dict__["dtype"] = np.dtype(HTYPE_TO_DTYPE[var_info[3]])
+    shape = var_info[2]
     var.__dict__["shape"] = shape if isinstance(shape, (tuple, list)) else tuple(shape)
-    return da.from_array(var, *args, **kwargs)
+
+    name = kwargs.pop("name", None)
+    if name is None:
+        var_name = var_info[0]
+        tokenize_args = (os.fspath(src_path), var_name)
+        if kwargs:
+            tokenize_args += (kwargs,)
+        # put variable name in the front for easier dask debugging
+        name = var_name + "-" + tokenize(*tokenize_args)
+    return da.from_array(var, name=name, **kwargs)
 
 
 class HDF4FileHandler(BaseFileHandler):
@@ -92,7 +104,7 @@ class HDF4FileHandler(BaseFileHandler):
 
     def _open_xarray_dataset(self, val, chunks=CHUNK_SIZE):
         """Read the band in blocks."""
-        dask_arr = from_sds(val, chunks=chunks)
+        dask_arr = from_sds(val, self.filename, chunks=chunks)
         attrs = val.attributes()
         return xr.DataArray(dask_arr, dims=("y", "x"),
                             attrs=attrs)
