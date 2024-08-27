@@ -13,7 +13,7 @@ file_types:
     file_reader: !!python/name:satpy.readers.iasi_ng_l2_nc.IASINGL2NCFileHandler
     file_patterns:
       [
-        "{pflag}_{country}-{organization}-{location},{data_designator},{spacecraft}-{instrument}-{processing_level}-{product_type}_{oflag}_{originator}_{generation_time}_{mission_type}_{environment}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text1}_{free_text2}_{free_text3}_{extension}.nc",
+        "{pflag}_{country}-{organization}-{location},{data_designator},{spacecraft}-{instrument}-{processing_level}-{product_type:3s}_{oflag}_{originator}_{generation_time}_{mission_type}_{environment}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text1}_{free_text2}_{free_text3}_{extension}.nc",
       ]
 
     ignored_patterns:

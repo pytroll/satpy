@@ -341,12 +341,16 @@ class TestIASINGL2NCReader:
 
     def test_real_filename_matching(self):
         """Test that we will match an actual IASI NG L2 product file name."""
-        # Below we test the TWV,CLD,GHG and SFC products:
-        ptypes = ["TWV", "CLD", "GHG", "SFC"]
-        filenames = [f"{self.file_prefix}-{ptype}_{self.file_suffix}" for ptype in ptypes]
+        # Below we test the TWV,CLD,GHG,SFC,O3_ and CO_ products:
+        ptypes = ["TWV", "CLD", "GHG", "SFC", "O3_", "CO_"]
 
-        for filename in filenames:
-            self._create_file_handler(filename)
+        for ptype in ptypes:
+            filename = f"{self.file_prefix}-{ptype}_{self.file_suffix}"
+            handler = self._create_file_handler(filename)
+
+            assert handler.filename_info["oflag"] == "C"
+            assert handler.filename_info["originator"] == "EUMT"
+            assert handler.filename_info["product_type"] == ptype
 
     def test_sensing_times(self, twv_handler):
         """Test that we read the sensing start/end times correctly from filename."""
