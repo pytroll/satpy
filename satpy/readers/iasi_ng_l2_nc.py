@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-r"""IASI-NG L2 reader implementation.
+"""IASI-NG L2 reader implementation.
 
 This reader supports reading all the products from the IASI-NG L2 processing
 level:
