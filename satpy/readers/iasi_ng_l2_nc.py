@@ -18,12 +18,13 @@
 
 This reader supports reading all the products from the IASI-NG L2 processing
 level:
-  * IASI-L2-TWV
-  * IASI-L2-CLD
-  * IASI-L2-GHG
-  * IASI-L2-SFC
-  * IASI-L2-O3_
-  * IASI-L2-CO_
+
+* IASI-L2-TWV
+* IASI-L2-CLD
+* IASI-L2-GHG
+* IASI-L2-SFC
+* IASI-L2-O3
+* IASI-L2-CO
 """
 
 import logging
