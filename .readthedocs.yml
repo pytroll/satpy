@@ -18,5 +18,8 @@ build:
       - git fetch --tags
     pre_install:
       - git update-index --assume-unchanged doc/rtd_environment.yml doc/source/conf.py
+    pre_build:
+      - cd doc/source
+      - python generate_area_def_list.py
 conda:
   environment: doc/rtd_environment.yml

@@ -16,7 +16,7 @@ dependencies:
   - numpy
   - pillow
   - pooch
-  - pyresample
+#  - pyresample
   - pytest
   - python-eccodes
   - python-geotiepoints
@@ -31,8 +31,9 @@ dependencies:
   - xarray
   - zarr
   - xarray-datatree
-  - cartopy
+  - geoviews
   - pip:
     - graphviz
     - pytest-lazy-fixtures
+    - git+https://github.com/djhoese/pyresample.git@feat-html-bokeh
     - ..  # relative path to the satpy project
