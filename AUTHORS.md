@@ -67,6 +67,7 @@ The following people have made contributions to this project:
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
+- [Emmanuel Roche (roche-emmanuel)](https://github.com/roche-emmanuel)
 - [Benjamin Rösner (BENR0)](https://github.com/BENR0)
 - [Pascale Roquet (roquetp)](https://github.com/roquetp)
 - [Kristian Rune Larsen](https://github.com/)
