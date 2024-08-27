@@ -22,6 +22,8 @@ level:
   * IASI-L2-CLD
   * IASI-L2-GHG
   * IASI-L2-SFC
+  * IASI-L2-O3_
+  * IASI-L2-CO_
 """
 
 import logging
