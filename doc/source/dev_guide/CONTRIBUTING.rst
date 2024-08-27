@@ -1,1 +1,1 @@
-../../../CONTRIBUTING.rs
+../../../CONTRIBUTING.rst
