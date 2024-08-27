@@ -117,7 +117,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         var_attrs = subdata.attributes()
         uncertainty = self.sd.select(var_name + "_Uncert_Indexes")
         chunks = self._chunks_for_variable(subdata)
-        array = xr.DataArray(from_sds(subdata, chunks=chunks)[band_index, :, :],
+        array = xr.DataArray(from_sds(subdata, self.filename, chunks=chunks)[band_index, :, :],
                              dims=["y", "x"]).astype(np.float32)
         valid_range = var_attrs["valid_range"]
         valid_min = np.float32(valid_range[0])
@@ -214,7 +214,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         if not self._mask_saturated:
             return array
         uncertainty_chunks = self._chunks_for_variable(uncertainty)
-        band_uncertainty = from_sds(uncertainty, chunks=uncertainty_chunks)[band_index, :, :]
+        band_uncertainty = from_sds(uncertainty, self.filename, chunks=uncertainty_chunks)[band_index, :, :]
         array = array.where(band_uncertainty < 15)
         return array
 
