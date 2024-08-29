@@ -65,6 +65,9 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
             "/attr/orbit_number": 26384,
             "/attr/instrument": "VIIRS",
             "/attr/platform": "Suomi-NPP",
+            "/attr/DayNightFlag": "Day",
+            "/attr/startDirection": "Descending",
+            "/attr/endDirection": "Ascending",
         }
         self._fill_contents_with_default_data(file_content, file_type)
         self._set_dataset_specific_metadata(file_content)
@@ -271,6 +274,9 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["day_night"] == "Day"
+            assert v.attrs["start_direction"] == "Descending"
+            assert v.attrs["end_direction"] == "Ascending"
 
     def test_load_i_band_angles(self):
         """Test loading all M bands as radiances."""
