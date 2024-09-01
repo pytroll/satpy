@@ -19,6 +19,6 @@ build:
     pre_install:
       - git update-index --assume-unchanged doc/rtd_environment.yml doc/source/conf.py
     pre_build:
-      - cd doc/source && python generate_area_def_list.py
+      - cd doc/source && if [[ $READTHEDOCS_VERSION =~ latest|stable ]]; then python generate_area_def_list.py; else touch area_def_list.rst; fi
 conda:
   environment: doc/rtd_environment.yml
