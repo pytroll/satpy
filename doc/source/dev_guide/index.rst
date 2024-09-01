@@ -134,7 +134,3 @@ After editing the source files there the documentation can be generated locally:
     make html
 
 The output of the make command should be checked for warnings and errors.
-If code has been changed (new functions or classes) then the API documentation
-files should be regenerated before running the above command::
-
-    sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests
