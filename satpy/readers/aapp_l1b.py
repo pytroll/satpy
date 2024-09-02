@@ -300,7 +300,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
     def _get_coordinates_in_degrees(self):
         position_data = self._data["pos"].astype(np.float32)
-        lons40km =  position_data[:, :, 1] * 1e-4
+        lons40km = position_data[:, :, 1] * 1e-4
         lats40km = position_data[:, :, 0] * 1e-4
 
         return lons40km, lats40km
@@ -588,11 +588,11 @@ def _vis_calibrate(data,
         slope2 = da.from_array(calib_coeffs[2], chunks=line_chunks)
         intercept2 = da.from_array(calib_coeffs[3], chunks=line_chunks)
     else:
-        calvis = data["calvis"].astype(np.float32)
-        slope1 = da.from_array(calvis[:, chn, coeff_idx, 0] * 1e-10, chunks=line_chunks)
-        intercept1 = da.from_array(calvis[:, chn, coeff_idx, 1] * 1e-7, chunks=line_chunks)
-        slope2 = da.from_array(calvis[:, chn, coeff_idx, 2] * 1e-10, chunks=line_chunks)
-        intercept2 = da.from_array(calvis[:, chn, coeff_idx, 3] * 1e-7, chunks=line_chunks)
+        calvis = data["calvis"]
+        slope1 = da.from_array(calvis[:, chn, coeff_idx, 0], chunks=line_chunks).astype(np.float32) * 1e-10
+        intercept1 = da.from_array(calvis[:, chn, coeff_idx, 1], chunks=line_chunks).astype(np.float32) * 1e-7
+        slope2 = da.from_array(calvis[:, chn, coeff_idx, 2], chunks=line_chunks).astype(np.float32) * 1e-10
+        intercept2 = da.from_array(calvis[:, chn, coeff_idx, 3], chunks=line_chunks).astype(np.float32) * 1e-7
 
         # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
         # them to real numbers which are applied to the measured counts. The coefficient is different depending on
@@ -631,10 +631,10 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
     mask &= count != 0
     count = count.astype(CHANNEL_DTYPE)
 
-    calir = data["calir"].astype(np.float32)
-    k1_ = da.from_array(calir[:, irchn, 0, 0] * 1.0e-9, chunks=line_chunks)
-    k2_ = da.from_array(calir[:, irchn, 0, 1] * 1.0e-6, chunks=line_chunks)
-    k3_ = da.from_array(calir[:, irchn, 0, 2] * 1.0e-6, chunks=line_chunks)
+    calir = data["calir"]
+    k1_ = da.from_array(calir[:, irchn, 0, 0], chunks=line_chunks).astype(np.float32) * 1.0e-9
+    k2_ = da.from_array(calir[:, irchn, 0, 1], chunks=line_chunks).astype(np.float32) * 1.0e-6
+    k3_ = da.from_array(calir[:, irchn, 0, 2], chunks=line_chunks).astype(np.float32) * 1.0e-6
 
     # Count to radiance conversion:
     rad = k1_[:, None] * count * count + k2_[:, None] * count + k3_[:, None]
