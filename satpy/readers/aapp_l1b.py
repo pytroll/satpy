@@ -646,15 +646,17 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
         mask &= rad > 0.0
         return da.where(mask, rad, np.nan)
 
+    radtempcnv = header["radtempcnv"].astype(np.float32)
+
     # Central wavenumber:
-    cwnum = header["radtempcnv"][0, irchn, 0]
+    cwnum = radtempcnv[0, irchn, 0]
     if irchn == 0:
         cwnum = cwnum / 1.0e2
     else:
         cwnum = cwnum / 1.0e3
 
-    bandcor_2 = header["radtempcnv"][0, irchn, 1] / 1e5
-    bandcor_3 = header["radtempcnv"][0, irchn, 2] / 1e6
+    bandcor_2 = radtempcnv[0, irchn, 1] / 1e5
+    bandcor_3 = radtempcnv[0, irchn, 2] / 1e6
 
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833
