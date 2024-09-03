@@ -19,6 +19,7 @@ at the pages listed below.
     satpy_internals
     aux_data
     writing_tests
+    testing
 
 Coding guidelines
 =================
@@ -72,7 +73,7 @@ All the required dependencies for a full development environment, i.e. running t
 tests and building the documentation, can be installed with::
 
     conda install eccodes
-    pip install -e ".[all]"
+    pip install -e ".[dev]"
 
 Running tests
 =============
@@ -125,7 +126,7 @@ Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. For building the documentation,
 additional packages are needed. These can be installed with ::
 
-    pip install -e ".[all]"
+    pip install -e ".[doc]"
 
 After editing the source files there the documentation can be generated locally::
 
@@ -133,7 +134,3 @@ After editing the source files there the documentation can be generated locally:
     make html
 
 The output of the make command should be checked for warnings and errors.
-If code has been changed (new functions or classes) then the API documentation
-files should be regenerated before running the above command::
-
-    sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests

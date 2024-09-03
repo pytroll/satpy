@@ -15,15 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Base HDF-EOS reader."""
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import re
 from ast import literal_eval
 from contextlib import suppress
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -182,7 +183,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGTIME"]["VALUE"])
-            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
         except KeyError:
             return self._start_time_from_filename()
 
@@ -195,7 +196,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGTIME"]["VALUE"])
-            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
         except KeyError:
             return self.start_time
 
@@ -215,7 +216,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
         dataset = self._read_dataset_in_file(dataset_name)
         chunks = self._chunks_for_variable(dataset)
-        dask_arr = from_sds(dataset, chunks=chunks)
+        dask_arr = from_sds(dataset, self.filename, chunks=chunks)
         dims = ("y", "x") if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())

@@ -1,0 +1,159 @@
+reader:
+  name: gld360_ualf2
+  short_name: gld360_ualf2
+  long_name: Vaisala GLD360 UALF2
+  description: Vaisala GLD360 reader for Universal ASCII Lightning Format 2.
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [gld360]
+
+file_types:
+  gld360:
+    file_reader: !!python/name:satpy.readers.gld360_ualf2.VaisalaGld360Ualf2FileHandler
+    file_patterns: ['{start_time:%Y.%m.%d.%H.%M}.txt']
+
+datasets:
+  time:
+    name: time
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  ualf_record_type:
+    name: ualf_record_type
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  network_type:
+    name: network_type
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  latitude:
+    name: latitude
+    sensor: gld360
+    file_type: gld360
+    units: degree_north
+    standard_name: latitude
+
+  longitude:
+    name: longitude
+    sensor: gld360
+    file_type: gld360
+    units: degree_east
+    standard_name: longitude
+
+  altitude:
+    name: altitude
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  altitude_uncertainty:
+    name: altitude_uncertainty
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  peak_current:
+    name: peak_current
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  vhf_range:
+    name: vhf_range
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  multiplicity_flash:
+    name: multiplicity_flash
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  cloud_pulse_count:
+    name: cloud_pulse_count
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  number_of_sensors:
+    name: number_of_sensors
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  degree_freedom_for_location:
+    name: degree_freedom_for_location
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  error_ellipse_angle:
+    name: error_ellipse_angle
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  error_ellipse_max_axis_length:
+    name: error_ellipse_max_axis_length
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  error_ellipse_min_axis_length:
+    name: error_ellipse_min_axis_length
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  chi_squared_value_location_optimization:
+    name: chi_squared_value_location_optimization
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  wave_form_rise_time:
+    name: wave_form_rise_time
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  wave_form_peak_to_zero_time:
+    name: wave_form_peak_to_zero_time
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  wave_form_max_rate_of_rise:
+    name: wave_form_max_rate_of_rise
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  cloud_indicator:
+    name: cloud_indicator
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  angle_indicator:
+    name: angle_indicator
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  signal_indicator:
+    name: signal_indicator
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]
+
+  timing_indicator:
+    name: timing_indicator
+    sensor: gld360
+    file_type: gld360
+    coordinates: [ longitude, latitude ]

@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The abi_l1b reader tests package."""
+
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
 from pathlib import Path
 from typing import Any, Callable
 from unittest import mock
@@ -29,7 +31,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 import xarray as xr
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import DataQuery
 from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -372,8 +374,8 @@ class Test_NC_ABI_L1B:
             "timeline_ID": None,
             "suffix": "suffix",
             "units": "W m-2 um-1 sr-1",
-            "start_time": datetime(2017, 9, 20, 17, 30, 40, 800000),
-            "end_time": datetime(2017, 9, 20, 17, 41, 17, 500000),
+            "start_time": dt.datetime(2017, 9, 20, 17, 30, 40, 800000),
+            "end_time": dt.datetime(2017, 9, 20, 17, 41, 17, 500000),
         }
 
         res = c01_data_arr

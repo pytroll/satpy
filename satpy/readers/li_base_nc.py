@@ -371,6 +371,9 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         azimuth = azimuth.values * point_height
         elevation = elevation.values * point_height
 
+        # In the MTG world, azimuth is defined as positive towards west, while proj expects it positive towards east
+        azimuth *= -1
+
         lon, lat = projection(azimuth, elevation, inverse=True)
 
         return np.stack([lon.astype(azimuth.dtype), lat.astype(elevation.dtype)])

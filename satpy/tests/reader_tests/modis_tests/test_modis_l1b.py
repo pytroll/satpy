@@ -22,7 +22,7 @@ from __future__ import annotations
 import dask
 import numpy as np
 import pytest
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import Scene, available_readers
 from satpy.tests.utils import CustomScheduler, make_dataid

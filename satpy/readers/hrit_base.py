@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """HRIT/LRIT format reader.
 
 This module is the base module for all HRIT-based formats. Here, you will find
@@ -28,10 +29,10 @@ temporary directory for reading.
 
 """
 
+import datetime as dt
 import logging
 import os
 from contextlib import contextmanager, nullcontext
-from datetime import timedelta
 from io import BytesIO
 from subprocess import PIPE, Popen  # nosec B404
 
@@ -176,7 +177,7 @@ class HRITFileHandler(BaseFileHandler):
         self.hdr_info = hdr_info
         self._get_hd(self.hdr_info)
         self._start_time = filename_info["start_time"]
-        self._end_time = self._start_time + timedelta(minutes=15)
+        self._end_time = self._start_time + dt.timedelta(minutes=15)
 
     def _get_hd(self, hdr_info):
         """Open the file, read and get the basic file header info and set the mda dictionary."""

@@ -1,6 +1,7 @@
 """Tests for the Insat3D reader."""
+
+import datetime as dt
 import os
-from datetime import datetime
 
 import dask.array as da
 import h5netcdf
@@ -72,8 +73,8 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
-start_time = datetime(2009, 6, 9, 9, 0)
-end_time = datetime(2009, 6, 9, 9, 30)
+start_time = dt.datetime(2009, 6, 9, 9, 0)
+end_time = dt.datetime(2009, 6, 9, 9, 30)
 subsatellite_longitude = 82
 
 time_pattern = "%d-%b-%YT%H:%M:%S"

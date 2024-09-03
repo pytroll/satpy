@@ -47,7 +47,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
         self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
         self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
-        self._integrated_solar_irradiance = self["data/calibration_data/Band_averaged_solar_irradiance"].values
+        self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
         # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
         # (the values in the product file are on tie points and in degrees,
         # therefore interpolation and conversion to radians are required)
