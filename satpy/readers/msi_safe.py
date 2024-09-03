@@ -83,7 +83,6 @@ class SAFEMSIL1C(BaseFileHandler):
         if proj is None:
             return
         proj.attrs = info.copy()
-        proj.attrs["units"] = "%"
         proj.attrs["platform_name"] = self.platform_name
         return proj
 
