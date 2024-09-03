@@ -452,24 +452,28 @@ def is_high_resol(resolution):
 class DatasetWrapper:
     """Helper class for accessing the dataset."""
 
-    def __init__(self, nc, decode_nc=True):
+    def __init__(self, nc):
         """Wrap the given dataset."""
         self.nc = nc
 
-        if decode_nc is True:
-            self._decode_cf()
-            self._fix_duplicate_dimensions(self.nc)
-            self.nc = self._chunk(self.nc)
+        self._decode_cf()
+        self._fix_duplicate_dimensions(self.nc)
+        self.nc = self._chunk(self.nc)
 
     def _decode_cf(self):
         # remove time before decoding and add again.
+        time_dims, time = self._decode_time()
+        self.nc = self.nc.drop_vars(time.name)
+        self.nc = xr.decode_cf(self.nc)
+        self.nc[time.name] = (time_dims, time.values)
+
+    def _decode_time(self):
         time = self.get_time()
         time_dims = self.nc[time.name].dims
         time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
                         (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
-        self.nc = self.nc.drop_vars(time.name)
-        self.nc = xr.decode_cf(self.nc)
-        self.nc[time.name] = (time_dims, time.values)
+
+        return (time_dims, time)
 
     def _fix_duplicate_dimensions(self, nc):
         nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")

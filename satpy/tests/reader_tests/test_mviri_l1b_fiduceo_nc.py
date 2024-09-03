@@ -584,7 +584,7 @@ class TestDatasetWrapper:
             data_vars={"covariance_spectral_response_function_vis":
                       (("srf_size", "srf_size"), [[1, 2], [3, 4]])}
         )
-        foo_ds = DatasetWrapper(foo, decode_nc=False)
+        foo_ds = DatasetWrapper(foo)
         foo_ds._fix_duplicate_dimensions(foo_ds.nc)
 
         foo_exp = xr.Dataset(
@@ -628,7 +628,7 @@ class TestDatasetWrapper:
                 "x": [.3, .4]
             }
         )
-        ds = DatasetWrapper(nc, decode_nc=False)
+        ds = DatasetWrapper(nc)
         foo = ds["foo"]
         xr.testing.assert_equal(foo, foo_exp)
 
