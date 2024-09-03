@@ -92,7 +92,9 @@ class SAFEMSIL1C(BaseFileHandler):
         if key["calibration"] == "reflectance":
             return self._mda.calibrate_to_reflectances(proj, self._channel)
         if key["calibration"] == "radiance":
-            return self._mda.calibrate_to_radiances(proj, self._channel)
+            # The calibration procedure differs for L1B and L1C/L2A data!
+            if self.process_level == "L1B":
+                return self._mda.calibrate_to_radiances(proj, self._channel)
         if key["calibration"] == "counts":
             return self._mda._sanitize_data(proj)
         if key["calibration"] in ["aerosol_thickness", "water_vapor"]:
@@ -218,7 +220,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         """Get the saturated value from the metadata."""
         return self.special_values["SATURATED"]
 
-    def calibrate_to_radiances(self, data, band_name):
+    def calibrate_to_radiances_l1b(self, data, band_name):
         """Calibrate *data* to radiance using the radiometric information for the metadata."""
         physical_gain = self.physical_gain(band_name)
         data = self._sanitize_data(data)
