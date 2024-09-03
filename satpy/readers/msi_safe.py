@@ -94,7 +94,14 @@ class SAFEMSIL1C(BaseFileHandler):
         if key["calibration"] == "radiance":
             # The calibration procedure differs for L1B and L1C/L2A data!
             if self.process_level == "L1B":
-                return self._mda.calibrate_to_radiances(proj, self._channel)
+                # For L1B the radiances can be directly computed from the digital counts.
+                return self._mda.calibrate_to_radiances_l1b(proj, self._channel)
+            else:
+                # For higher level data, radiances must be computed from the reflectance.
+                # sza = self._tile_mda.get_dataset()
+                tmp_refl = self._mda.calibrate_to_reflectances(proj, self._channel)
+                return self._mda.calibrate_to_radiances(tmp_refl, self._channel)
+
         if key["calibration"] == "counts":
             return self._mda._sanitize_data(proj)
         if key["calibration"] in ["aerosol_thickness", "water_vapor"]:
@@ -203,6 +210,30 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
             band_offsets = {}
         return band_offsets
 
+    def solar_irradiance(self, band_name):
+        """Get the solar irradiance for a given *band_name*."""
+        band_index = self._band_index(band_name)
+        return self.solar_irradiances[band_index]
+
+    @cached_property
+    def solar_irradiances(self):
+        """Get the TOA solar irradiance values from the metadata."""
+        irrads = self.root.find(".//Solar_Irradiance_List")
+        if irrads is not None:
+            solar_irrad = {int(irr.attrib["bandId"]): float(irr.text) for irr in irrads}
+        else:
+            solar_irrad = {}
+        return solar_irrad
+
+    @cached_property
+    def sun_earth_dist(self):
+        """Get the sun-earth distance from the metadata."""
+        sed = self.root.find(".//U")
+        if sed is not None:
+            return float(sed.text)
+        else:
+            return -1
+
     @cached_property
     def special_values(self):
         """Get the special values from the metadata."""
@@ -225,6 +256,19 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         physical_gain = self.physical_gain(band_name)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / physical_gain
+
+    def calibrate_to_radiances(self, data, band_name):
+        """Calibrate *data* to radiance using the radiometric information for the metadata."""
+        sed = self.sun_earth_dist
+        if sed < 0.5 or sed > 1.5:
+            raise ValueError(f"Sun-Earth distance is incorrect in the metadata: {sed}")
+        solar_irrad_band = self.solar_irradiance(band_name)
+
+        solar_zenith = 32.029
+
+        solar_zenith = np.deg2rad(solar_zenith)
+
+        return (data / 100.) * solar_irrad_band * np.cos(solar_zenith) / (np.pi * sed * sed)
 
     def physical_gain(self, band_name):
         """Get the physical gain for a given *band_name*."""
