@@ -312,6 +312,8 @@ def fixture_fake_dataset():
             "sub_satellite_latitude_start": np.nan,
             "sub_satellite_latitude_end": 0.1,
             "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), cov),
+            "channel_correlation_matrix_independent": (("channel", "channel"), cov),
+            "channel_correlation_matrix_structured": (("channel", "channel"), cov)
         },
         coords={
             "y": [1, 2, 3, 4],
@@ -319,8 +321,7 @@ def fixture_fake_dataset():
             "y_ir_wv": [1, 2],
             "x_ir_wv": [1, 2],
             "y_tie": [1, 2],
-            "x_tie": [1, 2]
-
+            "x_tie": [1, 2],
         },
         attrs={"foo": "bar"}
     )
@@ -577,26 +578,28 @@ class TestDatasetWrapper:
     def test_fix_duplicate_dimensions(self):
         """Test the renaming of duplicate dimensions.
 
-        If duplicate dimensions are within the Dataset, opening the datasets with chunks throws an error.
-        Thus, the chunking needs to be done after opening the dataset and after the dimensions are renamed.
+        If duplicate dimensions are within the Dataset, opening the datasets with chunks throws a warning.
+        The dimensions need to be renamed.
         """
         foo = xr.Dataset(
-            data_vars={"covariance_spectral_response_function_vis":
-                      (("srf_size", "srf_size"), [[1, 2], [3, 4]])}
+            data_vars={
+                "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
+                       "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
+                       "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]])
+                       }
         )
         foo_ds = DatasetWrapper(foo)
         foo_ds._fix_duplicate_dimensions(foo_ds.nc)
 
         foo_exp = xr.Dataset(
-            data_vars={"covariance_spectral_response_function_vis":
-                      (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]])}
+            data_vars={
+                "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]])
+            }
         )
 
-        try:
-            foo_ds.nc.chunk("auto")
-            xr.testing.assert_allclose(foo_ds.nc, foo_exp)
-        except ValueError:
-            pytest.fail("Chunking failed.")
+        xr.testing.assert_allclose(foo_ds.nc, foo_exp)
 
     def test_reassign_coords(self):
         """Test reassigning of coordinates.

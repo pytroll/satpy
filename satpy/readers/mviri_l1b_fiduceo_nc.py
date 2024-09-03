@@ -459,9 +459,6 @@ class DatasetWrapper:
         """Wrap the given dataset."""
         self.nc = nc
 
-        self._decode_cf()
-        self._fix_duplicate_dimensions(self.nc)
-
 
     def _decode_cf(self):
         # remove time before decoding and add again.
@@ -535,6 +532,11 @@ class DatasetWrapper:
         # satpy warnings.
         ds.attrs.pop("ancillary_variables", None)
 
+    def prepare_input(self):
+        """Decode data and rename duplicate dimensions."""
+        self._decode_cf()
+        self._fix_duplicate_dimensions(self.nc)
+
     def get_time(self):
         """Get time coordinate.
 
@@ -591,6 +593,8 @@ class FiduceoMviriBase(BaseFileHandler):
         )
 
         self.nc = DatasetWrapper(nc_raw)
+        # decode times and fix duplicate dimensions
+        self.nc.prepare_input()
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
