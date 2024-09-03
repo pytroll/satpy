@@ -162,7 +162,9 @@ import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_chunk_size_limit
 
+CHUNK_SIZE = get_chunk_size_limit()
 EQUATOR_RADIUS = 6378140.0
 POLE_RADIUS = 6356755.0
 ALTITUDE = 42164000.0 - EQUATOR_RADIUS
@@ -405,6 +407,7 @@ class Interpolator:
         """
         # Compute mean timestamp per scanline
         time = time2d.mean(dim="x")
+
         # If required, repeat timestamps in y-direction to obtain higher
         # resolution
         y = time.coords["y"].values
@@ -458,7 +461,7 @@ class DatasetWrapper:
 
         self._decode_cf()
         self._fix_duplicate_dimensions(self.nc)
-        self.nc = self._chunk(self.nc)
+
 
     def _decode_cf(self):
         # remove time before decoding and add again.
@@ -478,17 +481,9 @@ class DatasetWrapper:
     def _fix_duplicate_dimensions(self, nc):
         nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
         self.nc = nc.drop_dims("srf_size")
-
-    def _chunk(self, nc):
-
-        (chunk_size_y, chunk_size_x) = nc.variables["quality_pixel_bitmask"].encoding["chunksizes"]
-        chunks = {
-            "x": chunk_size_x,
-            "y": chunk_size_y,
-            "x_ir_wv": chunk_size_x,
-            "y_ir_wv": chunk_size_y
-        }
-        return nc.chunk(chunks)
+        nc.variables["channel_correlation_matrix_independent"].dims = ("channel_1", "channel_2")
+        nc.variables["channel_correlation_matrix_structured"].dims = ("channel_1", "channel_2")
+        self.nc = nc.drop_dims("channel")
 
     @property
     def attrs(self):
@@ -586,6 +581,10 @@ class FiduceoMviriBase(BaseFileHandler):
         self.mask_bad_quality = mask_bad_quality
         nc_raw = xr.open_dataset(
             filename,
+            chunks={"x": CHUNK_SIZE,
+                    "y": CHUNK_SIZE,
+                    "x_ir_wv": CHUNK_SIZE,
+                    "y_ir_wv": CHUNK_SIZE},
             decode_cf=False,
             decode_times=False,
             mask_and_scale=False,
