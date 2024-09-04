@@ -177,7 +177,7 @@ class TestCFcoords:
             assert _is_projected(da)
         assert "Failed to tell if data are projected." in caplog.text
 
-    @pytest.fixture()
+    @pytest.fixture
     def datasets(self):
         """Create test dataset."""
         data = [[75, 2], [3, 4]]

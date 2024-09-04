@@ -132,7 +132,7 @@ def new_get_hd_compressed(instance, hdr_info):
     instance.mda["data_field_length"] = 1578312
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_hrit_file(tmp_path):
     """Create a stub hrit file."""
     filename = tmp_path / "some_hrit_file"
@@ -156,7 +156,7 @@ def create_stub_hrit(filename, open_fun=open, meta=mda):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_bzipped_hrit_file(tmp_path):
     """Create a stub bzipped hrit file."""
     filename = tmp_path / "some_hrit_file.bz2"
@@ -164,7 +164,7 @@ def stub_bzipped_hrit_file(tmp_path):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_gzipped_hrit_file(tmp_path):
     """Create a stub gzipped hrit file."""
     filename = tmp_path / "some_hrit_file.gz"
@@ -172,7 +172,7 @@ def stub_gzipped_hrit_file(tmp_path):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_compressed_hrit_file(tmp_path):
     """Create a stub compressed hrit file."""
     filename = tmp_path / "some_hrit_file.C_"

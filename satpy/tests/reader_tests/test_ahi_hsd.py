@@ -194,7 +194,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
                                                               5500000.035542117, -2200000.0142168473))
 
 
-@pytest.fixture()
+@pytest.fixture
 def hsd_file_jp01(tmp_path):
     """Create a jp01 hsd file."""
     from satpy.readers.ahi_hsd import (  # _IRCAL_INFO_TYPE,
