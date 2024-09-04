@@ -409,7 +409,7 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture()
+@pytest.fixture
 def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
     """Create a single MOD02QKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Qkm")

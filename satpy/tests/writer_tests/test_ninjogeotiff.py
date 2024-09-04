@@ -463,7 +463,7 @@ def ntg_latlon(test_image_latlon):
             SatelliteNameID=654321)
 
 
-@pytest.fixture()
+@pytest.fixture
 def _patch_datetime_now(monkeypatch):
     """Get a fake datetime.datetime.now()."""
     # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0

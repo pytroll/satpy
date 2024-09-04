@@ -74,7 +74,7 @@ local_id_keys_config = {"name": {
 real_import = builtins.__import__
 
 
-@pytest.fixture()
+@pytest.fixture
 def viirs_file(tmp_path, monkeypatch):
     """Create a dummy viirs file."""
     filename = "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
@@ -85,7 +85,7 @@ def viirs_file(tmp_path, monkeypatch):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def atms_file(tmp_path, monkeypatch):
     """Create a dummy atms file."""
     filename = "SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5"

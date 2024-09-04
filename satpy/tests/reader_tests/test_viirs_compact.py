@@ -31,7 +31,7 @@ from satpy.tests.utils import RANDOM_GEN
 # - tmp_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dnb():
     """Create fake DNB content."""
     fake_dnb = {
@@ -2419,7 +2419,7 @@ def fake_dnb():
     return fake_dnb
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dnb_file(fake_dnb, tmp_path):
     """Create an hdf5 file in viirs_compact format with DNB data in it."""
     filename = tmp_path / "SVDNBC_j01_d20191025_t0611251_e0612478_b10015_c20191025062459000870_eum_ops.h5"
