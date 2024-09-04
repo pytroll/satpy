@@ -596,14 +596,8 @@ class FiduceoMviriBase(BaseFileHandler):
         # decode times and fix duplicate dimensions
         self.nc.prepare_input()
 
-        # Projection longitude is not provided in the file, read it from the
-        # filename.
-        if "." in str(filename_info["projection_longitude"]):
-            self.projection_longitude = float(filename_info["projection_longitude"])
-        else:
-            self.projection_longitude = (
-                float(filename_info["projection_longitude"][:2] + "." + filename_info["projection_longitude"][2:])
-            )
+        self.projection_longitude = self._get_projection_longitude(filename_info)
+
         self.calib_coefs = self._get_calib_coefs()
 
         self._get_angles = functools.lru_cache(maxsize=8)(
@@ -612,6 +606,13 @@ class FiduceoMviriBase(BaseFileHandler):
         self._get_acq_time = functools.lru_cache(maxsize=3)(
             self._get_acq_time_uncached
         )
+
+    def _get_projection_longitude(self, filename_info):
+        """Read projection longitude from filename as it is not provided in the file."""
+        if "." in str(filename_info["projection_longitude"]):
+            return float(filename_info["projection_longitude"])
+        else:
+            return float(filename_info["projection_longitude"]) / 100
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
