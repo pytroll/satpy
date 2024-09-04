@@ -581,21 +581,26 @@ class TestDatasetWrapper:
         If duplicate dimensions are within the Dataset, opening the datasets with chunks throws a warning.
         The dimensions need to be renamed.
         """
+        foo_time = 60*60
+        foo_time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
+
         foo = xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
-                       "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
-                       "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]])
+                "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
+                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time, foo_time], [foo_time, foo_time]],
+                               {"_FillValue": 4294967295, "add_offset": 0})
                        }
         )
         foo_ds = DatasetWrapper(foo)
-        foo_ds._fix_duplicate_dimensions(foo_ds.nc)
 
         foo_exp = xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
-                "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]])
+                "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
+                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time_exp, foo_time_exp], [foo_time_exp, foo_time_exp]])
             }
         )
 
