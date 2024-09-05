@@ -1442,10 +1442,11 @@ def jp2_builder(process_level, band_name, mask_saturated=True):
                          process_level=process_level.replace("old", ""))
     xml_fh = xml_builder(process_level, mask_saturated, band_name)[0]
     tile_xml_fh = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
-                                   filename_info, mock.MagicMock())
+                                                         filename_info, mock.MagicMock())
     tile_xml_fh.start_time.return_value = tilemd_dt
     jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
+
 
 def make_alt_dataid(**items):
     """Make a DataID with modified keys."""
@@ -1578,26 +1579,26 @@ class TestMTDXML:
                              [
                                  ("L1C", True, "B01", ([[[np.nan, -9.99, -9.98, -9.97],
                                                          [-9.96, 0, 645.34, np.inf]]],
-                                                       [[[np.nan, -251.584265, -251.332429, -251.080593],
-                                                         [-250.828757, 0., 16251.99095, np.inf]]],
+                                                       [[[0.0, 5.60879825, 11.2175965, 16.8263948,],
+                                                         [22.435193, 5608.79825, 367566.985, 367572.593]]],
                                                        [[[np.nan, 1, 2, 3],
                                                          [4, 1000, 65534, np.inf]]])),
                                  ("L1C", False, "B10", ([[[np.nan, -19.99, -19.98, -19.97],
                                                           [-19.96, -10, 635.34, 635.35]]],
-                                                        [[[np.nan, -35.465976, -35.448234, -35.430493],
-                                                          [-35.412751, -17.741859, 1127.211275, 1127.229017]]],
+                                                        [[[0.0, 1.09348075, 2.1869615, 3.28044225],
+                                                          [4.373923, 1093.48075, 71660.1675, 71661.2609]]],
                                                         [[[np.nan, 1, 2, 3],
                                                           [4, 1000, 65534, 65535]]])),
                                  ("oldL1C", True, "B01", ([[[np.nan, 0.01, 0.02, 0.03],
                                                             [0.04, 10, 655.34, np.inf]]],
-                                                          [[[np.nan, 0.251836101, 0.503672202, 0.755508303],
-                                                            [1.00734440, 251.836101, 16503.8271, np.inf]]],
+                                                          [[[0.0, 5.60879825, 11.2175965, 16.8263948,],
+                                                            [22.435193, 5608.79825, 367566.985, 367572.593]]],
                                                           [[[np.nan, 1, 2, 3],
                                                             [4, 1000, 65534, np.inf]]])),
                                  ("L2A", False, "B03", ([[[np.nan, -9.99, -9.98, -9.97],
                                                           [-9.96, 0, 645.34, 645.35]]],
-                                                        [[[np.nan, -238.571863, -238.333052, -238.094241],
-                                                          [-237.855431, 0, 15411.407995, 15411.646806]]],
+                                                        [[[0.0, 5.25188783, 10.5037757, 15.7556635,],
+                                                          [21.0075513, 5251.88783, 344177.217, 344182.469]]],
                                                         [[[np.nan, 1, 2, 3],
                                                           [4, 1000, 65534, 65535]]])),
                              ])
@@ -1606,10 +1607,11 @@ class TestMTDXML:
         xml_fh = xml_builder(process_level, mask_saturated)[0]
 
         res1 = xml_fh.calibrate_to_reflectances(self.fake_data, band_name)
-        res2 = xml_fh.calibrate_to_radiances(self.fake_data, band_name)
+        res2 = xml_fh.calibrate_to_radiances(self.fake_data, 25.6, band_name)
         res3 = xml_fh._sanitize_data(self.fake_data)
 
         results = (res1, res2, res3)
+
         np.testing.assert_allclose(results, expected)
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
@@ -1655,11 +1657,14 @@ class TestSAFEMSIL1C:
         jp2_fh = jp2_builder("L2A", dataset_name, mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            res = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name, calibration=calibration), info=dict())
-            if res is not None:
-                np.testing.assert_allclose(res, expected)
-            else:
-                assert res is expected
+            with mock.patch("satpy.readers.msi_safe.SAFEMSITileMDXML.mean_sun_angles",
+                            new_callable=mock.PropertyMock) as mocker:
+                mocker.return_value = (25, 8)
+                res = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name, calibration=calibration), info=dict())
+                if res is not None:
+                    np.testing.assert_allclose(res, expected)
+                else:
+                    assert res is expected
 
     @pytest.mark.parametrize(("process_level", "band_name", "dataset_name"),
                              [
