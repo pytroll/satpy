@@ -67,6 +67,8 @@ class SAFEMSIL1C(BaseFileHandler):
         del mask_saturated
         self._channel = filename_info["band_name"]
         self.process_level = filename_info["process_level"]
+        if self.process_level not in ["L1C", "L2A"]:
+            raise ValueError(f"Unsupported process level: {self.process_level}")
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
@@ -94,10 +96,7 @@ class SAFEMSIL1C(BaseFileHandler):
             return self._mda.calibrate_to_reflectances(proj, self._channel)
         if key["calibration"] == "radiance":
             # The calibration procedure differs for L1B and L1C/L2A data!
-            if self.process_level == "L1B":
-                # For L1B the radiances can be directly computed from the digital counts.
-                return self._mda.calibrate_to_radiances_l1b(proj, self._channel)
-            else:
+            if self.process_level in ["L1C", "L2A"]:
                 # For higher level data, radiances must be computed from the reflectance.
                 # By default, we use the mean solar angles so that the user does not need to resample,
                 # but the user can also choose to use the solar angles from the tile metadata.
@@ -106,6 +105,10 @@ class SAFEMSIL1C(BaseFileHandler):
                 zen = self._tile_mda.get_dataset(dq, dict(xml_tag="Sun_Angles_Grid/Zenith"))
                 tmp_refl = self._mda.calibrate_to_reflectances(proj, self._channel)
                 return self._mda.calibrate_to_radiances(tmp_refl, zen, self._channel)
+            #else:
+                # For L1B the radiances can be directly computed from the digital counts.
+                #return self._mda.calibrate_to_radiances_l1b(proj, self._channel)
+
 
         if key["calibration"] == "counts":
             return self._mda._sanitize_data(proj)
@@ -162,7 +165,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
     def calibrate_to_reflectances(self, data, band_name):
         """Calibrate *data* using the radiometric information for the metadata."""
-        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text) if self.process_level == "L1C" else \
+        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text) if self.process_level[:2] == "L1" else \
             int(self.root.find(".//BOA_QUANTIFICATION_VALUE").text)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / quantification * 100
@@ -170,7 +173,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     def calibrate_to_atmospheric(self, data, band_name):
         """Calibrate L2A AOT/WVP product."""
         atmospheric_bands = ["AOT", "WVP"]
-        if self.process_level == "L1C":
+        if self.process_level == "L1C" or self.process_level == "L1B":
             return
         elif self.process_level == "L2A" and band_name not in atmospheric_bands:
             return
@@ -207,7 +210,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def band_offsets(self):
         """Get the band offsets from the metadata."""
-        offsets = self.root.find(".//Radiometric_Offset_List") if self.process_level == "L1C" else \
+        offsets = self.root.find(".//Radiometric_Offset_List") if self.process_level[:2] == "L1" else \
             self.root.find(".//BOA_ADD_OFFSET_VALUES_LIST")
         if offsets is not None:
             band_offsets = {int(off.attrib["band_id"]): float(off.text) for off in offsets}
@@ -236,8 +239,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         sed = self.root.find(".//U")
         if sed is not None:
             return float(sed.text)
-        else:
-            return -1
+        return -1
 
     @cached_property
     def special_values(self):
@@ -317,17 +319,6 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
             rows,
             area_extent)
         return area
-
-    @cached_property
-    def mean_sun_angles(self):
-        """Get the mean sun angles from the metadata."""
-        angs = self.root.find(".//Mean_Sun_Angle")
-        if angs is not None:
-            zen = float(angs.find("ZENITH_ANGLE").text)
-            azi = float(angs.find("AZIMUTH_ANGLE").text)
-            return zen, azi
-        else:
-            return -999, -999
 
     @cached_property
     def projection(self):
