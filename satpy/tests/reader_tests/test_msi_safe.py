@@ -1435,15 +1435,21 @@ def xml_builder(process_level, mask_saturated=True, band_name=None):
     return xml_fh, xml_tile_fh
 
 
-def jp2_builder(process_level, band_name, mask_saturated=True):
+def jp2_builder(process_level, band_name, mask_saturated=True, test_l1b=False):
     """Build fake SAFE jp2 image file."""
     from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSITileMDXML
     filename_info = dict(observation_time=fname_dt, dtile_number=None, band_name=band_name, fmission_id="S2A",
                          process_level=process_level.replace("old", ""))
+    if test_l1b:
+        filename_info["process_level"] = "L1B"
+
     xml_fh = xml_builder(process_level, mask_saturated, band_name)[0]
     tile_xml_fh = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
                                                          filename_info, mock.MagicMock())
     tile_xml_fh.start_time.return_value = tilemd_dt
+    tile_xml_fh.get_dataset.return_value = xr.DataArray([[22.5, 23.8],
+                                                          [22.5, 24.8]],
+                                                        dims=["x", "y"])
     jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
 
@@ -1642,29 +1648,28 @@ class TestSAFEMSIL1C:
     def setup_method(self):
         """Set up the test."""
         self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
+        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
 
-    @pytest.mark.parametrize(("mask_saturated", "dataset_name", "calibration", "expected"),
+    @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
                              [
-                                 (False, "B01", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
-                                 (True, "B02", "radiance", [[np.nan, -265.970568], [17181.325973, np.inf]]),
-                                 (True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
-                                 (False, "AOT", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
-                                 (True, "WVP", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
-                                 (True, "SNOW", "water_vapor", None),
+                                 ("L2A", False, "B01", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
+                                 ("L1C", True, "B02", "radiance", [[np.nan, -59.439197], [3877.121602, np.inf]]),
+                                 ("L2A", True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
+                                 ("L2A", False, "AOT", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
+                                 ("L2A", True, "WVP", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
+                                 ("L2A", True, "SNOW", "water_vapor", None),
                              ])
-    def test_calibration_and_masking(self, mask_saturated, dataset_name, calibration, expected):
+    def test_calibration_and_masking(self, process_level, mask_saturated, dataset_name, calibration, expected):
         """Test that saturated is masked with inf when requested and that calibration is performed."""
-        jp2_fh = jp2_builder("L2A", dataset_name, mask_saturated)
+        jp2_fh = jp2_builder(process_level, dataset_name, mask_saturated)
 
         with mock.patch("xarray.open_dataset", return_value=self.fake_data):
-            with mock.patch("satpy.readers.msi_safe.SAFEMSITileMDXML.mean_sun_angles",
-                            new_callable=mock.PropertyMock) as mocker:
-                mocker.return_value = (25, 8)
-                res = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name, calibration=calibration), info=dict())
-                if res is not None:
-                    np.testing.assert_allclose(res, expected)
-                else:
-                    assert res is expected
+            res = jp2_fh.get_dataset(make_alt_dataid(name=dataset_name, calibration=calibration, resolution="20"),
+                                     info=dict())
+            if res is not None:
+                np.testing.assert_allclose(res, expected)
+            else:
+                assert res is expected
 
     @pytest.mark.parametrize(("process_level", "band_name", "dataset_name"),
                              [
@@ -1682,7 +1687,13 @@ class TestSAFEMSIL1C:
             assert res1 is None
             assert res2 is None
 
-    def test_start_time(self):
+    def test_start_end_time(self):
         """Test that the correct start time is returned."""
         jp2_fh = jp2_builder("L1C", "B01")
         assert tilemd_dt == jp2_fh.start_time
+        assert tilemd_dt == jp2_fh.end_time
+
+    def test_l1b_error(self):
+        """We can't process L1B data yet, so check an error is raised."""
+        with pytest.raises(ValueError, match="Unsupported process level: L1B"):
+            jp2_builder("L1C", "B01", test_l1b=True)
