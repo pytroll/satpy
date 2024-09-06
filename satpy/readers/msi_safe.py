@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE MSI L1C reader.
+"""SAFE MSI L1C/L2A reader.
 
 The MSI data has a special value for saturated pixels. By default, these
 pixels are set to np.inf, but for some applications it might be desirable
@@ -31,6 +31,10 @@ toggled with ``reader_kwargs`` upon Scene creation::
 L1C/L2A format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
+
+NOTE: At present, L1B data is not supported. If the user needs radiance data instead of counts or reflectances, these
+are retrieved by first calculating the reflectance and then working back to the radiance. L1B radiance data support
+will be added once the data is published onto the Copernicus data ecosystem.
 
 """
 
