@@ -60,14 +60,13 @@ class SAFEMSIL1C(BaseFileHandler):
     """File handler for SAFE MSI files (jp2)."""
 
     def __init__(self, filename, filename_info, filetype_info, mda, tile_mda,
-                 mask_saturated=True, solar_ang_method="mean"):
+                 mask_saturated=True):
         """Initialize the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
         del mask_saturated
         self._channel = filename_info["band_name"]
         self.process_level = filename_info["process_level"]
-        self.solar_ang_method = solar_ang_method
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
@@ -103,12 +102,8 @@ class SAFEMSIL1C(BaseFileHandler):
                 # By default, we use the mean solar angles so that the user does not need to resample,
                 # but the user can also choose to use the solar angles from the tile metadata.
                 # This is on a coarse grid so for most bands must be resampled before use.
-                if self.solar_ang_method == "mean":
-                    zen, azi = self._tile_mda.mean_sun_angles
-                else:
-                    from satpy import DataQuery
-                    dq = DataQuery(name="solar_zenith_angle")
-                    zen = self._tile_mda.get_dataset(dq, {})
+                dq = dict(name="solar_zenith_angle", resolution=key["resolution"])
+                zen = self._tile_mda.get_dataset(dq, dict(xml_tag="Sun_Angles_Grid/Zenith"))
                 tmp_refl = self._mda.calibrate_to_reflectances(proj, self._channel)
                 return self._mda.calibrate_to_radiances(tmp_refl, zen, self._channel)
 
@@ -321,7 +316,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
             cols,
             rows,
             area_extent)
-        return (area)
+        return area
 
     @cached_property
     def mean_sun_angles(self):
