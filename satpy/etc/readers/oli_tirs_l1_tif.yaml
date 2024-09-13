@@ -10,82 +10,98 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-  b01_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B1.TIF']
+    # Bands on the OLI subsystem
+    granule_b01:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B1.TIF']
         requires: [l1_metadata]
-  b02_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B2.TIF']
+
+    granule_b02:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B2.TIF']
         requires: [l1_metadata]
-  b03_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B3.TIF']
+
+    granule_b03:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B3.TIF']
         requires: [l1_metadata]
-  b04_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B4.TIF']
+
+    granule_b04:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B4.TIF']
         requires: [l1_metadata]
-  b05_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B5.TIF']
+
+    granule_b05:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B5.TIF']
         requires: [l1_metadata]
-  b06_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B6.TIF']
+
+    granule_b06:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B6.TIF']
         requires: [l1_metadata]
-  b07_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B7.TIF']
+
+    granule_b07:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B7.TIF']
         requires: [l1_metadata]
-  b08_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B8.TIF']
+
+    granule_b08:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B8.TIF']
         requires: [l1_metadata]
-  b09_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B9.TIF']
+
+    granule_b09:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B9.TIF']
         requires: [l1_metadata]
-  b10_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B10.TIF']
+
+    # Bands on the TIRS subsystem
+    granule_b10:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B10.TIF']
         requires: [l1_metadata]
-  b11_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B11.TIF']
+
+    granule_b11:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B11.TIF']
         requires: [l1_metadata]
-  sza_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_SZA.TIF']
+
+    # Geometry datasets
+    granule_sza:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_SZA.TIF']
         requires: [l1_metadata]
-  saa_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_SAA.TIF']
+    granule_saa:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_SAA.TIF']
         requires: [l1_metadata]
-  vza_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_VZA.TIF']
+    granule_vza:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_VZA.TIF']
         requires: [l1_metadata]
-  vaa_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_VAA.TIF']
+    granule_vaa:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_VAA.TIF']
         requires: [l1_metadata]
-  qa_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA.TIF']
+
+    # QA Variables
+    granule_qa:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA.TIF']
         requires: [l1_metadata]
-  qa_radsat_granule:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_CH_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA_RADSAT.TIF']
+    granule_qa_radsat:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA_RADSAT.TIF']
         requires: [l1_metadata]
-  l1_metadata:
-        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tiff.OLITIRS_MD_Reader
-        file_patterns: ['{platform_type:1s}{data_type:{1s}{spacecraft_id:2s}_{process_level_correction:4s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_MTL.xml']
+
+    l1_metadata:
+        file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSMDReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_MTL.xml']
 
 datasets:
-  # Channels on the OLI instrument
-  B01:
-    name: B01
+  b01:
+    name: b01
     sensor: oli
     wavelength: [0.433, 0.443, 0.453]
     resolution: 30
@@ -99,9 +115,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b01_granule
-  B02:
-    name: B02
+    file_type: granule_b01
+
+  b02:
+    name: b02
     sensor: oli
     wavelength: [0.450, 0.482, 0.515]
     resolution: 30
@@ -115,9 +132,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b02_granule
-  B03:
-    name: B03
+    file_type: granule_b02
+
+  b03:
+    name: b03
     sensor: oli
     wavelength: [0.525, 0.565, 0.600]
     resolution: 30
@@ -131,9 +149,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b03_granule
-  B04:
-    name: B04
+    file_type: granule_b03
+
+  b04:
+    name: b04
     sensor: oli
     wavelength: [0.630, 0.660, 0.680]
     resolution: 30
@@ -147,9 +166,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b04_granule
-  B05:
-    name: B05
+    file_type: granule_b04
+
+  b05:
+    name: b05
     sensor: oli
     wavelength: [0.845, 0.867, 0.885]
     resolution: 30
@@ -163,9 +183,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b05_granule
-  B06:
-    name: B06
+    file_type: granule_b05
+
+  b06:
+    name: b06
     sensor: oli
     wavelength: [1.560, 1.650, 1.660]
     resolution: 30
@@ -179,9 +200,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b06_granule
-  B07:
-    name: B07
+    file_type: granule_b06
+
+  b07:
+    name: b07
     sensor: oli
     wavelength: [2.100, 2.215, 2.300]
     resolution: 30
@@ -195,9 +217,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b07_granule
-  B08:
-    name: B08
+    file_type: granule_b07
+
+  b08:
+    name: b08
     sensor: oli
     wavelength: [0.500, 0.579, 0.680]
     resolution: 15
@@ -211,9 +234,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b03_granule
-  B09:
-    name: B09
+    file_type: granule_b08
+
+  b09:
+    name: b09
     sensor: oli
     wavelength: [1.360, 1.373, 1.390]
     resolution: 30
@@ -227,10 +251,11 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b09_granule
+    file_type: granule_b09
+
   # Channels on the TIRS instrument
-  B10:
-    name: B10
+  b10:
+    name: b10
     sensor: tirs
     wavelength: [10.6, 10.888, 11.19]
     resolution: 30
@@ -244,9 +269,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b10_granule
-  B11:
-    name: B11
+    file_type: granule_b10
+
+  b11:
+    name: b11
     sensor: tirs
     wavelength: [11.5, 11.981, 12.51]
     resolution: 30
@@ -260,19 +286,20 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: b11_granule
+    file_type: granule_b11
 
   # QA Variables
   qa:
     name: qa
     sensor: oli
     resolution: 30
-    file_type: qa_granule
+    file_type: granule_qa
+
   qa_radsat:
     name: qa_radsat
     sensor: oli
     resolution: 30
-    file_type: qa_radsat_granule
+    file_type: granule_qa_radsat
 
   # Angles datasets
   sza:
@@ -281,25 +308,28 @@ datasets:
     standard_name: solar_zenith_angle
     resolution: 30
     units: "degrees"
-    file_type: sza_granule
+    file_type: granule_sza
+
   saa:
     name: saa
     sensor: oli
     standard_name: solar_azimuth_angle
     resolution: 30
     units: "degrees"
-    file_type: saa_granule
+    file_type: granule_saa
+
   vza:
     name: vza
     sensor: oli
     standard_name: viewing_zenith_angle
     resolution: 30
     units: "degrees"
-    file_type: vza_granule
+    file_type: granule_vza
+
   vaa:
     name: vaa
     sensor: oli
     standard_name: viewing_azimuth_angle
     resolution: 30
     units: "degrees"
-    file_type: vaa_granule
+    file_type: granule_vaa
