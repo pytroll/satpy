@@ -305,6 +305,13 @@ time etc. The following attributes are standardized across all readers:
   should happen and when they actually do. See :ref:`time_metadata` below for
   details.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
+* ``rows_per_scan``: Optional integer indicating how many rows of data
+  represent a single scan of the instrument. This is primarily used by
+  some resampling algorithms (ex. EWA) to produce better results and only
+  makes sense for swath-based (usually polar-orbiting) instruments. For
+  example, MODIS 1km data has 10 rows of data per scan. If an instrument
+  does not have multiple rows per scan this should usually be set to 0 rather
+  than 1 to indicate that the entire swath should be treated as a whole.
 
 Note that the above attributes are not necessarily available for each dataset.
 
