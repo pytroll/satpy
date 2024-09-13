@@ -209,7 +209,7 @@ class OLITIRSMDReader(BaseFileHandler):
     @property
     def center_time(self):
         """Return center time."""
-        return datetime.strptime(self.root.find(".//IMAGE_ATTRIBUTES/SCENE_CENTER_TIME").text, "%H:%M:%S.%f0Z")
+        return datetime.strptime(self.root.find(".//IMAGE_ATTRIBUTES/SCENE_CENTER_TIME").text[:-2], "%H:%M:%S.%f")
 
     @property
     def cloud_cover(self):
