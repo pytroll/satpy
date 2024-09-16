@@ -29,7 +29,7 @@ compressed hrit files are encountered (files finishing with `.C_`).
 import datetime as dt
 import logging
 import os
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 
 import dask
 import dask.array as da
@@ -39,7 +39,6 @@ from pyresample import geometry
 from pyPublicDecompWT import xRITDecompress
 
 import satpy.readers.utils as utils
-from satpy import config
 from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
@@ -93,10 +92,7 @@ base_hdr_map = {0: primary_header,
 
 
 def decompress(infile):
-    """
-    Decompress an XRIT data file and return the decompressed buffer
-    """
-
+    """Decompress an XRIT data file and return the decompressed buffer."""
     # decompress in-memory
     with open(infile, mode="rb") as fh:
         xrit = xRITDecompress()

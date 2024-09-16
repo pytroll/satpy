@@ -29,65 +29,12 @@ import numpy as np
 import pytest
 
 from satpy.readers import FSFile
-from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
+from satpy.readers.hrit_base import HRITFileHandler, decompress
 from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
-
-
-class TestHRITDecompress(unittest.TestCase):
-    """Test the on-the-fly decompression."""
-
-    def test_xrit_cmd(self):
-        """Test running the xrit decompress command."""
-        old_env = os.environ.get("XRIT_DECOMPRESS_PATH", None)
-
-        os.environ["XRIT_DECOMPRESS_PATH"] = "/path/to/my/bin"
-        with pytest.raises(IOError, match=".* does not exist!"):
-            get_xritdecompress_cmd()
-
-        os.environ["XRIT_DECOMPRESS_PATH"] = gettempdir()
-        with pytest.raises(IOError, match=".* is a directory!.*"):
-            get_xritdecompress_cmd()
-
-        with NamedTemporaryFile() as fd:
-            os.environ["XRIT_DECOMPRESS_PATH"] = fd.name
-            fname = fd.name
-            res = get_xritdecompress_cmd()
-
-        if old_env is not None:
-            os.environ["XRIT_DECOMPRESS_PATH"] = old_env
-        else:
-            os.environ.pop("XRIT_DECOMPRESS_PATH")
-
-        assert fname == res
-
-    def test_xrit_outfile(self):
-        """Test the right decompression filename is used."""
-        stdout = [b"Decompressed file: bla.__\n"]
-        outfile = get_xritdecompress_outfile(stdout)
-        assert outfile == b"bla.__"
-
-    @mock.patch("satpy.readers.hrit_base.Popen")
-    def test_decompress(self, popen):
-        """Test decompression works."""
-        popen.return_value.returncode = 0
-        popen.return_value.communicate.return_value = [b"Decompressed file: bla.__\n"]
-
-        old_env = os.environ.get("XRIT_DECOMPRESS_PATH", None)
-
-        with NamedTemporaryFile() as fd:
-            os.environ["XRIT_DECOMPRESS_PATH"] = fd.name
-            res = decompress("bla.C_")
-
-        if old_env is not None:
-            os.environ["XRIT_DECOMPRESS_PATH"] = old_env
-        else:
-            os.environ.pop("XRIT_DECOMPRESS_PATH")
-
-        assert res == os.path.join(".", "bla.__")
 
 
 # From a compressed msg hrit file.
