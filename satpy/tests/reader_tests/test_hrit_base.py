@@ -21,15 +21,13 @@ import bz2
 import datetime as dt
 import gzip
 import os
-import unittest
-from tempfile import NamedTemporaryFile, gettempdir
 from unittest import mock
 
 import numpy as np
 import pytest
 
 from satpy.readers import FSFile
-from satpy.readers.hrit_base import HRITFileHandler, decompress
+from satpy.readers.hrit_base import HRITFileHandler
 from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
