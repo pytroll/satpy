@@ -62,23 +62,13 @@ class OLITIRSCHReader(BaseFileHandler):
 
     @property
     def start_time(self):
-        """Return start time.
-
-        This is actually the scene center time, as we don't have the start time.
-        It is constructed from the observation date (from the filename) and the center time (from the metadata).
-        """
-        return datetime(self._obs_date.year, self._obs_date.month, self._obs_date.day,
-                        self._mda.center_time.hour, self._mda.center_time.minute, self._mda.center_time.second)
+        """Return start time."""
+        return self._mda.start_time
 
     @property
     def end_time(self):
-        """Return end time.
-
-        This is actually the scene center time, as we don't have the end time.
-        It is constructed from the observation date (from the filename) and the center time (from the metadata).
-        """
-        return datetime(self._obs_date.year, self._obs_date.month, self._obs_date.day,
-                        self._mda.center_time.hour, self._mda.center_time.minute, self._mda.center_time.second)
+        """Return end time."""
+        return self._mda.end_time
 
     def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
         """Initialize the reader."""
@@ -210,6 +200,26 @@ class OLITIRSMDReader(BaseFileHandler):
     def center_time(self):
         """Return center time."""
         return datetime.strptime(self.root.find(".//IMAGE_ATTRIBUTES/SCENE_CENTER_TIME").text[:-2], "%H:%M:%S.%f")
+
+    @property
+    def start_time(self):
+        """Return start time.
+
+        This is actually the scene center time, as we don't have the start time.
+        It is constructed from the observation date (from the filename) and the center time (from the metadata).
+        """
+        return datetime(self._obs_date.year, self._obs_date.month, self._obs_date.day,
+                        self.center_time.hour, self.center_time.minute, self.center_time.second)
+
+    @property
+    def end_time(self):
+        """Return end time.
+
+        This is actually the scene center time, as we don't have the end time.
+        It is constructed from the observation date (from the filename) and the center time (from the metadata).
+        """
+        return datetime(self._obs_date.year, self._obs_date.month, self._obs_date.day,
+                        self.center_time.hour, self.center_time.minute, self.center_time.second)
 
     @property
     def cloud_cover(self):
