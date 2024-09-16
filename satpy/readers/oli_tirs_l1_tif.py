@@ -237,7 +237,7 @@ class OLITIRSMDReader(BaseFileHandler):
     def band_saturation(self):
         """Return per-band saturation flag."""
         bdict = {}
-        for i in range(1, 9):
+        for i in range(1, 10):
             bdict[f"b{i:02d}"] = self._get_satflag(i)
 
         return bdict
@@ -266,7 +266,7 @@ class OLITIRSMDReader(BaseFileHandler):
     def band_calibration(self):
         """Return per-band saturation flag."""
         bdict = {}
-        for i in range(1, 9):
+        for i in range(1, 10):
             bdict[f"b{i:02d}"] = self._get_band_viscal(i)
         for i in range(10, 12):
             bdict[f"b{i:02d}"] = self._get_band_tircal(i)
