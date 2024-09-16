@@ -127,6 +127,9 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
+
+u_struct_refl_exp = u_vis_refl_exp.copy()
+
 acq_time_ir_wv_exp = [np.datetime64("NaT"),
                       np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
@@ -289,6 +292,7 @@ def fixture_fake_dataset():
             "count_ir": (("y_ir_wv", "x_ir_wv"), count_ir),
             "toa_bidirectional_reflectance_vis": vis_refl_exp / 100,
             "u_independent_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
+            "u_structured_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
             "quality_pixel_bitmask": (("y", "x"), mask),
             "solar_zenith_angle": (("y_tie", "x_tie"), sza),
             "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time),
@@ -393,7 +397,8 @@ class TestFiduceoMviriFileHandlers:
             ("quality_pixel_bitmask", None, 2250, quality_pixel_bitmask_exp),
             ("solar_zenith_angle", None, 2250, sza_vis_exp),
             ("solar_zenith_angle", None, 4500, sza_ir_wv_exp),
-            ("u_independent_toa_bidirectional_reflectance", None, 4500, u_vis_refl_exp)
+            ("u_independent_toa_bidirectional_reflectance", None, 4500, u_vis_refl_exp),
+            ("u_structured_toa_bidirectional_reflectance", None, 4500, u_struct_refl_exp)
         ]
     )
     def test_get_dataset(self, file_handler, name, calibration, resolution,
@@ -636,9 +641,11 @@ class TestDatasetWrapper:
                 "x": [.3, .4]
             }
         )
-        ds = DatasetWrapper(nc)
-        foo = ds["foo"]
-        xr.testing.assert_equal(foo, foo_exp)
+        with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.DatasetWrapper._fix_duplicate_dimensions"):
+           with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.DatasetWrapper._decode_cf"):
+            ds = DatasetWrapper(nc)
+            foo = ds["foo"]
+            xr.testing.assert_equal(foo, foo_exp)
 
 class TestInterpolator:
     """Unit tests for Interpolator class."""

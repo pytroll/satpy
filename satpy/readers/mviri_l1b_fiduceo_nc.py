@@ -186,6 +186,8 @@ OTHER_REFLECTANCES = [
 ]
 HIGH_RESOL = 2250
 
+warnings.filterwarnings("ignore", message="^.*We do not yet support duplicate dimension names, but "
+                                          "we do allow initial construction of the object.*$")
 
 class IRWVCalibrator:
     """Calibrate IR & WV channels."""
