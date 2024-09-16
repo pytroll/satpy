@@ -23,7 +23,6 @@ the common building blocks for hrit reading.
 
 One of the features here is the on-the-fly decompression of hrit files when
 compressed hrit files are encountered (files finishing with `.C_`).
-
 """
 
 import datetime as dt
@@ -35,8 +34,8 @@ import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from pyresample import geometry
 from pyPublicDecompWT import xRITDecompress
+from pyresample import geometry
 
 import satpy.readers.utils as utils
 from satpy.readers import FSFile
