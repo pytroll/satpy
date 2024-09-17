@@ -334,7 +334,7 @@ class HRITSegment:
                 )
             else:
                 return np.fromfile(
-                    nullcontext(fn),
+                    fn,
                     offset=self.offset,
                     dtype=dtype,
                     count=np.prod(shape)
