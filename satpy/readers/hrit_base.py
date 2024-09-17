@@ -28,7 +28,6 @@ compressed hrit files are encountered (files finishing with `.C_`).
 import datetime as dt
 import logging
 import os
-from contextlib import nullcontext
 
 import dask
 import dask.array as da
