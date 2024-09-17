@@ -45,6 +45,8 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
+fill_val = int("4294967295")
+
 attrs_exp: dict = {
     "platform": "MET7",
     "raw_metadata": {"foo": "bar"},
@@ -281,8 +283,8 @@ def fixture_fake_dataset():
 
     cov = da.from_array([[1, 2], [3, 4]])
     time = np.arange(4) * 60 * 60
-    time[0] = 4294967295
-    time[1] = 4294967295
+    time[0] = fill_val
+    time[1] = fill_val
     time = time.reshape(2, 2)
 
     ds = xr.Dataset(
@@ -332,7 +334,7 @@ def fixture_fake_dataset():
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
     ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
-    ds["time_ir_wv"].attrs["_FillValue"] = 4294967295
+    ds["time_ir_wv"].attrs["_FillValue"] = fill_val
     ds["time_ir_wv"].attrs["add_offset"] = 0
 
     return ds
@@ -595,7 +597,7 @@ class TestDatasetWrapper:
                 "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
                 "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time, foo_time], [foo_time, foo_time]],
-                               {"_FillValue": 4294967295, "add_offset": 0})
+                               {"_FillValue": fill_val, "add_offset": 0})
                        }
         )
         foo_ds = DatasetWrapper(foo)
