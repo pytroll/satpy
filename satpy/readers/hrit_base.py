@@ -33,7 +33,6 @@ import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from pyPublicDecompWT import xRITDecompress
 from pyresample import geometry
 
 import satpy.readers.utils as utils
@@ -91,6 +90,8 @@ base_hdr_map = {0: primary_header,
 
 def decompress(infile):
     """Decompress an XRIT data file and return the decompressed buffer."""
+    from pyPublicDecompWT import xRITDecompress
+
     # decompress in-memory
     with open(infile, mode="rb") as fh:
         xrit = xRITDecompress()
