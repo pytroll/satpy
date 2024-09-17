@@ -28,9 +28,7 @@ from datetime import datetime
 
 import defusedxml.ElementTree as ET
 import numpy as np
-import rasterio
 import xarray as xr
-from pyresample import utils
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -43,6 +41,7 @@ PLATFORMS = {"08": "Landsat-8",
 
 OLI_BANDLIST = ["b01", "b02", "b03", "b04", "b05", "b06", "b07", "b08", "b09"]
 TIRS_BANDLIST = ["b10", "b11"]
+PAN_BANDLIST = ["b08"]
 ANGLIST = ["sza", "saa", "vza", "vaa"]
 
 BANDLIST = OLI_BANDLIST + TIRS_BANDLIST
@@ -99,47 +98,37 @@ class OLITIRSCHReader(BaseFileHandler):
 
         logger.debug("Reading %s.", key["name"])
 
-        dataset = rasterio.open(self.filename)
+        data = xr.open_dataset(self.filename, engine="rasterio",
+                               chunks={"band": 1,
+                                       "y": CHUNK_SIZE,
+                                       "x": CHUNK_SIZE},
+                               mask_and_scale=False)["band_data"].squeeze()
 
-        # Create area definition
-        if hasattr(dataset, "crs") and dataset.crs is not None:
-            self.area = utils.get_area_def_from_raster(dataset)
+        # The fill value for Landsat is '0', for calibration simplicity convert it to np.nan
+        data = xr.where(data == 0, np.float32(np.nan), data)
 
-            # Create area definition
-            if hasattr(dataset, "crs") and dataset.crs is not None:
-                self.area = utils.get_area_def_from_raster(dataset)
+        attrs = data.attrs.copy()
 
-            data = xr.open_dataset(self.filename, engine="rasterio",
-                                   chunks={"band": 1,
-                                           "y": CHUNK_SIZE,
-                                           "x": CHUNK_SIZE},
-                                   mask_and_scale=False)["band_data"].squeeze()
+        # Add useful metadata to the attributes.
+        attrs["perc_cloud_cover"] = self._mda.cloud_cover
 
-            # The fill value for Landsat is '0', for calibration simplicity convert it to np.nan
-            data = xr.where(data == 0, np.float32(np.nan), data)
+        # Only OLI bands have a saturation flag
+        if key["name"] in OLI_BANDLIST:
+            attrs["saturated"] = self.bsat[key["name"]]
 
-            attrs = data.attrs.copy()
+        # Rename to Satpy convention
+        data = data.rename({"band": "bands"})
 
-            # Add useful metadata to the attributes.
-            attrs["perc_cloud_cover"] = self._mda.cloud_cover
+        data.attrs = attrs
 
-            # Only OLI bands have a saturation flag
-            if key["name"] in OLI_BANDLIST:
-                attrs["saturated"] = self.bsat[key["name"]]
+        # Calibrate if we're using a band rather than a QA or geometry dataset
+        if key["name"] in BANDLIST:
+            data = self.calibrate(data, key["calibration"])
+        if key["name"] in ANGLIST:
+            data = data * 0.01
+            data.attrs["units"] = "degrees"
 
-            # Rename to Satpy convention
-            data = data.rename({"band": "bands"})
-
-            data.attrs = attrs
-
-            # Calibrate if we're using a band rather than a QA or geometry dataset
-            if key["name"] in BANDLIST:
-                data = self.calibrate(data, key["calibration"])
-            if key["name"] in ANGLIST:
-                data = data * 0.01
-                data.attrs["units"] = "degrees"
-
-            return data
+        return data
 
     def calibrate(self, data, calibration):
         """Calibrate the data from counts into the desired units."""
@@ -174,10 +163,8 @@ class OLITIRSCHReader(BaseFileHandler):
         return data.astype(np.float32)
 
     def get_area_def(self, dsid):
-        """Get area definition of the image."""
-        if self.area is None:
-            raise NotImplementedError("No CRS information available from image")
-        return self.area
+        """Get area definition of the image from the metadata."""
+        return self._mda.build_area_def(dsid["name"])
 
 class OLITIRSMDReader(BaseFileHandler):
     """File handler for Landsat L1 files (tif)."""
@@ -277,3 +264,37 @@ class OLITIRSMDReader(BaseFileHandler):
     def earth_sun_distance(self):
         """Return Earth-Sun distance."""
         return float(self.root.find(".//IMAGE_ATTRIBUTES/EARTH_SUN_DISTANCE").text)
+
+    def build_area_def(self, bname):
+        """Build area definition from metadata."""
+        from pyresample.geometry import AreaDefinition
+
+        # Here we assume that the thermal bands have the same resolution as the reflective bands,
+        # with only the panchromatic band (b08) having a different resolution.
+        if bname in PAN_BANDLIST:
+            pixoff = float(self.root.find(".//PROJECTION_ATTRIBUTES/GRID_CELL_SIZE_PANCHROMATIC").text) / 2.
+            x_size = float(self.root.find(".//PROJECTION_ATTRIBUTES/PANCHROMATIC_SAMPLES").text)
+            y_size = float(self.root.find(".//PROJECTION_ATTRIBUTES/PANCHROMATIC_LINES").text)
+        else:
+            pixoff = float(self.root.find(".//PROJECTION_ATTRIBUTES/GRID_CELL_SIZE_REFLECTIVE").text) / 2.
+            x_size = float(self.root.find(".//PROJECTION_ATTRIBUTES/REFLECTIVE_SAMPLES").text)
+            y_size = float(self.root.find(".//PROJECTION_ATTRIBUTES/REFLECTIVE_LINES").text)
+
+        # Get remaining geoinfo from file
+        datum = self.root.find(".//PROJECTION_ATTRIBUTES/DATUM").text
+        utm_zone = int(self.root.find(".//PROJECTION_ATTRIBUTES/UTM_ZONE").text)
+        utm_str = f"{utm_zone}N"
+
+        # We need to subtract / add half a pixel from the corner to get the correct extent (pixel centers)
+        ext_p1 = float(self.root.find(".//PROJECTION_ATTRIBUTES/CORNER_UL_PROJECTION_X_PRODUCT").text) - pixoff
+        ext_p2 = float(self.root.find(".//PROJECTION_ATTRIBUTES/CORNER_LR_PROJECTION_Y_PRODUCT").text) - pixoff
+        ext_p3 = float(self.root.find(".//PROJECTION_ATTRIBUTES/CORNER_LR_PROJECTION_X_PRODUCT").text) + pixoff
+        ext_p4 = float(self.root.find(".//PROJECTION_ATTRIBUTES/CORNER_UL_PROJECTION_Y_PRODUCT").text) + pixoff
+
+        # Create area definition
+        pcs_id = f"{datum} / UTM zone {utm_str}"
+        proj4_dict = {"proj": "utm", "zone": utm_zone, "datum": datum, "units": "m", "no_defs": None, "type": "crs"}
+        area_extent = (ext_p1, ext_p2, ext_p3, ext_p4)
+
+        # Return the area extent
+        return AreaDefinition("geotiff_area", pcs_id, pcs_id, proj4_dict, x_size, y_size, area_extent)
