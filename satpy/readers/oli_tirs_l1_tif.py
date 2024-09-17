@@ -95,7 +95,7 @@ class OLITIRSCHReader(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self.channel != key["name"]:
-            return
+            raise ValueError(f"Requested channel {key['name']} does not match the reader channel {self.channel}")
 
         logger.debug("Reading %s.", key["name"])
 
