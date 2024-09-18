@@ -228,8 +228,9 @@ class TestHRITFileHandler:
         assert self.reader.end_time == self.reader.observation_end_time
 
 
-def fake_decompress():
+def fake_decompress(filename):
     """Fake decompression."""
+    del filename
     return create_stub_hrit_data(mda)
 
 
