@@ -183,7 +183,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGTIME"]["VALUE"])
-            if len(date) ==  19:
+            if len(date) == 19:
                 return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
             else:
                 return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
@@ -199,7 +199,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGTIME"]["VALUE"])
-            if len(date) ==  19:
+            if len(date) == 19:
                 return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
             else:
                 return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
