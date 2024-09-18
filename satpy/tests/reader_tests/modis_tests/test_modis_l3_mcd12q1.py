@@ -19,26 +19,13 @@
 
 from __future__ import annotations
 
-import dask
 import dask.array as da
-import numpy as np
-import pytest
-from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import Scene, available_readers
-from satpy.tests.utils import CustomScheduler, make_dataid
-
-from ._modis_fixtures import _shape_for_resolution, modis_l3_nasa_mcd12q1_file
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
-# - modis_l2_imapp_mask_byte1_file
-# - modis_l2_imapp_mask_byte1_geo_files
-# - modis_l2_imapp_snowmask_file
-# - modis_l2_imapp_snowmask_geo_files
-# - modis_l2_nasa_mod06_file
-# - modis_l2_nasa_mod35_file
-# - modis_l2_nasa_mod35_mod03_files
+# - modis_l3_nasa_mcd12q1_file
 
 
 def _check_shared_metadata(data_arr, expect_area=False):
@@ -70,10 +57,9 @@ class TestModisL3MCD12Q1:
     def test_load_l3_dataset(self, modis_l3_nasa_mcd12q1_file):
         """Load and check an L2 variable."""
         scene = Scene(reader="mcd12q1", filenames=modis_l3_nasa_mcd12q1_file)
-        ds_name = 'LC_Type1'
+        ds_name = "LC_Type1"
         scene.load([ds_name])
         assert ds_name in scene
         data_arr = scene[ds_name]
         assert isinstance(data_arr.data, da.Array)
         assert data_arr.attrs.get("resolution") == 500
-

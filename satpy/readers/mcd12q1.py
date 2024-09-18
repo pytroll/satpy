@@ -94,8 +94,8 @@ class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
             raise ValueError("Only MCD12Q1 grids are supported")
 
         resolution_string = self.metadata["ARCHIVEDMETADATA"]["NADIRDATARESOLUTION"]["VALUE"]
-        if resolution_string[-1] == 'm':
-            return int(resolution_string.removesuffix('m'))
+        if resolution_string[-1] == "m":
+            return int(resolution_string.removesuffix("m"))
         else:
             raise ValueError("Cannot parse resolution of MCD12Q1 grid")
 
@@ -103,7 +103,7 @@ class MCD12Q1HDFFileHandler(HDFEOSBaseFileReader):
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
         dataset_name = dataset_id["name"]
-        # xxx 
+        # xxx
         dataset = self.load_dataset(dataset_name, dataset_info.pop("category", False))
 
         self._add_satpy_metadata(dataset_id, dataset)
