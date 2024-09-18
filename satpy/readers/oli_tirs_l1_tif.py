@@ -21,6 +21,9 @@ Details of the data format can be found here:
   https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/LSDS-1822_Landsat8-9-OLI-TIRS-C2-L1-DFCB-v6.pdf
   https://www.usgs.gov/landsat-missions/using-usgs-landsat-level-1-data-product
 
+NOTE: The scene geometry data (SZA, VZA, SAA, VAA) is retrieved from the L1 TIFF files, which are derived from Band 04.
+The geometry differs between bands, so if you need precise geometry you should calculate this from the metadata instead.
+
 """
 
 import logging
