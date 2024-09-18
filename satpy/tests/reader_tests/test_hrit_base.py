@@ -87,6 +87,14 @@ def stub_hrit_file(tmp_path):
 
 def create_stub_hrit(filename, open_fun=open, meta=mda):
     """Create a stub hrit file."""
+    stub_hrit_data = create_stub_hrit_data(meta)
+
+    with open_fun(filename, mode="wb") as fd:
+        fd.write(stub_hrit_data)
+    return filename
+
+def create_stub_hrit_data(meta):
+    """Create the data for the stub hrit."""
     nbits = meta["number_of_bits_per_pixel"]
     lines = meta["number_of_lines"]
     cols = meta["number_of_columns"]
@@ -94,11 +102,10 @@ def create_stub_hrit(filename, open_fun=open, meta=mda):
     arr = RANDOM_GEN.integers(0, 256,
                               size=int(total_bits / 8),
                               dtype=np.uint8)
-    with open_fun(filename, mode="wb") as fd:
-        fd.write(b" " * meta["total_header_length"])
-        bytes_data = arr.tobytes()
-        fd.write(bytes_data)
-    return filename
+    header_data = b" " * meta["total_header_length"]
+    bytes_data = arr.tobytes()
+    stub_hrit_data = header_data + bytes_data
+    return stub_hrit_data
 
 
 @pytest.fixture
@@ -221,10 +228,9 @@ class TestHRITFileHandler:
         assert self.reader.end_time == self.reader.observation_end_time
 
 
-def fake_decompress(infile, outdir="."):
+def fake_decompress():
     """Fake decompression."""
-    filename = os.fspath(infile)[:-3]
-    return create_stub_hrit(filename)
+    return create_stub_hrit_data(mda)
 
 
 class TestHRITFileHandlerCompressed:
