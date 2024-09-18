@@ -96,6 +96,11 @@ class OLITIRSCHReader(BaseFileHandler):
         if self.channel != key["name"]:
             raise ValueError(f"Requested channel {key['name']} does not match the reader channel {self.channel}")
 
+        if key["name"] in OLI_BANDLIST and self.chan_selector not in ["O", "C"]:
+            raise ValueError(f"Requested channel {key['name']} is not available in this granule")
+        if key["name"] in TIRS_BANDLIST and self.chan_selector not in ["T", "C"]:
+            raise ValueError(f"Requested channel {key['name']} is not available in this granule")
+
         logger.debug("Reading %s.", key["name"])
 
         data = xr.open_dataset(self.filename, engine="rasterio",
@@ -108,25 +113,26 @@ class OLITIRSCHReader(BaseFileHandler):
         data = xr.where(data == 0, np.float32(np.nan), data)
 
         attrs = data.attrs.copy()
-
         # Add useful metadata to the attributes.
         attrs["perc_cloud_cover"] = self._mda.cloud_cover
 
         # Only OLI bands have a saturation flag
         if key["name"] in OLI_BANDLIST:
+
             attrs["saturated"] = self.bsat[key["name"]]
 
         # Rename to Satpy convention
         data = data.rename({"band": "bands"})
 
-        data.attrs = attrs
+        data.attrs.update(attrs)
 
         # Calibrate if we're using a band rather than a QA or geometry dataset
         if key["name"] in BANDLIST:
             data = self.calibrate(data, key["calibration"])
         if key["name"] in ANGLIST:
-            data = data * 0.01
+            data.data = data.data * 0.01
             data.attrs["units"] = "degrees"
+            data.attrs["standard_name"] = "solar_zenith_angle"
 
         return data
 
@@ -135,12 +141,12 @@ class OLITIRSCHReader(BaseFileHandler):
         if calibration == "counts":
             data.attrs["standard_name"] = "counts"
             data.attrs["units"] = "1"
-            return data.astype(np.float32)
+            return data
 
         if calibration in ["radiance", "brightness_temperature"]:
             data.attrs["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
             data.attrs["units"] = "W m-2 um-1 sr-1"
-            data = data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
+            data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
             if calibration == "radiance":
                 return data.astype(np.float32)
 
@@ -148,19 +154,15 @@ class OLITIRSCHReader(BaseFileHandler):
             if int(self.channel[1:]) < 10:
                 data.attrs["standard_name"] = "toa_bidirectional_reflectance"
                 data.attrs["units"] = "%"
-                data = data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
+                data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
                 return data.astype(np.float32)
-            raise ValueError(f"Reflectance not available for thermal bands: {self.channel}")
 
         if calibration == "brightness_temperature":
             if self.channel[1:] in ["10", "11"]:
-                data.attrs["standard_name"] = "counts"
+                data.attrs["standard_name"] = "toa_brightness_temperature"
                 data.attrs["units"] = "K"
-                data = (self.calinfo[self.channel][3] / np.log((self.calinfo[self.channel][2] / data) + 1))
+                data.data = (self.calinfo[self.channel][3] / np.log((self.calinfo[self.channel][2] / data.data) + 1))
                 return data.astype(np.float32)
-            raise ValueError(f"Brightness temperature not available for visible bands: {self.channel}")
-
-        return data.astype(np.float32)
 
     def get_area_def(self, dsid):
         """Get area definition of the image from the metadata."""
@@ -257,7 +259,6 @@ class OLITIRSMDReader(BaseFileHandler):
             bdict[f"b{i:02d}"] = self._get_band_viscal(i)
         for i in range(10, 12):
             bdict[f"b{i:02d}"] = self._get_band_tircal(i)
-
 
         return bdict
 
