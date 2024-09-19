@@ -227,7 +227,14 @@ def _get_l3_land_cover_info() -> dict:
                      "attrs": {
                          "dim_labels": ["YDim:MCD12Q1", "XDim:MCD12Q1"],
                      },
-                     }
+                     },
+        "LC_Type2": {"data": lc_data,
+                     "type": SDC.UINT8,
+                     "fill_value": 255,
+                     "attrs": {
+                         "dim_labels": ["YDim:MCD12Q1", "XDim:MCD12Q1"],
+                     },
+                     },
     }
 
     return variables_info

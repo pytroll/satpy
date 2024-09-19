@@ -28,24 +28,20 @@ from satpy import Scene, available_readers
 # - modis_l3_nasa_mcd12q1_file
 
 
-def _check_shared_metadata(data_arr, expect_area=False):
-    assert data_arr.attrs["sensor"] == "modis"
-    assert data_arr.attrs["platform_name"] == "EOS-Terra"
-    assert "rows_per_scan" in data_arr.attrs
-    assert isinstance(data_arr.attrs["rows_per_scan"], int)
-    assert data_arr.attrs["reader"] == "mcd12q1"
-    if expect_area:
-        assert data_arr.attrs.get("area") is not None
-    else:
-        assert "area" not in data_arr.attrs
-
-
 class TestModisL3MCD12Q1:
     """Test MODIS L3 MCD12Q1 reader."""
 
     def test_available_reader(self):
         """Test that MODIS L3 reader is available."""
         assert "mcd12q1" in available_readers()
+
+    def test_metadata(self, modis_l3_nasa_mcd12q1_file):
+        """Test some basic metadata that should exist in the file."""
+        scene = Scene(reader="mcd12q1", filenames=modis_l3_nasa_mcd12q1_file)
+        ds_name = "LC_Type2"
+        scene.load([ds_name])
+        assert scene[ds_name].attrs['area'].description == 'Tiled sinusoidal L3 MODIS area'
+        assert scene[ds_name].attrs['sensor'] == 'modis'
 
     def test_scene_available_datasets(self, modis_l3_nasa_mcd12q1_file):
         """Test that datasets are available."""
