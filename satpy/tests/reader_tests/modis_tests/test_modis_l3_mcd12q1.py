@@ -23,12 +23,9 @@ import dask.array as da
 
 from satpy import Scene, available_readers
 
-from ._modis_fixtures import modis_l3_nasa_mcd12q1_file as _  # noqa: F401
-
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - modis_l3_nasa_mcd12q1_file
-# The import above is necessary for pytest to know about the fixture
 
 
 def _check_shared_metadata(data_arr, expect_area=False):
