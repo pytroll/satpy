@@ -19,6 +19,8 @@
 
 
 import datetime
+import logging
+from unittest import mock
 
 import numpy as np
 import xarray as xr
@@ -57,3 +59,28 @@ def test_flash_age_compositor():
         "crs": "8B +proj=longlat +ellps=WGS84 +type=crs"
     },attrs = expected_attrs,name="flash_time")
     xr.testing.assert_equal(res,expected_array)
+
+def test_empty_array_error(caplog):
+    """Test when the filtered array is empty."""
+    comp = LightningTimeCompositor("flash_age",prerequisites=["flash_time"],
+                                   standard_name="ligtning_time",
+                                   time_range=60,
+                                   reference_time="end_time")
+    attrs_flash_age = {"variable_name": "flash_time","name": "flash_time",
+                       "start_time": datetime.datetime(2024, 8, 1, 10, 50, 0),
+                       "end_time": datetime.datetime(2024, 8, 1, 11, 0, 0),"reader": "li_l2_nc"}
+    flash_age_value = np.array(["2024-08-01T09:00:00"], dtype="datetime64[ns]")
+    flash_age = xr.DataArray(
+    flash_age_value,
+    dims=["y"],
+    coords={
+        "crs": "8B +proj=longlat +ellps=WGS84 +type=crs"
+    },attrs = attrs_flash_age,name="flash_time")
+    with mock.patch("sys.exit") as mock_exit:
+        # Capture logging output
+        with caplog.at_level(logging.ERROR):
+            _ = comp([flash_age])
+
+        mock_exit.assert_called_once_with(1)
+
+        assert "All the flash_age events happened before 2024-08-01T10:00:00" in caplog.text
