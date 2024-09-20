@@ -45,7 +45,7 @@ def test_flash_age_compositor():
         "crs": "8B +proj=longlat +ellps=WGS84 +type=crs"
     },attrs = attrs_flash_age,name="flash_time")
     res = comp([flash_age])
-    expected_attrs =  {"variable_name": "flash_time","name": "lightning_time",
+    expected_attrs = {"variable_name": "flash_time","name": "lightning_time",
                        "start_time": datetime.datetime(2024, 8, 1, 10, 50, 0),
                        "end_time": datetime.datetime(2024, 8, 1, 11, 0, 0),"reader": "li_l2_nc",
                        "standard_name": "ligtning_time"
