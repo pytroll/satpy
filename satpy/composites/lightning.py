@@ -18,6 +18,7 @@
 """Composite classes for the LI instrument."""
 
 import logging
+import sys
 
 import numpy as np
 import xarray as xr
@@ -65,6 +66,10 @@ class LightningTimeCompositor(CompositeBase):
           begin_time = end_time - np.timedelta64(self.time_range, "m")
           # Drop values that are bellow begin_time
           data = data.where(data >= begin_time, drop=True)
+          # exit if data is empty afer filtering
+          if data.size == 0 :
+              LOG.error(f"All the flash_age events happened before {begin_time}")
+              sys.exit(1)
           # Normalize the time values
           normalized_data = (data - begin_time) / (end_time - begin_time)
           # Ensure the result is still an xarray.DataArray
