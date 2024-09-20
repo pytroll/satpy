@@ -44,6 +44,7 @@ class LightningTimeCompositor(CompositeBase):
           self.standard_name = self.attrs["standard_name"]
           self.reference_time = self.attrs["reference_time"]
 
+
       def _normalize_time(self,data:xr.DataArray,attrs:dict)->xr.DataArray:
           """Normalised the time in the range between [end_time,end_time - time_range].
 
@@ -63,7 +64,7 @@ class LightningTimeCompositor(CompositeBase):
           # Compute the minimum time value based on the time range
           begin_time = end_time - np.timedelta64(self.time_range, "m")
           # Drop values that are bellow begin_time
-          data = data.where(data > begin_time, drop=True)
+          data = data.where(data >= begin_time, drop=True)
           # Normalize the time values
           normalized_data = (data - begin_time) / (end_time - begin_time)
           # Ensure the result is still an xarray.DataArray
