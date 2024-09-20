@@ -84,3 +84,31 @@ def test_empty_array_error(caplog):
         mock_exit.assert_called_once_with(1)
 
         assert "All the flash_age events happened before 2024-08-01T10:00:00" in caplog.text
+
+def test_update_missing_metadata():
+    """Test the _update_missing_metadata method."""
+    existing_attrs = {
+        "standard_name": "lightning_event_time",
+        "time_range": 30
+    }
+
+    # New metadata to be merged
+    new_attrs = {
+        "standard_name": None,  # Should not overwrite since it's None
+        "reference_time": "2023-09-20T00:00:00Z",  # Should be added
+        "units": "seconds"  # Should be added
+    }
+
+    # Expected result after merging
+    expected_attrs = {
+        "standard_name": "lightning_event_time",  # Should remain the same
+        "time_range": 30,  # Should remain the same
+        "reference_time": "2023-09-20T00:00:00Z",  # Should be added
+        "units": "seconds"  # Should be added
+    }
+
+    # Call the static method
+    LightningTimeCompositor._update_missing_metadata(existing_attrs, new_attrs)
+
+    # Assert the final state of existing_attrs is as expected
+    assert existing_attrs == expected_attrs
