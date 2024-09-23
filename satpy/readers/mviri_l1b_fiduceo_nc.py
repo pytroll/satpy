@@ -461,9 +461,7 @@ class DatasetWrapper:
         """Wrap the given dataset."""
         self.nc = nc
 
-        # decode data
         self._decode_cf()
-        # rename duplicate dimensions
         self._fix_duplicate_dimensions(self.nc)
 
 
@@ -518,13 +516,15 @@ class DatasetWrapper:
         ds.attrs.pop("ancillary_variables", None)
 
     def _decode_cf(self):
-        # remove time before decoding and add again.
+        """Decode data."""
+        # time decoding with decode_cf results in error - decode separately!
         time_dims, time = self._decode_time()
         self.nc = self.nc.drop_vars(time.name)
         self.nc = xr.decode_cf(self.nc)
         self.nc[time.name] = (time_dims, time.values)
 
     def _decode_time(self):
+        """Decode time using fill value and offset."""
         time = self.get_time()
         time_dims = self.nc[time.name].dims
         time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
@@ -533,6 +533,7 @@ class DatasetWrapper:
         return (time_dims, time)
 
     def _fix_duplicate_dimensions(self, nc):
+        """Rename dimensions as duplicate dimensions names are not supported by xarray."""
         nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
         self.nc = nc.drop_dims("srf_size")
         nc.variables["channel_correlation_matrix_independent"].dims = ("channel_1", "channel_2")
@@ -589,6 +590,7 @@ class FiduceoMviriBase(BaseFileHandler):
                     "y": CHUNK_SIZE,
                     "x_ir_wv": CHUNK_SIZE,
                     "y_ir_wv": CHUNK_SIZE},
+            # see dataset wrapper for why decoding is disabled
             decode_cf=False,
             decode_times=False,
             mask_and_scale=False,
@@ -611,8 +613,8 @@ class FiduceoMviriBase(BaseFileHandler):
         """Read projection longitude from filename as it is not provided in the file."""
         if "." in str(filename_info["projection_longitude"]):
             return float(filename_info["projection_longitude"])
-        else:
-            return float(filename_info["projection_longitude"]) / 100
+
+        return float(filename_info["projection_longitude"]) / 100
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""

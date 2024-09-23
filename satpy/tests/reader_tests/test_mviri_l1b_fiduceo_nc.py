@@ -45,7 +45,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = int("4294967295")
+fill_val = 4294967295
 
 attrs_exp: dict = {
     "platform": "MET7",
@@ -575,7 +575,6 @@ class TestFiduceoMviriFileHandlers:
         ]
 
         files = reader.select_files_from_pathnames(filenames)
-        # only 3 out of 4 above should match
         assert len(files) == 6
 
 
