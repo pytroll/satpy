@@ -39,7 +39,6 @@ def test_flash_age_compositor():
                        "end_time": datetime.datetime(2024, 8, 1, 11, 0, 0),"reader": "li_l2_nc"}
     flash_age_value = np.array(["2024-08-01T09:00:00",
             "2024-08-01T10:00:00", "2024-08-01T10:30:00","2024-08-01T11:00:00"], dtype="datetime64[ns]")
-     #Coordinates data (assuming you have longitude and latitude arrays)
     flash_age = xr.DataArray(
     flash_age_value,
     dims=["y"],
