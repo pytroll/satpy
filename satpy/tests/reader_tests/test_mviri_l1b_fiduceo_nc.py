@@ -44,7 +44,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = int("4294967295")
+fill_val = np.int64("4294967295")
 
 attrs_exp: dict = {
     "platform": "MET7",
