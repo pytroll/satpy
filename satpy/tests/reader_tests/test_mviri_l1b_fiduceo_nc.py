@@ -44,7 +44,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = np.int64("4294967295")
+fill_val = np.int64("4294967295") # needs to be defined as int64 for windows
 
 attrs_exp: dict = {
     "platform": "MET7",
@@ -256,13 +256,18 @@ area_ir_wv_exp = area_vis_exp.copy(
     height=2
 )
 
-time_fake_dataset = np.arange(4) * 60 * 60
-time_fake_dataset[0] = fill_val
-time_fake_dataset[1] = fill_val
-time_fake_dataset = time_fake_dataset.reshape(2, 2)
+@pytest.fixture(name="time_fake_dataset")
+def fixture_time_fake_dataset():
+    """Create time for fake dataset."""
+    time = np.arange(4) * 60 * 60
+    time[0] = fill_val
+    time[1] = fill_val
+    time = time.reshape(2, 2)
+
+    return time
 
 @pytest.fixture(name="fake_dataset")
-def fixture_fake_dataset():
+def fixture_fake_dataset(time_fake_dataset):
     """Create fake dataset."""
     count_ir = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
     count_wv = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
@@ -281,7 +286,6 @@ def fixture_fake_dataset():
     )
 
     cov = da.from_array([[1, 2], [3, 4]])
-    time = time_fake_dataset
 
     ds = xr.Dataset(
         data_vars={
@@ -293,7 +297,7 @@ def fixture_fake_dataset():
             "u_structured_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
             "quality_pixel_bitmask": (("y", "x"), mask),
             "solar_zenith_angle": (("y_tie", "x_tie"), sza),
-            "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time),
+            "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time_fake_dataset),
             "a_ir": -5.0,
             "b_ir": 1.0,
             "bt_a_ir": 10.0,
