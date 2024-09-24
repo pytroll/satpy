@@ -28,7 +28,6 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
-from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
@@ -45,7 +44,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = 4294967295
+fill_val = int("4294967295")
 
 attrs_exp: dict = {
     "platform": "MET7",
@@ -257,6 +256,10 @@ area_ir_wv_exp = area_vis_exp.copy(
     height=2
 )
 
+time_fake_dataset = np.arange(4) * 60 * 60
+time_fake_dataset[0] = fill_val
+time_fake_dataset[1] = fill_val
+time_fake_dataset = time_fake_dataset.reshape(2, 2)
 
 @pytest.fixture(name="fake_dataset")
 def fixture_fake_dataset():
@@ -266,26 +269,19 @@ def fixture_fake_dataset():
     count_vis = da.linspace(0, 255, 16, dtype=np.uint8).reshape(4, 4)
     sza = da.from_array(
         np.array(
-            [[45, 90],
-             [0, 45]],
+            [[45, 90], [0, 45]],
             dtype=np.float32
         )
     )
     mask = da.from_array(
         np.array(
-            [[0, 0, 0, 0],
-             [0, 0, 0, 0],
-             [0, 0, 1, 0],  # 1 = "invalid"
-             [0, 0, 0, 0]],
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]], # 1 = "invalid"
             dtype=np.uint8
         )
     )
 
     cov = da.from_array([[1, 2], [3, 4]])
-    time = np.arange(4) * 60 * 60
-    time[0] = fill_val
-    time[1] = fill_val
-    time = time.reshape(2, 2)
+    time = time_fake_dataset
 
     ds = xr.Dataset(
         data_vars={
@@ -664,10 +660,10 @@ class TestInterpolator:
             coords={"y": [1, 3, 5, 7]}
         )
 
-    @pytest.fixture(name="acq_time_vis_exp")
-    def fixture_acq_time_vis_exp(self):
+    @pytest.fixture(name="acq_time_exp")
+    def fixture_acq_time_exp(self):
         """Returns acq_time_vis_exp."""
-        return xr.DataArray(
+        vis = xr.DataArray(
             [
                 np.datetime64("1970-01-01 01:30"),
                 np.datetime64("1970-01-01 01:30"),
@@ -682,10 +678,7 @@ class TestInterpolator:
             coords={"y": [1, 2, 3, 4, 5, 6, 7, 8]}
         )
 
-    @pytest.fixture(name="acq_time_ir_exp")
-    def fixture_acq_time_ir_exp(self):
-        """Returns acq_time_ir_exp."""
-        return xr.DataArray(
+        ir = xr.DataArray(
             [
                 np.datetime64("1970-01-01 01:30"),
                 np.datetime64("1970-01-01 03:30"),
@@ -696,14 +689,12 @@ class TestInterpolator:
             coords={"y": [1, 3, 5, 7]}
         )
 
-    @pytest.mark.parametrize(
-        "acq_time_exp",
-        [
-            lazy_fixture("acq_time_ir_exp"),
-            lazy_fixture("acq_time_vis_exp")
-        ]
-    )
+        return vis, ir
+
     def test_interp_acq_time(self, time_ir_wv, acq_time_exp):
         """Tests time interpolation."""
-        res = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp.coords["y"])
-        xr.testing.assert_allclose(res, acq_time_exp)
+        res_vis = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp[0].coords["y"])
+        res_ir = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp[1].coords["y"])
+
+        xr.testing.assert_allclose(res_vis, acq_time_exp[0])
+        xr.testing.assert_allclose(res_ir, acq_time_exp[1])
