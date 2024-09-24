@@ -36,7 +36,7 @@ lat_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
 mas_data = RANDOM_GEN.choice([0, 1], size=(100, 100))
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_hdf5_file(tmp_path):
     """Create temp hdf5 files."""
     fn = tmp_path / "epic_1b_20150613120251_03.h5"
@@ -90,11 +90,11 @@ class TestEPICL1bReader:
 
     def test_times(self, setup_hdf5_file):
         """Test start and end times load properly."""
-        from datetime import datetime
+        import datetime as dt
 
         test_reader = self._setup_h5(setup_hdf5_file)
-        assert test_reader.start_time == datetime(2015, 6, 13, 12, 0, 37)
-        assert test_reader.end_time == datetime(2015, 6, 13, 12, 5, 1)
+        assert test_reader.start_time == dt.datetime(2015, 6, 13, 12, 0, 37)
+        assert test_reader.end_time == dt.datetime(2015, 6, 13, 12, 5, 1)
 
     def test_counts_calibration(self, setup_hdf5_file):
         """Test that data is correctly calibrated."""

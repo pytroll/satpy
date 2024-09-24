@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.10
   - pip
-  - appdirs
+  - platformdirs
   - dask
   - dask-image
   - defusedxml
@@ -31,6 +31,7 @@ dependencies:
   - xarray
   - zarr
   - xarray-datatree
+  - geoviews
   - pip:
     - graphviz
     - pytest-lazy-fixtures

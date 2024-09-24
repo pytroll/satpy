@@ -15,11 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for compositors in composites/__init__.py."""
 
+import datetime as dt
 import os
 import unittest
-from datetime import datetime
 from unittest import mock
 
 import dask
@@ -175,7 +176,7 @@ class TestRatioSharpenedCompositors:
                               {"proj": "merc"}, 2, 2,
                               (-2000, -2000, 2000, 2000))
         attrs = {"area": area,
-                 "start_time": datetime(2018, 1, 1, 18),
+                 "start_time": dt.datetime(2018, 1, 1, 18),
                  "modifiers": tuple(),
                  "resolution": 1000,
                  "calibration": "reflectance",
@@ -347,7 +348,7 @@ class TestDifferenceCompositor(unittest.TestCase):
                               {"proj": "merc"}, 2, 2,
                               (-2000, -2000, 2000, 2000))
         attrs = {"area": area,
-                 "start_time": datetime(2018, 1, 1, 18),
+                 "start_time": dt.datetime(2018, 1, 1, 18),
                  "modifiers": tuple(),
                  "resolution": 1000,
                  "name": "test_vis"}
@@ -393,14 +394,14 @@ class TestDifferenceCompositor(unittest.TestCase):
             comp((self.ds1, self.ds2_big))
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def
     return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
     ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
@@ -430,7 +431,7 @@ class TestDayNightCompositor(unittest.TestCase):
     def setUp(self):
         """Create test data."""
         bands = ["R", "G", "B"]
-        start_time = datetime(2018, 1, 1, 18, 0, 0)
+        start_time = dt.datetime(2018, 1, 1, 18, 0, 0)
 
         # RGB
         a = np.zeros((3, 2, 2), dtype=np.float32)
@@ -605,11 +606,12 @@ class TestDayNightCompositor(unittest.TestCase):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
 
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
-            res = comp((self.data_a,))
-            res = res.compute()
+        # with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
+        res_dask = comp((self.data_a,))
+        res = res_dask.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        assert res_dask.dtype == res.dtype
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
@@ -1584,7 +1586,7 @@ class TestBackgroundCompositor:
 class TestMaskingCompositor:
     """Test case for the simple masking compositor."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def conditions_v1(self):
         """Masking conditions with string values."""
         return [{"method": "equal",
@@ -1594,7 +1596,7 @@ class TestMaskingCompositor:
                  "value": "Cloud-free_sea",
                  "transparency": 50}]
 
-    @pytest.fixture()
+    @pytest.fixture
     def conditions_v2(self):
         """Masking conditions with numerical values."""
         return [{"method": "equal",
@@ -1604,12 +1606,12 @@ class TestMaskingCompositor:
                  "value": 2,
                  "transparency": 50}]
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_data(self):
         """Test data to use with masking compositors."""
         return xr.DataArray(da.random.random((3, 3)), dims=["y", "x"])
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_ct_data(self):
         """Test 2D CT data array."""
         flag_meanings = ["Cloud-free_land", "Cloud-free_sea"]
@@ -1622,18 +1624,18 @@ class TestMaskingCompositor:
         ct_data.attrs["flag_values"] = flag_values
         return ct_data
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_ct_data_v3(self, test_ct_data):
         """Set ct data to NaN where it originally is 1."""
         return test_ct_data.where(test_ct_data == 1)
 
-    @pytest.fixture()
+    @pytest.fixture
     def reference_data(self, test_data, test_ct_data):
         """Get reference data to use in masking compositor tests."""
         # The data are set to NaN where ct is `1`
         return test_data.where(test_ct_data > 1)
 
-    @pytest.fixture()
+    @pytest.fixture
     def reference_alpha(self):
         """Get reference alpha to use in masking compositor tests."""
         ref_alpha = da.array([[0, 0.5, 0.5],

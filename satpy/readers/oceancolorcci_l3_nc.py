@@ -23,8 +23,9 @@ products on a sinusoidal grid. The products on each of the composite periods (1,
 are supported and both the merged product files (OC_PRODUCTS) and single product (RRS, CHLOR_A, IOP, K_490) are
 supported.
 """
+
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -41,7 +42,7 @@ class OCCCIFileHandler(NetCDF4FileHandler):
     @staticmethod
     def _parse_datetime(datestr):
         """Parse datetime."""
-        return datetime.strptime(datestr, "%Y%m%d%H%MZ")
+        return dt.datetime.strptime(datestr, "%Y%m%d%H%MZ")
 
     @property
     def start_time(self):

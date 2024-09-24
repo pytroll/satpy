@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """A reader for files produced by the Hydrology SAF.
 
 Currently this reader depends on the `pygrib` python package. The `eccodes`
@@ -22,8 +23,9 @@ package from ECMWF is preferred, but does not support python 3 at the time
 of writing.
 
 """
+
+import datetime as dt
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -68,7 +70,7 @@ class HSAFFileHandler(BaseFileHandler):
     @staticmethod
     def _get_datetime(msg):
         dtstr = str(msg["dataDate"]) + str(msg["dataTime"]).zfill(4)
-        return datetime.strptime(dtstr, "%Y%m%d%H%M")
+        return dt.datetime.strptime(dtstr, "%Y%m%d%H%M")
 
     @property
     def analysis_time(self):
@@ -151,7 +153,7 @@ class HSAFFileHandler(BaseFileHandler):
             flen = len(self.filename)
             timedelt = self.filename[flen-10:flen-8]
             ds_info["start_time"] = (ds_info["end_time"] -
-                                     timedelta(hours=int(timedelt)))
+                                     dt.timedelta(hours=int(timedelt)))
         else:
             ds_info["start_time"] = ds_info["end_time"]
         fill = msg["missingValue"]

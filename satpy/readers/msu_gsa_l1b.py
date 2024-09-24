@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for the Arctica-M1 MSU-GS/A data.
 
 The files for this reader are HDF5 and contain channel data at 1km resolution
@@ -24,7 +25,8 @@ is available at both resolutions, as is sun and satellite geometry.
 This reader was tested on sample data provided by EUMETSAT.
 
 """
-from datetime import datetime
+
+import datetime as dt
 
 import numpy as np
 
@@ -38,7 +40,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
     def start_time(self):
         """Time for timeslot scan start."""
         dtstr = self["/attr/timestamp_without_timezone"]
-        return datetime.strptime(dtstr, "%Y-%m-%dT%H:%M:%S")
+        return dt.datetime.strptime(dtstr, "%Y-%m-%dT%H:%M:%S")
 
     @property
     def satellite_altitude(self):

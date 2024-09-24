@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Common functionality for SEVIRI L1.5 data readers.
 
 Introduction
@@ -186,8 +187,8 @@ References:
 """
 from __future__ import annotations
 
+import datetime as dt
 import warnings
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -387,7 +388,7 @@ CALIB[324] = {"HRV": {"F": 79.0035},
 # To obtain the slope for the calibration, one should use the routine get_seviri_meirink_slope
 
 # Epoch for the MEIRINK re-calibration
-MEIRINK_EPOCH = datetime(2000, 1, 1)
+MEIRINK_EPOCH = dt.datetime(2000, 1, 1)
 
 MEIRINK_COEFS: dict[str, dict[int, dict[str, tuple[float, float]]]] = {}
 MEIRINK_COEFS["2023"] = {}
@@ -1093,17 +1094,17 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     return data
 
 
-def round_nom_time(dt, time_delta):
+def round_nom_time(date, time_delta):
     """Round a datetime object to a multiple of a timedelta.
 
-    dt : datetime.datetime object, default now.
+    date : datetime.datetime object, default now.
     time_delta : timedelta object, we round to a multiple of this, default 1 minute.
     adapted for SEVIRI from:
     https://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
     """
-    seconds = (dt - dt.min).seconds
+    seconds = (date - date.min).seconds
     round_to = time_delta.total_seconds()
 
     rounding = (seconds + round_to / 2) // round_to * round_to
 
-    return dt + timedelta(0, rounding - seconds, - dt.microsecond)
+    return date + dt.timedelta(0, rounding - seconds, - date.microsecond)

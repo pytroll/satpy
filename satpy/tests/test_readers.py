@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Test classes and functions in the readers/__init__.py module."""
 
 import builtins
 import contextlib
+import datetime as dt
 import os
 import sys
 import unittest
@@ -72,7 +74,7 @@ local_id_keys_config = {"name": {
 real_import = builtins.__import__
 
 
-@pytest.fixture()
+@pytest.fixture
 def viirs_file(tmp_path, monkeypatch):
     """Create a dummy viirs file."""
     filename = "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
@@ -83,7 +85,7 @@ def viirs_file(tmp_path, monkeypatch):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def atms_file(tmp_path, monkeypatch):
     """Create a dummy atms file."""
     filename = "SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5"
@@ -399,43 +401,37 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_all_filtered(self):
         """Test behaviour if no file matches the filter parameters."""
-        import datetime
-
         from satpy.readers import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
         }
-        filter_params = {"start_time": datetime.datetime(1970, 1, 1),
-                         "end_time": datetime.datetime(1970, 1, 2),
+        filter_params = {"start_time": dt.datetime(1970, 1, 1),
+                         "end_time": dt.datetime(1970, 1, 2),
                          "area": None}
         with pytest.raises(ValueError, match="No dataset could be loaded.*"):
             load_readers(filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
 
     def test_all_filtered_multiple(self):
         """Test behaviour if no file matches the filter parameters."""
-        import datetime
-
         from satpy.readers import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
             "abi_l1b": ["OR_ABI-L1b-RadF-M3C01_G16_s20120561730408_e20120561741175_c20172631741218.nc"],
         }
-        filter_params = {"start_time": datetime.datetime(1970, 1, 1),
-                         "end_time": datetime.datetime(1970, 1, 2)}
+        filter_params = {"start_time": dt.datetime(1970, 1, 1),
+                         "end_time": dt.datetime(1970, 1, 2)}
         with pytest.raises(ValueError, match="No dataset could be loaded."):
             load_readers(filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
 
     def test_almost_all_filtered(self):
         """Test behaviour if only one reader has datasets."""
-        import datetime
-
         from satpy.readers import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
             "abi_l1b": ["OR_ABI-L1b-RadF-M3C01_G16_s20172631730408_e20172631741175_c20172631741218.nc"],
         }
-        filter_params = {"start_time": datetime.datetime(2012, 2, 25),
-                         "end_time": datetime.datetime(2012, 2, 26)}
+        filter_params = {"start_time": dt.datetime(2012, 2, 25),
+                         "end_time": dt.datetime(2012, 2, 26)}
         # viirs has data that matches the request, abi doesn't
         readers = load_readers(filenames=filenames, reader_kwargs={"filter_parameters": filter_params})
         assert "viirs_sdr" in readers
@@ -480,11 +476,9 @@ class TestFindFilesAndReaders:
 
     def test_reader_name_matched_start_end_time(self, viirs_file):
         """Test with start and end time matching the filename."""
-        from datetime import datetime
-
         ri = find_files_and_readers(reader="viirs_sdr",
-                                    start_time=datetime(2012, 2, 25, 18, 0, 0),
-                                    end_time=datetime(2012, 2, 25, 19, 0, 0),
+                                    start_time=dt.datetime(2012, 2, 25, 18, 0, 0),
+                                    end_time=dt.datetime(2012, 2, 25, 19, 0, 0),
                                     )
         assert list(ri.keys()) == ["viirs_sdr"]
         assert ri["viirs_sdr"] == [viirs_file]
@@ -494,9 +488,7 @@ class TestFindFilesAndReaders:
 
         Start time in the middle of the file time should still match the file.
         """
-        from datetime import datetime
-
-        ri = find_files_and_readers(reader="viirs_sdr", start_time=datetime(2012, 2, 25, 18, 1, 30))
+        ri = find_files_and_readers(reader="viirs_sdr", start_time=dt.datetime(2012, 2, 25, 18, 1, 30))
         assert list(ri.keys()) == ["viirs_sdr"]
         assert ri["viirs_sdr"] == [viirs_file]
 
@@ -506,20 +498,16 @@ class TestFindFilesAndReaders:
         End time in the middle of the file time should still match the file.
 
         """
-        from datetime import datetime
-
-        ri = find_files_and_readers(reader="viirs_sdr", end_time=datetime(2012, 2, 25, 18, 1, 30))
+        ri = find_files_and_readers(reader="viirs_sdr", end_time=dt.datetime(2012, 2, 25, 18, 1, 30))
         assert list(ri.keys()) == ["viirs_sdr"]
         assert ri["viirs_sdr"] == [viirs_file]
 
     def test_reader_name_unmatched_start_end_time(self, viirs_file):
         """Test with start and end time matching the filename."""
-        from datetime import datetime
-
         with pytest.raises(ValueError, match="No supported files found"):
             find_files_and_readers(reader="viirs_sdr",
-                                   start_time=datetime(2012, 2, 26, 18, 0, 0),
-                                   end_time=datetime(2012, 2, 26, 19, 0, 0))
+                                   start_time=dt.datetime(2012, 2, 26, 18, 0, 0),
+                                   end_time=dt.datetime(2012, 2, 26, 19, 0, 0))
 
     def test_no_parameters(self, viirs_file):
         """Test with no limiting parameters."""
@@ -1113,6 +1101,18 @@ class TestFSFile:
         assert len({hash(FSFile(fn, fs))
                     for fn in {local_filename, local_filename2}
                     for fs in [None, lfs, zfs, cfs]}) == 2 * 4
+
+    def test_fs_property_read(self, local_filename):
+        """Test reading the fs property of the class."""
+        fsf = FSFile(local_filename)
+        fs = fsf.fs
+        assert fs is None
+
+    def test_fs_property_is_read_only(self, local_filename):
+        """Test that the fs property of the class is read-only."""
+        fsf = FSFile(local_filename)
+        with pytest.raises(AttributeError):
+            fsf.fs = "foo"
 
 
 def test_open_file_or_filename_uses_mode(tmp_path):

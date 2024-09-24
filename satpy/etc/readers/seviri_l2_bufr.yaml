@@ -11,48 +11,48 @@ reader:
 
 file_types:
   seviri_l2_bufr_asr:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'ASRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGASRE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGASRE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
   seviri_l2_bufr_cla:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'CLABUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGCLAP-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGCLAP-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_csr:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'CSRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGCSKR-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGCSKR-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_gii:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'GIIBUFRProduct_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGGIIN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGGIIN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_thu:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'THBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGTPHU-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGTPHU-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_toz:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGTOZN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
         - '{spacecraft:s}-SEVI-MSGTOZN-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}'
 
   seviri_l2_bufr_amv:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
     file_patterns:
         - 'AMVBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}'
         - '{spacecraft:s}-SEVI-MSGAMVE-{loc1:s}-{loc2:s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{time1:%Y%m%d%H%M%S}-{ord1:s}.bfr'
@@ -65,7 +65,7 @@ datasets:
     key: '#1#latitude'
     long_name: Latitude
     standard_name: latitude
-    resolution: [48006.450653072,9001.209497451,72009.675979608]
+    resolution: [48006.450653072,48006.450653072,48006.450653072,9001.209497451,48006.450653072,9001.209497451,-1]
     file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
     units: degree_north
     fill_value: -1.e+100
@@ -73,7 +73,7 @@ datasets:
   longitude:
     name: longitude
     key: '#1#longitude'
-    resolution: [48006.450653072,9001.209497451,72009.675979608]
+    resolution: [48006.450653072,48006.450653072,48006.450653072,9001.209497451,48006.450653072,9001.209497451,-1]
     file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz,seviri_l2_bufr_amv]
     long_name: Longitude
     standard_name: longitude
@@ -1081,7 +1081,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "°C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1094,7 +1094,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "°C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1107,7 +1107,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "°C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1120,7 +1120,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1133,7 +1133,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1146,7 +1146,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1159,7 +1159,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: ""
+    units: "°C"
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1172,7 +1172,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: degrees
+    units: degrees_north
     file_type: seviri_l2_bufr_gii
     fill_value: 0
 
@@ -1185,7 +1185,7 @@ datasets:
     coordinates:
        - longitude
        - latitude
-    units: mm
+    units: kg/m2
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
@@ -1246,41 +1246,170 @@ datasets:
     flag_meanings: ['not processed', 'first guess', 'high cloud (not processed)', 'successful retrieval', 'bad retrieval']
 
   # ---- AMV products ------------
-  speed:
-    name: speed
-    long_name: Wind Speed
-    standard_name: wind_speed
-    key: '#1#windSpeed'
-    resolution: 72009.675979608
-    file_type: seviri_l2_bufr_amv
-    units: m s-1
-    fill_value: -1.e+100
-    coordinates:
-       - longitude
-       - latitude
-
-  direction:
-    name: direction
-    long_name: Wind Direction
-    standard_name: wind_to_direction
-    key: '#1#windDirection'
-    resolution: 72009.675979608
-    file_type: seviri_l2_bufr_amv
-    units: deg
-    fill_value: -1.e+100
-    coordinates:
-       - longitude
-       - latitude
-
   pressure:
     name: pressure
     long_name: Air Pressure at Wind Level
     standard_name: air_pressure
-    key: '#1#pressure'
-    resolution: 72009.675979608
     file_type: seviri_l2_bufr_amv
+    key: '#1#pressure'
     units: Pa
     fill_value: -1.e+100
     coordinates:
        - longitude
        - latitude
+
+  oca_pressure:
+    name: oca_pressure
+    long_name: Air Pressure at Wind Level feature from OCA hight assignment
+    standard_name: air_pressure_at_wind_level
+    file_type: fci_l2_bufr_amv
+    key: '#3#pressure'
+    units: Pa
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  temperature:
+    name: temperature
+    long_name: Temperature of AMV feature
+    standard_name: air_temperature_at_wind_level
+    file_type: seviri_l2_bufr_amv
+    key: '#1#airTemperature'
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  height:
+    name: height
+    file_type: seviri_l2_bufr_amv
+    key: '#1#heightOfTopOfCloud'
+    long_name: Height of AMV feature
+    standard_name: height_at_wind_level
+    units: m
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  direction:
+    name: direction
+    long_name: Wind Direction
+    standard_name: wind_to_direction
+    file_type: seviri_l2_bufr_amv
+    key: '#1#windDirection'
+    units: degrees_north
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude
+
+  speed:
+    name: speed
+    long_name: Wind Speed
+    standard_name: wind_speed
+    file_type: seviri_l2_bufr_amv
+    key: '#1#windSpeed'
+    units: m/s
+    fill_value: -1.e+100
+    coordinates:
+       - longitude
+       - latitude
+
+  speed_u_component:
+    name: speed_u_component
+    long_name: Speed U component of AMV
+    standard_name: wind_speed_horizontal_component
+    file_type: seviri_l2_bufr_amv
+    key: '#1#u'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_v_component:
+    name: speed_v_component
+    long_name: Speed V component of AMV
+    standard_name: wind_speed_vertival_component
+    file_type: seviri_l2_bufr_amv
+    key: '#1#v'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  target_type:
+    name: target_type
+    long_name: Target type (cloud or clearsky)
+    standard_name: wind_target_type
+    file_type: seviri_l2_bufr_amv
+    key: '#1#extendedHeightAssignmentMethod'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  wind_method:
+    name: wind_method
+    long_name: Wind derivation method
+    standard_name: wind_wind_method
+    file_type: seviri_l2_bufr_amv
+    key: 'satelliteDerivedWindComputationMethod'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi:
+    name: qi
+    long_name: Overall Reliability of AMV
+    standard_name: wind_overall_reliability
+    file_type: seviri_l2_bufr_amv
+    key: '#1#percentConfidence'
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst:
+    name: qi_excl_fcst
+    long_name: Overall Reliability (excluding forecast) of AMV
+    standard_name: wind_overall_reliability_exc_forecast
+    file_type: seviri_l2_bufr_amv
+    key: '#2#percentConfidence'
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst_oca:
+    name: qi_excl_fcst_oca
+    long_name: Overall Reliability (excluding forecast and OCA) of AMV
+    standard_name: wind_overall_reliability_exc_forecast_and_oca
+    file_type: seviri_l2_bufr_amv
+    key: '#4#percentConfidence'
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+    - longitude
+    - latitude
+
+  channel_id:
+    name: channel_id
+    long_name: Channel Id
+    standard_name: channel_id
+    file_type: seviri_l2_bufr_amv
+    key: '#1#channelNumber'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+    - longitude
+    - latitude
