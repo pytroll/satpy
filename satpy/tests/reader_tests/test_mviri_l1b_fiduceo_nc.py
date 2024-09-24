@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from unittest import mock
 
 import dask.array as da
@@ -44,7 +45,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = np.int64("4294967295") # needs to be defined as int64 for windows
+fill_val = min(sys.maxsize, 4294967295) # FillValue defined to be windows-compatible
 
 attrs_exp: dict = {
     "platform": "MET7",
