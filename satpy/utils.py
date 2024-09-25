@@ -498,8 +498,8 @@ def check_satpy(readers=None, writers=None, extras=None):
         writers (list or None): Limit writers checked to those specified
         extras (list or None): Limit extras checked to those specified
 
-    Returns: bool
-        True if all specified features were successfully loaded.
+    Returns:
+        None
 
     """
     from satpy.readers import configs_for_reader
