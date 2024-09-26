@@ -1,0 +1,309 @@
+# References:
+# - GOES Level 1.5 Image Data Format Description
+# - Radiometric Calibration of GOESR ABI Level 1.5 Image Data in Equivalent
+#   Spectral Blackbody Radiance
+# Netcdf built by Icare and Meteo France. Stored at Icare.
+
+reader:
+  name: goesr_netcdficare
+  short_name: goesr_NETCDF_ICARE
+  long_name: METEOFRANCE GEOSTATIONARY NETCDF BUILD for ICARE (Lille)
+  description: A reader for L1b NETCDF for all GEOSTATIONNARY retrieved from the ICARE service.
+  status: Defunct
+  supports_fsspec: false
+  sensors: [abi]
+  default_channels: [VIS_004, VIS_006, VIS_008, VIS_014, VIS_016, VIS_022, IR_039, IR_062, IR_069, IR_073, IR_085, IR_096, IR_103, IR_112, IR_123, IR_133]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+
+  GOES500m :
+     file_reader: !!python/name:satpy.readers.geos_netcdficare.NETCDF_ICARE
+     file_patterns: ['Emultic500mNC4_{platform_shortname:6s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Wmultic500mNC4_{platform_shortname:6s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Emultic500mNC4_{platform_shortname:6s}_{start_time:%Y%m%d_%H%M}.nc',
+                     'Wmultic500mNC4_{platform_shortname:6s}_{start_time:%Y%m%d_%H%M}.nc']
+
+  GOES1km :
+     file_reader: !!python/name:satpy.readers.geos_netcdficare.NETCDF_ICARE
+     file_patterns: ['Emultic1kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Wmultic1kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Emultic1kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d_%H%M}.nc',
+                     'Wmultic1kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d_%H%M}.nc']
+
+  GOES2km :
+     file_reader: !!python/name:satpy.readers.geos_netcdficare.NETCDF_ICARE
+     file_patterns: ['Emultic2kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Wmultic2kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Emultic2kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d_%H%M}.nc',
+                     'Wmultic2kmNC4_{platform_shortname:6s}_{start_time:%Y%m%d_%H%M}.nc']
+
+
+datasets:
+
+  VIS_004 :
+    name: C01
+    wavelength: [0.450, 0.470, 0.490]
+    resolution:
+      1000: { file_type: GOES1km }
+      2000: { file_type: GOES2km }
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: [GOES2km, GOES1km]
+
+  VIS_006 :
+    name: C02
+    wavelength: [0.590, 0.640, 0.690]
+    resolution:
+      500: { file_type: GOES500m }
+      2000: { file_type: GOES2km }
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: [GOES2km, GOES500m]
+
+  VIS_008 :
+    name: C03
+    wavelength: [0.8455, 0.865, 0.8845]
+    resolution:
+      1000: { file_type: GOES1km }
+      2000: { file_type: GOES2km }
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: [GOES2km, GOES1km]
+
+  VIS_014 :
+    name: C04
+    wavelength: [1.3705, 1.378, 1.3855]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  VIS_016 :
+    name: C05
+    wavelength: [1.580, 1.610, 1.640]
+    resolution:
+      1000: { file_type: GOES1km }
+      2000: { file_type: GOES2km }
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: [GOES2km, GOES1km]
+
+  VIS_022 :
+    name: C06
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_039 :
+    name: C07
+    wavelength: [3.80, 3.90, 4.00]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_062 :
+    name: C08
+    wavelength: [5.770, 6.185, 6.600]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_069 :
+    name: C09
+    wavelength: [6.75, 6.95, 7.15]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_073 :
+    name: C10
+    wavelength: [7.24, 7.34, 7.44]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_085 :
+    name: C11
+    wavelength: [8.30, 8.50, 8.70]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_096 :
+    name: C12
+    wavelength: [9.42, 9.61, 9.80]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_103 :
+    name: C13
+    wavelength: [10.10, 10.35, 10.60]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_112 :
+    name: C14
+    wavelength: [10.80, 11.20, 11.60]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_123 :
+    name: C15
+    wavelength: [11.80, 12.30, 12.80]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+  IR_133 :
+    name: C16
+    wavelength: [13.00, 13.30, 13.60]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: GOES2km
+
+
+
