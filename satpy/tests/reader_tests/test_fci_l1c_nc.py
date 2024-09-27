@@ -534,7 +534,7 @@ class FakeFCIFileHandlerAF(FakeFCIFileHandlerBase):
 # Fixtures preparation -------------------------------
 # ----------------------------------------------------
 
-@pytest.fixture()
+@pytest.fixture
 def reader_configs():
     """Return reader configs for FCI."""
     from satpy._config import config_search_paths
@@ -585,7 +585,7 @@ def mocked_basefilehandler(filehandler):
         yield
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerFDHSI_fixture():
     """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
@@ -597,7 +597,7 @@ def FakeFCIFileHandlerFDHSI_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerFDHSIError_fixture():
     """Get a fixture for the fake FDHSI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
@@ -609,7 +609,7 @@ def FakeFCIFileHandlerFDHSIError_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerFDHSIIQTI_fixture():
     """Get a fixture for the fake FDHSI IQTI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSIIQTI):
@@ -621,7 +621,7 @@ def FakeFCIFileHandlerFDHSIIQTI_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerFDHSIQ4_fixture():
     """Get a fixture for the fake FDHSI Q4 filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerFDHSI):
@@ -633,7 +633,7 @@ def FakeFCIFileHandlerFDHSIQ4_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerHRFI_fixture():
     """Get a fixture for the fake HRFI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
@@ -645,7 +645,7 @@ def FakeFCIFileHandlerHRFI_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerHRFIIQTI_fixture():
     """Get a fixture for the fake HRFI IQTI filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerHRFIIQTI):
@@ -657,7 +657,7 @@ def FakeFCIFileHandlerHRFIIQTI_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerHRFIQ4_fixture():
     """Get a fixture for the fake HRFI Q4 filehandler, including channel and file names."""
     with mocked_basefilehandler(FakeFCIFileHandlerHRFI):
@@ -669,7 +669,7 @@ def FakeFCIFileHandlerHRFIQ4_fixture():
         yield param_dict
 
 
-@pytest.fixture()
+@pytest.fixture
 def FakeFCIFileHandlerAF_fixture(channel, resolution):
     """Get a fixture for the fake AF filehandler, it contains only one channel and one resolution."""
     chan_patterns = {channel.split("_")[0] + "_{:>02d}": {"channels": [int(channel.split("_")[1])],

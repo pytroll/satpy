@@ -110,7 +110,7 @@ def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_geo_ct_filename, {}, {})
@@ -161,13 +161,13 @@ def create_ctth_file(path, attrs=global_attrs):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_pps_cmic_filehandler(nwcsaf_pps_cmic_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_cmic_filename, {}, {"file_key_prefix": "cmic_"})
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_pps_ctth_filehandler(nwcsaf_pps_ctth_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_ctth_filename, {}, {})
@@ -223,7 +223,7 @@ def create_ctth_alti_pal_variable_with_fill_value_color(nc_file, var_name):
     var.attrs["_FillValue"] = 65535
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
     """Create a CPP filehandler."""
     return NcNWCSAF(nwcsaf_pps_cpp_filename, {}, {"file_key_prefix": "cpp_"})
@@ -238,7 +238,7 @@ def nwcsaf_old_geo_ct_filename(tmp_path_factory):
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data-old"), attrs=attrs)
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_old_geo_ct_filehandler(nwcsaf_old_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_old_geo_ct_filename, {}, {})

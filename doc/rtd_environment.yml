@@ -31,7 +31,7 @@ dependencies:
   - xarray
   - zarr
   - xarray-datatree
-  - cartopy
+  - geoviews
   - pip:
     - graphviz
     - pytest-lazy-fixtures

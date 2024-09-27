@@ -43,7 +43,7 @@ N_FOVS_CAL = 5
 N_PRTS = 6
 
 
-@pytest.fixture()
+@pytest.fixture
 def reader(fake_file):
     """Return reader of mws level-1b data."""
     return MWSL1BFile(
@@ -70,7 +70,7 @@ def reader(fake_file):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file(tmp_path):
     """Return file path to level-1b file."""
     file_path = tmp_path / "test_file_mws_l1b.nc"

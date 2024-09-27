@@ -209,7 +209,7 @@ class TestMetadata:
             data_array.data = np.flipud(data_array.data)
         return data_array
 
-    @pytest.fixture()
+    @pytest.fixture
     def lons_lats(self, yaw_flip):
         """Get longitudes and latitudes."""
         lon = xr.DataArray(
@@ -227,7 +227,7 @@ class TestMetadata:
         self._apply_yaw_flip(lat, yaw_flip)
         return lon, lat
 
-    @pytest.fixture()
+    @pytest.fixture
     def dataset(self, lons_lats, channel_id):
         """Create a fake dataset."""
         lon, lat = lons_lats
@@ -253,7 +253,7 @@ class TestMetadata:
             attrs={"Satellite Sensor": "G-15"}
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def earth_mask(self, yaw_flip):
         """Get expected earth mask."""
         earth_mask = xr.DataArray(
@@ -265,7 +265,7 @@ class TestMetadata:
         self._apply_yaw_flip(earth_mask, yaw_flip)
         return earth_mask
 
-    @pytest.fixture()
+    @pytest.fixture
     def geometry(self, channel_id, yaw_flip):
         """Get expected geometry."""
         shapes = {
@@ -278,7 +278,7 @@ class TestMetadata:
             "shape": shapes[channel_id]
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected(self, geometry, earth_mask, yaw_flip):
         """Define expected metadata."""
         proj_dict = {
@@ -311,7 +311,7 @@ class TestMetadata:
             "nadir_col": 1
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def mocked_file_handler(self, dataset):
         """Mock file handler to load the given fake dataset."""
         from satpy.readers.goes_imager_nc import FULL_DISC, GOESNCFileHandler
