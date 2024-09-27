@@ -10,8 +10,8 @@ from satpy import Scene
 from datetime import datetime
 import pytz
 
-#ext_data_path = "/app/ext_data"
-ext_data_path = "/home/bildabgleich/pytroll-image-comparison-tests/data"
+ext_data_path = "/app/ext_data"
+#ext_data_path = "/home/bildabgleich/pytroll-image-comparison-tests/data"
 threshold = 2000
 
 # Define a before_all hook to create the timestamp and test results directory
@@ -70,7 +70,7 @@ def step_when_generate_image(context, composite, satellite):
 @then('the generated image should be the same as the reference image')
 def step_then_compare_images(context):
     # Load the images
-    imageA = cv2.cvtColor(context.reference_different_image, cv2.COLOR_BGR2GRAY) # reference_different_image for testing only
+    imageA = cv2.cvtColor(context.reference_image, cv2.COLOR_BGR2GRAY) # reference_different_image for testing only
     imageB = cv2.cvtColor(context.generated_image, cv2.COLOR_BGR2GRAY)
     # Ensure both images have the same dimensions
     if imageA.shape != imageB.shape:
