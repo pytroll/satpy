@@ -9,3 +9,5 @@ Feature: Image Comparison
       |satellite |composite  |
       |GOES17   |airmass  |
       |GOES16   |airmass  |
+      |GOES16   |ash      |
+      |GOES17   |ash      |
