@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import importlib.metadata
 import logging
 import os
 import pathlib
+import platform
 import warnings
 from contextlib import contextmanager
 from copy import deepcopy
@@ -476,27 +478,72 @@ def _check_yaml_configs(configs, key):
                         pass
     return diagnostic
 
+def _check_package_version(package_name: str) -> Optional[str]:
+    """Check the version of `package_name`.
 
-def _check_import(module_names):
-    """Import the specified modules and provide status."""
-    diagnostics = {}
-    for module_name in module_names:
-        try:
-            __import__(module_name)
-            res = "ok"
-        except ImportError as err:
-            res = str(err)
-        diagnostics[module_name] = res
-    return diagnostics
+    Args:
+        package_name (str): the distribution package name.
+
+    Returns:
+        the version number if available else `None`.
+    """
+    try:
+        return importlib.metadata.version(package_name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+def show_versions(packages=None):
+    """Shows version for system, python and common packages (if installed).
+
+    Args:
+        packages (list or None): Limit packages to those specified.
+
+    Returns:
+        None.
+
+    """
+    packages = (
+        (
+            "cartopy",
+            "geoviews",
+            "numpy",
+            "dask",
+            "xarray",
+            "gdal",
+            "rasterio",
+            "pyproj",
+            "netcdf4",
+            "h5py",
+            "pyhdf",
+            "h5netcdf",
+            "fsspec",
+        )
+        if packages is None
+        else packages
+    )
+
+    print("Versions")  # noqa: T201
+    print("======")  # noqa: T201
+    print(f"platform: {platform.platform()}")  # noqa: T201
+    print(f"python: {platform.python_version()}")  # noqa: T201
+    print()  # noqa: T201
+
+    for package_name in sorted(packages):
+        package_version = _check_package_version(package_name)
+        print( # noqa: T201
+            f"{package_name}: {package_version if package_version else 'not installed'}"
+        )
+
+    print()  # noqa: T201
 
 
-def check_satpy(readers=None, writers=None, extras=None):
+def check_satpy(readers=None, writers=None, packages=None):
     """Check the satpy readers and writers for correct installation.
 
     Args:
         readers (list or None): Limit readers checked to those specified
         writers (list or None): Limit writers checked to those specified
-        extras (list or None): Limit extras checked to those specified
+        packages (list or None): Limit packages checked to those specified
 
     Returns:
         None
@@ -517,12 +564,7 @@ def check_satpy(readers=None, writers=None, extras=None):
         print(writer + ": ", res)  # noqa: T201
     print()  # noqa: T201
 
-    print("Extras")  # noqa: T201
-    print("======")  # noqa: T201
-    module_names = extras if extras is not None else ("cartopy", "geoviews")
-    for module_name, res in sorted(_check_import(module_names).items()):
-        print(module_name + ": ", res)  # noqa: T201
-    print()  # noqa: T201
+    show_versions(packages=packages)
 
 
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:

@@ -278,13 +278,17 @@ class TestCheckSatpy:
         """Test 'check_satpy' with specific features provided."""
         from satpy.utils import check_satpy
         with mock.patch("satpy.utils.print") as print_mock:
-            check_satpy(readers=["viirs_sdr"], extras=("cartopy", "__fake"))
-            checked_fake = False
-            for call in print_mock.mock_calls:
-                if len(call[1]) > 0 and "__fake" in call[1][0]:
-                    assert "ok" not in call[1][1]
-                    checked_fake = True
-            assert checked_fake, "Did not find __fake module mentioned in checks"
+            check_satpy(readers=["viirs_sdr"], packages=("cartopy", "__fake"))
+            checked_fake = any("__fake: not installed" in c[1] for c in print_mock.mock_calls if len(c[1]))
+            assert checked_fake, "Did not find __fake package mentioned in checks"
+
+class TestShowVersions:
+    """Test the 'show_versions' function."""
+
+    def test_basic_show_versions(self):
+        """Test 'check_satpy' basic functionality."""
+        from satpy.utils import show_versions
+        show_versions()
 
 
 def test_debug_on(caplog):
