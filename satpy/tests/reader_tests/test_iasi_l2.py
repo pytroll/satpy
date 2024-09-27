@@ -316,7 +316,7 @@ class TestIasiL2(unittest.TestCase):
         self.check_sensing_times(times)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_iasi_l2_cdr_nc_dataset():
     """Create minimally fake IASI L2 CDR NC dataset."""
     shp = (3, 4, 5)
@@ -371,7 +371,7 @@ def fake_iasi_l2_cdr_nc_dataset():
                 "pressure_levels": pres})
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_iasi_l2_cdr_nc_file(fake_iasi_l2_cdr_nc_dataset, tmp_path):
     """Write a NetCDF file with minimal fake IASI L2 CDR NC data."""
     fn = ("W_XX-EUMETSAT-Darmstadt,HYPERSPECT+SOUNDING,METOPA+PW3+"
