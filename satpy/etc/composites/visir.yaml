@@ -462,6 +462,23 @@ composites:
     - 10.8
     standard_name: night_microphysics
 
+  24h_microphysics:
+    references:
+      EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/24MicroRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
+    - 10.8
+    standard_name: 24h_microphysics
+
   ir108_3d:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: ir108_3d

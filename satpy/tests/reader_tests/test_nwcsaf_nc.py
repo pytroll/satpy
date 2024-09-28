@@ -22,6 +22,7 @@ import pytest
 import xarray as xr
 
 from satpy.readers.nwcsaf_nc import NcNWCSAF, read_nwcsaf_time
+from satpy.tests.utils import RANDOM_GEN
 
 PROJ_KM = {"gdal_projection": "+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000",
            "gdal_xgeo_up_left": -5569500.0,
@@ -83,9 +84,9 @@ COT_PALETTE_MEANINGS = ("0 2 5 8 10 13 16 19 23 26 29 33 36 40 43 47 51 55 59 63
 COT_SCALE = 0.01
 COT_OFFSET = 0.0
 
-CRE_ARRAY = np.random.randint(0, 65535, size=(928, 1530), dtype=np.uint16)
-COT_ARRAY = np.random.randint(0, 65535, size=(928, 1530), dtype=np.uint16)
-PAL_ARRAY = np.random.randint(0, 255, size=(250, 3), dtype=np.uint8)
+CRE_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
+COT_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
+PAL_ARRAY = RANDOM_GEN.integers(0, 255, size=(250, 3), dtype=np.uint8)
 
 
 @pytest.fixture(scope="session")
@@ -102,14 +103,14 @@ def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
         nc_file.attrs.update(attrs)
         var_name = "ct"
 
-        var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint16,
+        var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint8,
                                       chunks=(256, 256))
-        var[:] = np.random.randint(0, 255, size=(928, 1530), dtype=np.uint8)
+        var[:] = RANDOM_GEN.integers(0, 255, size=(928, 1530), dtype=np.uint8)
 
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_geo_ct_filename, {}, {})
@@ -160,13 +161,13 @@ def create_ctth_file(path, attrs=global_attrs):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_pps_cmic_filehandler(nwcsaf_pps_cmic_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_cmic_filename, {}, {"file_key_prefix": "cmic_"})
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_pps_ctth_filehandler(nwcsaf_pps_ctth_filename):
     """Create a CMIC filehandler."""
     return NcNWCSAF(nwcsaf_pps_ctth_filename, {}, {})
@@ -222,7 +223,7 @@ def create_ctth_alti_pal_variable_with_fill_value_color(nc_file, var_name):
     var.attrs["_FillValue"] = 65535
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
     """Create a CPP filehandler."""
     return NcNWCSAF(nwcsaf_pps_cpp_filename, {}, {"file_key_prefix": "cpp_"})
@@ -237,7 +238,7 @@ def nwcsaf_old_geo_ct_filename(tmp_path_factory):
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data-old"), attrs=attrs)
 
 
-@pytest.fixture()
+@pytest.fixture
 def nwcsaf_old_geo_ct_filehandler(nwcsaf_old_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_old_geo_ct_filename, {}, {})
@@ -325,6 +326,14 @@ class TestNcNWCSAFGeo:
         assert "add_offset" not in var.attrs
         np.testing.assert_equal(var.attrs["valid_range"], (-2000., 25000.))
 
+    def test_scale_dataset_uint8_noop(self, nwcsaf_geo_ct_filehandler):
+        """Test that uint8 is not accidentally casted when no scaling is done."""
+        attrs = {}
+        var = xr.DataArray(np.array([1, 2, 3], dtype=np.uint8), attrs=attrs)
+        var = nwcsaf_geo_ct_filehandler.scale_dataset(var, "dummy")
+        np.testing.assert_equal(var, np.array([1, 2, 3], dtype=np.uint8))
+        assert var.dtype == np.uint8
+
     def test_orbital_parameters_are_correct(self, nwcsaf_geo_ct_filehandler):
         """Test that orbital parameters are present in the dataset attributes."""
         dsid = {"name": "ct"}
@@ -351,6 +360,13 @@ class TestNcNWCSAFGeo:
     def test_end_time(self, nwcsaf_geo_ct_filehandler):
         """Test the end time property."""
         assert nwcsaf_geo_ct_filehandler.end_time == read_nwcsaf_time(END_TIME)
+
+    def test_uint8_remains_uint8(self, nwcsaf_geo_ct_filehandler):
+        """Test that loading uint8 remains uint8."""
+        ct = nwcsaf_geo_ct_filehandler.get_dataset(
+                {"name": "ct"},
+                {"name": "ct", "file_type": "nc_nwcsaf_geo"})
+        assert ct.dtype == np.dtype("uint8")
 
 
 class TestNcNWCSAFPPS:

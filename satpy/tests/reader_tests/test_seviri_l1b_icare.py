@@ -124,7 +124,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def test_load_dataset_vis(self):
         """Test loading all datasets from a full swath file."""
-        from datetime import datetime
+        import datetime as dt
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf"
@@ -133,8 +133,8 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         datasets = r.load(["VIS008"])
         assert len(datasets) == 1
         for v in datasets.values():
-            dt = datetime(2004, 12, 29, 12, 27, 44)
-            assert v.attrs["end_time"] == dt
+            date = dt.datetime(2004, 12, 29, 12, 27, 44)
+            assert v.attrs["end_time"] == date
             assert v.attrs["calibration"] == "reflectance"
 
     def test_load_dataset_ir(self):

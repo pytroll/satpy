@@ -15,10 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """EUMETSAT base reader tests package."""
 
+import datetime as dt
 import unittest
-from datetime import datetime
 
 import numpy as np
 
@@ -40,18 +41,18 @@ class TestMakeTimeCdsDictionary(unittest.TestCase):
         """Test function for TestMakeTimeCdsDictionary."""
         # time_cds_short
         tcds = {"Days": np.array(1), "Milliseconds": np.array(2)}
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
+        expected = dt.datetime(1958, 1, 2, 0, 0, 0, 2000)
         assert timecds2datetime(tcds) == expected
 
         # time_cds
         tcds = {"Days": np.array(1), "Milliseconds": np.array(2), "Microseconds": np.array(3)}
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
+        expected = dt.datetime(1958, 1, 2, 0, 0, 0, 2003)
         assert timecds2datetime(tcds) == expected
 
         # time_cds_expanded
         tcds = {"Days": np.array(1), "Milliseconds": np.array(2), "Microseconds": np.array(3),
                 "Nanoseconds": np.array(4)}
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
+        expected = dt.datetime(1958, 1, 2, 0, 0, 0, 2003)
         assert timecds2datetime(tcds) == expected
 
 
@@ -62,17 +63,17 @@ class TestMakeTimeCdsRecarray(unittest.TestCase):
         """Test function for TestMakeTimeCdsRecarray."""
         # time_cds_short
         tcds = np.array([(1, 2)], dtype=np.dtype(time_cds_short))
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
+        expected = dt.datetime(1958, 1, 2, 0, 0, 0, 2000)
         assert timecds2datetime(tcds) == expected
 
         # time_cds
         tcds = np.array([(1, 2, 3)], dtype=np.dtype(time_cds))
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
+        expected = dt.datetime(1958, 1, 2, 0, 0, 0, 2003)
         assert timecds2datetime(tcds) == expected
 
         # time_cds_expanded
         tcds = np.array([(1, 2, 3, 4)], dtype=np.dtype(time_cds_expanded))
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
+        expected = dt.datetime(1958, 1, 2, 0, 0, 0, 2003)
         assert timecds2datetime(tcds) == expected
 
 
@@ -97,9 +98,9 @@ class TestRecarray2Dict(unittest.TestCase):
             (21916, 42309417, 918, 443))]]], dtype=pat_dt)
 
         expected = {
-            "TrueRepeatCycleStart": datetime(2018, 1, 2, 11, 30, 9, 544305),
-            "PlanForwardScanEnd": datetime(2018, 1, 2, 11, 42, 40, 340660),
-            "PlannedRepeatCycleEnd": datetime(2018, 1, 2, 11, 45, 9, 417918)
+            "TrueRepeatCycleStart": dt.datetime(2018, 1, 2, 11, 30, 9, 544305),
+            "PlanForwardScanEnd": dt.datetime(2018, 1, 2, 11, 42, 40, 340660),
+            "PlannedRepeatCycleEnd": dt.datetime(2018, 1, 2, 11, 45, 9, 417918)
         }
 
         assert recarray2dict(pat) == expected

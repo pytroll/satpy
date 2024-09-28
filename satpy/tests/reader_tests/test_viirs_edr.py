@@ -21,8 +21,8 @@ Note: This is adapted from the test_slstr_l2.py code.
 """
 from __future__ import annotations
 
+import datetime as dt
 import shutil
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -34,14 +34,16 @@ import pytest
 import xarray as xr
 from pyresample import SwathDefinition
 from pytest import TempPathFactory  # noqa: PT013
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
+
+from satpy.tests.utils import RANDOM_GEN
 
 I_COLS = 6400
 I_ROWS = 32  # one scan
 M_COLS = 3200
 M_ROWS = 16  # one scan
-START_TIME = datetime(2023, 5, 30, 17, 55, 41, 0)
-END_TIME = datetime(2023, 5, 30, 17, 57, 5, 0)
+START_TIME = dt.datetime(2023, 5, 30, 17, 55, 41, 0)
+END_TIME = dt.datetime(2023, 5, 30, 17, 57, 5, 0)
 QF1_FLAG_MEANINGS = """
 \tBits are listed from the MSB (bit 7) to the LSB (bit 0):
 \tBit    Description
@@ -78,7 +80,7 @@ def surface_reflectance_file(tmp_path_factory: TempPathFactory) -> Path:
 @pytest.fixture(scope="module")
 def surface_reflectance_file2(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file."""
-    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + dt.timedelta(minutes=5),
                                             include_veg_indices=False)
 
 
@@ -97,7 +99,7 @@ def surface_reflectance_with_veg_indices_file(tmp_path_factory: TempPathFactory)
 @pytest.fixture(scope="module")
 def surface_reflectance_with_veg_indices_file2(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake surface reflectance EDR file with vegetation indexes included."""
-    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + timedelta(minutes=5),
+    return _create_surface_reflectance_file(tmp_path_factory, START_TIME + dt.timedelta(minutes=5),
                                             include_veg_indices=True)
 
 
@@ -110,7 +112,7 @@ def multiple_surface_reflectance_files_with_veg_indices(surface_reflectance_with
 
 def _create_surface_reflectance_file(
         tmp_path_factory: TempPathFactory,
-        start_time: datetime,
+        start_time: dt.datetime,
         include_veg_indices: bool = False,
 ) -> Path:
     fn = f"SurfRefl_v1r2_npp_s{start_time:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202305302025590.nc"
@@ -132,10 +134,11 @@ def _create_surf_refl_variables() -> dict[str, xr.DataArray]:
                  "valid_min": -180.0, "valid_max": 180.0}
     lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9,
                  "valid_min": -90.0, "valid_max": 90.0}
-    sr_attrs = {"units": "unitless", "_FillValue": -9999, "scale_factor": 0.0001, "add_offset": 0.0}
+    sr_attrs = {"units": "unitless", "_FillValue": -9999,
+                "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
-    i_data = np.random.random_sample((I_ROWS, I_COLS)).astype(np.float32)
-    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    i_data = RANDOM_GEN.random((I_ROWS, I_COLS)).astype(np.float32)
+    m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     lon_i_data = (i_data * 360) - 180.0
     lon_m_data = (m_data * 360) - 180.0
     lat_i_data = (i_data * 180) - 90.0
@@ -210,6 +213,14 @@ def cloud_height_file(tmp_path_factory: TempPathFactory) -> Path:
     data_vars = _create_continuous_variables(
         ("CldTopTemp", "CldTopHght", "CldTopPres")
     )
+    lon_pc = data_vars["Longitude"].copy(deep=True)
+    lat_pc = data_vars["Latitude"].copy(deep=True)
+    lon_pc.attrs["long_name"] = "BAD"
+    lat_pc.attrs["long_name"] = "BAD"
+    del lon_pc.encoding["_FillValue"]
+    del lat_pc.encoding["_FillValue"]
+    data_vars["Longitude_Pc"] = lon_pc
+    data_vars["Latitude_Pc"] = lat_pc
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
@@ -218,7 +229,12 @@ def aod_file(tmp_path_factory: TempPathFactory) -> Path:
     """Generate fake AOD VIIRs EDR file."""
     fn = f"JRR-AOD_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
     data_vars = _create_continuous_variables(
-        ("AOD550",)
+        ("AOD550",),
+        data_attrs={
+            "valid_range": [-0.5, 0.5],
+            "units": "1",
+            "_FillValue": -999.999,
+        }
     )
     qc_data = np.zeros(data_vars["AOD550"].shape, dtype=np.int8)
     qc_data[-1, -1] = 2
@@ -252,29 +268,40 @@ def _create_lst_variables() -> dict[str, xr.DataArray]:
     return data_vars
 
 
-def _create_continuous_variables(var_names: Iterable[str]) -> dict[str, xr.DataArray]:
+def _create_continuous_variables(
+        var_names: Iterable[str],
+        data_attrs: None | dict = None
+) -> dict[str, xr.DataArray]:
     dims = ("Rows", "Columns")
 
     lon_attrs = {"standard_name": "longitude", "units": "degrees_east", "_FillValue": -999.9}
     lat_attrs = {"standard_name": "latitude", "units": "degrees_north", "_FillValue": -999.9}
-    cont_attrs = {"units": "Kelvin", "_FillValue": -9999, "scale_factor": 0.0001, "add_offset": 0.0}
+    cont_attrs = data_attrs
+    if cont_attrs is None:
+        cont_attrs = {"units": "Kelvin", "_FillValue": -9999,
+                      "scale_factor": np.float32(0.0001), "add_offset": np.float32(0.0)}
 
-    m_data = np.random.random_sample((M_ROWS, M_COLS)).astype(np.float32)
+    m_data = RANDOM_GEN.random((M_ROWS, M_COLS)).astype(np.float32)
     data_arrs = {
         "Longitude": xr.DataArray(m_data, dims=dims, attrs=lon_attrs),
         "Latitude": xr.DataArray(m_data, dims=dims, attrs=lat_attrs),
     }
+    cont_data = m_data
+    if "valid_range" in cont_attrs:
+        valid_range = cont_attrs["valid_range"]
+        # scale 0-1 random data to fit in valid_range
+        cont_data = cont_data * (valid_range[1] - valid_range[0]) + valid_range[0]
     for var_name in var_names:
-        data_arrs[var_name] = xr.DataArray(m_data, dims=dims, attrs=cont_attrs)
+        data_arrs[var_name] = xr.DataArray(cont_data, dims=dims, attrs=cont_attrs)
     for data_arr in data_arrs.values():
         if "_FillValue" in data_arr.attrs:
             data_arr.encoding["_FillValue"] = data_arr.attrs.pop("_FillValue")
+        data_arr.encoding["coordinates"] = "Longitude Latitude"
         if "scale_factor" not in data_arr.attrs:
             continue
         data_arr.encoding["dtype"] = np.int16
         data_arr.encoding["scale_factor"] = data_arr.attrs.pop("scale_factor")
         data_arr.encoding["add_offset"] = data_arr.attrs.pop("add_offset")
-        data_arr.encoding["coordinates"] = "Longitude Latitude"
     return data_arrs
 
 
@@ -494,10 +521,16 @@ def _check_surf_refl_data_arr(
 def _check_continuous_data_arr(data_arr: xr.DataArray) -> None:
     _array_checks(data_arr)
 
-    # random sample should be between 0 and 1 only if factor/offset applied
+    if "valid_range" not in data_arr.attrs and "valid_min" not in data_arr.attrs:
+        # random sample should be between 0 and 1 only if factor/offset applied
+        exp_range = (0, 1)
+    else:
+        # if there is a valid range then we shouldn't be outside it
+        exp_range = data_arr.attrs.get("valid_range",
+                                       (data_arr.attrs.get("valid_min"), data_arr.attrs.get("valid_max")))
     data = data_arr.data.compute()
-    assert not (data < 0).any()
-    assert not (data > 1).any()
+    assert not (data < exp_range[0]).any()
+    assert not (data > exp_range[1]).any()
 
     _shared_metadata_checks(data_arr)
 
@@ -531,6 +564,14 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     assert lons.max() <= 180.0
     assert lats.min() >= -90.0
     assert lats.max() <= 90.0
+    # Some files (ex. CloudHeight) have other lon/lats that shouldn't be used
+    assert lons.attrs.get("long_name") != "BAD"
+    assert lats.attrs.get("long_name") != "BAD"
+
+    if "valid_range" in data_arr.attrs:
+        valid_range = data_arr.attrs["valid_range"]
+        assert isinstance(valid_range, tuple)
+        assert len(valid_range) == 2
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:

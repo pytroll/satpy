@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for GOES 8-15 imager data in netCDF format.
 
 Supports netCDF files from both NOAA-CLASS and EUMETSAT.
@@ -223,10 +224,10 @@ References:
 .. _[SCHED-E]: http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 """
 
+import datetime as dt
 import logging
 import re
 from abc import abstractmethod
-from datetime import datetime, timedelta
 
 import numpy as np
 import pyresample.geometry
@@ -593,11 +594,11 @@ VIS_SECTORS = {
 }  # (nlines, ncols)
 
 SCAN_DURATION = {
-    FULL_DISC: timedelta(minutes=26),
-    NORTH_HEMIS_WEST: timedelta(minutes=10, seconds=5),
-    SOUTH_HEMIS_WEST: timedelta(minutes=6, seconds=54),
-    NORTH_HEMIS_EAST: timedelta(minutes=14, seconds=15),
-    SOUTH_HEMIS_EAST: timedelta(minutes=4, seconds=49)
+    FULL_DISC: dt.timedelta(minutes=26),
+    NORTH_HEMIS_WEST: dt.timedelta(minutes=10, seconds=5),
+    SOUTH_HEMIS_WEST: dt.timedelta(minutes=6, seconds=54),
+    NORTH_HEMIS_EAST: dt.timedelta(minutes=14, seconds=15),
+    SOUTH_HEMIS_EAST: dt.timedelta(minutes=4, seconds=49)
 }  # Source: [SCHED-W], [SCHED-E]
 
 
@@ -730,10 +731,15 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        dt = self.nc["time"].dt
-        return datetime(year=int(dt.year.item()), month=int(dt.month.item()), day=int(dt.day.item()),
-                        hour=int(dt.hour.item()), minute=int(dt.minute.item()),
-                        second=int(dt.second.item()), microsecond=int(dt.microsecond.item()))
+        timestamp = self.nc["time"].dt
+        return dt.datetime(
+            year=int(timestamp.year.item()),
+            month=int(timestamp.month.item()),
+            day=int(timestamp.day.item()),
+            hour=int(timestamp.hour.item()),
+            minute=int(timestamp.minute.item()),
+            second=int(timestamp.second.item()),
+            microsecond=int(timestamp.microsecond.item()))
 
     @property
     def end_time(self):
@@ -1018,11 +1024,11 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         elif "latitude" in key["name"]:
             data = self.geo_data["lat"]
         else:
-            tic = datetime.now()
+            tic = dt.datetime.now()
             data = self.calibrate(self.nc["data"].isel(time=0),
                                   calibration=key["calibration"],
                                   channel=key["name"])
-            logger.debug("Calibration time: {}".format(datetime.now() - tic))
+            logger.debug("Calibration time: {}".format(dt.datetime.now() - tic))
 
         # Mask space pixels
         data = data.where(self.meta["earth_mask"])
@@ -1076,11 +1082,11 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         """Load dataset designated by the given key from file."""
         logger.debug("Reading dataset {}".format(key["name"]))
 
-        tic = datetime.now()
+        tic = dt.datetime.now()
         data = self.calibrate(self.nc["data"].isel(time=0),
                               calibration=key["calibration"],
                               channel=key["name"])
-        logger.debug("Calibration time: {}".format(datetime.now() - tic))
+        logger.debug("Calibration time: {}".format(dt.datetime.now() - tic))
 
         # Mask space pixels
         data = data.where(self.meta["earth_mask"])

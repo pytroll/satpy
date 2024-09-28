@@ -18,75 +18,21 @@
 """The HRIT base reader tests package."""
 
 import bz2
+import datetime as dt
 import gzip
 import os
-import unittest
-from datetime import datetime, timedelta
-from tempfile import NamedTemporaryFile, gettempdir
 from unittest import mock
 
 import numpy as np
 import pytest
 
 from satpy.readers import FSFile
-from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
+from satpy.readers.hrit_base import HRITFileHandler
+from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
-
-
-class TestHRITDecompress(unittest.TestCase):
-    """Test the on-the-fly decompression."""
-
-    def test_xrit_cmd(self):
-        """Test running the xrit decompress command."""
-        old_env = os.environ.get("XRIT_DECOMPRESS_PATH", None)
-
-        os.environ["XRIT_DECOMPRESS_PATH"] = "/path/to/my/bin"
-        with pytest.raises(IOError, match=".* does not exist!"):
-            get_xritdecompress_cmd()
-
-        os.environ["XRIT_DECOMPRESS_PATH"] = gettempdir()
-        with pytest.raises(IOError, match=".* is a directory!.*"):
-            get_xritdecompress_cmd()
-
-        with NamedTemporaryFile() as fd:
-            os.environ["XRIT_DECOMPRESS_PATH"] = fd.name
-            fname = fd.name
-            res = get_xritdecompress_cmd()
-
-        if old_env is not None:
-            os.environ["XRIT_DECOMPRESS_PATH"] = old_env
-        else:
-            os.environ.pop("XRIT_DECOMPRESS_PATH")
-
-        assert fname == res
-
-    def test_xrit_outfile(self):
-        """Test the right decompression filename is used."""
-        stdout = [b"Decompressed file: bla.__\n"]
-        outfile = get_xritdecompress_outfile(stdout)
-        assert outfile == b"bla.__"
-
-    @mock.patch("satpy.readers.hrit_base.Popen")
-    def test_decompress(self, popen):
-        """Test decompression works."""
-        popen.return_value.returncode = 0
-        popen.return_value.communicate.return_value = [b"Decompressed file: bla.__\n"]
-
-        old_env = os.environ.get("XRIT_DECOMPRESS_PATH", None)
-
-        with NamedTemporaryFile() as fd:
-            os.environ["XRIT_DECOMPRESS_PATH"] = fd.name
-            res = decompress("bla.C_")
-
-        if old_env is not None:
-            os.environ["XRIT_DECOMPRESS_PATH"] = old_env
-        else:
-            os.environ.pop("XRIT_DECOMPRESS_PATH")
-
-        assert res == os.path.join(".", "bla.__")
 
 
 # From a compressed msg hrit file.
@@ -131,7 +77,7 @@ def new_get_hd_compressed(instance, hdr_info):
     instance.mda["data_field_length"] = 1578312
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_hrit_file(tmp_path):
     """Create a stub hrit file."""
     filename = tmp_path / "some_hrit_file"
@@ -141,21 +87,28 @@ def stub_hrit_file(tmp_path):
 
 def create_stub_hrit(filename, open_fun=open, meta=mda):
     """Create a stub hrit file."""
+    stub_hrit_data = create_stub_hrit_data(meta)
+
+    with open_fun(filename, mode="wb") as fd:
+        fd.write(stub_hrit_data)
+    return filename
+
+def create_stub_hrit_data(meta):
+    """Create the data for the stub hrit."""
     nbits = meta["number_of_bits_per_pixel"]
     lines = meta["number_of_lines"]
     cols = meta["number_of_columns"]
     total_bits = lines * cols * nbits
-    arr = np.random.randint(0, 256,
-                            size=int(total_bits / 8),
-                            dtype=np.uint8)
-    with open_fun(filename, mode="wb") as fd:
-        fd.write(b" " * meta["total_header_length"])
-        bytes_data = arr.tobytes()
-        fd.write(bytes_data)
-    return filename
+    arr = RANDOM_GEN.integers(0, 256,
+                              size=int(total_bits / 8),
+                              dtype=np.uint8)
+    header_data = b" " * meta["total_header_length"]
+    bytes_data = arr.tobytes()
+    stub_hrit_data = header_data + bytes_data
+    return stub_hrit_data
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_bzipped_hrit_file(tmp_path):
     """Create a stub bzipped hrit file."""
     filename = tmp_path / "some_hrit_file.bz2"
@@ -163,7 +116,7 @@ def stub_bzipped_hrit_file(tmp_path):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_gzipped_hrit_file(tmp_path):
     """Create a stub gzipped hrit file."""
     filename = tmp_path / "some_hrit_file.gz"
@@ -171,7 +124,7 @@ def stub_gzipped_hrit_file(tmp_path):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_compressed_hrit_file(tmp_path):
     """Create a stub compressed hrit file."""
     filename = tmp_path / "some_hrit_file.C_"
@@ -189,7 +142,7 @@ class TestHRITFileHandler:
         with mock.patch.object(HRITFileHandler, "_get_hd", new=new_get_hd):
             self.reader = HRITFileHandler("filename",
                                           {"platform_shortname": "MSG3",
-                                           "start_time": datetime(2016, 3, 3, 0, 0)},
+                                           "start_time": dt.datetime(2016, 3, 3, 0, 0)},
                                           {"filetype": "info"},
                                           [mock.MagicMock(), mock.MagicMock(),
                                            mock.MagicMock()])
@@ -269,16 +222,16 @@ class TestHRITFileHandler:
 
     def test_start_end_time(self):
         """Test reading and converting start/end time."""
-        assert self.reader.start_time == datetime(2016, 3, 3, 0, 0)
+        assert self.reader.start_time == dt.datetime(2016, 3, 3, 0, 0)
         assert self.reader.start_time == self.reader.observation_start_time
-        assert self.reader.end_time == datetime(2016, 3, 3, 0, 0) + timedelta(minutes=15)
+        assert self.reader.end_time == dt.datetime(2016, 3, 3, 0, 0) + dt.timedelta(minutes=15)
         assert self.reader.end_time == self.reader.observation_end_time
 
 
-def fake_decompress(infile, outdir="."):
+def fake_decompress(filename):
     """Fake decompression."""
-    filename = os.fspath(infile)[:-3]
-    return create_stub_hrit(filename)
+    del filename
+    return create_stub_hrit_data(mda)
 
 
 class TestHRITFileHandlerCompressed:
@@ -292,7 +245,7 @@ class TestHRITFileHandlerCompressed:
             with mock.patch.object(HRITFileHandler, "_get_hd", side_effect=new_get_hd, autospec=True) as get_hd:
                 self.reader = HRITFileHandler(filename,
                                               {"platform_shortname": "MSG3",
-                                               "start_time": datetime(2016, 3, 3, 0, 0)},
+                                               "start_time": dt.datetime(2016, 3, 3, 0, 0)},
                                               {"filetype": "info"},
                                               [mock.MagicMock(), mock.MagicMock(),
                                                mock.MagicMock()])

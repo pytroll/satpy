@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """MODIS L1b and L2 test fixtures."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import datetime as dt
 from typing import Optional
 
 import numpy as np
@@ -213,16 +215,40 @@ def _get_l1b_geo_variable_info(filename: str,
         variables_info.update(_get_angles_variable_info(geo_resolution))
     return variables_info
 
+def _get_l3_land_cover_info() -> dict:
+
+    lc_data = np.zeros((2400, 2400), dtype=np.uint8)
+
+    variables_info = \
+    {
+        "LC_Type1": {"data": lc_data,
+                     "type": SDC.UINT8,
+                     "fill_value": 255,
+                     "attrs": {
+                         "dim_labels": ["YDim:MCD12Q1", "XDim:MCD12Q1"],
+                     },
+                     },
+        "LC_Type2": {"data": lc_data,
+                     "type": SDC.UINT8,
+                     "fill_value": 255,
+                     "attrs": {
+                         "dim_labels": ["YDim:MCD12Q1", "XDim:MCD12Q1"],
+                     },
+                     },
+    }
+
+    return variables_info
+
 
 def generate_nasa_l1b_filename(prefix):
     """Generate a filename that follows NASA MODIS L1b convention."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"{prefix}_A{now:%y%j_%H%M%S}_{now:%Y%j%H%M%S}.hdf"
 
 
 def generate_imapp_filename(suffix):
     """Generate a filename that follows IMAPP MODIS L1b convention."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"t1.{now:%y%j.%H%M}.{suffix}.hdf"
 
 
@@ -275,8 +301,8 @@ def _add_variable_to_file(h, var_name, var_info):
 
 
 def _create_core_metadata(file_shortname: str) -> str:
-    beginning_date = datetime.now()
-    ending_date = beginning_date + timedelta(minutes=5)
+    beginning_date = dt.datetime.now()
+    ending_date = beginning_date + dt.timedelta(minutes=5)
     core_metadata_header = "GROUP = INVENTORYMETADATA\nGROUPTYPE = MASTERGROUP\n\n" \
                            'GROUP = RANGEDATETIME\n\nOBJECT = RANGEBEGINNINGDATE\nNUM_VAL = 1\nVALUE = "{}"\n' \
                            "END_OBJECT = RANGEBEGINNINGDATE\n\nOBJECT = RANGEBEGINNINGTIME\n" \
@@ -329,19 +355,30 @@ def _create_struct_metadata_cmg(ftype: str) -> str:
         gridline = 'GridName="MOD09CMG"\n'
         upleft = "UpperLeftPointMtrs=(-180000000.000000,90000000.000000)\n"
         upright = "LowerRightMtrs=(180000000.000000,-90000000.000000)\n"
+        XDim=7200
+        YDim=3600
+    # Case of a MCD12Q1 file
+    elif ftype == "MCD12Q1":
+        gridline = 'GridName="MCD12Q1"\n'
+        upleft = "UpperLeftPointMtrs=(-8895604.157333,-1111950.519667)\n"
+        upright = "LowerRightMtrs=(-7783653.637667,-2223901.039333)\n"
+        XDim=2400
+        YDim=2400
     # Case of a MCD43 file
     else:
         gridline = 'GridName="MCD_CMG_BRDF_0.05Deg"\n'
         upleft = "UpperLeftPointMtrs=(-180.000000,90.000000)\n"
         upright = "LowerRightMtrs=(180.000000,-90.000000)\n"
+        XDim=7200
+        YDim=3600
 
     struct_metadata_header = ("GROUP=SwathStructure\n"
                               "END_GROUP=SwathStructure\n"
                               "GROUP=GridStructure\n"
                               "GROUP=GRID_1\n"
                               f"{gridline}\n"
-                              "XDim=7200\n"
-                              "YDim=3600\n"
+                              f"XDim={XDim}\n"
+                              f"YDim={YDim}\n"
                               f"{upleft}\n"
                               f"{upright}\n"
                               "END_GROUP=GRID_1\n"
@@ -407,7 +444,7 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture()
+@pytest.fixture
 def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
     """Create a single MOD02QKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Qkm")
@@ -593,9 +630,13 @@ def _get_mask_byte1_variable_info() -> dict:
 
 def generate_nasa_l2_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 35 L2 convention in a temporary directory."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"{prefix}_L2.A{now:%Y%j.%H%M}.061.{now:%Y%j%H%M%S}.hdf"
 
+def generate_nasa_l3_tile_filename(prefix: str) -> str:
+    """Generate a file name that follows MODIS sinusoidal grid tile pattern."""
+    now = dt.datetime.now()
+    return f"{prefix}.A{now:%Y}001.h34v07.061.{now:%Y%j%H%M%S}.hdf"
 
 @pytest.fixture(scope="session")
 def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
@@ -611,10 +652,35 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
+@pytest.fixture(scope="session")
+def modis_l3_nasa_mcd12q1_file(tmpdir_factory) -> list[str]:
+    """Create a single MOD35 L2 HDF4 file with headers."""
+    filename = generate_nasa_l3_tile_filename("MCD12Q1")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l3_land_cover_info()
+    archive_header = \
+"""GROUP                  = ARCHIVEDMETADATA
+  GROUPTYPE            = MASTERGROUP
+
+  OBJECT                 = NADIRDATARESOLUTION
+    NUM_VAL              = 1
+    VALUE                = "500m"
+  END_OBJECT             = NADIRDATARESOLUTION
+
+END_GROUP              = ARCHIVEDMETADATA
+
+END
+"""
+    create_hdfeos_test_file(full_path,
+                            variable_infos,
+                            _create_struct_metadata_cmg("MCD12Q1"),
+                            _create_core_metadata("MCD12Q1"),
+                            archive_header)
+    return [full_path]
 
 def generate_nasa_l3_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 09 L3 convention in a temporary directory."""
-    now = datetime.now()
+    now = dt.datetime.now()
     return f"{prefix}.A{now:%Y%j}.061.{now:%Y%j%H%M%S}.hdf"
 
 

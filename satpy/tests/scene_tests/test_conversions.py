@@ -13,18 +13,24 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Unit tests for Scene conversion functionality."""
-from datetime import datetime
+
+import datetime as dt
 
 import pytest
 import xarray as xr
 from dask import array as da
 
 from satpy import Scene
+from satpy.tests.utils import skip_numba_unstable_if_missing
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - include_test_etc
+
+skip_unstable_numba = pytest.mark.skipif(skip_numba_unstable_if_missing(),
+                                         reason="Numba is not compatible with unstable NumPy: {err!s}")
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -61,7 +67,7 @@ class TestSceneConversions:
                               {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                               2, 2, [-200, -200, 200, 200])
         scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area})
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
@@ -75,12 +81,13 @@ class TestSceneConversions:
         lats = xr.DataArray(da.zeros((2, 2)))
         area = SwathDefinition(lons, lats)
         scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area})
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
 
+    @skip_unstable_numba
     def test_hvplot_basic_with_area(self):
         """Test converting a Scene to hvplot with a AreaDefinition."""
         from pyresample.geometry import AreaDefinition
@@ -89,12 +96,13 @@ class TestSceneConversions:
                               {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                               2, 2, [-200, -200, 200, 200])
         scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area, "units": "m"})
         hv_obj = scn.to_hvplot()
         # we assume that if we got something back, hvplot can use it
         assert hv_obj is not None
 
+    @skip_unstable_numba
     def test_hvplot_rgb_with_area(self):
         """Test converting a Scene to hvplot with a AreaDefinition."""
         from pyresample.geometry import AreaDefinition
@@ -103,18 +111,19 @@ class TestSceneConversions:
                               {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
                               2, 2, [-200, -200, 200, 200])
         scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area, "units": "m"})
         scn["ds2"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area, "units": "m"})
         scn["ds3"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area, "units": "m"})
         hv_obj = scn.to_hvplot()
         # we assume that if we got something back, hvplot can use it
         assert hv_obj is not None
 
+    @skip_unstable_numba
     def test_hvplot_basic_with_swath(self):
         """Test converting a Scene to hvplot with a SwathDefinition."""
         from pyresample.geometry import SwathDefinition
@@ -123,7 +132,7 @@ class TestSceneConversions:
         latitude = xr.DataArray(da.zeros((2, 2)))
         area = SwathDefinition(longitude, latitude)
         scn["ds1"] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1),
+                                  attrs={"start_time": dt.datetime(2018, 1, 1),
                                          "area": area, "units": "m"})
         hv_obj = scn.to_hvplot()
         # we assume that if we got something back, hvplot can use it
@@ -140,7 +149,7 @@ class TestToXarrayConversion:
         assert len(ds.variables) == 0
         assert len(ds.coords) == 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def single_area_scn(self):
         """Define Scene with single area."""
         from pyresample.geometry import AreaDefinition
@@ -150,12 +159,12 @@ class TestToXarrayConversion:
                               2, 2, [-200, -200, 200, 200])
         data_array = xr.DataArray(da.zeros((2, 2), chunks=-1),
                                   dims=("y", "x"),
-                                  attrs={"start_time": datetime(2018, 1, 1), "area": area})
+                                  attrs={"start_time": dt.datetime(2018, 1, 1), "area": area})
         scn = Scene()
         scn["var1"] = data_array
         return scn
 
-    @pytest.fixture()
+    @pytest.fixture
     def multi_area_scn(self):
         """Define Scene with multiple area."""
         from pyresample.geometry import AreaDefinition
@@ -169,10 +178,10 @@ class TestToXarrayConversion:
 
         data_array1 = xr.DataArray(da.zeros((2, 2), chunks=-1),
                                    dims=("y", "x"),
-                                   attrs={"start_time": datetime(2018, 1, 1), "area": area1})
+                                   attrs={"start_time": dt.datetime(2018, 1, 1), "area": area1})
         data_array2 = xr.DataArray(da.zeros((4, 4), chunks=-1),
                                    dims=("y", "x"),
-                                   attrs={"start_time": datetime(2018, 1, 1), "area": area2})
+                                   attrs={"start_time": dt.datetime(2018, 1, 1), "area": area2})
         scn = Scene()
         scn["var1"] = data_array1
         scn["var2"] = data_array2

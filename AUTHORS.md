@@ -26,6 +26,7 @@ The following people have made contributions to this project:
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
+- [Florian Fichtner (fwfichtner)](https://github.com/fwfichtner)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
 - [Gionata Ghiggi (ghiggi)](https://github.com/ghiggi)
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
@@ -42,6 +43,7 @@ The following people have made contributions to this project:
 - [Jactry Zeng](https://github.com/jactry)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
+- [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
@@ -65,6 +67,8 @@ The following people have made contributions to this project:
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
+- [Emmanuel Roche (roche-emmanuel)](https://github.com/roche-emmanuel)
+- [Benjamin Rösner (BENR0)](https://github.com/BENR0)
 - [Pascale Roquet (roquetp)](https://github.com/roquetp)
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
@@ -72,6 +76,7 @@ The following people have made contributions to this project:
 - Marco Sassi - meteoswiss
 - [Stefan Scheiblauer (StefanSnippetCoder)](https://github.com/StefanSnippetCoder)
 - [Ronald Scheirer](https://github.com/)
+- [Michael Schmutz (Graenni)](https://github.com/Graenni) - Meteotest AG
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
@@ -87,4 +92,10 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+- [Sven-Erik Enno (seenno)](https://github.com/seenno)
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
+- [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
+- [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
+- [Sara Hörnquist (shornqui)](https://github.com/shornqui)
+- [Antonio Valentino](https://github.com/avalentino)
+- [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)

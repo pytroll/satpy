@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for aapp level 1b data.
 
 Options for loading:
@@ -24,9 +25,10 @@ Options for loading:
 
 https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_Formats_v8.0.pdf
 """
+
+import datetime as dt
 import functools
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -36,7 +38,7 @@ from dask import delayed
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
-CHANNEL_DTYPE = np.float64
+CHANNEL_DTYPE = np.float32
 
 
 def get_avhrr_lac_chunks(shape, dtype):
@@ -102,14 +104,14 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the time of the first observation."""
-        return datetime(self._data["scnlinyr"][0], 1, 1) + timedelta(
+        return dt.datetime(self._data["scnlinyr"][0], 1, 1) + dt.timedelta(
             days=int(self._data["scnlindy"][0]) - 1,
             milliseconds=int(self._data["scnlintime"][0]))
 
     @property
     def end_time(self):
         """Get the time of the final observation."""
-        return datetime(self._data["scnlinyr"][-1], 1, 1) + timedelta(
+        return dt.datetime(self._data["scnlinyr"][-1], 1, 1) + dt.timedelta(
             days=int(self._data["scnlindy"][-1]) - 1,
             milliseconds=int(self._data["scnlintime"][-1]))
 
@@ -129,10 +131,10 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
 
     def read(self):
         """Read the data."""
-        tic = datetime.now()
+        tic = dt.datetime.now()
         header = np.memmap(self.filename, dtype=self._header_type, mode="r", shape=(1, ))
         data = np.memmap(self.filename, dtype=self._scan_type, offset=self._header_offset, mode="r")
-        logger.debug("Reading time %s", str(datetime.now() - tic))
+        logger.debug("Reading time %s", str(dt.datetime.now() - tic))
 
         self._header = header
         self._data = data
@@ -237,7 +239,6 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
         sunz, satz, azidiff = self._get_all_interpolated_angles()
-
         name_to_variable = dict(zip(self._angle_names, (satz, sunz, azidiff)))
         return create_xarray(name_to_variable[angle_id])
 
@@ -246,9 +247,10 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         return self._interpolate_arrays(sunz40km, satz40km, azidiff40km)
 
     def _get_tiepoint_angles_in_degrees(self):
-        sunz40km = self._data["ang"][:, :, 0] * 1e-2
-        satz40km = self._data["ang"][:, :, 1] * 1e-2
-        azidiff40km = self._data["ang"][:, :, 2] * 1e-2
+        angles = self._data["ang"].astype(np.float32)
+        sunz40km = angles[:, :, 0] * 1e-2
+        satz40km = angles[:, :, 1] * 1e-2
+        azidiff40km = angles[:, :, 2] * 1e-2
         return sunz40km, satz40km, azidiff40km
 
     def _interpolate_arrays(self, *input_arrays, geolocation=False):
@@ -297,8 +299,10 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         return self._interpolate_arrays(lons40km, lats40km, geolocation=True)
 
     def _get_coordinates_in_degrees(self):
-        lons40km = self._data["pos"][:, :, 1] * 1e-4
-        lats40km = self._data["pos"][:, :, 0] * 1e-4
+        position_data = self._data["pos"].astype(np.float32)
+        lons40km = position_data[:, :, 1] * 1e-4
+        lats40km = position_data[:, :, 0] * 1e-4
+
         return lons40km, lats40km
 
     def calibrate(self,
@@ -584,14 +588,11 @@ def _vis_calibrate(data,
         slope2 = da.from_array(calib_coeffs[2], chunks=line_chunks)
         intercept2 = da.from_array(calib_coeffs[3], chunks=line_chunks)
     else:
-        slope1 = da.from_array(data["calvis"][:, chn, coeff_idx, 0],
-                               chunks=line_chunks) * 1e-10
-        intercept1 = da.from_array(data["calvis"][:, chn, coeff_idx, 1],
-                                   chunks=line_chunks) * 1e-7
-        slope2 = da.from_array(data["calvis"][:, chn, coeff_idx, 2],
-                               chunks=line_chunks) * 1e-10
-        intercept2 = da.from_array(data["calvis"][:, chn, coeff_idx, 3],
-                                   chunks=line_chunks) * 1e-7
+        calvis = data["calvis"]
+        slope1 = da.from_array(calvis[:, chn, coeff_idx, 0], chunks=line_chunks).astype(np.float32) * 1e-10
+        intercept1 = da.from_array(calvis[:, chn, coeff_idx, 1], chunks=line_chunks).astype(np.float32) * 1e-7
+        slope2 = da.from_array(calvis[:, chn, coeff_idx, 2], chunks=line_chunks).astype(np.float32) * 1e-10
+        intercept2 = da.from_array(calvis[:, chn, coeff_idx, 3], chunks=line_chunks).astype(np.float32) * 1e-7
 
         # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
         # them to real numbers which are applied to the measured counts. The coefficient is different depending on
@@ -630,9 +631,10 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
     mask &= count != 0
     count = count.astype(CHANNEL_DTYPE)
 
-    k1_ = da.from_array(data["calir"][:, irchn, 0, 0], chunks=line_chunks) / 1.0e9
-    k2_ = da.from_array(data["calir"][:, irchn, 0, 1], chunks=line_chunks) / 1.0e6
-    k3_ = da.from_array(data["calir"][:, irchn, 0, 2], chunks=line_chunks) / 1.0e6
+    calir = data["calir"]
+    k1_ = da.from_array(calir[:, irchn, 0, 0], chunks=line_chunks).astype(np.float32) * 1.0e-9
+    k2_ = da.from_array(calir[:, irchn, 0, 1], chunks=line_chunks).astype(np.float32) * 1.0e-6
+    k3_ = da.from_array(calir[:, irchn, 0, 2], chunks=line_chunks).astype(np.float32) * 1.0e-6
 
     # Count to radiance conversion:
     rad = k1_[:, None] * count * count + k2_[:, None] * count + k3_[:, None]
@@ -644,15 +646,17 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
         mask &= rad > 0.0
         return da.where(mask, rad, np.nan)
 
+    radtempcnv = header["radtempcnv"].astype(np.float32)
+
     # Central wavenumber:
-    cwnum = header["radtempcnv"][0, irchn, 0]
+    cwnum = radtempcnv[0, irchn, 0]
     if irchn == 0:
         cwnum = cwnum / 1.0e2
     else:
         cwnum = cwnum / 1.0e3
 
-    bandcor_2 = header["radtempcnv"][0, irchn, 1] / 1e5
-    bandcor_3 = header["radtempcnv"][0, irchn, 2] / 1e6
+    bandcor_2 = radtempcnv[0, irchn, 1] / 1e5
+    bandcor_3 = radtempcnv[0, irchn, 2] / 1e6
 
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833

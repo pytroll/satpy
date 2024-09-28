@@ -19,16 +19,18 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 import unittest
 import warnings
-from datetime import datetime
+import zipfile
 from unittest import mock
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pytest_lazy_fixtures import lf
 
 from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.seviri_l1b_native import (
@@ -39,6 +41,8 @@ from satpy.readers.seviri_l1b_native import (
     get_available_channels,
     has_archive_header,
 )
+from satpy.readers.seviri_l1b_native_hdr import Msg15NativeHeaderRecord
+from satpy.scene import Scene
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
@@ -632,9 +636,11 @@ def prepare_area_definitions(test_dict):
     trailer = create_test_trailer(is_rapid_scan)
     expected_area_def = test_dict["expected_area_def"]
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap") as _get_memmap, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
             mock.patch(
                 "satpy.readers.seviri_l1b_native.has_archive_header"
@@ -642,7 +648,8 @@ def prepare_area_definitions(test_dict):
         has_archive_header.return_value = True
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
-        _get_memmap.return_value = np.arange(3)
+        _get_array.return_value = np.arange(3)
+        _n_visir_ch.return_value = 11
         fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         fh.fill_disk = fill_disk
         fh.header = header
@@ -716,9 +723,11 @@ def prepare_is_roi(test_dict):
     trailer = create_test_trailer(is_rapid_scan)
     expected = test_dict["is_roi"]
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap") as _get_memmap, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
             mock.patch(
                 "satpy.readers.seviri_l1b_native.has_archive_header"
@@ -726,7 +735,8 @@ def prepare_is_roi(test_dict):
         has_archive_header.return_value = True
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
-        _get_memmap.return_value = np.arange(3)
+        _get_array.return_value = np.arange(3)
+        _n_visir_ch.return_value = 11
         fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         fh.header = header
         fh.trailer = trailer
@@ -882,15 +892,15 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 class TestNativeMSGDataset:
     """Tests for getting the dataset."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_handler(self):
         """Create a file handler for testing."""
         trailer = {
             "15TRAILER": {
                 "ImageProductionStats": {
                     "ActualScanningSummary": {
-                        "ForwardScanStart": datetime(2006, 1, 1, 12, 15, 9, 304888),
-                        "ForwardScanEnd": datetime(2006, 1, 1, 12, 27, 9, 304888),
+                        "ForwardScanStart": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+                        "ForwardScanEnd": dt.datetime(2006, 1, 1, 12, 27, 9, 304888),
                         "ReducedScan": 0
                     }
                 }
@@ -918,7 +928,7 @@ class TestNativeMSGDataset:
             fh.header = header
             fh.trailer = trailer
             fh.mda = mda
-            fh.dask_array = da.from_array(data)
+            fh._dask_array = da.from_array(data)
             fh.platform_id = 324
             fh.fill_disk = False
             fh.calib_mode = "NOMINAL"
@@ -941,8 +951,8 @@ class TestNativeMSGDataset:
                 },
                 "ImageAcquisition": {
                     "PlannedAcquisitionTime": {
-                        "TrueRepeatCycleStart": datetime(2006, 1, 1, 12, 15, 0, 0),
-                        "PlannedRepeatCycleEnd": datetime(2006, 1, 1, 12, 30, 0, 0),
+                        "TrueRepeatCycleStart": dt.datetime(2006, 1, 1, 12, 15, 0, 0),
+                        "PlannedRepeatCycleEnd": dt.datetime(2006, 1, 1, 12, 30, 0, 0),
                     }
                 }
             },
@@ -993,19 +1003,19 @@ class TestNativeMSGDataset:
         expected = self._exp_data_array()
         xr.testing.assert_equal(xarr, expected)
         assert "raw_metadata" not in xarr.attrs
-        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 0)
-        assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
+        assert file_handler.start_time == dt.datetime(2006, 1, 1, 12, 15, 0)
+        assert file_handler.end_time == dt.datetime(2006, 1, 1, 12, 30, 0)
         assert_attrs_equal(xarr.attrs, expected.attrs, tolerance=1e-4)
 
     def test_time(self, file_handler):
         """Test start/end nominal/observation time handling."""
-        assert datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
-        assert datetime(2006, 1, 1, 12, 15,) == file_handler.start_time
+        assert dt.datetime(2006, 1, 1, 12, 15, 9, 304888) == file_handler.observation_start_time
+        assert dt.datetime(2006, 1, 1, 12, 15, ) == file_handler.start_time
         assert file_handler.start_time == file_handler.nominal_start_time
 
-        assert datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
+        assert dt.datetime(2006, 1, 1, 12, 27, 9, 304888) == file_handler.observation_end_time
         assert file_handler.end_time == file_handler.nominal_end_time
-        assert datetime(2006, 1, 1, 12, 30,) == file_handler.end_time
+        assert dt.datetime(2006, 1, 1, 12, 30, ) == file_handler.end_time
 
     def test_repeat_cycle_duration(self, file_handler):
         """Test repeat cycle handling for FD or ReduscedScan."""
@@ -1035,10 +1045,10 @@ class TestNativeMSGDataset:
                     "projection_altitude": 35785831.0
                 },
                 "time_parameters": {
-                    "nominal_start_time": datetime(2006, 1, 1, 12, 15, 0),
-                    "nominal_end_time": datetime(2006, 1, 1, 12, 30, 0),
-                    "observation_start_time": datetime(2006, 1, 1, 12, 15, 9, 304888),
-                    "observation_end_time": datetime(2006, 1, 1, 12, 27, 9, 304888),
+                    "nominal_start_time": dt.datetime(2006, 1, 1, 12, 15, 0),
+                    "nominal_end_time": dt.datetime(2006, 1, 1, 12, 30, 0),
+                    "observation_start_time": dt.datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    "observation_end_time": dt.datetime(2006, 1, 1, 12, 27, 9, 304888),
                 },
                 "georef_offset_corrected": True,
                 "platform_name": "MSG-3",
@@ -1123,7 +1133,7 @@ class TestNativeMSGPadder(unittest.TestCase):
 class TestNativeMSGFilenames:
     """Test identification of Native format filenames."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths
@@ -1166,14 +1176,17 @@ def test_header_type(file_content, exp_header_size):
     )
     if file_content == b"foobar":
         header.pop("15_SECONDARY_PRODUCT_HEADER")
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap") as _get_memmap, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
-            mock.patch("builtins.open", mock.mock_open(read_data=file_content)):
+            mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=file_content)):
         fromfile.return_value = header
         recarray2dict.side_effect = (lambda x: x)
-        _get_memmap.return_value = np.arange(3)
+        _get_array.return_value = np.arange(3)
+        _n_visir_ch.return_value = 11
         fh = NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
         assert fh.header_type.itemsize == exp_header_size
         assert "15_SECONDARY_PRODUCT_HEADER" in fh.header
@@ -1196,17 +1209,21 @@ def test_header_warning():
         good_qual="NOK"
     )
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile, \
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile, \
             mock.patch("satpy.readers.seviri_l1b_native.recarray2dict") as recarray2dict, \
-            mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap") as _get_memmap, \
+            mock.patch("satpy.readers.seviri_l1b_native._get_array") as _get_array, \
+            mock.patch(
+                "satpy.readers.seviri_l1b_native.NativeMSGFileHandler._number_of_visir_channels") as _n_visir_ch, \
             mock.patch("satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer"), \
-            mock.patch("builtins.open", mock.mock_open(read_data=ASCII_STARTSWITH)):
+            mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=ASCII_STARTSWITH)):
         recarray2dict.side_effect = (lambda x: x)
-        _get_memmap.return_value = np.arange(3)
+        _get_array.return_value = np.arange(3)
 
         exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
 
         fromfile.return_value = header_good
+        _n_visir_ch.return_value = 11
+
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             NativeMSGFileHandler(filename=None, filename_info={}, filetype_info=None)
@@ -1233,7 +1250,7 @@ def test_header_warning():
 )
 def test_has_archive_header(starts_with, expected):
     """Test if the file includes an ASCII archive header."""
-    with mock.patch("builtins.open", mock.mock_open(read_data=starts_with)):
+    with mock.patch("satpy.readers.seviri_l1b_native.generic_open", mock.mock_open(read_data=starts_with)):
         actual = has_archive_header("filename")
     assert actual == expected
 
@@ -1248,7 +1265,144 @@ def test_read_header():
     dtypes = np.dtype([(k, t) for k, t in zip(keys, types)])
     hdr_data = np.array([values], dtype=dtypes)
 
-    with mock.patch("satpy.readers.seviri_l1b_native.np.fromfile") as fromfile:
+    with mock.patch("satpy.readers.seviri_l1b_native.fromfile") as fromfile:
         fromfile.return_value = hdr_data
         actual = recarray2dict(hdr_data)
     assert actual == expected
+
+
+@pytest.fixture(scope="session")
+def session_tmp_path(tmp_path_factory):
+    """Generate a single temp path to use for the entire session."""
+    return tmp_path_factory.mktemp("data")
+
+
+@pytest.fixture(scope="session")
+def tmp_seviri_nat_filename(session_tmp_path):
+    """Create a fully-qualified filename for a seviri native format file."""
+    full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
+    create_physical_seviri_native_file(full_file_path)
+    return full_file_path
+
+
+@pytest.fixture(scope="session")
+def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
+    """Compress the given seviri native file into a zip file."""
+    zip_full_path = session_tmp_path / "test_seviri_native.zip"
+    with zipfile.ZipFile(zip_full_path, mode="w") as archive:
+        archive.write(tmp_seviri_nat_filename, os.path.basename(tmp_seviri_nat_filename))
+    return f"zip://*.nat::file://{zip_full_path.as_posix()}"
+
+
+@pytest.mark.parametrize(("full_path"), [
+    lf("tmp_seviri_nat_filename"),
+    lf("compress_seviri_native_file")
+])
+def test_read_physical_seviri_nat_file(full_path):
+    """Test that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
+
+    Note:
+        The purpose of this function is not to fully test the properties of the scene. It only provides a test for
+        reading a physical file from disk.
+    """
+    scene = scene_from_physical_seviri_nat_file(full_path)
+
+    assert scene.sensor_names == {"seviri"}
+    assert len(scene.available_dataset_ids()) == 36
+    assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        scene.load(["VIS006"])
+        assert scene["VIS006"].shape == (3712, 3712)
+        assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
+
+
+def scene_from_physical_seviri_nat_file(filename):
+    """Generate a Scene object from the given seviri native file."""
+    return Scene([filename], reader="seviri_l1b_native", reader_kwargs={"fill_disk": True})
+
+
+def create_physical_seviri_native_file(seviri_nat_full_file_path):
+    """Create a physical seviri native file on disk."""
+    header_type, header_null = generate_seviri_native_null_header()
+    amend_seviri_native_null_header(header_null)
+    append_data_and_trailer_content_to_seviri_native_header(seviri_nat_full_file_path, header_null)
+
+
+def generate_seviri_native_null_header():
+    """Generate the header of the seviri native format which is filled with zeros, hence the term null!"""
+    header_type = Msg15NativeHeaderRecord().get(True)
+    null_header = np.zeros(header_type.shape, dtype=header_type).reshape(1, )
+    return header_type, null_header
+
+
+def amend_seviri_native_null_header(hdr_null_numpy):
+    """Amend the given null header so that the ``seviri_l1b_native`` reader can properly parse it.
+
+    This is achieved by setting values for the bare minimum number of header fields so that the reader can make sense of
+    the given header. This function relies on a number of auxiliary functions all of which are enclosed in the body of
+    the present function.
+
+    Note:
+        The naming scheme of the auxiliary functions is as follows: ``_amend_<KEY1>__<KEY2>__...``, where <KEY{n}>
+        corresponds to keys in the header when it is represented as a dictionary, i.e. when calling ``recarray2dict()``
+        on the given header array.
+
+        For example, ``_amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId()`` corresponds to an
+        auxiliary function which manipulates the following entry:
+        ``hdr_null_numpy_as_dict["15_DATA_HEADER"]["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"]``
+    """
+
+    def _amend_15_MAIN_PRODUCT_HEADER():
+        hdr_null_numpy[0][0][0] = (b"FormatName                  : ", b"NATIVE\n")
+
+    def _amend_15_SECONDARY_PRODUCT_HEADER():
+        hdr_null_numpy[0][1][9] = (b"SelectedBandIDs", b"XXXXXXXXXXX-")
+        hdr_null_numpy[0][1][10] = (b"SouthLineSelectedRectangle", b"3360")
+        hdr_null_numpy[0][1][11] = (b"NorthLineSelectedRectangle", b"3373")
+        hdr_null_numpy[0][1][12] = (b"EastColumnSelectedRectangle", b"1714")
+        hdr_null_numpy[0][1][13] = (b"WestColumnSelectedRectangle", b"1729")
+        hdr_null_numpy[0][1][14] = (b"NumberLinesVISIR", b"14")
+        hdr_null_numpy[0][1][15] = (b"NumberColumnsVISIR", b"16")
+        hdr_null_numpy[0][1][16] = (b"NumberLinesHRV", b"42")
+        hdr_null_numpy[0][1][17] = (b"NumberColumnsHRV", b"48")
+
+    def _amend_GP_PK_SH1__PacketTime():
+        hdr_null_numpy[0][3][5] = (23158, 27921912)
+
+    def _amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId():
+        hdr_null_numpy[0][4][1][0][0] = 324
+
+    def _amend_15_DATA_HEADER__GeometricProcessing__EarthModel():
+        hdr_null_numpy[0][4][6][1] = (2, 6378.169, 6356.5838, 6356.5838)
+
+    def _amend_15_DATA_HEADER__ImageAcquisition__PlannedAcquisitionTime():
+        hdr_null_numpy[0][4][2][0] = (
+            (23158, 27911177, 286, 223),
+            (23158, 28663675, 401, 687),
+            (23158, 28810078, 157, 663)
+        )
+
+    # Apply all the header amendments
+    _amend_15_MAIN_PRODUCT_HEADER()
+    _amend_15_SECONDARY_PRODUCT_HEADER()
+    _amend_GP_PK_SH1__PacketTime()
+    _amend_15_DATA_HEADER__SatelliteStatus__SatelliteDefinition__SatelliteId()
+    _amend_15_DATA_HEADER__GeometricProcessing__EarthModel()
+    _amend_15_DATA_HEADER__ImageAcquisition__PlannedAcquisitionTime()
+
+
+def append_data_and_trailer_content_to_seviri_native_header(filename, hdr_null_numpy):
+    """Generate the data and trailer part (null content) of the file and appends them to the null header.
+
+    The data and trailer are also null and appending them to the header results in a complete seviri nat file.
+    """
+    # size of different parts of the seviri native file in bytes
+    size = {"header_with_archive": 450400, "data": 13090, "trailer": 380363}
+    zero_bytes = bytearray(size["data"] + size["trailer"])
+    bytes_data = bytes(zero_bytes)
+
+    hdr_null_numpy.tofile(filename)
+    with open(filename, "ab") as f:
+        f.write(bytes_data)

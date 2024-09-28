@@ -15,13 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The ici_l1b_nc reader tests package.
 
 This version tests the reader for ICI test data as per PFS V3A.
 
 """
 
-from datetime import datetime
+import datetime as dt
 from unittest.mock import patch
 
 import numpy as np
@@ -43,20 +44,20 @@ N_HORNS = 7
 N_183 = 3
 
 
-@pytest.fixture()
+@pytest.fixture
 def reader(fake_file):
     """Return reader of ici level1b data."""
     return IciL1bNCFileHandler(
         filename=fake_file,
         filename_info={
             "sensing_start_time": (
-                datetime.fromisoformat("2000-01-01T01:00:00")
+                dt.datetime.fromisoformat("2000-01-01T01:00:00")
             ),
             "sensing_end_time": (
-                datetime.fromisoformat("2000-01-01T02:00:00")
+                dt.datetime.fromisoformat("2000-01-01T02:00:00")
             ),
             "creation_time": (
-                datetime.fromisoformat("2000-01-01T03:00:00")
+                dt.datetime.fromisoformat("2000-01-01T03:00:00")
             ),
         },
         filetype_info={
@@ -68,7 +69,7 @@ def reader(fake_file):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file(tmp_path):
     """Return file path to level1b file."""
     file_path = tmp_path / "test_file_ici_l1b_nc.nc"
@@ -77,7 +78,7 @@ def fake_file(tmp_path):
     return file_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def dataset_info():
     """Return dataset info."""
     return {
@@ -217,11 +218,11 @@ class TestIciL1bNCFileHandler:
 
     def test_start_time(self, reader):
         """Test start time."""
-        assert reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
+        assert reader.start_time == dt.datetime(2000, 1, 2, 3, 4, 5)
 
     def test_end_time(self, reader):
         """Test end time."""
-        assert reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
+        assert reader.end_time == dt.datetime(2000, 1, 2, 4, 5, 6)
 
     def test_sensor(self, reader):
         """Test sensor."""
@@ -445,8 +446,14 @@ class TestIciL1bNCFileHandler:
         """Test interpolate geographic coordinates."""
         shape = (N_SCAN, N_SUBS, N_HORNS)
         dims = ("n_scan", "n_subs", "n_horns")
+        sub_pos = np.append(
+            np.arange(0, N_SAMPLES, np.ceil(N_SAMPLES / N_SUBS)),
+            N_SAMPLES - 1
+        )
         longitude = xr.DataArray(
-            2. * np.ones(shape),
+            np.tile( # longitudes between 0 and 10
+                10 * sub_pos / sub_pos[-1], (N_SCAN, N_HORNS, 1)
+            ).swapaxes(1, 2),
             dims=dims,
             coords={
                 "n_horns": np.arange(N_HORNS),
@@ -462,7 +469,9 @@ class TestIciL1bNCFileHandler:
         expect_shape = (N_SCAN, N_SAMPLES, N_HORNS)
         assert lon.shape == expect_shape
         assert lat.shape == expect_shape
-        np.testing.assert_allclose(lon, 2.0)
+        np.testing.assert_allclose(lon[:, 0, :], 0.)
+        np.testing.assert_allclose(lon[:, -1, :], 10.)
+        np.testing.assert_allclose(np.diff(lon[0, :, 0]), 10 / (N_SAMPLES - 1))
         np.testing.assert_allclose(lat, 1.0)
 
     def test_interpolate_viewing_angle(self, reader):
@@ -509,13 +518,13 @@ class TestIciL1bNCFileHandler:
         attributes = reader._get_global_attributes()
         assert attributes == {
             "filename": reader.filename,
-            "start_time": datetime(2000, 1, 2, 3, 4, 5),
-            "end_time": datetime(2000, 1, 2, 4, 5, 6),
+            "start_time": dt.datetime(2000, 1, 2, 3, 4, 5),
+            "end_time": dt.datetime(2000, 1, 2, 4, 5, 6),
             "spacecraft_name": "SGB",
             "ssp_lon": None,
             "sensor": "ICI",
-            "filename_start_time": datetime(2000, 1, 1, 1, 0),
-            "filename_end_time": datetime(2000, 1, 1, 2, 0),
+            "filename_start_time": dt.datetime(2000, 1, 1, 1, 0),
+            "filename_end_time": dt.datetime(2000, 1, 1, 2, 0),
             "platform_name": "SGB",
             "quality_group": {
                 "duration_of_product": np.array(1000., dtype=np.float32),

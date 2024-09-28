@@ -24,7 +24,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 
 class TestGenericImage(unittest.TestCase):
@@ -32,14 +32,14 @@ class TestGenericImage(unittest.TestCase):
 
     def setUp(self):
         """Create temporary images to test on."""
+        import datetime as dt
         import tempfile
-        from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
 
         from satpy.scene import Scene
 
-        self.date = datetime(2018, 1, 1)
+        self.date = dt.datetime(2018, 1, 1)
 
         # Create area definition
         pcs_id = "ETRS89 / LAEA Europe"
@@ -62,7 +62,7 @@ class TestGenericImage(unittest.TestCase):
         a__[:10, :10] = 0
         a__ = da.from_array(a__, chunks=(50, 50))
 
-        r_nan__ = np.random.uniform(0., 1., size=(self.y_size, self.x_size))
+        r_nan__ = RANDOM_GEN.uniform(0., 1., size=(self.y_size, self.x_size))
         r_nan__[:10, :10] = np.nan
         r_nan__ = da.from_array(r_nan__, chunks=(50, 50))
 

@@ -1,0 +1,1256 @@
+reader:
+  name: fci_l2_bufr
+  short_name: FCI l2 BUFR
+  long_name: MTGi Level 2 products in BUFR format
+  description: FCI L2 BUFR Product Reader
+  status: Alpha
+  supports_fsspec: false
+  sensors: [fci]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+file_types:
+  fci_l2_bufr_asr:
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-ASR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-BUFR_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+  fci_l2_bufr_amv:
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-AMV-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-BUFR_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+
+datasets:
+  #----- COMMON ------------------
+  latitude:
+    name: latitude
+    key: '#1#latitude'
+    resolution: [32000, -1]
+    file_type: [fci_l2_bufr_asr,fci_l2_bufr_amv]
+    standard_name: latitude
+    units: degree_north
+    fill_value: -1.e+100
+
+  longitude:
+    name: longitude
+    key: '#1#longitude'
+    resolution: [32000, -1]
+    file_type: [fci_l2_bufr_asr,fci_l2_bufr_amv]
+    standard_name: longitude
+    units: degree_east
+    fill_value: -1.e+100
+
+
+  # ---- AMV products ------------
+  pressure:
+    name: pressure
+    long_name: Pressure of AMV feature
+    standard_name: air_pressure_at_wind_level
+    file_type: fci_l2_bufr_amv
+    key: '#1#pressure'
+    units: Pa
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  temperature:
+    name: temperature
+    long_name: Temperature of AMV feature
+    standard_name: air_temperature_at_wind_level
+    file_type: fci_l2_bufr_amv
+    key: '#1#airTemperature'
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  height:
+    name: height
+    long_name: Height of AMV feature
+    standard_name: height_at_wind_level
+    file_type: fci_l2_bufr_amv
+    key: '#1#heightOfTopOfCloud'
+    units: m
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  direction:
+    name: direction
+    long_name: Direction of AMV
+    standard_name: wind_to_direction
+    file_type: fci_l2_bufr_amv
+    key: '#1#windDirection'
+    units: degree_north
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  speed:
+    name: speed
+    long_name: Speed of AMV
+    standard_name: wind_speed
+    file_type: fci_l2_bufr_amv
+    key: '#1#windSpeed'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_u_component:
+    name: speed_u_component
+    long_name: Speed U component of AMV
+    standard_name: wind_speed_horizontal_component
+    file_type: fci_l2_bufr_amv
+    key: '#1#u'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  speed_v_component:
+    name: speed_v_component
+    long_name: Speed V component of AMV
+    standard_name: wind_speed_vertival_component
+    file_type: fci_l2_bufr_amv
+    key: '#1#v'
+    units: m/s
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  target_type:
+    name: target_type
+    long_name: Target type (cloud or clearsky)
+    standard_name: wind_target_type
+    file_type: fci_l2_bufr_amv
+    key: '#1#extendedHeightAssignmentMethod'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  wind_method:
+    name: wind_method
+    long_name: Wind derivation method
+    standard_name: wind_wind_method
+    file_type: fci_l2_bufr_amv
+    key: 'satelliteDerivedWindComputationMethod'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi:
+    name: qi
+    long_name: Overall Reliability of AMV
+    standard_name: wind_overall_reliability
+    file_type: fci_l2_bufr_amv
+    key: '#1#percentConfidence'
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  qi_excl_fcst:
+    name: qi_excl_fcst
+    long_name: Overall Reliability (excluding forecast) of AMV
+    standard_name: wind_overall_reliability_exc_forecast
+    file_type: fci_l2_bufr_amv
+    key: '#2#percentConfidence'
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  channel_id:
+    name: channel_id
+    long_name: Channel Id
+    standard_name: channel_id
+    file_type: fci_l2_bufr_amv
+    key: '#1#channelNumber'
+    units: ""
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  # ---- ASR products ------------
+  bt_mean_all_ir38:
+    name: bt_mean_all_ir38
+    long_name: TOA Brightness Temperature segment mean at 3.8um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#19#brightnessTemperature'
+    wavelength: [3.4, 3.8, 4.2]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir38:
+    name: bt_mean_clear_ir38
+    long_name: TOA Brightness Temperature segment mean at 3.8um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#20#brightnessTemperature'
+    wavelength: [3.4, 3.8, 4.2]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir38:
+    name: bt_mean_cloudy_ir38
+    long_name: TOA Brightness Temperature segment mean at 3.8um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#21#brightnessTemperature'
+    wavelength: [3.4, 3.8, 4.2]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_wv63:
+    name: bt_mean_all_wv63
+    long_name: TOA Brightness Temperature segment mean at 6.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#25#brightnessTemperature'
+    wavelength: [5.3, 6.3, 7.3]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_wv63:
+    name: bt_mean_clear_wv63
+    long_name: TOA Brightness Temperature segment mean at 6.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#26#brightnessTemperature'
+    wavelength: [5.3, 6.3, 7.3]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_wv63:
+    name: bt_mean_cloudy_wv63
+    long_name: TOA Brightness Temperature segment mean at 6.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#27#brightnessTemperature'
+    wavelength: [5.3, 6.3, 7.3]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_wv73:
+    name: bt_mean_all_wv73
+    long_name: TOA Brightness Temperature segment mean at 7.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#31#brightnessTemperature'
+    wavelength: [6.85, 7.35, 7.85]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_wv73:
+    name: bt_mean_clear_wv73
+    long_name: TOA Brightness Temperature segment mean at 7.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#32#brightnessTemperature'
+    wavelength: [6.85, 7.35, 7.85]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_wv73:
+    name: bt_mean_cloudy_wv73
+    long_name: TOA Brightness Temperature segment mean at 7.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#33#brightnessTemperature'
+    wavelength: [6.85, 7.35, 7.85]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir87:
+    name: bt_mean_all_ir87
+    long_name: TOA Brightness Temperature segment mean at 8.7um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#37#brightnessTemperature'
+    wavelength: [8.3, 8.7, 9.1]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir87:
+    name: bt_mean_clear_ir87
+    long_name: TOA Brightness Temperature segment mean at 8.7um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#38#brightnessTemperature'
+    wavelength: [8.3, 8.7, 9.1]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir87:
+    name: bt_mean_cloudy_ir87
+    long_name: TOA Brightness Temperature segment mean at 8.7um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#39#brightnessTemperature'
+    wavelength: [8.3, 8.7, 9.1]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir97:
+    name: bt_mean_all_ir97
+    long_name: TOA Brightness Temperature segment mean at 9.7um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#43#brightnessTemperature'
+    wavelength: [9.36, 9.66, 9.96]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir97:
+    name: bt_mean_clear_ir97
+    long_name: TOA Brightness Temperature segment mean at 9.7um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#44#brightnessTemperature'
+    wavelength: [9.36, 9.66, 9.96]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir97:
+    name: bt_mean_cloudy_ir97
+    long_name: TOA Brightness Temperature segment mean at 9.7um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#45#brightnessTemperature'
+    wavelength: [9.36, 9.66, 9.96]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir105:
+    name: bt_mean_all_ir105
+    long_name: TOA Brightness Temperature segment mean at 10.5um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#49#brightnessTemperature'
+    wavelength: [9.8, 10.5, 11.2]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir105:
+    name: bt_mean_clear_ir105
+    long_name: TOA Brightness Temperature segment mean at 10.5um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#50#brightnessTemperature'
+    wavelength: [9.8, 10.5, 11.2]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir105:
+    name: bt_mean_cloudy_ir105
+    long_name: TOA Brightness Temperature segment mean at 10.5um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#51#brightnessTemperature'
+    wavelength: [9.8, 10.5, 11.2]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir123:
+    name: bt_mean_all_ir123
+    long_name: TOA Brightness Temperature segment mean at 12.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#55#brightnessTemperature'
+    wavelength: [11.8, 12.3, 12.8]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir123:
+    name: bt_mean_clear_ir123
+    long_name: TOA Brightness Temperature segment mean at 12.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#56#brightnessTemperature'
+    wavelength: [11.8, 12.3, 12.8]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir123:
+    name: bt_mean_cloudy_ir123
+    long_name: TOA Brightness Temperature segment mean at 12.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#57#brightnessTemperature'
+    wavelength: [11.8, 12.3, 12.8]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_all_ir133:
+    name: bt_mean_all_ir133
+    long_name: TOA Brightness Temperature segment mean at 13.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#61#brightnessTemperature'
+    wavelength: [12.7, 13.3, 13.9]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_clear_ir133:
+    name: bt_mean_clear_ir133
+    long_name: TOA Brightness Temperature segment mean at 13.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#62#brightnessTemperature'
+    wavelength: [12.7, 13.3, 13.9]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean_cloudy_ir133:
+    name: bt_mean_cloudy_ir133
+    long_name: TOA Brightness Temperature segment mean at 13.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#63#brightnessTemperature'
+    wavelength: [12.7, 13.3, 13.9]
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir38:
+    name: quality_bt_all_ir38
+    long_name: TOA Brightness Temperature % confidence at 3.8um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#19#brightnessTemperature->percentConfidence'
+    wavelength: [3.4, 3.8, 4.2]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir38:
+    name: quality_bt_clear_ir38
+    long_name: TOA Brightness Temperature % confidence at 3.8um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#20#brightnessTemperature->percentConfidence'
+    wavelength: [3.4, 3.8, 4.2]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir38:
+    name: quality_bt_cloudy_ir38
+    long_name: TOA Brightness Temperature % confidence at 3.8um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#21#brightnessTemperature->percentConfidence'
+    wavelength: [3.4, 3.8, 4.2]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_wv63:
+    name: quality_bt_all_wv63
+    long_name: TOA Brightness Temperature % confidence at 6.3um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#25#brightnessTemperature->percentConfidence'
+    wavelength: [5.3, 6.3, 7.3]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_wv63:
+    name: quality_bt_clear_wv63
+    long_name: TOA Brightness Temperature % confidence at 6.3um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#26#brightnessTemperature->percentConfidence'
+    wavelength: [5.3, 6.3, 7.3]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_wv63:
+    name: quality_bt_cloudy_wv63
+    long_name: TOA Brightness Temperature % confidence at 6.3um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#27#brightnessTemperature->percentConfidence'
+    wavelength: [5.3, 6.3, 7.3]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_wv73:
+    name: quality_bt_all_wv73
+    long_name: TOA Brightness Temperature % confidence at 7.3um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#31#brightnessTemperature->percentConfidence'
+    wavelength: [6.85, 7.35, 7.85]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_wv73:
+    name: quality_bt_clear_wv73
+    long_name: TOA Brightness Temperature % confidence at 7.3um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#32#brightnessTemperature->percentConfidence'
+    wavelength: [6.85, 7.35, 7.85]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_wv73:
+    name: quality_bt_cloudy_wv73
+    long_name: TOA Brightness Temperature % confidence at 7.3um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#33#brightnessTemperature->percentConfidence'
+    wavelength: [6.85, 7.35, 7.85]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir87:
+    name: quality_bt_all_ir87
+    long_name: TOA Brightness Temperature % confidence at 8.7um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#37#brightnessTemperature->percentConfidence'
+    wavelength: [8.3, 8.7, 9.1]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir87:
+    name: quality_bt_clear_ir87
+    long_name: TOA Brightness Temperature % confidence at 8.7um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#38#brightnessTemperature->percentConfidence'
+    wavelength: [8.3, 8.7, 9.1]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir87:
+    name: quality_bt_cloudy_ir87
+    long_name: TOA Brightness Temperature % confidence at 8.7um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#39#brightnessTemperature->percentConfidence'
+    wavelength: [8.3, 8.7, 9.1]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir97:
+    name: quality_bt_all_ir97
+    long_name: TOA Brightness Temperature % confidence at 9.7um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#43#brightnessTemperature->percentConfidence'
+    wavelength: [9.36, 9.66, 9.96]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir97:
+    name: quality_bt_clear_ir97
+    long_name: TOA Brightness Temperature % confidence at 9.7um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#44#brightnessTemperature->percentConfidence'
+    wavelength: [9.36, 9.66, 9.96]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir97:
+    name: quality_bt_cloudy_ir97
+    long_name: TOA Brightness Temperature % confidence at 9.7um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#45#brightnessTemperature->percentConfidence'
+    wavelength: [9.36, 9.66, 9.96]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir105:
+    name: quality_bt_all_ir105
+    long_name: TOA Brightness Temperature % confidence at 10.5um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#49#brightnessTemperature->percentConfidence'
+    wavelength: [9.8, 10.5, 11.2]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir105:
+    name: quality_bt_clear_ir105
+    long_name: TOA Brightness Temperature % confidence at 10.5um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#50#brightnessTemperature->percentConfidence'
+    wavelength: [9.8, 10.5, 11.2]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir105:
+    name: quality_bt_cloudy_ir105
+    long_name: TOA Brightness Temperature % confidence at 10.5um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#51#brightnessTemperature->percentConfidence'
+    wavelength: [9.8, 10.5, 11.2]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir123:
+    name: quality_bt_all_ir123
+    long_name: TOA Brightness Temperature % confidence at 12.3um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#55#brightnessTemperature->percentConfidence'
+    wavelength: [11.8, 12.3, 12.8]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir123:
+    name: quality_bt_clear_ir123
+    long_name: TOA Brightness Temperature % confidence at 12.3um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#56#brightnessTemperature->percentConfidence'
+    wavelength: [11.8, 12.3, 12.8]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir123:
+    name: quality_bt_cloudy_ir123
+    long_name: TOA Brightness Temperature % confidence at 12.3um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#57#brightnessTemperature->percentConfidence'
+    wavelength: [11.8, 12.3, 12.8]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_all_ir133:
+    name: quality_bt_all_ir133
+    long_name: TOA Brightness Temperature % confidence at 13.3um (all pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#61#brightnessTemperature->percentConfidence'
+    wavelength: [12.7, 13.3, 13.9]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_clear_ir133:
+    name: quality_bt_clear_ir133
+    long_name: TOA Brightness Temperature % confidence at 13.3um (clear pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#62#brightnessTemperature->percentConfidence'
+    wavelength: [12.7, 13.3, 13.9]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt_cloudy_ir133:
+    name: quality_bt_cloudy_ir133
+    long_name: TOA Brightness Temperature % confidence at 13.3um (cloudy pixels)
+    standard_name: quality
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#63#brightnessTemperature->percentConfidence'
+    wavelength: [12.7, 13.3, 13.9]
+    units: '%'
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir38:
+    name: std_bt_all_ir38
+    long_name: TOA Brightness Temperature standard deviation at 3.8um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#19#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [3.4, 3.8, 4.2]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir38:
+    name: std_bt_clear_ir38
+    long_name: TOA Brightness Temperature standard deviation at 3.8um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#20#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [3.4, 3.8, 4.2]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir38:
+    name: std_bt_cloudy_ir38
+    long_name: TOA Brightness Temperature standard deviation at 3.8um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#21#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [3.4, 3.8, 4.2]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_wv63:
+    name: std_bt_all_wv63
+    long_name: TOA Brightness Temperature standard deviation at 6.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#25#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [5.3, 6.3, 7.3]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_wv63:
+    name: std_bt_clear_wv63
+    long_name: TOA Brightness Temperature standard deviation at 6.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#26#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [5.3, 6.3, 7.3]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_wv63:
+    name: std_bt_cloudy_wv63
+    long_name: TOA Brightness Temperature standard deviation at 6.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#27#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [5.3, 6.3, 7.3]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_wv73:
+    name: std_bt_all_wv73
+    long_name: TOA Brightness Temperature standard deviation at 7.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#31#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [6.85, 7.35, 7.85]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_wv73:
+    name: std_bt_clear_wv73
+    long_name: TOA Brightness Temperature standard deviation at 7.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#32#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [6.85, 7.35, 7.85]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_wv73:
+    name: std_bt_cloudy_wv73
+    long_name: TOA Brightness Temperature standard deviation at 7.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#33#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [6.85, 7.35, 7.85]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir87:
+    name: std_bt_all_ir87
+    long_name: TOA Brightness Temperature standard deviation at 8.7um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#37#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [8.3, 8.7, 9.1]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir87:
+    name: std_bt_clear_ir87
+    long_name: TOA Brightness Temperature standard deviation at 8.7um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#38#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [8.3, 8.7, 9.1]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir87:
+    name: std_bt_cloudy_ir87
+    long_name: TOA Brightness Temperature standard deviation at 8.7um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#39#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [8.3, 8.7, 9.1]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir97:
+    name: std_bt_all_ir97
+    long_name: TOA Brightness Temperature standard deviation at 9.7um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#43#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [9.36, 9.66, 9.96]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir97:
+    name: std_bt_clear_ir97
+    long_name: TOA Brightness Temperature standard deviation at 9.7um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#44#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [9.36, 9.66, 9.96]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir97:
+    name: std_bt_cloudy_ir97
+    long_name: TOA Brightness Temperature standard deviation at 9.7um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#45#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [9.36, 9.66, 9.96]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir105:
+    name: std_bt_all_ir105
+    long_name: TOA Brightness Temperature standard deviation at 10.5um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#49#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [9.8, 10.5, 11.2]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir105:
+    name: std_bt_clear_ir105
+    long_name: TOA Brightness Temperature standard deviation at 10.5um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#50#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [9.8, 10.5, 11.2]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir105:
+    name: std_bt_cloudy_ir105
+    long_name: TOA Brightness Temperature standard deviation at 10.5um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#51#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [9.8, 10.5, 11.2]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir123:
+    name: std_bt_all_ir123
+    long_name: TOA Brightness Temperature standard deviation at 12.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#55#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [11.8, 12.3, 12.8]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir123:
+    name: std_bt_clear_ir123
+    long_name: TOA Brightness Temperature standard deviation at 12.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#56#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [11.8, 12.3, 12.8]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir123:
+    name: std_bt_cloudy_ir123
+    long_name: TOA Brightness Temperature standard deviation at 12.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#57#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [11.8, 12.3, 12.8]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_all_ir133:
+    name: std_bt_all_ir133
+    long_name: TOA Brightness Temperature standard deviation at 13.3um (all pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#61#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [12.7, 13.3, 13.9]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_clear_ir133:
+    name: std_bt_clear_ir133
+    long_name: TOA Brightness Temperature standard deviation at 13.3um (clear pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#62#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [12.7, 13.3, 13.9]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  std_bt_cloudy_ir133:
+    name: std_bt_cloudy_ir133
+    long_name: TOA Brightness Temperature standard deviation at 13.3um (cloudy pixels)
+    standard_name: toa_brightess_temperature
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#63#brightnessTemperature->firstOrderStatisticalValue'
+    wavelength: [12.7, 13.3, 13.9]
+    cell_method: area:standard_deviation
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  pixel_percentage_clear:
+    name: pixel_percentage_clear
+    long_name: Clear Sky Fraction in Segment
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#1#amountSegmentCloudFree'
+    fill_value: -1.0e+100
+    units: '%'
+    coordinates:
+      - longitude
+      - latitude

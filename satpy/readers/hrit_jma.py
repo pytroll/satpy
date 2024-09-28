@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """HRIT format reader for JMA data.
 
 Introduction
@@ -107,12 +108,13 @@ Gzip-compressed MTSAT files can be decompressed on the fly using
 .. _AHI sample data: https://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
 
+import satpy.utils
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.hrit_base import (
     HRITFileHandler,
@@ -453,7 +455,7 @@ class HRITJMAFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
+        tic = dt.datetime.now()
 
         if calibration == "counts":
             return data
@@ -466,17 +468,17 @@ class HRITJMAFileHandler(HRITFileHandler):
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
         res = res.where(data < 65535)
-        logger.debug("Calibration time " + str(datetime.now() - tic))
+        logger.debug("Calibration time " + str(dt.datetime.now() - tic))
         return res
 
     @property
     def start_time(self):
         """Get start time of the scan."""
         if self._use_acquisition_time_as_start_time:
-            return self.acq_time[0].astype(datetime)
+            return satpy.utils.datetime64_to_pydatetime(self.acq_time[0])
         return self._start_time
 
     @property
     def end_time(self):
         """Get end time of the scan."""
-        return self.acq_time[-1].astype(datetime)
+        return satpy.utils.datetime64_to_pydatetime(self.acq_time[-1])

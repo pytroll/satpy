@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for SEADAS L2 products.
 
 This reader currently only supports MODIS and VIIRS Chlorophyll A from SEADAS.
@@ -28,7 +29,7 @@ warned about the quality of the result.
 
 """
 
-from datetime import datetime
+import datetime as dt
 
 from .hdf4_utils import HDF4FileHandler
 from .netcdf_utils import NetCDF4FileHandler
@@ -53,6 +54,8 @@ class _SEADASL2Base:
             return 10
         if "viirs" in self.sensor_names:
             return 16
+        if "oci" in self.sensor_names:
+            return 0
         raise ValueError(f"Don't know how to read data for sensors: {self.sensor_names}")
 
     def _platform_name(self):
@@ -66,13 +69,13 @@ class _SEADASL2Base:
     def start_time(self):
         """Get the starting observation time of this file's data."""
         start_time = self[self.start_time_attr_name]
-        return datetime.strptime(start_time[:-3], self.time_format)
+        return dt.datetime.strptime(start_time[:-3], self.time_format)
 
     @property
     def end_time(self):
         """Get the ending observation time of this file's data."""
         end_time = self[self.end_time_attr_name]
-        return datetime.strptime(end_time[:-3], self.time_format)
+        return dt.datetime.strptime(end_time[:-3], self.time_format)
 
     @property
     def sensor_names(self):
@@ -81,7 +84,10 @@ class _SEADASL2Base:
         sensor_name = self[self.sensor_attr_name].lower()
         if sensor_name.startswith("modis"):
             return {"modis"}
-        return {"viirs"}
+        if sensor_name.startswith("viirs"):
+            return {"viirs"}
+        # Example: OCI
+        return {sensor_name}
 
     def get_dataset(self, data_id, dataset_info):
         """Get DataArray for the specified DataID."""

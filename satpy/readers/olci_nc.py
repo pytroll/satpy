@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 Satpy developers
+# Copyright (c) 2016-2023 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -51,9 +51,27 @@ from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
-DEFAULT_MASK_ITEMS = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+# the order of the L1B quality flags are from highest 32nd bit to the lowest 1 bit
+# https://sentinel.esa.int/documents/247904/1872756/Sentinel-3-OLCI-Product-Data-Format-Specification-OLCI-Level-1
+L1B_QUALITY_FLAGS = ["saturated@Oa21", "saturated@Oa20", "saturated@Oa19", "saturated@Oa18",
+                     "saturated@Oa17", "saturated@Oa16", "saturated@Oa15", "saturated@Oa14",
+                     "saturated@Oa13", "saturated@Oa12", "saturated@Oa11", "saturated@Oa10",
+                     "saturated@Oa09", "saturated@Oa08", "saturated@Oa07", "saturated@Oa06",
+                     "saturated@Oa05", "saturated@Oa04", "saturated@Oa03", "saturated@Oa02",
+                     "saturated@Oa01", "dubious", "sun-glint_risk", "duplicated",
+                     "cosmetic", "invalid", "straylight_risk", "bright",
+                     "tidal_region", "fresh_inland_water", "coastline", "land"]
+
+DEFAULT_L1B_MASK_ITEMS = ["dubious", "sun-glint_risk", "duplicated", "cosmetic", "invalid",
+    "straylight_risk", "bright", "tidal_region", "coastline", "land"]
+
+WQSF_FLAG_LIST = ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE", "INLAND_WATER", "TIDAL",
+    "COSMETIC", "SUSPECT", "HISOLZEN", "SATURATED", "MEGLINT", "HIGHGLINT", "WHITECAPS", "ADJAC",
+    "WV_FAIL", "PAR_FAIL", "AC_FAIL", "OC4ME_FAIL", "OCNN_FAIL", "Extra_1", "KDM_FAIL", "Extra_2",
+    "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON", "WHITE_SCATT", "LOWRW", "HIGHRW"]
+
+DEFAULT_WQSF_MASK_ITEMS = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT", "AC_FAIL", "CLOUD",
+    "HISOLZEN", "OCNN_FAIL", "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
 
 logger = logging.getLogger(__name__)
 
@@ -70,17 +88,18 @@ class BitFlags:
     def __init__(self, value, flag_list=None):
         """Init the flags."""
         self._value = value
-        flag_list = flag_list or ["INVALID", "WATER", "LAND", "CLOUD", "SNOW_ICE",
-                                  "INLAND_WATER", "TIDAL", "COSMETIC", "SUSPECT",
-                                  "HISOLZEN", "SATURATED", "MEGLINT", "HIGHGLINT",
-                                  "WHITECAPS", "ADJAC", "WV_FAIL", "PAR_FAIL",
-                                  "AC_FAIL", "OC4ME_FAIL", "OCNN_FAIL",
-                                  "Extra_1",
-                                  "KDM_FAIL",
-                                  "Extra_2",
-                                  "CLOUD_AMBIGUOUS", "CLOUD_MARGIN", "BPAC_ON", "WHITE_SCATT",
-                                  "LOWRW", "HIGHRW"]
-        self.meaning = {f: i for i, f in enumerate(flag_list)}
+
+        if flag_list is None:
+            try:
+                meanings = value.attrs["flag_meanings"].split()
+                masks = value.attrs["flag_masks"]
+            except (AttributeError, KeyError):
+                meanings = WQSF_FLAG_LIST
+                self.meaning = {meaning: mask for mask, meaning in enumerate(meanings)}
+            else:
+                self.meaning = {meaning: int(np.log2(mask)) for meaning, mask in zip(meanings, masks)}
+        else:
+            self.meaning = {meaning: mask for mask, meaning in enumerate(flag_list)}
 
     def __getitem__(self, item):
         """Get the item."""
@@ -89,8 +108,7 @@ class BitFlags:
         if isinstance(data, xr.DataArray):
             data = data.data
             res = ((data >> pos) % 2).astype(bool)
-            res = xr.DataArray(res, coords=self._value.coords,
-                               attrs=self._value.attrs,
+            res = xr.DataArray(res, coords=self._value.coords, attrs=self._value.attrs,
                                dims=self._value.dims)
         else:
             res = ((data >> pos) % 2).astype(bool)
@@ -103,8 +121,7 @@ class NCOLCIBase(BaseFileHandler):
     rows_name = "rows"
     cols_name = "columns"
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, engine=None, **kwargs):
         """Init the olci reader base."""
         super().__init__(filename, filename_info, filetype_info)
         self._engine = engine
@@ -166,10 +183,12 @@ class NCOLCIChannelBase(NCOLCIBase):
 class NCOLCI1B(NCOLCIChannelBase):
     """File handler for OLCI l1b."""
 
-    def __init__(self, filename, filename_info, filetype_info, cal, engine=None):
+    def __init__(self, filename, filename_info, filetype_info, cal=None, engine=None, mask_items=None):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
-        self.cal = cal.nc
+        if cal is not None:
+            self.cal = cal.nc
+        self.mask_items = mask_items
 
     @staticmethod
     def _get_items(idx, solar_flux):
@@ -184,24 +203,40 @@ class NCOLCI1B(NCOLCIChannelBase):
         return da.map_blocks(self._get_items, d_index.data,
                              solar_flux=solar_flux, dtype=solar_flux.dtype)
 
+    def getbitmask(self, quality_flags, items=None):
+        """Get the quality flags bitmask."""
+        if items is None:
+            items = DEFAULT_L1B_MASK_ITEMS
+
+        bflags = BitFlags(quality_flags, flag_list=L1B_QUALITY_FLAGS)
+
+        return reduce(np.logical_or, [bflags[item] for item in items])
+
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key["name"]:
+        if self.channel is not None and self.channel != key["name"]:
             return
+
         logger.debug("Reading %s.", key["name"])
 
-        radiances = self.nc[self.channel + "_radiance"]
+        if key["name"] == "quality_flags":
+            dataset = self.nc["quality_flags"]
+        elif key["name"] == "mask":
+            dataset = self.getbitmask(self.nc["quality_flags"], self.mask_items)
+        else:
+            dataset = self.nc[self.channel + "_radiance"]
 
-        if key["calibration"] == "reflectance":
-            idx = int(key["name"][2:]) - 1
-            sflux = self._get_solar_flux(idx)
-            radiances = radiances / sflux * np.pi * 100
-            radiances.attrs["units"] = "%"
+            if key["calibration"] == "reflectance":
+                idx = int(key["name"][2:]) - 1
+                sflux = self._get_solar_flux(idx)
+                dataset = dataset / sflux * np.pi * 100
+                dataset.attrs["units"] = "%"
 
-        radiances.attrs["platform_name"] = self.platform_name
-        radiances.attrs["sensor"] = self.sensor
-        radiances.attrs.update(key.to_dict())
-        return radiances
+        dataset.attrs["platform_name"] = self.platform_name
+        dataset.attrs["sensor"] = self.sensor
+        dataset.attrs.update(key.to_dict())
+
+        return dataset
 
 
 class NCOLCI2(NCOLCIChannelBase):
@@ -218,6 +253,7 @@ class NCOLCI2(NCOLCIChannelBase):
         if self.channel is not None and self.channel != key["name"]:
             return
         logger.debug("Reading %s.", key["name"])
+
         if self.channel is not None and self.channel.startswith(self.reflectance_prefix):
             dataset = self.nc[self.channel + self.reflectance_suffix]
         else:
@@ -227,6 +263,7 @@ class NCOLCI2(NCOLCIChannelBase):
             dataset.attrs["_FillValue"] = 1
         elif key["name"] == "mask":
             dataset = self.getbitmask(dataset, self.mask_items)
+
         dataset.attrs["platform_name"] = self.platform_name
         dataset.attrs["sensor"] = self.sensor
         dataset.attrs.update(key.to_dict())
@@ -247,8 +284,8 @@ class NCOLCI2(NCOLCIChannelBase):
     def getbitmask(self, wqsf, items=None):
         """Get the bitmask."""
         if items is None:
-            items = DEFAULT_MASK_ITEMS
-        bflags = BitFlags(wqsf)
+            items = DEFAULT_WQSF_MASK_ITEMS
+        bflags = BitFlags(wqsf, WQSF_FLAG_LIST)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
 
@@ -262,8 +299,16 @@ class NCOLCILowResData(NCOLCIBase):
                  engine=None, **kwargs):
         """Init the file handler."""
         super().__init__(filename, filename_info, filetype_info, engine)
-        self.l_step = self.nc.attrs["al_subsampling_factor"]
-        self.c_step = self.nc.attrs["ac_subsampling_factor"]
+
+    @property
+    def l_step(self):
+        """Get the line step."""
+        return self.nc.attrs["al_subsampling_factor"]
+
+    @property
+    def c_step(self):
+        """Get the column step."""
+        return self.nc.attrs["ac_subsampling_factor"]
 
     def _do_interpolate(self, data):
 
