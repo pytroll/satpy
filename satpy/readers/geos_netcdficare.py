@@ -100,21 +100,20 @@ Output:
 
 import datetime as dt
 
+# from satpy.utils import get_dask_chunk_size_in_bytes
+import dask
 import numpy as np
-
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-
+import xarray as xr
 from netCDF4 import Dataset
 from xarray import DataArray
-import xarray as xr		
-
-from satpy.readers.file_handlers import BaseFileHandler
 
 from satpy._compat import cached_property
-# from satpy.utils import get_dask_chunk_size_in_bytes
-import	dask	
-from satpy.readers import open_file_or_filename	
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.file_handlers import BaseFileHandler
 import math
+
+from satpy.readers import open_file_or_filename
+
 
 class NETCDF_ICARE(BaseFileHandler) :
 	# Cf readers/file_handlers.py.
@@ -156,7 +155,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 
 		self.zone = self.nc.attrs["Area_of_acquisition"]
 		# globe, europe.
-		
+
 		# Reading the needed attributes.
 		self.initialisation_dataset()
 		# __init__()
@@ -213,7 +212,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 			self.sensor = "fci"
 		else :
 			raise NameError("Unsupported satellite platform : " + self.plateforme)
-			
+
 		# Icare and météo france use non-standard platform names. Change is needed for pyspectral.
 		# pyspectral/rsr_seviri_Meteosat-10.h5 and not rsr_seviri_msg3_seviri.h5 in the call
 		# Calculator(metadata["platform_name"], metadata["sensor"], metadata["name"]).
@@ -266,7 +265,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 	def res(self) :
 		"""Get the resolution."""
 		# The resolution can be read in the attribute geotransform of the follonwing variables :
-		# GeosCoordinateSystem500m, GeosCoordinateSystem_h, 
+		# GeosCoordinateSystem500m, GeosCoordinateSystem_h,
 		# GeosCoordinateSystem1km, GeosCoordinateSystem2km,
 		# GeosCoordinateSystem.
 		# cfac, lfac, coff, loff can be read in the variables ImageNavigationxxx.
@@ -441,7 +440,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 		"""Return the correct dataset name based on requested band."""
 		# ds_id =  DataID(name='vis_08', wavelength=WavelengthRange(min=0.815, central=0.865, max=0.915, unit='µm'),
 		#		resolution=2000, calibration=<calibration.reflectance>, modifiers=())
-		
+
 		# For mtg :
 		if ds_id["name"] == 'vis_04' :		# Name in satpy.
 			ds_get_name = "VIS004"		# Name in icare/meteofrance netcdf.
@@ -611,7 +610,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 
 	def get_dataset(self, ds_id, ds_info) :
 		"""Get the dataset.
-		ds_id["calibration"]	= key["calibration"] 
+		ds_id["calibration"]	= key["calibration"]
 					= ["brightness_temperature", "reflectance", "radiance", "counts"]
 		"""
 		ds_get_name = self._get_dsname(ds_id)	# "IR_096"
@@ -621,7 +620,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 		scale_factor = self.scale_factor[ds_get_name]
 		offset = self.offset[ds_get_name]
 
-		# print(ds_get_name, ds_id["calibration"], " min = ", np.min(variable[:].values), 
+		# print(ds_get_name, ds_id["calibration"], " min = ", np.min(variable[:].values),
 		#	" max = ", np.max(variable[:].values), "dims = ", variable.dims)
 		# WV_062 calibration.brightness_temperature, from -9000 to 4000
 		# VIS006 calibration.reflectance, from 0 to 10000
@@ -633,7 +632,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 		if calibration == "counts" :
 			# Come back to the original counts of the hrit...
 
-			# Variable is between -9000 to 4000 (temperature) 
+			# Variable is between -9000 to 4000 (temperature)
 			# or between 0 to 10000 (albedo).
 
 			variable += 32768	# 0 to 65535
@@ -653,13 +652,13 @@ class NETCDF_ICARE(BaseFileHandler) :
 		elif calibration == "radiance" :
 			# Come back to the radiance.
 
-			if offset == 0. : 
+			if offset == 0. :
 				# Visible channel.
 				bandfactor = self.bandfactor[ds_get_name]
 
 				# Variable is an albedo from 0 to 10000.
 				variable = variable * scale_factor/ 100. * bandfactor
-				# => variable is a reflectance between 0 and 1. 
+				# => variable is a reflectance between 0 and 1.
 		 		# radiance in mWm-2sr-1(cm-1)-1
 			else :
 				# Brightness temperature.
@@ -745,7 +744,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 		# Force scandir to SEVIRI default, not known from file
 		pdict["scandir"] = "S2N"
 		pdict["a_name"] = "geosmsg"
-		
+
 		if self.sensor == "seviri" :
 			# msg.
 			pdict["scandir"] = "N2S"
@@ -776,7 +775,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 			else :
 				print("ERROR : not expected resolution for mtg : ", self.nbpix)
 				exit(1)
-				
+
 		elif self.sensor == "ahi" :
 			# Himawari.
 			pdict["scandir"] = "N2S"
@@ -821,6 +820,3 @@ class NETCDF_ICARE(BaseFileHandler) :
 		# print("area = ", area)
 		return area
 		# get_area_def()
-
-
-

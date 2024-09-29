@@ -258,4 +258,3 @@ datasets:
         standard_name: counts
         units: 1
     file_type: [HIMA2km]
-

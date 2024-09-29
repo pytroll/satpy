@@ -304,6 +304,3 @@ datasets:
         standard_name: counts
         units: "1"
     file_type: GOES2km
-
-
-

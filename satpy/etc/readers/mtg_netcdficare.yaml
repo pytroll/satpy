@@ -331,5 +331,3 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-
-
