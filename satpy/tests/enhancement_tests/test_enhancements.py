@@ -518,7 +518,7 @@ def test_on_dask_array():
     assert res.shape == arr.shape
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def

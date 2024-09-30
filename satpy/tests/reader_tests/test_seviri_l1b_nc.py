@@ -192,7 +192,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
 
         return ds
 
-    @pytest.fixture()
+    @pytest.fixture
     def h5netcdf(self):
         """Fixture for xr backend choice."""
         return False

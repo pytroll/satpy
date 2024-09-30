@@ -64,3 +64,4 @@ dependencies:
     - trollimage>=1.24
     - pyspectral
     - pyorbital
+    - pyPublicDecompWT

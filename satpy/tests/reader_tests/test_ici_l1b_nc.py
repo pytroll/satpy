@@ -44,7 +44,7 @@ N_HORNS = 7
 N_183 = 3
 
 
-@pytest.fixture()
+@pytest.fixture
 def reader(fake_file):
     """Return reader of ici level1b data."""
     return IciL1bNCFileHandler(
@@ -69,7 +69,7 @@ def reader(fake_file):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file(tmp_path):
     """Return file path to level1b file."""
     file_path = tmp_path / "test_file_ici_l1b_nc.nc"
@@ -78,7 +78,7 @@ def fake_file(tmp_path):
     return file_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def dataset_info():
     """Return dataset info."""
     return {

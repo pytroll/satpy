@@ -394,14 +394,14 @@ class TestDifferenceCompositor(unittest.TestCase):
             comp((self.ds1, self.ds2_big))
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def
     return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
     ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
@@ -1586,7 +1586,7 @@ class TestBackgroundCompositor:
 class TestMaskingCompositor:
     """Test case for the simple masking compositor."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def conditions_v1(self):
         """Masking conditions with string values."""
         return [{"method": "equal",
@@ -1596,7 +1596,7 @@ class TestMaskingCompositor:
                  "value": "Cloud-free_sea",
                  "transparency": 50}]
 
-    @pytest.fixture()
+    @pytest.fixture
     def conditions_v2(self):
         """Masking conditions with numerical values."""
         return [{"method": "equal",
@@ -1606,12 +1606,12 @@ class TestMaskingCompositor:
                  "value": 2,
                  "transparency": 50}]
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_data(self):
         """Test data to use with masking compositors."""
         return xr.DataArray(da.random.random((3, 3)), dims=["y", "x"])
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_ct_data(self):
         """Test 2D CT data array."""
         flag_meanings = ["Cloud-free_land", "Cloud-free_sea"]
@@ -1624,18 +1624,18 @@ class TestMaskingCompositor:
         ct_data.attrs["flag_values"] = flag_values
         return ct_data
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_ct_data_v3(self, test_ct_data):
         """Set ct data to NaN where it originally is 1."""
         return test_ct_data.where(test_ct_data == 1)
 
-    @pytest.fixture()
+    @pytest.fixture
     def reference_data(self, test_data, test_ct_data):
         """Get reference data to use in masking compositor tests."""
         # The data are set to NaN where ct is `1`
         return test_data.where(test_ct_data > 1)
 
-    @pytest.fixture()
+    @pytest.fixture
     def reference_alpha(self):
         """Get reference alpha to use in masking compositor tests."""
         ref_alpha = da.array([[0, 0.5, 0.5],

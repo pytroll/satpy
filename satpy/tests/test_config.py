@@ -154,7 +154,7 @@ def _create_fake_importlib_files(module_paths: dict[str, Path]) -> Callable[[str
     return _fake_importlib_files
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_composite_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake compositor YAML configuration file."""
     yield from _create_yamlbased_plugin(
@@ -182,7 +182,7 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
     """)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_reader_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake reader YAML configuration file."""
     yield from _create_yamlbased_plugin(
@@ -205,7 +205,7 @@ datasets: {{}}
 """)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_writer_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake writer YAML configuration file."""
     yield from _create_yamlbased_plugin(
@@ -226,7 +226,7 @@ writer:
 """)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_enh_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake enhancement YAML configure files.
 

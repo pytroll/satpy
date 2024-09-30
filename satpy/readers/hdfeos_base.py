@@ -89,6 +89,12 @@ def _find_and_run_interpolation(interpolation_functions, src_resolution, dst_res
     logger.debug("Interpolating from {} to {}".format(src_resolution, dst_resolution))
     return interpolation_function(*args)
 
+def _modis_date(date):
+    """Transform a date and time string into a datetime object."""
+    if len(date) == 19:
+        return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+    else:
+        return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
 
 class HDFEOSBaseFileReader(BaseFileHandler):
     """Base file handler for HDF EOS data for both L1b and L2 products."""
@@ -183,7 +189,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGTIME"]["VALUE"])
-            return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            return _modis_date(date)
         except KeyError:
             return self._start_time_from_filename()
 
@@ -196,7 +202,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGTIME"]["VALUE"])
-            return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            return _modis_date(date)
         except KeyError:
             return self.start_time
 
