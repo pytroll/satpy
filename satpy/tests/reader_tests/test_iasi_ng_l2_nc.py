@@ -293,12 +293,12 @@ class TestIASINGL2NCReader:
             patch_ctx.is_local = True
             yield patch_ctx
 
-    @pytest.fixture()
+    @pytest.fixture
     def twv_handler(self):
         """Create a simple (and fake) default handler on a TWV product."""
         return self._create_file_handler(self.twv_filename)
 
-    @pytest.fixture()
+    @pytest.fixture
     def twv_scene(self):
         """Create a simple (and fake) satpy scene on a TWV product."""
         return Scene(filenames=[self.twv_filename], reader=self.reader_name)
