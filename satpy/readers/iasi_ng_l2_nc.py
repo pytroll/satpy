@@ -65,6 +65,11 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # dataset aliases:
         self.dataset_aliases = self.filetype_info.get("dataset_aliases", {})
 
+        # Transform the aliases on regex patterns:
+        self.dataset_aliases = {
+            re.compile(key): val for key, val in self.dataset_aliases.items()
+        }
+
         # broadcasts timestamps flag:
         self.broadcast_timestamps = self.filetype_info.get("broadcast_timestamps", False)
 
@@ -210,6 +215,18 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         for vpath, desc in self.variable_desc.items():
             # Check if we have an alias for this variable:
             ds_name = desc["var_name"]
+
+            # Check if this variable path matches an alias pattern:
+            for pat, sub in self.dataset_aliases.items():
+                # Search for the pattern in the input string
+                match = pat.search(vpath)
+                if match:
+                    # Extract the captured group(s)
+                    var_name = match.group(1)
+                    ds_name = sub.replace("${VAR_NAME}", var_name)
+                    # logger.info("=> matched vpath %s: ds_name: %s", vpath, ds_name)
+                    break
+
             if vpath in self.dataset_aliases:
                 ds_name = self.dataset_aliases[vpath]
 

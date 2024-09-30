@@ -16,8 +16,11 @@ file_types:
         "{pflag}_{country}-{organization}-{location},{data_designator},{spacecraft}-{instrument}-{processing_level}-{product_type:3s}_{oflag}_{originator}_{generation_time}_{mission_type}_{environment}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text1}_{free_text2}_{free_text3}_{extension}.nc",
       ]
 
-    ignored_patterns:
-      - /optimal_estimation/ # cf. eum respase2 task2 issue #4
+    # ignored_patterns:
+    #   - /optimal_estimation/ # cf. eum respase2 task2 issue #4
+
+    dataset_aliases:
+      "/optimal_estimation/(.+)$": "${VAR_NAME}_oem"
 
     # Define if we should broadcast the timestamps from
     # dims (n_lines, n_for) to (n_lines, n_for, n_fov):
