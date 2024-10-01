@@ -44,7 +44,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = np.uint32(429496729) # FillValue lower than in dataset to be windows-compatible
+fill_val = np.uint32(4294967295) # FillValue lower than in dataset to be windows-compatible
 
 attrs_exp: dict = {
     "platform": "MET7",
@@ -345,7 +345,7 @@ def fixture_fake_dataset(time_fake_dataset):
     params=[FiduceoMviriEasyFcdrFileHandler,
             FiduceoMviriFullFcdrFileHandler]
 )
-def fixture_file_handler(fake_dataset, request):
+def fixture_file_handler(fake_dataset, request, projection_longitude="57.0"):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
@@ -358,7 +358,7 @@ def fixture_file_handler(fake_dataset, request):
             filename="filename",
             filename_info={"platform": "MET7",
                            "sensor": "MVIRI",
-                           "projection_longitude": "57.0"},
+                           "projection_longitude": projection_longitude},
             filetype_info={"foo": "bar"},
             mask_bad_quality=mask_bad_quality
         )
@@ -379,7 +379,9 @@ def fixture_reader():
 class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
 
-    def test_init(self, file_handler):
+
+    @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"])
+    def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
         assert file_handler.projection_longitude == 57.0
         assert file_handler.mask_bad_quality is True
