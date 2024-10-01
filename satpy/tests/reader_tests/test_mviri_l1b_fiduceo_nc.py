@@ -340,12 +340,18 @@ def fixture_fake_dataset(time_fake_dataset):
     return ds
 
 
+@pytest.fixture(name="projection_longitude", params=["57.0"])
+def fixture_projection_longitude(request):
+    """Get projection longitude as string."""
+    return request.param
+
+
 @pytest.fixture(
     name="file_handler",
     params=[FiduceoMviriEasyFcdrFileHandler,
             FiduceoMviriFullFcdrFileHandler]
 )
-def fixture_file_handler(fake_dataset, request, projection_longitude="57.0"):
+def fixture_file_handler(fake_dataset, request, projection_longitude):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
@@ -380,7 +386,7 @@ class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
 
 
-    @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"])
+    @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
     def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
         assert file_handler.projection_longitude == 57.0
