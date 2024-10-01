@@ -14,5 +14,21 @@ composites:
     prerequisites:
     - name: '9'
     - name: '10'
-    - name: '15'
+    - name: '12'
     standard_name: mw183_humidity_surface
+
+  mw325_humidity_surface:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '9'
+    - name: '10'
+    - name: '19'
+    standard_name: mw325_humidity_surface
+
+  mw325_humidity:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '16'
+    - name: '18'
+    - name: '19'
+    standard_name: mw325_humidity
