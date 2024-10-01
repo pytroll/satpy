@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Pytroll Developers
+# Copyright (c) 2023, 2024 Pytroll Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,6 +68,16 @@ class AWSL1BFile(NetCDF4FileHandler):
         return self.filename_info["platform_name"]
 
     @property
+    def orbit_start(self):
+        """Get the orbit number for the start of data."""
+        return int(self["/attr/orbit_start"])
+
+    @property
+    def orbit_end(self):
+        """Get the orbit number for the end of data."""
+        return int(self["/attr/orbit_end"])
+
+    @property
     def sub_satellite_longitude_start(self):
         """Get the longitude of sub-satellite point at start of the product."""
         return self["status/satellite/subsat_longitude_start"].data.item()
@@ -111,6 +121,7 @@ class AWSL1BFile(NetCDF4FileHandler):
 
         data_array.attrs["platform_name"] = self.platform_name
         data_array.attrs["sensor"] = self.sensor
+        data_array.attrs["orbit_number"] = self.orbit_start
         return data_array
 
     def _get_channel_data(self, dataset_id, dataset_info):
