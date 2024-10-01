@@ -44,7 +44,7 @@ from satpy.tests.utils import make_dataid
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
 
-fill_val = np.uint32(4294967295) # FillValue lower than in dataset to be windows-compatible
+fill_val = np.uint32(429496729) # FillValue lower than in dataset to be windows-compatible
 
 attrs_exp: dict = {
     "platform": "MET7",
