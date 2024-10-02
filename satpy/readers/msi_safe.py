@@ -238,8 +238,6 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
             return solar_irrad
         raise ValueError("No solar irradiance values were found in the metadata.")
 
-
-
     @cached_property
     def sun_earth_dist(self):
         """Get the sun-earth distance from the metadata."""
