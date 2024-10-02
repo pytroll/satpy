@@ -115,7 +115,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def register_dataset(self, ds_name, desc):
         """Register a simple dataset given its name and a desc dict."""
         if ds_name in self.dataset_infos:
-            raise ValueError(f"Dataset for {ds_name} already registered.")
+            raise KeyError(f"Dataset for {ds_name} already registered.")
 
         ds_infos = {
             "name": ds_name,
@@ -133,7 +133,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         # print(f"Found dimension: {dim_name}={val}")
         if dim_name in self.dimensions_desc and self.dimensions_desc[dim_name] != value:
             # This might happen if we have the same dim name from different groups:
-            raise ValueError(f"Detected duplicated dim name: {dim_name}")
+            raise KeyError(f"Detected duplicated dim name: {dim_name}")
 
         self.dimensions_desc[dim_name] = value
 
@@ -362,10 +362,10 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """Convert the data to datetime values."""
         epoch = ds_info["seconds_since_epoch"]
 
-        # Note: below could convert the resulting data to another type
-        # with .astype("datetime64[us]") for instance
+        # Note: converting the time values to ns precision to avoid warnings
+        # from panda+numpy:
         data_array = xr.DataArray(
-            data=pd.to_datetime(epoch) + data_array.astype("timedelta64[s]"),
+            data=pd.to_datetime(epoch) + (data_array * 1e9).astype("timedelta64[ns]"),
             dims=data_array.dims,
             attrs=data_array.attrs,
         )

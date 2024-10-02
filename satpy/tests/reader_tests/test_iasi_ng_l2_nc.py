@@ -437,3 +437,167 @@ class TestIASINGL2NCReader:
         assert len(dset.dims) == 2
         # Should still be in int32 type:
         assert dset.dtype == np.int32
+
+    def test_register_dataset(self, twv_handler):
+        """Test the register_dataset method."""
+        twv_handler.dataset_infos = {}
+        twv_handler.register_dataset("test_dataset", {"attr": "value"})
+        assert "test_dataset" in twv_handler.dataset_infos
+        assert twv_handler.dataset_infos["test_dataset"]["attr"] == "value"
+
+        # Should refuse to register the same dataset again afterwards:
+        with pytest.raises(KeyError):
+            twv_handler.register_dataset("test_dataset", {"attr": "new_value"})
+
+    def test_process_dimension(self, twv_handler):
+        """Test the process_dimension method."""
+        twv_handler.dimensions_desc = {}
+        twv_handler.process_dimension("group/dimension/test_dim", 10)
+        assert twv_handler.dimensions_desc["test_dim"] == 10
+
+        # Should refuse to process the same dim again:
+        with pytest.raises(KeyError):
+            twv_handler.process_dimension("group/dimension/test_dim", 20)
+
+    def test_process_attribute(self, twv_handler):
+        """Test the process_attribute method."""
+        twv_handler.variable_desc = {"test_var": {"attribs": {}}}
+        twv_handler.process_attribute("test_var/attr/test_attr", "value")
+        assert twv_handler.variable_desc["test_var"]["attribs"]["test_attr"] == "value"
+
+    def test_process_variable(self, twv_handler):
+        """Test the process_variable method."""
+        # Note: we only support variables inside a group,
+        # because this is always the case in the IASI-NG file format.
+        twv_handler.file_content = {
+            "group/test_var/shape": (10, 10),
+            "group/test_var/dimensions": ("x", "y"),
+            "group/test_var/dtype": "float32",
+        }
+        twv_handler.ignored_patterns = []
+        twv_handler.process_variable("group/test_var")
+        assert "group/test_var" in twv_handler.variable_desc
+
+    def test_parse_file_content(self, twv_handler):
+        """Test the parse_file_content method."""
+        twv_handler.file_content = {
+            "dim/dimension/test_dim": 10,
+            "var/attr/test_attr": "value",
+            "grp/test_var": "my_data",
+            "grp/test_var/shape": (10, 10),
+            "grp/test_var/dimensions": ("x", "y"),
+            "grp/test_var/dtype": "float32",
+        }
+
+        twv_handler.parse_file_content()
+        assert "test_dim" in twv_handler.dimensions_desc
+        assert "grp/test_var" in twv_handler.variable_desc
+
+    def test_register_available_datasets(self, twv_handler):
+        """Test the register_available_datasets method."""
+        twv_handler.dataset_infos = None
+        twv_handler.variable_desc = {
+            "var/test_var": {"var_name": "test_var", "attribs": {"units": "test_unit"}}
+        }
+        twv_handler.dataset_aliases = {}
+        twv_handler.register_available_datasets()
+        assert "test_var" in twv_handler.dataset_infos
+
+    def test_get_dataset_infos(self, twv_handler):
+        """Test the get_dataset_infos method."""
+        twv_handler.dataset_infos = {"test_dataset": {"attr": "value"}}
+        assert twv_handler.get_dataset_infos("test_dataset") == {"attr": "value"}
+
+        with pytest.raises(KeyError):
+            twv_handler.get_dataset_infos("non_existent_dataset")
+
+    def test_variable_path_exists(self, twv_handler):
+        """Test the variable_path_exists method."""
+        twv_handler.file_content = {"test_var": mock.MagicMock()}
+        assert twv_handler.variable_path_exists("test_var")
+        assert not twv_handler.variable_path_exists("/attr/test_var")
+        assert not twv_handler.variable_path_exists("test_var/dtype")
+
+    def test_convert_data_type(self, twv_handler):
+        """Test the convert_data_type method."""
+        data = xr.DataArray(np.array([1, 2, 3], dtype=np.float32))
+        result = twv_handler.convert_data_type(data, dtype="float64")
+        assert result.dtype == np.float64
+
+        # Should stay as f32 if dtype is auto:
+        data.attrs["scale_factor"] = 2.0
+        result = twv_handler.convert_data_type(data, dtype="auto")
+        assert result.dtype == np.float32
+
+    def test_apply_fill_value(self, twv_handler):
+        """Test the apply_fill_value method."""
+        data = xr.DataArray(
+            np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
+            attrs={"valid_min": 2.0, "valid_max": 4.0},
+        )
+        result = twv_handler.apply_fill_value(data)
+        assert np.isnan(result[0])
+        assert np.isnan(result[4])
+
+    def test_apply_rescaling(self, twv_handler):
+        """Test the apply_rescaling method."""
+        data = xr.DataArray(
+            np.array([1, 2, 3]), attrs={"scale_factor": 2, "add_offset": 1}
+        )
+        result = twv_handler.apply_rescaling(data)
+        np.testing.assert_array_equal(result, [3, 5, 7])
+
+    def test_apply_reshaping(self, twv_handler):
+        """Test the apply_reshaping method."""
+        data = xr.DataArray(np.ones((2, 3, 4)), dims=("a", "b", "c"))
+        result = twv_handler.apply_reshaping(data)
+        assert result.dims == ("x", "y")
+        assert result.shape == (2, 12)
+
+    def test_convert_to_datetime(self, twv_handler):
+        """Test the convert_to_datetime method."""
+        data = xr.DataArray(np.array([0, 86400]), dims=("time",))
+        ds_info = {"seconds_since_epoch": "2000-01-01 00:00:00"}
+        result = twv_handler.convert_to_datetime(data, ds_info)
+        assert result[0].values == np.datetime64("2000-01-01T00:00:00")
+        assert result[1].values == np.datetime64("2000-01-02T00:00:00")
+
+    def test_apply_broadcast(self, twv_handler):
+        """Test the apply_broadcast method."""
+        data = xr.DataArray(np.array([1, 2, 3]), dims=("x",))
+        twv_handler.dimensions_desc = {"n_fov": 2}
+        ds_info = {"broadcast_on_dim": "n_fov"}
+        result = twv_handler.apply_broadcast(data, ds_info)
+        assert result.shape == (6,)
+
+    def test_get_transformed_dataset(self, twv_handler):
+        """Test the get_transformed_dataset method."""
+        ds_info = {
+            "location": "test_var",
+            "seconds_since_epoch": "2000-01-01 00:00:00",
+            "broadcast_on_dim": "n_fov",
+        }
+        twv_handler.variable_path_exists = mock.MagicMock(return_value=True)
+        twv_handler.file_content["test_var"] = xr.DataArray(
+            np.array([[0, 86400]]), dims=("x", "y")
+        )
+
+        twv_handler.dimensions_desc = {"n_fov": 2}
+
+        result = twv_handler.get_transformed_dataset(ds_info)
+        assert result.shape == (1, 4)
+        assert result.dtype == "datetime64[ns]"
+
+    def test_get_dataset(self, twv_handler):
+        """Test the get_dataset method."""
+        twv_handler.dataset_infos = {
+            "test_dataset": {"name": "test_dataset", "location": "test_var"}
+        }
+        twv_handler.get_transformed_dataset = mock.MagicMock(
+            return_value=xr.DataArray([1, 2, 3])
+        )
+
+        result = twv_handler.get_dataset({"name": "test_dataset"})
+        assert result.equals(xr.DataArray([1, 2, 3]))
+
+        assert twv_handler.get_dataset({"name": "non_existent_dataset"}) is None
