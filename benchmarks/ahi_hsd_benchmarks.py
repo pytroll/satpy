@@ -43,7 +43,7 @@ class HimawariHSD(GeoBenchmarks):
         except ImportError:
             assert len(get_filenames(self.subdir)) == 4  # nosec
         download_rsr()
-        download_luts(aerosol_type="rayleigh_only")
+        download_luts(aerosol_types=["rayleigh_only"])
 
     def setup(self):
         """Set up the benchmarks."""
