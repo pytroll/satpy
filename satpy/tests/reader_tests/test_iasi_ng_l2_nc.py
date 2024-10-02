@@ -14,7 +14,6 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Unit tests on the IASI NG L2 reader using the conventional mock constructed context."""
-import logging
 import os
 from datetime import datetime
 from unittest import mock
@@ -28,8 +27,6 @@ from satpy import Scene
 from satpy.readers import load_reader
 from satpy.readers.iasi_ng_l2_nc import IASINGL2NCFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-
-logger = logging.getLogger(__name__)
 
 d_lff = ("n_lines", "n_for", "n_fov")
 
@@ -317,7 +314,6 @@ class TestIASINGL2NCReader:
         # We should have our handler now:
         assert len(reader.file_handlers) == 1
 
-        # logger.info("File handlers are: %s", reader.file_handlers)
         assert self.reader_name in reader.file_handlers
 
         handlers = reader.file_handlers[self.reader_name]

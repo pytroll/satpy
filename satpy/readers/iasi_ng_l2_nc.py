@@ -27,7 +27,6 @@ level:
 * IASI-L2-CO
 """
 
-import logging
 import re
 
 import netCDF4
@@ -36,8 +35,6 @@ import pandas as pd
 import xarray as xr
 
 from .netcdf_utils import NetCDF4FsspecFileHandler
-
-logger = logging.getLogger(__name__)
 
 
 class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
@@ -130,7 +127,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def process_dimension(self, key, value):
         """Process a dimension entry from the file_content."""
         dim_name = key.split("/")[-1]
-        # print(f"Found dimension: {dim_name}={val}")
+
         if dim_name in self.dimensions_desc and self.dimensions_desc[dim_name] != value:
             # This might happen if we have the same dim name from different groups:
             raise KeyError(f"Detected duplicated dim name: {dim_name}")
@@ -140,7 +137,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def process_attribute(self, key, value):
         """Process a attribute entry from the file_content."""
         var_path, aname = key.split("/attr/")
-        # print(f"Found attrib for: {var_path}: {aname}")
 
         if var_path not in self.variable_desc:
             # maybe this variable is ignored, or this is a group attr.
@@ -151,14 +147,14 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def process_variable(self, key):
         """Process a variable entry from the file_content."""
         shape = self.file_content[f"{key}/shape"]
-        # print(f"Found variable: {key}")
+
         if np.prod(shape) <= 1:
-            # print(f"Ignoring scalar variable {key}")
+            # Ignoring scalar variable.
             return
 
         # Check if this variable should be ignored:
         if any(p.search(key) is not None for p in self.ignored_patterns):
-            # print(f"Ignoring variable {key}")
+            # Ignoring variable on user request.
             return
 
         # Prepare a description for this variable:
@@ -181,7 +177,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def parse_file_content(self):
         """Parse the file_content to discover the available datasets and dimensions."""
         for key, val in self.file_content.items():
-            # print(f"Found key: {key}")
 
             if "/dimension/" in key:
                 self.process_dimension(key, val)
@@ -195,10 +190,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             if f"{key}/shape" in self.file_content:
                 self.process_variable(key)
                 continue
-
-        # print(f"Found {len(self.variable_desc)} variables:")
-        # for vpath, desc in self.variable_desc.items():
-        #     print(f"{vpath}: {desc}")
 
     def register_available_datasets(self):
         """Register the available dataset in the current product file."""
@@ -224,7 +215,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
                     # Extract the captured group(s)
                     var_name = match.group(1)
                     ds_name = sub.replace("${VAR_NAME}", var_name)
-                    # logger.info("=> matched vpath %s: ds_name: %s", vpath, ds_name)
                     break
 
             if vpath in self.dataset_aliases:
