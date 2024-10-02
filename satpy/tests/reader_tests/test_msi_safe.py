@@ -1648,7 +1648,8 @@ class TestSAFEMSIL1C:
     def setup_method(self):
         """Set up the test."""
         self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
-        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
+        self.fake_data_l1b = xr.Dataset({"band_data": xr.DataArray([[[1000, 1205.5], [3000.4, 2542.]]],
+                                                                   dims=["band", "x", "y"])})
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
                              [
@@ -1697,3 +1698,49 @@ class TestSAFEMSIL1C:
         """We can't process L1B data yet, so check an error is raised."""
         with pytest.raises(ValueError, match="Unsupported process level: L1B"):
             jp2_builder("L1C", "B01", test_l1b=True)
+
+
+    @pytest.mark.parametrize(("st_str", "en_str", "err_str"),
+                             [
+                                 ("<U>",
+                                  "</U>",
+                                  "Sun-Earth distance in metadata is missing."),
+                                 ("<Solar_Irradiance_List>",
+                                  "</Solar_Irradiance_List>",
+                                  "No solar irradiance values were found in the metadata."),
+                             ])
+    def test_missing_esd(self, st_str, en_str, err_str):
+        """Test that missing Earth-Sun distance in the metadata is handled correctly."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+
+        tmp_xml = str(mtd_l1c_xml)
+        p1 = tmp_xml.find(st_str)
+        p2 = tmp_xml.find(en_str)
+        tmp_xml = tmp_xml[:p1+len(st_str)] + tmp_xml[p2:]
+
+        filename_info = dict(observation_time=fname_dt, dtile_number=None,
+                             band_name="B01", fmission_id="S2A", process_level="L1C")
+
+        xml_fh = SAFEMSIMDXML(StringIO(tmp_xml), filename_info, mock.MagicMock())
+
+        if st_str == "<U>":
+            with pytest.raises(ValueError, match=err_str):
+                xml_fh.sun_earth_dist
+        else:
+            with pytest.raises(ValueError, match=err_str):
+                xml_fh.solar_irradiances
+
+
+    def test_l1b_calib(self):
+        """Test that Level-1B calibration can be performed."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+
+        filename_info = dict(observation_time=fname_dt, dtile_number=None,
+                             band_name="B01", fmission_id="S2A", process_level="L1C")
+
+        xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock())
+
+        res = xml_fh.calibrate_to_radiances_l1b(self.fake_data_l1b, "B01")
+        np.testing.assert_allclose(res.band_data.data.ravel(),
+                                   np.array((0.0, 51.752319, 503.77294, 388.33127)),
+                                   rtol=1e-4)

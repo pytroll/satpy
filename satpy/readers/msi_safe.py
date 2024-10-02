@@ -109,9 +109,9 @@ class SAFEMSIL1C(BaseFileHandler):
                 zen = self._tile_mda.get_dataset(dq, dict(xml_tag="Sun_Angles_Grid/Zenith"))
                 tmp_refl = self._mda.calibrate_to_reflectances(proj, self._channel)
                 return self._mda.calibrate_to_radiances(tmp_refl, zen, self._channel)
-            #else:
+            else:
                 # For L1B the radiances can be directly computed from the digital counts.
-                #return self._mda.calibrate_to_radiances_l1b(proj, self._channel)
+                return self._mda.calibrate_to_radiances_l1b(proj, self._channel)
 
 
         if key["calibration"] == "counts":
@@ -231,19 +231,22 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     def solar_irradiances(self):
         """Get the TOA solar irradiance values from the metadata."""
         irrads = self.root.find(".//Solar_Irradiance_List")
+
         if irrads is not None:
             solar_irrad = {int(irr.attrib["bandId"]): float(irr.text) for irr in irrads}
-        else:
-            solar_irrad = {}
-        return solar_irrad
+        if len(solar_irrad) > 0:
+            return solar_irrad
+        raise ValueError("No solar irradiance values were found in the metadata.")
+
+
 
     @cached_property
     def sun_earth_dist(self):
         """Get the sun-earth distance from the metadata."""
         sed = self.root.find(".//U")
-        if sed is not None:
+        if sed.text is not None:
             return float(sed.text)
-        return -1
+        raise ValueError("Sun-Earth distance in metadata is missing.")
 
     @cached_property
     def special_values(self):
@@ -271,8 +274,6 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     def calibrate_to_radiances(self, data, solar_zenith, band_name):
         """Calibrate *data* to radiance using the radiometric information for the metadata."""
         sed = self.sun_earth_dist
-        if sed < 0.5 or sed > 1.5:
-            raise ValueError(f"Sun-Earth distance is incorrect in the metadata: {sed}")
         solar_irrad_band = self.solar_irradiance(band_name)
 
         solar_zenith = np.deg2rad(solar_zenith)
