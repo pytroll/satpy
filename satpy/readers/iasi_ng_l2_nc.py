@@ -217,9 +217,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
                     ds_name = sub.replace("${VAR_NAME}", var_name)
                     break
 
-            if vpath in self.dataset_aliases:
-                ds_name = self.dataset_aliases[vpath]
-
             unit = desc["attribs"].get("units", None)
             if unit is not None and unit.startswith("seconds since "):
                 # request conversion to datetime:

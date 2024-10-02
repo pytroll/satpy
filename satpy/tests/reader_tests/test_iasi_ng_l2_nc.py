@@ -15,6 +15,7 @@
 
 """Unit tests on the IASI NG L2 reader using the conventional mock constructed context."""
 import os
+import re
 from datetime import datetime
 from unittest import mock
 
@@ -474,6 +475,32 @@ class TestIASINGL2NCReader:
         twv_handler.process_variable("group/test_var")
         assert "group/test_var" in twv_handler.variable_desc
 
+    def test_ignore_scalar_variable(self, twv_handler):
+        """Test ignoring of scalar variable."""
+        # Note: we only support variables inside a group,
+        # because this is always the case in the IASI-NG file format.
+        twv_handler.file_content = {
+            "group/test_var/shape": (1, 1),
+            "group/test_var/dimensions": ("x", "y"),
+            "group/test_var/dtype": "float32",
+        }
+        twv_handler.ignored_patterns = []
+        twv_handler.process_variable("group/test_var")
+        assert "group/test_var" not in twv_handler.variable_desc
+
+    def test_ignore_pattern_variable(self, twv_handler):
+        """Test ignoring of pattern in variable."""
+        # Note: we only support variables inside a group,
+        # because this is always the case in the IASI-NG file format.
+        twv_handler.file_content = {
+            "group/test_var/shape": (10, 10),
+            "group/test_var/dimensions": ("x", "y"),
+            "group/test_var/dtype": "float32",
+        }
+        twv_handler.ignored_patterns = [re.compile(r"test_")]
+        twv_handler.process_variable("group/test_var")
+        assert "group/test_var" not in twv_handler.variable_desc
+
     def test_parse_file_content(self, twv_handler):
         """Test the parse_file_content method."""
         twv_handler.file_content = {
@@ -498,6 +525,25 @@ class TestIASINGL2NCReader:
         twv_handler.dataset_aliases = {}
         twv_handler.register_available_datasets()
         assert "test_var" in twv_handler.dataset_infos
+
+    def test_ignored_register_available_datasets(self, twv_handler):
+        """Test ignoring register_available_datasets method if done already."""
+        twv_handler.variable_desc = {
+            "var/test_var": {"var_name": "test_var", "attribs": {"units": "test_unit"}}
+        }
+        twv_handler.dataset_aliases = {}
+        twv_handler.register_available_datasets()
+        assert "test_var" not in twv_handler.dataset_infos
+
+    def test_register_available_datasets_alias(self, twv_handler):
+        """Test the register_available_datasets method with alias."""
+        twv_handler.dataset_infos = None
+        twv_handler.variable_desc = {
+            "var/test_var": {"var_name": "test_var", "attribs": {"units": "test_unit"}}
+        }
+        twv_handler.dataset_aliases = {re.compile(r"var/(.+)$"): "${VAR_NAME}_oem"}
+        twv_handler.register_available_datasets()
+        assert "test_var_oem" in twv_handler.dataset_infos
 
     def test_get_dataset_infos(self, twv_handler):
         """Test the get_dataset_infos method."""
