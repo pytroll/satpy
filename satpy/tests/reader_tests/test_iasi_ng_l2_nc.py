@@ -559,6 +559,7 @@ class TestIASINGL2NCReader:
         assert twv_handler.variable_path_exists("test_var")
         assert not twv_handler.variable_path_exists("/attr/test_var")
         assert not twv_handler.variable_path_exists("test_var/dtype")
+        assert not twv_handler.variable_path_exists("/grp/a_non_existing_var")
 
     def test_convert_data_type(self, twv_handler):
         """Test the convert_data_type method."""
@@ -579,6 +580,17 @@ class TestIASINGL2NCReader:
         )
         result = twv_handler.apply_fill_value(data)
         assert np.isnan(result[0])
+        assert np.isnan(result[4])
+
+    def test_apply_fill_value_range(self, twv_handler):
+        """Test the apply_fill_value method with range."""
+        data = xr.DataArray(
+            np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
+            attrs={"valid_range": [2.0, 4.0]},
+        )
+        result = twv_handler.apply_fill_value(data)
+        assert np.isnan(result[0])
+        assert np.isfinite(result[1])
         assert np.isnan(result[4])
 
     def test_apply_rescaling(self, twv_handler):
@@ -612,6 +624,15 @@ class TestIASINGL2NCReader:
         result = twv_handler.apply_broadcast(data, ds_info)
         assert result.shape == (6,)
 
+    def test_apply_broadcast_failure(self, twv_handler):
+        """Test the apply_broadcast method fails on missing dim."""
+        data = xr.DataArray(np.array([1, 2, 3]), dims=("x",))
+        twv_handler.dimensions_desc = {}
+        ds_info = {"broadcast_on_dim": "n_fov"}
+
+        with pytest.raises(KeyError):
+            twv_handler.apply_broadcast(data, ds_info)
+
     def test_get_transformed_dataset(self, twv_handler):
         """Test the get_transformed_dataset method."""
         ds_info = {
@@ -629,6 +650,17 @@ class TestIASINGL2NCReader:
         result = twv_handler.get_transformed_dataset(ds_info)
         assert result.shape == (1, 4)
         assert result.dtype == "datetime64[ns]"
+
+    def test_get_transformed_dataset_failure(self, twv_handler):
+        """Test the get_transformed_dataset method fails on invalid path."""
+        ds_info = {
+            "location": "test_var",
+            "seconds_since_epoch": "2000-01-01 00:00:00",
+            "broadcast_on_dim": "n_fov",
+        }
+
+        with pytest.raises(KeyError):
+            twv_handler.get_transformed_dataset(ds_info)
 
     def test_get_dataset(self, twv_handler):
         """Test the get_dataset method."""

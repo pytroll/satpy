@@ -363,7 +363,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """Apply the broadcast of the data array."""
         dim_name = ds_info["broadcast_on_dim"]
         if dim_name not in self.dimensions_desc:
-            raise ValueError(f"Invalid dimension name {dim_name}")
+            raise KeyError(f"Invalid dimension name {dim_name}")
         rep_count = self.dimensions_desc[dim_name]
 
         # Apply "a repeat operation" with the last dimension size:
@@ -377,7 +377,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         vname = ds_info["location"]
 
         if not self.variable_path_exists(vname):
-            raise ValueError(f"Invalid variable path: {vname}")
+            raise KeyError(f"Invalid variable path: {vname}")
 
         # Read the raw variable data from file (this is an xr.DataArray):
         arr = self[vname]
