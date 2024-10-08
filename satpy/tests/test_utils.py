@@ -291,36 +291,25 @@ class TestShowVersions:
         from satpy.utils import show_versions
         show_versions()
 
-    def test_show_specific_version(self):
+    def test_show_specific_version(self, capsys):
         """Test 'show_version' works with installed package."""
         from satpy.utils import show_versions
-        with mock.patch("satpy.utils.print") as print_mock:
-            show_versions(packages=["pytest"])
+        show_versions(packages=["pytest"])
+        out, _ = capsys.readouterr()
 
-            # no regex or `.__version__` based checks to prevent edge case failures
-            pytest_mentioned = any(
-                "pytest:" in c[1][0] for c in print_mock.mock_calls if len(c[1])
-            )
-            pytest_installed = all(
-                "pytest: not installed" not in c[1][0]
-                for c in print_mock.mock_calls
-                if len(c[1])
-            )
-            check_pytest = pytest_mentioned and pytest_installed
-            assert check_pytest, "pytest with package version not in print output"
+        pytest_mentioned = "pytest:" in out
+        pytest_installed = "pytest: not installed" not in out
+        check_pytest = pytest_mentioned and pytest_installed
+        assert check_pytest, "pytest with package version not in print output"
 
-    def test_show_missing_specific_version(self):
+    def test_show_missing_specific_version(self, capsys):
         """Test 'show_version' works with missing package."""
         from satpy.utils import show_versions
+        show_versions(packages=["__fake"])
+        out, _ = capsys.readouterr()
 
-        with mock.patch("satpy.utils.print") as print_mock:
-            show_versions(packages=["__fake"])
-            checked_fake = any(
-                "__fake: not installed" in c[1]
-                for c in print_mock.mock_calls
-                if len(c[1])
-            )
-            assert checked_fake, "Did not find '__fake: not installed' in print output"
+        check_fake = "__fake: not installed" in out
+        assert check_fake, "Did not find '__fake: not installed' in print output"
 
 
 def test_debug_on(caplog):
@@ -330,12 +319,7 @@ def test_debug_on(caplog):
     def depwarn():
         logger = logging.getLogger("satpy.silly")
         logger.debug("But now it's just got SILLY.")
-        warnings.warn(
-            "Stop that! It's SILLY.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-
+        warnings.warn("Stop that! It's SILLY.", DeprecationWarning, stacklevel=2)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     debug_on(False)
     filts_before = warnings.filters.copy()
