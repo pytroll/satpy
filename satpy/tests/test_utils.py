@@ -282,6 +282,7 @@ class TestCheckSatpy:
             checked_fake = any("__fake: not installed" in c[1] for c in print_mock.mock_calls if len(c[1]))
             assert checked_fake, "Did not find __fake package mentioned in checks"
 
+
 class TestShowVersions:
     """Test the 'show_versions' function."""
 

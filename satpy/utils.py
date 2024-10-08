@@ -492,6 +492,7 @@ def _check_package_version(package_name: str) -> Optional[str]:
     except importlib.metadata.PackageNotFoundError:
         return None
 
+
 def show_versions(packages=None):
     """Shows version for system, python and common packages (if installed).
 
