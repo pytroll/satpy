@@ -162,12 +162,20 @@ def test_png_scene_l_mode(test_image_l):
     with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
         scn = Scene(reader="generic_image", filenames=[test_image_l])
     scn.load(["image"])
-    assert scn["image"].shape == (1, Y_SIZE, X_SIZE)
-    assert scn.sensor_names == {"images"}
-    assert scn.start_time is None
-    assert scn.end_time is None
+    _assert_image_common(scn, 1, None, None, np.float32)
     assert "area" not in scn["image"].attrs
-    assert scn["image"].dtype == np.float32
+
+
+def _assert_image_common(scn, channels, start_time, end_time, dtype):
+    assert scn["image"].shape == (channels, Y_SIZE, X_SIZE)
+    assert scn.sensor_names == {"images"}
+    try:
+        assert scn.start_time is start_time
+        assert scn.end_time is end_time
+    except AssertionError:
+        assert scn.start_time == start_time
+        assert scn.end_time == end_time
+    assert scn["image"].dtype == dtype
 
 
 def test_png_scene_la_mode(test_image_la):
@@ -176,55 +184,40 @@ def test_png_scene_la_mode(test_image_la):
         scn = Scene(reader="generic_image", filenames=[test_image_la])
     scn.load(["image"])
     data = da.compute(scn["image"].data)
-    assert scn["image"].shape == (1, Y_SIZE, X_SIZE)
-    assert scn.sensor_names == {"images"}
-    assert scn.start_time == DATA_DATE
-    assert scn.end_time == DATA_DATE
-    assert "area" not in scn["image"].attrs
     assert np.sum(np.isnan(data)) == 100
-    assert scn["image"].dtype == np.float32
+    assert "area" not in scn["image"].attrs
+    _assert_image_common(scn, 1, DATA_DATE, DATA_DATE, np.float32)
 
 
 def test_geotiff_scene_rgb(test_image_rgb):
     """Test reading geotiff image in RGB mode via satpy.Scene()."""
     scn = Scene(reader="generic_image", filenames=[test_image_rgb])
     scn.load(["image"])
-    assert scn["image"].shape == (3, Y_SIZE, X_SIZE)
-    assert scn.sensor_names == {"images"}
-    assert scn.start_time == DATA_DATE
-    assert scn.end_time == DATA_DATE
     assert scn["image"].area == AREA_DEFINITION
-    assert scn["image"].dtype == np.float32
+    _assert_image_common(scn, 3, DATA_DATE, DATA_DATE, np.float32)
 
 
 def test_geotiff_scene_rgba(test_image_rgba):
     """Test reading geotiff image in RGBA mode via satpy.Scene()."""
     scn = Scene(reader="generic_image", filenames=[test_image_rgba])
     scn.load(["image"])
-    assert scn["image"].shape == (3, Y_SIZE, X_SIZE)
-    assert scn.sensor_names == {"images"}
-    assert scn.start_time is None
-    assert scn.end_time is None
+    _assert_image_common(scn, 3, None, None, np.float32)
     assert scn["image"].area == AREA_DEFINITION
-    assert scn["image"].dtype == np.float32
 
 
 def test_geotiff_scene_nan_fill_value(test_image_l_nan_fill_value):
     """Test reading geotiff image with fill value set via satpy.Scene()."""
     scn = Scene(reader="generic_image", filenames=[test_image_l_nan_fill_value])
     scn.load(["image"])
-    assert scn["image"].shape == (1, Y_SIZE, X_SIZE)
     assert np.sum(scn["image"].data[0][:10, :10].compute()) == 0
-    assert scn["image"].dtype == np.uint8
-
+    _assert_image_common(scn, 1, None, None, np.uint8)
 
 def test_geotiff_scene_nan(test_image_l_nan):
     """Test reading geotiff image with NaN values in it via satpy.Scene()."""
     scn = Scene(reader="generic_image", filenames=[test_image_l_nan])
     scn.load(["image"])
-    assert scn["image"].shape == (1, Y_SIZE, X_SIZE)
     assert np.all(np.isnan(scn["image"].data[0][:10, :10].compute()))
-    assert scn["image"].dtype == np.float32
+    _assert_image_common(scn, 1, None, None, np.float32)
 
 
 def test_GenericImageFileHandler(test_image_rgba):
