@@ -101,9 +101,25 @@ class AWSL1BFile(NetCDF4FileHandler):
         """Get the data."""
         if dataset_id["name"] in AWS_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
-        elif (dataset_id["name"] in ["longitude", "latitude",
-                                     "solar_azimuth", "solar_zenith",
-                                     "satellite_zenith", "satellite_azimuth"]):
+        elif dataset_id["name"] in ["satellite_zenith_horn1",
+                                    "satellite_zenith_horn2",
+                                    "satellite_zenith_horn3",
+                                    "satellite_zenith_horn4",
+                                    "solar_azimuth_horn1",
+                                    "solar_azimuth_horn2",
+                                    "solar_azimuth_horn3",
+                                    "solar_azimuth_horn4",
+                                    "solar_zenith_horn1",
+                                    "solar_zenith_horn2",
+                                    "solar_zenith_horn3",
+                                    "solar_zenith_horn4",
+                                    "satellite_azimuth_horn1",
+                                    "satellite_azimuth_horn2",
+                                    "satellite_azimuth_horn3",
+                                    "satellite_azimuth_horn4"]:
+            data_array = self._get_navigation_data(dataset_id, dataset_info)
+
+        elif dataset_id["name"] in ["longitude", "latitude"]:
             data_array = self._get_navigation_data(dataset_id, dataset_info)
         else:
             raise NotImplementedError
