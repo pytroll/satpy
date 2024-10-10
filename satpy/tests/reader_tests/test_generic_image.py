@@ -167,6 +167,7 @@ def test_png_scene_l_mode(test_image_l):
     assert scn.start_time is None
     assert scn.end_time is None
     assert "area" not in scn["image"].attrs
+    assert scn["image"].dtype == np.float32
 
 
 def test_png_scene_la_mode(test_image_la):
@@ -181,6 +182,7 @@ def test_png_scene_la_mode(test_image_la):
     assert scn.end_time == DATA_DATE
     assert "area" not in scn["image"].attrs
     assert np.sum(np.isnan(data)) == 100
+    assert scn["image"].dtype == np.float32
 
 
 def test_geotiff_scene_rgb(test_image_rgb):
@@ -192,6 +194,7 @@ def test_geotiff_scene_rgb(test_image_rgb):
     assert scn.start_time == DATA_DATE
     assert scn.end_time == DATA_DATE
     assert scn["image"].area == AREA_DEFINITION
+    assert scn["image"].dtype == np.float32
 
 
 def test_geotiff_scene_rgba(test_image_rgba):
@@ -203,6 +206,7 @@ def test_geotiff_scene_rgba(test_image_rgba):
     assert scn.start_time is None
     assert scn.end_time is None
     assert scn["image"].area == AREA_DEFINITION
+    assert scn["image"].dtype == np.float32
 
 
 def test_geotiff_scene_nan_fill_value(test_image_l_nan_fill_value):
@@ -211,6 +215,7 @@ def test_geotiff_scene_nan_fill_value(test_image_l_nan_fill_value):
     scn.load(["image"])
     assert scn["image"].shape == (1, Y_SIZE, X_SIZE)
     assert np.sum(scn["image"].data[0][:10, :10].compute()) == 0
+    assert scn["image"].dtype == np.uint8
 
 
 def test_geotiff_scene_nan(test_image_l_nan):
@@ -219,6 +224,7 @@ def test_geotiff_scene_nan(test_image_l_nan):
     scn.load(["image"])
     assert scn["image"].shape == (1, Y_SIZE, X_SIZE)
     assert np.all(np.isnan(scn["image"].data[0][:10, :10].compute()))
+    assert scn["image"].dtype == np.float32
 
 
 def test_GenericImageFileHandler(test_image_rgba):
