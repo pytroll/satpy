@@ -1302,7 +1302,7 @@ class TestAddBands(unittest.TestCase):
         from satpy.composites import add_bands
 
         # L + RGB -> RGB
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["L"]})
         new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
                                  coords={"bands": ["R", "G", "B"]})
@@ -1311,13 +1311,14 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_l_rgba(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # L + RGBA -> RGBA
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["L"]}, attrs={"mode": "L"})
         new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
                                  coords={"bands": ["R", "G", "B", "A"]})
@@ -1326,13 +1327,14 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_la_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # LA + RGB -> RGBA
-        data = xr.DataArray(da.ones((2, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((2, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["L", "A"]}, attrs={"mode": "LA"})
         new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
                                  coords={"bands": ["R", "G", "B"]})
@@ -1341,13 +1343,14 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_rgb_rbga(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # RGB + RGBA -> RGBA
-        data = xr.DataArray(da.ones((3, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((3, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["R", "G", "B"]},
                             attrs={"mode": "RGB"})
         new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
@@ -1357,6 +1360,7 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_p_l(self):
         """Test adding bands."""
