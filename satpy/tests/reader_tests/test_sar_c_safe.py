@@ -289,16 +289,18 @@ class TestSAFEGRD:
         calibration = Calibration.sigma_nought
         xarr = measurement_filehandler.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                    calibration=calibration, quantity="natural"), info=dict())
-        expected = np.array([[np.nan, 0.02707529], [2.55858416, 3.27611055]])
+        expected = np.array([[np.nan, 0.02707529], [2.55858416, 3.27611055]], dtype=np.float32)
         np.testing.assert_allclose(xarr.values[:2, :2], expected, rtol=2e-7)
+        assert xarr.dtype == np.float32
 
     def test_read_calibrated_dB(self, measurement_filehandler):
         """Test the calibration routines."""
         calibration = Calibration.sigma_nought
         xarr = measurement_filehandler.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                    calibration=calibration, quantity="dB"), info=dict())
-        expected = np.array([[np.nan, -15.674268], [4.079997, 5.153585]])
+        expected = np.array([[np.nan, -15.674268], [4.079997, 5.153585]], dtype=np.float32)
         np.testing.assert_allclose(xarr.values[:2, :2], expected)
+        assert xarr.dtype == np.float32
 
     def test_read_lon_lats(self, measurement_filehandler):
         """Test reading lons and lats."""
@@ -306,6 +308,7 @@ class TestSAFEGRD:
         xarr = measurement_filehandler.get_dataset(query, info=dict())
         expected = expected_longitudes
         np.testing.assert_allclose(xarr.values, expected[:10, :10], atol=1e-3)
+        assert xarr.dtype == np.float64
 
 
 annotation_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -777,6 +780,7 @@ class TestSAFEXMLNoise:
         query = DataQuery(name="noise", polarization="vv")
         res = noise_filehandler.get_dataset(query, {})
         np.testing.assert_allclose(res, self.expected_azimuth_noise * self.expected_range_noise)
+        assert res.dtype == np.float32
 
     def test_get_noise_dataset_has_right_chunk_size(self, noise_filehandler):
         """Test using get_dataset for the noise has right chunk size in result."""
@@ -799,12 +803,14 @@ class TestSAFEXMLCalibration:
         expected_dn = np.ones((10, 10)) * 1087
         res = calibration_filehandler.get_calibration(Calibration.dn, chunks=5)
         np.testing.assert_allclose(res, expected_dn)
+        assert res.dtype == np.float32
 
     def test_beta_calibration_array(self, calibration_filehandler):
         """Test reading the beta calibration array."""
         expected_beta = np.ones((10, 10)) * 1087
         res = calibration_filehandler.get_calibration(Calibration.beta_nought, chunks=5)
         np.testing.assert_allclose(res, expected_beta)
+        assert res.dtype == np.float32
 
     def test_sigma_calibration_array(self, calibration_filehandler):
         """Test reading the sigma calibration array."""
@@ -812,18 +818,20 @@ class TestSAFEXMLCalibration:
                                     1277.968, 1277.968, 1277.968, 1277.968]]) * np.ones((10, 1))
         res = calibration_filehandler.get_calibration(Calibration.sigma_nought, chunks=5)
         np.testing.assert_allclose(res, expected_sigma)
-
+        assert res.dtype == np.float32
 
     def test_gamma_calibration_array(self, calibration_filehandler):
         """Test reading the gamma calibration array."""
         res = calibration_filehandler.get_calibration(Calibration.gamma, chunks=5)
         np.testing.assert_allclose(res, self.expected_gamma)
+        assert res.dtype == np.float32
 
     def test_get_calibration_dataset(self, calibration_filehandler):
         """Test using get_dataset for the calibration."""
         query = DataQuery(name="gamma", polarization="vv")
         res = calibration_filehandler.get_dataset(query, {})
         np.testing.assert_allclose(res, self.expected_gamma)
+        assert res.dtype == np.float32
 
     def test_get_calibration_dataset_has_right_chunk_size(self, calibration_filehandler):
         """Test using get_dataset for the calibration yields array with right chunksize."""
@@ -837,6 +845,7 @@ class TestSAFEXMLCalibration:
         query = DataQuery(name="calibration_constant", polarization="vv")
         res = calibration_filehandler.get_dataset(query, {})
         assert res == 1
+        assert type(res) is np.float32
 
 
 def test_incidence_angle(annotation_filehandler):
@@ -844,6 +853,7 @@ def test_incidence_angle(annotation_filehandler):
   query = DataQuery(name="incidence_angle", polarization="vv")
   res = annotation_filehandler.get_dataset(query, {})
   np.testing.assert_allclose(res, 19.18318046)
+  assert res.dtype == np.float32
 
 
 def test_reading_from_reader(measurement_file, calibration_file, noise_file, annotation_file):
@@ -863,6 +873,7 @@ def test_reading_from_reader(measurement_file, calibration_file, noise_file, ann
   np.testing.assert_allclose(array.attrs["area"].lons, expected_longitudes[:10, :10], atol=1e-3)
   expected_db = np.array([[np.nan, -15.674268], [4.079997, 5.153585]])
   np.testing.assert_allclose(array.values[:2, :2], expected_db)
+  assert array.dtype == np.float32
 
 
 def test_filename_filtering_from_reader(measurement_file, calibration_file, noise_file, annotation_file, tmp_path):

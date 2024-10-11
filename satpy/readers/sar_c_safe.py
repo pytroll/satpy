@@ -78,7 +78,7 @@ def _dictify(r):
             return int(r.text)
         except ValueError:
             try:
-                return float(r.text)
+                return np.float32(r.text)
             except ValueError:
                 return r.text
     for x in r.findall("./*"):
@@ -186,7 +186,7 @@ class Calibrator(SAFEXML):
 
     def get_calibration_constant(self):
         """Load the calibration constant."""
-        return float(self.root.find(".//absoluteCalibrationConstant").text)
+        return np.float32(self.root.find(".//absoluteCalibrationConstant").text)
 
     def _get_calibration_uncached(self, calibration, chunks=None):
         """Get the calibration array."""
@@ -341,7 +341,7 @@ class AzimuthNoiseReader:
         current_blocks = self._find_blocks_covering_line(current_line)
         current_blocks.sort(key=(lambda x: x.coords["x"][0]))
         next_line = self._get_next_start_line(current_blocks, current_line)
-        current_y = np.arange(current_line, next_line)
+        current_y = np.arange(current_line, next_line, dtype=np.uint16)
         pieces = [arr.sel(y=current_y) for arr in current_blocks]
         return pieces
 
@@ -389,7 +389,7 @@ class AzimuthNoiseReader:
     @staticmethod
     def _fill_dask_pieces(dask_pieces, shape, chunks):
         if shape[1] > 0:
-            new_piece = da.full(shape, np.nan, chunks=chunks)
+            new_piece = da.full(shape, np.nan, chunks=chunks, dtype=np.float32)
             dask_pieces.append(new_piece)
 
 
@@ -425,11 +425,10 @@ class _AzimuthBlock:
         #     corr = 1.5
         data = self.lut * corr
 
-        x_coord = np.arange(self.first_pixel, self.last_pixel + 1)
-        y_coord = np.arange(self.first_line, self.last_line + 1)
-
-        new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
-                   np.interp(y_coord, self.lines, data)[:, np.newaxis])
+        x_coord = np.arange(self.first_pixel, self.last_pixel + 1, dtype=np.uint16)
+        y_coord = np.arange(self.first_line, self.last_line + 1, dtype=np.uint16)
+        new_arr = (da.ones((len(y_coord), len(x_coord)), dtype=np.float32, chunks=chunks) *
+                   np.interp(y_coord, self.lines, data)[:, np.newaxis].astype(np.float32))
         new_arr = xr.DataArray(new_arr,
                                dims=["y", "x"],
                                coords={"x": x_coord,
@@ -438,29 +437,29 @@ class _AzimuthBlock:
 
     @property
     def first_pixel(self):
-        return int(self.element.find("firstRangeSample").text)
+        return np.uint16(self.element.find("firstRangeSample").text)
 
     @property
     def last_pixel(self):
-        return int(self.element.find("lastRangeSample").text)
+        return np.uint16(self.element.find("lastRangeSample").text)
 
     @property
     def first_line(self):
-        return int(self.element.find("firstAzimuthLine").text)
+        return np.uint16(self.element.find("firstAzimuthLine").text)
 
     @property
     def last_line(self):
-        return int(self.element.find("lastAzimuthLine").text)
+        return np.uint16(self.element.find("lastAzimuthLine").text)
 
     @property
     def lines(self):
         lines = self.element.find("line").text.split()
-        return np.array(lines).astype(int)
+        return np.array(lines).astype(np.uint16)
 
     @property
     def lut(self):
         lut = self.element.find("noiseAzimuthLut").text.split()
-        return np.array(lut).astype(float)
+        return np.array(lut).astype(np.float32)
 
 
 class XMLArray:
@@ -487,7 +486,7 @@ class XMLArray:
             new_x = elt.find("pixel").text.split()
             y += [int(elt.find("line").text)] * len(new_x)
             x += [int(val) for val in new_x]
-            data += [float(val)
+            data += [np.float32(val)
                      for val in elt.find(self.element_tag).text.split()]
 
         return np.asarray(data), (x, y)
@@ -519,17 +518,17 @@ def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE
     else:
         vchunks, hchunks = chunks, chunks
 
-    points = _ndim_coords_from_arrays(np.vstack((np.asarray(ypoints),
-                                                 np.asarray(xpoints))).T)
+    points = _ndim_coords_from_arrays(np.vstack((np.asarray(ypoints, dtype=np.uint16),
+                                                 np.asarray(xpoints, dtype=np.uint16))).T)
 
     interpolator = LinearNDInterpolator(points, values)
 
-    grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=hchunks),
-                                 da.arange(shape[0], chunks=vchunks))
+    grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=hchunks, dtype=np.uint16),
+                                 da.arange(shape[0], chunks=vchunks, dtype=np.uint16))
 
     # workaround for non-thread-safe first call of the interpolator:
     interpolator((0, 0))
-    res = da.map_blocks(intp, grid_x, grid_y, interpolator=interpolator)
+    res = da.map_blocks(intp, grid_x, grid_y, interpolator=interpolator).astype(values.dtype)
 
     return DataArray(res, dims=("y", "x"))
 
@@ -617,7 +616,7 @@ class SAFEGRD(BaseFileHandler):
     def _get_digital_number(self, data):
         """Get the digital numbers (uncalibrated data)."""
         data = data.where(data > 0)
-        data = data.astype(np.float64)
+        data = data.astype(np.float32)
         dn = data * data
         return dn
 
@@ -672,8 +671,8 @@ class SAFEGRD(BaseFileHandler):
                     for feature in gcps["features"]]
         gcp_array = np.array(gcp_list)
 
-        ypoints = np.unique(gcp_array[:, 0])
-        xpoints = np.unique(gcp_array[:, 1])
+        ypoints = np.unique(gcp_array[:, 0]).astype(np.uint16)
+        xpoints = np.unique(gcp_array[:, 1]).astype(np.uint16)
 
         gcp_lons = gcp_array[:, 2].reshape(ypoints.shape[0], xpoints.shape[0])
         gcp_lats = gcp_array[:, 3].reshape(ypoints.shape[0], xpoints.shape[0])
