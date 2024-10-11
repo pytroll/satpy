@@ -682,6 +682,13 @@ class SAFEGRD(BaseFileHandler):
 
         return (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (rio_gcps, crs)
 
+    def get_bounding_box(self):
+        """Get the bounding box for the data coverage."""
+        (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (rio_gcps, crs) = self.get_gcps()
+        bblons = np.hstack((gcp_lons[0, :-1], gcp_lons[:-1, -1], gcp_lons[-1, :1:-1], gcp_lons[:1:-1, 0]))
+        bblats = np.hstack((gcp_lats[0, :-1], gcp_lats[:-1, -1], gcp_lats[-1, :1:-1], gcp_lats[:1:-1, 0]))
+        return bblons.tolist(), bblats.tolist()
+
     @property
     def start_time(self):
         """Get the start time."""
@@ -729,7 +736,8 @@ class SAFESARReader(GenericYAMLReader):
                         gcps = get_gcps_from_array(val)
                         from pyresample.future.geometry import SwathDefinition
                         val.attrs["area"] = SwathDefinition(lonlats["longitude"], lonlats["latitude"],
-                                                            attrs=dict(gcps=gcps))
+                                                            attrs=dict(gcps=gcps,
+                                                                       bounding_box=handler.get_bounding_box()))
                     datasets[key] = val
                     continue
         return datasets

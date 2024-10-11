@@ -900,7 +900,7 @@ def test_filename_filtering_from_reader(measurement_file, calibration_file, nois
      pytest.fail(str(err))
 
 
-def test_swath_def_contains_gcps(measurement_file, calibration_file, noise_file, annotation_file):
+def test_swath_def_contains_gcps_and_bounding_box(measurement_file, calibration_file, noise_file, annotation_file):
   """Test reading using the reader defined in the config."""
   with open(Path(PACKAGE_CONFIG_PATH) / "readers" / "sar-c_safe.yaml") as fd:
     config = yaml.load(fd, Loader=yaml.UnsafeLoader)
@@ -915,3 +915,4 @@ def test_swath_def_contains_gcps(measurement_file, calibration_file, noise_file,
   dataset_dict = reader.load([query])
   array = dataset_dict["measurement"]
   assert array.attrs["area"].attrs["gcps"] is not None
+  assert array.attrs["area"].attrs["bounding_box"] is not None
