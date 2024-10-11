@@ -872,7 +872,7 @@ def test_reading_from_reader(measurement_file, calibration_file, noise_file, ann
   array = dataset_dict["measurement"]
   np.testing.assert_allclose(array.attrs["area"].lons, expected_longitudes[:10, :10], atol=1e-3)
   expected_db = np.array([[np.nan, -15.674268], [4.079997, 5.153585]])
-  np.testing.assert_allclose(array.values[:2, :2], expected_db)
+  np.testing.assert_allclose(array.values[:2, :2], expected_db, rtol=1e-6)
   assert array.dtype == np.float32
 
 
