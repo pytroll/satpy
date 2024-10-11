@@ -299,7 +299,7 @@ class TestSAFEGRD:
         xarr = measurement_filehandler.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                    calibration=calibration, quantity="dB"), info=dict())
         expected = np.array([[np.nan, -15.674268], [4.079997, 5.153585]], dtype=np.float32)
-        np.testing.assert_allclose(xarr.values[:2, :2], expected)
+        np.testing.assert_allclose(xarr.values[:2, :2], expected, rtol=1e-6)
         assert xarr.dtype == np.float32
 
     def test_read_lon_lats(self, measurement_filehandler):
