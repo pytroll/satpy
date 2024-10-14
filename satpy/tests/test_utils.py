@@ -274,13 +274,15 @@ class TestCheckSatpy:
         from satpy.utils import check_satpy
         check_satpy()
 
-    def test_specific_check_satpy(self):
+    def test_specific_check_satpy(self, capsys):
         """Test 'check_satpy' with specific features provided."""
         from satpy.utils import check_satpy
-        with mock.patch("satpy.utils.print") as print_mock:
-            check_satpy(readers=["viirs_sdr"], packages=("cartopy", "__fake"))
-            checked_fake = any("__fake: not installed" in c[1] for c in print_mock.mock_calls if len(c[1]))
-            assert checked_fake, "Did not find __fake package mentioned in checks"
+        check_satpy(readers=["viirs_sdr"], packages=("cartopy", "__fake"))
+        out, _ = capsys.readouterr()
+        checked_fake = "__fake: not installed" in out
+        checked_viirs_sdr = "Readers\n=======\nviirs_sdr" in out
+        assert checked_fake, "Did not find __fake package mentioned in checks"
+        assert checked_viirs_sdr, "Did not find viirs_sdr in readers mentioned in checks"
 
 
 class TestShowVersions:
