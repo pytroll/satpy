@@ -32,6 +32,7 @@ from satpy.dataset.dataid import DataID
 from satpy.readers.sar_c_safe import Calibrator, Denoiser, SAFEXMLAnnotation
 
 rasterio = pytest.importorskip("rasterio")
+geotiepoints = pytest.importorskip("geotiepoints", "1.7.5")
 
 
 dirname_suffix = "20190201T024655_20190201T024720_025730_02DC2A_AE07"
