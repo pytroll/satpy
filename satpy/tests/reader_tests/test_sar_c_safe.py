@@ -26,13 +26,14 @@ import numpy as np
 import pytest
 import yaml
 
-from satpy._config import PACKAGE_CONFIG_PATH
-from satpy.dataset import DataQuery
-from satpy.dataset.dataid import DataID
-from satpy.readers.sar_c_safe import Calibrator, Denoiser, SAFEXMLAnnotation
+geotiepoints = pytest.importorskip("geotiepoints", "1.7.5")
+
+from satpy._config import PACKAGE_CONFIG_PATH  # noqa: E402
+from satpy.dataset import DataQuery  # noqa: E402
+from satpy.dataset.dataid import DataID  # noqa: E402
+from satpy.readers.sar_c_safe import Calibrator, Denoiser, SAFEXMLAnnotation  # noqa: E402
 
 rasterio = pytest.importorskip("rasterio")
-geotiepoints = pytest.importorskip("geotiepoints", "1.7.5")
 
 
 dirname_suffix = "20190201T024655_20190201T024720_025730_02DC2A_AE07"
