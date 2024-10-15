@@ -29,12 +29,12 @@ file_types:
 
   MSG1km :
      file_reader: !!python/name:satpy.readers.geos_netcdficare.NETCDF_ICARE
-     file_patterns: [   'Mmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d%H%M}.nc',
-                        'Imultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d%H%M}.nc',
-                        'Mrsmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d%H%M}.nc',
-                        'Mmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d_%H%M}.nc',
-                        'Imultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d_%H%M}.nc',
-                        'Mrsmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d_%H%M}.nc']
+     file_patterns: ['Mmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Imultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Mrsmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d%H%M}.nc',
+                     'Mmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d_%H%M}.nc',
+                     'Imultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d_%H%M}.nc',
+                     'Mrsmultic1kmNC4_{platform_shortname:5s}_{start_time:%Y%m%d_%H%M}.nc']
      # platform_shortname:5s : msg01, ..., msg04
 
 datasets:
@@ -170,3 +170,5 @@ datasets:
         standard_name: brightness_temperature
         units: "K"
     file_type: MSG3km
+
+

@@ -130,7 +130,7 @@ class TestGeosNetcdfIcareReader() :
 		"""
 		A fake netcdf is built.
 		A scene is built with the reader to be tested, applied to this netcdf.
-		Called by test_geos_netcdficare().
+		Called by test_geosNetcdficare().
 		"""
 		self.netcdfName = tmp_path / "Mmultic3kmNC4_msg03_202406281000.nc"
 		self.filepath = tmp_path
