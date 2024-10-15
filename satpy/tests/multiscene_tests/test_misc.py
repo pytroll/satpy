@@ -131,7 +131,7 @@ class TestMultiScene(unittest.TestCase):
 class TestMultiSceneGrouping:
     """Test dataset grouping in MultiScene."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene1(self):
         """Create first test scene."""
         from satpy import Scene
@@ -152,7 +152,7 @@ class TestMultiSceneGrouping:
         scene[dsid2] = _create_test_dataset(name="ds2")
         return scene
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene2(self):
         """Create second test scene."""
         from satpy import Scene
@@ -173,13 +173,13 @@ class TestMultiSceneGrouping:
         scene[dsid2] = _create_test_dataset(name="ds4")
         return scene
 
-    @pytest.fixture()
+    @pytest.fixture
     def multi_scene(self, scene1, scene2):
         """Create small multi scene for testing."""
         from satpy import MultiScene
         return MultiScene([scene1, scene2])
 
-    @pytest.fixture()
+    @pytest.fixture
     def groups(self):
         """Get group definitions for the MultiScene."""
         return {

@@ -892,7 +892,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 class TestNativeMSGDataset:
     """Tests for getting the dataset."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_handler(self):
         """Create a file handler for testing."""
         trailer = {
@@ -1133,7 +1133,7 @@ class TestNativeMSGPadder(unittest.TestCase):
 class TestNativeMSGFilenames:
     """Test identification of Native format filenames."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths

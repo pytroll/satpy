@@ -460,7 +460,7 @@ class TestCFWriter:
 class TestNetcdfEncodingKwargs:
     """Test netCDF compression encodings."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene(self):
         """Create a fake scene."""
         scn = Scene()
@@ -476,7 +476,7 @@ class TestNetcdfEncodingKwargs:
         """Get compression options."""
         return request.param
 
-    @pytest.fixture()
+    @pytest.fixture
     def encoding(self, compression_on):
         """Get encoding."""
         enc = {
@@ -492,19 +492,19 @@ class TestNetcdfEncodingKwargs:
             enc["test-array"].update(comp_params)
         return enc
 
-    @pytest.fixture()
+    @pytest.fixture
     def filename(self, tmp_path):
         """Get output filename."""
         return str(tmp_path / "test.nc")
 
-    @pytest.fixture()
+    @pytest.fixture
     def complevel_exp(self, compression_on):
         """Get expected compression level."""
         if compression_on:
             return 7
         return 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected(self, complevel_exp):
         """Get expectated file contents."""
         return {
@@ -552,7 +552,7 @@ class TestNetcdfEncodingKwargs:
 class TestEncodingAttribute(TestNetcdfEncodingKwargs):
     """Test CF writer with 'encoding' dataset attribute."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene_with_encoding(self, scene, encoding):
         """Create scene with a dataset providing the 'encoding' attribute."""
         scene["test-array"].encoding = encoding["test-array"]

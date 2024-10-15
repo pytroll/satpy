@@ -985,6 +985,7 @@ def add_bands(data, bands):
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes["y"],
                               data.sizes["x"]),
+                             dtype=new_data[0].dtype,
                              chunks=new_data[0].chunks)
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"

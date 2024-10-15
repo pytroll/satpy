@@ -1,0 +1,37 @@
+reader:
+  name: oci_l2_bgc
+  short_name: PACE OCI L2 BGC
+  long_name: PACE OCI L2 Biogeochemical in NetCDF format
+  description: PACE OCI L2 Biogeochemical Reader
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [oci]
+
+file_types:
+  bgc_nc:
+    file_patterns:
+    # Example: PACE_OCI.20240907T191809.L2.OC_BGC.V2_0.NRT.nc4
+      - '{platform:s}_{sensor:s}.{start_time:%Y%m%dT%H%M%S}.L2.OC_BGC.V{sw_version:s}.{processing_type:s}nc4'
+    file_reader: !!python/name:satpy.readers.seadas_l2.SEADASL2NetCDFFileHandler
+    geo_resolution: 1000
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: [bgc_nc]
+    file_key: ["navigation_data/longitude", "longitude"]
+    resolution: 1000
+
+  latitude:
+    name: latitude
+    file_type: [bgc_nc]
+    file_key: ["navigation_data/latitude", "latitude"]
+    resolution: 1000
+
+  chlor_a:
+    name: chlor_a
+    file_type: [bgc_nc]
+    file_key: ["geophysical_data/chlor_a", "chlor_a"]
+    resolution: 1000
+    coordinates: [longitude, latitude]

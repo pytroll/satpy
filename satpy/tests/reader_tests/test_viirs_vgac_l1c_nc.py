@@ -31,7 +31,7 @@ import xarray as xr
 from netCDF4 import Dataset
 
 
-@pytest.fixture()
+@pytest.fixture
 def nc_filename(tmp_path):
     """Create an nc test data file and return its filename."""
     now = dt.datetime.utcnow()
