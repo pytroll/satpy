@@ -246,6 +246,7 @@ UNIT_CONV = {
     "percent": "%",
     "Kelvin": "kelvin",
     "K": "kelvin",
+    "Meter": "meters",
 }
 
 TileInfo = namedtuple("TileInfo", ["tile_count", "image_shape", "tile_shape",
@@ -626,7 +627,7 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         fills = [2 ** file_bit_depth - 1]
     elif unsigned_in_signed:
         # max unsigned value is -1 as a signed int
-        fills = [-1]
+        fills = [dtype.type(-1)]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
@@ -1063,12 +1064,10 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             new_ds.coords["x"].encoding["dtype"] = "int16"
             new_ds.coords["x"].encoding["scale_factor"] = np.float64(xy_factors.mx)
             new_ds.coords["x"].encoding["add_offset"] = np.float64(xy_factors.bx)
-            new_ds.coords["x"].encoding["_FillValue"] = -1
         if "y" in new_ds.coords:
             new_ds.coords["y"].encoding["dtype"] = "int16"
             new_ds.coords["y"].encoding["scale_factor"] = np.float64(xy_factors.my)
             new_ds.coords["y"].encoding["add_offset"] = np.float64(xy_factors.by)
-            new_ds.coords["y"].encoding["_FillValue"] = -1
         return new_ds
 
     def apply_tile_info(self, new_ds, tile_info):
@@ -1102,7 +1101,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if creator is None:
             creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
-            creation_time = dt.datetime.utcnow()
+            creation_time = dt.datetime.now(dt.timezone.utc)
 
         self._add_sector_id_global(new_ds, sector_id)
         new_ds.attrs["Conventions"] = "CF-1.7"
@@ -1598,7 +1597,7 @@ class AWIPSTiledWriter(Writer):
         area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
-        creation_time = dt.datetime.utcnow()
+        creation_time = dt.datetime.now(dt.timezone.utc)
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
             area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)

@@ -38,11 +38,10 @@ jobs:
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
           miniforge-version: latest
-          use-mamba: true
           python-version: ${{ matrix.python-version }}
           activate-environment: test-environment
+          channels: conda-forge
 
       - name: Set cache environment variables
         shell: bash -l {0}
@@ -80,7 +79,7 @@ jobs:
           numpy \
           pandas \
           scipy
-          conda remove --force-remove -y pykdtree pyresample python-geotiepoints pyhdf netcdf4 h5py cftime astropy pyerfa
+          conda remove --force-remove -y pykdtree pyresample python-geotiepoints pyhdf netcdf4 h5py cftime astropy pyerfa || true
           python -m pip install --upgrade --no-deps --pre --no-build-isolation \
           pyerfa \
           git+https://github.com/storpipfugl/pykdtree \
@@ -111,7 +110,7 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
+          pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v4

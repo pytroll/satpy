@@ -36,7 +36,7 @@ lat_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
 mas_data = RANDOM_GEN.choice([0, 1], size=(100, 100))
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_hdf5_file(tmp_path):
     """Create temp hdf5 files."""
     fn = tmp_path / "epic_1b_20150613120251_03.h5"

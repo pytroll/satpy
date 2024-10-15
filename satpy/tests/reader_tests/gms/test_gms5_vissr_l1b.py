@@ -11,8 +11,8 @@ from pyresample.geometry import AreaDefinition
 
 import satpy.tests.reader_tests.gms.test_gms5_vissr_data as real_world
 from satpy.readers import FSFile
-from satpy.tests.reader_tests.utils import get_jit_methods, skip_numba_unstable_if_missing
-from satpy.tests.utils import make_dataid
+from satpy.tests.reader_tests.utils import get_jit_methods
+from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
 
 try:
     import satpy.readers.gms.gms5_vissr_format as fmt
@@ -116,12 +116,12 @@ class TestFileHandler:
         """Enable compression."""
         return request.param
 
-    @pytest.fixture()
+    @pytest.fixture
     def open_function(self, with_compression):
         """Get open function for writing test files."""
         return gzip.open if with_compression else open
 
-    @pytest.fixture()
+    @pytest.fixture
     def vissr_file(self, dataset_id, file_contents, open_function, tmp_path):
         """Get test VISSR file."""
         filename = tmp_path / "vissr_file"
@@ -130,7 +130,7 @@ class TestFileHandler:
         writer.write(filename, file_contents)
         return filename
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_contents(self, control_block, image_parameters, image_data):
         """Get VISSR file contents."""
         return {
@@ -139,7 +139,7 @@ class TestFileHandler:
             "image_data": image_data,
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def control_block(self, dataset_id):
         """Get VISSR control block."""
         block_size = {"IR1": 16, "VIS": 4}
@@ -148,7 +148,7 @@ class TestFileHandler:
         ctrl_block["available_block_size_of_image_data"] = 2
         return ctrl_block
 
-    @pytest.fixture()
+    @pytest.fixture
     def image_parameters(self, mode_block, cal_params, nav_params):
         """Get VISSR image parameters."""
         image_params = {"mode": mode_block}
@@ -156,7 +156,7 @@ class TestFileHandler:
         image_params.update(nav_params)
         return image_params
 
-    @pytest.fixture()
+    @pytest.fixture
     def nav_params(
         self,
         coordinate_conversion,
@@ -170,7 +170,7 @@ class TestFileHandler:
         nav_params.update(coordinate_conversion)
         return nav_params
 
-    @pytest.fixture()
+    @pytest.fixture
     def cal_params(
         self,
         vis_calibration,
@@ -186,7 +186,7 @@ class TestFileHandler:
             "wv_calibration": wv_calibration,
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def mode_block(self):
         """Get VISSR mode block."""
         mode = np.zeros(1, dtype=fmt.MODE_BLOCK)
@@ -201,7 +201,7 @@ class TestFileHandler:
         mode["vis_frame_parameters"]["number_of_pixels"] = 2
         return mode
 
-    @pytest.fixture()
+    @pytest.fixture
     def coordinate_conversion(self, coord_conv, simple_coord_conv_table):
         """Get all coordinate conversion parameters."""
         return {
@@ -209,7 +209,7 @@ class TestFileHandler:
             "simple_coordinate_conversion_table": simple_coord_conv_table
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def coord_conv(self):
         """Get parameters for coordinate conversions.
 
@@ -255,14 +255,14 @@ class TestFileHandler:
         conv["orbital_parameters"]["latitude_of_ssp"] = 1.0
         return conv
 
-    @pytest.fixture()
+    @pytest.fixture
     def attitude_prediction(self):
         """Get attitude prediction."""
         att_pred = np.zeros(1, dtype=fmt.ATTITUDE_PREDICTION)
         att_pred["data"] = real_world.ATTITUDE_PREDICTION
         return {"attitude_prediction": att_pred}
 
-    @pytest.fixture()
+    @pytest.fixture
     def orbit_prediction(self, orbit_prediction_1, orbit_prediction_2):
         """Get predictions of orbital parameters."""
         return {
@@ -270,21 +270,21 @@ class TestFileHandler:
             "orbit_prediction_2": orbit_prediction_2
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def orbit_prediction_1(self):
         """Get first block of orbit prediction data."""
         orb_pred = np.zeros(1, dtype=fmt.ORBIT_PREDICTION)
         orb_pred["data"] = real_world.ORBIT_PREDICTION_1
         return orb_pred
 
-    @pytest.fixture()
+    @pytest.fixture
     def orbit_prediction_2(self):
         """Get second block of orbit prediction data."""
         orb_pred = np.zeros(1, dtype=fmt.ORBIT_PREDICTION)
         orb_pred["data"] = real_world.ORBIT_PREDICTION_2
         return orb_pred
 
-    @pytest.fixture()
+    @pytest.fixture
     def vis_calibration(self):
         """Get VIS calibration block."""
         vis_cal = np.zeros(1, dtype=fmt.VIS_CALIBRATION)
@@ -292,7 +292,7 @@ class TestFileHandler:
         table[0, 0:4] = np.array([0, 0.25, 0.5, 1])
         return vis_cal
 
-    @pytest.fixture()
+    @pytest.fixture
     def ir1_calibration(self):
         """Get IR1 calibration block."""
         cal = np.zeros(1, dtype=fmt.IR_CALIBRATION)
@@ -300,32 +300,32 @@ class TestFileHandler:
         table[0, 0:4] = np.array([0, 100, 200, 300])
         return cal
 
-    @pytest.fixture()
+    @pytest.fixture
     def ir2_calibration(self):
         """Get IR2 calibration block."""
         cal = np.zeros(1, dtype=fmt.IR_CALIBRATION)
         return cal
 
-    @pytest.fixture()
+    @pytest.fixture
     def wv_calibration(self):
         """Get WV calibration block."""
         cal = np.zeros(1, dtype=fmt.IR_CALIBRATION)
         return cal
 
-    @pytest.fixture()
+    @pytest.fixture
     def simple_coord_conv_table(self):
         """Get simple coordinate conversion table."""
         table = np.zeros(1, dtype=fmt.SIMPLE_COORDINATE_CONVERSION_TABLE)
         table["satellite_height"] = 123457.0
         return table
 
-    @pytest.fixture()
+    @pytest.fixture
     def image_data(self, dataset_id, image_data_ir1, image_data_vis):
         """Get VISSR image data."""
         data = {"IR1": image_data_ir1, "VIS": image_data_vis}
         return data[dataset_id["name"]]
 
-    @pytest.fixture()
+    @pytest.fixture
     def image_data_ir1(self):
         """Get IR1 image data."""
         image_data = np.zeros(2, fmt.IMAGE_DATA_BLOCK_IR)
@@ -336,7 +336,7 @@ class TestFileHandler:
         image_data["image_data"] = [[0, 1], [2, 3]]
         return image_data
 
-    @pytest.fixture()
+    @pytest.fixture
     def image_data_vis(self):
         """Get VIS image data."""
         image_data = np.zeros(2, fmt.IMAGE_DATA_BLOCK_VIS)
@@ -347,7 +347,7 @@ class TestFileHandler:
         image_data["image_data"] = [[0, 1], [2, 3]]
         return image_data
 
-    @pytest.fixture()
+    @pytest.fixture
     def vissr_file_like(self, vissr_file, with_compression):
         """Get file-like object for VISSR test file."""
         if with_compression:
@@ -355,14 +355,14 @@ class TestFileHandler:
             return FSFile(open_file)
         return vissr_file
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_handler(self, vissr_file_like, mask_space):
         """Get file handler to be tested."""
         return vissr.GMS5VISSRFileHandler(
             vissr_file_like, {}, {}, mask_space=mask_space
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def vis_refl_exp(self, mask_space, lons_lats_exp):
         """Get expected VIS reflectance."""
         lons, lats = lons_lats_exp
@@ -384,7 +384,7 @@ class TestFileHandler:
             },
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def ir1_counts_exp(self, lons_lats_exp):
         """Get expected IR1 counts."""
         lons, lats = lons_lats_exp
@@ -402,7 +402,7 @@ class TestFileHandler:
             },
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def ir1_bt_exp(self, lons_lats_exp):
         """Get expected IR1 brightness temperature."""
         lons, lats = lons_lats_exp
@@ -420,7 +420,7 @@ class TestFileHandler:
             },
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def lons_lats_exp(self, dataset_id):
         """Get expected lon/lat coordinates.
 
@@ -456,7 +456,7 @@ class TestFileHandler:
         lats = xr.DataArray(exp["lats"], dims=("y", "x"))
         return lons, lats
 
-    @pytest.fixture()
+    @pytest.fixture
     def dataset_exp(self, dataset_id, ir1_counts_exp, ir1_bt_exp, vis_refl_exp):
         """Get expected dataset."""
         ir1_counts_id = make_dataid(name="IR1", calibration="counts", resolution=5000)
@@ -473,7 +473,7 @@ class TestFileHandler:
         }
         return expectations[dataset_id]
 
-    @pytest.fixture()
+    @pytest.fixture
     def area_def_exp(self, dataset_id):
         """Get expected area definition."""
         if dataset_id["name"] == "IR1":
@@ -507,7 +507,7 @@ class TestFileHandler:
             height=size,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def attrs_exp(self, area_def_exp):
         """Get expected dataset attributes."""
         return {
@@ -546,7 +546,7 @@ class TestFileHandler:
 class TestCorruptFile:
     """Test reading corrupt files."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_contents(self):
         """Get corrupt file contents (all zero)."""
         control_block = np.zeros(1, dtype=fmt.CONTROL_BLOCK)
@@ -557,7 +557,7 @@ class TestCorruptFile:
             "image_data": image_data,
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def corrupt_file(self, file_contents, tmp_path):
         """Write corrupt VISSR file to disk."""
         filename = tmp_path / "my_vissr_file"

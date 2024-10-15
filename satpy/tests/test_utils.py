@@ -19,7 +19,6 @@ from __future__ import annotations
 import datetime
 import logging
 import typing
-import unittest
 import warnings
 from math import sqrt
 from unittest import mock
@@ -32,6 +31,7 @@ import xarray as xr
 from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.utils import (
     angle2xyz,
+    datetime64_to_pydatetime,
     get_legacy_chunk_size,
     get_satpos,
     import_error_helper,
@@ -266,7 +266,7 @@ def test_make_fake_scene():
     assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
 
 
-class TestCheckSatpy(unittest.TestCase):
+class TestCheckSatpy:
     """Test the 'check_satpy' function."""
 
     def test_basic_check_satpy(self):
@@ -274,17 +274,44 @@ class TestCheckSatpy(unittest.TestCase):
         from satpy.utils import check_satpy
         check_satpy()
 
-    def test_specific_check_satpy(self):
+    def test_specific_check_satpy(self, capsys):
         """Test 'check_satpy' with specific features provided."""
         from satpy.utils import check_satpy
-        with mock.patch("satpy.utils.print") as print_mock:
-            check_satpy(readers=["viirs_sdr"], extras=("cartopy", "__fake"))
-            checked_fake = False
-            for call in print_mock.mock_calls:
-                if len(call[1]) > 0 and "__fake" in call[1][0]:
-                    assert "ok" not in call[1][1]
-                    checked_fake = True
-            assert checked_fake, "Did not find __fake module mentioned in checks"
+        check_satpy(readers=["viirs_sdr"], packages=("cartopy", "__fake"))
+        out, _ = capsys.readouterr()
+        checked_fake = "__fake: not installed" in out
+        checked_viirs_sdr = "Readers\n=======\nviirs_sdr" in out
+        assert checked_fake, "Did not find __fake package mentioned in checks"
+        assert checked_viirs_sdr, "Did not find viirs_sdr in readers mentioned in checks"
+
+
+class TestShowVersions:
+    """Test the 'show_versions' function."""
+
+    def test_basic_show_versions(self):
+        """Test 'check_satpy' basic functionality."""
+        from satpy.utils import show_versions
+        show_versions()
+
+    def test_show_specific_version(self, capsys):
+        """Test 'show_version' works with installed package."""
+        from satpy.utils import show_versions
+        show_versions(packages=["pytest"])
+        out, _ = capsys.readouterr()
+
+        pytest_mentioned = "pytest:" in out
+        pytest_installed = "pytest: not installed" not in out
+        check_pytest = pytest_mentioned and pytest_installed
+        assert check_pytest, "pytest with package version not in print output"
+
+    def test_show_missing_specific_version(self, capsys):
+        """Test 'show_version' works with missing package."""
+        from satpy.utils import show_versions
+        show_versions(packages=["__fake"])
+        out, _ = capsys.readouterr()
+
+        check_fake = "__fake: not installed" in out
+        assert check_fake, "Did not find '__fake: not installed' in print output"
 
 
 def test_debug_on(caplog):
@@ -294,12 +321,7 @@ def test_debug_on(caplog):
     def depwarn():
         logger = logging.getLogger("satpy.silly")
         logger.debug("But now it's just got SILLY.")
-        warnings.warn(
-            "Stop that! It's SILLY.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-
+        warnings.warn("Stop that! It's SILLY.", DeprecationWarning, stacklevel=2)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     debug_on(False)
     filts_before = warnings.filters.copy()
@@ -613,3 +635,21 @@ def test_find_in_ancillary():
             match=("Could not find dataset named thumb in "
                    "ancillary variables for dataset 'hand'")):
         find_in_ancillary(hand, "thumb")
+
+
+@pytest.mark.parametrize(
+    ("dt64", "expected"),
+    [
+        (
+                np.datetime64("2000-01-02T03:04:05.000000006"),
+                datetime.datetime(2000, 1, 2, 3, 4, 5, 0)
+        ),
+        (
+                np.datetime64("2000-01-02T03:04:05.000006"),
+                datetime.datetime(2000, 1, 2, 3, 4, 5, 6)
+        )
+    ]
+)
+def test_datetime64_to_pydatetime(dt64, expected):
+    """Test conversion from datetime64 to Python datetime."""
+    assert datetime64_to_pydatetime(dt64) == expected

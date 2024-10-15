@@ -60,6 +60,7 @@ file_types:
       - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
       - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
       - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+      - 'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{spacecraft:5s}+FIRG_C_{server:4s}_{start_time:%Y%m%d%H%M%S}_{ord_num:1s}.bin'
 
   # EUMETSAT MSG SEVIRI L2 Multi-Sensor Precipitation Estimate product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:MPE-GRIB

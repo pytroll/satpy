@@ -100,6 +100,15 @@ the example here::
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
             - {colors: greys, min_value: 253.15, max_value: 303.15}
 
+In addition, it is also possible to add a linear alpha channel to the colormap, as in the
+following example::
+
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_alpha: 100, max_alpha: 255}
+
 It is also possible to provide your own custom defined color mapping by
 specifying a list of RGB values and the corresponding min and max values
 between which to apply the colors. This is for instance a common use case for

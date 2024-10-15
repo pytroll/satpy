@@ -109,6 +109,23 @@ areas that can be passed to the resample method::
     >>> my_area = AreaDefinition(...)
     >>> local_scene = scn.resample(my_area)
 
+Resize area definition in pixels
+--------------------------------
+
+Sometimes you may want to create a small image with fixed size in pixels.
+For example, to create an image of (y, x) pixels :
+
+    >>> small_scn = scn.resample(scn.finest_area().copy(height=y, width=x), resampler="nearest")
+
+
+.. warning::
+
+    Be aware that resizing with native resampling (``resampler="native"``) only
+    works if the new size is an integer factor of the original input size. For example,
+    multiplying the size by 2 or dividing the size by 2. Multiplying by 1.5 would
+    not be allowed.
+
+
 Create dynamic area definition
 ------------------------------
 
