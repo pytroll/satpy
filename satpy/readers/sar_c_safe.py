@@ -459,7 +459,7 @@ class _AzimuthBlock:
     @property
     def lut(self):
         lut = self.element.find("noiseAzimuthLut").text.split()
-        return np.array(lut).astype(np.float32)
+        return np.array(lut, dtype=np.float32)
 
 
 class XMLArray:
