@@ -75,8 +75,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         proj_h8 = b"GEOS(140.70)                    "
         proj_mtsat2 = b"GEOS(145.00)                    "
         proj_name = proj_h8 if platform == "Himawari-8" else proj_mtsat2
-        return {"image_segm_seq_no": segno,
-                "total_no_image_segm": numseg,
+        return {"image_segm_seq_no": np.uint8(segno),
+                "total_no_image_segm": np.uint8(numseg),
                 "projection_name": proj_name,
                 "projection_parameters": {
                     "a": 6378169.00,
@@ -85,10 +85,10 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 },
                 "cfac": 10233128,
                 "lfac": 10233128,
-                "coff": coff,
-                "loff": loff,
-                "number_of_columns": ncols,
-                "number_of_lines": nlines,
+                "coff": np.int32(coff),
+                "loff": np.int32(loff),
+                "number_of_columns": np.uint16(ncols),
+                "number_of_lines": np.uint16(nlines),
                 "image_data_function": idf,
                 "image_observation_time": self._get_acq_time(nlines)}
 
