@@ -155,19 +155,24 @@ class NETCDF_ICARE(BaseFileHandler) :
 		The sensor and platform names are stored together, eg: MSG1/SEVIRI
 		"""
 		variable = self.nc["satellite"]
-		self.plateforme = variable.attrs["id"]
+		self.plateforme = variable.attrs["id"]  # msg1, msg01, MSG1...
+		platform = self.plateforme[:3]		# msg, MSG
+		platform = platform.lower()		# msg
 
-		if "goes" in self.plateforme :
-			self.sensor = "abi"
-		elif ("msg" in self.plateforme) or ("MSG" in self.plateforme) :
-			self.sensor = "seviri"
-		elif ("mtg" in self.plateforme) or ("MTG" in self.plateforme) :
-			self.sensor = "fci"
-		elif "hima" in self.plateforme :
-			self.sensor = "ahi"
+		pdict = {}
+		pdict["msg"] = "seviri"
+		pdict["mtg"] = "fci"
+		pdict["goe"] = "abi"
+		pdict["him"] = "ahi"
+
+		if platform in pdict :
+			self.sensor = pdict[platform]
 		else :
-			raise NameError("Unsupported satellite platform : " + self.plateforme)
-			
+			print(
+				"Unsupported satellite platform : " +
+				self.plateforme)
+			exit(1)
+
 		# Icare and météo france use non-standard platform names.
 		# Change is needed for pyspectral :
 		# pyspectral/rsr_seviri_Meteosat-10.h5 in the call
@@ -358,13 +363,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 		return mda
 		# preparer_metadata().
 
-	def _get_dsname(self, ds_id) :
-		"""Return the correct dataset name based on requested band.
-		ds_id = DataID(name='vis_08',
-			wavelength=WavelengthRange(...),
-			resolution=2000, calibration=<calibration.reflectance>,
-			modifiers=())
-		"""
+	def buildChannelCorrespondanceName(self) :
 		pdict = {}
 
 		# For mtg.
@@ -419,7 +418,7 @@ class NETCDF_ICARE(BaseFileHandler) :
 		pdict["C15"] = "IR_123"
 		pdict["C16"] = "IR_133"
 
-		# For himawari. 
+		# For himawari.
 		# BO1 : name in satpy. VIS004 : name in icare/meteofrance netcdf.
 		pdict["B01"] = "VIS004"
 		pdict["B02"] = "VIS005"
@@ -437,13 +436,24 @@ class NETCDF_ICARE(BaseFileHandler) :
 		pdict["B14"] = "IR_112"
 		pdict["B15"] = "IR_123"
 		pdict["B16"] = "IR_132"
+		return pdict
+		# buildChannelCorrespondanceName()
+
+	def _get_dsname(self, ds_id) :
+		"""Return the correct dataset name based on requested band.
+		ds_id = DataID(name='vis_08',
+			wavelength=WavelengthRange(...),
+			resolution=2000, calibration=<calibration.reflectance>,
+			modifiers=())
+		"""
+		pdict = self.buildChannelCorrespondanceName()
 
 		satpyName = ds_id["name"]
 		if satpyName in pdict :
 			icareName = pdict[satpyName]
 		else :
 			print(
-				"Soft not adaptated for this channel : ds_id = ", 
+				"Soft not adaptated for this channel : ds_id = ",
 				satpyName)
 			exit(1)
 
@@ -484,8 +494,8 @@ class NETCDF_ICARE(BaseFileHandler) :
 				if "nuc" in attributs :
 					# Brightness temperature.
 					self.alpha[ds_get_name]	= attributs["alpha"]
-					self.beta[ds_get_name]	= attributs["beta"]
-					self.nuc[ds_get_name]	= attributs["nuc"]
+					self.beta[ds_get_name] = attributs["beta"]
+					self.nuc[ds_get_name] = attributs["nuc"]
 
 					nomRetourComptes = "Temp_to_Native_count_" + ds_get_name
 
@@ -655,64 +665,15 @@ class NETCDF_ICARE(BaseFileHandler) :
 
 		return orb_param_dict
 
-	def resolutionSeviri(self, pdict) :
-		if self.nbpix == 3712 :
-			pdict["a_desc"] = "MSG/SEVIRI low resolution channel area"
-			pdict["p_id"] = "msg_lowres"
-		elif self.nbpix == 11136 :
-			pdict["a_desc"] = "MSG/SEVIRI HRV channel area"
-			pdict["p_id"] = "msg_hires"
-		else :
-			print("ERROR : not expected resolution for msg : ", self.nbpix)
-			exit(1)
-		return(pdict)
-
-	def resolutionFci(self, pdict) :
-		if self.nbpix == 5568 :
-			pdict["a_desc"] = "MTG 2km channel area"
-			pdict["p_id"] = "mtg_lowres"
-		elif self.nbpix == 11136 :
-			pdict["a_desc"] = "MTG 1km channel area"
-			pdict["p_id"] = "mtg_midres"
-		elif self.nbpix == 22272 :
-			pdict["a_desc"] = "MTG 500m channel area"
-			pdict["p_id"] = "mtg_hires"
-		else :
-			print("ERROR : not expected resolution for mtg : ", self.nbpix)
-			exit(1)
-		return(pdict)
-
-	def resolutionAhi(self, pdict) :
-		if self.nbpix == 5500 :
-			pdict["a_desc"] = "HIMA 2km channel area"
-			pdict["p_id"] = "hima_lowres"
-		elif self.nbpix == 11000 :
-			pdict["a_desc"] = "HIMA 1km channel area"
-			pdict["p_id"] = "hima_midres"
-		elif self.nbpix == 22000 :
-			pdict["a_desc"] = "HIMA 500m channel area"
-			pdict["p_id"] = "hima_hires"
+	def channelType(self, pdict, pdictResoAdesc, pdictResoPid, satellite) :
+		strNbpix = str(self.nbpix)
+		if strNbpix in pdictResoAdesc :
+			pdict["a_desc"] = pdictResoAdesc[strNbpix]
+			pdict["p_id"] = pdictResoPid[strNbpix]
 		else :
 			print(
-				"ERROR : not expected resolution for hima : ",
-				self.nbpix)
-			exit(1)
-		return(pdict)
-
-	def resolutionAbi(self, pdict) :
-		if self.nbpix == 5424 :
-			pdict["a_desc"] = "GOESR 2km channel area"
-			pdict["p_id"] = "goesr_lowres"
-		elif self.nbpix == 10848 :
-			pdict["a_desc"] = "GOESR 1km channel area"
-			pdict["p_id"] = "goesr_midres"
-		elif self.nbpix == 21696 :
-			pdict["a_desc"] = "GOESR 500m channel area"
-			pdict["p_id"] = "goesr_hires"
-		else :
-			print(
-				"ERROR : not expected resolution for goesr : ",
-				self.nbpix)
+				"ERROR : not expected resolution for ",
+				satellite, " : ", self.nbpix)
 			exit(1)
 		return(pdict)
 
@@ -738,30 +699,63 @@ class NETCDF_ICARE(BaseFileHandler) :
 		pdict["scandir"] = "S2N"
 		pdict["a_name"] = "geosmsg"
 
+		pdictResoAdesc = {}
+		pdictResoPid = {}
+
 		if self.sensor == "seviri" :
 			# msg.
 			pdict["scandir"] = "N2S"
 			pdict["a_name"] = "geosmsg"
-			pdict = self.resolutionSeviri(pdict)
+
+			pdictResoAdesc["3712"] = "MSG/SEVIRI low resolution channel area"
+			pdictResoPid["3712"] = "msg_lowres"
+			pdictResoAdesc["11136"] = "MSG/SEVIRI HRV channel area"
+			pdictResoPid["11136"] = "msg_hires"
+
+			pdict = self.channelType(pdict, pdictResoAdesc, pdictResoPid, "msg")
 
 		elif self.sensor == "fci" :
 			# mtg.
 			pdict["scandir"] = "N2S"
 			pdict["a_name"] = "geosmtg"
-			pdict = self.resolutionFci(pdict)
+
+			pdictResoAdesc["5568"] = "MTG 2km channel area"
+			pdictResoPid["5568"] = "mtg_lowres"
+			pdictResoAdesc["11136"] = "MTG 1km channel area"
+			pdictResoPid["11136"] = "mtg_midres"
+			pdictResoAdesc["22272"] = "MTG 500m channel area"
+			pdictResoPid["22272"] = "mtg_hires"
+
+			pdict = self.channelType(pdict, pdictResoAdesc, pdictResoPid, "mtg")
 
 		elif self.sensor == "ahi" :
 			# Himawari.
 			pdict["scandir"] = "N2S"
 			pdict["a_name"] = "geoshima"
-			pdict = self.resolutionAhi(pdict)
+
+			pdictResoAdesc["5500"] = "HIMA 2km channel area"
+			pdictResoPid["5500"] = "hima_lowres"
+			pdictResoAdesc["11000"] = "HIMA 1km channel area"
+			pdictResoPid["11000"] = "hima_midres"
+			pdictResoAdesc["22000"] = "HIMA 500m channel area"
+			pdictResoPid["22000"] = "hima_hires"
+
+			pdict = self.channelType(pdict, pdictResoAdesc, pdictResoPid, "hima")
 
 		elif self.sensor == "abi" :
 			# Goesr.
 			pdict["scandir"] = "N2S"
 			pdict["a_name"] = "geosgoesr"
 			pdict["sweep"] = "x"
-			pdict = self.resolutionAbi(pdict)
+
+			pdictResoAdesc["5424"] = "GOESR 2km channel area"
+			pdictResoPid["5424"] = "goesr_lowres"
+			pdictResoAdesc["10848"] = "GOESR 1km channel area"
+			pdictResoPid["10848"] = "goesr_midres"
+			pdictResoAdesc["21696"] = "GOESR 500m channel area"
+			pdictResoPid["21696"] = "goesr_hires"
+
+			pdict = self.channelType(pdict, pdictResoAdesc, pdictResoPid, "goesr")
 
 		else :
 			print("ERROR : " + self.sensor + " not expected.")

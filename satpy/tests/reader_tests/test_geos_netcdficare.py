@@ -50,10 +50,10 @@ class TestGeosNetcdfIcareReader() :
 	# Test of the geos_netcdficare reader.
 	# This reader has been build for the Icare Meteo France netcdfs.
 
-	def test_geos_netcdficare(self, tmp_path) :
-		""" A dummy netcdf is built. 
+	def test_geosNetcdficare(self, tmp_path) :
+		""" A dummy netcdf is built.
 		A scene self.scn for the convection product for the same date
-		is built. We check that the scene parameters are the same 
+		is built. We check that the scene parameters are the same
 		as thoses in the dummy netcdf.
 		This procedure is called by pytest.
 		"""
@@ -124,7 +124,7 @@ class TestGeosNetcdfIcareReader() :
 		# A picture of convection composite will be displayed.
 		self.scn.show("convection")
 		print("The picture should be pink.")
-		# test_geos_netcdficare(self, tmp_path)
+		# test_geosNetcdficare(self, tmp_path)
 
 	def init(self, tmp_path) :
 		"""
@@ -155,7 +155,7 @@ class TestGeosNetcdfIcareReader() :
 		self.expectedNbpix = 3712
 
 		# To build a scene at the date 20240628_100000,
-		# a netcdf corresponding to msg_netcdficare 
+		# a netcdf corresponding to msg_netcdficare
 		# is looked for in the filepath directory.
 		yaml_file = 'msg_netcdficare'
 		myfiles = find_files_and_readers(
@@ -254,6 +254,13 @@ class TestGeosNetcdfIcareReader() :
 		dy = -3000.40604
 		var[:] = np.array(([(y0 + dy * i) for i in range(3712)]))
 
+		self.visibleChannelsCreation(ncfileOut, fill_value)
+		self.infrarougeChannelsCreation(ncfileOut, fill_value)
+
+		ncfileOut.close
+		# buildNetcdf()
+
+	def visibleChannelsCreation(self, ncfileOut, fill_value) :
 		for channel in {"VIS006", "VIS008", "IR_016"} :
 			var = ncfileOut.createVariable(
 				channel, 'short', ('ny', 'nx'), zlib=True, complevel=4,
@@ -276,6 +283,7 @@ class TestGeosNetcdfIcareReader() :
 			var[:] = np.array(([-9999 for i in range(65536)]))
 			# In order to come back to the native datas on 10, 12 or 16 bits.
 
+	def infrarougeChannelsCreation(self, ncfileOut, fill_value) :
 		for channel in {
 			"IR_039", "WV_062", "WV_073", "IR_087", "IR_097",
 			"IR_108", "IR_120", "IR_134"} :
@@ -302,7 +310,5 @@ class TestGeosNetcdfIcareReader() :
 				fill_value=-9999)
 			var[:] = np.array(([-9999 for i in range(65536)]))
 			# In order to come back to the native datas on 10, 12 or 16 bits.
-		ncfileOut.close
-		# buildNetcdf()
 
 	# class TestGeosNetcdfIcareReader.
