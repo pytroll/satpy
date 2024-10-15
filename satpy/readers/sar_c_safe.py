@@ -637,10 +637,8 @@ class SAFEGRD(BaseFileHandler):
         fine_points = [np.arange(size) for size in shape]
         x, y, z = lonlat2xyz(gcp_lons, gcp_lats)
 
-        kx = 2
-        ky = 2
 
-        interpolator = MultipleSplineInterpolator((ypoints, xpoints), x, y, z, gcp_alts, kx=kx, ky=ky)
+        interpolator = MultipleSplineInterpolator((ypoints, xpoints), x, y, z, gcp_alts, kx=2, ky=2)
         hx, hy, hz, altitudes = interpolator.interpolate(fine_points, chunks=self.chunks)
 
 
