@@ -343,7 +343,7 @@ class TestOLITIRSL1(unittest.TestCase):
         self.test_data__2 = da.random.randint(8000, 14000,
                                               size=(self.y_size, self.x_size),
                                               chunks=(50, 50)).astype(np.uint16)
-        self.test_data__3= da.random.randint(0, 10000,
+        self.test_data__3= da.random.randint(1, 10000,
                                              size=(self.y_size, self.x_size),
                                              chunks=(50, 50)).astype(np.uint16)
 
