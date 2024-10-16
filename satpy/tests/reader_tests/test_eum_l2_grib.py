@@ -20,10 +20,10 @@
 
 import datetime
 import sys
-import pytest
 from unittest import mock
 
 import numpy as np
+import pytest
 
 from satpy.tests.utils import make_dataid
 
