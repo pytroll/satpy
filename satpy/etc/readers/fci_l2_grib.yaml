@@ -1,0 +1,28 @@
+reader:
+  name: fci_l2_grib
+  short_name: FCI L2 GRIB2
+  long_name: MTG FCI L2 data in GRIB2 format
+  description: Reader for EUMETSAT MTG FCI L2 files in GRIB2 format.
+  status: Nominal
+  supports_fsspec: false
+  sensors: [fci]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+file_types:
+  grib_fci_clm:
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CLM-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-GRIB2_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+
+
+datasets:
+  cloud_mask:
+    name: cloud_mask
+    long_name: Cloud Classification
+    standard_name: cloud_classification
+    resolution: 2000
+    file_type: grib_fci_clm
+    parameter_number: 7
+    units: "1"
+    flag_values: [0, 1, 2, 3]
+    flag_meanings: ['clear sky over water','clear sky over land', 'cloudy', 'undefined' ]
