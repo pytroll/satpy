@@ -563,16 +563,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
         else:
             readers_files = remaining_filenames
 
-        try:
-            reader_instance = load_reader(
-                    reader_configs,
-                    **reader_kwargs[None if reader is None else reader[idx]])
-        except (KeyError, IOError) as err:
-            LOG.info("Cannot use %s", str(reader_configs))
-            LOG.debug(str(err))
+        reader_instance = _get_reader_instance(reader, reader_configs, idx, **reader_kwargs)
+        if reader_instance is None:
             continue
-        except yaml.YAMLError as err:
-            _log_yaml_error(reader_configs, err)
 
         if not readers_files:
             # we weren't given any files for this reader
@@ -590,6 +583,21 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     _check_remaining_files(remaining_filenames)
     _check_reader_instances(reader_instances)
     return reader_instances
+
+
+def _get_reader_instance(reader, reader_configs, idx, **reader_kwargs):
+    reader_instance = None
+    try:
+        reader_instance = load_reader(
+            reader_configs,
+            **reader_kwargs[None if reader is None else reader[idx]])
+    except (KeyError, IOError) as err:
+        LOG.info("Cannot use %s", str(reader_configs))
+        LOG.debug(str(err))
+    except yaml.YAMLError as err:
+        _log_yaml_error(reader_configs, err)
+
+    return reader_instance
 
 
 def _log_yaml_error(reader_configs, err):
