@@ -258,6 +258,11 @@ class TestReaderLoader(unittest.TestCase):
     Assumes that the VIIRS SDR reader exists and works.
     """
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):  # noqa: PT004
+        """Inject caplog to the test class."""
+        self._caplog = caplog
+
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
@@ -438,6 +443,24 @@ class TestReaderLoader(unittest.TestCase):
         # abi_l1b reader was created, but no datasets available
         assert "abi_l1b" in readers
         assert len(list(readers["abi_l1b"].available_dataset_ids)) == 0
+
+    @mock.patch("satpy.readers.load_reader")
+    def test_yaml_error_message(self, load_reader):
+        """Test that YAML errors are logged properly."""
+        import logging
+
+        import yaml
+
+        from satpy.readers import load_readers
+
+        filenames = ["AVHR_xxx_1B_M01_20241015100703Z_20241015114603Z_N_O_20241015105547Z.nat"]
+        error_message = "YAML test error message"
+        load_reader.side_effect = yaml.YAMLError(error_message)
+
+        with self._caplog.at_level(logging.ERROR):
+            with pytest.raises(UnboundLocalError):
+                _ = load_readers(filenames=filenames, reader="avhrr_l1b_eps")
+            assert error_message in self._caplog.text
 
 
 class TestFindFilesAndReaders:
