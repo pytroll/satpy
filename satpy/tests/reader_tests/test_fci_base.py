@@ -18,9 +18,6 @@
 
 """FCI base reader tests package."""
 
-# import datetime as dt
-import pytest
-
 from satpy.readers.fci_base import calculate_area_extent
 from satpy.tests.utils import make_dataid
 
