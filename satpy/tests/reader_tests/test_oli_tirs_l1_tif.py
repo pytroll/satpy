@@ -17,7 +17,6 @@
 """Unittests for generic image reader."""
 
 import os
-import unittest
 
 import dask.array as da
 import numpy as np
@@ -305,19 +304,20 @@ metadata_text = b"""<?xml version="1.0" encoding="UTF-8"?>
 </LANDSAT_METADATA_FILE>
 """
 
-class TestOLITIRSL1(unittest.TestCase):
+
+class TestOLITIRSL1:
     """Test generic image reader."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create temporary images and metadata to test on."""
         import tempfile
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         from pyresample.geometry import AreaDefinition
 
         from satpy.scene import Scene
 
-        self.date = datetime(2024, 5, 12)
+        self.date = datetime(2024, 5, 12, tzinfo=timezone.utc)
 
         self.filename_info = dict(observation_date=datetime(2024, 5, 3),
                                   platform_type="L",
@@ -343,9 +343,9 @@ class TestOLITIRSL1(unittest.TestCase):
         self.test_data__2 = da.random.randint(8000, 14000,
                                               size=(self.y_size, self.x_size),
                                               chunks=(50, 50)).astype(np.uint16)
-        self.test_data__3= da.random.randint(1, 10000,
-                                             size=(self.y_size, self.x_size),
-                                             chunks=(50, 50)).astype(np.uint16)
+        self.test_data__3 = da.random.randint(1, 10000,
+                                              size=(self.y_size, self.x_size),
+                                              chunks=(50, 50)).astype(np.uint16)
 
         ds_b4 = xr.DataArray(self.test_data__1,
                              dims=("y", "x"),
@@ -406,7 +406,7 @@ class TestOLITIRSL1(unittest.TestCase):
 
         self.scn = scn
 
-    def tearDown(self):
+    def teardown_module(self):
         """Remove the temporary directory created for a test."""
         try:
             import shutil
@@ -433,44 +433,56 @@ class TestOLITIRSL1(unittest.TestCase):
 
     def test_ch_startend(self):
         """Test correct retrieval of start/end times."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         from satpy import Scene
         scn = Scene(reader="oli_tirs_l1_tif", filenames=[self.fnames[0], self.fnames[3], self.fnames[2]])
         bnds = scn.available_dataset_names()
-        assert bnds == ["b04", "sza"]
+        assert bnds == ["b04", "solar_zenith_angle"]
 
         scn.load(["b04"])
-        assert scn.start_time == datetime(2024, 5, 2, 18, 0, 24)
-        assert scn.end_time == datetime(2024, 5, 2, 18, 0, 24)
+        assert scn.start_time == datetime(2024, 5, 2, 18, 0, 24, tzinfo=timezone.utc)
+        assert scn.end_time == datetime(2024, 5, 2, 18, 0, 24, tzinfo=timezone.utc)
 
-    def test_loading(self):
-        """Test loading a Landsat Scene with good and bad channel requests."""
+    def test_loading_gd(self):
+        """Test loading a Landsat Scene with good channel requests."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
         good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
         rdr = OLITIRSCHReader(self.fnames[0], self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
-        rdr.get_dataset({"name": "b04", "calibration": "counts"}, {})
+        rdr.get_dataset({"name": "b04", "calibration": "counts"}, {"standard_name": "test_data", "units": "test_units"})
 
+    def test_loading_badfil(self):
+        """Test loading a Landsat Scene with bad channel requests."""
+        from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
+        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
+        rdr = OLITIRSCHReader(self.fnames[0], self.filename_info, self.ftype_info, good_mda)
+
+        ftype = {"standard_name": "test_data", "units": "test_units"}
         # Check case with request to load channel not matching filename
         with pytest.raises(ValueError, match="Requested channel b05 does not match the reader channel b04"):
-            rdr.get_dataset({"name": "b05", "calibration": "counts"}, {})
+            rdr.get_dataset({"name": "b05", "calibration": "counts"}, ftype)
 
+    def test_loading_badchan(self):
+        """Test loading a Landsat Scene with bad channel requests."""
+        from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
+        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
+        ftype = {"standard_name": "test_data", "units": "test_units"}
         bad_finfo = self.filename_info.copy()
         bad_finfo["data_type"] = "T"
 
         # Check loading invalid channel for data type
         rdr = OLITIRSCHReader(self.fnames[1], bad_finfo, self.ftype_info, good_mda)
-        with pytest.raises(ValueError, match= "Requested channel b04 is not available in this granule"):
-            rdr.get_dataset({"name": "b04", "calibration": "counts"}, {})
+        with pytest.raises(ValueError, match="Requested channel b04 is not available in this granule"):
+            rdr.get_dataset({"name": "b04", "calibration": "counts"}, ftype)
 
         bad_finfo["data_type"] = "O"
         ftype_b11 = self.ftype_info.copy()
         ftype_b11["file_type"] = "granule_b11"
         rdr = OLITIRSCHReader(self.fnames[1], bad_finfo, ftype_b11, good_mda)
         with pytest.raises(ValueError, match="Requested channel b11 is not available in this granule"):
-            rdr.get_dataset({"name": "b11", "calibration": "counts"}, {})
+            rdr.get_dataset({"name": "b11", "calibration": "counts"}, ftype)
 
     def test_badfiles(self):
         """Test loading a Landsat Scene with bad data."""
@@ -478,14 +490,16 @@ class TestOLITIRSL1(unittest.TestCase):
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
+        ftype = {"standard_name": "test_data", "units": "test_units"}
+
         # Test that metadata reader initialises with correct filename
-        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
+        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, ftype)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            OLITIRSMDReader(self.fnames[2], bad_fname_info, {})
+            OLITIRSMDReader(self.fnames[2], bad_fname_info, ftype)
 
-            # Test that metadata reader initialises with correct filename
+        # Test that metadata reader initialises with correct filename
         OLITIRSCHReader(self.fnames[0], self.filename_info, self.ftype_info, good_mda)
 
         # Check metadata reader fails if platform type is wrong
@@ -496,11 +510,10 @@ class TestOLITIRSL1(unittest.TestCase):
         with pytest.raises(ValueError, match="Invalid file type: granule-b05"):
             OLITIRSCHReader(self.fnames[0], self.filename_info, bad_ftype_info, good_mda)
 
-    def test_calibration_modes(self):
-        """Test calibration modes for the reader."""
+    def test_calibration_counts(self):
+        """Test counts calibration mode for the reader."""
         from satpy import Scene
 
-        # Check counts calibration
         scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
         scn.load(["b04", "b11"], calibration="counts")
         np.testing.assert_allclose(scn["b04"].values, self.test_data__1)
@@ -510,7 +523,9 @@ class TestOLITIRSL1(unittest.TestCase):
         assert scn["b04"].attrs["standard_name"] == "counts"
         assert scn["b11"].attrs["standard_name"] == "counts"
 
-        # Check radiance calibration
+    def test_calibration_radiance(self):
+        """Test radiance calibration mode for the reader."""
+        from satpy import Scene
         exp_b04 = (self.test_data__1 * 0.0098329 - 49.16426).astype(np.float32)
         exp_b11 = (self.test_data__2 * 0.0003342 + 0.100000).astype(np.float32)
 
@@ -523,8 +538,10 @@ class TestOLITIRSL1(unittest.TestCase):
         np.testing.assert_allclose(scn["b04"].values, exp_b04, rtol=1e-4)
         np.testing.assert_allclose(scn["b11"].values, exp_b11, rtol=1e-4)
 
-        # Check top level calibration
-        exp_b04 = (self.test_data__1 * 2e-05 - 0.1).astype(np.float32)
+    def test_calibration_highlevel(self):
+        """Test high level calibration modes for the reader."""
+        from satpy import Scene
+        exp_b04 = (self.test_data__1 * 2e-05 - 0.1).astype(np.float32) * 100
         exp_b11 = (self.test_data__2 * 0.0003342 + 0.100000)
         exp_b11 = (1201.1442 / np.log((480.8883 / exp_b11) + 1)).astype(np.float32)
         scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
@@ -533,16 +550,23 @@ class TestOLITIRSL1(unittest.TestCase):
         assert scn["b04"].attrs["units"] == "%"
         assert scn["b11"].attrs["units"] == "K"
         assert scn["b04"].attrs["standard_name"] == "toa_bidirectional_reflectance"
-        assert scn["b11"].attrs["standard_name"] == "toa_brightness_temperature"
+        assert scn["b11"].attrs["standard_name"] == "brightness_temperature"
         np.testing.assert_allclose(np.array(scn["b04"].values), np.array(exp_b04), rtol=1e-4)
         np.testing.assert_allclose(scn["b11"].values, exp_b11, rtol=1e-6)
 
+    def test_angles(self):
+        """Test calibration modes for the reader."""
+        from satpy import Scene
+
         # Check angles are calculated correctly
         scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
-        scn.load(["sza"])
-        assert scn["sza"].attrs["units"] == "degrees"
-        assert scn["sza"].attrs["standard_name"] == "solar_zenith_angle"
-        np.testing.assert_allclose(scn["sza"].values * 100, np.array(self.test_data__3), atol=0.01, rtol=1e-3)
+        scn.load(["solar_zenith_angle"])
+        assert scn["solar_zenith_angle"].attrs["units"] == "degrees"
+        assert scn["solar_zenith_angle"].attrs["standard_name"] == "solar_zenith_angle"
+        np.testing.assert_allclose(scn["solar_zenith_angle"].values * 100,
+                                   np.array(self.test_data__3),
+                                   atol=0.01,
+                                   rtol=1e-3)
 
     def test_metadata(self):
         """Check that metadata values loaded correctly."""
