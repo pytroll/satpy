@@ -557,13 +557,16 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     reader, filenames, remaining_filenames = _get_reader_and_filenames(reader, filenames)
     (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
 
+    if reader_kwargs is None:
+        reader_kwargs = {}
+
     for idx, reader_configs in enumerate(configs_for_reader(reader)):
         if isinstance(filenames, dict):
             readers_files = set(filenames[reader[idx]])
         else:
             readers_files = remaining_filenames
 
-        reader_instance = _get_reader_instance(reader, reader_configs, idx, **reader_kwargs)
+        reader_instance = _get_reader_instance(reader, reader_configs, idx, reader_kwargs)
         if reader_instance is None:
             continue
 
@@ -585,7 +588,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     return reader_instances
 
 
-def _get_reader_instance(reader, reader_configs, idx, **reader_kwargs):
+def _get_reader_instance(reader, reader_configs, idx, reader_kwargs):
     reader_instance = None
     try:
         reader_instance = load_reader(

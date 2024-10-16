@@ -458,7 +458,7 @@ class TestReaderLoader(unittest.TestCase):
         load_reader.side_effect = yaml.YAMLError(error_message)
 
         with self._caplog.at_level(logging.ERROR):
-            with pytest.raises(match=ValueError):
+            with pytest.raises(ValueError, match="No supported files found"):
                 _ = load_readers(filenames=filenames, reader="avhrr_l1b_eps")
             assert error_message in self._caplog.text
 
