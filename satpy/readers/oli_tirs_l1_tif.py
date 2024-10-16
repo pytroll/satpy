@@ -27,7 +27,7 @@ The geometry differs between bands, so if you need precise geometry you should c
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 import defusedxml.ElementTree as ET
 import numpy as np
@@ -45,7 +45,12 @@ PLATFORMS = {"08": "Landsat-8",
 OLI_BANDLIST = ["b01", "b02", "b03", "b04", "b05", "b06", "b07", "b08", "b09"]
 TIRS_BANDLIST = ["b10", "b11"]
 PAN_BANDLIST = ["b08"]
-ANGLIST = ["sza", "saa", "vza", "vaa"]
+ANGLIST = ["satellite_azimuth_angle",
+           "satellite_zenith_angle",
+           "solar_azimuth_angle",
+           "solar_zenith_angle"]
+
+ANGLIST_CHAN = ["sza", "saa", "vaa", "vza"]
 
 BANDLIST = OLI_BANDLIST + TIRS_BANDLIST
 
@@ -74,7 +79,7 @@ class OLITIRSCHReader(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
         """Initialize the reader."""
-        super(OLITIRSCHReader, self).__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         # Check we have landsat data
         if filename_info["platform_type"] != "L":
@@ -96,7 +101,7 @@ class OLITIRSCHReader(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key["name"]:
+        if self.channel != key["name"] and self.channel not in ANGLIST_CHAN:
             raise ValueError(f"Requested channel {key['name']} does not match the reader channel {self.channel}")
 
         if key["name"] in OLI_BANDLIST and self.chan_selector not in ["O", "C"]:
@@ -112,16 +117,22 @@ class OLITIRSCHReader(BaseFileHandler):
                                        "x": CHUNK_SIZE},
                                mask_and_scale=False)["band_data"].squeeze()
 
+
         # The fill value for Landsat is '0', for calibration simplicity convert it to np.nan
-        data = xr.where(data == 0, np.float32(np.nan), data)
+        data.data = xr.where(data.data == 0, np.float32(np.nan), data.data)
 
         attrs = data.attrs.copy()
         # Add useful metadata to the attributes.
         attrs["perc_cloud_cover"] = self._mda.cloud_cover
+        # Add platform / sensor attributes
+        attrs["platform_name"] = self.platform_name
+        attrs["sensor"] = "OLI_TIRS"
+        # Apply attrs from YAML
+        attrs["standard_name"] = info["standard_name"]
+        attrs["units"] = info["units"]
 
         # Only OLI bands have a saturation flag
         if key["name"] in OLI_BANDLIST:
-
             attrs["saturated"] = self.bsat[key["name"]]
 
         # Rename to Satpy convention
@@ -134,42 +145,36 @@ class OLITIRSCHReader(BaseFileHandler):
             data = self.calibrate(data, key["calibration"])
         if key["name"] in ANGLIST:
             data.data = data.data * 0.01
-            data.attrs["units"] = "degrees"
-            data.attrs["standard_name"] = "solar_zenith_angle"
 
         return data
 
     def calibrate(self, data, calibration):
         """Calibrate the data from counts into the desired units."""
         if calibration == "counts":
-            data.attrs["standard_name"] = "counts"
-            data.attrs["units"] = "1"
             return data
 
         if calibration in ["radiance", "brightness_temperature"]:
-            data.attrs["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
-            data.attrs["units"] = "W m-2 um-1 sr-1"
             data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
             if calibration == "radiance":
-                return data.astype(np.float32)
+                data.data = data.data.astype(np.float32)
+                return data
 
         if calibration == "reflectance":
             if int(self.channel[1:]) < 10:
-                data.attrs["standard_name"] = "toa_bidirectional_reflectance"
-                data.attrs["units"] = "%"
                 data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
-                return data.astype(np.float32)
+                data.data = data.data.astype(np.float32) * 100
+                return data
 
         if calibration == "brightness_temperature":
             if self.channel[1:] in ["10", "11"]:
-                data.attrs["standard_name"] = "toa_brightness_temperature"
-                data.attrs["units"] = "K"
                 data.data = (self.calinfo[self.channel][3] / np.log((self.calinfo[self.channel][2] / data.data) + 1))
-                return data.astype(np.float32)
+                data.data = data.data.astype(np.float32)
+                return data
 
     def get_area_def(self, dsid):
         """Get area definition of the image from the metadata."""
         return self._mda.build_area_def(dsid["name"])
+
 
 class OLITIRSMDReader(BaseFileHandler):
     """File handler for Landsat L1 files (tif)."""
@@ -179,11 +184,10 @@ class OLITIRSMDReader(BaseFileHandler):
         # Check we have landsat data
         if filename_info["platform_type"] != "L":
             raise ValueError("This reader only supports Landsat data")
-
+        self.platform_name = PLATFORMS[filename_info["spacecraft_id"]]
         self._obs_date = filename_info["observation_date"]
         self.root = ET.parse(self.filename)
         self.process_level = filename_info["process_level_correction"]
-        self.platform_name = PLATFORMS[filename_info["spacecraft_id"]]
         import bottleneck  # noqa
         import geotiepoints  # noqa
 
@@ -191,7 +195,8 @@ class OLITIRSMDReader(BaseFileHandler):
     @property
     def center_time(self):
         """Return center time."""
-        return datetime.strptime(self.root.find(".//IMAGE_ATTRIBUTES/SCENE_CENTER_TIME").text[:-2], "%H:%M:%S.%f")
+        return datetime.strptime(self.root.find(".//IMAGE_ATTRIBUTES/SCENE_CENTER_TIME").text[:-2],
+                                 "%H:%M:%S.%f").replace(tzinfo=timezone.utc)
 
     @property
     def start_time(self):
@@ -201,7 +206,8 @@ class OLITIRSMDReader(BaseFileHandler):
         It is constructed from the observation date (from the filename) and the center time (from the metadata).
         """
         return datetime(self._obs_date.year, self._obs_date.month, self._obs_date.day,
-                        self.center_time.hour, self.center_time.minute, self.center_time.second)
+                        self.center_time.hour, self.center_time.minute, self.center_time.second,
+                        tzinfo=timezone.utc)
 
     @property
     def end_time(self):
@@ -211,7 +217,8 @@ class OLITIRSMDReader(BaseFileHandler):
         It is constructed from the observation date (from the filename) and the center time (from the metadata).
         """
         return datetime(self._obs_date.year, self._obs_date.month, self._obs_date.day,
-                        self.center_time.hour, self.center_time.minute, self.center_time.second)
+                        self.center_time.hour, self.center_time.minute, self.center_time.second,
+                        tzinfo=timezone.utc)
 
     @property
     def cloud_cover(self):
@@ -245,14 +252,14 @@ class OLITIRSMDReader(BaseFileHandler):
         rad_gain, rad_add = self._get_band_radcal(band)
         ref_gain = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/REFLECTANCE_MULT_BAND_{band}").text)
         ref_add = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/REFLECTANCE_ADD_BAND_{band}").text)
-        return (rad_gain, rad_add, ref_gain, ref_add)
+        return rad_gain, rad_add, ref_gain, ref_add
 
     def _get_band_tircal(self, band):
         """Return thermal channel calibration info."""
         rad_gain, rad_add = self._get_band_radcal(band)
         bt_k1 = float(self.root.find(f".//LEVEL1_THERMAL_CONSTANTS/K1_CONSTANT_BAND_{band}").text)
         bt_k2 = float(self.root.find(f".//LEVEL1_THERMAL_CONSTANTS/K2_CONSTANT_BAND_{band}").text)
-        return (rad_gain, rad_add, bt_k1, bt_k2)
+        return rad_gain, rad_add, bt_k1, bt_k2
 
     @property
     def band_calibration(self):
