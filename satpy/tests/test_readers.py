@@ -259,9 +259,10 @@ class TestReaderLoader(unittest.TestCase):
     """
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):  # noqa: PT004
+    def inject_fixtures(self, caplog, tmp_path):  # noqa: PT004
         """Inject caplog to the test class."""
         self._caplog = caplog
+        self._tmp_path = tmp_path
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
@@ -444,22 +445,29 @@ class TestReaderLoader(unittest.TestCase):
         assert "abi_l1b" in readers
         assert len(list(readers["abi_l1b"].available_dataset_ids)) == 0
 
-    @mock.patch("satpy.readers.load_reader")
-    def test_yaml_error_message(self, load_reader):
+    def test_yaml_error_message(self):
         """Test that YAML errors are logged properly."""
         import logging
 
-        import yaml
-
+        import satpy
         from satpy.readers import load_readers
 
-        filenames = ["AVHR_xxx_1B_M01_20241015100703Z_20241015114603Z_N_O_20241015105547Z.nat"]
-        error_message = "YAML test error message"
-        load_reader.side_effect = yaml.constructor.ConstructorError(error_message)
+        reader_config = "reader:\n"
+        reader_config += "  name: nonreader\n"
+        reader_config += "  reader: !!python/name:notapackage.notareader.BadClass\n"
+
+        os.mkdir(self._tmp_path / "readers")
+        reader_fname = self._tmp_path / "readers" / "nonreader.yaml"
+        with open(reader_fname, "w") as fid:
+            fid.write(reader_config)
+
+        filenames = ["foo.bar"]
+        error_message = "No module named 'notapackage'"
 
         with self._caplog.at_level(logging.ERROR):
-            with pytest.raises(ValueError, match="No supported files found"):
-                _ = load_readers(filenames=filenames, reader="avhrr_l1b_eps")
+            with satpy.config.set({"config_path": [str(self._tmp_path)]}):
+                with pytest.raises(ValueError, match="No supported files found"):
+                    _ = load_readers(filenames=filenames, reader="nonreader")
             assert error_message in self._caplog.text
 
 
