@@ -17,11 +17,15 @@
 """Unittests for generic image reader."""
 
 import os
+from datetime import datetime, timezone
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition
+
+from satpy import Scene
 
 metadata_text = b"""<?xml version="1.0" encoding="UTF-8"?>
 <LANDSAT_METADATA_FILE>
@@ -305,20 +309,113 @@ metadata_text = b"""<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
+x_size = 100
+y_size = 100
+date = datetime(2024, 5, 12, tzinfo=timezone.utc)
+
+
+@pytest.fixture(scope="session")
+def l1_area():
+    """Get the landsat 1 area def."""
+    pcs_id = "WGS 84 / UTM zone 40N"
+    proj4_dict = {"proj": "utm", "zone": 40, "datum": "WGS84", "units": "m", "no_defs": None, "type": "crs"}
+    area_extent = (619485., 2440485., 850515., 2675715.)
+    return AreaDefinition("geotiff_area", pcs_id, pcs_id,
+                          proj4_dict, x_size, y_size,
+                          area_extent)
+
+
+@pytest.fixture(scope="session")
+def b4_data():
+    """Get the data for the b4 channel."""
+    return da.random.randint(12000, 16000,
+                             size=(y_size, x_size),
+                             chunks=(50, 50)).astype(np.uint16)
+
+
+@pytest.fixture(scope="session")
+def b11_data():
+    """Get the data for the b11 channel."""
+    return da.random.randint(8000, 14000,
+                             size=(y_size, x_size),
+                              chunks=(50, 50)).astype(np.uint16)
+
+
+@pytest.fixture(scope="session")
+def sza_data():
+    """Get the data for the sza."""
+    return da.random.randint(1, 10000,
+                             size=(y_size, x_size),
+                             chunks=(50, 50)).astype(np.uint16)
+
+
+def create_tif_file(data, name, area, filename):
+    """Create a tif file."""
+    data_array = xr.DataArray(data,
+                              dims=("y", "x"),
+                              attrs={"name": name,
+                                     "start_time": date})
+    scn = Scene()
+    scn["band_data"] = data_array
+    scn["band_data"].attrs["area"] = area
+    scn.save_dataset("band_data", writer="geotiff", enhance=False, fill_value=0,
+                     filename=os.fspath(filename))
+
+
+@pytest.fixture(scope="session")
+def l1_files_path(tmp_path_factory):
+    """Create the path for l1 files."""
+    return tmp_path_factory.mktemp("l1_files")
+
+
+@pytest.fixture(scope="session")
+def b4_file(l1_files_path, b4_data, l1_area):
+    """Create the file for the b4 channel."""
+    data = b4_data
+    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B4.TIF"
+    name = "b04"
+    create_tif_file(data, name, l1_area, filename)
+    return os.fspath(filename)
+
+@pytest.fixture(scope="session")
+def b11_file(l1_files_path, b11_data, l1_area):
+    """Create the file for the b11 channel."""
+    data = b11_data
+    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B11.TIF"
+    name = "b11"
+    create_tif_file(data, name, l1_area, filename)
+    return os.fspath(filename)
+
+@pytest.fixture(scope="session")
+def sza_file(l1_files_path, sza_data, l1_area):
+    """Create the file for the sza."""
+    data = sza_data
+    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_SZA.TIF"
+    name = "sza"
+    create_tif_file(data, name, l1_area, filename)
+    return os.fspath(filename)
+
+
+@pytest.fixture(scope="session")
+def mda_file(l1_files_path):
+    """Create the metadata xml file."""
+    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_MTL.xml"
+    with open(filename, "wb") as f:
+        f.write(metadata_text)
+    return os.fspath(filename)
+
+
+@pytest.fixture(scope="session")
+def all_files(b4_file, b11_file, mda_file, sza_file):
+    """Return all the files."""
+    return b4_file, b11_file, mda_file, sza_file
+
+
 class TestOLITIRSL1:
     """Test generic image reader."""
 
-    def setup_method(self):
-        """Create temporary images and metadata to test on."""
-        import tempfile
-        from datetime import datetime, timezone
-
-        from pyresample.geometry import AreaDefinition
-
-        from satpy.scene import Scene
-
-        self.date = datetime(2024, 5, 12, tzinfo=timezone.utc)
-
+    def setup_method(self, tmp_path):
+        """Set up the filename and filetype info dicts.."""
         self.filename_info = dict(observation_date=datetime(2024, 5, 3),
                                   platform_type="L",
                                   process_level_correction="L1TP",
@@ -326,117 +423,25 @@ class TestOLITIRSL1:
                                   data_type="C")
         self.ftype_info = {"file_type": "granule_b04"}
 
-        # Create area definition
-        pcs_id = "WGS 84 / UTM zone 40N"
-        proj4_dict = {"proj": "utm", "zone": 40, "datum": "WGS84", "units": "m", "no_defs": None, "type": "crs"}
-        self.x_size = 100
-        self.y_size = 100
-        area_extent = (619485., 2440485., 850515., 2675715.)
-        self.area_def = AreaDefinition("geotiff_area", pcs_id, pcs_id,
-                                       proj4_dict, self.x_size, self.y_size,
-                                       area_extent)
-
-        # Create datasets for L, LA, RGB and RGBA mode images
-        self.test_data__1 = da.random.randint(12000, 16000,
-                                              size=(self.y_size, self.x_size),
-                                              chunks=(50, 50)).astype(np.uint16)
-        self.test_data__2 = da.random.randint(8000, 14000,
-                                              size=(self.y_size, self.x_size),
-                                              chunks=(50, 50)).astype(np.uint16)
-        self.test_data__3 = da.random.randint(1, 10000,
-                                              size=(self.y_size, self.x_size),
-                                              chunks=(50, 50)).astype(np.uint16)
-
-        ds_b4 = xr.DataArray(self.test_data__1,
-                             dims=("y", "x"),
-                             attrs={"name": "b04",
-                                    "start_time": self.date})
-
-        ds_b11 = xr.DataArray(self.test_data__2,
-                              dims=("y", "x"),
-                              attrs={"name": "b04",
-                                     "start_time": self.date})
-
-        ds_sza = xr.DataArray(self.test_data__3,
-                              dims=("y", "x"),
-                              attrs={"name": "sza",
-                                     "start_time": self.date})
-
-        # Temp dir for the saved images
-        self.base_dir = tempfile.mkdtemp()
-
-        # Filenames to be used during testing
-        self.fnames = [f"{self.base_dir}/LC08_L1GT_026200_20240502_20240513_02_T2_B4.TIF",
-                       f"{self.base_dir}/LC08_L1GT_026200_20240502_20240513_02_T2_B11.TIF",
-                       f"{self.base_dir}/LC08_L1GT_026200_20240502_20240513_02_T2_MTL.xml",
-                       f"{self.base_dir}/LC08_L1GT_026200_20240502_20240513_02_T2_SZA.TIF"]
-
-        self.bad_fname_plat = self.fnames[0].replace("LC08", "BC08")
-        self.bad_fname_plat2 = self.fnames[2].replace("LC08", "BC08")
-
-        self.bad_fname_chan = self.fnames[0].replace("B4", "B5")
-
-        # Put the datasets to Scene for easy saving
-        scn = Scene()
-        scn["b4"] = ds_b4
-        scn["b4"].attrs["area"] = self.area_def
-        scn["b11"] = ds_b11
-        scn["b11"].attrs["area"] = self.area_def
-        scn["sza"] = ds_sza
-        scn["sza"].attrs["area"] = self.area_def
-
-        # Save the images.  Two images in PNG and two in GeoTIFF
-        scn.save_dataset("b4", writer="geotiff", enhance=False, fill_value=0,
-                         filename=os.path.join(self.base_dir, self.fnames[0]))
-        scn.save_dataset("b11", writer="geotiff", enhance=False, fill_value=0,
-                         filename=os.path.join(self.base_dir, self.fnames[1]))
-        scn.save_dataset("sza", writer="geotiff", enhance=False, fill_value=0,
-                         filename=os.path.join(self.base_dir, self.fnames[3]))
-
-        scn.save_dataset("b4", writer="geotiff", enhance=False, fill_value=0,
-                         filename=self.bad_fname_plat)
-        scn.save_dataset("b4", writer="geotiff", enhance=False, fill_value=0,
-                         filename=self.bad_fname_chan)
-
-        # Write the metadata to a file
-        with open(os.path.join(self.base_dir, self.fnames[2]), "wb") as f:
-            f.write(metadata_text)
-        with open(self.bad_fname_plat2, "wb") as f:
-            f.write(metadata_text)
-
-        self.scn = scn
-
-    def teardown_module(self):
-        """Remove the temporary directory created for a test."""
-        try:
-            import shutil
-            shutil.rmtree(self.base_dir, ignore_errors=True)
-        except OSError:
-            pass
-
-    def test_basicload(self):
+    def test_basicload(self, l1_area, b4_file, b11_file, mda_file):
         """Test loading a Landsat Scene."""
-        from satpy import Scene
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=[self.fnames[0],
-                                                         self.fnames[1],
-                                                         self.fnames[2]])
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file,
+                                                         b11_file,
+                                                         mda_file])
         scn.load(["b04", "b11"])
 
         # Check dataset is loaded correctly
         assert scn["b04"].shape == (100, 100)
-        assert scn["b04"].attrs["area"] == self.area_def
+        assert scn["b04"].attrs["area"] == l1_area
         assert scn["b04"].attrs["saturated"]
         assert scn["b11"].shape == (100, 100)
-        assert scn["b11"].attrs["area"] == self.area_def
+        assert scn["b11"].attrs["area"] == l1_area
         with pytest.raises(KeyError, match="saturated"):
             assert not scn["b11"].attrs["saturated"]
 
-    def test_ch_startend(self):
+    def test_ch_startend(self, b4_file, sza_file, mda_file):
         """Test correct retrieval of start/end times."""
-        from datetime import datetime, timezone
-
-        from satpy import Scene
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=[self.fnames[0], self.fnames[3], self.fnames[2]])
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file, sza_file, mda_file])
         bnds = scn.available_dataset_names()
         assert bnds == ["b04", "solar_zenith_angle"]
 
@@ -444,47 +449,47 @@ class TestOLITIRSL1:
         assert scn.start_time == datetime(2024, 5, 2, 18, 0, 24, tzinfo=timezone.utc)
         assert scn.end_time == datetime(2024, 5, 2, 18, 0, 24, tzinfo=timezone.utc)
 
-    def test_loading_gd(self):
+    def test_loading_gd(self, mda_file, b4_file):
         """Test loading a Landsat Scene with good channel requests."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
-        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
-        rdr = OLITIRSCHReader(self.fnames[0], self.filename_info, self.ftype_info, good_mda)
+        good_mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        rdr = OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
         rdr.get_dataset({"name": "b04", "calibration": "counts"}, {"standard_name": "test_data", "units": "test_units"})
 
-    def test_loading_badfil(self):
+    def test_loading_badfil(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
-        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
-        rdr = OLITIRSCHReader(self.fnames[0], self.filename_info, self.ftype_info, good_mda)
+        good_mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        rdr = OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
         # Check case with request to load channel not matching filename
         with pytest.raises(ValueError, match="Requested channel b05 does not match the reader channel b04"):
             rdr.get_dataset({"name": "b05", "calibration": "counts"}, ftype)
 
-    def test_loading_badchan(self):
+    def test_loading_badchan(self, mda_file, b11_file):
         """Test loading a Landsat Scene with bad channel requests."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
-        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
+        good_mda = OLITIRSMDReader(mda_file, self.filename_info, {})
         ftype = {"standard_name": "test_data", "units": "test_units"}
         bad_finfo = self.filename_info.copy()
         bad_finfo["data_type"] = "T"
 
         # Check loading invalid channel for data type
-        rdr = OLITIRSCHReader(self.fnames[1], bad_finfo, self.ftype_info, good_mda)
+        rdr = OLITIRSCHReader(b11_file, bad_finfo, self.ftype_info, good_mda)
         with pytest.raises(ValueError, match="Requested channel b04 is not available in this granule"):
             rdr.get_dataset({"name": "b04", "calibration": "counts"}, ftype)
 
         bad_finfo["data_type"] = "O"
         ftype_b11 = self.ftype_info.copy()
         ftype_b11["file_type"] = "granule_b11"
-        rdr = OLITIRSCHReader(self.fnames[1], bad_finfo, ftype_b11, good_mda)
+        rdr = OLITIRSCHReader(b11_file, bad_finfo, ftype_b11, good_mda)
         with pytest.raises(ValueError, match="Requested channel b11 is not available in this granule"):
             rdr.get_dataset({"name": "b11", "calibration": "counts"}, ftype)
 
-    def test_badfiles(self):
+    def test_badfiles(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad data."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSCHReader, OLITIRSMDReader
         bad_fname_info = self.filename_info.copy()
@@ -493,43 +498,43 @@ class TestOLITIRSL1:
         ftype = {"standard_name": "test_data", "units": "test_units"}
 
         # Test that metadata reader initialises with correct filename
-        good_mda = OLITIRSMDReader(self.fnames[2], self.filename_info, ftype)
+        good_mda = OLITIRSMDReader(mda_file, self.filename_info, ftype)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            OLITIRSMDReader(self.fnames[2], bad_fname_info, ftype)
+            OLITIRSMDReader(mda_file, bad_fname_info, ftype)
 
         # Test that metadata reader initialises with correct filename
-        OLITIRSCHReader(self.fnames[0], self.filename_info, self.ftype_info, good_mda)
+        OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            OLITIRSCHReader(self.fnames[0], bad_fname_info, self.ftype_info, good_mda)
+            OLITIRSCHReader(b4_file, bad_fname_info, self.ftype_info, good_mda)
         bad_ftype_info = self.ftype_info.copy()
         bad_ftype_info["file_type"] = "granule-b05"
         with pytest.raises(ValueError, match="Invalid file type: granule-b05"):
-            OLITIRSCHReader(self.fnames[0], self.filename_info, bad_ftype_info, good_mda)
+            OLITIRSCHReader(b4_file, self.filename_info, bad_ftype_info, good_mda)
 
-    def test_calibration_counts(self):
+    def test_calibration_counts(self, all_files, b4_data, b11_data):
         """Test counts calibration mode for the reader."""
         from satpy import Scene
 
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
         scn.load(["b04", "b11"], calibration="counts")
-        np.testing.assert_allclose(scn["b04"].values, self.test_data__1)
-        np.testing.assert_allclose(scn["b11"].values, self.test_data__2)
+        np.testing.assert_allclose(scn["b04"].values, b4_data)
+        np.testing.assert_allclose(scn["b11"].values, b11_data)
         assert scn["b04"].attrs["units"] == "1"
         assert scn["b11"].attrs["units"] == "1"
         assert scn["b04"].attrs["standard_name"] == "counts"
         assert scn["b11"].attrs["standard_name"] == "counts"
 
-    def test_calibration_radiance(self):
+    def test_calibration_radiance(self, all_files, b4_data, b11_data):
         """Test radiance calibration mode for the reader."""
         from satpy import Scene
-        exp_b04 = (self.test_data__1 * 0.0098329 - 49.16426).astype(np.float32)
-        exp_b11 = (self.test_data__2 * 0.0003342 + 0.100000).astype(np.float32)
+        exp_b04 = (b4_data * 0.0098329 - 49.16426).astype(np.float32)
+        exp_b11 = (b11_data * 0.0003342 + 0.100000).astype(np.float32)
 
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
         scn.load(["b04", "b11"], calibration="radiance")
         assert scn["b04"].attrs["units"] == "W m-2 um-1 sr-1"
         assert scn["b11"].attrs["units"] == "W m-2 um-1 sr-1"
@@ -538,13 +543,13 @@ class TestOLITIRSL1:
         np.testing.assert_allclose(scn["b04"].values, exp_b04, rtol=1e-4)
         np.testing.assert_allclose(scn["b11"].values, exp_b11, rtol=1e-4)
 
-    def test_calibration_highlevel(self):
+    def test_calibration_highlevel(self, all_files, b4_data, b11_data):
         """Test high level calibration modes for the reader."""
         from satpy import Scene
-        exp_b04 = (self.test_data__1 * 2e-05 - 0.1).astype(np.float32) * 100
-        exp_b11 = (self.test_data__2 * 0.0003342 + 0.100000)
+        exp_b04 = (b4_data * 2e-05 - 0.1).astype(np.float32) * 100
+        exp_b11 = (b11_data * 0.0003342 + 0.100000)
         exp_b11 = (1201.1442 / np.log((480.8883 / exp_b11) + 1)).astype(np.float32)
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
         scn.load(["b04", "b11"])
 
         assert scn["b04"].attrs["units"] == "%"
@@ -554,24 +559,24 @@ class TestOLITIRSL1:
         np.testing.assert_allclose(np.array(scn["b04"].values), np.array(exp_b04), rtol=1e-4)
         np.testing.assert_allclose(scn["b11"].values, exp_b11, rtol=1e-6)
 
-    def test_angles(self):
+    def test_angles(self, all_files, sza_data):
         """Test calibration modes for the reader."""
         from satpy import Scene
 
         # Check angles are calculated correctly
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=self.fnames)
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
         scn.load(["solar_zenith_angle"])
         assert scn["solar_zenith_angle"].attrs["units"] == "degrees"
         assert scn["solar_zenith_angle"].attrs["standard_name"] == "solar_zenith_angle"
         np.testing.assert_allclose(scn["solar_zenith_angle"].values * 100,
-                                   np.array(self.test_data__3),
+                                   np.array(sza_data),
                                    atol=0.01,
                                    rtol=1e-3)
 
-    def test_metadata(self):
+    def test_metadata(self, mda_file):
         """Check that metadata values loaded correctly."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSMDReader
-        mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
+        mda = OLITIRSMDReader(mda_file, self.filename_info, {})
 
         cal_test_dict = {"b01": (0.012357, -61.78647, 2e-05, -0.1),
                          "b05": (0.0060172, -30.08607, 2e-05, -0.1),
@@ -588,10 +593,10 @@ class TestOLITIRSL1:
         with pytest.raises(KeyError):
             mda.band_saturation["b10"]
 
-    def test_area_def(self):
+    def test_area_def(self, mda_file):
         """Check we can get the area defs properly."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSMDReader
-        mda = OLITIRSMDReader(self.fnames[2], self.filename_info, {})
+        mda = OLITIRSMDReader(mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("b01")
         pan_area = mda.build_area_def("b08")
