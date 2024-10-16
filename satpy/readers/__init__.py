@@ -597,7 +597,7 @@ def _get_reader_instance(reader, reader_configs, idx, reader_kwargs):
     except (KeyError, IOError) as err:
         LOG.info("Cannot use %s", str(reader_configs))
         LOG.debug(str(err))
-    except yaml.YAMLError as err:
+    except yaml.constructor.ConstructorError as err:
         _log_yaml_error(reader_configs, err)
 
     return reader_instance

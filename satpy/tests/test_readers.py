@@ -455,7 +455,7 @@ class TestReaderLoader(unittest.TestCase):
 
         filenames = ["AVHR_xxx_1B_M01_20241015100703Z_20241015114603Z_N_O_20241015105547Z.nat"]
         error_message = "YAML test error message"
-        load_reader.side_effect = yaml.YAMLError(error_message)
+        load_reader.side_effect = yaml.constructor.ConstructorError(error_message)
 
         with self._caplog.at_level(logging.ERROR):
             with pytest.raises(ValueError, match="No supported files found"):
