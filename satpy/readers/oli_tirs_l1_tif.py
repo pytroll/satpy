@@ -34,10 +34,8 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
-CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORMS = {"08": "Landsat-8",
              "09": "Landsat-9"}
@@ -111,11 +109,11 @@ class OLITIRSCHReader(BaseFileHandler):
 
         logger.debug("Reading %s.", key["name"])
 
-        data = xr.open_dataset(self.filename, engine="rasterio",
-                               chunks={"band": 1,
-                                       "y": CHUNK_SIZE,
-                                       "x": CHUNK_SIZE},
-                               mask_and_scale=False)["band_data"].squeeze()
+        data = xr.open_dataarray(self.filename, engine="rasterio",
+                                 chunks={"band": 1,
+                                         "y": "auto",
+                                         "x": "auto"},
+                                 mask_and_scale=False).squeeze()
 
 
         # The fill value for Landsat is '0', for calibration simplicity convert it to np.nan
