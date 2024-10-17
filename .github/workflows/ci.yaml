@@ -24,9 +24,6 @@ jobs:
           - python-version: "3.12"
             os: "ubuntu-latest"
             experimental: true
-          - python-version: "3.13"
-            os: "ubuntu-latest"
-            experimental: true
 
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
