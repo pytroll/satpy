@@ -41,7 +41,6 @@ jobs:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           activate-environment: test-environment
-          mamba-version: "*"
           channels: conda-forge
 
       - name: Set cache environment variables
