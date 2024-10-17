@@ -225,7 +225,7 @@ datasets:
     resolution: 500
     coordinates: [longitude, latitude]
     file_type: msi_l1c_earthcare_rgr
-    file_key: NonStandard/sensor_view_angle
+    file_key: ScienceData/sensor_view_angle
   solar_zenith_angle:
     name: solar_zenith_angle
     units: degrees
@@ -233,7 +233,7 @@ datasets:
     resolution: 500
     coordinates: [longitude, latitude]
     file_type: msi_l1c_earthcare_rgr
-    file_key: NonStandard/solar_zenith_angle
+    file_key: ScienceData/solar_zenith_angle
 
 # Ancillary data
   land_flag:
@@ -259,4 +259,4 @@ datasets:
     resolution: 500
     coordinates: [longitude, latitude]
     file_type: msi_l1c_earthcare_rgr
-    file_key: NonStandard/surface_index
+    file_key: ScienceData/surface_index
