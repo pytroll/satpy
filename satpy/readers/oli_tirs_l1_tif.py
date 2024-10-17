@@ -40,9 +40,9 @@ logger = logging.getLogger(__name__)
 PLATFORMS = {"08": "Landsat-8",
              "09": "Landsat-9"}
 
-OLI_BANDLIST = ["b01", "b02", "b03", "b04", "b05", "b06", "b07", "b08", "b09"]
-TIRS_BANDLIST = ["b10", "b11"]
-PAN_BANDLIST = ["b08"]
+OLI_BANDLIST = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"]
+TIRS_BANDLIST = ["B10", "B11"]
+PAN_BANDLIST = ["B8"]
 ANGLIST = ["satellite_azimuth_angle",
            "satellite_zenith_angle",
            "solar_azimuth_angle",
@@ -235,7 +235,7 @@ class OLITIRSMDReader(BaseFileHandler):
         """Return per-band saturation flag."""
         bdict = {}
         for i in range(1, 10):
-            bdict[f"b{i:02d}"] = self._get_satflag(i)
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
 
         return bdict
 
@@ -264,9 +264,9 @@ class OLITIRSMDReader(BaseFileHandler):
         """Return per-band saturation flag."""
         bdict = {}
         for i in range(1, 10):
-            bdict[f"b{i:02d}"] = self._get_band_viscal(i)
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
         for i in range(10, 12):
-            bdict[f"b{i:02d}"] = self._get_band_tircal(i)
+            bdict[f"B{i:02d}"] = self._get_band_tircal(i)
 
         return bdict
 

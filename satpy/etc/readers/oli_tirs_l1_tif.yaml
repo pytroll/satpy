@@ -11,58 +11,58 @@ reader:
 
 file_types:
     # Bands on the OLI subsystem
-    granule_b01:
+    granule_B1:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B1.TIF']
         requires: [l1_metadata]
 
-    granule_b02:
+    granule_B2:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B2.TIF']
         requires: [l1_metadata]
 
-    granule_b03:
+    granule_B3:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B3.TIF']
         requires: [l1_metadata]
 
-    granule_b04:
+    granule_B4:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B4.TIF']
         requires: [l1_metadata]
 
-    granule_b05:
+    granule_B5:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B5.TIF']
         requires: [l1_metadata]
 
-    granule_b06:
+    granule_B6:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B6.TIF']
         requires: [l1_metadata]
 
-    granule_b07:
+    granule_B7:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B7.TIF']
         requires: [l1_metadata]
 
-    granule_b08:
+    granule_B8:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B8.TIF']
         requires: [l1_metadata]
 
-    granule_b09:
+    granule_B9:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B9.TIF']
         requires: [l1_metadata]
 
     # Bands on the TIRS subsystem
-    granule_b10:
+    granule_B10:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B10.TIF']
         requires: [l1_metadata]
 
-    granule_b11:
+    granule_B11:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_B11.TIF']
         requires: [l1_metadata]
@@ -100,8 +100,8 @@ file_types:
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_MTL.xml']
 
 datasets:
-  b01:
-    name: b01
+  B1:
+    name: B1
     sensor: oli_tirs
     wavelength: [0.433, 0.443, 0.453]
     resolution: 30
@@ -115,10 +115,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b01
+    file_type: granule_B1
 
-  b02:
-    name: b02
+  B2:
+    name: B2
     sensor: oli_tirs
     wavelength: [0.450, 0.482, 0.515]
     resolution: 30
@@ -132,10 +132,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b02
+    file_type: granule_B2
 
-  b03:
-    name: b03
+  B3:
+    name: B3
     sensor: oli_tirs
     wavelength: [0.525, 0.565, 0.600]
     resolution: 30
@@ -149,10 +149,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b03
+    file_type: granule_B3
 
-  b04:
-    name: b04
+  B4:
+    name: B4
     sensor: oli_tirs
     wavelength: [0.630, 0.660, 0.680]
     resolution: 30
@@ -166,10 +166,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b04
+    file_type: granule_B4
 
-  b05:
-    name: b05
+  B5:
+    name: B5
     sensor: oli_tirs
     wavelength: [0.845, 0.867, 0.885]
     resolution: 30
@@ -183,10 +183,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b05
+    file_type: granule_B5
 
-  b06:
-    name: b06
+  B6:
+    name: B6
     sensor: oli_tirs
     wavelength: [1.560, 1.650, 1.660]
     resolution: 30
@@ -200,10 +200,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b06
+    file_type: granule_B6
 
-  b07:
-    name: b07
+  B7:
+    name: B7
     sensor: oli_tirs
     wavelength: [2.100, 2.215, 2.300]
     resolution: 30
@@ -217,10 +217,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b07
+    file_type: granule_B7
 
-  b08:
-    name: b08
+  B8:
+    name: B8
     sensor: oli_tirs
     wavelength: [0.500, 0.579, 0.680]
     resolution: 15
@@ -234,10 +234,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b08
+    file_type: granule_B8
 
-  b09:
-    name: b09
+  B9:
+    name: B9
     sensor: oli_tirs
     wavelength: [1.360, 1.373, 1.390]
     resolution: 30
@@ -251,11 +251,11 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b09
+    file_type: granule_B9
 
   # Channels on the TIRS instrument
-  b10:
-    name: b10
+  B10:
+    name: B10
     sensor: oli_tirs
     wavelength: [10.6, 10.888, 11.19]
     resolution: 30
@@ -269,10 +269,10 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b10
+    file_type: granule_B10
 
-  b11:
-    name: b11
+  B11:
+    name: B11
     sensor: oli_tirs
     wavelength: [11.5, 11.981, 12.51]
     resolution: 30
@@ -286,7 +286,7 @@ datasets:
       counts:
         standard_name: counts
         units: "1"
-    file_type: granule_b11
+    file_type: granule_B11
 
   # QA Variables
   qa:
