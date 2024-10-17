@@ -51,7 +51,7 @@ import rioxarray  # noqa F401  # xarray open_dataset use engine rasterio, which 
 import xarray as xr
 from dask import array as da
 from geotiepoints.geointerpolator import lonlat2xyz, xyz2lonlat
-from geotiepoints.interpolator import MultipleGridInterpolator
+from geotiepoints.interpolator import MultipleSplineInterpolator
 from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
@@ -636,10 +636,13 @@ class SAFEGRD(BaseFileHandler):
 
         fine_points = [np.arange(size) for size in shape]
         x, y, z = lonlat2xyz(gcp_lons, gcp_lats)
-        interpolator = MultipleGridInterpolator((ypoints, xpoints), x, y, z, gcp_alts)
-        hx, hy, hz, altitudes = interpolator.interpolate(fine_points, method="cubic", chunks=self.chunks)
-        longitudes, latitudes = xyz2lonlat(hx, hy, hz)
 
+
+        interpolator = MultipleSplineInterpolator((ypoints, xpoints), x, y, z, gcp_alts, kx=2, ky=2)
+        hx, hy, hz, altitudes = interpolator.interpolate(fine_points, chunks=self.chunks)
+
+
+        longitudes, latitudes = xyz2lonlat(hx, hy, hz)
         altitudes = xr.DataArray(altitudes, dims=["y", "x"])
         longitudes = xr.DataArray(longitudes, dims=["y", "x"])
         latitudes = xr.DataArray(latitudes, dims=["y", "x"])
