@@ -234,7 +234,6 @@ class TestSAFEGRD:
         """Test reading lons and lats."""
         query = DataQuery(name="longitude", polarization="vv")
         xarr = measurement_filehandler.get_dataset(query, info=dict())
-        expected = expected_longitudes
         np.testing.assert_allclose(xarr.values, expected_longitudes)
         assert xarr.dtype == np.float64
         assert xarr.compute().dtype == np.float64
