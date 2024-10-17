@@ -373,7 +373,7 @@ def b4_file(l1_files_path, b4_data, l1_area):
     """Create the file for the b4 channel."""
     data = b4_data
     filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B4.TIF"
-    name = "b04"
+    name = "B4"
     create_tif_file(data, name, l1_area, filename)
     return os.fspath(filename)
 
@@ -382,7 +382,7 @@ def b11_file(l1_files_path, b11_data, l1_area):
     """Create the file for the b11 channel."""
     data = b11_data
     filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B11.TIF"
-    name = "b11"
+    name = "B11"
     create_tif_file(data, name, l1_area, filename)
     return os.fspath(filename)
 
@@ -421,31 +421,31 @@ class TestOLITIRSL1:
                                   process_level_correction="L1TP",
                                   spacecraft_id="08",
                                   data_type="C")
-        self.ftype_info = {"file_type": "granule_b04"}
+        self.ftype_info = {"file_type": "granule_B4"}
 
     def test_basicload(self, l1_area, b4_file, b11_file, mda_file):
         """Test loading a Landsat Scene."""
         scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file,
                                                          b11_file,
                                                          mda_file])
-        scn.load(["b04", "b11"])
+        scn.load(["B4", "B11"])
 
         # Check dataset is loaded correctly
-        assert scn["b04"].shape == (100, 100)
-        assert scn["b04"].attrs["area"] == l1_area
-        assert scn["b04"].attrs["saturated"]
-        assert scn["b11"].shape == (100, 100)
-        assert scn["b11"].attrs["area"] == l1_area
+        assert scn["B4"].shape == (100, 100)
+        assert scn["B4"].attrs["area"] == l1_area
+        assert scn["B4"].attrs["saturated"]
+        assert scn["B11"].shape == (100, 100)
+        assert scn["B11"].attrs["area"] == l1_area
         with pytest.raises(KeyError, match="saturated"):
-            assert not scn["b11"].attrs["saturated"]
+            assert not scn["B11"].attrs["saturated"]
 
     def test_ch_startend(self, b4_file, sza_file, mda_file):
         """Test correct retrieval of start/end times."""
         scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file, sza_file, mda_file])
         bnds = scn.available_dataset_names()
-        assert bnds == ["b04", "solar_zenith_angle"]
+        assert bnds == ["B4", "solar_zenith_angle"]
 
-        scn.load(["b04"])
+        scn.load(["B4"])
         assert scn.start_time == datetime(2024, 5, 2, 18, 0, 24, tzinfo=timezone.utc)
         assert scn.end_time == datetime(2024, 5, 2, 18, 0, 24, tzinfo=timezone.utc)
 
@@ -456,7 +456,7 @@ class TestOLITIRSL1:
         rdr = OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
-        rdr.get_dataset({"name": "b04", "calibration": "counts"}, {"standard_name": "test_data", "units": "test_units"})
+        rdr.get_dataset({"name": "B4", "calibration": "counts"}, {"standard_name": "test_data", "units": "test_units"})
 
     def test_loading_badfil(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
@@ -466,8 +466,8 @@ class TestOLITIRSL1:
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
         # Check case with request to load channel not matching filename
-        with pytest.raises(ValueError, match="Requested channel b05 does not match the reader channel b04"):
-            rdr.get_dataset({"name": "b05", "calibration": "counts"}, ftype)
+        with pytest.raises(ValueError, match="Requested channel B5 does not match the reader channel B4"):
+            rdr.get_dataset({"name": "B5", "calibration": "counts"}, ftype)
 
     def test_loading_badchan(self, mda_file, b11_file):
         """Test loading a Landsat Scene with bad channel requests."""
@@ -479,15 +479,15 @@ class TestOLITIRSL1:
 
         # Check loading invalid channel for data type
         rdr = OLITIRSCHReader(b11_file, bad_finfo, self.ftype_info, good_mda)
-        with pytest.raises(ValueError, match="Requested channel b04 is not available in this granule"):
-            rdr.get_dataset({"name": "b04", "calibration": "counts"}, ftype)
+        with pytest.raises(ValueError, match="Requested channel B4 is not available in this granule"):
+            rdr.get_dataset({"name": "B4", "calibration": "counts"}, ftype)
 
         bad_finfo["data_type"] = "O"
         ftype_b11 = self.ftype_info.copy()
-        ftype_b11["file_type"] = "granule_b11"
+        ftype_b11["file_type"] = "granule_B11"
         rdr = OLITIRSCHReader(b11_file, bad_finfo, ftype_b11, good_mda)
-        with pytest.raises(ValueError, match="Requested channel b11 is not available in this granule"):
-            rdr.get_dataset({"name": "b11", "calibration": "counts"}, ftype)
+        with pytest.raises(ValueError, match="Requested channel B11 is not available in this granule"):
+            rdr.get_dataset({"name": "B11", "calibration": "counts"}, ftype)
 
     def test_badfiles(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad data."""
@@ -520,13 +520,13 @@ class TestOLITIRSL1:
         from satpy import Scene
 
         scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
-        scn.load(["b04", "b11"], calibration="counts")
-        np.testing.assert_allclose(scn["b04"].values, b4_data)
-        np.testing.assert_allclose(scn["b11"].values, b11_data)
-        assert scn["b04"].attrs["units"] == "1"
-        assert scn["b11"].attrs["units"] == "1"
-        assert scn["b04"].attrs["standard_name"] == "counts"
-        assert scn["b11"].attrs["standard_name"] == "counts"
+        scn.load(["B4", "B11"], calibration="counts")
+        np.testing.assert_allclose(scn["B4"].values, b4_data)
+        np.testing.assert_allclose(scn["B11"].values, b11_data)
+        assert scn["B4"].attrs["units"] == "1"
+        assert scn["B11"].attrs["units"] == "1"
+        assert scn["B4"].attrs["standard_name"] == "counts"
+        assert scn["B11"].attrs["standard_name"] == "counts"
 
     def test_calibration_radiance(self, all_files, b4_data, b11_data):
         """Test radiance calibration mode for the reader."""
@@ -535,13 +535,13 @@ class TestOLITIRSL1:
         exp_b11 = (b11_data * 0.0003342 + 0.100000).astype(np.float32)
 
         scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
-        scn.load(["b04", "b11"], calibration="radiance")
-        assert scn["b04"].attrs["units"] == "W m-2 um-1 sr-1"
-        assert scn["b11"].attrs["units"] == "W m-2 um-1 sr-1"
-        assert scn["b04"].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
-        assert scn["b11"].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
-        np.testing.assert_allclose(scn["b04"].values, exp_b04, rtol=1e-4)
-        np.testing.assert_allclose(scn["b11"].values, exp_b11, rtol=1e-4)
+        scn.load(["B4", "B11"], calibration="radiance")
+        assert scn["B4"].attrs["units"] == "W m-2 um-1 sr-1"
+        assert scn["B11"].attrs["units"] == "W m-2 um-1 sr-1"
+        assert scn["B4"].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
+        assert scn["B11"].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
+        np.testing.assert_allclose(scn["B4"].values, exp_b04, rtol=1e-4)
+        np.testing.assert_allclose(scn["B11"].values, exp_b11, rtol=1e-4)
 
     def test_calibration_highlevel(self, all_files, b4_data, b11_data):
         """Test high level calibration modes for the reader."""
@@ -550,14 +550,14 @@ class TestOLITIRSL1:
         exp_b11 = (b11_data * 0.0003342 + 0.100000)
         exp_b11 = (1201.1442 / np.log((480.8883 / exp_b11) + 1)).astype(np.float32)
         scn = Scene(reader="oli_tirs_l1_tif", filenames=all_files)
-        scn.load(["b04", "b11"])
+        scn.load(["B4", "B11"])
 
-        assert scn["b04"].attrs["units"] == "%"
-        assert scn["b11"].attrs["units"] == "K"
-        assert scn["b04"].attrs["standard_name"] == "toa_bidirectional_reflectance"
-        assert scn["b11"].attrs["standard_name"] == "brightness_temperature"
-        np.testing.assert_allclose(np.array(scn["b04"].values), np.array(exp_b04), rtol=1e-4)
-        np.testing.assert_allclose(scn["b11"].values, exp_b11, rtol=1e-6)
+        assert scn["B4"].attrs["units"] == "%"
+        assert scn["B11"].attrs["units"] == "K"
+        assert scn["B4"].attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert scn["B11"].attrs["standard_name"] == "brightness_temperature"
+        np.testing.assert_allclose(np.array(scn["B4"].values), np.array(exp_b04), rtol=1e-4)
+        np.testing.assert_allclose(scn["B11"].values, exp_b11, rtol=1e-6)
 
     def test_angles(self, all_files, sza_data):
         """Test calibration modes for the reader."""
@@ -578,28 +578,28 @@ class TestOLITIRSL1:
         from satpy.readers.oli_tirs_l1_tif import OLITIRSMDReader
         mda = OLITIRSMDReader(mda_file, self.filename_info, {})
 
-        cal_test_dict = {"b01": (0.012357, -61.78647, 2e-05, -0.1),
-                         "b05": (0.0060172, -30.08607, 2e-05, -0.1),
-                         "b10": (0.0003342, 0.1, 774.8853, 1321.0789)}
+        cal_test_dict = {"B1": (0.012357, -61.78647, 2e-05, -0.1),
+                         "B5": (0.0060172, -30.08607, 2e-05, -0.1),
+                         "B10": (0.0003342, 0.1, 774.8853, 1321.0789)}
 
         assert mda.platform_name == "Landsat-8"
         assert mda.earth_sun_distance() == 1.0079981
-        assert mda.band_calibration["b01"] == cal_test_dict["b01"]
-        assert mda.band_calibration["b05"] == cal_test_dict["b05"]
-        assert mda.band_calibration["b10"] == cal_test_dict["b10"]
-        assert not mda.band_saturation["b01"]
-        assert mda.band_saturation["b04"]
-        assert not mda.band_saturation["b05"]
+        assert mda.band_calibration["B1"] == cal_test_dict["B1"]
+        assert mda.band_calibration["B5"] == cal_test_dict["B5"]
+        assert mda.band_calibration["B10"] == cal_test_dict["B10"]
+        assert not mda.band_saturation["B1"]
+        assert mda.band_saturation["B4"]
+        assert not mda.band_saturation["B5"]
         with pytest.raises(KeyError):
-            mda.band_saturation["b10"]
+            mda.band_saturation["B10"]
 
     def test_area_def(self, mda_file):
         """Check we can get the area defs properly."""
         from satpy.readers.oli_tirs_l1_tif import OLITIRSMDReader
         mda = OLITIRSMDReader(mda_file, self.filename_info, {})
 
-        standard_area = mda.build_area_def("b01")
-        pan_area = mda.build_area_def("b08")
+        standard_area = mda.build_area_def("B1")
+        pan_area = mda.build_area_def("B8")
 
         assert standard_area.area_extent == (619485.0, 2440485.0, 850515.0, 2675715.0)
         assert pan_area.area_extent == (619492.5, 2440492.5, 850507.5, 2675707.5)
