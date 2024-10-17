@@ -711,3 +711,15 @@ class TestTCREnhancement:
         img = XRImage(self.rgb)
         with pytest.raises(KeyError, match="No conversion matrix found for platform Fakesat"):
             jma_true_color_reproduction(img)
+
+
+def test_no_op_enhancement():
+    """Test the no-op enhancement."""
+    from satpy.enhancements import no_op
+
+    data = da.arange(-100, 1000, 110).reshape(2, 5)
+    rgb_data = np.stack([data, data, data])
+    rgb = xr.DataArray(rgb_data, dims=("bands", "y", "x"),
+                       coords={"bands": ["R", "G", "B"]},
+                       attrs={"platform_name": "Himawari-8"})
+    assert no_op(rgb) is rgb.data
