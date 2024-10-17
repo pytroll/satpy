@@ -456,10 +456,10 @@ class TestColormapLoading:
         """Test that colors can be a list/tuple."""
         from satpy.enhancements import create_colormap
         colors = [
-            [0, 0, 1],
-            [1, 0, 1],
-            [0, 1, 1],
-            [1, 1, 1],
+            [0., 0., 1.],
+            [1., 0., 1.],
+            [0., 1., 1.],
+            [1., 1., 1.],
         ]
         values = [2, 4, 6, 8]
         cmap = create_colormap({"colors": colors, "color_scale": 1})
