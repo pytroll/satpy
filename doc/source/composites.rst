@@ -579,8 +579,9 @@ the file) as::
    default apply the :func:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
    cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
    are enhancing a composite based on :class:`DayNightCompositor` where
-   the components have their own enhancements defined), you need to define
-   an enhancement that does nothing::
+   the components have their own enhancements defined), you can use the `image_ready` standard name.
+   If this is not a suitable standard name, you can also define
+   an enhancement that does nothing:
 
       enhancements:
         day_x:

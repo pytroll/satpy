@@ -653,8 +653,3 @@ def _jma_true_color_reproduction(img_data, platform=None):
 
     output = da.dot(img_data.T, ccm.T)
     return output.T
-
-
-def no_op(img):
-    """Do not do anything to the image."""
-    return img.data

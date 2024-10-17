@@ -1288,6 +1288,4 @@ enhancements:
 
   image_ready:
     standard_name: image_ready
-    operations:
-      - name: no_op
-        method: !!python/name:satpy.enhancements.no_op
+    operations: []
