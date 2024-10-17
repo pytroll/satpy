@@ -95,8 +95,8 @@ class MSIECL1CFileHandler(HDF5FileHandler):
     def _calibrate(self, chan_data, band_index, cal_type):
         """Calibrate the data."""
         if cal_type == "reflectance":
-            sol_irrad = self["NonStandard/solar_irradiance"]
-            chan_data.data = chan_data.data * 100. * np.pi / float(sol_irrad[band_index])
+            sol_irrad = self["ScienceData/solar_spectral_irradiance"]
+            chan_data.data = chan_data.data * 100. * np.pi / sol_irrad[band_index].data.reshape((1, sol_irrad.shape[1]))
             return chan_data
 
         return chan_data
