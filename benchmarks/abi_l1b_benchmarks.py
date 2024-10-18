@@ -43,7 +43,7 @@ class ABIL1B(GeoBenchmarks):
             if len(get_filenames(self.subdir)) != 16:
                 raise RuntimeError("Existing data files do not match the expected number of files.")
         download_rsr()
-        download_luts(aerosol_type="rayleigh_only")
+        download_luts(aerosol_types=["rayleigh_only"])
 
     def setup(self):
         """Set up the benchmarks."""
