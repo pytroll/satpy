@@ -601,8 +601,8 @@ class TestDatasetPreprocessor:
                 "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
-                "time": (("y", "x"), [[time, fill_val], [time, time]],
-                         {"_FillValue": fill_val, "add_offset": 0})
+                "time_ir_wv": (("y", "x"), [[time, fill_val], [time, time]],
+                               {"_FillValue": fill_val, "add_offset": 0})
             }
         )
 
@@ -610,7 +610,8 @@ class TestDatasetPreprocessor:
     def fixture_dataset_exp(self):
         """Get expected dataset after preprocessing.
 
-        - Time should have been converted to datetime64
+        - Timestamps should have been converted to datetime64
+        - Time dimension should have been renamed
         - Duplicate dimensions should have been removed
         - x/y coordinates should have been assigned
         """
