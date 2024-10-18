@@ -33,7 +33,7 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
     EQUATOR_RADIUS,
     POLE_RADIUS,
-    DatasetWrapper,
+    DatasetPreprocessor,
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
     Interpolator,
@@ -256,6 +256,7 @@ area_ir_wv_exp = area_vis_exp.copy(
     height=2
 )
 
+
 @pytest.fixture(name="time_fake_dataset")
 def fixture_time_fake_dataset():
     """Create time for fake dataset."""
@@ -265,6 +266,7 @@ def fixture_time_fake_dataset():
     time = time.reshape(2, 2)
 
     return time
+
 
 @pytest.fixture(name="fake_dataset")
 def fixture_fake_dataset(time_fake_dataset):
@@ -385,7 +387,6 @@ def fixture_reader():
 class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
 
-
     @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
     def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
@@ -435,11 +436,8 @@ class TestFiduceoMviriFileHandlers:
 
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
-        # Time may have different names and satellite position might be missing
-        file_handler.nc.nc = file_handler.nc.nc.rename(
-            {"time_ir_wv": "time"}
-        )
-        file_handler.nc.nc = file_handler.nc.nc.drop_vars(
+        # Satellite position might be missing
+        file_handler.nc.ds = file_handler.nc.ds.drop_vars(
             ["sub_satellite_longitude_start"]
         )
 
@@ -564,7 +562,7 @@ class TestFiduceoMviriFileHandlers:
     @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):
         """Test warning about bad VIS quality."""
-        file_handler.nc.nc["quality_pixel_bitmask"] = 2
+        file_handler.nc.ds["quality_pixel_bitmask"] = 2
         vis = make_dataid(name="VIS", resolution=2250,
                           calibration="reflectance")
         with pytest.warns(UserWarning):
@@ -586,8 +584,28 @@ class TestFiduceoMviriFileHandlers:
         assert len(files) == 6
 
 
-class TestDatasetWrapper:
-    """Unit tests for DatasetWrapper class."""
+class DatasetWithCorruptCoordinates:
+    """Replicate a dataset with corrupt coordinates."""
+
+    def __init__(self, ds):
+        """Initialize the dataset."""
+        self.dims = ds.dims
+        self.coords = ds.coords
+        # Now ds["myvar"] doesn't have coords, but they're still in ds.coords
+        self.ds = ds.drop_vars(["y", "x"])
+        self.data_vars = self.ds.data_vars
+
+    def __getitem__(self, item):
+        """Get variable from the dataset."""
+        return self.ds[item]
+
+    def __setitem__(self, key, value):
+        """Set dataset variable."""
+        self.ds[key] = value
+
+
+class TestDatasetPreprocessor:
+    """Test dataset preprocessing."""
 
     def test_fix_duplicate_dimensions(self):
         """Test the renaming of duplicate dimensions.
@@ -595,30 +613,27 @@ class TestDatasetWrapper:
         If duplicate dimensions are within the Dataset, opening the datasets with chunks throws a warning.
         The dimensions need to be renamed.
         """
-        foo_time = 60*60
-        foo_time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
-
-        foo = xr.Dataset(
+        time = 60*60
+        time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
+        ds = xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
-                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time, foo_time], [foo_time, foo_time]],
+                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[time, time], [time, time]],
                                {"_FillValue": fill_val, "add_offset": 0})
                        }
         )
-        foo_ds = DatasetWrapper(foo)
-
-        foo_exp = xr.Dataset(
+        ds_preproc = DatasetPreprocessor().preprocess(ds)
+        ds_exp = xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
-                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time_exp, foo_time_exp], [foo_time_exp, foo_time_exp]])
+                "time": (("y_ir_wv", "x_ir_wv"), [[time_exp, time_exp], [time_exp, time_exp]])
             }
         )
-
-        xr.testing.assert_allclose(foo_ds.nc, foo_exp)
+        xr.testing.assert_allclose(ds_preproc, ds_exp)
 
     def test_reassign_coords(self):
         """Test reassigning of coordinates.
@@ -629,32 +644,18 @@ class TestDatasetWrapper:
         impossible to create (neither dropping, resetting or deleting
         coordinates seems to work). Instead use mock as a workaround.
         """
-        nc = mock.MagicMock(
+        myvar = xr.DataArray(
+            [[1, 2], [3, 4]],
             coords={
                 "y": [.1, .2],
                 "x": [.3, .4]
             },
             dims=("y", "x")
         )
-        nc.__getitem__.return_value = xr.DataArray(
-            [[1, 2],
-             [3, 4]],
-            dims=("y", "x")
-        )
-        foo_exp = xr.DataArray(
-            [[1, 2],
-             [3, 4]],
-            dims=("y", "x"),
-            coords={
-                "y": [.1, .2],
-                "x": [.3, .4]
-            }
-        )
-        with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.DatasetWrapper._fix_duplicate_dimensions"):
-           with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.DatasetWrapper._decode_cf"):
-            ds = DatasetWrapper(nc)
-            foo = ds["foo"]
-            xr.testing.assert_equal(foo, foo_exp)
+        ds = DatasetWithCorruptCoordinates(xr.Dataset({"myvar": myvar}))
+        DatasetPreprocessor()._reassign_coords(ds)
+        xr.testing.assert_equal(ds["myvar"], myvar)
+
 
 class TestInterpolator:
     """Unit tests for Interpolator class."""
