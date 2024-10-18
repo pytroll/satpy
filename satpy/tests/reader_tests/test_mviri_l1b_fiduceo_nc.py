@@ -348,28 +348,34 @@ def fixture_projection_longitude(request):
     return request.param
 
 
+@pytest.fixture(name="fake_file")
+def fixture_fake_file(fake_dataset, tmp_path):
+    """Create test file."""
+    filename = tmp_path / "test_mviri_fiduceo.nc"
+    fake_dataset.to_netcdf(filename)
+    return filename
+
+
 @pytest.fixture(
     name="file_handler",
     params=[FiduceoMviriEasyFcdrFileHandler,
             FiduceoMviriFullFcdrFileHandler]
 )
-def fixture_file_handler(fake_dataset, request, projection_longitude):
+def fixture_file_handler(fake_file, request, projection_longitude, tmp_path):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
     if marker:
         mask_bad_quality = marker.kwargs["mask_bad_quality"]
     fh_class = request.param
-    with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.xr.open_dataset") as open_dataset:
-        open_dataset.return_value = fake_dataset
-        return fh_class(
-            filename="filename",
-            filename_info={"platform": "MET7",
-                           "sensor": "MVIRI",
-                           "projection_longitude": projection_longitude},
-            filetype_info={"foo": "bar"},
-            mask_bad_quality=mask_bad_quality
-        )
+    return fh_class(
+        filename=fake_file,
+        filename_info={"platform": "MET7",
+                       "sensor": "MVIRI",
+                       "projection_longitude": projection_longitude},
+        filetype_info={"foo": "bar"},
+        mask_bad_quality=mask_bad_quality
+    )
 
 
 @pytest.fixture(name="reader")
