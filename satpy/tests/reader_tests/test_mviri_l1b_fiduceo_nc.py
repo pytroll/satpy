@@ -584,77 +584,54 @@ class TestFiduceoMviriFileHandlers:
         assert len(files) == 6
 
 
-class DatasetWithCorruptCoordinates:
-    """Replicate a dataset with corrupt coordinates."""
-
-    def __init__(self, ds):
-        """Initialize the dataset."""
-        self.dims = ds.dims
-        self.coords = ds.coords
-        # Now ds["myvar"] doesn't have coords, but they're still in ds.coords
-        self.ds = ds.drop_vars(["y", "x"])
-        self.data_vars = self.ds.data_vars
-
-    def __getitem__(self, item):
-        """Get variable from the dataset."""
-        return self.ds[item]
-
-    def __setitem__(self, key, value):
-        """Set dataset variable."""
-        self.ds[key] = value
-
-
 class TestDatasetPreprocessor:
     """Test dataset preprocessing."""
 
-    def test_fix_duplicate_dimensions(self):
-        """Test the renaming of duplicate dimensions.
+    @pytest.fixture(name="dataset")
+    def fixture_dataset(self):
+        """Get dataset before preprocessing.
 
-        If duplicate dimensions are within the Dataset, opening the datasets with chunks throws a warning.
-        The dimensions need to be renamed.
+        - Encoded timestamps including fill values
+        - Duplicate dimension names
+        - x/y coordinates not assigned
         """
         time = 60*60
-        time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
-        ds = xr.Dataset(
+        return xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
-                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[time, time], [time, time]],
-                               {"_FillValue": fill_val, "add_offset": 0})
-                       }
+                "time": (("y", "x"), [[time, fill_val], [time, time]],
+                         {"_FillValue": fill_val, "add_offset": 0})
+            }
         )
-        ds_preproc = DatasetPreprocessor().preprocess(ds)
-        ds_exp = xr.Dataset(
+
+    @pytest.fixture(name="dataset_exp")
+    def fixture_dataset_exp(self):
+        """Get expected dataset after preprocessing.
+
+        - Time should have been converted to datetime64
+        - Duplicate dimensions should have been removed
+        - x/y coordinates should have been assigned
+        """
+        time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
+        return xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
-                "time": (("y_ir_wv", "x_ir_wv"), [[time_exp, time_exp], [time_exp, time_exp]])
+                "time": (("y", "x"), [[time_exp, np.datetime64("NaT")], [time_exp, time_exp]])
+            },
+            coords={
+                "y": [0, 1],
+                "x": [0, 1]
             }
         )
-        xr.testing.assert_allclose(ds_preproc, ds_exp)
 
-    def test_reassign_coords(self):
-        """Test reassigning of coordinates.
-
-        For some reason xarray does not always assign (y, x) coordinates to
-        the high resolution datasets, although they have dimensions (y, x) and
-        coordinates y and x exist. A dataset with these properties seems
-        impossible to create (neither dropping, resetting or deleting
-        coordinates seems to work). Instead use mock as a workaround.
-        """
-        myvar = xr.DataArray(
-            [[1, 2], [3, 4]],
-            coords={
-                "y": [.1, .2],
-                "x": [.3, .4]
-            },
-            dims=("y", "x")
-        )
-        ds = DatasetWithCorruptCoordinates(xr.Dataset({"myvar": myvar}))
-        DatasetPreprocessor()._reassign_coords(ds)
-        xr.testing.assert_equal(ds["myvar"], myvar)
+    def test_preprocess(self, dataset, dataset_exp):
+        """Test dataset preprocessing."""
+        preprocessed = DatasetPreprocessor().preprocess(dataset)
+        xr.testing.assert_allclose(preprocessed, dataset_exp)
 
 
 class TestInterpolator:
