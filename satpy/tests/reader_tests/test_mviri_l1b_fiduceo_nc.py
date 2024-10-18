@@ -361,7 +361,7 @@ def fixture_fake_file(fake_dataset, tmp_path):
     params=[FiduceoMviriEasyFcdrFileHandler,
             FiduceoMviriFullFcdrFileHandler]
 )
-def fixture_file_handler(fake_file, request, projection_longitude, tmp_path):
+def fixture_file_handler(fake_file, request, projection_longitude):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
