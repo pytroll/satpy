@@ -44,6 +44,12 @@ def run_and_check_enhancement(func, data, expected, **kwargs):
     old_keys = set(pre_attrs.keys())
     # It is OK to have "enhancement_history" added
     new_keys = set(img.data.attrs.keys()) - {"enhancement_history"}
+    # In case of palettes are used, _FillValue is added.
+    # Colorize doesn't add the fill value, so ignore that
+    if "palettes" in kwargs and func.__name__ != "colorize":
+        assert "_FillValue" in new_keys
+        # Remove it from further comparisons
+        new_keys = new_keys - {"_FillValue"}
     assert old_keys == new_keys
 
     res_data_arr = img.data
