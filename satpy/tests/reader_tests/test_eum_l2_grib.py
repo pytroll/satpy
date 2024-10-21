@@ -133,11 +133,15 @@ def test_seviri_data_reading(da_, xr_, setup_reader):
 
             dataset_id = make_dataid(name="dummmy", resolution=3000)
 
+            # Check that end_time is None for SEVIRI before the dataset has been loaded
+            assert reader.end_time is None
+
             common_checks(ec_, reader, mock_file, dataset_id)
 
-            # Check end_time
+            # Check that end_time is now a valid datetime.datetime object after the dataset has been loaded
             assert reader.end_time == datetime.datetime(year=2020, month=10, day=20,
                                                         hour=19, minute=50, second=0)
+
 
             # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
             attributes = reader._get_attributes()
@@ -234,11 +238,11 @@ def test_fci_data_reading(da_, xr_, setup_reader):
 
             dataset_id = make_dataid(name="dummmy", resolution=2000)
 
-            common_checks(ec_, reader, mock_file, dataset_id)
-
             # Check end_time
             assert reader.end_time == datetime.datetime(year=2020, month=10, day=20,
                                                         hour=19, minute=50, second=0)
+
+            common_checks(ec_, reader, mock_file, dataset_id)
 
             # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
             attributes = reader._get_attributes()
