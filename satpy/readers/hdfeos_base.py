@@ -333,6 +333,10 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         "satellite_zenith_angle": ("SensorZenith", "Sensor_Zenith"),
         "solar_azimuth_angle": ("SolarAzimuth", "SolarAzimuth"),
         "solar_zenith_angle": ("SolarZenith", "Solar_Zenith"),
+        "water_present": "WaterPresent",
+        "land_sea_mask": "Land/SeaMask",
+        "height": "Height",
+        "range": "Range",
     }
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
