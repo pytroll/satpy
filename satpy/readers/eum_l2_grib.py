@@ -78,8 +78,12 @@ class EUML2GribFileHandler(BaseFileHandler):
     def end_time(self):
         """Return the sensing end time."""
         if self.sensor == "seviri":
-            delta = SEVIRI_REPEAT_CYCLE_DURATION_RSS if self._ssp_lon == 9.5 else SEVIRI_REPEAT_CYCLE_DURATION
-            return self.start_time + dt.timedelta(minutes=delta)
+            try:
+                delta = SEVIRI_REPEAT_CYCLE_DURATION_RSS if self._ssp_lon == 9.5 else SEVIRI_REPEAT_CYCLE_DURATION
+                return self.start_time + dt.timedelta(minutes=delta)
+            except AttributeError:
+                # If dataset and metadata (ssp_lon) have not yet been loaded, return None
+                return None
         elif self.sensor == "fci":
             return self.filename_info["end_time"]
 
