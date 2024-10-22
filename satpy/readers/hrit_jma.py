@@ -345,8 +345,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         if self.is_segmented:
             # loff in the file specifies the offset of the full disk image
             # centre (1375/2750 for VIS/IR)
-            segment_number = self.mda["segment_sequence_number"] - 1
-            loff -= (self.mda["total_no_image_segm"] - segment_number - 1) * nlines
+            segment_number = int(self.mda["segment_sequence_number"]) - 1
+            loff -= (int(self.mda["total_no_image_segm"]) - segment_number - 1) * nlines
         elif self.area_id in (NORTH_HEMIS, SOUTH_HEMIS):
             # loff in the file specifies the start line of the half disk image
             # in the full disk image
