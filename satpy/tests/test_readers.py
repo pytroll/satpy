@@ -258,6 +258,12 @@ class TestReaderLoader(unittest.TestCase):
     Assumes that the VIIRS SDR reader exists and works.
     """
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog, tmp_path):  # noqa: PT004
+        """Inject caplog to the test class."""
+        self._caplog = caplog
+        self._tmp_path = tmp_path
+
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
@@ -438,6 +444,31 @@ class TestReaderLoader(unittest.TestCase):
         # abi_l1b reader was created, but no datasets available
         assert "abi_l1b" in readers
         assert len(list(readers["abi_l1b"].available_dataset_ids)) == 0
+
+    def test_yaml_error_message(self):
+        """Test that YAML errors are logged properly."""
+        import logging
+
+        import satpy
+        from satpy.readers import load_readers
+
+        reader_config = "reader:\n"
+        reader_config += "  name: nonreader\n"
+        reader_config += "  reader: !!python/name:notapackage.notareader.BadClass\n"
+
+        os.mkdir(self._tmp_path / "readers")
+        reader_fname = self._tmp_path / "readers" / "nonreader.yaml"
+        with open(reader_fname, "w") as fid:
+            fid.write(reader_config)
+
+        filenames = ["foo.bar"]
+        error_message = "No module named 'notapackage'"
+
+        with self._caplog.at_level(logging.ERROR):
+            with satpy.config.set({"config_path": [str(self._tmp_path)]}):
+                with pytest.raises(ValueError, match="No supported files found"):
+                    _ = load_readers(filenames=filenames, reader="nonreader")
+            assert error_message in self._caplog.text
 
 
 class TestFindFilesAndReaders:

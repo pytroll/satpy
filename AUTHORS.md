@@ -7,6 +7,7 @@ The following people have made contributions to this project:
 <!--- The list should be alphabetical by last name if possible, with github usernames at the bottom --->
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
+- [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
 - [Jonathan Beavers (jon4than)](https://github.com/jon4than)
@@ -38,6 +39,7 @@ The following people have made contributions to this project:
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Lloyd Hughes (system123)](https://github.com/system123)
+- [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Jactry Zeng](https://github.com/jactry)
@@ -45,8 +47,10 @@ The following people have made contributions to this project:
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
+- [Beke Kremmling (bkremmli)](https://github.com/bkremmli) - Deutscher Wetterdienst
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
+- [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
 - [Jussi Leinonen (jleinonen)](https://github.com/jleinonen) - meteoswiss
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0) - Deutscher Wetterdienst
 - [Lu Liu (yukaribbba)](https://github.com/yukaribbba)
@@ -55,6 +59,7 @@ The following people have made contributions to this project:
 - [Luca Merucci (lmeru)](https://github.com/lmeru)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
 - [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
+- [David Navia (dnaviap)](https://github.com/dnaviap)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
@@ -79,12 +84,14 @@ The following people have made contributions to this project:
 - [Michael Schmutz (Graenni)](https://github.com/Graenni) - Meteotest AG
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
+- [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
 - [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
 - [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
+- [Antonio Valentino](https://github.com/avalentino)
 - [Christian Versloot (christianversloot)](https://github.com/christianversloot)
 - [Helga Weber (helgaweb)](https://github.com/helgaweb)
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
