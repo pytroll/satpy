@@ -149,7 +149,7 @@ class TestToXarrayConversion:
         assert len(ds.variables) == 0
         assert len(ds.coords) == 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def single_area_scn(self):
         """Define Scene with single area."""
         from pyresample.geometry import AreaDefinition
@@ -164,7 +164,7 @@ class TestToXarrayConversion:
         scn["var1"] = data_array
         return scn
 
-    @pytest.fixture()
+    @pytest.fixture
     def multi_area_scn(self):
         """Define Scene with multiple area."""
         from pyresample.geometry import AreaDefinition

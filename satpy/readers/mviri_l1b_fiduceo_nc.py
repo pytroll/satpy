@@ -162,9 +162,9 @@ import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 EQUATOR_RADIUS = 6378140.0
 POLE_RADIUS = 6356755.0
 ALTITUDE = 42164000.0 - EQUATOR_RADIUS
@@ -186,6 +186,8 @@ OTHER_REFLECTANCES = [
 ]
 HIGH_RESOL = 2250
 
+warnings.filterwarnings("ignore", message="^.*We do not yet support duplicate dimension names, but "
+                                          "we do allow initial construction of the object.*$")
 
 class IRWVCalibrator:
     """Calibrate IR & WV channels."""
@@ -459,6 +461,10 @@ class DatasetWrapper:
         """Wrap the given dataset."""
         self.nc = nc
 
+        self._decode_cf()
+        self._fix_duplicate_dimensions(self.nc)
+
+
     @property
     def attrs(self):
         """Exposes dataset attributes."""
@@ -509,6 +515,31 @@ class DatasetWrapper:
         # satpy warnings.
         ds.attrs.pop("ancillary_variables", None)
 
+    def _decode_cf(self):
+        """Decode data."""
+        # time decoding with decode_cf results in error - decode separately!
+        time_dims, time = self._decode_time()
+        self.nc = self.nc.drop_vars(time.name)
+        self.nc = xr.decode_cf(self.nc)
+        self.nc[time.name] = (time_dims, time.values)
+
+    def _decode_time(self):
+        """Decode time using fill value and offset."""
+        time = self.get_time()
+        time_dims = self.nc[time.name].dims
+        time = xr.where(time == time.attrs["_FillValue"], np.datetime64("NaT"),
+                        (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]"))
+
+        return (time_dims, time)
+
+    def _fix_duplicate_dimensions(self, nc):
+        """Rename dimensions as duplicate dimensions names are not supported by xarray."""
+        nc.variables["covariance_spectral_response_function_vis"].dims = ("srf_size_1", "srf_size_2")
+        self.nc = nc.drop_dims("srf_size")
+        nc.variables["channel_correlation_matrix_independent"].dims = ("channel_1", "channel_2")
+        nc.variables["channel_correlation_matrix_structured"].dims = ("channel_1", "channel_2")
+        self.nc = nc.drop_dims("channel")
+
     def get_time(self):
         """Get time coordinate.
 
@@ -558,13 +589,17 @@ class FiduceoMviriBase(BaseFileHandler):
             chunks={"x": CHUNK_SIZE,
                     "y": CHUNK_SIZE,
                     "x_ir_wv": CHUNK_SIZE,
-                    "y_ir_wv": CHUNK_SIZE}
+                    "y_ir_wv": CHUNK_SIZE},
+            # see dataset wrapper for why decoding is disabled
+            decode_cf=False,
+            decode_times=False,
+            mask_and_scale=False,
         )
+
         self.nc = DatasetWrapper(nc_raw)
 
-        # Projection longitude is not provided in the file, read it from the
-        # filename.
-        self.projection_longitude = float(filename_info["projection_longitude"])
+        self.projection_longitude = self._get_projection_longitude(filename_info)
+
         self.calib_coefs = self._get_calib_coefs()
 
         self._get_angles = functools.lru_cache(maxsize=8)(
@@ -573,6 +608,13 @@ class FiduceoMviriBase(BaseFileHandler):
         self._get_acq_time = functools.lru_cache(maxsize=3)(
             self._get_acq_time_uncached
         )
+
+    def _get_projection_longitude(self, filename_info):
+        """Read projection longitude from filename as it is not provided in the file."""
+        if "." in str(filename_info["projection_longitude"]):
+            return float(filename_info["projection_longitude"])
+
+        return float(filename_info["projection_longitude"]) / 100
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
