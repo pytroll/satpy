@@ -197,7 +197,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         platform_path = self.filename_info["platform_shortname"]
         platform_dict = {"NPP": "Suomi-NPP",
                          "JPSS-1": "NOAA-20",
-                         "SNPP": "NOAA-20",
+                         "SNPP": "Suomi-NPP",
                          "J01": "NOAA-20",
                          "N20": "NOAA-20",
                          "JPSS-2": "NOAA-21",
