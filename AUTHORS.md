@@ -38,6 +38,7 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
+- [Chung-Hsiang Horng(chorng)](https://github.com/chorng)
 - [Lloyd Hughes (system123)](https://github.com/system123)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
