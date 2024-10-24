@@ -77,7 +77,9 @@ class PSPRayleighReflectance(ModifierBase):
         projectables = projectables + (optional_datasets or [])
         if len(projectables) != 6:
             vis, red = self.match_data_arrays(projectables)
-            sata, satz, suna, sunz = get_angles(vis)
+            # Adjust the angle data precision to match the data
+            # This does not affect the accuracy visibly
+            sata, satz, suna, sunz = [d.astype(vis.dtype) for d in get_angles(vis)]
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(projectables)
             # First make sure the two azimuth angles are in the range 0-360:
@@ -116,14 +118,14 @@ class PSPRayleighReflectance(ModifierBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs["wavelength"][1],
                                                       red.data)
-
         if reduce_strength > 0:
             if reduce_lim_low > reduce_lim_high:
                 reduce_lim_low = reduce_lim_high
             refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
                                                                  reduce_lim_low, reduce_lim_high, reduce_strength)
 
-        proj = vis - refl_cor_band
+        # Need to convert again to data precision, Rayleigh calculations always promote datatype to float64
+        proj = vis - refl_cor_band.astype(vis.dtype)
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
         return proj
