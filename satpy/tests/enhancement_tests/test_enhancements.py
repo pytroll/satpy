@@ -32,7 +32,7 @@ from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands
 # - tmp_path
 
 
-def run_and_check_enhancement(func, data, expected, **kwargs):
+def run_and_check_enhancement(func, data, expected, match_dtype=False, **kwargs):
     """Perform basic checks that apply to multiple tests."""
     from trollimage.xrimage import XRImage
 
@@ -58,6 +58,9 @@ def run_and_check_enhancement(func, data, expected, **kwargs):
     res_data = res_data_arr.data.compute()  # mimics what xrimage geotiff writing does
     assert not isinstance(res_data, da.Array)
     np.testing.assert_allclose(res_data, expected, atol=1.e-6, rtol=0)
+    if match_dtype:
+        assert res_data_arr.dtype == data.dtype
+        assert res_data.dtype == data.dtype
 
 
 def identical_decorator(func):
@@ -109,14 +112,15 @@ class TestEnhancementStretch:
             exp_data = exp_data[np.newaxis, :, :]
         run_and_check_enhancement(_enh_func, in_data, exp_data)
 
-    def test_cira_stretch(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_cira_stretch(self, dtype):
         """Test applying the cira_stretch."""
         from satpy.enhancements import cira_stretch
 
         expected = np.array([[
             [np.nan, -7.04045974, -7.04045974, 0.79630132, 0.95947296],
-            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
-        run_and_check_enhancement(cira_stretch, self.ch1, expected)
+            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]], dtype=dtype)
+        run_and_check_enhancement(cira_stretch, self.ch1.astype(dtype), expected, match_dtype=True)
 
     def test_reinhard(self):
         """Test the reinhard algorithm."""
