@@ -125,7 +125,6 @@ class PSPRayleighReflectance(ModifierBase):
             refl_cor_band = corrector.reduce_rayleigh_highzenith(sunz, refl_cor_band,
                                                                  reduce_lim_low, reduce_lim_high, reduce_strength)
 
-        # Need to convert again to data precision, Rayleigh calculations always promote datatype to float64
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
