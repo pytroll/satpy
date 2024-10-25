@@ -266,6 +266,7 @@ class TestRatioSharpenedCompositors:
         res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
         assert res.shape == (3, 2, 2)
         assert res.dtype == dtype
+        assert res.values.dtype == dtype
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_basic_no_sharpen(self, dtype):
@@ -276,6 +277,7 @@ class TestRatioSharpenedCompositors:
                    optional_datasets=(self.ds4.astype(dtype),))
         assert res.shape == (3, 2, 2)
         assert res.dtype == dtype
+        assert res.values.dtype == dtype
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize(
