@@ -405,7 +405,7 @@ composites:
     - name: M07
       modifiers: [sunz_corrected]
     - name: M12
-      modifiers: [nir_reflectance]
+      modifiers: [nir_reflectance_lowres]
     - M15
     standard_name: day_microphysics
 
