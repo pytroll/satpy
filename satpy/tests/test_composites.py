@@ -250,8 +250,7 @@ class TestRatioSharpenedCompositors:
         with pytest.raises(ValueError, match="Expected 3 datasets, got 4"):
             comp((self.ds1, self.ds2, self.ds3, self.ds1), optional_datasets=(self.ds4_big,))
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_self_sharpened_no_high_res(self, dtype):
+    def test_self_sharpened_no_high_res(self):
         """Test for exception when no high_res band is specified."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name="true_color", high_resolution_band=None)
