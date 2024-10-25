@@ -99,7 +99,7 @@ class PSPRayleighReflectance(ModifierBase):
         aerosol_type = self.attrs.get("aerosol_type", "marine_clean_aerosol")
         reduce_lim_low = abs(self.attrs.get("reduce_lim_low", 70))
         reduce_lim_high = abs(self.attrs.get("reduce_lim_high", 105))
-        reduce_strength = np.clip(self.attrs.get("reduce_strength", 0), 0, 1)
+        reduce_strength = np.clip(self.attrs.get("reduce_strength", 0), 0, 1).astype(vis.dtype)
 
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
@@ -118,6 +118,7 @@ class PSPRayleighReflectance(ModifierBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs["wavelength"][1],
                                                       red.data)
+
         if reduce_strength > 0:
             if reduce_lim_low > reduce_lim_high:
                 reduce_lim_low = reduce_lim_high
@@ -125,7 +126,7 @@ class PSPRayleighReflectance(ModifierBase):
                                                                  reduce_lim_low, reduce_lim_high, reduce_strength)
 
         # Need to convert again to data precision, Rayleigh calculations always promote datatype to float64
-        proj = vis - refl_cor_band.astype(vis.dtype)
+        proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
         return proj
