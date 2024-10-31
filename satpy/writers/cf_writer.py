@@ -390,8 +390,11 @@ def _backend_versions_match():
 
 def _get_backend_versions():
     import netCDF4
+
+    # Make libnetcdf development version compatible with PEP440
+    libnetcdf_version = netCDF4.__netcdf4libversion__.replace("development", "dev")
     return {
         "netCDF4": Version(netCDF4.__version__),
-        "libnetcdf": Version(netCDF4.__netcdf4libversion__),
+        "libnetcdf": Version(libnetcdf_version),
         "xarray": Version(xr.__version__)
     }

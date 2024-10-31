@@ -542,7 +542,7 @@ class TestNetcdfEncodingKwargs:
         import netCDF4
         with monkeypatch.context() as m:
             m.setattr(netCDF4, "__version__", "1.6.0")
-            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.0")
+            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.0-development")
             m.setattr(xr, "__version__", "2022.12.0")
             with warnings.catch_warnings():
                 scene.save_datasets(filename=filename, writer="cf")
