@@ -202,7 +202,9 @@ class TestSunZenithReducer:
         res = self.default((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
         expected = np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]], dtype=dtype)
         assert res.dtype == dtype
-        np.testing.assert_allclose(res.values,
+        values = res.values
+        assert values.dtype == dtype
+        np.testing.assert_allclose(values,
                                    expected,
                                    rtol=2e-5)
 
@@ -212,7 +214,9 @@ class TestSunZenithReducer:
         res = self.custom((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
         expected = np.array([[0.01041319, 0.01030033], [0.01046164, 0.01034834]], dtype=dtype)
         assert res.dtype == dtype
-        np.testing.assert_allclose(res.values,
+        values = res.values
+        assert values.dtype == dtype
+        np.testing.assert_allclose(values,
                                    expected,
                                    rtol=1e-5)
 
