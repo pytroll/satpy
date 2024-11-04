@@ -583,7 +583,7 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
 
     # invert the reduction factor such that minimum reduction is done at `limit` and gradually increases towards max_sza
     with np.errstate(invalid="ignore"):  # we expect space pixels to be invalid
-        reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2, dtype=data.dtype)
+        reduction_factor = 1. - np.log2(reduction_factor + 1)
 
     # apply non-linearity to the reduction factor for a non-linear reduction of the signal. This can be used for a
     # slower or faster transision to higher/lower fractions at the ndvi extremes. If strength equals 1.0, this
