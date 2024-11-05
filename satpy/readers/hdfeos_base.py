@@ -238,7 +238,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return normalize_low_res_chunks(
             (1,) * num_nonyx_dims + ("auto", -1),
             var_shape,
-            (1,) * num_nonyx_dims + (scan_length_250m, -1),
+            (1,) * num_nonyx_dims + (scan_length_250m, var_shape[-1]),
             (1,) * num_nonyx_dims + (res_multiplier, res_multiplier),
             np.float32,
         )
