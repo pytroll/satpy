@@ -1,3 +1,21 @@
+## Version 0.52.1 (2024/10/23)
+
+### Issues Closed
+
+* [Issue 2942](https://github.com/pytroll/satpy/issues/2942) - 0.52.0 breaks `seviri_l2_grib`-reader with 'EUML2GribFileHandler' object has no attribute '_ssp_lon' ([PR 2943](https://github.com/pytroll/satpy/pull/2943) by [@strandgren](https://github.com/strandgren))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2944](https://github.com/pytroll/satpy/pull/2944) - Fix tests using `palettize`
+* [PR 2943](https://github.com/pytroll/satpy/pull/2943) - Fix seviri_l2_grib end_time property bug. ([2942](https://github.com/pytroll/satpy/issues/2942))
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.52.0 (2024/10/18)
 
 ### Issues Closed

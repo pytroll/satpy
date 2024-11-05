@@ -42,6 +42,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: test-environment
           channels: conda-forge
+          conda-remove-defaults: true
+          channel-priority: strict
 
       - name: Set cache environment variables
         shell: bash -l {0}

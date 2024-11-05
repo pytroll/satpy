@@ -257,20 +257,28 @@ class TestRatioSharpenedCompositors:
         with pytest.raises(ValueError, match="SelfSharpenedRGB requires at least one high resolution band, not 'None'"):
             comp((self.ds1, self.ds2, self.ds3))
 
-    def test_basic_no_high_res(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_basic_no_high_res(self, dtype):
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color")
-        res = comp((self.ds1, self.ds2, self.ds3))
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
         assert res.shape == (3, 2, 2)
+        assert res.dtype == dtype
+        assert res.values.dtype == dtype
 
-    def test_basic_no_sharpen(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_basic_no_sharpen(self, dtype):
         """Test that color None does no sharpening."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color", high_resolution_band=None)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)),
+                   optional_datasets=(self.ds4.astype(dtype),))
         assert res.shape == (3, 2, 2)
+        assert res.dtype == dtype
+        assert res.values.dtype == dtype
 
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize(
         ("high_resolution_band", "neutral_resolution_band", "exp_r", "exp_g", "exp_b"),
         [
@@ -300,22 +308,26 @@ class TestRatioSharpenedCompositors:
              np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
         ]
     )
-    def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b):
+    def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b, dtype):
         """Test RatioSharpenedRGB by different groups of high_resolution_band and neutral_resolution_band."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color", high_resolution_band=high_resolution_band,
                                  neutral_resolution_band=neutral_resolution_band)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)),
+                   optional_datasets=(self.ds4.astype(dtype),))
 
         assert "units" not in res.attrs
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
+        assert res.dtype == dtype
 
         data = res.values
         np.testing.assert_allclose(data[0], exp_r, rtol=1e-5)
         np.testing.assert_allclose(data[1], exp_g, rtol=1e-5)
         np.testing.assert_allclose(data[2], exp_b, rtol=1e-5)
+        assert res.dtype == dtype
 
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize(
         ("exp_shape", "exp_r", "exp_g", "exp_b"),
         [
@@ -325,17 +337,19 @@ class TestRatioSharpenedCompositors:
              np.array([[16 / 3, 16 / 3], [16 / 3, 0]], dtype=np.float64))
         ]
     )
-    def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b):
+    def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b, dtype):
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name="true_color")
-        res = comp((self.ds1, self.ds2, self.ds3))
-        data = res.values
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
+        assert res.dtype == dtype
 
+        data = res.values
         assert data.shape == exp_shape
         np.testing.assert_allclose(data[0], exp_r, rtol=1e-5)
         np.testing.assert_allclose(data[1], exp_g, rtol=1e-5)
         np.testing.assert_allclose(data[2], exp_b, rtol=1e-5)
+        assert data.dtype == dtype
 
 
 class TestDifferenceCompositor(unittest.TestCase):

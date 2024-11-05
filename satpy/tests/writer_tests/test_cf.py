@@ -528,12 +528,19 @@ class TestNetcdfEncodingKwargs:
             assert f["test-array"].dtype == expected["dtype"]
             assert f["test-array"].encoding["complevel"] == expected["complevel"]
 
-    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch):
+    @pytest.mark.parametrize(
+        "versions",
+        [
+            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development"},
+            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version"}
+        ]
+    )
+    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch, versions):
         """Test warning if backends don't match."""
         import netCDF4
         with monkeypatch.context() as m:
-            m.setattr(netCDF4, "__version__", "1.5.0")
-            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.1")
+            m.setattr(netCDF4, "__version__", versions["netCDF4"])
+            m.setattr(netCDF4, "__netcdf4libversion__", versions["libnetcdf"])
             with pytest.warns(UserWarning, match=r"Backend version mismatch"):
                 scene.save_datasets(filename=filename, writer="cf")
 
