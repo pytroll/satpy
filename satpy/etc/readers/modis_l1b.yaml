@@ -486,8 +486,8 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
-  land_sea_mask:
-    name: land_sea_mask
+  landsea_mask:
+    name: landsea_mask
     sensor: modis
     resolution: 1000
     coordinates: [longitude, latitude]

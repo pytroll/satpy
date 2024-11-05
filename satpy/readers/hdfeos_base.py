@@ -334,7 +334,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         "solar_azimuth_angle": ("SolarAzimuth", "SolarAzimuth"),
         "solar_zenith_angle": ("SolarZenith", "Solar_Zenith"),
         "water_present": "WaterPresent",
-        "land_sea_mask": "Land/SeaMask",
+        "landsea_mask": "Land/SeaMask",
         "height": "Height",
         "range": "Range",
     }
