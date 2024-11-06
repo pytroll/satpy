@@ -179,7 +179,10 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         #fov = self.datatree.attrs["Field_of_View(degrees)"]
         fov = 18
         cfac = 2 ** 16 / (fov / cols)
-        lfac = 2 ** 16 / (fov / lines)
+
+        # From reverse engineering metadata from a netcdf file, we discovered
+        # the lfac is actually the same as cfac, ie dependend on cols, not lines!
+        lfac = 2 ** 16 / (fov / cols)
 
         h = self.datatree.attrs["Observed_Altitude(km)"] * 1000
         # WGS 84
