@@ -181,7 +181,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         cfac = 2 ** 16 / (fov / cols)
 
         # From reverse engineering metadata from a netcdf file, we discovered
-        # the lfac is actually the same as cfac, ie dependend on cols, not lines!
+        # the lfac is actually the same as cfac, ie dependent on cols, not lines!
         lfac = 2 ** 16 / (fov / cols)
 
         h = self.datatree.attrs["Observed_Altitude(km)"] * 1000
