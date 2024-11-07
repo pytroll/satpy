@@ -194,8 +194,8 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         pdict = {
             "cfac": cfac,
             "lfac": lfac,
-            "coff": cols / 2,
-            "loff": lines / 2,
+            "coff": cols // 2 + 1,
+            "loff": lines // 2,
             "ncols": cols,
             "nlines": lines,
             "scandir": "N2S",
