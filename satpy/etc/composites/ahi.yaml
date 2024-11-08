@@ -218,7 +218,7 @@ composites:
     - wavelength: 0.85
       modifiers: [sunz_corrected]
     - wavelength: 0.635
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     high_resolution_band: blue
     standard_name: natural_color
 
