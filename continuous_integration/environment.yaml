@@ -57,8 +57,7 @@ dependencies:
   - pint-xarray
   - ephem
   - bokeh
-  - pytest-xdist
-  - flexparser<0.4  # breaks latest pint 0.24.3. see https://github.com/hgrecco/pint/issues/1969
+  - pytest-xdist  # breaks latest pint 0.24.3. see https://github.com/hgrecco/pint/issues/1969
   - pip:
     - pytest-lazy-fixtures
     - trollsift
