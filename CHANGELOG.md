@@ -1,3 +1,38 @@
+## Version 0.53.0 (2024/11/08)
+
+### Issues Closed
+
+* [Issue 2960](https://github.com/pytroll/satpy/issues/2960) - netcdf4 version causes error ([PR 2961](https://github.com/pytroll/satpy/pull/2961) by [@sfinkens](https://github.com/sfinkens))
+* [Issue 2952](https://github.com/pytroll/satpy/issues/2952) - Altitude, LandCover, and LandSeaMask are missing in the `mersi_ll_l1b` reader for FY3E L1B ([PR 2953](https://github.com/pytroll/satpy/pull/2953) by [@chorng](https://github.com/chorng))
+* [Issue 2948](https://github.com/pytroll/satpy/issues/2948) - "Missing" platform abbreviation causes unexpected error when loading data array in Scene ([PR 2949](https://github.com/pytroll/satpy/pull/2949) by [@joleenf](https://github.com/joleenf))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2971](https://github.com/pytroll/satpy/pull/2971) - Pin flexparser before it breaks pint
+* [PR 2970](https://github.com/pytroll/satpy/pull/2970) - Remove rayleigh correction on VIIRS false_color for I02 band
+* [PR 2968](https://github.com/pytroll/satpy/pull/2968) - Remove unneeded call to private scipy function in SAR reader
+* [PR 2965](https://github.com/pytroll/satpy/pull/2965) - Fix MODIS readers chunking compatibility with newer dask
+* [PR 2961](https://github.com/pytroll/satpy/pull/2961) - Fix CF writer crashing with netcdf development version ([2960](https://github.com/pytroll/satpy/issues/2960))
+* [PR 2957](https://github.com/pytroll/satpy/pull/2957) - Bugfix the VIIRS lowres version of the day-microphysics.
+* [PR 2956](https://github.com/pytroll/satpy/pull/2956) - Fix cira stretch upcasting the data
+* [PR 2954](https://github.com/pytroll/satpy/pull/2954) - Fix Rayleigh correction to use the same datatype as the input data
+* [PR 2950](https://github.com/pytroll/satpy/pull/2950) - Fix dtype promotion in `SunZenithReduction`
+* [PR 2949](https://github.com/pytroll/satpy/pull/2949) - Add more platforms to VIIRS EDR reader ([2948](https://github.com/pytroll/satpy/issues/2948))
+* [PR 2930](https://github.com/pytroll/satpy/pull/2930) - Fix data type when getting a line offset for a segmented hrit_jma
+
+#### Features added
+
+* [PR 2973](https://github.com/pytroll/satpy/pull/2973) - Remove flexparser pinning
+* [PR 2953](https://github.com/pytroll/satpy/pull/2953) - Add altitude, landcover, and landseamask to mersi_ll_l1b reader ([2952](https://github.com/pytroll/satpy/issues/2952))
+* [PR 2946](https://github.com/pytroll/satpy/pull/2946) - Update MODIS L1b reader with additional geoinfo datasets
+
+In this release 14 pull requests were closed.
+
+
 ## Version 0.52.1 (2024/10/23)
 
 ### Issues Closed
