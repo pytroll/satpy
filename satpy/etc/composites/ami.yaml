@@ -141,7 +141,7 @@ composites:
       - name: VI008
         modifiers: [sunz_corrected]
       - name: VI006
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected]
     high_resolution_band: blue
     standard_name: natural_color
 
