@@ -197,9 +197,12 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         platform_path = self.filename_info["platform_shortname"]
         platform_dict = {"NPP": "Suomi-NPP",
                          "JPSS-1": "NOAA-20",
+                         "SNPP": "Suomi-NPP",
                          "J01": "NOAA-20",
+                         "N20": "NOAA-20",
                          "JPSS-2": "NOAA-21",
-                         "J02": "NOAA-21"}
+                         "J02": "NOAA-21",
+                         "N21": "NOAA-21"}
         return platform_dict[platform_path.upper()]
 
     def available_datasets(self, configured_datasets=None):

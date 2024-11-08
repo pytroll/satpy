@@ -272,3 +272,27 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: mersi_ll_l1b_1000_geo
     file_key: Geolocation/MoonAzimuth
+  altitude:
+    name: altitude
+    units: degree
+    standard_name: altitude
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi_ll_l1b_1000_geo
+    file_key: Geolocation/Altitude
+  landcover:
+    name: landcover
+    units: degree
+    standard_name: landcover
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi_ll_l1b_1000_geo
+    file_key: Geolocation/LandCover
+  landseamask:
+    name: landseamask
+    units: degree
+    standard_name: landseamask
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi_ll_l1b_1000_geo
+    file_key: Geolocation/LandSeaMask

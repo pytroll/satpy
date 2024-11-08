@@ -1285,3 +1285,7 @@ enhancements:
   imager_with_lightning:
     standard_name: imager_with_lightning
     operations: []
+
+  image_ready:
+    standard_name: image_ready
+    operations: []

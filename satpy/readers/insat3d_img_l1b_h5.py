@@ -7,11 +7,7 @@ from functools import cached_property
 import dask.array as da
 import numpy as np
 import xarray as xr
-
-from satpy.utils import import_error_helper
-
-with import_error_helper("xarray-datatree"):
-    from datatree import DataTree
+from xarray.core.datatree import DataTree
 
 from satpy.readers.file_handlers import BaseFileHandler
 

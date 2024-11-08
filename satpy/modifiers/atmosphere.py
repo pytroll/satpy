@@ -77,7 +77,9 @@ class PSPRayleighReflectance(ModifierBase):
         projectables = projectables + (optional_datasets or [])
         if len(projectables) != 6:
             vis, red = self.match_data_arrays(projectables)
-            sata, satz, suna, sunz = get_angles(vis)
+            # Adjust the angle data precision to match the data
+            # This does not affect the accuracy visibly
+            sata, satz, suna, sunz = [d.astype(vis.dtype) for d in get_angles(vis)]
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(projectables)
             # First make sure the two azimuth angles are in the range 0-360:
@@ -97,7 +99,7 @@ class PSPRayleighReflectance(ModifierBase):
         aerosol_type = self.attrs.get("aerosol_type", "marine_clean_aerosol")
         reduce_lim_low = abs(self.attrs.get("reduce_lim_low", 70))
         reduce_lim_high = abs(self.attrs.get("reduce_lim_high", 105))
-        reduce_strength = np.clip(self.attrs.get("reduce_strength", 0), 0, 1)
+        reduce_strength = np.clip(self.attrs.get("reduce_strength", 0), 0, 1).astype(vis.dtype)
 
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
