@@ -196,18 +196,28 @@ class TestSunZenithReducer:
         cls.custom = SunZenithReducer(name="sza_reduction_test_custom", modifiers=tuple(),
                                       correction_limit=70, max_sza=95, strength=3.0)
 
-    def test_default_settings(self, sunz_ds1, sunz_sza):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_default_settings(self, sunz_ds1, sunz_sza, dtype):
         """Test default settings with sza data available."""
-        res = self.default((sunz_ds1, sunz_sza), test_attr="test")
-        np.testing.assert_allclose(res.values,
-                                   np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]]),
-                                   rtol=1e-5)
+        res = self.default((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
+        expected = np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]], dtype=dtype)
+        assert res.dtype == dtype
+        values = res.values
+        assert values.dtype == dtype
+        np.testing.assert_allclose(values,
+                                   expected,
+                                   rtol=2e-5)
 
-    def test_custom_settings(self, sunz_ds1, sunz_sza):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_custom_settings(self, sunz_ds1, sunz_sza, dtype):
         """Test custom settings with sza data available."""
-        res = self.custom((sunz_ds1, sunz_sza), test_attr="test")
-        np.testing.assert_allclose(res.values,
-                                   np.array([[0.01041319, 0.01030033], [0.01046164, 0.01034834]]),
+        res = self.custom((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
+        expected = np.array([[0.01041319, 0.01030033], [0.01046164, 0.01034834]], dtype=dtype)
+        assert res.dtype == dtype
+        values = res.values
+        assert values.dtype == dtype
+        np.testing.assert_allclose(values,
+                                   expected,
                                    rtol=1e-5)
 
     def test_invalid_max_sza(self, sunz_ds1, sunz_sza):
