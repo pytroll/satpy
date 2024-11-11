@@ -523,6 +523,9 @@ class MERSI12llL1BTester(MERSIL1BTester):
             _test_multi_resolutions(available_datasets, self.ir_250_bands, resolution, ir_num_results)
 
             res = reader.load(self.bands_1000 + self.bands_250)
+            for i in res:
+                assert res[i].dtype == np.float32
+
             if resolution != "250":
                 assert len(res) == len(self.bands_1000 + self.bands_250)
             else:
