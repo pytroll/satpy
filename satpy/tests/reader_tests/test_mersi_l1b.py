@@ -525,6 +525,7 @@ class MERSI12llL1BTester(MERSIL1BTester):
             res = reader.load(self.bands_1000 + self.bands_250)
             for i in res:
                 assert res[i].dtype == np.float32
+                assert res[i].values.dtype == np.float32
 
             if resolution != "250":
                 assert len(res) == len(self.bands_1000 + self.bands_250)
