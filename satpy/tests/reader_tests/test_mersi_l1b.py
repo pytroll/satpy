@@ -246,25 +246,25 @@ def _get_geo_data(num_scans, rows_per_scan, num_cols, prefix):
     geo = {
         prefix + "Longitude":
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.float64),
                 attrs={
-                    "Slope": np.array([1.] * 1, dtype=np.float32), "Intercept": np.array([0.] * 1, dtype=np.float32),
+                    "Slope": np.array([1.] * 1, dtype=np.float64), "Intercept": np.array([0.] * 1, dtype=np.float64),
                     "units": "degree",
                     "valid_range": [-90, 90],
                 },
                 dims=("_rows", "_cols")),
         prefix + "Latitude":
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.float64),
                 attrs={
-                    "Slope": np.array([1.] * 1, dtype=np.float32), "Intercept": np.array([0.] * 1, dtype=np.float32),
+                    "Slope": np.array([1.] * 1, dtype=np.float64), "Intercept": np.array([0.] * 1, dtype=np.float64),
                     "units": "degree",
                     "valid_range": [-180, 180],
                 },
                 dims=("_rows", "_cols")),
         prefix + "SensorZenith":
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.int16),
                 attrs={
                     "Slope": np.array([.01] * 1, dtype=np.float32), "Intercept": np.array([0.] * 1, dtype=np.float32),
                     "units": "degree",
