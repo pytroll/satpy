@@ -16,10 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 # type: ignore
+
 """An OSISAF SST reader for the netCDF GHRSST format."""
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 
@@ -37,7 +38,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
     """Reader for the OSISAF SST GHRSST format."""
 
     def _parse_datetime(self, datestr):
-        return datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
+        return dt.datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
 
     def get_area_def(self, area_id, area_info):
         """Override abstract baseclass method."""

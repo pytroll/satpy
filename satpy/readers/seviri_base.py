@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Common functionality for SEVIRI L1.5 data readers.
 
 Introduction
@@ -152,9 +153,21 @@ The SEVIRI L1.5 readers provide the following metadata:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
-* Raw metadata from the file header can be included by setting the reader
-  argument ``include_raw_metadata=True`` (HRIT and Native format only). Note
-  that this comes with a performance penalty of up to 10% if raw metadata from
+* HRIT and Native readers can add raw metadata from the file header, such
+  as calibration coefficients, to dataset attributes. Use the reader keyword
+  argument ``include_raw_metadata``. Here's an example for extracting
+  calibration coefficients from Native files.
+
+  .. code-block:: python
+
+       scene = satpy.Scene(filenames,
+                           reader='seviri_l1b_native',
+                           reader_kwargs={'include_raw_metadata': True})
+       scene.load(["IR_108"])
+       mda = scene["IR_108"].attrs["raw_metadata"]
+       coefs = mda["15_DATA_HEADER"]["RadiometricProcessing"]["Level15ImageCalibration"]
+
+  Note that this comes with a performance penalty of up to 10% if raw metadata from
   multiple segments or scans need to be combined. By default, arrays with more
   than 100 elements are excluded to limit the performance penalty. This
   threshold can be adjusted using the ``mda_max_array_size`` reader keyword
@@ -163,8 +176,8 @@ The SEVIRI L1.5 readers provide the following metadata:
   .. code-block:: python
 
        scene = satpy.Scene(filenames,
-                          reader='seviri_l1b_hrit/native',
-                          reader_kwargs={'include_raw_metadata': True,
+                           reader='seviri_l1b_native',
+                           reader_kwargs={'include_raw_metadata': True,
                                          'mda_max_array_size': 1000})
 
 References:
@@ -186,8 +199,8 @@ References:
 """
 from __future__ import annotations
 
+import datetime as dt
 import warnings
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
@@ -211,6 +224,8 @@ PLATFORM_DICT = {
 }
 
 REPEAT_CYCLE_DURATION = 15
+
+REPEAT_CYCLE_DURATION_RSS = 5
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -387,7 +402,7 @@ CALIB[324] = {"HRV": {"F": 79.0035},
 # To obtain the slope for the calibration, one should use the routine get_seviri_meirink_slope
 
 # Epoch for the MEIRINK re-calibration
-MEIRINK_EPOCH = datetime(2000, 1, 1)
+MEIRINK_EPOCH = dt.datetime(2000, 1, 1)
 
 MEIRINK_COEFS: dict[str, dict[int, dict[str, tuple[float, float]]]] = {}
 MEIRINK_COEFS["2023"] = {}
@@ -1093,17 +1108,17 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
     return data
 
 
-def round_nom_time(dt, time_delta):
+def round_nom_time(date, time_delta):
     """Round a datetime object to a multiple of a timedelta.
 
-    dt : datetime.datetime object, default now.
+    date : datetime.datetime object, default now.
     time_delta : timedelta object, we round to a multiple of this, default 1 minute.
     adapted for SEVIRI from:
     https://stackoverflow.com/questions/3463930/how-to-round-the-minute-of-a-datetime-object-python
     """
-    seconds = (dt - dt.min).seconds
+    seconds = (date - date.min).seconds
     round_to = time_delta.total_seconds()
 
     rounding = (seconds + round_to / 2) // round_to * round_to
 
-    return dt + timedelta(0, rounding - seconds, - dt.microsecond)
+    return date + dt.timedelta(0, rounding - seconds, - date.microsecond)

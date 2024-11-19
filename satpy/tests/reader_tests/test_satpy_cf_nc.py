@@ -15,9 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for the CF reader."""
+
+import datetime as dt
 import warnings
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -66,8 +68,8 @@ def _create_test_netcdf(filename, resolution=742):
         "solar_zenith_angle": solar_zenith_angle_i
     }
 
-    tstart = datetime(2019, 4, 1, 12, 0)
-    tend = datetime(2019, 4, 1, 12, 15)
+    tstart = dt.datetime(2019, 4, 1, 12, 0)
+    tend = dt.datetime(2019, 4, 1, 12, 15)
     common_attrs = {
         "start_time": tstart,
         "end_time": tend,
@@ -88,143 +90,190 @@ def _create_test_netcdf(filename, resolution=742):
 
 
 @pytest.fixture(scope="session")
-def cf_scene():
-    """Create a cf scene."""
-    tstart = datetime(2019, 4, 1, 12, 0)
-    tend = datetime(2019, 4, 1, 12, 15)
-    data_visir = np.array([[1, 2], [3, 4]])
-    z_visir = [1, 2, 3, 4, 5, 6, 7]
-    qual_data = [[1, 2, 3, 4, 5, 6, 7],
-                 [1, 2, 3, 4, 5, 6, 7]]
-    time_vis006 = [1, 2]
-    lat = 33.0 * np.array([[1, 2], [3, 4]])
-    lon = -13.0 * np.array([[1, 2], [3, 4]])
-
-    proj_dict = {
-        "a": 6378169.0, "b": 6356583.8, "h": 35785831.0,
-        "lon_0": 0.0, "proj": "geos", "units": "m"
-    }
-    x_size, y_size = data_visir.shape
+def area():
+    """Get area definition."""
     area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
-    area = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        proj_dict,
-        x_size,
-        y_size,
-        area_extent,
-    )
+    proj_dict = {"a": 6378169.0, "b": 6356583.8, "h": 35785831.0,
+                 "lon_0": 0.0, "proj": "geos", "units": "m"}
+    area = AreaDefinition("test",
+                          "test",
+                          "test",
+                          proj_dict,
+                          2,
+                          2,
+                          area_extent)
+    return area
 
-    x, y = area.get_proj_coords()
-    y_visir = y[:, 0]
-    x_visir = x[0, :]
 
-    common_attrs = {
-        "start_time": tstart,
-        "end_time": tend,
+@pytest.fixture(scope="session")
+def common_attrs(area):
+    """Get common dataset attributes."""
+    return {
+        "start_time": dt.datetime(2019, 4, 1, 12, 0, 0, 123456),
+        "end_time": dt.datetime(2019, 4, 1, 12, 15),
         "platform_name": "tirosn",
         "orbit_number": 99999,
-        "area": area
+        "area": area,
+        "my_timestamp": dt.datetime(2000, 1, 1)
     }
 
-    vis006 = xr.DataArray(data_visir,
-                          dims=("y", "x"),
-                          coords={"y": y_visir, "x": x_visir, "acq_time": ("y", time_vis006)},
-                          attrs={
-                              "name": "image0", "id_tag": "ch_r06",
-                              "coordinates": "lat lon", "resolution": 1000, "calibration": "reflectance",
-                              "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
-                              "orbital_parameters": {
-                                  "projection_longitude": 1,
-                                  "projection_latitude": 1,
-                                  "projection_altitude": 1,
-                                  "satellite_nominal_longitude": 1,
-                                  "satellite_nominal_latitude": 1,
-                                  "satellite_actual_longitude": 1,
-                                  "satellite_actual_latitude": 1,
-                                  "satellite_actual_altitude": 1,
-                                  "nadir_longitude": 1,
-                                  "nadir_latitude": 1,
-                                  "only_in_1": False
-                              }
-                          })
 
-    ir_108 = xr.DataArray(data_visir,
+@pytest.fixture(scope="session")
+def xy_coords(area):
+    """Get projection coordinates."""
+    x, y = area.get_proj_coords()
+    y = y[:, 0]
+    x = x[0, :]
+    return x, y
+
+
+@pytest.fixture(scope="session")
+def vis006(xy_coords, common_attrs):
+    """Get VIS006 dataset."""
+    x, y = xy_coords
+    attrs = {
+        "name": "image0",
+        "id_tag": "ch_r06",
+        "coordinates": "lat lon",
+        "resolution": 1000,
+        "calibration": "reflectance",
+        "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
+        "orbital_parameters": {
+          "projection_longitude": 1,
+          "projection_latitude": 1,
+          "projection_altitude": 1,
+          "satellite_nominal_longitude": 1,
+          "satellite_nominal_latitude": 1,
+          "satellite_actual_longitude": 1,
+          "satellite_actual_latitude": 1,
+          "satellite_actual_altitude": 1,
+          "nadir_longitude": 1,
+          "nadir_latitude": 1,
+          "only_in_1": False
+        },
+        "time_parameters": {
+          "nominal_start_time": common_attrs["start_time"],
+          "nominal_end_time": common_attrs["end_time"]
+        }
+    }
+    coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
+    vis006 = xr.DataArray(np.array([[1, 2], [3, 4]]),
                           dims=("y", "x"),
-                          coords={"y": y_visir, "x": x_visir, "acq_time": ("y", time_vis006)},
-                          attrs={"name": "image1", "id_tag": "ch_tb11", "coordinates": "lat lon"})
+                          coords=coords,
+                          attrs=attrs)
+    return vis006
+
+
+@pytest.fixture(scope="session")
+def ir_108(xy_coords):
+    """Get IR_108 dataset."""
+    x, y = xy_coords
+    coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
+    attrs = {"name": "image1", "id_tag": "ch_tb11", "coordinates": "lat lon"}
+    ir_108 = xr.DataArray(np.array([[1, 2], [3, 4]]),
+                          dims=("y", "x"),
+                          coords=coords,
+                          attrs=attrs)
+    return ir_108
+
+
+@pytest.fixture(scope="session")
+def qual_flags(xy_coords):
+    """Get quality flags."""
+    qual_data = [[1, 2, 3, 4, 5, 6, 7],
+                 [1, 2, 3, 4, 5, 6, 7]]
+    x, y = xy_coords
+    z = [1, 2, 3, 4, 5, 6, 7]
+    coords = {"y": y, "z": z, "acq_time": ("y", [1, 2])}
     qual_f = xr.DataArray(qual_data,
                           dims=("y", "z"),
-                          coords={"y": y_visir, "z": z_visir, "acq_time": ("y", time_vis006)},
-                          attrs={
-                              "name": "qual_flags",
-                              "id_tag": "qual_flags"
-                          })
-    lat = xr.DataArray(lat,
-                       dims=("y", "x"),
-                       coords={"y": y_visir, "x": x_visir},
-                       attrs={
-                           "name": "lat",
-                           "standard_name": "latitude",
-                           "modifiers": np.array([])
-                       })
-    lon = xr.DataArray(lon,
-                       dims=("y", "x"),
-                       coords={"y": y_visir, "x": x_visir},
-                       attrs={
-                           "name": "lon",
-                           "standard_name": "longitude",
-                           "modifiers": np.array([])
-                       })
+                          coords=coords,
+                          attrs={"name": "qual_flags",
+                                 "id_tag": "qual_flags"})
+    return qual_f
 
-    # for prefix testing
-    prefix_data = xr.DataArray(data_visir,
+
+@pytest.fixture(scope="session")
+def lonlats(xy_coords):
+    """Get longitudes and latitudes."""
+    x, y = xy_coords
+    lat = 33.0 * np.array([[1, 2], [3, 4]])
+    lon = -13.0 * np.array([[1, 2], [3, 4]])
+    attrs = {"name": "lat",
+             "standard_name": "latitude",
+             "modifiers": np.array([])}
+    dims = ("y", "x")
+    coords = {"y": y, "x": x}
+    lat = xr.DataArray(lat, dims=dims, coords=coords, attrs=attrs)
+    lon = xr.DataArray(lon, dims=dims, coords=coords, attrs=attrs)
+    return lon, lat
+
+
+@pytest.fixture(scope="session")
+def prefix_data(xy_coords, area):
+    """Get dataset whose name should be prefixed."""
+    x, y = xy_coords
+    attrs = {"name": "1",
+             "id_tag": "ch_r06",
+             "coordinates": "lat lon",
+             "resolution": 1000,
+             "calibration": "reflectance",
+             "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
+             "area": area}
+    prefix_data = xr.DataArray(np.array([[1, 2], [3, 4]]),
                                dims=("y", "x"),
-                               coords={"y": y_visir, "x": x_visir},
-                               attrs={
-                                   "name": "1", "id_tag": "ch_r06",
-                                   "coordinates": "lat lon", "resolution": 1000, "calibration": "reflectance",
-                                   "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
-                                   "area": area
-                               })
+                               coords={"y": y, "x": x},
+                               attrs=attrs)
+    return prefix_data
 
-    # for swath testing
+
+@pytest.fixture(scope="session")
+def swath_data(prefix_data, lonlats):
+    """Get swath data."""
+    lon, lat = lonlats
     area = SwathDefinition(lons=lon, lats=lat)
     swath_data = prefix_data.copy()
     swath_data.attrs.update({"name": "swath_data", "area": area})
+    return swath_data
 
+
+@pytest.fixture(scope="session")
+def datasets(vis006, ir_108, qual_flags, lonlats, prefix_data, swath_data):
+    """Get datasets belonging to the scene."""
+    lon, lat = lonlats
+    return {"image0": vis006,
+            "image1": ir_108,
+            "swath_data": swath_data,
+            "1": prefix_data,
+            "lat": lat,
+            "lon": lon,
+            "qual_flags": qual_flags}
+
+
+@pytest.fixture(scope="session")
+def cf_scene(datasets, common_attrs):
+    """Create a cf scene."""
     scene = Scene()
     scene.attrs["sensor"] = ["avhrr-1", "avhrr-2", "avhrr-3"]
-    scene_dict = {
-        "image0": vis006,
-        "image1": ir_108,
-        "swath_data": swath_data,
-        "1": prefix_data,
-        "lat": lat,
-        "lon": lon,
-        "qual_flags": qual_f
-    }
-
-    for key in scene_dict:
-        scene[key] = scene_dict[key]
+    for key in datasets:
+        scene[key] = datasets[key]
         if key != "swath_data":
             scene[key].attrs.update(common_attrs)
     return scene
 
 
-@pytest.fixture()
+@pytest.fixture
 def nc_filename(tmp_path):
     """Create an nc filename for viirs m band."""
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-mband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
 
 
-@pytest.fixture()
+@pytest.fixture
 def nc_filename_i(tmp_path):
     """Create an nc filename for viirs i band."""
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-iband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
 
@@ -394,18 +443,25 @@ class TestCFReader:
         np.testing.assert_array_equal(scn_["1"].data, cf_scene["1"].data)
         np.testing.assert_array_equal(scn_["1"].coords["lon"], cf_scene["lon"].data)  # lon loded as coord
 
-    def test_orbital_parameters(self, cf_scene, nc_filename):
-        """Test that the orbital parameters in attributes are handled correctly."""
+    def test_decoding_of_dict_type_attributes(self, cf_scene, nc_filename):
+        """Test decoding of dict type attributes."""
         cf_scene.save_datasets(writer="cf",
                                filename=nc_filename)
         scn_ = Scene(reader="satpy_cf_nc",
                      filenames=[nc_filename])
         scn_.load(["image0"])
-        orig_attrs = cf_scene["image0"].attrs["orbital_parameters"]
-        new_attrs = scn_["image0"].attrs["orbital_parameters"]
-        assert isinstance(new_attrs, dict)
-        for key in orig_attrs:
-            assert orig_attrs[key] == new_attrs[key]
+        for attr_name in ["orbital_parameters", "time_parameters"]:
+            orig_attrs = cf_scene["image0"].attrs[attr_name]
+            new_attrs = scn_["image0"].attrs[attr_name]
+            assert new_attrs == orig_attrs
+
+    def test_decoding_of_timestamps(self, cf_scene, nc_filename):
+        """Test decoding of timestamps."""
+        cf_scene.save_datasets(writer="cf", filename=nc_filename)
+        scn = Scene(reader="satpy_cf_nc", filenames=[nc_filename])
+        scn.load(["image0"])
+        expected = cf_scene["image0"].attrs["my_timestamp"]
+        assert scn["image0"].attrs["my_timestamp"] == expected
 
     def test_write_and_read_from_two_files(self, nc_filename, nc_filename_i):
         """Save two datasets with different resolution and read the solar_zenith_angle again."""

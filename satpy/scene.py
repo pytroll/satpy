@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 from xarray import DataArray
 
-from satpy.composites import IncompatibleAreas, enhance2dataset
+from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
@@ -101,11 +101,14 @@ class Scene:
         will be searched for a Reader that can support the provided files. This
         can take a considerable amount of time so it is recommended that
         ``reader`` always be provided. Note without ``filenames`` the Scene is
-        created with no Readers available requiring Datasets to be added
-        manually::
+        created with no Readers available. When a Scene is created with no Readers,
+        each xarray.DataArray must be added manually::
 
             scn = Scene()
-            scn['my_dataset'] = Dataset(my_data_array, **my_info)
+            scn['my_dataset'] = DataArray(my_data_array, attrs={})
+
+        The `attrs` dictionary contains the metadata for the data. See
+        :ref:`dataset_metadata` for more information.
 
         Further, notice that it is also possible to load a combination of files
         or sets of files each requiring their specific reader. For that
@@ -1012,10 +1015,12 @@ class Scene:
             img.show()
         return img
 
-    def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
+    def to_geoviews(self, gvtype=None, datasets=None,
+                    kdims=None, vdims=None, dynamic=False):
         """Convert satpy Scene to geoviews.
 
         Args:
+            scn (satpy.Scene): Satpy Scene.
             gvtype (gv plot type):
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
                 Default to :class:`geoviews.Image`.
@@ -1040,42 +1045,24 @@ class Scene:
               to be passed to geoviews
 
         """
-        import geoviews as gv
-        from cartopy import crs  # noqa
-        if gvtype is None:
-            gvtype = gv.Image
+        from satpy._scene_converters import to_geoviews
+        return to_geoviews(self, gvtype=None, datasets=None,
+                           kdims=None, vdims=None, dynamic=False)
 
-        ds = self.to_xarray_dataset(datasets)
-
-        if vdims is None:
-            # by default select first data variable as display variable
-            vdims = ds.data_vars[list(ds.data_vars.keys())[0]].name
-
-        if hasattr(ds, "area") and hasattr(ds.area, "to_cartopy_crs"):
-            dscrs = ds.area.to_cartopy_crs()
-            gvds = gv.Dataset(ds, crs=dscrs)
-        else:
-            gvds = gv.Dataset(ds)
-
-        # holoviews produces a log warning if you pass groupby arguments when groupby isn't used
-        groupby_kwargs = {"dynamic": dynamic} if gvds.ndims != 2 else {}
-        if "latitude" in ds.coords:
-            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, **groupby_kwargs)
-        else:
-            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, **groupby_kwargs)
-
-        return gview
 
     def to_hvplot(self, datasets=None, *args, **kwargs):
         """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
 
         Args:
+            scn (satpy.Scene): Satpy Scene.
             datasets (list): Limit included products to these datasets.
             args: Arguments coming from hvplot
             kwargs: hvplot options dictionary.
 
-        Returns: hvplot object that contains within it the plots of datasets list.
-                 As default it contains all Scene datasets plots and a plot title is shown.
+        Returns:
+            hvplot object that contains within it the plots of datasets list.
+            As default it contains all Scene datasets plots and a plot title
+            is shown.
 
         Example usage::
 
@@ -1086,59 +1073,11 @@ class Scene:
            plot = scn.to_hvplot(datasets=scene_list)
            plot.ash+plot.IR_108
         """
+        from satpy._scene_converters import to_hvplot
 
-        def _get_crs(xarray_ds):
-            return xarray_ds.area.to_cartopy_crs()
+        return to_hvplot(self, datasets=None, *args, **kwargs)
 
-        def _get_timestamp(xarray_ds):
-            time = xarray_ds.attrs["start_time"]
-            return time.strftime("%Y %m %d -- %H:%M UTC")
 
-        def _get_units(xarray_ds, variable):
-            return xarray_ds[variable].attrs["units"]
-
-        def _plot_rgb(xarray_ds, variable, **defaults):
-            img = enhance2dataset(xarray_ds[variable])
-            return img.hvplot.rgb(bands="bands", title=title,
-                                  clabel="", **defaults)
-
-        def _plot_quadmesh(xarray_ds, variable, **defaults):
-            return xarray_ds[variable].hvplot.quadmesh(
-                clabel=f"[{_get_units(xarray_ds,variable)}]", title=title,
-                **defaults)
-
-        import hvplot.xarray as hvplot_xarray  # noqa
-        from holoviews import Overlay
-
-        plot = Overlay()
-        xarray_ds = self.to_xarray_dataset(datasets)
-
-        if hasattr(xarray_ds, "area") and hasattr(xarray_ds.area, "to_cartopy_crs"):
-            ccrs = _get_crs(xarray_ds)
-            defaults={"x":"x","y":"y"}
-        else:
-            ccrs = None
-            defaults={"x":"longitude","y":"latitude"}
-
-        if datasets is None:
-            datasets = list(xarray_ds.keys())
-
-        defaults.update(data_aspect=1, project=True, geo=True,
-                        crs=ccrs, projection=ccrs, rasterize=True, coastline="110m",
-                        cmap="Plasma", responsive=True, dynamic=False, framewise=True,
-                        colorbar=False, global_extent=False, xlabel="Longitude",
-                        ylabel="Latitude")
-
-        defaults.update(kwargs)
-
-        for element in datasets:
-            title = f"{element} @ {_get_timestamp(xarray_ds)}"
-            if xarray_ds[element].shape[0] == 3:
-                plot[element] = _plot_rgb(xarray_ds, element, **defaults)
-            else:
-                plot[element] = _plot_quadmesh(xarray_ds, element, **defaults)
-
-        return plot
 
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.

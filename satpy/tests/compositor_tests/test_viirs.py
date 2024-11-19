@@ -15,9 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Tests for VIIRS compositors."""
 
-from datetime import datetime
+import datetime as dt
 
 import dask.array as da
 import numpy as np
@@ -29,7 +30,7 @@ from pyresample.geometry import AreaDefinition
 class TestVIIRSComposites:
     """Test various VIIRS-specific composites."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def area(self):
         """Return fake area for use with DNB tests."""
         rows = 5
@@ -42,7 +43,7 @@ class TestVIIRSComposites:
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
         return area
 
-    @pytest.fixture()
+    @pytest.fixture
     def dnb(self, area):
         """Return fake channel 1 data for DNB tests."""
         dnb = np.zeros(area.shape) + 0.25
@@ -52,10 +53,10 @@ class TestVIIRSComposites:
         c01 = xr.DataArray(dnb,
                            dims=("y", "x"),
                            attrs={"name": "DNB", "area": area,
-                                  "start_time": datetime(2020, 1, 1, 12, 0, 0)})
+                                  "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)})
         return c01
 
-    @pytest.fixture()
+    @pytest.fixture
     def sza(self, area):
         """Return fake sza dataset for DNB tests."""
         # data changes by row, sza changes by col for testing
@@ -66,10 +67,10 @@ class TestVIIRSComposites:
         c02 = xr.DataArray(sza,
                            dims=("y", "x"),
                            attrs={"name": "solar_zenith_angle", "area": area,
-                                  "start_time": datetime(2020, 1, 1, 12, 0, 0)})
+                                  "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)})
         return c02
 
-    @pytest.fixture()
+    @pytest.fixture
     def lza(self, area):
         """Return fake lunal zenith angle dataset for DNB tests."""
         lza = np.zeros(area.shape) + 70.0
@@ -79,7 +80,7 @@ class TestVIIRSComposites:
         c03 = xr.DataArray(lza,
                            dims=("y", "x"),
                            attrs={"name": "lunar_zenith_angle", "area": area,
-                                  "start_time": datetime(2020, 1, 1, 12, 0, 0)
+                                  "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)
                                   })
         return c03
 

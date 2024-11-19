@@ -1,9 +1,125 @@
-[build-system]
-requires = ["setuptools>=60", "wheel", "setuptools_scm[toml]>=8.0"]
-build-backend = "setuptools.build_meta"
+[project]
+name = "satpy"
+dynamic = ["version"]
+description = "Python package for earth-observing satellite data processing"
+authors = [
+    { name = "The Pytroll Team", email = "pytroll@googlegroups.com" }
+]
+dependencies = [
+    "platformdirs",
+    "dask[array]>=0.17.1",
+    "donfig",
+    "numpy>=1.21",
+    "packaging",
+    "pillow",
+    "pooch",
+    "pykdtree",
+    "pyorbital",
+    "pyproj>=2.2",
+    "pyresample>=1.24.0",
+    "pyyaml>=5.1",
+    "trollimage>=1.24",
+    "trollsift",
+    "xarray>=0.14.1",
+    "zarr",
+]
+readme = "README.rst"
+requires-python = ">=3.10"
+license = { text = "GPLv3" }
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering"
+]
 
-[tool.setuptools_scm]
-write_to = "satpy/version.py"
+[project.optional-dependencies]
+avhrr_l1b_eps = ["defusedxml"]
+avhrr_l1b_gaclac = ["pygac >= 1.3.0"]
+modis_l1b = ["pyhdf", "python-geotiepoints >= 1.1.7"]
+geocat = ["pyhdf"]
+goci2 = ["netCDF4 >= 1.1.8"]
+generic_image = ["rasterio", "rioxarray"]
+acspo = ["netCDF4 >= 1.1.8"]
+clavrx = ["netCDF4 >= 1.1.8"]
+viirs_l1b = ["netCDF4 >= 1.1.8"]
+viirs_sdr = ["h5py >= 2.7.0"]
+viirs_compact = ["h5py >= 2.7.0"]
+omps_edr = ["h5py >= 2.7.0"]
+amsr2_l1b = ["h5py >= 2.7.0"]
+hrpt = ["pyorbital >= 1.3.1", "pygac", "python-geotiepoints >= 1.1.7"]
+hrit_msg = ["pytroll-schedule"]
+msi_safe = ["rioxarray", "bottleneck", "python-geotiepoints", "defusedxml"]
+nc_nwcsaf_msg = ["netCDF4 >= 1.1.8"]
+sar_c = ["python-geotiepoints >= 1.1.7", "rasterio", "rioxarray", "defusedxml"]
+abi_l1b = ["h5netcdf"]
+seviri_l1b_hrit = ["pyorbital >= 1.3.1", "pyPublicDecompWT"]
+seviri_l1b_native = ["pyorbital >= 1.3.1"]
+seviri_l1b_nc = ["pyorbital >= 1.3.1", "netCDF4 >= 1.1.8"]
+seviri_l2_bufr = ["eccodes"]
+seviri_l2_grib = ["eccodes"]
+hsaf_grib = ["pygrib"]
+remote_reading = ["fsspec"]
+insat_3d = ["xarray-datatree"]
+gms5-vissr_l1b = ["numba"]
+# Writers:
+cf = ["h5netcdf >= 0.7.3"]
+awips_tiled = ["netCDF4 >= 1.1.8"]
+geotiff = ["rasterio", "trollimage[geotiff]"]
+ninjo = ["pyninjotiff", "pint"]
+units = ["pint-xarray"]
+# Composites/Modifiers:
+rayleigh = ["pyspectral >= 0.10.1"]
+angles = ["pyorbital >= 1.3.1"]
+filters = ["dask-image"]
+# MultiScene:
+animations = ["imageio"]
+# Documentation:
+doc = ["sphinx", "sphinx_rtd_theme", "sphinxcontrib-apidoc"]
+# Other
+geoviews = ["geoviews"]
+holoviews = ["holoviews"]
+hvplot = ["hvplot", "geoviews", "cartopy", "holoviews"]
+overlays = ["pycoast", "pydecorate"]
+satpos_from_tle = ["skyfield", "astropy"]
+tests = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
+         "rasterio", "geoviews", "trollimage", "fsspec", "bottleneck",
+         "rioxarray", "pytest", "pytest-lazy-fixtures", "defusedxml",
+         "s3fs", "eccodes", "h5netcdf", "xarray-datatree",
+         "skyfield", "ephem", "pint-xarray", "astropy", "dask-image", "python-geotiepoints", "numba"]
+dev = ["satpy[doc,tests]"]
+
+[project.scripts]
+satpy_retrieve_all_aux_data = "satpy.aux_download:retrieve_all_cmd"
+
+[project.urls]
+Homepage = "https://github.com/pytroll/satpy"
+"Bug Tracker" = "https://github.com/pytroll/satpy/issues"
+Documentation = "https://satpy.readthedocs.io/en/stable/"
+"Source Code" = "https://github.com/pytroll/satpy"
+Organization = "https://pytroll.github.io/"
+Slack = "https://pytroll.slack.com/"
+Twitter = "https://twitter.com/hashtag/satpy?src=hashtag_click"
+"Release Notes" = "https://github.com/pytroll/satpy/blob/main/CHANGELOG.md"
+Mastodon = "https://fosstodon.org/tags/satpy"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["satpy"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "satpy/version.py"
 
 [tool.isort]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
@@ -14,19 +130,25 @@ known_first_party = "satpy"
 line_length = 120
 
 [tool.ruff]
-# See https://docs.astral.sh/ruff/rules/
-# In the future, add "B", "S", "N"
-select = ["A", "D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20"]
 line-length = 120
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint]
+# See https://docs.astral.sh/ruff/rules/
+# In the future, add "B", "S", "N"
+select = ["A", "D", "E", "W", "F", "I", "PT", "TID", "C90", "Q", "T10", "T20", "NPY"]
+
+[tool.ruff.lint.per-file-ignores]
 "satpy/tests/*" = ["S101"]  # assert allowed in tests
 "utils/coord2area_def.py" = ["T201"]  # allow print
 "fetch_avhrr_calcoeffs.py" = ["T201"]  # allow print
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[tool.coverage.run]
+relative_files = true
+omit = ["satpy/version.py"]

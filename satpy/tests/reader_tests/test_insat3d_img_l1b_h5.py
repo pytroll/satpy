@@ -1,6 +1,7 @@
 """Tests for the Insat3D reader."""
+
+import datetime as dt
 import os
-from datetime import datetime
 
 import dask.array as da
 import h5netcdf
@@ -16,7 +17,7 @@ from satpy.readers.insat3d_img_l1b_h5 import (
     open_dataset,
     open_datatree,
 )
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -30,10 +31,10 @@ rad_units = "mW.cm-2.sr-1.micron-1"
 alb_units = "%"
 temp_units = "K"
 chunks_1km = (1, 46, 1126)
-values_1km = np.random.randint(0, 1000, shape_1km, dtype=np.uint16)
+values_1km = RANDOM_GEN.integers(0, 1000, shape_1km, dtype=np.uint16)
 values_1km[0, 0, 0] = 0
-values_4km = np.random.randint(0, 1000, shape_4km, dtype=np.uint16)
-values_8km = np.random.randint(0, 1000, shape_8km, dtype=np.uint16)
+values_4km = RANDOM_GEN.integers(0, 1000, shape_4km, dtype=np.uint16)
+values_8km = RANDOM_GEN.integers(0, 1000, shape_8km, dtype=np.uint16)
 
 values_by_resolution = {1000: values_1km,
                         4000: values_4km,
@@ -72,8 +73,8 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
-start_time = datetime(2009, 6, 9, 9, 0)
-end_time = datetime(2009, 6, 9, 9, 30)
+start_time = dt.datetime(2009, 6, 9, 9, 0)
+end_time = dt.datetime(2009, 6, 9, 9, 30)
 subsatellite_longitude = 82
 
 time_pattern = "%d-%b-%YT%H:%M:%S"
@@ -279,6 +280,8 @@ def test_filehandler_returns_area(insat_filehandler):
     area_def = fh.get_area_def(ds_id)
     _ = area_def.get_lonlats(chunks=1000)
     assert subsatellite_longitude == area_def.crs.to_cf()["longitude_of_projection_origin"]
+    np.testing.assert_allclose(area_def.area_extent, [-5620072.101427, -5640108.009097,
+                                                      5620072.101427, 5644115.190631])
 
 
 def test_filehandler_has_start_and_end_time(insat_filehandler):

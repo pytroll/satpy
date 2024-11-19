@@ -1,3 +1,395 @@
+## Version 0.53.0 (2024/11/08)
+
+### Issues Closed
+
+* [Issue 2960](https://github.com/pytroll/satpy/issues/2960) - netcdf4 version causes error ([PR 2961](https://github.com/pytroll/satpy/pull/2961) by [@sfinkens](https://github.com/sfinkens))
+* [Issue 2952](https://github.com/pytroll/satpy/issues/2952) - Altitude, LandCover, and LandSeaMask are missing in the `mersi_ll_l1b` reader for FY3E L1B ([PR 2953](https://github.com/pytroll/satpy/pull/2953) by [@chorng](https://github.com/chorng))
+* [Issue 2948](https://github.com/pytroll/satpy/issues/2948) - "Missing" platform abbreviation causes unexpected error when loading data array in Scene ([PR 2949](https://github.com/pytroll/satpy/pull/2949) by [@joleenf](https://github.com/joleenf))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2971](https://github.com/pytroll/satpy/pull/2971) - Pin flexparser before it breaks pint
+* [PR 2970](https://github.com/pytroll/satpy/pull/2970) - Remove rayleigh correction on VIIRS false_color for I02 band
+* [PR 2968](https://github.com/pytroll/satpy/pull/2968) - Remove unneeded call to private scipy function in SAR reader
+* [PR 2965](https://github.com/pytroll/satpy/pull/2965) - Fix MODIS readers chunking compatibility with newer dask
+* [PR 2961](https://github.com/pytroll/satpy/pull/2961) - Fix CF writer crashing with netcdf development version ([2960](https://github.com/pytroll/satpy/issues/2960))
+* [PR 2957](https://github.com/pytroll/satpy/pull/2957) - Bugfix the VIIRS lowres version of the day-microphysics.
+* [PR 2956](https://github.com/pytroll/satpy/pull/2956) - Fix cira stretch upcasting the data
+* [PR 2954](https://github.com/pytroll/satpy/pull/2954) - Fix Rayleigh correction to use the same datatype as the input data
+* [PR 2950](https://github.com/pytroll/satpy/pull/2950) - Fix dtype promotion in `SunZenithReduction`
+* [PR 2949](https://github.com/pytroll/satpy/pull/2949) - Add more platforms to VIIRS EDR reader ([2948](https://github.com/pytroll/satpy/issues/2948))
+* [PR 2930](https://github.com/pytroll/satpy/pull/2930) - Fix data type when getting a line offset for a segmented hrit_jma
+
+#### Features added
+
+* [PR 2973](https://github.com/pytroll/satpy/pull/2973) - Remove flexparser pinning
+* [PR 2953](https://github.com/pytroll/satpy/pull/2953) - Add altitude, landcover, and landseamask to mersi_ll_l1b reader ([2952](https://github.com/pytroll/satpy/issues/2952))
+* [PR 2946](https://github.com/pytroll/satpy/pull/2946) - Update MODIS L1b reader with additional geoinfo datasets
+
+In this release 14 pull requests were closed.
+
+
+## Version 0.52.1 (2024/10/23)
+
+### Issues Closed
+
+* [Issue 2942](https://github.com/pytroll/satpy/issues/2942) - 0.52.0 breaks `seviri_l2_grib`-reader with 'EUML2GribFileHandler' object has no attribute '_ssp_lon' ([PR 2943](https://github.com/pytroll/satpy/pull/2943) by [@strandgren](https://github.com/strandgren))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2944](https://github.com/pytroll/satpy/pull/2944) - Fix tests using `palettize`
+* [PR 2943](https://github.com/pytroll/satpy/pull/2943) - Fix seviri_l2_grib end_time property bug. ([2942](https://github.com/pytroll/satpy/issues/2942))
+
+In this release 2 pull requests were closed.
+
+
+## Version 0.52.0 (2024/10/18)
+
+### Issues Closed
+
+* [Issue 2922](https://github.com/pytroll/satpy/issues/2922) - fci_l1c_nc reader ignoring MTG FDHSI segment 41
+* [Issue 2920](https://github.com/pytroll/satpy/issues/2920) - SEVIRI/FCI Water Vapour channel different normalization?
+* [Issue 2917](https://github.com/pytroll/satpy/issues/2917) - Unpin mamba version in CI
+* [Issue 2914](https://github.com/pytroll/satpy/issues/2914) - save.dataset - problem with MTG
+* [Issue 2909](https://github.com/pytroll/satpy/issues/2909) - RuntimeError while compositing after resampling datasets
+* [Issue 2907](https://github.com/pytroll/satpy/issues/2907) - The debug run reports an error, but there is no problem running after stopping at the breakpoint
+* [Issue 2900](https://github.com/pytroll/satpy/issues/2900) - Eliminate dependency on external binaries of PublicDecompWT (xRITDecompress) by using pyPublicDecompWT
+* [Issue 2897](https://github.com/pytroll/satpy/issues/2897) - generic_image reader returns data as float64 for PNG images
+* [Issue 2887](https://github.com/pytroll/satpy/issues/2887) - "Don't know how to open the following files" ERROR in MTG-I1 LI data.
+* [Issue 2884](https://github.com/pytroll/satpy/issues/2884) - MODIS and SEADAS test failures ([PR 2886](https://github.com/pytroll/satpy/pull/2886) by [@djhoese](https://github.com/djhoese))
+* [Issue 2869](https://github.com/pytroll/satpy/issues/2869) - ninjogeotiff writer should write gradient for P mode images ([PR 2870](https://github.com/pytroll/satpy/pull/2870) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2864](https://github.com/pytroll/satpy/issues/2864) - Documentation takes too long to build ([PR 2875](https://github.com/pytroll/satpy/pull/2875) by [@djhoese](https://github.com/djhoese))
+* [Issue 2839](https://github.com/pytroll/satpy/issues/2839) - Help about Netcdf Data
+* [Issue 1974](https://github.com/pytroll/satpy/issues/1974) - debug_on() could write relevant versions
+* [Issue 1266](https://github.com/pytroll/satpy/issues/1266) - Can pytroll process MetOp L0 Data?
+
+In this release 15 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2939](https://github.com/pytroll/satpy/pull/2939) - Fix bogus no_op implementation
+* [PR 2938](https://github.com/pytroll/satpy/pull/2938) - Update Landsat reader for compatibility with Pyspectral.
+* [PR 2926](https://github.com/pytroll/satpy/pull/2926) - Import DataTree from xarray
+* [PR 2923](https://github.com/pytroll/satpy/pull/2923) - Fix data promotion in `generic_image` reader and `satpy.composites.add_bands`
+* [PR 2916](https://github.com/pytroll/satpy/pull/2916) - Fix deprecated "compositor" usage in modifier definitions
+* [PR 2910](https://github.com/pytroll/satpy/pull/2910) - Remove deprecated usage of pyspectral's download_luts aerosol_type
+* [PR 2896](https://github.com/pytroll/satpy/pull/2896) - Bugfix for Sentinel-2 radiance calculation
+* [PR 2886](https://github.com/pytroll/satpy/pull/2886) - Update pyhdf-based arrs to be manually tokenized ([2884](https://github.com/pytroll/satpy/issues/2884))
+
+#### Features added
+
+* [PR 2936](https://github.com/pytroll/satpy/pull/2936) - Drop python 3.9 ([2741](https://github.com/pytroll/satpy/issues/2741))
+* [PR 2933](https://github.com/pytroll/satpy/pull/2933) - Add no-op image_ready enhancement
+* [PR 2931](https://github.com/pytroll/satpy/pull/2931) - Enhance visibility of missing dependencies
+* [PR 2929](https://github.com/pytroll/satpy/pull/2929) - Replace patched `print` with capsys fixture
+* [PR 2927](https://github.com/pytroll/satpy/pull/2927) - Use spline interpolation for faster processing
+* [PR 2925](https://github.com/pytroll/satpy/pull/2925) - Fix types to allow float32 computations for SAR-C
+* [PR 2913](https://github.com/pytroll/satpy/pull/2913) - Update `check_satpy` to use new `show_version` to display package versions
+* [PR 2905](https://github.com/pytroll/satpy/pull/2905) - Mcd12q1 draft
+* [PR 2904](https://github.com/pytroll/satpy/pull/2904) - Add reader for Landsat L1 data
+* [PR 2902](https://github.com/pytroll/satpy/pull/2902) - Add OCI L2 BGC reader
+* [PR 2899](https://github.com/pytroll/satpy/pull/2899) - Switch from Mambaforge to Miniforge
+* [PR 2893](https://github.com/pytroll/satpy/pull/2893) - Fix AAPP L1b reader not to up-cast data to float64
+* [PR 2870](https://github.com/pytroll/satpy/pull/2870) - Include gradient/axisintercept for mode p ([2869](https://github.com/pytroll/satpy/issues/2869))
+* [PR 2717](https://github.com/pytroll/satpy/pull/2717) - Add combined GRIB reader for both SEVIRI and FCI L2 products
+
+#### Documentation changes
+
+* [PR 2915](https://github.com/pytroll/satpy/pull/2915) - Improve SEVIRI metadata documentation
+* [PR 2890](https://github.com/pytroll/satpy/pull/2890) - Fixing contributing.rst access on windows systems
+* [PR 2875](https://github.com/pytroll/satpy/pull/2875) - Make documentation generation faster ([2864](https://github.com/pytroll/satpy/issues/2864), [2864](https://github.com/pytroll/satpy/issues/2864))
+
+In this release 25 pull requests were closed.
+
+
+## Version 0.51.0 (2024/08/15)
+
+### Issues Closed
+
+* [Issue 2881](https://github.com/pytroll/satpy/issues/2881) - seviri_l2_grib-reader support for filename patterns of files coming from EUMETCast-Europe ([PR 2882](https://github.com/pytroll/satpy/pull/2882) by [@fwfichtner](https://github.com/fwfichtner))
+* [Issue 2877](https://github.com/pytroll/satpy/issues/2877) - NWCSAF GEO images black with numpy 2
+* [Issue 2872](https://github.com/pytroll/satpy/issues/2872) - nwcsaf-geo reader turns uint8 into int64 on numpy 2.0 ([PR 2874](https://github.com/pytroll/satpy/pull/2874) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2859](https://github.com/pytroll/satpy/issues/2859) - LI L2 Accumulated products retrieved from archive ("ARC" 10-min files) have faulty reading ([PR 2867](https://github.com/pytroll/satpy/pull/2867) by [@ameraner](https://github.com/ameraner))
+* [Issue 2836](https://github.com/pytroll/satpy/issues/2836) - Confusing documentation for creating a Scene without a filename or reader ([PR 2868](https://github.com/pytroll/satpy/pull/2868) by [@joleenf](https://github.com/joleenf))
+
+In this release 5 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2876](https://github.com/pytroll/satpy/pull/2876) - Fix AWIPS tiled writer handling of odd units in VIIRS EDR products
+* [PR 2874](https://github.com/pytroll/satpy/pull/2874) - Avoid accidental NWCSAF-GEO type promotion ([2872](https://github.com/pytroll/satpy/issues/2872))
+* [PR 2867](https://github.com/pytroll/satpy/pull/2867) - Fix LI L2 reader for accumulated products from archive ([2859](https://github.com/pytroll/satpy/issues/2859))
+* [PR 2866](https://github.com/pytroll/satpy/pull/2866) - Fix FCI L1c reader for African products
+
+#### Features added
+
+* [PR 2882](https://github.com/pytroll/satpy/pull/2882) - support FIRG file-patterns coming from EUMETCast-Europe ([2881](https://github.com/pytroll/satpy/issues/2881))
+* [PR 2867](https://github.com/pytroll/satpy/pull/2867) - Fix LI L2 reader for accumulated products from archive ([2859](https://github.com/pytroll/satpy/issues/2859))
+* [PR 2863](https://github.com/pytroll/satpy/pull/2863) - Adapt the SEVIRI native format reader in Satpy to support remote reading
+* [PR 2862](https://github.com/pytroll/satpy/pull/2862) - Update thresholds for FCI geo_color low-level cloud layer
+* [PR 2843](https://github.com/pytroll/satpy/pull/2843) - feat: Enable to read for the Q4 coverage and the IQTI files for the fci l1c data
+* [PR 1916](https://github.com/pytroll/satpy/pull/1916) - Add Gld360 ualf2 reader
+
+#### Documentation changes
+
+* [PR 2868](https://github.com/pytroll/satpy/pull/2868) - Clarify Scene Documentation without Readers ([2836](https://github.com/pytroll/satpy/issues/2836))
+
+In this release 11 pull requests were closed.
+
+
+## Version 0.50.0 (2024/07/26)
+
+### Issues Closed
+
+* [Issue 2860](https://github.com/pytroll/satpy/issues/2860) - Something is wrong with ami_l1b reader
+* [Issue 2856](https://github.com/pytroll/satpy/issues/2856) - Typo or wrong syntax in examples setting chunk size - documentation ([PR 2857](https://github.com/pytroll/satpy/pull/2857) by [@djhoese](https://github.com/djhoese))
+* [Issue 2855](https://github.com/pytroll/satpy/issues/2855) - MTG LI data
+* [Issue 2834](https://github.com/pytroll/satpy/issues/2834) - geotiff writer fails with dask distributed
+* [Issue 2830](https://github.com/pytroll/satpy/issues/2830) - Sentinel-1 sar-c safe reader consumes too much memory and a lot of time
+* [Issue 2826](https://github.com/pytroll/satpy/issues/2826) - Speed up the test with satpy
+* [Issue 2823](https://github.com/pytroll/satpy/issues/2823) - Documentation under "Developer's Guide" wrong for "Development installation"
+* [Issue 2820](https://github.com/pytroll/satpy/issues/2820) - Problems in creating hrv_clouds RGB composite with FES Seviri data
+* [Issue 2805](https://github.com/pytroll/satpy/issues/2805) - `bucket_sum` resampler fails due to unexpected `fill_value` kwarg
+* [Issue 2732](https://github.com/pytroll/satpy/issues/2732) - Replace pytest-lazyfixture for pytest >= 8.0
+* [Issue 2724](https://github.com/pytroll/satpy/issues/2724) - Composite snow_age fails (no 'area') after composite cloud_phase ([PR 2818](https://github.com/pytroll/satpy/pull/2818) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 2705](https://github.com/pytroll/satpy/issues/2705) - olci_l1b-reader and xarray=2023.12.0 are seemingly incompatible
+* [Issue 2365](https://github.com/pytroll/satpy/issues/2365) - satpy slstr l1b reading issue
+* [Issue 1746](https://github.com/pytroll/satpy/issues/1746) - bucket sum resampler: TypeError: get_sum() got an unexpected keyword argument 'fill_value'
+* [Issue 1209](https://github.com/pytroll/satpy/issues/1209) - OLCI reader can't process quality flags ([PR 2687](https://github.com/pytroll/satpy/pull/2687) by [@yufeizhu600](https://github.com/yufeizhu600))
+* [Issue 1206](https://github.com/pytroll/satpy/issues/1206) - Add gallery of areas to documentation ([PR 2167](https://github.com/pytroll/satpy/pull/2167) by [@BENR0](https://github.com/BENR0))
+* [Issue 368](https://github.com/pytroll/satpy/issues/368) - Add ability to set output image size for `Scene.show` ([PR 2816](https://github.com/pytroll/satpy/pull/2816) by [@ludwigVonKoopa](https://github.com/ludwigVonKoopa))
+
+In this release 17 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2858](https://github.com/pytroll/satpy/pull/2858) - Fix default AWIPS tiled _FillValue of -1 for newer versions of xarray
+* [PR 2851](https://github.com/pytroll/satpy/pull/2851) - Fix start/end time properties of `hrit_jma` reader ([](https://github.com/`start/issues/))
+* [PR 2842](https://github.com/pytroll/satpy/pull/2842) - Fix VIIRS EDR using the wrong geolocation arrays
+* [PR 2835](https://github.com/pytroll/satpy/pull/2835) - Fix DayNightCompositor compatibility with numpy 2
+* [PR 2833](https://github.com/pytroll/satpy/pull/2833) - Fix conversion of valid_range metadata to tuple in viirs_edr reader
+* [PR 2824](https://github.com/pytroll/satpy/pull/2824) - add import rioxarray where readers actually need them
+* [PR 2819](https://github.com/pytroll/satpy/pull/2819) - Ensure lazyness of the olci nc reader
+* [PR 2818](https://github.com/pytroll/satpy/pull/2818) - Fix uniqueness of hdf5-based dask arrays ([2724](https://github.com/pytroll/satpy/issues/2724))
+
+#### Features added
+
+* [PR 2853](https://github.com/pytroll/satpy/pull/2853) - Add first version of LI composites and enhancements for point and accumulated products
+* [PR 2850](https://github.com/pytroll/satpy/pull/2850) - Add parallel test execution to CI with pytest-xdist library
+* [PR 2840](https://github.com/pytroll/satpy/pull/2840) - Add a testing utility for faking reading
+* [PR 2838](https://github.com/pytroll/satpy/pull/2838) - Add MERSI3 / FY3F support.
+* [PR 2837](https://github.com/pytroll/satpy/pull/2837) - Fix gcps type for newer rioxarray versions
+* [PR 2832](https://github.com/pytroll/satpy/pull/2832) - Add a read-only FSFile.fs property
+* [PR 2817](https://github.com/pytroll/satpy/pull/2817) - Implement support to set alpha range in create_colormap and yaml colorize enhancements
+* [PR 2806](https://github.com/pytroll/satpy/pull/2806) - Add ability to clip AMI negative radiances
+* [PR 2783](https://github.com/pytroll/satpy/pull/2783) - Add support for Sentinel-2 MSI L2A SAFE datasets
+* [PR 2687](https://github.com/pytroll/satpy/pull/2687) - add support of masking olci l1b products by using quality flags ([1209](https://github.com/pytroll/satpy/issues/1209))
+* [PR 2603](https://github.com/pytroll/satpy/pull/2603) - Changes to Eumetsat L2 BUFR reader
+* [PR 2167](https://github.com/pytroll/satpy/pull/2167) - Automatic list with overviews of inlcuded area definitions for the documentation ([1206](https://github.com/pytroll/satpy/issues/1206))
+* [PR 1637](https://github.com/pytroll/satpy/pull/1637) - Change default filename for cf writer to be compatible with satpy_cf_nc reader
+
+#### Documentation changes
+
+* [PR 2857](https://github.com/pytroll/satpy/pull/2857) - Fix typo in chunk setting example ([2856](https://github.com/pytroll/satpy/issues/2856))
+* [PR 2817](https://github.com/pytroll/satpy/pull/2817) - Implement support to set alpha range in create_colormap and yaml colorize enhancements
+* [PR 2816](https://github.com/pytroll/satpy/pull/2816) - Add resized area example to resampling documentation ([368](https://github.com/pytroll/satpy/issues/368))
+* [PR 2812](https://github.com/pytroll/satpy/pull/2812) - doc: move reader table to reading section
+
+#### Clean ups
+
+* [PR 2844](https://github.com/pytroll/satpy/pull/2844) - Add more test skips when numba is involved in the unstable CI
+* [PR 2841](https://github.com/pytroll/satpy/pull/2841) - Revert CI env change so geotiepoints comes from conda-forge
+
+In this release 27 pull requests were closed.
+
+
+## Version 0.49.0 (2024/06/05)
+
+### Issues Closed
+
+* [Issue 2790](https://github.com/pytroll/satpy/issues/2790) - VIIRS L1B DNB_SENZ file_key ([PR 2791](https://github.com/pytroll/satpy/pull/2791) by [@wjsharpe](https://github.com/wjsharpe))
+* [Issue 2781](https://github.com/pytroll/satpy/issues/2781) - [Question] Sun Zenith Correction
+* [Issue 2765](https://github.com/pytroll/satpy/issues/2765) - abi_l2_nc reader Key Error 'calibration' when trying to load Mask from fire Hot Spot ([PR 2794](https://github.com/pytroll/satpy/pull/2794) by [@djhoese](https://github.com/djhoese))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2804](https://github.com/pytroll/satpy/pull/2804) - Fix LI L2 accumulated products `'with_area_definition': False` 1-d coordinates computation
+* [PR 2794](https://github.com/pytroll/satpy/pull/2794) - Fix ABI L2 datasets when unitless and no calibration ([2765](https://github.com/pytroll/satpy/issues/2765))
+* [PR 2791](https://github.com/pytroll/satpy/pull/2791) - fixed DNB_SENZ file_key ([2790](https://github.com/pytroll/satpy/issues/2790))
+
+#### Features added
+
+* [PR 2807](https://github.com/pytroll/satpy/pull/2807) - Update the vii_l1b-reader, for new testdata format of VII
+* [PR 2801](https://github.com/pytroll/satpy/pull/2801) - Replace pytest-lazyfixture with pytest-lazy-fixtures
+* [PR 2800](https://github.com/pytroll/satpy/pull/2800) - Add numpy rules to ruff
+* [PR 2799](https://github.com/pytroll/satpy/pull/2799) - Add netcdf4 to goci2 optional dependency in `pyproject.toml`
+* [PR 2795](https://github.com/pytroll/satpy/pull/2795) - Add support for MERSI-1 on FY-3A/B/C
+* [PR 2789](https://github.com/pytroll/satpy/pull/2789) - Activate LI L2 accumulated products gridding by default
+* [PR 2787](https://github.com/pytroll/satpy/pull/2787) - Fix datetime imports
+* [PR 2778](https://github.com/pytroll/satpy/pull/2778) - Add the reader for the fci L1C Africa files
+* [PR 2776](https://github.com/pytroll/satpy/pull/2776) - Add option to choose start time to MSI SAFE reader
+* [PR 2727](https://github.com/pytroll/satpy/pull/2727) - Refactor Sentinel-1 SAR-C reader
+
+#### Documentation changes
+
+* [PR 2789](https://github.com/pytroll/satpy/pull/2789) - Activate LI L2 accumulated products gridding by default
+
+#### Backward incompatible changes
+
+* [PR 2789](https://github.com/pytroll/satpy/pull/2789) - Activate LI L2 accumulated products gridding by default
+
+#### Refactoring
+
+* [PR 2787](https://github.com/pytroll/satpy/pull/2787) - Fix datetime imports
+
+#### Clean ups
+
+* [PR 2797](https://github.com/pytroll/satpy/pull/2797) - Add missing coverage configuration section to pyproject.toml
+* [PR 2784](https://github.com/pytroll/satpy/pull/2784) - Fix various issues in unstable CI
+
+In this release 18 pull requests were closed.
+
+
+## Version 0.48.0 (2024/04/22)
+
+### Issues Closed
+
+* [Issue 2782](https://github.com/pytroll/satpy/issues/2782) - Documentation points to missing setup.py ([PR 2786](https://github.com/pytroll/satpy/pull/2786) by [@mraspaud](https://github.com/mraspaud))
+* [Issue 2771](https://github.com/pytroll/satpy/issues/2771) - Load data in another datatype rather than float64
+* [Issue 2759](https://github.com/pytroll/satpy/issues/2759) - 'defusedxml' missing in "msi_safe" extras ([PR 2761](https://github.com/pytroll/satpy/pull/2761) by [@fwfichtner](https://github.com/fwfichtner))
+* [Issue 2749](https://github.com/pytroll/satpy/issues/2749) - [Question] Resample of mesoscale data gives blank data
+* [Issue 2747](https://github.com/pytroll/satpy/issues/2747) - Cannot load from MTG FCI L1C data
+* [Issue 2729](https://github.com/pytroll/satpy/issues/2729) - Add Viirs L2 Reader + Enhancments ([PR 2740](https://github.com/pytroll/satpy/pull/2740) by [@wjsharpe](https://github.com/wjsharpe))
+* [Issue 2695](https://github.com/pytroll/satpy/issues/2695) - Improvements for BackgroundCompositor ([PR 2696](https://github.com/pytroll/satpy/pull/2696) by [@yukaribbba](https://github.com/yukaribbba))
+
+In this release 7 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2786](https://github.com/pytroll/satpy/pull/2786) - Remove doc references to setup.py ([2782](https://github.com/pytroll/satpy/issues/2782))
+* [PR 2779](https://github.com/pytroll/satpy/pull/2779) - Convert Sentinel-2 MSI sensor name to lowercase in the reader YAML config file and add support for "counts" calibration
+* [PR 2774](https://github.com/pytroll/satpy/pull/2774) - Fix the viirs EDR tests for newer xarray
+* [PR 2761](https://github.com/pytroll/satpy/pull/2761) - Add missing defusedxml ([2759](https://github.com/pytroll/satpy/issues/2759))
+* [PR 2754](https://github.com/pytroll/satpy/pull/2754) - Bugfix vgac reader
+* [PR 2701](https://github.com/pytroll/satpy/pull/2701) - Ici reader tiepoints bugfix
+* [PR 2696](https://github.com/pytroll/satpy/pull/2696) - Add double alpha channel support and improve metadata behaviours for BackgroundCompositor ([2695](https://github.com/pytroll/satpy/issues/2695))
+
+#### Features added
+
+* [PR 2780](https://github.com/pytroll/satpy/pull/2780) - Add new (Eumetrain) FCI RGB composites
+* [PR 2767](https://github.com/pytroll/satpy/pull/2767) - Use flags from file when available in OLCI NC reader
+* [PR 2763](https://github.com/pytroll/satpy/pull/2763) - Replace setup with pyproject.toml
+* [PR 2762](https://github.com/pytroll/satpy/pull/2762) - Add support for EO-SIP AVHRR LAC data
+* [PR 2753](https://github.com/pytroll/satpy/pull/2753) - Add fsspec support to `li_l2_nc` reader
+* [PR 2740](https://github.com/pytroll/satpy/pull/2740) - Add VIIRS L2 Reader ([2729](https://github.com/pytroll/satpy/issues/2729))
+* [PR 2696](https://github.com/pytroll/satpy/pull/2696) - Add double alpha channel support and improve metadata behaviours for BackgroundCompositor ([2695](https://github.com/pytroll/satpy/issues/2695))
+* [PR 2595](https://github.com/pytroll/satpy/pull/2595) - VGAC decode the time variable
+
+#### Documentation changes
+
+* [PR 2786](https://github.com/pytroll/satpy/pull/2786) - Remove doc references to setup.py ([2782](https://github.com/pytroll/satpy/issues/2782))
+* [PR 2766](https://github.com/pytroll/satpy/pull/2766) - Add Data Store to EUMETSAT part
+* [PR 2750](https://github.com/pytroll/satpy/pull/2750) - Add missing `h` docstring information to _geos_area.py
+
+In this release 18 pull requests were closed.
+
+
+## Version 0.47.0 (2024/02/21)
+
+### Issues Closed
+
+* [Issue 2734](https://github.com/pytroll/satpy/issues/2734) - Using a static image alters time information ([PR 2737](https://github.com/pytroll/satpy/pull/2737) by [@pnuu](https://github.com/pnuu))
+* [Issue 2723](https://github.com/pytroll/satpy/issues/2723) - MODIS Satpy scene Don't know how to open the following files: {'MOD021KM.A2017131.1325.061.2017314123114.hdf'}
+* [Issue 2719](https://github.com/pytroll/satpy/issues/2719) - Add lat lon to Seviri plots
+* [Issue 2718](https://github.com/pytroll/satpy/issues/2718) - Set invert as a modifier when do composite
+* [Issue 2712](https://github.com/pytroll/satpy/issues/2712) - mitiff writer add config option to add or not to add the size of a pixel in the proj string ([PR 2713](https://github.com/pytroll/satpy/pull/2713) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 2710](https://github.com/pytroll/satpy/issues/2710) - scene.save_datasets() outputs different values for AHI_HSD reader with calibration="brightness_temperature"
+* [Issue 2708](https://github.com/pytroll/satpy/issues/2708) - this is regarding slstr_l1b geometry
+* [Issue 2703](https://github.com/pytroll/satpy/issues/2703) - read swath in loop
+* [Issue 2680](https://github.com/pytroll/satpy/issues/2680) - satpy_cf_nc reader cannot read FCI file written with cf writer
+* [Issue 2672](https://github.com/pytroll/satpy/issues/2672) - Changes in NWC SAF GEO v2021 data ([PR 2673](https://github.com/pytroll/satpy/pull/2673) by [@pnuu](https://github.com/pnuu))
+* [Issue 2630](https://github.com/pytroll/satpy/issues/2630) - wrong start_time with BackgroundCompositor ([PR 2737](https://github.com/pytroll/satpy/pull/2737) by [@pnuu](https://github.com/pnuu))
+* [Issue 2447](https://github.com/pytroll/satpy/issues/2447) - add more options to time handling in combine_metadata ([PR 2737](https://github.com/pytroll/satpy/pull/2737) by [@pnuu](https://github.com/pnuu))
+* [Issue 2446](https://github.com/pytroll/satpy/issues/2446) - combine metadata in `MultiFiller` ([PR 2737](https://github.com/pytroll/satpy/pull/2737) by [@pnuu](https://github.com/pnuu))
+* [Issue 2427](https://github.com/pytroll/satpy/issues/2427) - Wrong start_time, end_time attributes after MultiScene.blend(blend_function=timeseries) ([PR 2737](https://github.com/pytroll/satpy/pull/2737) by [@pnuu](https://github.com/pnuu))
+* [Issue 2319](https://github.com/pytroll/satpy/issues/2319) - slstr_l2.yaml points to deleted slstr_l2.py ([PR 2731](https://github.com/pytroll/satpy/pull/2731) by [@djhoese](https://github.com/djhoese))
+* [Issue 1921](https://github.com/pytroll/satpy/issues/1921) - Standardize dataset information for SEVIRI and FCI L2 products
+* [Issue 1174](https://github.com/pytroll/satpy/issues/1174) - combine_metadata only supports the average of time attrs ([PR 2737](https://github.com/pytroll/satpy/pull/2737) by [@pnuu](https://github.com/pnuu))
+
+In this release 17 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2743](https://github.com/pytroll/satpy/pull/2743) - Fix nominal time attributes in SEVIRI HRIT ([](https://github.com/`nominal_start/issues/))
+* [PR 2742](https://github.com/pytroll/satpy/pull/2742) - Fix nominal end time in AHI HSD
+* [PR 2737](https://github.com/pytroll/satpy/pull/2737) - Change `start_time` and `end_time` handling in `combine_metadata` ([2734](https://github.com/pytroll/satpy/issues/2734), [2630](https://github.com/pytroll/satpy/issues/2630), [2447](https://github.com/pytroll/satpy/issues/2447), [2446](https://github.com/pytroll/satpy/issues/2446), [2427](https://github.com/pytroll/satpy/issues/2427), [1174](https://github.com/pytroll/satpy/issues/1174))
+* [PR 2731](https://github.com/pytroll/satpy/pull/2731) - Remove slstr_l2 reader in favor of ghrsst_l2 ([2319](https://github.com/pytroll/satpy/issues/2319))
+* [PR 2730](https://github.com/pytroll/satpy/pull/2730) - Pin pytest to fix CI
+* [PR 2726](https://github.com/pytroll/satpy/pull/2726) - Fix AGRI L1 C07 having a valid LUT value for its fill value ([565](https://github.com/ssec/polar2grid/issues/565))
+* [PR 2713](https://github.com/pytroll/satpy/pull/2713) - Add kwargs config option to turn off mitiff corner correction ([2712](https://github.com/pytroll/satpy/issues/2712))
+* [PR 2711](https://github.com/pytroll/satpy/pull/2711) - Add support for NOAA-21 in MiRS limb correction
+* [PR 2707](https://github.com/pytroll/satpy/pull/2707) - Fix 'viirs_edr' renaming two sets of dimensions to the same names
+* [PR 2700](https://github.com/pytroll/satpy/pull/2700) - Fix eps_l1b reader Delayed usage causing docs failures
+
+#### Features added
+
+* [PR 2746](https://github.com/pytroll/satpy/pull/2746) - Fix concurrency group in ci
+* [PR 2745](https://github.com/pytroll/satpy/pull/2745) - Sort reader table by name + diverse fixes
+* [PR 2744](https://github.com/pytroll/satpy/pull/2744) - Fix cutoffs for night_ir_alpha and bump up trollimage version
+* [PR 2737](https://github.com/pytroll/satpy/pull/2737) - Change `start_time` and `end_time` handling in `combine_metadata` ([2734](https://github.com/pytroll/satpy/issues/2734), [2630](https://github.com/pytroll/satpy/issues/2630), [2447](https://github.com/pytroll/satpy/issues/2447), [2446](https://github.com/pytroll/satpy/issues/2446), [2427](https://github.com/pytroll/satpy/issues/2427), [1174](https://github.com/pytroll/satpy/issues/1174))
+* [PR 2728](https://github.com/pytroll/satpy/pull/2728) - Update asv dependencies
+* [PR 2720](https://github.com/pytroll/satpy/pull/2720) - Add support for the MERSI-RM instrument on FY-3G
+* [PR 2714](https://github.com/pytroll/satpy/pull/2714) - Add QC-based filtering to the VIIRS EDR AOD550 product
+* [PR 2675](https://github.com/pytroll/satpy/pull/2675) - Make CF encoding of dataset attributes public
+* [PR 2673](https://github.com/pytroll/satpy/pull/2673) - Add NWC SAF GEO v2021 ASIIF-TF and ASII-GW dataset names ([2672](https://github.com/pytroll/satpy/issues/2672))
+* [PR 2534](https://github.com/pytroll/satpy/pull/2534) - Add fsspec functionality to `viirs_sdr` reader
+* [PR 2441](https://github.com/pytroll/satpy/pull/2441) - Add channel aliases to the CLAVRx reader to facilitate composites
+
+#### Documentation changes
+
+* [PR 2700](https://github.com/pytroll/satpy/pull/2700) - Fix eps_l1b reader Delayed usage causing docs failures
+
+#### Backward incompatible changes
+
+* [PR 2731](https://github.com/pytroll/satpy/pull/2731) - Remove slstr_l2 reader in favor of ghrsst_l2 ([2319](https://github.com/pytroll/satpy/issues/2319))
+
+#### Refactoring
+
+* [PR 2699](https://github.com/pytroll/satpy/pull/2699) - Move Scene.to_hvplot internals to _scene_converters
+
+#### Clean ups
+
+* [PR 2711](https://github.com/pytroll/satpy/pull/2711) - Add support for NOAA-21 in MiRS limb correction
+* [PR 2700](https://github.com/pytroll/satpy/pull/2700) - Fix eps_l1b reader Delayed usage causing docs failures
+* [PR 2689](https://github.com/pytroll/satpy/pull/2689) - Fix/supress warnings in reader tests ([](https://github.com/and/issues/))
+* [PR 2665](https://github.com/pytroll/satpy/pull/2665) - FCI L2 CF harmonization
+* [PR 2597](https://github.com/pytroll/satpy/pull/2597) - Update CI to test Python 3.12
+
+In this release 29 pull requests were closed.
+
+
 ## Version 0.46.0 (2023/12/18)
 
 ### Issues Closed

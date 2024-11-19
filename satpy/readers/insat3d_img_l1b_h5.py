@@ -1,16 +1,13 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
+
+import datetime as dt
 from contextlib import suppress
-from datetime import datetime
 from functools import cached_property
 
 import dask.array as da
 import numpy as np
 import xarray as xr
-
-from satpy.utils import import_error_helper
-
-with import_error_helper("xarray-datatree"):
-    from datatree import DataTree
+from xarray.core.datatree import DataTree
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -120,13 +117,15 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        start_time = datetime.strptime(self.datatree.attrs["Acquisition_Start_Time"], "%d-%b-%YT%H:%M:%S")
+        start_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_Start_Time"], "%d-%b-%YT%H:%M:%S")
         return start_time
 
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.strptime(self.datatree.attrs["Acquisition_End_Time"], "%d-%b-%YT%H:%M:%S")
+        end_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_End_Time"], "%d-%b-%YT%H:%M:%S")
         return end_time
 
     @cached_property
@@ -180,7 +179,10 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         #fov = self.datatree.attrs["Field_of_View(degrees)"]
         fov = 18
         cfac = 2 ** 16 / (fov / cols)
-        lfac = 2 ** 16 / (fov / lines)
+
+        # From reverse engineering metadata from a netcdf file, we discovered
+        # the lfac is actually the same as cfac, ie dependent on cols, not lines!
+        lfac = 2 ** 16 / (fov / cols)
 
         h = self.datatree.attrs["Observed_Altitude(km)"] * 1000
         # WGS 84
@@ -192,8 +194,8 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         pdict = {
             "cfac": cfac,
             "lfac": lfac,
-            "coff": cols / 2,
-            "loff": lines / 2,
+            "coff": cols // 2 + 1,
+            "loff": lines // 2,
             "ncols": cols,
             "nlines": lines,
             "scandir": "N2S",

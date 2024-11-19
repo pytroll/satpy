@@ -7,7 +7,7 @@ dependencies:
   - distributed
   - dask-image
   - donfig
-  - appdirs
+  - platformdirs
   - toolz
   - Cython
   - numba
@@ -43,10 +43,10 @@ dependencies:
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - pytest
+  - pytest<8.0.0
   - pytest-cov
-  - pytest-lazy-fixture
   - fsspec
+  - botocore>=1.33
   - s3fs
   - python-geotiepoints
   - pooch
@@ -57,8 +57,11 @@ dependencies:
   - pint-xarray
   - ephem
   - bokeh
+  - pytest-xdist
   - pip:
+    - pytest-lazy-fixtures
     - trollsift
-    - trollimage>=1.20
+    - trollimage>=1.24
     - pyspectral
     - pyorbital
+    - pyPublicDecompWT

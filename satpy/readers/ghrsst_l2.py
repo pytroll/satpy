@@ -14,12 +14,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for the GHRSST level-2 formatted data."""
 
+import datetime as dt
 import os
 import tarfile
 from contextlib import suppress
-from datetime import datetime
 from functools import cached_property
 
 import xarray as xr
@@ -39,9 +40,9 @@ class GHRSSTL2FileHandler(BaseFileHandler):
         self._engine = engine
         self._tarfile = None
 
-        self.filename_info["start_time"] = datetime.strptime(
+        self.filename_info["start_time"] = dt.datetime.strptime(
             self.nc.start_time, "%Y%m%dT%H%M%SZ")
-        self.filename_info["end_time"] = datetime.strptime(
+        self.filename_info["end_time"] = dt.datetime.strptime(
             self.nc.stop_time, "%Y%m%dT%H%M%SZ")
 
     @cached_property

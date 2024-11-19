@@ -271,6 +271,29 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
 
+  four_level_cloud_mask:
+    standard_name: cloud_mask
+    reader: clavrx
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [-127,# Fill Value
+                             0, # Clear
+                             1, # Probably Clear
+                             2, # Probably Cloudy
+                             3, # Cloudy
+                         ],
+               'colors': [[0, 0, 0], # black,-127 = Fill Value
+                          [94, 79, 162], # blue,    0 = Clear
+                          [73, 228, 242], # cyan,    1 = Probably Clear
+                          [158, 1, 66], # red,     2 = Probably Cloudy
+                          [255, 255, 255], # white,   3 = Cloudy
+                         ],
+               'color_scale': 255,
+              }
+
   sar-ice:
     standard_name: sar-ice
     operations:
@@ -906,6 +929,7 @@ enhancements:
                          [252, 254, 254], [253, 254, 254], [253, 254, 254], [
                              253, 254, 254], [253, 254, 254],
                          [254, 254, 254], [254, 254, 254], [254, 254, 254], [254, 254, 254], [255, 255, 255]]
+
   night_microphysics_default:
     standard_name: night_microphysics
     operations:
@@ -915,6 +939,21 @@ enhancements:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 10, 293]
+
+  24h_microphysics_default:
+    standard_name: 24h_microphysics
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 248]
+        max_stretch: [2, 6, 303]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [ 1, 1.2, 1 ]
+
   ir_overview_default:
     standard_name: ir_overview
     operations:
@@ -1104,7 +1143,7 @@ enhancements:
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: linear, cutoffs: [0.02, 0.02]}
+      kwargs: {stretch: linear, cutoffs: [[0.02, 0.02], [0.02, 0.02], [0.02, 0.02], [0.02, 0.02]]}
     - name: inverse
       method: !!python/name:satpy.enhancements.invert
       args:
@@ -1144,6 +1183,18 @@ enhancements:
   chlor_a_default:
     name: chlor_a
     reader: seadas_l2
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: log
+          base: "10"
+          factor: 21.0
+          min_stretch: 0.0
+          max_stretch: 20.0
+  chlor_a_bgc:
+    name: chlor_a
+    reader: oci_l2_bgc
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
@@ -1230,3 +1281,11 @@ enhancements:
          stretch: crude
          min_stretch: [0,0,0]
          max_stretch: [1,1,1]
+
+  imager_with_lightning:
+    standard_name: imager_with_lightning
+    operations: []
+
+  image_ready:
+    standard_name: image_ready
+    operations: []

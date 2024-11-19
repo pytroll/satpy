@@ -721,7 +721,7 @@ class DayNightCompositor(GenericCompositor):
         self.day_night = day_night
         self.include_alpha = include_alpha
         self._has_sza = False
-        super(DayNightCompositor, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
 
     def __call__(
             self,
@@ -764,8 +764,8 @@ class DayNightCompositor(GenericCompositor):
             self,
             projectables: Sequence[xr.DataArray],
     ) -> xr.DataArray:
-        lim_low = np.cos(np.deg2rad(self.lim_low))
-        lim_high = np.cos(np.deg2rad(self.lim_high))
+        lim_low = float(np.cos(np.deg2rad(self.lim_low)))
+        lim_high = float(np.cos(np.deg2rad(self.lim_high)))
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
             self._has_sza = True
@@ -775,8 +775,8 @@ class DayNightCompositor(GenericCompositor):
             # Get chunking that matches the data
             coszen = get_cos_sza(projectables[0])
         # Calculate blending weights
-        coszen -= np.min((lim_high, lim_low))
-        coszen /= np.abs(lim_low - lim_high)
+        coszen -= min(lim_high, lim_low)
+        coszen /= abs(lim_low - lim_high)
         return coszen.clip(0, 1)
 
     def _get_data_for_single_side_product(
@@ -985,6 +985,7 @@ def add_bands(data, bands):
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes["y"],
                               data.sizes["x"]),
+                             dtype=new_data[0].dtype,
                              chunks=new_data[0].chunks)
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"
@@ -1665,37 +1666,81 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         img.attrs["mode"] = "".join(img.bands.data)
         img.attrs.pop("modifiers", None)
         img.attrs.pop("calibration", None)
-        # Add start time if not present in the filename
-        if "start_time" not in img.attrs or not img.attrs["start_time"]:
-            import datetime as dt
-            img.attrs["start_time"] = dt.datetime.utcnow()
-        if "end_time" not in img.attrs or not img.attrs["end_time"]:
-            import datetime as dt
-            img.attrs["end_time"] = dt.datetime.utcnow()
 
         return img
 
 
 class BackgroundCompositor(GenericCompositor):
-    """A compositor that overlays one composite on top of another."""
+    """A compositor that overlays one composite on top of another.
+
+    The output image mode will be determined by both foreground and background. Generally, when the background has
+    an alpha band, the output image will also have one.
+
+    ============  ============  ========
+    Foreground     Background    Result
+    ============  ============  ========
+    L             L             L
+    ------------  ------------  --------
+    L             LA            LA
+    ------------  ------------  --------
+    L             RGB           RGB
+    ------------  ------------  --------
+    L             RGBA          RGBA
+    ------------  ------------  --------
+    LA            L             L
+    ------------  ------------  --------
+    LA            LA            LA
+    ------------  ------------  --------
+    LA            RGB           RGB
+    ------------  ------------  --------
+    LA            RGBA          RGBA
+    ------------  ------------  --------
+    RGB           L             RGB
+    ------------  ------------  --------
+    RGB           LA            RGBA
+    ------------  ------------  --------
+    RGB           RGB           RGB
+    ------------  ------------  --------
+    RGB           RGBA          RGBA
+    ------------  ------------  --------
+    RGBA          L             RGB
+    ------------  ------------  --------
+    RGBA          LA            RGBA
+    ------------  ------------  --------
+    RGBA          RGB           RGB
+    ------------  ------------  --------
+    RGBA          RGBA          RGBA
+    ============  ============  ========
+
+    """
 
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
         projectables = self.match_data_arrays(projectables)
+
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
-        # Adjust bands so that they match
-        # L/RGB -> RGB/RGB
-        # LA/RGB -> RGBA/RGBA
-        # RGB/RGBA -> RGBA/RGBA
+        before_bg_mode = background.attrs["mode"]
+
+        # Adjust bands so that they have the same mode
         foreground = add_bands(foreground, background["bands"])
         background = add_bands(background, foreground["bands"])
 
+        # It's important whether the alpha band of background is initially generated, e.g. by CloudCompositor
+        # The result will be used to determine the output image mode
+        initial_bg_alpha = "A" in before_bg_mode
+
         attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
-        data = self._get_merged_image_data(foreground, background)
+        if "A" not in foreground.attrs["mode"] and "A" not in background.attrs["mode"]:
+            data = self._simple_overlay(foreground, background)
+        else:
+            data = self._get_merged_image_data(foreground, background, initial_bg_alpha=initial_bg_alpha)
+        for data_arr in data:
+            data_arr.attrs = attrs
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs.update(attrs)
+        attrs.update(res.attrs)
+        res.attrs = attrs
         return res
 
     def _combine_metadata_with_mode_and_sensor(self,
@@ -1714,26 +1759,60 @@ class BackgroundCompositor(GenericCompositor):
 
     @staticmethod
     def _get_merged_image_data(foreground: xr.DataArray,
-                               background: xr.DataArray
+                               background: xr.DataArray,
+                               initial_bg_alpha: bool,
                                ) -> list[xr.DataArray]:
-        if "A" in foreground.attrs["mode"]:
-            # Use alpha channel as weight and blend the two composites
-            alpha = foreground.sel(bands="A")
-            data = []
-            # NOTE: there's no alpha band in the output image, it will
-            # be added by the data writer
-            for band in foreground.mode[:-1]:
-                fg_band = foreground.sel(bands=band)
-                bg_band = background.sel(bands=band)
-                chan = (fg_band * alpha + bg_band * (1 - alpha))
-                chan = xr.where(chan.isnull(), bg_band, chan)
-                data.append(chan)
-        else:
-            data_arr = xr.where(foreground.isnull(), background, foreground)
-            # Split to separate bands so the mode is correct
-            data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
+        # For more info about alpha compositing please review https://en.wikipedia.org/wiki/Alpha_compositing
+        alpha_fore = _get_alpha(foreground)
+        alpha_back = _get_alpha(background)
+        new_alpha = alpha_fore + alpha_back * (1 - alpha_fore)
+
+        data = []
+
+        # Pass the image data (alpha band will be dropped temporally) to the writer
+        output_mode = background.attrs["mode"].replace("A", "")
+
+        for band in output_mode:
+            fg_band = foreground.sel(bands=band)
+            bg_band = background.sel(bands=band)
+            # Do the alpha compositing
+            chan = (fg_band * alpha_fore + bg_band * alpha_back * (1 - alpha_fore)) / new_alpha
+            # Fill the NaN area with background
+            chan = xr.where(chan.isnull(), bg_band * alpha_back, chan)
+            chan["bands"] = band
+            data.append(chan)
+
+        # If background has an initial alpha band, it will also be passed to the writer
+        if initial_bg_alpha:
+            new_alpha["bands"] = "A"
+            data.append(new_alpha)
 
         return data
+
+    @staticmethod
+    def _simple_overlay(foreground: xr.DataArray,
+                        background: xr.DataArray,) -> list[xr.DataArray]:
+        # This is for the case when no alpha bands are involved
+        # Just simply lay the foreground upon background
+        data_arr = xr.where(foreground.isnull(), background, foreground)
+        # Split to separate bands so the mode is correct
+        data = [data_arr.sel(bands=b) for b in data_arr["bands"]]
+
+        return data
+
+
+def _get_alpha(dataset: xr.DataArray):
+    # 1. This function is only used by _get_merged_image_data
+    # 2. Both foreground and background have been through add_bands, so they have the same mode
+    # 3. If none of them has alpha band, they will be passed to _simple_overlay not _get_merged_image_data
+    # So any dataset(whether foreground or background) passed to this function has an alpha band for certain
+    # We will use it directly
+    alpha = dataset.sel(bands="A")
+    # There could be NaNs in the alpha
+    # Replace them with 0 to prevent cases like 1 + nan = nan, so they won't affect new_alpha
+    alpha = xr.where(alpha.isnull(), 0, alpha)
+
+    return alpha
 
 
 class MaskingCompositor(GenericCompositor):

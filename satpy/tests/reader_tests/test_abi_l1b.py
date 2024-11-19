@@ -15,10 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """The abi_l1b reader tests package."""
+
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
 from pathlib import Path
 from typing import Any, Callable
 from unittest import mock
@@ -29,7 +31,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 import xarray as xr
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import DataQuery
 from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -135,7 +137,7 @@ def generate_l1b_filename(chan_name: str) -> str:
     return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230_suffix.nc"
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_refl(tmp_path) -> xr.DataArray:
     """Load c01 reflectances."""
     with _apply_dask_chunk_size():
@@ -143,7 +145,7 @@ def c01_refl(tmp_path) -> xr.DataArray:
         return reader.load(["C01"])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_rad(tmp_path) -> xr.DataArray:
     """Load c01 radiances."""
     with _apply_dask_chunk_size():
@@ -151,7 +153,7 @@ def c01_rad(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
     """Load c01 radiances through h5netcdf."""
     shape = RAD_SHAPE[1000]
@@ -174,7 +176,7 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_counts(tmp_path) -> xr.DataArray:
     """Load c01 counts."""
     with _apply_dask_chunk_size():
@@ -182,7 +184,7 @@ def c01_counts(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="counts")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c07_bt_creator(tmp_path) -> Callable:
     """Create a loader for c07 brightness temperatures."""
     def _load_data_array(
@@ -372,8 +374,8 @@ class Test_NC_ABI_L1B:
             "timeline_ID": None,
             "suffix": "suffix",
             "units": "W m-2 um-1 sr-1",
-            "start_time": datetime(2017, 9, 20, 17, 30, 40, 800000),
-            "end_time": datetime(2017, 9, 20, 17, 41, 17, 500000),
+            "start_time": dt.datetime(2017, 9, 20, 17, 30, 40, 800000),
+            "end_time": dt.datetime(2017, 9, 20, 17, 41, 17, 500000),
         }
 
         res = c01_data_arr

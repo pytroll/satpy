@@ -4,7 +4,11 @@
 
 reader:
   name: ghi_l1
+  short_name: GHI FY4A L1
+  long_name: FY-4A GHI Level 1 HDF5 format
   description: FY-4A GHI instrument HDF5 reader
+  status: Nominal
+  supports_fsspec: false
   sensors: [ghi]
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reading and calibrating hrpt avhrr data.
 
 Todo:
@@ -29,8 +30,8 @@ http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c7/sec7-1.htm
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -130,7 +131,7 @@ class HRPTFile(BaseFileHandler):
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: "counts" for i in AVHRR_CHANNEL_NAMES}
 
-        self.year = filename_info.get("start_time", datetime.utcnow()).year
+        self.year = filename_info.get("start_time", dt.datetime.utcnow()).year
 
     @cached_property
     def times(self):
@@ -272,10 +273,10 @@ class HRPTFile(BaseFileHandler):
     def start_time(self):
         """Get the start time."""
         return time_seconds(self._data["timecode"][0, np.newaxis, :],
-                            self.year).astype(datetime)[0]
+                            self.year).astype(dt.datetime)[0]
 
     @property
     def end_time(self):
         """Get the end time."""
         return time_seconds(self._data["timecode"][-1, np.newaxis, :],
-                            self.year).astype(datetime)[0]
+                            self.year).astype(dt.datetime)[0]

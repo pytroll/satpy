@@ -18,11 +18,11 @@
 """Utilties for getting various angles for a dataset.."""
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import os
 import shutil
 import warnings
-from datetime import datetime
 from functools import update_wrapper
 from glob import glob
 from typing import Any, Callable, Optional, Union
@@ -45,7 +45,7 @@ PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 # pyorbital's get_observer_look function.
 # The difference is on the order of 1e-10 at most as time changes so we force
 # it to a single time for easier caching. It is *only* used if caching.
-STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
+STATIC_EARTH_INERTIAL_DATETIME = dt.datetime(2000, 1, 1, 12, 0, 0)
 DEFAULT_UNCACHE_TYPES = (SwathDefinition, xr.DataArray, da.Array)
 HASHABLE_GEOMETRIES = (AreaDefinition, StackedAreaDefinition)
 
@@ -263,7 +263,7 @@ def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
             raise TypeError(f"Unhashable type ({type(arg)}).")
         if isinstance(arg, HASHABLE_GEOMETRIES):
             arg = hash(arg)
-        elif isinstance(arg, datetime):
+        elif isinstance(arg, dt.datetime):
             arg = arg.isoformat(" ")
         hashable_args.append(arg)
     arg_hash = hashlib.sha1()  # nosec
@@ -274,7 +274,7 @@ def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
 def _sanitize_observer_look_args(*args):
     new_args = []
     for arg in args:
-        if isinstance(arg, datetime):
+        if isinstance(arg, dt.datetime):
             new_args.append(STATIC_EARTH_INERTIAL_DATETIME)
         elif isinstance(arg, (float, np.float64, np.float32)):
             # Round floating point numbers to nearest tenth. Numpy types don't
@@ -448,7 +448,7 @@ def _cos_zen_ndarray(lons, lats, utc_time):
         return pyob_cos_zen(utc_time, lons, lats)
 
 
-def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: datetime) -> np.ndarray:
+def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dt.datetime) -> np.ndarray:
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
@@ -572,7 +572,6 @@ def sunzen_reduction(data: da.Array,
     return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
                          meta=np.array((), dtype=data.dtype), chunks=data.chunks)
 
-
 def _sunzen_reduction_ndarray(data: np.ndarray,
                               sunz: np.ndarray,
                               limit: float,
@@ -584,7 +583,7 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
 
     # invert the reduction factor such that minimum reduction is done at `limit` and gradually increases towards max_sza
     with np.errstate(invalid="ignore"):  # we expect space pixels to be invalid
-        reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2)
+        reduction_factor = 1. - np.log2(reduction_factor + 1)
 
     # apply non-linearity to the reduction factor for a non-linear reduction of the signal. This can be used for a
     # slower or faster transision to higher/lower fractions at the ndvi extremes. If strength equals 1.0, this

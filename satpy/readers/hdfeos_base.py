@@ -15,15 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Base HDF-EOS reader."""
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import re
 from ast import literal_eval
 from contextlib import suppress
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -88,6 +89,12 @@ def _find_and_run_interpolation(interpolation_functions, src_resolution, dst_res
     logger.debug("Interpolating from {} to {}".format(src_resolution, dst_resolution))
     return interpolation_function(*args)
 
+def _modis_date(date):
+    """Transform a date and time string into a datetime object."""
+    if len(date) == 19:
+        return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+    else:
+        return dt.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
 
 class HDFEOSBaseFileReader(BaseFileHandler):
     """Base file handler for HDF EOS data for both L1b and L2 products."""
@@ -182,7 +189,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEBEGINNINGTIME"]["VALUE"])
-            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            return _modis_date(date)
         except KeyError:
             return self._start_time_from_filename()
 
@@ -195,7 +202,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         try:
             date = (self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGDATE"]["VALUE"] + " " +
                     self.metadata["INVENTORYMETADATA"]["RANGEDATETIME"]["RANGEENDINGTIME"]["VALUE"])
-            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            return _modis_date(date)
         except KeyError:
             return self.start_time
 
@@ -215,7 +222,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
         dataset = self._read_dataset_in_file(dataset_name)
         chunks = self._chunks_for_variable(dataset)
-        dask_arr = from_sds(dataset, chunks=chunks)
+        dask_arr = from_sds(dataset, self.filename, chunks=chunks)
         dims = ("y", "x") if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
@@ -231,7 +238,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return normalize_low_res_chunks(
             (1,) * num_nonyx_dims + ("auto", -1),
             var_shape,
-            (1,) * num_nonyx_dims + (scan_length_250m, -1),
+            (1,) * num_nonyx_dims + (scan_length_250m, var_shape[-1]),
             (1,) * num_nonyx_dims + (res_multiplier, res_multiplier),
             np.float32,
         )
@@ -326,6 +333,10 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         "satellite_zenith_angle": ("SensorZenith", "Sensor_Zenith"),
         "solar_azimuth_angle": ("SolarAzimuth", "SolarAzimuth"),
         "solar_zenith_angle": ("SolarZenith", "Solar_Zenith"),
+        "water_present": "WaterPresent",
+        "landsea_mask": "Land/SeaMask",
+        "height": "Height",
+        "range": "Range",
     }
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
