@@ -189,10 +189,11 @@ class TestToXarrayConversion:
         assert isinstance(xrds, xr.Dataset)
         assert "acq_time" not in xrds.coords
 
-        xrds = scn.to_xarray_dataset(compat="override")
+        # override: pick variable from first dataset
+        xrds = scn.to_xarray_dataset(datasets=["ds1", "ds2"], compat="override")
         assert isinstance(xrds, xr.Dataset)
         assert "acq_time" in xrds.coords
-        xr.testing.assert_equal(xrds["acq_time"], ds2["acq_time"])
+        xr.testing.assert_equal(xrds["acq_time"], ds["acq_time"])
 
     @pytest.fixture
     def multi_area_scn(self):
