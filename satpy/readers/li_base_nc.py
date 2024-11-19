@@ -520,6 +520,7 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
             "name": ds_name,
             "variable_name": var_name,
             "sensor": "li",
+            "platform_name": "MTG-I1",
             "file_type": self.filetype_info["file_type"]
         }
 
