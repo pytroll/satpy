@@ -59,7 +59,7 @@ def _get_expected_stack_blend(scene1: Scene, scene2: Scene) -> xr.DataArray:
     return expected
 
 
-@pytest.fixture()
+@pytest.fixture
 def test_area():
     """Get area definition used by test DataArrays."""
     return _create_test_area()
@@ -77,7 +77,7 @@ def image_mode(request):
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def cloud_type_data_array1(test_area, data_type, image_mode):
     """Get DataArray for cloud type in the first test Scene."""
     dsid1 = make_dataid(
@@ -107,7 +107,7 @@ def cloud_type_data_array1(test_area, data_type, image_mode):
     return data_arr
 
 
-@pytest.fixture()
+@pytest.fixture
 def cloud_type_data_array2(test_area, data_type, image_mode):
     """Get DataArray for cloud type in the second test Scene."""
     dsid1 = make_dataid(
@@ -133,7 +133,7 @@ def cloud_type_data_array2(test_area, data_type, image_mode):
     return data_arr
 
 
-@pytest.fixture()
+@pytest.fixture
 def scene1_with_weights(cloud_type_data_array1, test_area):
     """Create first test scene with a dataset of weights."""
     from satpy import Scene
@@ -160,7 +160,7 @@ def scene1_with_weights(cloud_type_data_array1, test_area):
     return scene, [wgt1, wgt2]
 
 
-@pytest.fixture()
+@pytest.fixture
 def scene2_with_weights(cloud_type_data_array2, test_area):
     """Create second test scene."""
     from satpy import Scene
@@ -183,7 +183,7 @@ def scene2_with_weights(cloud_type_data_array2, test_area):
     return scene, [wgt1, wgt2]
 
 
-@pytest.fixture()
+@pytest.fixture
 def multi_scene_and_weights(scene1_with_weights, scene2_with_weights):
     """Create small multi-scene for testing."""
     from satpy import MultiScene
@@ -193,7 +193,7 @@ def multi_scene_and_weights(scene1_with_weights, scene2_with_weights):
     return MultiScene([scene1, scene2]), [weights1, weights2]
 
 
-@pytest.fixture()
+@pytest.fixture
 def groups():
     """Get group definitions for the MultiScene."""
     return {
@@ -277,7 +277,7 @@ class TestBlendFuncs:
         assert result.attrs["start_time"] == dt.datetime(2023, 1, 16, 11, 9, 17)
         assert result.attrs["end_time"] == dt.datetime(2023, 1, 16, 11, 28, 1, 900000)
 
-    @pytest.fixture()
+    @pytest.fixture
     def datasets_and_weights(self):
         """X-Array datasets with area definition plus weights for input to tests."""
         shape = (8, 12)
@@ -389,7 +389,7 @@ def _check_stacked_metadata(data_arr: xr.DataArray, exp_name: str) -> None:
 class TestTemporalRGB:
     """Test the temporal RGB blending method."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def nominal_data(self):
         """Return the input arrays for the nominal use case."""
         da1 = xr.DataArray([1, 0, 0], attrs={"start_time": dt.datetime(2023, 5, 22, 9, 0, 0)})
@@ -398,7 +398,7 @@ class TestTemporalRGB:
 
         return [da1, da2, da3]
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected_result(self):
         """Return the expected result arrays."""
         return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]

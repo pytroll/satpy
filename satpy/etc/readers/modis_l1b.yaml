@@ -486,6 +486,34 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
+  landsea_mask:
+    name: landsea_mask
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo]
+
+  height:
+    name: height
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo]
+
+  range:
+    name: range
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo]
+
+  waterpresent:
+    name: waterpresent
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo]
+
 
 file_types:
   hdf_eos_data_250m:

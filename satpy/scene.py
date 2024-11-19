@@ -101,11 +101,14 @@ class Scene:
         will be searched for a Reader that can support the provided files. This
         can take a considerable amount of time so it is recommended that
         ``reader`` always be provided. Note without ``filenames`` the Scene is
-        created with no Readers available requiring Datasets to be added
-        manually::
+        created with no Readers available. When a Scene is created with no Readers,
+        each xarray.DataArray must be added manually::
 
             scn = Scene()
-            scn['my_dataset'] = Dataset(my_data_array, **my_info)
+            scn['my_dataset'] = DataArray(my_data_array, attrs={})
+
+        The `attrs` dictionary contains the metadata for the data. See
+        :ref:`dataset_metadata` for more information.
 
         Further, notice that it is also possible to load a combination of files
         or sets of files each requiring their specific reader. For that

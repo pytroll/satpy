@@ -20,6 +20,7 @@
 import datetime
 import logging
 import os
+from unittest.mock import Mock
 
 import dask.array as da
 import numpy as np
@@ -247,6 +248,12 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
             "start_time": datetime.datetime(2027, 8, 2, 8, 20),
             "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
+    # simulate an enhancement history such as palettize may add
+    arr.attrs["enhancement_history"] = [
+            {"scale": np.float64(0.01),
+            "offset": np.float64(0.0),
+            "colormap": Mock()}]
+
     return to_image(arr)
 
 
@@ -463,7 +470,7 @@ def ntg_latlon(test_image_latlon):
             SatelliteNameID=654321)
 
 
-@pytest.fixture()
+@pytest.fixture
 def _patch_datetime_now(monkeypatch):
     """Get a fake datetime.datetime.now()."""
     # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0
@@ -577,8 +584,8 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
         test_image_small_arctic_P,
         filename=fn,
         fill_value=255,
-        PhysicUnit="N/A",
-        PhysicValue="N/A",
+        PhysicUnit="satdata",
+        PhysicValue="satdata",
         SatelliteNameID=6400014,
         ChannelID=900015,
         DataType="PPRN",
@@ -591,8 +598,8 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
-    assert "ninjo_Gradient" not in tgs
-    assert "ninjo_AxisIntercept" not in tgs
+    assert tgs["ninjo_Gradient"] == "1.0"
+    assert tgs["ninjo_AxisIntercept"] == "0.0"
 
 
 def test_write_and_read_file_units(

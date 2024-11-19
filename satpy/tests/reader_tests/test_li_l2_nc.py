@@ -792,10 +792,12 @@ class TestLIL2():
         # prepare reference array
         data = handler_without_area_def.get_dataset(dsid).values
         ref_arr = np.empty(LI_GRID_SHAPE, dtype=arr.dtype)
-        ref_arr[:] = np.nan
+        ref_arr[:] = 0
         rows = (LI_GRID_SHAPE[0] - yarr)
         cols = xarr - 1
-        ref_arr[rows, cols] = data
+        for n_entry in range(len(data)):
+            ref_arr[rows[n_entry], cols[n_entry]] += data[n_entry]
+        ref_arr = np.where(ref_arr > 0, ref_arr, np.nan)
 
         # Check all nan values are at the same locations:
         assert np.all(np.isnan(arr) == np.isnan(ref_arr))

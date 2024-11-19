@@ -219,11 +219,12 @@ def cira_stretch(img, **kwargs):
 
 @exclude_alpha
 def _cira_stretch(band_data):
-    log_root = np.log10(0.0223)
+    dtype = band_data.dtype
+    log_root = np.log10(0.0223, dtype=dtype)
     denom = (1.0 - log_root) * 0.75
     band_data *= 0.01
     band_data = band_data.clip(np.finfo(float).eps)
-    band_data = np.log10(band_data)
+    band_data = np.log10(band_data, dtype=dtype)
     band_data -= log_root
     band_data /= denom
     return band_data
@@ -409,7 +410,7 @@ def create_colormap(palette, img=None):  # noqa: D417
     Colormaps can be loaded from lists of colors provided by the ``colors``
     key in the provided dictionary. Each element in the list represents a
     single color to be mapped to and can be 3 (RGB) or 4 (RGBA) elements long.
-    By default the value or control point for a color is determined by the
+    By default, the value or control point for a color is determined by the
     index in the list (0, 1, 2, ...) divided by the total number of colors
     to produce a number between 0 and 1. This can be overridden by providing a
     ``values`` key in the provided dictionary. See the "Set Range" section
@@ -455,12 +456,37 @@ def create_colormap(palette, img=None):  # noqa: D417
     ``max_value``. See :meth:`trollimage.colormap.Colormap.set_range` for more
     information.
 
+    **Set Alpha Range**
+
+    The alpha channel of a created colormap can be added and/or modified by
+    specifying ``min_alpha`` and ``max_alpha``.
+    See :meth:`trollimage.colormap.Colormap.set_alpha_range`  for more info.
+
     """
+    # are colors between 0-255 or 0-1
+    color_scale = palette.get("color_scale", 255)
+    cmap = _get_cmap_from_palette_info(palette, img, color_scale)
+
+    if palette.get("reverse", False):
+        cmap.reverse()
+    if "min_value" in palette and "max_value" in palette:
+        cmap.set_range(palette["min_value"], palette["max_value"])
+    elif "min_value" in palette or "max_value" in palette:
+        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither).")
+
+    if "min_alpha" in palette and "max_alpha" in palette:
+        cmap.set_alpha_range(palette["min_alpha"] / color_scale,
+                             palette["max_alpha"] / color_scale)
+    elif "min_alpha" in palette or "max_alpha" in palette:
+        raise ValueError("Both 'min_alpha' and 'max_alpha' must be specified (or neither).")
+
+    return cmap
+
+
+def _get_cmap_from_palette_info(palette, img, color_scale):
     fname = palette.get("filename", None)
     colors = palette.get("colors", None)
     dataset = palette.get("dataset", None)
-    # are colors between 0-255 or 0-1
-    color_scale = palette.get("color_scale", 255)
     if fname:
         if not os.path.exists(fname):
             fname = get_config_path(fname)
@@ -473,15 +499,8 @@ def create_colormap(palette, img=None):  # noqa: D417
         cmap = _create_colormap_from_dataset(img, dataset, color_scale)
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
-
-    if palette.get("reverse", False):
-        cmap.reverse()
-    if "min_value" in palette and "max_value" in palette:
-        cmap.set_range(palette["min_value"], palette["max_value"])
-    elif "min_value" in palette or "max_value" in palette:
-        raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither)")
-
     return cmap
+
 
 
 def _create_colormap_from_dataset(img, dataset, color_scale):
