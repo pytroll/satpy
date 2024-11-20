@@ -57,9 +57,11 @@ dependencies:
   - pint-xarray
   - ephem
   - bokeh
+  - pytest-xdist
   - pip:
     - pytest-lazy-fixtures
     - trollsift
-    - trollimage>=1.23
+    - trollimage>=1.24
     - pyspectral
     - pyorbital
+    - pyPublicDecompWT

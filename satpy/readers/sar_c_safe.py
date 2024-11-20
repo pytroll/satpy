@@ -35,6 +35,7 @@ References:
 """
 
 import functools
+import json
 import logging
 import warnings
 from collections import defaultdict
@@ -46,10 +47,11 @@ from threading import Lock
 import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
+import rioxarray  # noqa F401  # xarray open_dataset use engine rasterio, which use rioxarray
 import xarray as xr
 from dask import array as da
 from geotiepoints.geointerpolator import lonlat2xyz, xyz2lonlat
-from geotiepoints.interpolator import MultipleGridInterpolator
+from geotiepoints.interpolator import MultipleSplineInterpolator
 from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
@@ -76,7 +78,7 @@ def _dictify(r):
             return int(r.text)
         except ValueError:
             try:
-                return float(r.text)
+                return np.float32(r.text)
             except ValueError:
                 return r.text
     for x in r.findall("./*"):
@@ -184,7 +186,7 @@ class Calibrator(SAFEXML):
 
     def get_calibration_constant(self):
         """Load the calibration constant."""
-        return float(self.root.find(".//absoluteCalibrationConstant").text)
+        return np.float32(self.root.find(".//absoluteCalibrationConstant").text)
 
     def _get_calibration_uncached(self, calibration, chunks=None):
         """Get the calibration array."""
@@ -339,7 +341,7 @@ class AzimuthNoiseReader:
         current_blocks = self._find_blocks_covering_line(current_line)
         current_blocks.sort(key=(lambda x: x.coords["x"][0]))
         next_line = self._get_next_start_line(current_blocks, current_line)
-        current_y = np.arange(current_line, next_line)
+        current_y = np.arange(current_line, next_line, dtype=np.uint16)
         pieces = [arr.sel(y=current_y) for arr in current_blocks]
         return pieces
 
@@ -387,7 +389,7 @@ class AzimuthNoiseReader:
     @staticmethod
     def _fill_dask_pieces(dask_pieces, shape, chunks):
         if shape[1] > 0:
-            new_piece = da.full(shape, np.nan, chunks=chunks)
+            new_piece = da.full(shape, np.nan, chunks=chunks, dtype=np.float32)
             dask_pieces.append(new_piece)
 
 
@@ -423,11 +425,10 @@ class _AzimuthBlock:
         #     corr = 1.5
         data = self.lut * corr
 
-        x_coord = np.arange(self.first_pixel, self.last_pixel + 1)
-        y_coord = np.arange(self.first_line, self.last_line + 1)
-
-        new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
-                   np.interp(y_coord, self.lines, data)[:, np.newaxis])
+        x_coord = np.arange(self.first_pixel, self.last_pixel + 1, dtype=np.uint16)
+        y_coord = np.arange(self.first_line, self.last_line + 1, dtype=np.uint16)
+        new_arr = (da.ones((len(y_coord), len(x_coord)), dtype=np.float32, chunks=chunks) *
+                   np.interp(y_coord, self.lines, data)[:, np.newaxis].astype(np.float32))
         new_arr = xr.DataArray(new_arr,
                                dims=["y", "x"],
                                coords={"x": x_coord,
@@ -436,29 +437,29 @@ class _AzimuthBlock:
 
     @property
     def first_pixel(self):
-        return int(self.element.find("firstRangeSample").text)
+        return np.uint16(self.element.find("firstRangeSample").text)
 
     @property
     def last_pixel(self):
-        return int(self.element.find("lastRangeSample").text)
+        return np.uint16(self.element.find("lastRangeSample").text)
 
     @property
     def first_line(self):
-        return int(self.element.find("firstAzimuthLine").text)
+        return np.uint16(self.element.find("firstAzimuthLine").text)
 
     @property
     def last_line(self):
-        return int(self.element.find("lastAzimuthLine").text)
+        return np.uint16(self.element.find("lastAzimuthLine").text)
 
     @property
     def lines(self):
         lines = self.element.find("line").text.split()
-        return np.array(lines).astype(int)
+        return np.array(lines).astype(np.uint16)
 
     @property
     def lut(self):
         lut = self.element.find("noiseAzimuthLut").text.split()
-        return np.array(lut).astype(float)
+        return np.array(lut, dtype=np.float32)
 
 
 class XMLArray:
@@ -485,7 +486,7 @@ class XMLArray:
             new_x = elt.find("pixel").text.split()
             y += [int(elt.find("line").text)] * len(new_x)
             x += [int(val) for val in new_x]
-            data += [float(val)
+            data += [np.float32(val)
                      for val in elt.find(self.element_tag).text.split()]
 
         return np.asarray(data), (x, y)
@@ -510,24 +511,23 @@ def intp(grid_x, grid_y, interpolator):
 
 def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
-    from scipy.interpolate.interpnd import LinearNDInterpolator, _ndim_coords_from_arrays
+    from scipy.interpolate.interpnd import LinearNDInterpolator
 
     if isinstance(chunks, (list, tuple)):
         vchunks, hchunks = chunks
     else:
         vchunks, hchunks = chunks, chunks
-
-    points = _ndim_coords_from_arrays(np.vstack((np.asarray(ypoints),
-                                                 np.asarray(xpoints))).T)
+    points = np.vstack((np.asarray(ypoints, dtype=np.uint16),
+                        np.asarray(xpoints, dtype=np.uint16))).T
 
     interpolator = LinearNDInterpolator(points, values)
 
-    grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=hchunks),
-                                 da.arange(shape[0], chunks=vchunks))
+    grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=hchunks, dtype=np.uint16),
+                                 da.arange(shape[0], chunks=vchunks, dtype=np.uint16))
 
     # workaround for non-thread-safe first call of the interpolator:
     interpolator((0, 0))
-    res = da.map_blocks(intp, grid_x, grid_y, interpolator=interpolator)
+    res = da.map_blocks(intp, grid_x, grid_y, interpolator=interpolator).astype(values.dtype)
 
     return DataArray(res, dims=("y", "x"))
 
@@ -615,7 +615,7 @@ class SAFEGRD(BaseFileHandler):
     def _get_digital_number(self, data):
         """Get the digital numbers (uncalibrated data)."""
         data = data.where(data > 0)
-        data = data.astype(np.float64)
+        data = data.astype(np.float32)
         dn = data * data
         return dn
 
@@ -634,10 +634,13 @@ class SAFEGRD(BaseFileHandler):
 
         fine_points = [np.arange(size) for size in shape]
         x, y, z = lonlat2xyz(gcp_lons, gcp_lats)
-        interpolator = MultipleGridInterpolator((ypoints, xpoints), x, y, z, gcp_alts)
-        hx, hy, hz, altitudes = interpolator.interpolate(fine_points, method="cubic", chunks=self.chunks)
-        longitudes, latitudes = xyz2lonlat(hx, hy, hz)
 
+
+        interpolator = MultipleSplineInterpolator((ypoints, xpoints), x, y, z, gcp_alts, kx=2, ky=2)
+        hx, hy, hz, altitudes = interpolator.interpolate(fine_points, chunks=self.chunks)
+
+
+        longitudes, latitudes = xyz2lonlat(hx, hy, hz)
         altitudes = xr.DataArray(altitudes, dims=["y", "x"])
         longitudes = xr.DataArray(longitudes, dims=["y", "x"])
         latitudes = xr.DataArray(latitudes, dims=["y", "x"])
@@ -663,15 +666,15 @@ class SAFEGRD(BaseFileHandler):
            gcp_coords (tuple): longitude and latitude 1d arrays
 
         """
-        gcps = self._data.coords["spatial_ref"].attrs["gcps"]
+        gcps = get_gcps_from_array(self._data)
         crs = self._data.rio.crs
 
         gcp_list = [(feature["properties"]["row"], feature["properties"]["col"], *feature["geometry"]["coordinates"])
                     for feature in gcps["features"]]
         gcp_array = np.array(gcp_list)
 
-        ypoints = np.unique(gcp_array[:, 0])
-        xpoints = np.unique(gcp_array[:, 1])
+        ypoints = np.unique(gcp_array[:, 0]).astype(np.uint16)
+        xpoints = np.unique(gcp_array[:, 1]).astype(np.uint16)
 
         gcp_lons = gcp_array[:, 2].reshape(ypoints.shape[0], xpoints.shape[0])
         gcp_lats = gcp_array[:, 3].reshape(ypoints.shape[0], xpoints.shape[0])
@@ -680,6 +683,13 @@ class SAFEGRD(BaseFileHandler):
         rio_gcps = [rasterio.control.GroundControlPoint(*gcp) for gcp in gcp_list]
 
         return (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (rio_gcps, crs)
+
+    def get_bounding_box(self):
+        """Get the bounding box for the data coverage."""
+        (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (rio_gcps, crs) = self.get_gcps()
+        bblons = np.hstack((gcp_lons[0, :-1], gcp_lons[:-1, -1], gcp_lons[-1, :1:-1], gcp_lons[:1:-1, 0]))
+        bblats = np.hstack((gcp_lats[0, :-1], gcp_lats[:-1, -1], gcp_lats[-1, :1:-1], gcp_lats[:1:-1, 0]))
+        return bblons.tolist(), bblats.tolist()
 
     @property
     def start_time(self):
@@ -725,10 +735,11 @@ class SAFESARReader(GenericYAMLReader):
                     if key["name"] not in ["longitude", "latitude"]:
                         lonlats = self.load([DataID(self._id_keys, name="longitude", polarization=key["polarization"]),
                                              DataID(self._id_keys, name="latitude", polarization=key["polarization"])])
-                        gcps = val.coords["spatial_ref"].attrs["gcps"]
+                        gcps = get_gcps_from_array(val)
                         from pyresample.future.geometry import SwathDefinition
                         val.attrs["area"] = SwathDefinition(lonlats["longitude"], lonlats["latitude"],
-                                                            attrs=dict(gcps=gcps))
+                                                            attrs=dict(gcps=gcps,
+                                                                       bounding_box=handler.get_bounding_box()))
                     datasets[key] = val
                     continue
         return datasets
@@ -796,3 +807,11 @@ class SAFESARReader(GenericYAMLReader):
                                                          filetype_info=None)
 
         return measurement_handlers
+
+
+def get_gcps_from_array(val):
+    """Get the gcps from the spatial_ref coordinate as a geojson dict."""
+    gcps = val.coords["spatial_ref"].attrs["gcps"]
+    if isinstance(gcps, str):
+        gcps = json.loads(gcps)
+    return gcps

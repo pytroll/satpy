@@ -18,7 +18,7 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.9", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
         experimental: [false]
         include:
           - python-version: "3.12"
@@ -38,11 +38,12 @@ jobs:
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
           miniforge-version: latest
-          use-mamba: true
           python-version: ${{ matrix.python-version }}
           activate-environment: test-environment
+          channels: conda-forge
+          conda-remove-defaults: true
+          channel-priority: strict
 
       - name: Set cache environment variables
         shell: bash -l {0}
@@ -71,7 +72,7 @@ jobs:
         #   compatibility issues with numpy 2. When conda-forge has numpy 2 available
         #   this shouldn't be needed.
         run: |
-          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig
+          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
@@ -80,7 +81,7 @@ jobs:
           numpy \
           pandas \
           scipy
-          conda remove --force-remove -y pykdtree pyresample python-geotiepoints pyhdf netcdf4 h5py cftime astropy pyerfa
+          conda remove --force-remove -y pykdtree pyresample python-geotiepoints pyhdf netcdf4 h5py cftime astropy pyerfa || true
           python -m pip install --upgrade --no-deps --pre --no-build-isolation \
           pyerfa \
           git+https://github.com/storpipfugl/pykdtree \
@@ -93,7 +94,6 @@ jobs:
           git+https://github.com/Unidata/netcdf4-python \
           git+https://github.com/dask/dask \
           git+https://github.com/dask/distributed \
-          git+https://github.com/zarr-developers/zarr \
           git+https://github.com/Unidata/cftime \
           git+https://github.com/rasterio/rasterio \
           git+https://github.com/pydata/bottleneck \
@@ -112,7 +112,7 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
+          pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v4

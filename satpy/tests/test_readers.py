@@ -74,7 +74,7 @@ local_id_keys_config = {"name": {
 real_import = builtins.__import__
 
 
-@pytest.fixture()
+@pytest.fixture
 def viirs_file(tmp_path, monkeypatch):
     """Create a dummy viirs file."""
     filename = "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
@@ -85,7 +85,7 @@ def viirs_file(tmp_path, monkeypatch):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def atms_file(tmp_path, monkeypatch):
     """Create a dummy atms file."""
     filename = "SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5"
@@ -257,6 +257,12 @@ class TestReaderLoader(unittest.TestCase):
 
     Assumes that the VIIRS SDR reader exists and works.
     """
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog, tmp_path):  # noqa: PT004
+        """Inject caplog to the test class."""
+        self._caplog = caplog
+        self._tmp_path = tmp_path
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
@@ -438,6 +444,31 @@ class TestReaderLoader(unittest.TestCase):
         # abi_l1b reader was created, but no datasets available
         assert "abi_l1b" in readers
         assert len(list(readers["abi_l1b"].available_dataset_ids)) == 0
+
+    def test_yaml_error_message(self):
+        """Test that YAML errors are logged properly."""
+        import logging
+
+        import satpy
+        from satpy.readers import load_readers
+
+        reader_config = "reader:\n"
+        reader_config += "  name: nonreader\n"
+        reader_config += "  reader: !!python/name:notapackage.notareader.BadClass\n"
+
+        os.mkdir(self._tmp_path / "readers")
+        reader_fname = self._tmp_path / "readers" / "nonreader.yaml"
+        with open(reader_fname, "w") as fid:
+            fid.write(reader_config)
+
+        filenames = ["foo.bar"]
+        error_message = "No module named 'notapackage'"
+
+        with self._caplog.at_level(logging.ERROR):
+            with satpy.config.set({"config_path": [str(self._tmp_path)]}):
+                with pytest.raises(ValueError, match="No supported files found"):
+                    _ = load_readers(filenames=filenames, reader="nonreader")
+            assert error_message in self._caplog.text
 
 
 class TestFindFilesAndReaders:
@@ -1101,6 +1132,18 @@ class TestFSFile:
         assert len({hash(FSFile(fn, fs))
                     for fn in {local_filename, local_filename2}
                     for fs in [None, lfs, zfs, cfs]}) == 2 * 4
+
+    def test_fs_property_read(self, local_filename):
+        """Test reading the fs property of the class."""
+        fsf = FSFile(local_filename)
+        fs = fsf.fs
+        assert fs is None
+
+    def test_fs_property_is_read_only(self, local_filename):
+        """Test that the fs property of the class is read-only."""
+        fsf = FSFile(local_filename)
+        with pytest.raises(AttributeError):
+            fsf.fs = "foo"
 
 
 def test_open_file_or_filename_uses_mode(tmp_path):

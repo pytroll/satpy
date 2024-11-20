@@ -158,7 +158,7 @@ import warnings
 
 import numpy as np
 import xarray as xr
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 from satpy.cf.coords import EPOCH  # noqa: F401 (for backward compatibility)
 from satpy.writers import Writer
@@ -390,8 +390,26 @@ def _backend_versions_match():
 
 def _get_backend_versions():
     import netCDF4
+    libnetcdf_version = _parse_libnetcdf_version(
+        netCDF4.__netcdf4libversion__
+    )
     return {
         "netCDF4": Version(netCDF4.__version__),
-        "libnetcdf": Version(netCDF4.__netcdf4libversion__),
+        "libnetcdf": libnetcdf_version,
         "xarray": Version(xr.__version__)
     }
+
+
+def _parse_libnetcdf_version(version_str):
+    # Make libnetcdf development version compatible with PEP440
+    version_str = version_str.replace("development", "dev")
+    try:
+        return Version(version_str)
+    except InvalidVersion:
+        warnings.warn(
+            f"Unable to parse netcdf-c version {version_str}, "
+            f"using 0.0.0 as fallback",
+            UserWarning,
+            stacklevel=3
+        )
+        return Version("0.0.0")

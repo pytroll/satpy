@@ -39,16 +39,18 @@ def rst_table_row(columns=None):
     return row
 
 
-def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):  # noqa: D417
+def rst_table_header(name=None, header=None, header_rows=1, widths="auto", class_name="datatable"):
     """Create header for rst table.
 
     Args:
         name (str): Name of the table
         header (list[str]): Column names
-        header-rows (int): Number of header rows
-        width (optional[list[int]]): Width of each column as a list. If not specified
+        header_rows (int): Number of header rows
+        widths (optional[list[int]]): Width of each column as a list. If not specified
             defaults to auto and will therefore determined by the backend
             (see <https://docutils.sourceforge.io/docs/ref/rst/directives.html#table>)
+        class_name (str): The CSS class name for the table. A corresponding js function should be in main.js in
+            in the "statis" directory.
 
     Returns:
         str
@@ -61,7 +63,7 @@ def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):  # n
     table_header = (f".. list-table:: {name}\n"
                     f"    :header-rows: {header_rows}\n"
                     f"    :widths: {widths}\n"
-                    f"    :class: datatable\n\n"
+                    f"    :class: {class_name}\n\n"
                     f"{header}")
 
     return table_header
@@ -74,7 +76,7 @@ def generate_reader_table():
         str
     """
     table = [rst_table_header("Satpy Readers", header=["Description", "Reader name", "Status", "fsspec support"],
-                              widths=[45, 25, 30, 30])]
+                              widths="auto")]
 
     reader_configs = available_readers(as_dict=True, yaml_loader=BaseLoader)
     for rc in reader_configs:

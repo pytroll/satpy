@@ -23,10 +23,14 @@ import xarray as xr
 from dask import array as da
 
 from satpy import Scene
+from satpy.tests.utils import skip_numba_unstable_if_missing
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - include_test_etc
+
+skip_unstable_numba = pytest.mark.skipif(skip_numba_unstable_if_missing(),
+                                         reason="Numba is not compatible with unstable NumPy: {err!s}")
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -83,6 +87,7 @@ class TestSceneConversions:
         # we assume that if we got something back, geoviews can use it
         assert gv_obj is not None
 
+    @skip_unstable_numba
     def test_hvplot_basic_with_area(self):
         """Test converting a Scene to hvplot with a AreaDefinition."""
         from pyresample.geometry import AreaDefinition
@@ -97,6 +102,7 @@ class TestSceneConversions:
         # we assume that if we got something back, hvplot can use it
         assert hv_obj is not None
 
+    @skip_unstable_numba
     def test_hvplot_rgb_with_area(self):
         """Test converting a Scene to hvplot with a AreaDefinition."""
         from pyresample.geometry import AreaDefinition
@@ -117,6 +123,7 @@ class TestSceneConversions:
         # we assume that if we got something back, hvplot can use it
         assert hv_obj is not None
 
+    @skip_unstable_numba
     def test_hvplot_basic_with_swath(self):
         """Test converting a Scene to hvplot with a SwathDefinition."""
         from pyresample.geometry import SwathDefinition
@@ -142,7 +149,7 @@ class TestToXarrayConversion:
         assert len(ds.variables) == 0
         assert len(ds.coords) == 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def single_area_scn(self):
         """Define Scene with single area."""
         from pyresample.geometry import AreaDefinition
@@ -157,7 +164,7 @@ class TestToXarrayConversion:
         scn["var1"] = data_array
         return scn
 
-    @pytest.fixture()
+    @pytest.fixture
     def multi_area_scn(self):
         """Define Scene with multiple area."""
         from pyresample.geometry import AreaDefinition

@@ -19,6 +19,7 @@ import datetime as dt
 import os
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -128,6 +129,7 @@ class TestLIL2():
         res = self.get_variable_dataset(dataset_info, dname, handler)
         assert res.shape == shape
         assert res.dims[0] == "y"
+        assert isinstance(res.data,da.Array)
         # Should retrieve content with fullname key:
         full_name = self.create_fullname_key(desc, var_path, dname, sname=sname)
         # Note: 'content' is not recognized as a valid member of the class below
@@ -792,10 +794,12 @@ class TestLIL2():
         # prepare reference array
         data = handler_without_area_def.get_dataset(dsid).values
         ref_arr = np.empty(LI_GRID_SHAPE, dtype=arr.dtype)
-        ref_arr[:] = np.nan
+        ref_arr[:] = 0
         rows = (LI_GRID_SHAPE[0] - yarr)
         cols = xarr - 1
-        ref_arr[rows, cols] = data
+        for n_entry in range(len(data)):
+            ref_arr[rows[n_entry], cols[n_entry]] += data[n_entry]
+        ref_arr = np.where(ref_arr > 0, ref_arr, np.nan)
 
         # Check all nan values are at the same locations:
         assert np.all(np.isnan(arr) == np.isnan(ref_arr))

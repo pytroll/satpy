@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 
-from satpy.tests.reader_tests.utils import get_jit_methods, skip_numba_unstable_if_missing
+from satpy.tests.reader_tests.utils import get_jit_methods
+from satpy.tests.utils import skip_numba_unstable_if_missing
 
 try:
     import satpy.readers.gms.gms5_vissr_navigation as nav
@@ -328,7 +329,7 @@ class TestSinglePixelNavigation:
 class TestImageNavigation:
     """Test navigation of an entire image."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected(self):
         """Get expected coordinates."""
         exp = {
@@ -417,12 +418,12 @@ class TestPredictionInterpolation:
         attitude = nav.interpolate_attitude_prediction(attitude_prediction, obs_time)
         _assert_namedtuple_close(attitude, attitude_expected)
 
-    @pytest.fixture()
+    @pytest.fixture
     def obs_time(self):
         """Get observation time."""
         return 2.5
 
-    @pytest.fixture()
+    @pytest.fixture
     def orbit_expected(self):
         """Get expected orbit."""
         return nav.Orbit(
@@ -439,7 +440,7 @@ class TestPredictionInterpolation:
             nutation_precession=1.6 * np.identity(3),
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def attitude_expected(self):
         """Get expected attitude."""
         return nav.Attitude(
@@ -449,13 +450,13 @@ class TestPredictionInterpolation:
         )
 
 
-@pytest.fixture()
+@pytest.fixture
 def sampling_angle():
     """Get sampling angle."""
     return 0.000095719995443
 
 
-@pytest.fixture()
+@pytest.fixture
 def scan_params(sampling_angle):
     """Get scanning parameters."""
     return nav.ScanningParameters(
@@ -466,7 +467,7 @@ def scan_params(sampling_angle):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def attitude_prediction():
     """Get attitude prediction."""
     return nav.AttitudePrediction(
@@ -479,7 +480,7 @@ def attitude_prediction():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def orbit_prediction():
     """Get orbit prediction."""
     return nav.OrbitPrediction(
@@ -505,7 +506,7 @@ def orbit_prediction():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def proj_params(sampling_angle):
     """Get projection parameters."""
     return nav.ProjectionParameters(
@@ -525,19 +526,19 @@ def proj_params(sampling_angle):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def static_nav_params(proj_params, scan_params):
     """Get static navigation parameters."""
     return nav.StaticNavigationParameters(proj_params, scan_params)
 
 
-@pytest.fixture()
+@pytest.fixture
 def predicted_nav_params(attitude_prediction, orbit_prediction):
     """Get predicted navigation parameters."""
     return nav.PredictedNavigationParameters(attitude_prediction, orbit_prediction)
 
 
-@pytest.fixture()
+@pytest.fixture
 def navigation_params(static_nav_params, predicted_nav_params):
     """Get image navigation parameters."""
     return nav.ImageNavigationParameters(static_nav_params, predicted_nav_params)

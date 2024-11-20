@@ -41,13 +41,13 @@ def start_time(request):
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def start_time_str(start_time):
     """Get string representation of the start time."""
     return start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dataset(start_time_str):
     """Create a CLAAS-like test dataset."""
     cph = xr.DataArray(
@@ -81,7 +81,7 @@ def fake_dataset(start_time_str):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def encoding():
     """Dataset encoding."""
     return {
@@ -89,7 +89,7 @@ def encoding():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file(fake_dataset, encoding, tmp_path):
     """Write a fake dataset to file."""
     filename = tmp_path / "CPPin20140101001500305SVMSG01MD.nc"
@@ -97,7 +97,7 @@ def fake_file(fake_dataset, encoding, tmp_path):
     return filename
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_files(fake_dataset, encoding, tmp_path):
     """Write the same fake dataset into two different files."""
     filenames = [
@@ -109,7 +109,7 @@ def fake_files(fake_dataset, encoding, tmp_path):
     return filenames
 
 
-@pytest.fixture()
+@pytest.fixture
 def reader():
     """Return reader for CMSAF CLAAS-2."""
     from satpy._config import config_search_paths
@@ -137,14 +137,14 @@ def test_file_pattern(reader):
 class TestCLAAS2MultiFile:
     """Test reading multiple CLAAS-2 files."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def multi_file_reader(self, reader, fake_files):
         """Create a multi-file reader."""
         loadables = reader.select_files_from_pathnames(fake_files)
         reader.create_filehandlers(loadables)
         return reader
 
-    @pytest.fixture()
+    @pytest.fixture
     def multi_file_dataset(self, multi_file_reader):
         """Load datasets from multiple files."""
         ds_ids = [make_dataid(name=name) for name in ["cph", "ctt"]]
@@ -177,20 +177,20 @@ class TestCLAAS2MultiFile:
 class TestCLAAS2SingleFile:
     """Test reading a single CLAAS2 file."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_handler(self, fake_file):
         """Return a CLAAS-2 file handler."""
         from satpy.readers.cmsaf_claas2 import CLAAS2
         return CLAAS2(fake_file, {}, {})
 
-    @pytest.fixture()
+    @pytest.fixture
     def area_extent_exp(self, start_time):
         """Get expected area extent."""
         if start_time < datetime.datetime(2017, 12, 6):
             return (-5454733.160460291, -5454733.160460292, 5454733.160460292, 5454733.160460291)
         return (-5456233.362099582, -5453232.958821001, 5453232.958821001, 5456233.362099582)
 
-    @pytest.fixture()
+    @pytest.fixture
     def area_exp(self, area_extent_exp):
         """Get expected area definition."""
         proj_dict = {

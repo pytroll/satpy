@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for the SEVIRI L2 products in GRIB2 format.
+"""Reader for both SEVIRI and FCI L2 products in GRIB2 format.
 
 References:
     FM 92 GRIB Edition 2
@@ -31,28 +31,43 @@ import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
+from satpy.readers.fci_base import calculate_area_extent as fci_calculate_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import PLATFORM_DICT, REPEAT_CYCLE_DURATION, calculate_area_extent
+from satpy.readers.seviri_base import PLATFORM_DICT as SEVIRI_PLATFORM_DICT
+from satpy.readers.seviri_base import REPEAT_CYCLE_DURATION as SEVIRI_REPEAT_CYCLE_DURATION
+from satpy.readers.seviri_base import REPEAT_CYCLE_DURATION_RSS as SEVIRI_REPEAT_CYCLE_DURATION_RSS
+from satpy.readers.seviri_base import calculate_area_extent as seviri_calculate_area_extent
 from satpy.utils import get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 try:
     import eccodes as ec
 except ImportError:
     raise ImportError(
-        "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
+                "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
-CHUNK_SIZE = get_legacy_chunk_size()
 logger = logging.getLogger(__name__)
 
 
-class SeviriL2GribFileHandler(BaseFileHandler):
-    """Reader class for SEVIRI L2 products in GRIB format."""
+class EUML2GribFileHandler(BaseFileHandler):
+    """Reader class for EUM L2 products in GRIB format."""
+
+    calculate_area_extent = None
 
     def __init__(self, filename, filename_info, filetype_info):
         """Read the global attributes and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
         # Turn on support for multiple fields in single GRIB messages (required for SEVIRI L2 files)
         ec.codes_grib_multi_support_on()
+
+        if "seviri" in self.filetype_info["file_type"]:
+            self.sensor = "seviri"
+            self.PLATFORM_NAME = SEVIRI_PLATFORM_DICT[self.filename_info["spacecraft"]]
+        elif "fci" in self.filetype_info["file_type"]:
+            self.sensor = "fci"
+            self.PLATFORM_NAME = f"MTG-i{self.filename_info['spacecraft_id']}"
+        pass
 
     @property
     def start_time(self):
@@ -62,14 +77,28 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Return the sensing end time."""
-        return self.start_time + dt.timedelta(minutes=REPEAT_CYCLE_DURATION)
+        if self.sensor == "seviri":
+            try:
+                delta = SEVIRI_REPEAT_CYCLE_DURATION_RSS if self._ssp_lon == 9.5 else SEVIRI_REPEAT_CYCLE_DURATION
+                return self.start_time + dt.timedelta(minutes=delta)
+            except AttributeError:
+                # If dataset and metadata (ssp_lon) have not yet been loaded, return None
+                return None
+        elif self.sensor == "fci":
+            return self.filename_info["end_time"]
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
+        # Compute the dictionary with the area extension
+
         self._area_dict["column_step"] = dataset_id["resolution"]
         self._area_dict["line_step"] = dataset_id["resolution"]
 
-        area_extent = calculate_area_extent(self._area_dict)
+        if self.sensor == "seviri":
+            area_extent = seviri_calculate_area_extent(self._area_dict)
+
+        elif self.sensor == "fci":
+            area_extent = fci_calculate_area_extent(self._area_dict)
 
         # Call the get_area_definition function to obtain the area
         area_def = get_area_definition(self._pdict, area_extent)
@@ -173,19 +202,20 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         """
         # Get name of area definition
         area_naming_input_dict = {"platform_name": "msg",
-                                  "instrument_name": "seviri",
+                                  "instrument_name": self.sensor,
                                   "resolution": self._res,
                                   }
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode("seviri", self._ssp_lon)})
+                                            **get_service_mode(self.sensor, self._ssp_lon)})
 
         # Read all projection and area parameters from the message
         earth_major_axis_in_meters = self._get_from_msg(gid, "earthMajorAxis") * 1000.0  # [m]
         earth_minor_axis_in_meters = self._get_from_msg(gid, "earthMinorAxis") * 1000.0  # [m]
 
-        earth_major_axis_in_meters = self._scale_earth_axis(earth_major_axis_in_meters)
-        earth_minor_axis_in_meters = self._scale_earth_axis(earth_minor_axis_in_meters)
+        if self.sensor == "seviri":
+            earth_major_axis_in_meters = self._scale_earth_axis(earth_major_axis_in_meters)
+            earth_minor_axis_in_meters = self._scale_earth_axis(earth_minor_axis_in_meters)
 
         nr_in_radius_of_earth = self._get_from_msg(gid, "NrInRadiusOfEarth")
         xp_in_grid_lengths = self._get_from_msg(gid, "XpInGridLengths")
@@ -204,14 +234,21 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             "p_id": "",
         }
 
-        # Compute the dictionary with the area extension
-        area_dict = {
-            "center_point": xp_in_grid_lengths,
-            "north": self._nrows,
-            "east": 1,
-            "west": self._ncols,
-            "south": 1,
-        }
+        if self.sensor == "seviri":
+            # Compute the dictionary with the area extension
+            area_dict = {
+                "center_point": xp_in_grid_lengths,
+                "north": self._nrows,
+                "east": 1,
+                "west": self._ncols,
+                "south": 1,
+            }
+
+        elif self.sensor == "fci":
+            area_dict = {
+                "nlines": self._ncols,
+                "ncols": self._nrows,
+            }
 
         return pdict, area_dict
 
@@ -219,10 +256,9 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     def _scale_earth_axis(data):
         """Scale Earth axis data to make sure the value matched the expected unit [m].
 
-        The earthMinorAxis value stored in the aerosol over sea product is scaled incorrectly by a factor of 1e8. This
-        method provides a flexible temporarily workaraound by making sure that all earth axis values are scaled such
-        that they are on the order of millions of meters as expected by the reader. As soon as the scaling issue has
-        been resolved by EUMETSAT this workaround can be removed.
+        The earthMinorAxis value stored in the MPEF aerosol over sea product prior to December 12, 2022 has the wrong
+        unit and this method provides a flexible work-around by making sure that all earth axis values are scaled such
+        that they are on the order of millions of meters as expected by the reader.
 
         """
         scale_factor = 10 ** np.ceil(np.log10(1e6/data))
@@ -256,11 +292,9 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             "projection_longitude": self._ssp_lon
         }
 
-        attributes = {
-            "orbital_parameters": orbital_parameters,
-            "sensor": "seviri",
-            "platform_name": PLATFORM_DICT[self.filename_info["spacecraft"]]
-        }
+        attributes = {"orbital_parameters": orbital_parameters, "sensor": self.sensor,
+                      "platform_name": self.PLATFORM_NAME}
+
         return attributes
 
     @staticmethod

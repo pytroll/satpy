@@ -182,7 +182,7 @@ class MERSIL1B(HDF5FileHandler):
             attrs["_FillValue"] = fill_value
             new_fill = data.dtype.type(fill_value)
         else:
-            new_fill = np.nan
+            new_fill = np.float32(np.nan)
         try:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.

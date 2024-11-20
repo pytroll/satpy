@@ -114,6 +114,7 @@ import logging
 import numpy as np
 import xarray as xr
 
+import satpy.utils
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.hrit_base import (
     HRITFileHandler,
@@ -344,8 +345,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         if self.is_segmented:
             # loff in the file specifies the offset of the full disk image
             # centre (1375/2750 for VIS/IR)
-            segment_number = self.mda["segment_sequence_number"] - 1
-            loff -= (self.mda["total_no_image_segm"] - segment_number - 1) * nlines
+            segment_number = int(self.mda["segment_sequence_number"]) - 1
+            loff -= (int(self.mda["total_no_image_segm"]) - segment_number - 1) * nlines
         elif self.area_id in (NORTH_HEMIS, SOUTH_HEMIS):
             # loff in the file specifies the start line of the half disk image
             # in the full disk image
@@ -474,10 +475,10 @@ class HRITJMAFileHandler(HRITFileHandler):
     def start_time(self):
         """Get start time of the scan."""
         if self._use_acquisition_time_as_start_time:
-            return self.acq_time[0].astype(dt.datetime)
+            return satpy.utils.datetime64_to_pydatetime(self.acq_time[0])
         return self._start_time
 
     @property
     def end_time(self):
         """Get end time of the scan."""
-        return self.acq_time[-1].astype(dt.datetime)
+        return satpy.utils.datetime64_to_pydatetime(self.acq_time[-1])

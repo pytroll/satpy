@@ -1261,7 +1261,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         assert proj is projectable
 
 
-@pytest.fixture()
+@pytest.fixture
 @patch.object(yr.GEOVariableSegmentYAMLReader, "__init__", lambda x: None)
 def GVSYReader():
     """Get a fixture of the GEOVariableSegmentYAMLReader."""
@@ -1272,28 +1272,28 @@ def GVSYReader():
     return reader
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_geswh():
     """Get a fixture of the patched _get_empty_segment_with_height."""
     with patch("satpy.readers.yaml_reader._get_empty_segment_with_height") as geswh:
         yield geswh
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_xr():
     """Get a fixture of the patched xarray."""
     with patch("satpy.readers.yaml_reader.xr") as xr:
         yield xr
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_mss():
     """Get a fixture of the patched _find_missing_segments."""
     with patch("satpy.readers.yaml_reader._find_missing_segments") as mss:
         yield mss
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_adef():
     """Get a fixture of the patched AreaDefinition."""
     with patch("satpy.readers.yaml_reader.AreaDefinition") as adef:

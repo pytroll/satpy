@@ -557,24 +557,16 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     reader, filenames, remaining_filenames = _get_reader_and_filenames(reader, filenames)
     (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
 
+    if reader_kwargs is None:
+        reader_kwargs = {}
+
     for idx, reader_configs in enumerate(configs_for_reader(reader)):
-        if isinstance(filenames, dict):
-            readers_files = set(filenames[reader[idx]])
-        else:
-            readers_files = remaining_filenames
-
-        try:
-            reader_instance = load_reader(
-                    reader_configs,
-                    **reader_kwargs[None if reader is None else reader[idx]])
-        except (KeyError, IOError, yaml.YAMLError) as err:
-            LOG.info("Cannot use %s", str(reader_configs))
-            LOG.debug(str(err))
+        readers_files = _get_readers_files(filenames, reader, idx, remaining_filenames)
+        reader_instance = _get_reader_instance(reader, reader_configs, idx, reader_kwargs)
+        if reader_instance is None or not readers_files:
+            # Reader initiliasation failed or no files were given
             continue
 
-        if not readers_files:
-            # we weren't given any files for this reader
-            continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
             reader_instance.create_storage_items(
@@ -582,12 +574,39 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
                     fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
+
         if not remaining_filenames:
             break
 
     _check_remaining_files(remaining_filenames)
     _check_reader_instances(reader_instances)
     return reader_instances
+
+
+def _get_readers_files(filenames, reader, idx, remaining_filenames):
+    if isinstance(filenames, dict):
+        return set(filenames[reader[idx]])
+    return remaining_filenames
+
+
+def _get_reader_instance(reader, reader_configs, idx, reader_kwargs):
+    reader_instance = None
+    try:
+        reader_instance = load_reader(
+            reader_configs,
+            **reader_kwargs[None if reader is None else reader[idx]])
+    except (KeyError, IOError) as err:
+        LOG.info("Cannot use %s", str(reader_configs))
+        LOG.debug(str(err))
+    except yaml.constructor.ConstructorError as err:
+        _log_yaml_error(reader_configs, err)
+
+    return reader_instance
+
+
+def _log_yaml_error(reader_configs, err):
+    LOG.error("Problem with %s", str(reader_configs))
+    LOG.error(str(err))
 
 
 def _early_exit(filenames, reader):
@@ -709,6 +728,11 @@ class FSFile(os.PathLike):
     def __repr__(self):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
+
+    @property
+    def fs(self):
+        """Return the underlying private filesystem attribute."""
+        return self._fs
 
     def open(self, *args, **kwargs):  # noqa: A003
         """Open the file.

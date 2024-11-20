@@ -194,11 +194,13 @@ html_static_path = ["_static"]
 
 html_css_files = [
     "theme_overrides.css",  # override wide tables in RTD theme
-    "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.css"
 ]
 
 html_js_files = [
-    "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.js",
     "main.js",
 ]
 

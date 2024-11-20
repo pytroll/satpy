@@ -111,7 +111,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
     def _select_hdf_dataset(self, hdf_dataset_name, byte_dimension):
         """Load a dataset from HDF-EOS level 2 file."""
         dataset = self.sd.select(hdf_dataset_name)
-        dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
+        dask_arr = from_sds(dataset, self.filename, chunks=CHUNK_SIZE)
         attrs = dataset.attributes()
         dims = ["y", "x"]
         if byte_dimension == 0:

@@ -40,7 +40,7 @@ from satpy.writers import get_enhanced_image
 # - request
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_tle():
     """Produce fake Two Line Element (TLE) object from pyorbital."""
     return pyorbital.tlefile.Tle(
@@ -566,7 +566,7 @@ class TestParallaxCorrectionModifier:
         # do so after parallax correction
         assert not (res.diff("x") < 0).any()
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_area(self, request):
         """Produce test area for parallax correction unit tests.
 
@@ -713,12 +713,12 @@ composites:
 class TestParallaxCorrectionSceneLoad:
     """Test that scene load interface works as expected."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def yaml_code(self):
         """Return YAML code for parallax_corrected_VIS006."""
         return _test_yaml_code
 
-    @pytest.fixture()
+    @pytest.fixture
     def conf_file(self, yaml_code, tmp_path):
         """Produce a fake configuration file."""
         conf_file = tmp_path / "test.yaml"
@@ -726,7 +726,7 @@ class TestParallaxCorrectionSceneLoad:
             fp.write(yaml_code)
         return conf_file
 
-    @pytest.fixture()
+    @pytest.fixture
     def fake_scene(self, yaml_code):
         """Produce fake scene and prepare fake composite config."""
         from satpy import Scene
