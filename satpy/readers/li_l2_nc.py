@@ -112,7 +112,9 @@ class LIL2NCFileHandler(LINCFileHandler):
         if var_with_swath_coord and self.with_area_def:
             data_array = self.get_array_on_fci_grid(data_array)
         else :
-            data_array.data = da.from_array(data_array.data)
+            if data_array is not None:
+                if not isinstance(data_array.data,da.Array):
+                    data_array.data = da.from_array(data_array.data)
         return data_array
 
     def get_area_def(self, dsid):
