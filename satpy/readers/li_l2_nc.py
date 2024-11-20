@@ -113,7 +113,7 @@ class LIL2NCFileHandler(LINCFileHandler):
             data_array = self.get_array_on_fci_grid(data_array)
         else :
             if data_array is not None:
-                if not isinstance(data_array.data,da.Array):
+                if not isinstance(data_array.data, da.Array):
                     data_array.data = da.from_array(data_array.data)
         return data_array
 
