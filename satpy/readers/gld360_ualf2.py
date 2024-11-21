@@ -136,10 +136,11 @@ class VaisalaGld360Ualf2FileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, dataset_info):
         """Return the dataset."""
         # create xarray and place along y dimension
-        data_array = xr.DataArray((self.data[dataset_id["name"]]).to_dask_array(lengths=True), dims=["y"])
-        # assign dataset infos to xarray attrs
-        data_array.attrs.update(dataset_info)
-        return data_array
+        dask_structure = self.data[dataset_id["name"]]
+        dask_array = dask_structure.to_dask_array(lengths=True)
+        xarr = xr.DataArray(dask_array, dims=["y"])
+        xarr.attrs.update(dataset_info)
+        return xarr
 
     @staticmethod
     def pad_nanoseconds(nanoseconds):
