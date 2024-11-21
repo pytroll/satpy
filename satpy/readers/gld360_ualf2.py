@@ -137,7 +137,7 @@ class VaisalaGld360Ualf2FileHandler(BaseFileHandler):
         """Return the dataset."""
         # create xarray and place along y dimension
         dask_structure = self.data[dataset_id["name"]]
-        dask_array = dask_structure.to_dask_array(lengths=True)
+        dask_array = dask_structure.to_dask_array(lengths=dask_structure.compute().shape)
         xarr = xr.DataArray(dask_array, dims=["y"])
         xarr.attrs.update(dataset_info)
         return xarr
