@@ -91,23 +91,33 @@ class VaisalaGld360Ualf2FileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
-        super(VaisalaGld360Ualf2FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(VaisalaGld360Ualf2FileHandler, self).__init__(
+            filename, filename_info, filetype_info
+        )
 
-        self.data = dd.read_csv(filename,
-                                sep="\t",
-                                header=None,
-                                names=UALF2_COLUMN_NAMES,
-                                dtype=UALF2_DTYPES,
-                                converters={"nanosecond": self.pad_nanoseconds}
-                                )
+        self.data = dd.read_csv(
+            filename,
+            sep="\t",
+            names=UALF2_COLUMN_NAMES,
+            dtype=UALF2_DTYPES,
+            converters={"nanosecond": self.pad_nanoseconds},
+        )
 
-        combined_time = (self.data["year"] + " " +
-                         self.data["month"] + " " +
-                         self.data["day"] + " " +
-                         self.data["hour"] + " " +
-                         self.data["minute"] + " " +
-                         self.data["second"] + " " +
-                         self.data["nanosecond"])
+        combined_time = (
+            self.data["year"]
+            + " "
+            + self.data["month"]
+            + " "
+            + self.data["day"]
+            + " "
+            + self.data["hour"]
+            + " "
+            + self.data["minute"]
+            + " "
+            + self.data["second"]
+            + " "
+            + self.data["nanosecond"]
+        )
 
         self.data["time"] = dd.to_datetime(combined_time, format="%Y %m %d %H %M %S %f")
         self.data = self.data.drop_duplicates()
@@ -126,7 +136,7 @@ class VaisalaGld360Ualf2FileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, dataset_info):
         """Return the dataset."""
         # create xarray and place along y dimension
-        data_array = xr.DataArray(self.data[dataset_id["name"]].to_dask_array(lengths=True), dims=["y"])
+        data_array = xr.DataArray((self.data[dataset_id["name"]]).to_dask_array(lengths=True), dims=["y"])
         # assign dataset infos to xarray attrs
         data_array.attrs.update(dataset_info)
         return data_array
