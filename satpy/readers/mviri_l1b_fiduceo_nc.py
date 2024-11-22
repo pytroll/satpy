@@ -454,7 +454,17 @@ def is_high_resol(resolution):
     return resolution == HIGH_RESOL
 
 
-class DatasetPreprocessor:
+def preprocess_dataset(ds):
+    """Preprocess the given dataset.
+
+    Performs steps that can be done once, such as decoding
+    according to CF conventions.
+    """
+    preproc = _DatasetPreprocessor()
+    return preproc.preprocess(ds)
+
+
+class _DatasetPreprocessor:
     """Helper class for preprocessing the dataset."""
 
     def preprocess(self, ds):
@@ -534,7 +544,11 @@ class DatasetPreprocessor:
 
 
 class DatasetAccessor:
-    """Helper class for accessing the dataset."""
+    """Helper class for accessing the dataset.
+
+    Performs steps that need to be done each time a variable
+    is accessed, such as renaming "y_*" coordinates to "y".
+    """
 
     def __init__(self, ds):
         """Wrap the given dataset."""
@@ -597,7 +611,7 @@ def open_dataset(filename):
         decode_times=False,
         mask_and_scale=False,
     )
-    nc_preproc = DatasetPreprocessor().preprocess(nc_raw)
+    nc_preproc = preprocess_dataset(nc_raw)
     return DatasetAccessor(nc_preproc)
 
 

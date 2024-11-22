@@ -33,10 +33,10 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
     EQUATOR_RADIUS,
     POLE_RADIUS,
-    DatasetPreprocessor,
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
     Interpolator,
+    preprocess_dataset,
 )
 from satpy.tests.utils import make_dataid
 
@@ -637,7 +637,7 @@ class TestDatasetPreprocessor:
 
     def test_preprocess(self, dataset, dataset_exp):
         """Test dataset preprocessing."""
-        preprocessed = DatasetPreprocessor().preprocess(dataset)
+        preprocessed = preprocess_dataset(dataset)
         xr.testing.assert_allclose(preprocessed, dataset_exp)
 
 
