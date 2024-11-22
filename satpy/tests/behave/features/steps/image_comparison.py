@@ -29,7 +29,6 @@ from behave import given, then, when
 from satpy import Scene
 
 ext_data_path = "/app/ext_data"
-#ext_data_path = "/home/bildabgleich/pytroll-image-comparison-tests/data"
 threshold = 2000
 
 def before_all(context):
