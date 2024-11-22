@@ -211,6 +211,8 @@ datasets:
     name: PSDN
     file_type: abi_l2_cpsn
     file_key: PSD
+
+  # new variable name since 18:51UTC December 04, 2023.
   cloud_particle_size_new:
     name: CPS
     file_type: abi_l2_cps
