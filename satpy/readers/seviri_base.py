@@ -691,26 +691,11 @@ class SEVIRICalibrationHandler:
 
     def get_coefs(self):
         """Get calibration coefficients."""
-        self._warn_fallback()
         picker = utils.CalibrationCoefficientPicker(self._calib_params.internal_coefs,
                                                     self._get_calib_wishlist(),
                                                     default="NOMINAL",
                                                     fallback="NOMINAL")
         return picker.get_coefs(self._scan_params.channel_name)
-
-    def _warn_fallback(self):
-        if self._should_warn_fallback():
-            msg = f"""
-{self._calib_params.mode} calibration coefficients are not available for all
-channels and Satpy is falling back to nominal coefficients for these channels.
-In the future this will raise an error.
-"""
-            warnings.warn(msg, FutureWarning)
-
-    def _should_warn_fallback(self):
-        is_gsics = self._calib_params.mode == "GSICS"
-        is_meirink = "MEIRINK" in self._calib_params.mode
-        return is_gsics or is_meirink
 
     def _get_calib_wishlist(self):
         ext_coefs = self._calib_params.external_coefs or {}
