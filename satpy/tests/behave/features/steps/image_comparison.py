@@ -55,9 +55,7 @@ setup_hooks()
 def step_given_reference_image(context, composite, satellite):
     """Prepare a reference image."""
     reference_image = f"reference_image_{satellite}_{composite}.png"
-    #context.reference_image = cv2.imread(f"./features/data/reference/{reference_image}")
     context.reference_image = cv2.imread(f"{ext_data_path}/reference_images/{reference_image}")
-    context.reference_different_image = cv2.imread(f"./features/data/reference_different/{reference_image}")
     context.satellite = satellite
     context.composite = composite
 
@@ -90,7 +88,7 @@ def step_when_generate_image(context, composite, satellite):
 def step_then_compare_images(context):
     """Compare test image to reference image."""
     # Load the images
-    imageA = cv2.cvtColor(context.reference_image, cv2.COLOR_BGR2GRAY) # reference_different_image for testing only
+    imageA = cv2.cvtColor(context.reference_image, cv2.COLOR_BGR2GRAY)
     imageB = cv2.cvtColor(context.generated_image, cv2.COLOR_BGR2GRAY)
     # Ensure both images have the same dimensions
     if imageA.shape != imageB.shape:
