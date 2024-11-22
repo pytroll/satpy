@@ -23,7 +23,6 @@ from glob import glob
 import cv2
 import dask
 import numpy as np
-import pytz
 from behave import given, then, when
 
 from satpy import Scene
@@ -33,8 +32,8 @@ threshold = 2000
 
 def before_all(context):
     """Define a before_all hook to create the timestamp and test results directory."""
-    berlin_time = datetime.now(pytz.timezone("Europe/Berlin"))
-    context.timestamp = berlin_time.strftime("%Y-%m-%d-%H-%M-%S")
+    tm = datetime.now()
+    context.timestamp = tm.strftime("%Y-%m-%d-%H-%M-%S")
     context.test_results_dir = f"{ext_data_path}/test_results/image_comparison/{context.timestamp}"
     os.makedirs(os.path.join(context.test_results_dir, "generated"), exist_ok=True)
     os.makedirs(os.path.join(context.test_results_dir, "difference"), exist_ok=True)
