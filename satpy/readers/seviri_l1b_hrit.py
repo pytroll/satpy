@@ -734,11 +734,8 @@ class HRITMSGFileHandler(HRITFileHandler):
             external_coefs=self.ext_calib_coefs,
             radiance_type=self._get_radiance_type()
         )
-        scan_params = ScanParams(
-            platform_id=self.platform_id,
-            channel_name=self.channel_name,
-            scan_time=self.observation_start_time
-        )
+        scan_params = ScanParams(self.platform_id, self.channel_name,
+                                 self.observation_start_time)
         calib = SEVIRICalibrationHandler(calib_params, scan_params)
         res = calib.calibrate(data, calibration)
         return res

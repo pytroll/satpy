@@ -663,7 +663,6 @@ class SEVIRICalibrationHandler:
 
     def calibrate(self, data, calibration):
         """Calibrate the given data."""
-        coefs = None
         if calibration == "counts":
             res = data
         elif calibration in ["radiance", "reflectance",
@@ -688,16 +687,7 @@ class SEVIRICalibrationHandler:
             res = self._algo.ir_calibrate(
                 res, self._scan_params.channel_name, self._calib_params.radiance_type
             )
-        if coefs:
-            self._update_attrs(res, coefs)
         return res
-
-    def _update_attrs(self, data, coefs):
-        data.attrs["calibration_parameters"] = {
-            "mode": coefs["mode"],
-            "gain": coefs["coefs"]["gain"],
-            "offset": coefs["coefs"]["offset"]
-        }
 
     def get_coefs(self):
         """Get calibration coefficients."""
@@ -985,11 +975,13 @@ def calculate_area_extent(area_dict):
     return (ll_c, ll_l, ur_c, ur_l)
 
 
-def create_coef_dict(nominal_coefs, gsics_coefs, meirink_coefs):
+def create_coef_dict(nominal_coefs, gsics_coefs=None, meirink_coefs=None):
     """Create coefficient dictionary expected by calibration class."""
     coefs = nominal_coefs.get_coefs()
-    coefs.update(gsics_coefs.get_coefs())
-    coefs.update(meirink_coefs.get_coefs(nominal_coefs.offset))
+    if gsics_coefs:
+        coefs.update(gsics_coefs.get_coefs())
+    if meirink_coefs:
+        coefs.update(meirink_coefs.get_coefs(nominal_coefs.offset))
     return coefs
 
 

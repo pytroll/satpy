@@ -633,13 +633,9 @@ class NativeMSGFileHandler(BaseFileHandler):
             external_coefs=self.ext_calib_coefs,
             radiance_type=radiance_types[band_idx]
         )
-        scan_params = ScanParams(
-            self.platform_id, channel_name, self.observation_start_time
-        )
-        calib = SEVIRICalibrationHandler(
-            calib_params,
-            scan_params
-        )
+        scan_params = ScanParams(self.platform_id, channel_name,
+                                 self.observation_start_time)
+        calib = SEVIRICalibrationHandler(calib_params, scan_params)
         res = calib.calibrate(data, dataset_id["calibration"])
         logger.debug("Calibration time " + str(dt.datetime.now() - tic))
         return res
