@@ -601,7 +601,6 @@ class TestLIL2():
         products = ["li_l2_af_nc",
                     "li_l2_afr_nc",
                     "li_l2_afa_nc"]
-
         for prod in products:
             handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, prod))
 
@@ -611,7 +610,6 @@ class TestLIL2():
 
             elevation = handler.get_measured_variable(handler.swath_coordinates["elevation"])
             elevation = handler.apply_use_rescaling(elevation)
-
             # Initialize proj_dict
             proj_var = handler.swath_coordinates["projection"]
             geos_proj = handler.get_measured_variable(proj_var, fill_value=None)
@@ -634,9 +632,6 @@ class TestLIL2():
             elevation_vals = elevation.values * point_height
             azimuth_vals *= -1
             lon_ref, lat_ref = projection(azimuth_vals, elevation_vals, inverse=True)
-            # Convert to float32:
-            lon_ref = lon_ref.astype(np.float32)
-            lat_ref = lat_ref.astype(np.float32)
 
             handler.generate_coords_from_scan_angles()
             lon = handler.internal_variables["longitude"].values

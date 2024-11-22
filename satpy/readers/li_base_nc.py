@@ -439,11 +439,12 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         # Also handle fill value here (but only if it is not None, so that we can still bypass this
         # step if needed)
         arr = self.apply_fill_value(arr, fill_value)
-
         return arr
 
     def apply_fill_value(self, arr, fill_value):
-        """Apply fill values, unless it is None."""
+        """Apply fill values, unless it is None and when _FillValue is provided."""
+        if arr.attrs.get("_FillValue") is None:
+            return arr
         if fill_value is not None:
             if np.isnan(fill_value):
                 fill_value = np.float32(np.nan)
