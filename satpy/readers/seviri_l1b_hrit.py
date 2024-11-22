@@ -460,7 +460,7 @@ class HRITMSGFileHandler(HRITFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue, calib_mode="nominal", calib_fallback=None,
+                 prologue, epilogue, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=100, fill_hrv=True,
                  mask_bad_quality_scan_lines=True):
@@ -480,7 +480,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda_max_array_size = mda_max_array_size
         self.fill_hrv = fill_hrv
         self.calib_mode = calib_mode
-        self.calib_fallback = calib_fallback
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self._get_header()
