@@ -729,7 +729,7 @@ class HRITMSGFileHandler(HRITFileHandler):
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         calib_params = CalibParams(
-            mode=self.calib_mode,
+            mode=self.calib_mode.upper(),
             internal_coefs=self._get_calib_coefs(),
             external_coefs=self.ext_calib_coefs,
             radiance_type=self._get_radiance_type()
