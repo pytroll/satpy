@@ -728,6 +728,11 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
+        calib = self._get_calibration_handler()
+        res = calib.calibrate(data, calibration)
+        return res
+
+    def _get_calibration_handler(self):
         calib_params = CalibParams(
             mode=self.calib_mode.upper(),
             internal_coefs=self._get_calib_coefs(),
@@ -736,9 +741,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         )
         scan_params = ScanParams(self.platform_id, self.channel_name,
                                  self.observation_start_time)
-        calib = SEVIRICalibrationHandler(calib_params, scan_params)
-        res = calib.calibrate(data, calibration)
-        return res
+        return SEVIRICalibrationHandler(calib_params, scan_params)
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""

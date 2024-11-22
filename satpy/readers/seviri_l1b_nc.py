@@ -189,21 +189,26 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         if dataset_id["calibration"] == "counts":
             dataset.attrs["_FillValue"] = 0
 
-        band_idx = list(CHANNEL_NAMES.values()).index(channel)
-        radiance_type = self.nc["planned_chan_processing"].values[band_idx]
+        calib = self._get_calibration_handler(dataset, channel)
+        return calib.calibrate(dataset, calibration)
+
+    def _get_calibration_handler(self, dataset, channel):
         calib_params = CalibParams(
             mode="NOMINAL",
             internal_coefs=self._get_calib_coefs(dataset, channel),
             external_coefs=self.ext_calib_coefs,
-            radiance_type=radiance_type
+            radiance_type=self._get_radiance_type(channel)
         )
         scan_params = ScanParams(
             int(self.platform_id),
             channel,
             self.observation_start_time
         )
-        calib = SEVIRICalibrationHandler(calib_params, scan_params)
-        return calib.calibrate(dataset, calibration)
+        return SEVIRICalibrationHandler(calib_params, scan_params)
+
+    def _get_radiance_type(self, channel):
+        band_idx = list(CHANNEL_NAMES.values()).index(channel)
+        return self.nc["planned_chan_processing"].values[band_idx]
 
     def _get_calib_coefs(self, dataset, channel):
         """Get coefficients for calibration from counts to radiance.

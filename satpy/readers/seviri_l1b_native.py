@@ -623,22 +623,22 @@ class NativeMSGFileHandler(BaseFileHandler):
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
         tic = dt.datetime.now()
+        calib = self._get_calibration_handler(dataset_id)
+        res = calib.calibrate(data, dataset_id["calibration"])
+        logger.debug("Calibration time " + str(dt.datetime.now() - tic))
+        return res
+
+    def _get_calibration_handler(self, dataset_id):
         channel_name = dataset_id["name"]
-        band_idx = self._get_band_index(channel_name)
-        radiance_types = self.header["15_DATA_HEADER"]["ImageDescription"][
-            "Level15ImageProduction"]["PlannedChanProcessing"]
         calib_params = CalibParams(
             mode=self.calib_mode.upper(),
             internal_coefs=self._get_calib_coefs(channel_name),
             external_coefs=self.ext_calib_coefs,
-            radiance_type=radiance_types[band_idx]
+            radiance_type=self._get_radiance_type(channel_name)
         )
         scan_params = ScanParams(self.platform_id, channel_name,
                                  self.observation_start_time)
-        calib = SEVIRICalibrationHandler(calib_params, scan_params)
-        res = calib.calibrate(data, dataset_id["calibration"])
-        logger.debug("Calibration time " + str(dt.datetime.now() - tic))
-        return res
+        return SEVIRICalibrationHandler(calib_params, scan_params)
 
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""
@@ -667,6 +667,12 @@ class NativeMSGFileHandler(BaseFileHandler):
         # the header does have calibration coefficients for all the channels
         # hence, this channel index needs to refer to full channel list
         return list(CHANNEL_NAMES.values()).index(channel_name)
+
+    def _get_radiance_type(self, channel_name):
+        band_idx = self._get_band_index(channel_name)
+        radiance_types = self.header["15_DATA_HEADER"]["ImageDescription"][
+            "Level15ImageProduction"]["PlannedChanProcessing"]
+        return radiance_types[band_idx]
 
     def _add_scanline_acq_time(self, dataset, dataset_id):
         """Add scanline acquisition time to the given dataset."""
