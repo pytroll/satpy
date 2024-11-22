@@ -238,8 +238,13 @@ from satpy.readers.seviri_base import (
     HRV_NUM_COLUMNS,
     REPEAT_CYCLE_DURATION,
     SATNUM,
+    CalibParams,
+    GsicsCoefficients,
+    MeirinkCoefficients,
+    NominalCoefficients,
     NoValidOrbitParams,
     OrbitPolynomialFinder,
+    ScanParams,
     SEVIRICalibrationHandler,
     add_scanline_acq_time,
     create_coef_dict,
@@ -723,16 +728,17 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        calib_params = {
-            "mode": self.calib_mode,
-            "coefs": self._get_calib_coefs(),
-            "ext_calib_coefs": self.ext_calib_coefs
-        }
-        scan_params = {
-            "platform_id": self.platform_id,
-            "channel_name": self.channel_name,
-            "scan_time": self.observation_start_time
-        }
+        calib_params = CalibParams(
+            mode=self.calib_mode,
+            internal_coefs=self._get_calib_coefs(),
+            external_coefs=self.ext_calib_coefs,
+            radiance_type=self._get_radiance_type()
+        )
+        scan_params = ScanParams(
+            platform_id=self.platform_id,
+            channel_name=self.channel_name,
+            scan_time=self.observation_start_time
+        )
         calib = SEVIRICalibrationHandler(calib_params, scan_params)
         res = calib.calibrate(data, calibration)
         return res
@@ -790,26 +796,32 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def _get_calib_coefs(self):
         """Get coefficients for calibration from counts to radiance."""
-        band_idx = self.mda["spectral_channel_id"] - 1
+        band_idx = self._get_band_index()
         coefs_nominal = self.prologue["RadiometricProcessing"][
             "Level15ImageCalibration"]
         coefs_gsics = self.prologue["RadiometricProcessing"]["MPEFCalFeedback"]
-        radiance_types = self.prologue["ImageDescription"][
-                "Level15ImageProduction"]["PlannedChanProcessing"]
         return create_coef_dict(
-            coefs_nominal=(
+            nominal_coefs=NominalCoefficients(
+                self.channel_name,
                 coefs_nominal["CalSlope"][band_idx],
                 coefs_nominal["CalOffset"][band_idx]
             ),
-            coefs_gsics=(
+            gsics_coefs=GsicsCoefficients(
+                self.channel_name,
                 coefs_gsics["GSICSCalCoeff"][band_idx],
                 coefs_gsics["GSICSOffsetCount"][band_idx]
             ),
-            platform_id=self.platform_id,
-            channel={"name": self.channel_name, "index": band_idx},
-            scan_time=self.observation_start_time,
-            radiance_type=radiance_types[band_idx]
+            meirink_coefs=MeirinkCoefficients(self.platform_id, self.channel_name, self.observation_start_time)
         )
+
+    def _get_radiance_type(self):
+        band_idx = self._get_band_index()
+        radiance_types = self.prologue["ImageDescription"][
+            "Level15ImageProduction"]["PlannedChanProcessing"]
+        return radiance_types[band_idx]
+
+    def _get_band_index(self):
+        return self.mda["spectral_channel_id"] - 1
 
 
 def pad_data(data, final_size, east_bound, west_bound):

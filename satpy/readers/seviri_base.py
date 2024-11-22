@@ -201,7 +201,7 @@ from __future__ import annotations
 
 import datetime as dt
 import warnings
-from collections import defaultdict
+from collections import namedtuple
 
 import dask.array as da
 import numpy as np
@@ -437,28 +437,6 @@ MEIRINK_COEFS["2023"][324] = {"VIS006": (20.515, 0.3600),
                               }
 
 
-def get_meirink_slope(meirink_coefs, acquisition_time):
-    """Compute the slope for the visible channel calibration according to Meirink 2013.
-
-    S = A + B * 1.e-3* Day
-
-    S is here in µW m-2 sr-1 (cm-1)-1
-
-    EUMETSAT calibration is given in mW m-2 sr-1 (cm-1)-1, so an extra factor of 1/1000 must
-    be applied.
-    """
-    A = meirink_coefs[0]
-    B = meirink_coefs[1]
-    delta_t = (acquisition_time - MEIRINK_EPOCH).total_seconds()
-    S = A + B * delta_t / (3600*24) / 1000.
-    return S/1000
-
-
-def should_apply_meirink(calib_mode, channel_name):
-    """Decide whether to use the Meirink calibration coefficients."""
-    return "MEIRINK" in calib_mode and channel_name in ["VIS006", "VIS008", "IR_016"]
-
-
 def get_cds_time(days, msecs):
     """Compute timestamp given the days since epoch and milliseconds of the day.
 
@@ -654,6 +632,10 @@ class SEVIRICalibrationAlgorithm:
         return utils.apply_earthsun_distance_correction(reflectance, self._scan_time)
 
 
+CalibParams = namedtuple("CalibParams", ["mode", "internal_coefs", "external_coefs", "radiance_type"])
+ScanParams = namedtuple("ScanParams", ["platform_id", "channel_name", "scan_time"])
+
+
 class SEVIRICalibrationHandler:
     """Calibration handler for SEVIRI HRIT-, native- and netCDF-formats.
 
@@ -663,19 +645,21 @@ class SEVIRICalibrationHandler:
 
     def __init__(self, calib_params, scan_params):
         """Initialize the calibration handler."""
-        self._platform_id = scan_params["platform_id"]
-        self._channel_name = scan_params["channel_name"]
-        self._scan_time = scan_params["scan_time"]
-        self._coefs = calib_params["coefs"]
-        try:
-            self._calib_mode = calib_params["mode"].upper()
-        except AttributeError:
-            self._calib_mode = calib_params["mode"]
-        self._legacy_ext_calib_coefs = calib_params["ext_calib_coefs"]
+        self._calib_params = calib_params
+        self._scan_params = scan_params
         self._algo = SEVIRICalibrationAlgorithm(
-            platform_id=self._platform_id,
-            scan_time=self._scan_time
+            platform_id=scan_params.platform_id,
+            scan_time=scan_params.scan_time
         )
+        self._check_calib_mode(calib_params.mode)
+
+    def _check_calib_mode(self, calib_mode):
+        valid_modes = ("NOMINAL", "GSICS", "MEIRINK-2023")
+        if calib_mode not in valid_modes:
+            raise ValueError(
+                "Invalid calibration mode: {}. Choose one of {}".format(
+                    calib_mode, valid_modes)
+            )
 
     def calibrate(self, data, calibration):
         """Calibrate the given data."""
@@ -693,16 +677,16 @@ class SEVIRICalibrationHandler:
         else:
             raise ValueError(
                 "Invalid calibration {} for channel {}".format(
-                    calibration, self._channel_name
+                    calibration, self._scan_params.channel_name
                 )
             )
 
         if calibration == "reflectance":
-            solar_irradiance = CALIB[self._platform_id][self._channel_name]["F"]
+            solar_irradiance = CALIB[self._scan_params.platform_id][self._scan_params.channel_name]["F"]
             res = self._algo.vis_calibrate(res, solar_irradiance)
         elif calibration == "brightness_temperature":
             res = self._algo.ir_calibrate(
-                res, self._channel_name, self._coefs["radiance_type"]
+                res, self._scan_params.channel_name, self._calib_params.radiance_type
             )
         if coefs:
             self._update_attrs(res, coefs)
@@ -718,33 +702,32 @@ class SEVIRICalibrationHandler:
     def get_coefs(self):
         """Get calibration coefficients."""
         self._warn_fallback()
-        coefs = self._include_legacy_ext_coefs()
-        picker = utils.CalibrationCoefficientPicker(coefs,
-                                                    self._calib_mode,
+        picker = utils.CalibrationCoefficientPicker(self._calib_params.internal_coefs,
+                                                    self._get_calib_wishlist(),
                                                     default="NOMINAL",
                                                     fallback="NOMINAL")
-        return picker.get_coefs(self._channel_name)
+        return picker.get_coefs(self._scan_params.channel_name)
 
     def _warn_fallback(self):
         if self._should_warn_fallback():
             msg = f"""
-{self._calib_mode} calibration coefficients are not available for all channels
-and Satpy is falling back to nominal coefficients in that case. In the future
-this will raise an error. Users are encouraged to specify a fallback
-via reader_kwargs['calib_fallback'].
+{self._calib_params.mode} calibration coefficients are not available for all
+channels and Satpy is falling back to nominal coefficients for these channels.
+In the future this will raise an error.
 """
             warnings.warn(msg, FutureWarning)
 
     def _should_warn_fallback(self):
-        return self._calib_mode == "GSICS" or "MEIRINK" in self._calib_mode
+        is_gsics = self._calib_params.mode == "GSICS"
+        is_meirink = "MEIRINK" in self._calib_params.mode
+        return is_gsics or is_meirink
 
-    def _include_legacy_ext_coefs(self):
-        if self._legacy_ext_calib_coefs:
-            coefs = self._legacy_ext_calib_coefs
-            if isinstance(self._calib_mode, str):
-                # TODO: Fill in other channels
-                pass
-            return coefs
+    def _get_calib_wishlist(self):
+        ext_coefs = self._calib_params.external_coefs or {}
+        wishlist = {
+            ch: self._calib_params.mode for ch in CHANNEL_NAMES.values()
+        }
+        return wishlist | ext_coefs
 
 
 def chebyshev(coefs, time, domain):
@@ -1002,35 +985,115 @@ def calculate_area_extent(area_dict):
     return (ll_c, ll_l, ur_c, ur_l)
 
 
-def create_coef_dict(coefs_nominal, coefs_gsics, platform_id, channel, scan_time, radiance_type):
+def create_coef_dict(nominal_coefs, gsics_coefs, meirink_coefs):
     """Create coefficient dictionary expected by calibration class."""
-    coefs = defaultdict(dict)
-    channel_name = channel["name"]
-    coefs["NOMINAL"][channel_name] = {
-        "gain": coefs_nominal[0],
-        "offset": coefs_nominal[1]
-    }
-    if coefs_gsics[0] != 0 and coefs_gsics[1] != 0:
+    coefs = nominal_coefs.get_coefs()
+    coefs.update(gsics_coefs.get_coefs())
+    coefs.update(meirink_coefs.get_coefs(nominal_coefs.offset))
+    return coefs
+
+
+class NominalCoefficients:
+    """Nominal calibration coefficients."""
+    def __init__(self, channel_name, gain, offset):
+        """Initialize coefficients."""
+        self.channel_name = channel_name
+        self.gain = gain
+        self.offset = offset
+
+    def get_coefs(self):
+        """Get coefficient dictionary."""
+        return {
+            "NOMINAL": {
+                self.channel_name: {
+                    "gain": self.gain,
+                    "offset": self.offset
+                }
+            }
+        }
+
+
+class GsicsCoefficients:
+    """GSICS calibration coefficients."""
+    def __init__(self, channel_name, gain, offset):
+        """Initialize coefficients."""
+        self.channel_name = channel_name
+        self.gain = gain
+        self.offset = offset
+
+    def get_coefs(self):
+        """Get coefficient dictionary."""
+        coefs = {"GSICS": {}}
+        if self._is_available():
+            coefs["GSICS"][self.channel_name] = {
+                "gain": self.gain,
+                "offset": self.offset * self.gain
+            }
+        return coefs
+
+    def _is_available(self):
         # If no GSICS coefficients are available they are set to zero in
         # the file.
-        coefs["GSICS"][channel_name] = {
-            "gain": coefs_gsics[0],
-            "offset": coefs_gsics[1]
-        }
+        return self.gain != 0 and self.offset != 0
 
-    for meirink_version, meirink_coefs in MEIRINK_COEFS.items():
-        meirink_version = f"MEIRINK-{meirink_version}"
+
+class MeirinkCoefficients:
+    """Re-calibration of the SEVIRI visible channels slope (see Meirink 2013)."""
+
+    def __init__(self, platform_id, channel_name, scan_time):
+        """Initialize coefficients."""
+        self.platform_id = platform_id
+        self.channel_name = channel_name
+        self.scan_time = scan_time
+
+    def get_coefs(self, offset):
+        """Get coefficient dictionary.
+
+        Args:
+            offset: Nominal calibration offset.
+        """
+        gain = self._get_gain()
+        return self._combine_gain_and_offset(gain, offset)
+
+    def _get_gain(self):
+        res = {}
+        for version, coefs in MEIRINK_COEFS.items():
+            gain = self._get_gain_single_channel(coefs)
+            if gain:
+                res[f"MEIRINK-{version}"] = gain
+        return res
+
+    def _get_gain_single_channel(self, coefs):
         try:
-            coefs_this_channel = meirink_coefs[platform_id][channel_name]
+            coefs_ch = coefs[self.platform_id][self.channel_name]
+            return self.get_slope(coefs_ch, self.scan_time)
         except KeyError:
-            # Meirink only available for solar channels
-            continue
-        coefs[meirink_version][channel_name] = {
-            "gain": get_meirink_slope(coefs_this_channel, scan_time),
-            "offset": coefs_nominal[0]
-        }
-    return {"coefs": coefs, "radiance_type": radiance_type}
+            return None
 
+    @staticmethod
+    def get_slope(coefs_single_channel, acquisition_time):
+        """Compute the slope for the visible channel calibration according to Meirink 2013.
+
+        S = A + B * 1.e-3* Day
+
+        S is here in µW m-2 sr-1 (cm-1)-1
+
+        EUMETSAT calibration is given in mW m-2 sr-1 (cm-1)-1, so an extra factor of 1/1000 must
+        be applied.
+        """
+        A = coefs_single_channel[0]
+        B = coefs_single_channel[1]
+        delta_t = (acquisition_time - MEIRINK_EPOCH).total_seconds()
+        S = A + B * delta_t / (3600*24) / 1000.
+        return S/1000
+
+    def _combine_gain_and_offset(self, gain, offset):
+        return {
+            calib_mode: {
+                self.channel_name: {"gain": gain_, "offset": offset}
+            }
+                for calib_mode, gain_ in gain.items()
+        }
 
 def get_padding_area(shape, dtype):
     """Create a padding area filled with no data."""
