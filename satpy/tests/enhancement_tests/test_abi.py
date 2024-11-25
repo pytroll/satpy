@@ -30,7 +30,7 @@ class TestABIEnhancement(unittest.TestCase):
     def setUp(self):
         """Create fake data for the tests."""
         data = da.linspace(0, 1, 16).reshape((4, 4))
-        self.da = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
+        self.da = xr.DataArray(data, dims=("y", "x"), attrs={"test": "test"})
 
     def test_cimss_true_color_contrast(self):
         """Test the cimss_true_color_contrast enhancement."""

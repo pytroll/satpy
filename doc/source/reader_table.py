@@ -18,6 +18,8 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for autogenerating reader table from config files."""
 
+from yaml import BaseLoader
+
 from satpy.readers import available_readers
 
 
@@ -26,6 +28,7 @@ def rst_table_row(columns=None):
 
     Args:
         columns (list[str]): Content of each column.
+
     Returns:
         str
     """
@@ -36,7 +39,7 @@ def rst_table_row(columns=None):
     return row
 
 
-def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
+def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):  # noqa: D417
     """Create header for rst table.
 
     Args:
@@ -46,6 +49,7 @@ def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
         width (optional[list[int]]): Width of each column as a list. If not specified
             defaults to auto and will therefore determined by the backend
             (see <https://docutils.sourceforge.io/docs/ref/rst/directives.html#table>)
+
     Returns:
         str
     """
@@ -72,7 +76,7 @@ def generate_reader_table():
     table = [rst_table_header("Satpy Readers", header=["Description", "Reader name", "Status", "fsspec support"],
                               widths=[45, 25, 30, 30])]
 
-    reader_configs = available_readers(as_dict=True)
+    reader_configs = available_readers(as_dict=True, yaml_loader=BaseLoader)
     for rc in reader_configs:
         table.append(rst_table_row([rc.get("long_name", "").rstrip("\n"), rc.get("name", ""),
                                     rc.get("status", ""), rc.get("supports_fsspec", "false")]))

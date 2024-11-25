@@ -11,6 +11,18 @@ modifiers:
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
 
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected]
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
 composites:
   true_color_uncorrected:
     compositor: !!python/name:satpy.composites.GenericCompositor

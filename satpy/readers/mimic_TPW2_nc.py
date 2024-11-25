@@ -54,8 +54,8 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Get datasets in file matching gelocation shape (lat/lon)."""
-        lat_shape = self.file_content.get('/dimension/lat')
-        lon_shape = self.file_content.get('/dimension/lon')
+        lat_shape = self.file_content.get("/dimension/lat")
+        lon_shape = self.file_content.get("/dimension/lon")
 
         # Read the lat/lon variables?
         handled_variables = set()
@@ -67,9 +67,9 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
             if is_avail is not None:
                 yield is_avail, ds_info
 
-            var_name = ds_info.get('file_key', ds_info['name'])
+            var_name = ds_info.get("file_key", ds_info["name"])
             # logger.debug("Evaluating previously configured variable: %s", var_name)
-            matches = self.file_type_matches(ds_info['file_type'])
+            matches = self.file_type_matches(ds_info["file_type"])
             # we can confidently say that we can provide this dataset and can
             # provide more info
             if matches and var_name in self:
@@ -98,35 +98,35 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
                     handled_variables.add(var_name)
                     # Create new ds_info object
                     new_info = {
-                        'name': var_name,
-                        'file_key': var_name,
-                        'file_type': self.filetype_info['file_type'],
+                        "name": var_name,
+                        "file_key": var_name,
+                        "file_type": self.filetype_info["file_type"],
                     }
                     logger.debug(var_name)
                     yield True, new_info
 
     def get_dataset(self, ds_id, info):
         """Load dataset designated by the given key from file."""
-        logger.debug("Getting data for: %s", ds_id['name'])
-        file_key = info.get('file_key', ds_id['name'])
+        logger.debug("Getting data for: %s", ds_id["name"])
+        file_key = info.get("file_key", ds_id["name"])
         data = np.flipud(self[file_key])
-        data = xr.DataArray(data, dims=['y', 'x'])
+        data = xr.DataArray(data, dims=["y", "x"])
         data.attrs = self.get_metadata(data, info)
 
-        if 'lon' in data.dims:
-            data.rename({'lon': 'x'})
-        if 'lat' in data.dims:
-            data.rename({'lat': 'y'})
+        if "lon" in data.dims:
+            data.rename({"lon": "x"})
+        if "lat" in data.dims:
+            data.rename({"lat": "y"})
 
         return data
 
     def get_area_def(self, dsid):
         """Flip data up/down and define equirectangular AreaDefintion."""
-        flip_lat = np.flipud(self['latArr'])
-        latlon = np.meshgrid(self['lonArr'], flip_lat)
+        flip_lat = np.flipud(self["latArr"])
+        latlon = np.meshgrid(self["lonArr"], flip_lat)
 
-        width = self['lonArr/shape'][0]
-        height = self['latArr/shape'][0]
+        width = self["lonArr/shape"][0]
+        height = self["latArr/shape"][0]
 
         lower_left_x = latlon[0][height-1][0]
         lower_left_y = latlon[1][height-1][0]
@@ -136,9 +136,9 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
 
         area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
         description = "MIMIC TPW WGS84"
-        area_id = 'mimic'
-        proj_id = 'World Geodetic System 1984'
-        projection = 'EPSG:4326'
+        area_id = "mimic"
+        proj_id = "World Geodetic System 1984"
+        projection = "EPSG:4326"
         area_def = AreaDefinition(area_id, description, proj_id, projection, width, height, area_extent, )
         return area_def
 
@@ -148,24 +148,24 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(info)
         metadata.update({
-            'platform_shortname': 'aggregated microwave',
-            'sensor': 'mimic',
-            'start_time': self.start_time,
-            'end_time': self.end_time,
+            "platform_shortname": "aggregated microwave",
+            "sensor": "mimic",
+            "start_time": self.start_time,
+            "end_time": self.end_time,
         })
-        metadata.update(self[info.get('file_key')].variable.attrs)
+        metadata.update(self[info.get("file_key")].variable.attrs)
 
         return metadata
 
     @property
     def start_time(self):
         """Start timestamp of the dataset determined from yaml."""
-        return self.filename_info['start_time']
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """End timestamp of the dataset same as start_time."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info.get("end_time", self.start_time)
 
     @property
     def sensor_name(self):

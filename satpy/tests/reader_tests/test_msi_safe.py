@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.msi_safe module."""
-import unittest
 import unittest.mock as mock
 from io import BytesIO, StringIO
 
@@ -863,10 +862,10 @@ mtd_l1c_xml = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 """  # noqa
 
 
-class TestMTDXML(unittest.TestCase):
+class TestMTDXML:
     """Test the SAFE MTD XML file handler."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case."""
         from satpy.readers.msi_safe import SAFEMSIMDXML, SAFEMSITileMDXML
         filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A")
@@ -956,7 +955,7 @@ class TestMTDXML(unittest.TestCase):
     def test_xml_navigation(self):
         """Test the navigation."""
         from pyproj import CRS
-        crs = CRS('EPSG:32616')
+        crs = CRS("EPSG:32616")
 
         dsid = make_dataid(name="B01", resolution=60)
         result = self.xml_tile_fh.get_area_def(dsid)
@@ -969,15 +968,15 @@ class TestMTDXML(unittest.TestCase):
 class TestSAFEMSIL1C:
     """Test case for image reading (jp2k)."""
 
-    def setup(self):
+    def setup_method(self):
         """Set up the test."""
         from satpy.readers.msi_safe import SAFEMSITileMDXML
         self.filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
-        self.fake_data = xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])
+        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
         self.tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml),
                                                                self.filename_info, mock.MagicMock())
 
-    @pytest.mark.parametrize("mask_saturated,calibration,expected",
+    @pytest.mark.parametrize(("mask_saturated", "calibration", "expected"),
                              [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
                               (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
                               (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])
@@ -989,6 +988,6 @@ class TestSAFEMSIL1C:
                            mask_saturated=mask_saturated)
         self.jp2_fh = SAFEMSIL1C("somefile", self.filename_info, mock.MagicMock(), mda, self.tile_mda)
 
-        with mock.patch("satpy.readers.msi_safe.rioxarray.open_rasterio", return_value=self.fake_data):
+        with mock.patch("xarray.open_dataset", return_value=self.fake_data):
             res = self.jp2_fh.get_dataset(make_dataid(name="B01", calibration=calibration), info=dict())
             np.testing.assert_allclose(res, expected)

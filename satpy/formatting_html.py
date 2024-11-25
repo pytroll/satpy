@@ -453,6 +453,7 @@ def collapsible_section_satpy(name, inline_details="", details="", n_items=None,
       n_items (int): Number of items in this section.
       enabled (boolean): Is collapsing enabled. Default True.
       collapsed (boolean): Is the section collapsed on first show. Default False.
+      icon (str): Name of the icon to use for the section.
 
     Returns:
       str: Html div structure for collapsible section.
@@ -487,6 +488,8 @@ def sensor_section(platform_name, sensor_name, datasets):
     n_datasets = len(datasets)
     inline_details = f"Area(s) with {n_datasets} channels"
 
+    by_area_type = toolz.groupby(lambda x: type(x.attrs.get("area")).__name__, datasets)
+
     sensor_name = sensor_name.upper()
     icon = _icon("icon-satellite")
 
@@ -494,12 +497,27 @@ def sensor_section(platform_name, sensor_name, datasets):
                     f"<a href='https://space.oscar.wmo.int/instruments/view/{sensor_name}'>{sensor_name}</a>"
                     )
 
-    section_details = ""
-    for proj, ds in by_area.items():
-        section_details += resolution_section(proj, ds)
+    if "AreaDefinition" in by_area_type.keys():
+        by_area = toolz.groupby(lambda x: x.attrs.get("area").proj_dict.get("proj"), by_area_type["AreaDefinition"])
+        section_details = ""
+        for proj, ds in by_area.items():
+            section_details += resolution_section(proj, ds)
 
-    html = collapsible_section_satpy(section_name, details=section_details,
-                                     inline_details=inline_details, n_items=n_areas, icon=icon)
+    # html = collapsible_section_satpy(section_name, details=section_details,
+                                     # inline_details=inline_details, n_items=n_areas, icon=icon)
+        html = collapsible_section_satpy(section_name, details=section_details, n_items=number_of_platforms, icon=icon)
+
+    if "SwathDefinition" in by_area_type.keys():
+        from pyresample._formatting_html import swath_area_attrs_section
+
+        from satpy import Scene
+
+        swathlist = Scene._compare_swath_defs(max, [ds.area for ds in by_area_type["SwathDefinition"]])
+
+        # by_area = toolz.groupby(lambda x: x.attrs.get("area").proj_dict.get("proj"), by_area_type["AreaDefinition"])
+
+        html = collapsible_section_satpy(section_name, details=swath_area_attrs_section(swathlist),
+                                         n_items=number_of_platforms, icon=icon)
 
     return html
 
@@ -526,7 +544,7 @@ def resolution_section(projection, datasets):
                   "</dl>"
                   )
 
-    area_map = plot_area_def(areadefinition)
+    area_map = plot_area_def(areadefinition, fmt="svg")
 
     attrs_id = "attrs-" + str(uuid.uuid4())
     map_id = "map-" + str(uuid.uuid4())
@@ -546,7 +564,7 @@ def resolution_section(projection, datasets):
             )
 
     for res, ds in by_resolution.items():
-        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in ds if i.attrs.get('area') is not None}
+        ds_dict = {i.attrs["name"]: i.rename(i.attrs["name"]) for i in ds if i.attrs.get("area") is not None}
         dss = xr.merge(ds_dict.values(), compat="override")
         html += xarray_dataset_repr(dss, "Resolution (x/y): {}".format(res))
 
@@ -562,7 +580,7 @@ def scene_repr(scene):
     Returns:
         str: Html str
 
-    TODO:
+    Todo:
         - streamline loading and combining of css styles. Move _load_static_files function into pyresample
         - display combined numer of datasets, area name, projection, extent, sensor, start/end time after object type?
         - drop "unecessary" attributes from the datasets?
@@ -611,11 +629,12 @@ def xarray_dataset_repr(dataset, ds_name):
                                       max_items_collapse=15, expand_option_name="display_expand_data_vars")
 
     ds_list = ("<div class='satpy-scene-section-datasets'>"
-               "<div class='xr-wrap' style='display:none'>"
+               # "<div class='xr-wrap' style='display:none'>"
                f"<ul class='xr-sections'>"
                f"<li class='xr-section-item'>{data_variables}</li>"
-               "</ul></div>"
+               "</ul>"
                "</div>"
+               # "</div>"
                )
 
     return ds_list
