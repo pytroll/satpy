@@ -34,24 +34,55 @@ from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands
 
 def run_and_check_enhancement(func, data, expected, **kwargs):
     """Perform basic checks that apply to multiple tests."""
+    pre_attrs = data.attrs
+    img = _get_enhanced_image(func, data, **kwargs)
+
+    _assert_image(img, pre_attrs, func.__name__, "palettes" in kwargs)
+    _assert_image_data(img, expected)
+
+
+def _get_enhanced_image(func, data, **kwargs):
     from trollimage.xrimage import XRImage
 
-    pre_attrs = data.attrs
     img = XRImage(data)
     func(img, **kwargs)
 
+    return img
+
+
+def _assert_image(img, pre_attrs, func_name, has_palette):
+    assert isinstance(img.data, xr.DataArray)
     assert isinstance(img.data.data, da.Array)
+
     old_keys = set(pre_attrs.keys())
     # It is OK to have "enhancement_history" added
     new_keys = set(img.data.attrs.keys()) - {"enhancement_history"}
+    # In case of palettes are used, _FillValue is added.
+    # Colorize doesn't add the fill value, so ignore that
+    if has_palette and func_name != "colorize":
+        assert "_FillValue" in new_keys
+        # Remove it from further comparisons
+        new_keys = new_keys - {"_FillValue"}
     assert old_keys == new_keys
 
-    res_data_arr = img.data
-    assert isinstance(res_data_arr, xr.DataArray)
-    assert isinstance(res_data_arr.data, da.Array)
-    res_data = res_data_arr.data.compute()  # mimics what xrimage geotiff writing does
+
+def _assert_image_data(img, expected, dtype=None):
+    # Compute the data to mimic what xrimage geotiff writing does
+    res_data = img.data.data.compute()
     assert not isinstance(res_data, da.Array)
     np.testing.assert_allclose(res_data, expected, atol=1.e-6, rtol=0)
+    if dtype:
+        assert img.data.dtype == dtype
+        assert res_data.dtype == dtype
+
+
+def run_and_check_enhancement_with_dtype(func, data, expected, **kwargs):
+    """Perform basic checks that apply to multiple tests."""
+    pre_attrs = data.attrs
+    img = _get_enhanced_image(func, data, **kwargs)
+
+    _assert_image(img, pre_attrs, func.__name__, "palettes" in kwargs)
+    _assert_image_data(img, expected, dtype=data.dtype)
 
 
 def identical_decorator(func):
@@ -103,14 +134,15 @@ class TestEnhancementStretch:
             exp_data = exp_data[np.newaxis, :, :]
         run_and_check_enhancement(_enh_func, in_data, exp_data)
 
-    def test_cira_stretch(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_cira_stretch(self, dtype):
         """Test applying the cira_stretch."""
         from satpy.enhancements import cira_stretch
 
         expected = np.array([[
             [np.nan, -7.04045974, -7.04045974, 0.79630132, 0.95947296],
-            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
-        run_and_check_enhancement(cira_stretch, self.ch1, expected)
+            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]], dtype=dtype)
+        run_and_check_enhancement_with_dtype(cira_stretch, self.ch1.astype(dtype), expected)
 
     def test_reinhard(self):
         """Test the reinhard algorithm."""
@@ -331,11 +363,12 @@ class TestColormapLoading:
                 kwargs1["color_scale"] = color_scale
 
             cmap = create_colormap(kwargs1)
-            assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], first_color)
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == unset_first_value
-            assert cmap.values[-1] == unset_last_value
+
+        assert cmap.colors.shape[0] == 4
+        np.testing.assert_equal(cmap.colors[0], first_color)
+        assert cmap.values.shape[0] == 4
+        assert cmap.values[0] == unset_first_value
+        assert cmap.values[-1] == unset_last_value
 
     def test_cmap_vrgb_as_rgba(self):
         """Test that data created as VRGB still reads as RGBA."""
@@ -343,12 +376,44 @@ class TestColormapLoading:
             cmap_data = _generate_cmap_test_data(None, "VRGB")
             np.save(cmap_filename, cmap_data)
             cmap = create_colormap({"filename": cmap_filename, "colormap_mode": "RGBA"})
-            assert cmap.colors.shape[0] == 4
-            assert cmap.colors.shape[1] == 4  # RGBA
-            np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 0
-            assert cmap.values[-1] == 1.0
+
+        assert cmap.colors.shape[0] == 4
+        assert cmap.colors.shape[1] == 4  # RGBA
+        np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
+        assert cmap.values.shape[0] == 4
+        assert cmap.values[0] == 0
+        assert cmap.values[-1] == 1.0
+
+    def test_cmap_with_alpha_set(self):
+        """Test that the min_alpha and max_alpha arguments set the alpha channel correctly."""
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
+            cmap_data = _generate_cmap_test_data(None, "RGB")
+            np.save(cmap_filename, cmap_data)
+            cmap = create_colormap({"filename": cmap_filename, "min_alpha": 100, "max_alpha": 255})
+
+        assert cmap.colors.shape[0] == 4
+        assert cmap.colors.shape[1] == 4  # RGBA
+        # check that we start from min_alpha
+        np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0, 100/255.])
+        # two thirds of the linear scale
+        np.testing.assert_almost_equal(cmap.colors[2], [1., 1., 1., (100+(2/3)*(255-100))/255])
+        # check that we end at max_alpha
+        np.testing.assert_equal(cmap.colors[3], [0, 0, 1., 1.0])
+        # check that values have not been changed
+        assert cmap.values.shape[0] == 4
+        assert cmap.values[0] == 0
+        assert cmap.values[-1] == 1.0
+
+    @pytest.mark.parametrize("alpha_arg", ["max_alpha", "min_alpha"])
+    def test_cmap_error_with_only_one_alpha_set(self, alpha_arg):
+        """Test that when only min_alpha or max_alpha arguments are set an error is raised."""
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
+            cmap_data = _generate_cmap_test_data(None, "RGB")
+            np.save(cmap_filename, cmap_data)
+
+            # check that if a value is missing we raise a ValueError
+            with pytest.raises(ValueError, match="Both 'min_alpha' and 'max_alpha' must be specified*."):
+                create_colormap({"filename": cmap_filename, alpha_arg: 255})
 
     @pytest.mark.parametrize(
         ("real_mode", "forced_mode"),
@@ -397,12 +462,13 @@ class TestColormapLoading:
         with satpy.config.set(config_path=[tmp_path]):
             rel_cmap_filename = os.path.join("colormaps", "my_colormap.npy")
             cmap = create_colormap({"filename": rel_cmap_filename, "colormap_mode": "RGBA"})
-            assert cmap.colors.shape[0] == 4
-            assert cmap.colors.shape[1] == 4  # RGBA
-            np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 0
-            assert cmap.values[-1] == 1.0
+
+        assert cmap.colors.shape[0] == 4
+        assert cmap.colors.shape[1] == 4  # RGBA
+        np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
+        assert cmap.values.shape[0] == 4
+        assert cmap.values[0] == 0
+        assert cmap.values[-1] == 1.0
 
     def test_cmap_from_trollimage(self):
         """Test that colormaps in trollimage can be loaded."""
@@ -422,10 +488,10 @@ class TestColormapLoading:
         """Test that colors can be a list/tuple."""
         from satpy.enhancements import create_colormap
         colors = [
-            [0, 0, 1],
-            [1, 0, 1],
-            [0, 1, 1],
-            [1, 1, 1],
+            [0., 0., 1.],
+            [1., 0., 1.],
+            [0., 1., 1.],
+            [1., 1., 1.],
         ]
         values = [2, 4, 6, 8]
         cmap = create_colormap({"colors": colors, "color_scale": 1})
@@ -484,7 +550,7 @@ def test_on_dask_array():
     assert res.shape == arr.shape
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def

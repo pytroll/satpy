@@ -7,11 +7,11 @@ remote-sensing earth-observing satellite instruments. Satpy
 provides users with readers that convert geophysical parameters from various
 file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
-scientific python libraries. Satpy also provides interfaces for creating
-RGB (Red/Green/Blue) images and other composite types by combining data
-from multiple instrument bands or products. Various atmospheric corrections
-and visual enhancements are provided for improving the usefulness and quality
-of output images. Output data can be written to
+scientific python libraries. For a full list of available readers see :ref:`reader_table`.
+Satpy also provides interfaces for creating RGB (Red/Green/Blue) images and other
+composite types by combining data from multiple instrument bands or products.
+Various atmospheric corrections and visual enhancements are provided for
+improving the usefulness and quality of output images. Output data can be written to
 multiple output file formats such as PNG, GeoTIFF, and CF standard NetCDF
 files. Satpy also allows users to resample data to geographic projected grids
 (areas). Satpy is maintained by the open source
@@ -80,10 +80,11 @@ Documentation
     Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
-.. _reader_table:
 
-.. include:: reader_table.rst
+.. note::
 
+    Please note that the reader table that used to be placed here has moved to the "reading"
+    section here:  :ref:`reader_table`.
 
 Indices and tables
 ==================

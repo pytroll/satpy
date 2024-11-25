@@ -20,7 +20,7 @@
 import numpy as np
 import pytest
 from pyresample.geometry import SwathDefinition
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import Scene, available_readers
 
@@ -190,6 +190,7 @@ def _create_seadas_chlor_a_netcdf_file(full_path, mission, sensor):
     geophys_group = nc.createGroup("geophysical_data")
     _add_variable_to_netcdf_file(geophys_group, "chlor_a", chlor_a_info)
     _add_variable_to_netcdf_file(geophys_group, "l2_flags", l2_flags_info)
+    nc.close()
     return [full_path]
 
 
@@ -198,7 +199,10 @@ def _add_variable_to_netcdf_file(nc, var_name, var_info):
                           fill_value=var_info.get("fill_value"))
     v[:] = var_info["data"]
     for attr_key, attr_val in var_info["attrs"].items():
+        if isinstance(attr_val, (int, float)):
+            attr_val = v.dtype.type(attr_val)
         setattr(v, attr_key, attr_val)
+
 
 
 class TestSEADAS:

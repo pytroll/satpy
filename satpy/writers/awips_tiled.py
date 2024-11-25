@@ -213,13 +213,14 @@ geolocation by up to 0.5 pixels in each dimension instead of shifting the
 lettered tile locations.
 
 """
+
+import datetime as dt
 import logging
 import os
 import string
 import sys
 import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta
 
 import dask
 import dask.array as da
@@ -245,6 +246,7 @@ UNIT_CONV = {
     "percent": "%",
     "Kelvin": "kelvin",
     "K": "kelvin",
+    "Meter": "meters",
 }
 
 TileInfo = namedtuple("TileInfo", ["tile_count", "image_shape", "tile_shape",
@@ -625,7 +627,7 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         fills = [2 ** file_bit_depth - 1]
     elif unsigned_in_signed:
         # max unsigned value is -1 as a signed int
-        fills = [-1]
+        fills = [dtype.type(-1)]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
@@ -1062,12 +1064,10 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             new_ds.coords["x"].encoding["dtype"] = "int16"
             new_ds.coords["x"].encoding["scale_factor"] = np.float64(xy_factors.mx)
             new_ds.coords["x"].encoding["add_offset"] = np.float64(xy_factors.bx)
-            new_ds.coords["x"].encoding["_FillValue"] = -1
         if "y" in new_ds.coords:
             new_ds.coords["y"].encoding["dtype"] = "int16"
             new_ds.coords["y"].encoding["scale_factor"] = np.float64(xy_factors.my)
             new_ds.coords["y"].encoding["add_offset"] = np.float64(xy_factors.by)
-            new_ds.coords["y"].encoding["_FillValue"] = -1
         return new_ds
 
     def apply_tile_info(self, new_ds, tile_info):
@@ -1101,7 +1101,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if creator is None:
             creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
-            creation_time = datetime.utcnow()
+            creation_time = dt.datetime.now(dt.timezone.utc)
 
         self._add_sector_id_global(new_ds, sector_id)
         new_ds.attrs["Conventions"] = "CF-1.7"
@@ -1493,8 +1493,8 @@ class AWIPSTiledWriter(Writer):
     def _adjust_metadata_times(self, ds_info):
         debug_shift_time = int(os.environ.get("DEBUG_TIME_SHIFT", 0))
         if debug_shift_time:
-            ds_info["start_time"] += timedelta(minutes=debug_shift_time)
-            ds_info["end_time"] += timedelta(minutes=debug_shift_time)
+            ds_info["start_time"] += dt.timedelta(minutes=debug_shift_time)
+            ds_info["end_time"] += dt.timedelta(minutes=debug_shift_time)
 
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
         # use the first data array as a "representative" for the group
@@ -1597,7 +1597,7 @@ class AWIPSTiledWriter(Writer):
         area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
-        creation_time = datetime.utcnow()
+        creation_time = dt.datetime.now(dt.timezone.utc)
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
             area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
@@ -1775,7 +1775,7 @@ def create_debug_lettered_tiles(**writer_kwargs):
     sector_info = writer.awips_sectors[sector_id]
     area_def, arr = _create_debug_array(sector_info, save_kwargs["num_subtiles"])
 
-    now = datetime.utcnow()
+    now = dt.datetime.utcnow()
     product = xr.DataArray(da.from_array(arr, chunks="auto"), attrs=dict(
         name="debug_{}".format(sector_id),
         platform_name="DEBUG",
@@ -1824,7 +1824,7 @@ def main():
     group_2.add_argument("--letters", dest="lettered_grid", action="store_true",
                          help="Create tiles from a static letter-based grid based on the product projection")
     group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
-                         help="Specify number of subtiles in each lettered tile: \'row col\'")
+                         help="Specify number of subtiles in each lettered tile: 'row col'")
     group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
                          help="output filenaming pattern")
     group_2.add_argument("--source-name", default="SSEC",

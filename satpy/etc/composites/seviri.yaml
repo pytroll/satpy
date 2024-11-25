@@ -421,6 +421,7 @@ composites:
       - name: HRV
         modifiers: [sunz_corrected]
       - IR_108
+
   hrv_fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: hrv_fog
@@ -597,3 +598,74 @@ composites:
       - method: equal
         value: High_semitransparent_above_snow_ice
         transparency: 60
+
+### Composites with LI lightning
+  natural_color_with_night_ir_acc_flash:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_alpha
+      - natural_color_with_night_ir
+
+  natural_color_with_night_ir_acc_flash_area:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_area_alpha
+      - natural_color_with_night_ir
+
+  natural_color_with_night_ir_acc_flash_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_radiance_alpha
+      - natural_color_with_night_ir
+
+  natural_color_with_night_ir_flash_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - flash_radiance_alpha
+      - natural_color_with_night_ir
+
+  natural_color_with_night_ir_group_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - group_radiance_alpha
+      - natural_color_with_night_ir
+
+  hrv_acc_flash:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_alpha
+      - HRV
+
+  hrv_acc_flash_area:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_area_alpha
+      - HRV
+
+  hrv_acc_flash_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - acc_flash_radiance_alpha
+      - HRV
+
+  hrv_flash_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - flash_radiance_alpha
+      - HRV
+
+  hrv_group_radiance:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: imager_with_lightning
+    prerequisites:
+      - group_radiance_alpha
+      - HRV

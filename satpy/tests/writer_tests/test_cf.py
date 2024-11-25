@@ -17,10 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
+import datetime as dt
 import os
 import tempfile
 import warnings
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -74,8 +74,8 @@ class TestCFWriter:
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
@@ -90,8 +90,8 @@ class TestCFWriter:
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         coords = {
             "x": np.arange(3),
             "y": np.arange(1),
@@ -152,7 +152,8 @@ class TestCFWriter:
         scn = Scene()
         scn["1"] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
+            with pytest.warns(UserWarning, match=r"Invalid NetCDF dataset name"):
+                scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
             with xr.open_dataset(filename) as f:
                 np.testing.assert_array_equal(f["1"][:], [1, 2, 3])
                 assert "original_name" not in f["1"].attrs
@@ -161,8 +162,8 @@ class TestCFWriter:
         """Test ancillary_variables cited each other."""
         from satpy.tests.utils import make_dataid
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         da = xr.DataArray([1, 2, 3],
                           attrs=dict(start_time=start_time,
                           end_time=end_time,
@@ -179,8 +180,8 @@ class TestCFWriter:
 
     def test_groups(self):
         """Test creating a file with groups."""
-        tstart = datetime(2019, 4, 1, 12, 0)
-        tend = datetime(2019, 4, 1, 12, 15)
+        tstart = dt.datetime(2019, 4, 1, 12, 0)
+        tend = dt.datetime(2019, 4, 1, 12, 15)
 
         data_visir = [[1, 2], [3, 4]]
         y_visir = [1, 2]
@@ -208,8 +209,10 @@ class TestCFWriter:
                                   attrs={"name": "HRV", "start_time": tstart, "end_time": tend})
 
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", groups={"visir": ["IR_108", "VIS006"], "hrv": ["HRV"]},
-                              pretty=True)
+            with pytest.warns(UserWarning, match=r"Cannot pretty-format"):
+                scn.save_datasets(filename=filename, writer="cf",
+                                  groups={"visir": ["IR_108", "VIS006"], "hrv": ["HRV"]},
+                                  pretty=True)
 
             nc_root = xr.open_dataset(filename)
             assert "history" in nc_root.attrs
@@ -235,16 +238,16 @@ class TestCFWriter:
     def test_single_time_value(self):
         """Test setting a single time value."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
-                                         coords={"time": np.datetime64("2018-05-30T10:05:00")},
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf", encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f["time"], scn["test-array"]["time"])
                 bounds_exp = np.array([[start_time, end_time]], dtype="datetime64[m]")
@@ -255,29 +258,34 @@ class TestCFWriter:
         scn = Scene()
         test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
         times = np.array(["2018-05-30T10:05:00", "2018-05-30T10:05:01",
-                          "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype=np.datetime64)
+                          "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype="datetime64[ns]")
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["y", "x"],
                                          coords={"time": ("y", times)},
                                          attrs=dict(start_time=times[0], end_time=times[-1]))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", pretty=True)
+            scn.save_datasets(filename=filename, writer="cf", pretty=True,
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f["time"], scn["test-array"]["time"])
 
     def test_bounds(self):
         """Test setting time bounds."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y", "time"],
-                                         coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                         coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            with warnings.catch_warnings():
+                # The purpose is to use the default time encoding, silence the warning
+                warnings.filterwarnings("ignore", category=UserWarning,
+                                        message=r"Times can't be serialized faithfully to int64 with requested units")
+                scn.save_datasets(filename=filename, writer="cf")
             # Check decoded time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_time, end_time]], dtype="datetime64[m]")
@@ -299,24 +307,25 @@ class TestCFWriter:
     def test_bounds_minimum(self):
         """Test minimum bounds."""
         scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
-        end_timeA = datetime(2018, 5, 30, 10, 20)
-        start_timeB = datetime(2018, 5, 30, 10, 3)
-        end_timeB = datetime(2018, 5, 30, 10, 15)  # expected to be used
+        start_timeA = dt.datetime(2018, 5, 30, 10, 0)  # expected to be used
+        end_timeA = dt.datetime(2018, 5, 30, 10, 20)
+        start_timeB = dt.datetime(2018, 5, 30, 10, 3)
+        end_timeB = dt.datetime(2018, 5, 30, 10, 15)  # expected to be used
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeA,
                                                      end_time=end_timeA))
         scn["test-arrayB"] = xr.DataArray(test_arrayB,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeB,
                                                      end_time=end_timeB))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf",
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeB]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
@@ -324,20 +333,21 @@ class TestCFWriter:
     def test_bounds_missing_time_info(self):
         """Test time bounds generation in case of missing time."""
         scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0)
-        end_timeA = datetime(2018, 5, 30, 10, 15)
+        start_timeA = dt.datetime(2018, 5, 30, 10, 0)
+        end_timeA = dt.datetime(2018, 5, 30, 10, 15)
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]},
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
                                           attrs=dict(start_time=start_timeA,
                                                      end_time=end_timeA))
         scn["test-arrayB"] = xr.DataArray(test_arrayB,
                                           dims=["x", "y", "time"],
-                                          coords={"time": [np.datetime64("2018-05-30T10:05:00")]})
+                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]})
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf")
+            scn.save_datasets(filename=filename, writer="cf",
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeA]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
@@ -345,24 +355,25 @@ class TestCFWriter:
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
-                                         coords={"time": np.datetime64("2018-05-30T10:05:00")},
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer="cf", unlimited_dims=["time"])
+            scn.save_datasets(filename=filename, writer="cf", unlimited_dims=["time"],
+                              encoding={"time": {"units": "seconds since 2018-01-01"}})
             with xr.open_dataset(filename) as f:
                 assert set(f.encoding["unlimited_dims"]) == {"time"}
 
     def test_header_attrs(self):
         """Check global attributes are set."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
@@ -412,8 +423,8 @@ class TestCFWriter:
     def test_global_attr_default_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([[1, 2, 3]],
                                          dims=("y", "x"),
                                          attrs=dict(start_time=start_time,
@@ -428,8 +439,8 @@ class TestCFWriter:
     def test_global_attr_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
         scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
         scn["test-array"] = xr.DataArray([[1, 2, 3]],
                                          dims=("y", "x"),
                                          attrs=dict(start_time=start_time,
@@ -449,13 +460,13 @@ class TestCFWriter:
 class TestNetcdfEncodingKwargs:
     """Test netCDF compression encodings."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene(self):
         """Create a fake scene."""
         scn = Scene()
         attrs = {
-            "start_time": datetime(2018, 5, 30, 10, 0),
-            "end_time": datetime(2018, 5, 30, 10, 15)
+            "start_time": dt.datetime(2018, 5, 30, 10, 0),
+            "end_time": dt.datetime(2018, 5, 30, 10, 15)
         }
         scn["test-array"] = xr.DataArray([1., 2, 3], attrs=attrs)
         return scn
@@ -465,7 +476,7 @@ class TestNetcdfEncodingKwargs:
         """Get compression options."""
         return request.param
 
-    @pytest.fixture()
+    @pytest.fixture
     def encoding(self, compression_on):
         """Get encoding."""
         enc = {
@@ -481,19 +492,19 @@ class TestNetcdfEncodingKwargs:
             enc["test-array"].update(comp_params)
         return enc
 
-    @pytest.fixture()
+    @pytest.fixture
     def filename(self, tmp_path):
         """Get output filename."""
         return str(tmp_path / "test.nc")
 
-    @pytest.fixture()
+    @pytest.fixture
     def complevel_exp(self, compression_on):
         """Get expected compression level."""
         if compression_on:
             return 7
         return 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected(self, complevel_exp):
         """Get expectated file contents."""
         return {
@@ -517,12 +528,19 @@ class TestNetcdfEncodingKwargs:
             assert f["test-array"].dtype == expected["dtype"]
             assert f["test-array"].encoding["complevel"] == expected["complevel"]
 
-    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch):
+    @pytest.mark.parametrize(
+        "versions",
+        [
+            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development"},
+            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version"}
+        ]
+    )
+    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch, versions):
         """Test warning if backends don't match."""
         import netCDF4
         with monkeypatch.context() as m:
-            m.setattr(netCDF4, "__version__", "1.5.0")
-            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.1")
+            m.setattr(netCDF4, "__version__", versions["netCDF4"])
+            m.setattr(netCDF4, "__netcdf4libversion__", versions["libnetcdf"])
             with pytest.warns(UserWarning, match=r"Backend version mismatch"):
                 scene.save_datasets(filename=filename, writer="cf")
 
@@ -541,7 +559,7 @@ class TestNetcdfEncodingKwargs:
 class TestEncodingAttribute(TestNetcdfEncodingKwargs):
     """Test CF writer with 'encoding' dataset attribute."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene_with_encoding(self, scene, encoding):
         """Create scene with a dataset providing the 'encoding' attribute."""
         scene["test-array"].encoding = encoding["test-array"]

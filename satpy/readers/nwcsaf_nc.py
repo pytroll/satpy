@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Nowcasting SAF common PPS&MSG NetCDF/CF format reader.
 
 References:
@@ -22,11 +23,11 @@ References:
 
 """
 
+import datetime as dt
 import functools
 import logging
 import os
 from contextlib import suppress
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -36,11 +37,11 @@ from pyresample.geometry import AreaDefinition
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 SENSOR = {"NOAA-19": "avhrr-3",
           "NOAA-18": "avhrr-3",
@@ -204,8 +205,8 @@ class NcNWCSAF(BaseFileHandler):
         """
         variable = remove_empties(variable)
 
-        scale = variable.attrs.get("scale_factor", np.array(1))
-        offset = variable.attrs.get("add_offset", np.array(0))
+        scale = variable.attrs.get("scale_factor", np.array(1, dtype=variable.dtype))
+        offset = variable.attrs.get("add_offset", np.array(0, dtype=variable.dtype))
         if "_FillValue" in variable.attrs:
             variable.attrs["scaled_FillValue"] = variable.attrs["_FillValue"] * scale + offset
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
@@ -347,8 +348,13 @@ class NcNWCSAF(BaseFileHandler):
     @staticmethod
     def _ensure_crs_extents_in_meters(crs, area_extent):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
+        import warnings
         if "kilo" in crs.axis_info[0].unit_name:
-            proj_dict = crs.to_dict()
+            with warnings.catch_warnings():
+                # The proj dict route is the only feasible way to modify the area, suppress the warning it causes
+                warnings.filterwarnings("ignore", category=UserWarning,
+                                        message="You will likely lose important projection information")
+                proj_dict = crs.to_dict()
             proj_dict["units"] = "m"
             if "a" in proj_dict:
                 proj_dict["a"] *= 1000.
@@ -430,9 +436,9 @@ def read_nwcsaf_time(time_value):
     try:
         # MSG:
         try:
-            return datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%SZ")
+            return dt.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%SZ")
         except TypeError:  # Remove this in summer 2024 (this is not needed since h5netcdf 0.14)
-            return datetime.strptime(time_value.astype(str), "%Y-%m-%dT%H:%M:%SZ")
+            return dt.datetime.strptime(time_value.astype(str), "%Y-%m-%dT%H:%M:%SZ")
     except ValueError:
         # PPS:
-        return datetime.strptime(time_value, "%Y%m%dT%H%M%S%fZ")
+        return dt.datetime.strptime(time_value, "%Y%m%dT%H%M%S%fZ")

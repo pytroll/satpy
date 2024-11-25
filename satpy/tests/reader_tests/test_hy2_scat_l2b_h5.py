@@ -330,7 +330,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Platform_LongName": "Haiyang 2B Ocean Observing Satellite",
             "/attr/Platform_ShortName": "HY-2B",
             "/attr/Platform_Type": "spacecraft",
-            "/attr/Producer_Agency": "Ministry of Natural Resources of the People\'s Republic of China",
+            "/attr/Producer_Agency": "Ministry of Natural Resources of the People's Republic of China",
             "/attr/Producer_Institution": "NSOAS",
             "/attr/Production_Date_Time": "20200326T06:23:10",
             "/attr/Range_Beginning_Time": "20200326T01:11:07",
@@ -509,7 +509,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_properties(self):
         """Test platform_name."""
-        from datetime import datetime
+        import datetime as dt
 
         from satpy.readers import load_reader
         filenames = [
@@ -521,5 +521,5 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         # Make sure we have some files
         res = reader.load(["wvc_lon"])
         assert res["wvc_lon"].platform_name == "HY-2B"
-        assert res["wvc_lon"].start_time == datetime(2020, 3, 26, 1, 11, 7)
-        assert res["wvc_lon"].end_time == datetime(2020, 3, 26, 2, 55, 40)
+        assert res["wvc_lon"].start_time == dt.datetime(2020, 3, 26, 1, 11, 7)
+        assert res["wvc_lon"].end_time == dt.datetime(2020, 3, 26, 2, 55, 40)

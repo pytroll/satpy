@@ -18,8 +18,8 @@
 
 """Module for testing the ATMS SDR HDF5 reader."""
 
+import datetime as dt
 import os
-from datetime import datetime
 from unittest import mock
 
 import numpy as np
@@ -288,8 +288,8 @@ class TestATMS_SDR_Reader:
         """Test basic init with start and end times around the start/end times of the provided file."""
         r = load_reader(self.reader_configs,
                         filter_parameters={
-                            "start_time": datetime(2022, 12, 19),
-                            "end_time": datetime(2022, 12, 21)
+                            "start_time": dt.datetime(2022, 12, 19),
+                            "end_time": dt.datetime(2022, 12, 21)
                         })
         loadables = r.select_files_from_pathnames([
             "SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",

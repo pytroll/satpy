@@ -233,7 +233,8 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """Test that error is raised when file not found."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
-        with pytest.raises(IOError, match=".*No such file or directory.*"):
+        # NOTE: Some versions of NetCDF C report unknown file format on Windows
+        with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
     def test_get_and_cache_npxr_is_xr(self):
@@ -293,3 +294,102 @@ class TestNetCDF4FsspecFileHandler:
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
                 h5_file.assert_called_once()
                 assert fh._use_h5netcdf
+
+
+NC_ATTRS = {
+    "standard_name": "test_data",
+    "scale_factor": 0.01,
+    "add_offset": 0}
+
+def test_get_data_as_xarray_netcdf4(tmp_path):
+    """Test getting xr.DataArray from netcdf4 variable."""
+    import numpy as np
+
+    from satpy.readers.netcdf_utils import get_data_as_xarray
+
+    data = np.array([1, 2, 3])
+    fname = tmp_path / "test.nc"
+    dset = _write_test_netcdf4(fname, data)
+
+    res = get_data_as_xarray(dset["test_data"])
+    np.testing.assert_equal(res.data, data)
+    assert res.attrs == NC_ATTRS
+
+
+def test_get_data_as_xarray_scalar_netcdf4(tmp_path):
+    """Test getting scalar xr.DataArray from netcdf4 variable."""
+    import numpy as np
+
+    from satpy.readers.netcdf_utils import get_data_as_xarray
+
+    data = 1
+    fname = tmp_path / "test.nc"
+    dset = _write_test_netcdf4(fname, data)
+
+    res = get_data_as_xarray(dset["test_data"])
+    np.testing.assert_equal(res.data, np.array(data))
+    assert res.attrs == NC_ATTRS
+
+
+def _write_test_netcdf4(fname, data):
+    import netCDF4 as nc
+
+    dset = nc.Dataset(fname, "w")
+    try:
+        dset.createDimension("y", data.size)
+        dims = ("y",)
+    except AttributeError:
+        dims = ()
+    var = dset.createVariable("test_data", "uint8", dims)
+    var[:] = data
+    var.setncatts(NC_ATTRS)
+    # Turn off automatic scale factor and offset handling
+    dset.set_auto_maskandscale(False)
+
+    return dset
+
+
+def test_get_data_as_xarray_h5netcdf(tmp_path):
+    """Test getting xr.DataArray from h5netcdf variable."""
+    import numpy as np
+
+    from satpy.readers.netcdf_utils import get_data_as_xarray
+
+    data = np.array([1, 2, 3])
+    fname = tmp_path / "test.nc"
+    fid = _write_test_h5netcdf(fname, data)
+
+    res = get_data_as_xarray(fid["test_data"])
+    np.testing.assert_equal(res.data, data)
+    assert res.attrs == NC_ATTRS
+
+
+def _write_test_h5netcdf(fname, data):
+    import h5netcdf
+
+    fid = h5netcdf.File(fname, "w")
+    try:
+        fid.dimensions = {"y": data.size}
+        dims = ("y",)
+    except AttributeError:
+        dims = ()
+    var = fid.create_variable("test_data", dims, "uint8", data=data)
+    for key in NC_ATTRS:
+        var.attrs[key] = NC_ATTRS[key]
+
+    return fid
+
+
+def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
+    """Test getting xr.DataArray from h5netcdf variable."""
+    import numpy as np
+
+    from satpy.readers.netcdf_utils import get_data_as_xarray
+
+    data = 1
+    fname = tmp_path / "test.nc"
+    fid = _write_test_h5netcdf(fname, data)
+
+    res = get_data_as_xarray(fid["test_data"])
+    np.testing.assert_equal(res.data, np.array(data))
+    assert res.attrs == NC_ATTRS

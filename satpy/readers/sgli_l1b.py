@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """GCOM-C SGLI L1b reader.
 
 GCOM-C has an imager instrument: SGLI
@@ -27,8 +28,8 @@ https://gportal.jaxa.jp/gpr/assets/mng_upload/GCOM-C/SGLI_Level1_Product_Format_
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import h5py
@@ -63,13 +64,13 @@ class HDF5SGLI(BaseFileHandler):
     def start_time(self):
         """Get the start time."""
         the_time = self.h5file["Global_attributes"].attrs["Scene_start_time"].item()
-        return datetime.strptime(the_time.decode("ascii"), "%Y%m%d %H:%M:%S.%f")
+        return dt.datetime.strptime(the_time.decode("ascii"), "%Y%m%d %H:%M:%S.%f")
 
     @property
     def end_time(self):
         """Get the end time."""
         the_time = self.h5file["Global_attributes"].attrs["Scene_end_time"].item()
-        return datetime.strptime(the_time.decode("ascii"), "%Y%m%d %H:%M:%S.%f")
+        return dt.datetime.strptime(the_time.decode("ascii"), "%Y%m%d %H:%M:%S.%f")
 
     def get_dataset(self, key, info):
         """Get the dataset from the file."""
@@ -174,7 +175,7 @@ class HDF5SGLI(BaseFileHandler):
 
     def interpolate_spherical(self, azimuthal_angle, polar_angle, resampling_interval):
         """Interpolate spherical coordinates."""
-        from geotiepoints.geointerpolator import GeoGridInterpolator
+        from geotiepoints.geointerpolator import GeoSplineInterpolator
 
         full_shape = (self.h5file["Image_data"].attrs["Number_of_lines"],
                       self.h5file["Image_data"].attrs["Number_of_pixels"])
@@ -182,7 +183,7 @@ class HDF5SGLI(BaseFileHandler):
         tie_lines = np.arange(0, polar_angle.shape[0] * resampling_interval, resampling_interval)
         tie_cols = np.arange(0, polar_angle.shape[1] * resampling_interval, resampling_interval)
 
-        interpolator = GeoGridInterpolator((tie_lines, tie_cols), azimuthal_angle, polar_angle, method="slinear")
+        interpolator = GeoSplineInterpolator((tie_lines, tie_cols), azimuthal_angle, polar_angle, kx=2, ky=2)
         new_azi, new_pol = interpolator.interpolate_to_shape(full_shape, chunks="auto")
         return new_azi, new_pol
 

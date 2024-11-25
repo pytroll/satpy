@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for GOES 8-15 imager data in netCDF format.
 
 Supports netCDF files from both NOAA-CLASS and EUMETSAT.
@@ -223,10 +224,10 @@ References:
 .. _[SCHED-E]: http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 """
 
+import datetime as dt
 import logging
 import re
 from abc import abstractmethod
-from datetime import datetime, timedelta
 
 import numpy as np
 import pyresample.geometry
@@ -593,11 +594,11 @@ VIS_SECTORS = {
 }  # (nlines, ncols)
 
 SCAN_DURATION = {
-    FULL_DISC: timedelta(minutes=26),
-    NORTH_HEMIS_WEST: timedelta(minutes=10, seconds=5),
-    SOUTH_HEMIS_WEST: timedelta(minutes=6, seconds=54),
-    NORTH_HEMIS_EAST: timedelta(minutes=14, seconds=15),
-    SOUTH_HEMIS_EAST: timedelta(minutes=4, seconds=49)
+    FULL_DISC: dt.timedelta(minutes=26),
+    NORTH_HEMIS_WEST: dt.timedelta(minutes=10, seconds=5),
+    SOUTH_HEMIS_WEST: dt.timedelta(minutes=6, seconds=54),
+    NORTH_HEMIS_EAST: dt.timedelta(minutes=14, seconds=15),
+    SOUTH_HEMIS_EAST: dt.timedelta(minutes=4, seconds=49)
 }  # Source: [SCHED-W], [SCHED-E]
 
 
@@ -615,12 +616,12 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                   mask_and_scale=False,
                                   chunks={"xc": CHUNK_SIZE, "yc": CHUNK_SIZE})
         self.sensor = "goes_imager"
-        self.nlines = self.nc.dims["yc"]
-        self.ncols = self.nc.dims["xc"]
+        self.nlines = self.nc.sizes["yc"]
+        self.ncols = self.nc.sizes["xc"]
         self.platform_name = self._get_platform_name(
             self.nc.attrs["Satellite Sensor"])
         self.platform_shortname = self.platform_name.replace("-", "").lower()
-        self.gvar_channel = int(self.nc["bands"].values)
+        self.gvar_channel = int(self.nc["bands"].item())
         self.sector = self._get_sector(channel=self.gvar_channel,
                                        nlines=self.nlines,
                                        ncols=self.ncols)
@@ -730,10 +731,15 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Start timestamp of the dataset."""
-        dt = self.nc["time"].dt
-        return datetime(year=int(dt.year), month=int(dt.month), day=int(dt.day),
-                        hour=int(dt.hour), minute=int(dt.minute),
-                        second=int(dt.second), microsecond=int(dt.microsecond))
+        timestamp = self.nc["time"].dt
+        return dt.datetime(
+            year=int(timestamp.year.item()),
+            month=int(timestamp.month.item()),
+            day=int(timestamp.day.item()),
+            hour=int(timestamp.hour.item()),
+            minute=int(timestamp.minute.item()),
+            second=int(timestamp.second.item()),
+            microsecond=int(timestamp.microsecond.item()))
 
     @property
     def end_time(self):
@@ -1018,11 +1024,11 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         elif "latitude" in key["name"]:
             data = self.geo_data["lat"]
         else:
-            tic = datetime.now()
+            tic = dt.datetime.now()
             data = self.calibrate(self.nc["data"].isel(time=0),
                                   calibration=key["calibration"],
                                   channel=key["name"])
-            logger.debug("Calibration time: {}".format(datetime.now() - tic))
+            logger.debug("Calibration time: {}".format(dt.datetime.now() - tic))
 
         # Mask space pixels
         data = data.where(self.meta["earth_mask"])
@@ -1076,18 +1082,18 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         """Load dataset designated by the given key from file."""
         logger.debug("Reading dataset {}".format(key["name"]))
 
-        tic = datetime.now()
+        tic = dt.datetime.now()
         data = self.calibrate(self.nc["data"].isel(time=0),
                               calibration=key["calibration"],
                               channel=key["name"])
-        logger.debug("Calibration time: {}".format(datetime.now() - tic))
+        logger.debug("Calibration time: {}".format(dt.datetime.now() - tic))
 
         # Mask space pixels
         data = data.where(self.meta["earth_mask"])
 
         # Set proper dimension names
         data = data.rename({"xc": "x", "yc": "y"})
-        data = data.drop("time")
+        data = data.drop_vars("time")
 
         # Update metadata
         self._update_metadata(data, ds_info=info)
@@ -1124,8 +1130,8 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
                                   mask_and_scale=False,
                                   chunks={"xc": CHUNK_SIZE, "yc": CHUNK_SIZE})
         self.sensor = "goes_imager"
-        self.nlines = self.nc.dims["yc"]
-        self.ncols = self.nc.dims["xc"]
+        self.nlines = self.nc.sizes["yc"]
+        self.ncols = self.nc.sizes["xc"]
         self.platform_name = GOESNCBaseFileHandler._get_platform_name(
             self.nc.attrs["Satellite Sensor"])
         self.platform_shortname = self.platform_name.replace("-", "").lower()

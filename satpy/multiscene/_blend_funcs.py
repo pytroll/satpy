@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import pandas as pd
@@ -13,7 +12,6 @@ from satpy.dataset import combine_metadata
 def stack(
         data_arrays: Sequence[xr.DataArray],
         weights: Optional[Sequence[xr.DataArray]] = None,
-        combine_times: bool = True,
         blend_type: str = "select_with_weights"
 ) -> xr.DataArray:
     """Combine a series of datasets in different ways.
@@ -39,19 +37,18 @@ def stack(
 
     """
     if weights:
-        return _stack_with_weights(data_arrays, weights, combine_times, blend_type)
-    return _stack_no_weights(data_arrays, combine_times)
+        return _stack_with_weights(data_arrays, weights, blend_type)
+    return _stack_no_weights(data_arrays)
 
 
 def _stack_with_weights(
         datasets: Sequence[xr.DataArray],
         weights: Sequence[xr.DataArray],
-        combine_times: bool,
         blend_type: str
 ) -> xr.DataArray:
     blend_func = _get_weighted_blending_func(blend_type)
     filled_weights = list(_fill_weights_for_invalid_dataset_pixels(datasets, weights))
-    return blend_func(datasets, filled_weights, combine_times)
+    return blend_func(datasets, filled_weights)
 
 
 def _get_weighted_blending_func(blend_type: str) -> Callable:
@@ -84,10 +81,9 @@ def _fill_weights_for_invalid_dataset_pixels(
 def _stack_blend_by_weights(
         datasets: Sequence[xr.DataArray],
         weights: Sequence[xr.DataArray],
-        combine_times: bool
 ) -> xr.DataArray:
     """Stack datasets blending overlap using weights."""
-    attrs = _combine_stacked_attrs([data_arr.attrs for data_arr in datasets], combine_times)
+    attrs = _combine_stacked_attrs([data_arr.attrs for data_arr in datasets])
 
     overlays = []
     for weight, overlay in zip(weights, datasets):
@@ -109,14 +105,13 @@ def _stack_blend_by_weights(
 def _stack_select_by_weights(
         datasets: Sequence[xr.DataArray],
         weights: Sequence[xr.DataArray],
-        combine_times: bool
 ) -> xr.DataArray:
     """Stack datasets selecting pixels using weights."""
     indices = da.argmax(da.dstack(weights), axis=-1)
     if "bands" in datasets[0].dims:
         indices = [indices] * datasets[0].sizes["bands"]
 
-    attrs = _combine_stacked_attrs([data_arr.attrs for data_arr in datasets], combine_times)
+    attrs = _combine_stacked_attrs([data_arr.attrs for data_arr in datasets])
     dims = datasets[0].dims
     coords = datasets[0].coords
     selected_array = xr.DataArray(da.choose(indices, datasets), dims=dims, coords=coords, attrs=attrs)
@@ -125,7 +120,6 @@ def _stack_select_by_weights(
 
 def _stack_no_weights(
         datasets: Sequence[xr.DataArray],
-        combine_times: bool
 ) -> xr.DataArray:
     base = datasets[0].copy()
     collected_attrs = [base.attrs]
@@ -136,32 +130,13 @@ def _stack_no_weights(
         except KeyError:
             base = base.where(data_arr.isnull(), data_arr)
 
-    attrs = _combine_stacked_attrs(collected_attrs, combine_times)
+    attrs = _combine_stacked_attrs(collected_attrs)
     base.attrs = attrs
     return base
 
 
-def _combine_stacked_attrs(collected_attrs: Sequence[Mapping], combine_times: bool) -> dict:
-    attrs = combine_metadata(*collected_attrs)
-    if combine_times and ("start_time" in attrs or "end_time" in attrs):
-        new_start, new_end = _get_combined_start_end_times(collected_attrs)
-        if new_start:
-            attrs["start_time"] = new_start
-        if new_end:
-            attrs["end_time"] = new_end
-    return attrs
-
-
-def _get_combined_start_end_times(metadata_objects: Iterable[Mapping]) -> tuple[datetime | None, datetime | None]:
-    """Get the start and end times attributes valid for the entire dataset series."""
-    start_time = None
-    end_time = None
-    for md_obj in metadata_objects:
-        if "start_time" in md_obj and (start_time is None or md_obj["start_time"] < start_time):
-            start_time = md_obj["start_time"]
-        if "end_time" in md_obj and (end_time is None or md_obj["end_time"] > end_time):
-            end_time = md_obj["end_time"]
-    return start_time, end_time
+def _combine_stacked_attrs(collected_attrs: Sequence[Mapping]) -> dict:
+    return combine_metadata(*collected_attrs)
 
 
 def timeseries(datasets):

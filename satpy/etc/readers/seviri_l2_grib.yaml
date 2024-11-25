@@ -14,7 +14,7 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Aerosol Properties over Sea product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:AES
   grib_seviri_aes:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'AESGRIBProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGAESE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
@@ -24,7 +24,7 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Cloud Mask product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:CLM
   grib_seviri_clm:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'CLMEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGCLMK-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
@@ -34,7 +34,7 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Cloud Top Height product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:CTH
   grib_seviri_cth:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'CTHEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGCLTH-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
@@ -44,7 +44,7 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Clear-Sky Reflectance Map product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:CRM
   grib_seviri_crm:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'CRMEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
@@ -54,17 +54,18 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Active Fire Monitoring product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:FIR
   grib_seviri_fir:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'FIREncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
       - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
       - '{spacecraft:4s}-SEVI-MSGFIRG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
+      - 'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{spacecraft:5s}+FIRG_C_{server:4s}_{start_time:%Y%m%d%H%M%S}_{ord_num:1s}.bin'
 
   # EUMETSAT MSG SEVIRI L2 Multi-Sensor Precipitation Estimate product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:MPE-GRIB
   grib_seviri_mpe:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'MPEGRIBProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGMPEG-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
@@ -74,7 +75,7 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Optimal Cloud Analysis product
   # https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:OCA
   grib_seviri_oca:
-    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_reader: !!python/name:satpy.readers.eum_l2_grib.EUML2GribFileHandler
     file_patterns:
       - 'OCAEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGOCAE-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'

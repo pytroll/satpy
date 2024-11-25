@@ -75,8 +75,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         proj_h8 = b"GEOS(140.70)                    "
         proj_mtsat2 = b"GEOS(145.00)                    "
         proj_name = proj_h8 if platform == "Himawari-8" else proj_mtsat2
-        return {"image_segm_seq_no": segno,
-                "total_no_image_segm": numseg,
+        return {"image_segm_seq_no": np.uint8(segno),
+                "total_no_image_segm": np.uint8(numseg),
                 "projection_name": proj_name,
                 "projection_parameters": {
                     "a": 6378169.00,
@@ -85,10 +85,10 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 },
                 "cfac": 10233128,
                 "lfac": 10233128,
-                "coff": coff,
-                "loff": loff,
-                "number_of_columns": ncols,
-                "number_of_lines": nlines,
+                "coff": np.int32(coff),
+                "loff": np.int32(loff),
+                "number_of_columns": np.uint16(ncols),
+                "number_of_lines": np.uint16(nlines),
                 "image_data_function": idf,
                 "image_observation_time": self._get_acq_time(nlines)}
 
@@ -119,6 +119,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
         # Check if scanline timestamps are there (dedicated test below)
         assert isinstance(reader.acq_time, np.ndarray)
+        assert reader.acq_time.dtype == np.dtype("datetime64[ns]")
 
         # Check platform
         assert reader.platform == HIMAWARI8
@@ -305,14 +306,13 @@ class TestHRITJMAFileHandler(unittest.TestCase):
     def test_mjd2datetime64(self):
         """Test conversion from modified julian day to datetime64."""
         from satpy.readers.hrit_jma import mjd2datetime64
-        assert mjd2datetime64(np.array([0])) == np.datetime64("1858-11-17", "us")
-        assert mjd2datetime64(np.array([40587.5])) == np.datetime64("1970-01-01 12:00", "us")
+        assert mjd2datetime64(np.array([0])) == np.datetime64("1858-11-17", "ns")
+        assert mjd2datetime64(np.array([40587.5])) == np.datetime64("1970-01-01 12:00", "ns")
 
     def test_get_acq_time(self):
         """Test computation of scanline acquisition times."""
         dt_line = np.arange(1, 11000+1).astype("timedelta64[s]")
-        acq_time_exp = np.datetime64("1970-01-01", "us") + dt_line
-
+        acq_time_exp = np.datetime64("1970-01-01", "ns") + dt_line
         for platform in ["Himawari-8", "MTSAT-2"]:
             # Results are not exactly identical because timestamps are stored in
             # the header with only 6 decimals precision (max diff here: 45 msec).
@@ -320,7 +320,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             reader = self._get_reader(mda=mda)
             np.testing.assert_allclose(reader.acq_time.astype(np.int64),
                                        acq_time_exp.astype(np.int64),
-                                       atol=45000)
+                                       atol=45000000)
 
     def test_start_time_from_filename(self):
         """Test that by default the datetime in the filename is returned."""
@@ -343,4 +343,5 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 mda=mda,
                 filename_info={"start_time": start_time},
                 reader_kwargs={"use_acquisition_time_as_start_time": True})
-            assert reader.start_time == reader.acq_time[0].astype(dt.datetime)
+            assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
+            assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)

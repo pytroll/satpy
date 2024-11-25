@@ -24,8 +24,8 @@ Format documentation at the same site after register:
 SMOS_WIND_DS_PDD_20191107_signed.pdf
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import numpy as np
 from pyresample.geometry import AreaDefinition
@@ -41,12 +41,12 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return datetime.strptime(self["/attr/time_coverage_start"], "%Y-%m-%dT%H:%M:%S Z")
+        return dt.datetime.strptime(self["/attr/time_coverage_start"], "%Y-%m-%dT%H:%M:%S Z")
 
     @property
     def end_time(self):
         """Get end time."""
-        return datetime.strptime(self["/attr/time_coverage_end"], "%Y-%m-%dT%H:%M:%S Z")
+        return dt.datetime.strptime(self["/attr/time_coverage_end"], "%Y-%m-%dT%H:%M:%S Z")
 
     @property
     def platform_shortname(self):
@@ -170,6 +170,6 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         description = "SMOS L2 Wind Equirectangular Projection"
         area_id = "smos_eqc"
         proj_id = "equirectangular"
-        proj_dict = {"init": self["/attr/geospatial_bounds_vertical_crs"]}
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
+        proj_str = self["/attr/geospatial_bounds_vertical_crs"]
+        area_def = AreaDefinition(area_id, description, proj_id, proj_str, width, height, area_extent, )
         return area_def

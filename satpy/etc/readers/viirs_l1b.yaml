@@ -1,7 +1,7 @@
 reader:
   name: viirs_l1b
   short_name: VIIRS l1b
-  long_name: SNPP VIIRS Level 1b data in netCDF4 format
+  long_name: JPSS VIIRS Level 1b data in netCDF4 format
   description: Generic NASA VIIRS L1B Reader
   status: Nominal
   supports_fsspec: false
@@ -481,7 +481,7 @@ datasets:
     resolution: 743
     coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
-    file_key: geolocation_data/solar_zenith
+    file_key: geolocation_data/sensor_zenith
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle

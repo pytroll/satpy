@@ -15,25 +15,19 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """HRIT/LRIT format reader.
 
 This module is the base module for all HRIT-based formats. Here, you will find
 the common building blocks for hrit reading.
 
-One of the features here is the on-the-fly decompression of hrit files. It needs
-a path to the xRITDecompress binary to be provided through the environment
-variable called XRIT_DECOMPRESS_PATH. When compressed hrit files are then
-encountered (files finishing with `.C_`), they are decompressed to the system's
-temporary directory for reading.
-
+One of the features here is the on-the-fly decompression of hrit files when
+compressed hrit files are encountered (files finishing with `.C_`).
 """
 
+import datetime as dt
 import logging
 import os
-from contextlib import contextmanager, nullcontext
-from datetime import timedelta
-from io import BytesIO
-from subprocess import PIPE, Popen  # nosec B404
 
 import dask
 import dask.array as da
@@ -42,7 +36,6 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
-from satpy import config
 from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
@@ -95,61 +88,16 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def get_xritdecompress_cmd():
-    """Find a valid binary for the xRITDecompress command."""
-    cmd = os.environ.get("XRIT_DECOMPRESS_PATH", None)
-    if not cmd:
-        raise IOError("XRIT_DECOMPRESS_PATH is not defined (complete path to xRITDecompress)")
+def decompress(infile):
+    """Decompress an XRIT data file and return the decompressed buffer."""
+    from pyPublicDecompWT import xRITDecompress
 
-    question = ("Did you set the environment variable XRIT_DECOMPRESS_PATH correctly?")
-    if not os.path.exists(cmd):
-        raise IOError(str(cmd) + " does not exist!\n" + question)
-    elif os.path.isdir(cmd):
-        raise IOError(str(cmd) + " is a directory!\n" + question)
+    # decompress in-memory
+    with open(infile, mode="rb") as fh:
+        xrit = xRITDecompress()
+        xrit.decompress(fh.read())
 
-    return cmd
-
-
-def get_xritdecompress_outfile(stdout):
-    """Analyse the output of the xRITDecompress command call and return the file."""
-    outfile = b""
-    for line in stdout:
-        try:
-            k, v = [x.strip() for x in line.split(b":", 1)]
-        except ValueError:
-            break
-        if k == b"Decompressed file":
-            outfile = v
-            break
-
-    return outfile
-
-
-def decompress(infile, outdir="."):
-    """Decompress an XRIT data file and return the path to the decompressed file.
-
-    It expect to find Eumetsat's xRITDecompress through the environment variable
-    XRIT_DECOMPRESS_PATH.
-    """
-    cmd = get_xritdecompress_cmd()
-    infile = os.path.abspath(infile)
-    cwd = os.getcwd()
-    os.chdir(outdir)
-
-    p = Popen([cmd, infile], stdout=PIPE)  # nosec B603
-    stdout = BytesIO(p.communicate()[0])
-    status = p.returncode
-    os.chdir(cwd)
-
-    if status != 0:
-        raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
-
-    outfile = get_xritdecompress_outfile(stdout)
-
-    if not outfile:
-        raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
-
-    return os.path.join(outdir, outfile.decode("utf-8"))
+    return xrit.data()
 
 
 def get_header_id(fp):
@@ -176,7 +124,7 @@ class HRITFileHandler(BaseFileHandler):
         self.hdr_info = hdr_info
         self._get_hd(self.hdr_info)
         self._start_time = filename_info["start_time"]
-        self._end_time = self._start_time + timedelta(minutes=15)
+        self._end_time = self._start_time + dt.timedelta(minutes=15)
 
     def _get_hd(self, hdr_info):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
@@ -342,18 +290,6 @@ def _read_data(filename, mda):
     return HRITSegment(filename, mda).read_data()
 
 
-@contextmanager
-def decompressed(filename):
-    """Decompress context manager."""
-    try:
-        new_filename = decompress(filename, config["tmp_dir"])
-    except IOError as err:
-        logger.error("Unpacking failed: %s", str(err))
-        raise
-    yield new_filename
-    os.remove(new_filename)
-
-
 class HRITSegment:
     """An HRIT segment with data."""
 
@@ -388,11 +324,21 @@ class HRITSegment:
         # For reading the image data, unzip_context is faster than generic_open
         dtype, shape = self._get_input_info()
         with utils.unzip_context(self.filename) as fn:
-            with decompressed(fn) if self.compressed else nullcontext(fn) as filename:
-                return np.fromfile(filename,
-                                   offset=self.offset,
-                                   dtype=dtype,
-                                   count=np.prod(shape))
+
+            if self.compressed:
+                return np.frombuffer(
+                    decompress(fn),
+                    offset=self.offset,
+                    dtype=dtype,
+                    count=np.prod(shape)
+                )
+            else:
+                return np.fromfile(
+                    fn,
+                    offset=self.offset,
+                    dtype=dtype,
+                    count=np.prod(shape)
+                )
 
     def _read_file_like(self):
         # filename is likely to be a file-like object, already in memory

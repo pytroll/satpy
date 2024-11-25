@@ -1,0 +1,275 @@
+reader:
+  name: mersi_rm_l1b
+  short_name: MERSI-RM l1b
+  long_name: MERSI-RM L1B data in HDF5 format
+  description: FY-3G Medium Resolution Spectral Imager - Rainfall Measurement (MERSI-RM) L1B Reader
+  status: Beta
+  supports_fsspec: false
+  sensors: [mersi-rm]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  mersi_rm_l1b_500:
+    file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
+    rows_per_scan: 10
+    file_patterns:
+      # From National Meteorological Satellite Center
+      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0500M_V1.{ext:3s}'
+
+  mersi_rm_l1b_500_geo:
+    file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
+    rows_per_scan: 10
+    file_patterns:
+      # From National Meteorological Satellite Center
+      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOHK_V1.{ext:3s}'
+
+# NOTE: Min/max wavelengths are defined here as the wavelength associated with a 1% SRF.
+datasets:
+  '1':
+    name: '1'
+    wavelength: [0.60, 0.648, 0.70]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Reflectance
+    band_index: 0
+    calibration_key: Calibration/RSB_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '2':
+    name: '2'
+    wavelength: [0.82, 0.862, 0.91]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Reflectance
+    band_index: 1
+    calibration_key: Calibration/RSB_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '3':
+    name: '3'
+    wavelength: [0.89, 0.935, 0.97]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Reflectance
+    band_index: 2
+    calibration_key: Calibration/RSB_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '4':
+    name: '4'
+    wavelength: [1.33, 1.377, 1.42]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Reflectance
+    band_index: 3
+    calibration_key: Calibration/RSB_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '5':
+    name: '5'
+    wavelength: [1.58, 1.638, 1.69]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Reflectance
+    band_index: 4
+    calibration_key: Calibration/RSB_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '6':
+    name: '6'
+    wavelength: [3.64, 3.809, 3.99]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Emissive
+    band_index: 0
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 2
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+  '7':
+    name: '7'
+    wavelength: [10.08, 10.736, 11.62]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Emissive
+    band_index: 1
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 2
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+  '8':
+    name: '8'
+    wavelength: [11.31, 12.019, 12.81]
+    resolution: 500
+    file_type: mersi_rm_l1b_500
+    file_key: Data/EV_Emissive
+    band_index: 2
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 2
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+
+  longitude:
+    name: longitude
+    units: degrees_east
+    standard_name: longitude
+    resolution: 500
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/Longitude
+
+  latitude:
+    name: latitude
+    units: degrees_north
+    standard_name: latitude
+    resolution: 500
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/Latitude
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/SolarZenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/SolarAzimuth
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degree
+    standard_name: sensor_zenith_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/SensorZenith
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degree
+    standard_name: sensor_azimuth_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/SensorAzimuth
+
+  moon_zenith_angle:
+    name: moon_zenith_angle
+    units: degree
+    standard_name: moon_zenith_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/MoonZenith
+
+  moon_azimuth_angle:
+    name: moon_azimuth_angle
+    units: degree
+    standard_name: moon_azimuth_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/MoonAzimuth
+
+  altitude:
+    name: altitude
+    units: degree
+    standard_name: altitude
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/Altitude
+
+  landcover:
+    name: landcover
+    units: degree
+    standard_name: landcover
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/LandCover
+
+  landseamask:
+    name: landseamask
+    units: degree
+    standard_name: landseamask
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: mersi_rm_l1b_500_geo
+    file_key: Geolocation/LandSeaMask
