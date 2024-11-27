@@ -8,6 +8,18 @@ reader:
   group_keys: ["start_time", "satid"]
 
 file_types:
+    isccp_ng_l1g_nc_refl_0047um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_0047um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_00_51um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_51um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_01_38um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_38um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_02_20um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_02_20um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_01_60um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_60um__{start_time:%Y%m%dT%H%M}.nc']
@@ -23,6 +35,9 @@ file_types:
     isccp_ng_l1g_nc_temp_11_00um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_11_00um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_10_40um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_10_40um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_12_00um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_12_00um__{start_time:%Y%m%dT%H%M}.nc']
@@ -38,6 +53,9 @@ file_types:
     isccp_ng_l1g_nc_temp_06_20um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_20um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_06_70um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_70um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_07_30um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_07_30um__{start_time:%Y%m%dT%H%M}.nc']
@@ -62,6 +80,54 @@ file_types:
 
 
 datasets:
+  refl_0047um:
+    name: refl_0047um
+    resolution: 3000.403165817
+    wavelength: [0.450, 0.470, 0.490]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_0047um
+    nc_key: 'refl_0047um'
+
+  refl_00_51um:
+    name: refl_00_51um
+    resolution: 3000.403165817
+    wavelength: [0.49,0.51,0.53]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_00_51um
+    nc_key: 'refl_00_51um'
+
+  refl_01_38um:
+    name: refl_01_38um
+    resolution: 3000.403165817
+    wavelength: [1.3705, 1.378, 1.3855]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_01_38um
+    nc_key: 'refl_01_38um'
+
+  refl_02_20um:
+    name: refl_02_20um
+    resolution: 3000.403165817
+    wavelength: [2.225, 2.250, 2.275]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_02_20um
+    nc_key: 'refl_02_20um'
+
   refl_01_60um:
     name: refl_01_60um
     resolution: 3000.403165817
@@ -122,6 +188,18 @@ datasets:
     file_type: isccp_ng_l1g_nc_temp_11_00um
     nc_key: 'temp_11_00um'
 
+  temp_10_40um:
+    name: temp_10_40um
+    resolution: 3000.403165817
+    wavelength: [10.2, 10.4, 10.6]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_10_40um
+    nc_key: 'temp_10_40um'
+
   temp_12_00um:
     name: temp_12_00um
     resolution: 3000.403165817
@@ -158,7 +236,6 @@ datasets:
     file_type: isccp_ng_l1g_nc_refl_00_65um
     nc_key: 'refl_00_65um'
 
-
   refl_00_86um:
     name: refl_00_86um
     resolution: 3000.403165817
@@ -181,6 +258,18 @@ datasets:
     coordinates: [lon, lat]
     file_type:  isccp_ng_l1g_nc_temp_06_20um
     nc_key: 'temp_06_20um'
+
+  temp_06_70um:
+    name: temp_06_70um
+    resolution: 3000.403165817
+    wavelength: [6.7, 6.9, 7.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [lon, lat]
+    file_type:  isccp_ng_l1g_nc_temp_06_70um
+    nc_key: 'temp_06_70um'
 
   temp_07_30um:
     name: temp_07_30um
