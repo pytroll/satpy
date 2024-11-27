@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for ISCCP-NG L1G data."""
+"""Reader for ISCCP-NG L1G data (https://cimss.ssec.wisc.edu/isccp-ng/)."""
 
 import logging
 
