@@ -15,7 +15,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for ISCCP-NG L1G data."""
 
-import datetime as dt
 import logging
 
 import numpy as np
@@ -48,7 +47,7 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         if key in "longitude":
             return xr.DataArray(np.tile(data.values, (3600, 1)), dims=["y", "x"], attrs=data.attrs)
         return data
-    
+
     def get_best_layer_of_data(self, data):
         """Get the layer with best data (= layer 0). There are two more layers with additional data."""
         if len(data.dims) == 4:
@@ -58,11 +57,11 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
         if len(data.dims) > 2:
-            data = data.drop_vars('latitude')
-            data = data.drop_vars('longitude')
-            data = data.drop_vars('start_time')
-            data = data.drop_vars('end_time')
-            data = data.rename({'longitude': 'x','latitude': 'y'})
+            data = data.drop_vars("latitude")
+            data = data.drop_vars("longitude")
+            data = data.drop_vars("start_time")
+            data = data.drop_vars("end_time")
+            data = data.rename({"longitude": "x", "latitude": "y"})
         return data
 
     def set_time_attrs(self, data):
@@ -71,8 +70,7 @@ class IsccpngL1gFileHandler(BaseFileHandler):
             data.attrs["start_time"] = data["start_time"].values[0]
             data.attrs["end_time"] = data["end_time"].values[0]
             self._end_time = data.attrs["end_time"]
-            self._start_time =  data.attrs["start_time"]
-
+            self._start_time = data.attrs["start_time"]
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
