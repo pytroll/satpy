@@ -1,9 +1,8 @@
 reader:
   name: multiple_sensors_isccpng_l1g_nc
   short_name: ISCCP NG NetCDF4
-  long_name: ISCCP NG Level 1c NetCDF4
-  description: >
-    NetCDF4 reader for ISCCP Level 1g files.
+  long_name: ISCCP NG Level 1g NetCDF4
+  description: https://cimss.ssec.wisc.edu/isccp-ng/
   sensors: [seviri, abi, ahi]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   group_keys: ["start_time", "satid"]
