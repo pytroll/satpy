@@ -102,7 +102,6 @@ class VGACFileHandler(BaseFileHandler):
         name = yaml_info.get("nc_store_name", yaml_info["name"])
         file_key = yaml_info.get("nc_key", name)
         data = nc[file_key]
-        import pdb;pdb.set_trace()
         data = self.calibrate(data, yaml_info, file_key, nc)
         data = self.decode_time_variable(data, file_key, nc)
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
