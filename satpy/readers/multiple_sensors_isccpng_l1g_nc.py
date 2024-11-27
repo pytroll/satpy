@@ -36,38 +36,44 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         super(IsccpngL1gFileHandler, self).__init__(
             filename, filename_info, filetype_info)
 
-        self.engine = "h5netcdf"
         self._start_time = filename_info["start_time"]
         self._end_time = None
         self.sensor = "multiple_sensors"
         self.filename_info = filename_info
 
     def tile_geolocation(self, data, key):
+        """Get geolocation on full swath."""
         if key in "latitude":
             return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, 7200)), dims=["y", "x"], attrs=data.attrs)
         if key in "longitude":
             return xr.DataArray(np.tile(data.values, (3600, 1)), dims=["y", "x"], attrs=data.attrs)
         return data
-            
-    def get_dataset(self, key, yaml_info):
-        """Get dataset."""
-        logger.debug("Getting data for: %s", yaml_info["name"])
-        # res = super(IsccpngL1gFileHandler, self).get_dataset(key, yaml_info)
-        nc = xr.open_dataset(self.filename, engine=self.engine,
-                             chunks={"y": CHUNK_SIZE, "x": 800})
-        name = yaml_info.get("nc_store_name", yaml_info["name"])
-        file_key = yaml_info.get("nc_key", name)
-        data = nc[file_key]
+    
+    def get_best_layer_of_data(self, data):
+        """Get the layer with best data (= layer 0). There are two more layers with additional data."""
         if len(data.dims) > 2 :
-            # lat = self.tile_geolocation(data.coords["latitude"], "latitude")
-            # lon = self.tile_geolocation(data.coords["longitude"], "longitude")
-            data = data[0, 0, :, :].squeeze(drop=True)
+            return data[0, 0, :, :].squeeze(drop=True)
+        return data
+
+    def modify_dims_and_coords(self, data):
+        """Remove coords and rename dims to x and y."""
+        if len(data.dims) > 2 :
             data = data.drop_vars('latitude')
             data = data.drop_vars('longitude')
             data = data.drop_vars('start_time')
             data = data.drop_vars('end_time')
             data = data.rename({'longitude': 'x','latitude': 'y'})
-            # data = data.assign_coords({"lat": lat, "lon": lon})
+        return data
+
+    def get_dataset(self, key, yaml_info):
+        """Get dataset."""
+        logger.debug("Getting data for: %s", yaml_info["name"])
+        nc = xr.open_dataset(self.filename, chunks={"y": CHUNK_SIZE, "x": 800})
+        name = yaml_info.get("nc_store_name", yaml_info["name"])
+        file_key = yaml_info.get("nc_key", name)
+        data = nc[file_key]
+        data = self.modify_dims_and_coords(data)
+        data = self.get_best_layer_of_data(data)
         data = self.tile_geolocation(data, file_key)
         return data
 
