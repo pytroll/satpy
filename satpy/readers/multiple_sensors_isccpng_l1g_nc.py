@@ -51,19 +51,28 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     
     def get_best_layer_of_data(self, data):
         """Get the layer with best data (= layer 0). There are two more layers with additional data."""
-        if len(data.dims) > 2 :
-            return data[0, 0, :, :].squeeze(drop=True)
-        return data
+        if len(data.dims) == 4:
+            data = data[0, 0, :, :]
+        return data.squeeze(drop=True)
 
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
-        if len(data.dims) > 2 :
+        if len(data.dims) > 2:
             data = data.drop_vars('latitude')
             data = data.drop_vars('longitude')
             data = data.drop_vars('start_time')
             data = data.drop_vars('end_time')
             data = data.rename({'longitude': 'x','latitude': 'y'})
         return data
+
+    def set_time_attrs(self, data):
+        """Set time from attributes."""
+        if "start_time" in data.coords:
+            data.attrs["start_time"] = data["start_time"].values[0]
+            data.attrs["end_time"] = data["end_time"].values[0]
+            self._end_time = data.attrs["end_time"]
+            self._start_time =  data.attrs["start_time"]
+
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
@@ -72,6 +81,7 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         name = yaml_info.get("nc_store_name", yaml_info["name"])
         file_key = yaml_info.get("nc_key", name)
         data = nc[file_key]
+        self.set_time_attrs(data)
         data = self.modify_dims_and_coords(data)
         data = self.get_best_layer_of_data(data)
         data = self.tile_geolocation(data, file_key)
