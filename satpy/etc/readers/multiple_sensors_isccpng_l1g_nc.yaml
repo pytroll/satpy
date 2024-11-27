@@ -45,15 +45,15 @@ file_types:
     isccp_ng_l1g_nc_solar_zenith:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
-    isccp_ng_l1g_nc_sensor_zenith:
+    isccp_ng_l1g_nc_satellite_zenith:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__sensor_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__satellite_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_solar_azimuth:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
-    isccp_ng_l1g_nc_sensor_azimuth:
+    isccp_ng_l1g_nc_satellite_azimuth:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__sensor_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']		
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__satellite_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_time:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__pixel_time__{start_time:%Y%m%dT%H%M}.nc']
@@ -203,11 +203,11 @@ datasets:
     units: degrees
     nc_key: 'solar_zenith_angle'
 
-  sensor_zenith_angle:
-    name: sensor_zenith_angle
-    standard_name: sensor_zenith_angle
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    standard_name: satellite_zenith_angle
     resolution: 3000
-    file_type:  isccp_ng_l1g_nc_sensor_zenith
+    file_type:  isccp_ng_l1g_nc_satellite_zenith
     units: degrees
     nc_key: 'satellite_zenith_angle'
 
