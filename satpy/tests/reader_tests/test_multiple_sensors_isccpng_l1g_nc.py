@@ -73,6 +73,7 @@ class TestISCCPNGL1gReader:
     def test_read_isccpng_l1g(self, nc_filename):
         """Test reading reflectances and BT."""
         from satpy.scene import Scene
+
         # Read data
         scn_ = Scene(
             reader="multiple_sensors_isccpng_l1g_nc",
