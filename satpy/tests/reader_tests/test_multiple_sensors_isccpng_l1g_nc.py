@@ -47,20 +47,20 @@ def nc_filename(tmp_path):
     lats = np.linspace(-90, 90, nscn)
     lons = np.linspace(-180, 180, npix)
     array = 27000 * np.ones((1, 3, nscn, npix))
-    ds = xr.Dataset({"temp_11_00um": (('time', "layer", 'latitude', 'longitude'), array),
+    ds = xr.Dataset({"temp_11_00um": (("time", "layer", "latitude", "longitude"), array),
                      },
-                    coords={'start_time': ('time', [stime]),
-                            "end_time": ('time', [etime]),
-                            'latitude': lats[:],
-                            'longitude': lons[:]},
+                    coords={"start_time": ("time", [stime]),
+                            "end_time": ("time", [etime]),
+                            "latitude": lats[:],
+                            "longitude": lons[:]},
                     attrs={"scale_factor": 0.01, "units": "K"})
 
-    ds["temp_11_00um"].attrs['_FillValue'] = -32767
-    ds["temp_11_00um"].attrs['scale_factor'] = 0.01
-    ds["temp_11_00um"].attrs['units'] = "K"
-    ds["longitude"].attrs['standard_name'] = "longitude"
-    ds["latitude"].attrs['standard_name'] = "latitude"
-    ds["temp_11_00um"].attrs['standard_name'] = "temp_11_00um"
+    ds["temp_11_00um"].attrs["_FillValue"] = -32767
+    ds["temp_11_00um"].attrs["scale_factor"] = 0.01
+    ds["temp_11_00um"].attrs["units"] = "K"
+    ds["longitude"].attrs["standard_name"] = "longitude"
+    ds["latitude"].attrs["standard_name"] = "latitude"
+    ds["temp_11_00um"].attrs["standard_name"] = "temp_11_00um"
     comp = dict(zlib=True, complevel=5)
     encoding = {var: comp for var in ds.data_vars}
     ds.to_netcdf(filename_str, encoding=encoding)
