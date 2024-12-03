@@ -23,11 +23,12 @@ import numpy as np
 import pytest
 
 from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
+from satpy.dataset.metadata import combine_metadata
 from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyQuadrupleSideBand, FrequencyRange
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
-class TestDataID(unittest.TestCase):
+class TestDataID:
     """Test DataID object creation and other methods."""
 
     def test_basic_init(self):
@@ -97,47 +98,8 @@ class TestDataID(unittest.TestCase):
         assert not d2.create_less_modified_query()["modifiers"]
 
 
-class TestCombineMetadata(unittest.TestCase):
+class TestCombineMetadata:
     """Test how metadata is combined."""
-
-    def setUp(self):
-        """Set up the test case."""
-        # The times need to be in ascending order (oldest first)
-        self.start_time_dts = (
-            {"start_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        self.end_time_dts = (
-            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        self.other_time_dts = (
-            {"other_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        self.start_time_dts_with_none = (
-            {"start_time": None},
-            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        self.end_time_dts_with_none = (
-            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"end_time": None},
-        )
 
     def test_average_datetimes(self):
         """Test the average_datetimes helper function."""
@@ -154,40 +116,71 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_start_times(self):
         """Test the combine_metadata with start times."""
-        from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.start_time_dts)
-        assert ret["start_time"] == self.start_time_dts[0]["start_time"]
+        # The times need to be in ascending order (oldest first)
+        start_time_dts = (
+            {"start_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        ret = combine_metadata(*start_time_dts)
+        assert ret["start_time"] == start_time_dts[0]["start_time"]
 
     def test_combine_end_times(self):
         """Test the combine_metadata with end times."""
-        from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.end_time_dts)
-        assert ret["end_time"] == self.end_time_dts[-1]["end_time"]
+        # The times need to be in ascending order (oldest first)
+        end_time_dts = (
+            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        ret = combine_metadata(*end_time_dts)
+        assert ret["end_time"] == end_time_dts[-1]["end_time"]
 
     def test_combine_start_times_with_none(self):
         """Test the combine_metadata with start times when there's a None included."""
-        from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.start_time_dts_with_none)
-        assert ret["start_time"] == self.start_time_dts_with_none[1]["start_time"]
+        start_time_dts_with_none = (
+            {"start_time": None},
+            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        ret = combine_metadata(*start_time_dts_with_none)
+        assert ret["start_time"] == start_time_dts_with_none[1]["start_time"]
 
     def test_combine_end_times_with_none(self):
         """Test the combine_metadata with end times when there's a None included."""
-        from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.end_time_dts_with_none)
-        assert ret["end_time"] == self.end_time_dts_with_none[-2]["end_time"]
+        end_time_dts_with_none = (
+            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"end_time": None},
+        )
+        ret = combine_metadata(*end_time_dts_with_none)
+        assert ret["end_time"] == end_time_dts_with_none[-2]["end_time"]
 
     def test_combine_other_times(self):
         """Test the combine_metadata with other time values than start or end times."""
-        from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.other_time_dts)
-        assert ret["other_time"] == self.other_time_dts[2]["other_time"]
+        other_time_dts = (
+            {"other_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+            {"other_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        ret = combine_metadata(*other_time_dts)
+        assert ret["other_time"] == other_time_dts[2]["other_time"]
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
         from numpy import arange, ones
         from xarray import DataArray
 
-        from satpy.dataset.metadata import combine_metadata
         dts = [
             {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
             {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
@@ -221,7 +214,6 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_lists_identical(self):
         """Test combine metadata with identical lists."""
-        from satpy.dataset.metadata import combine_metadata
         metadatas = [
             {"prerequisites": [1, 2, 3, 4]},
             {"prerequisites": [1, 2, 3, 4]},
@@ -231,7 +223,6 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_lists_same_size_diff_values(self):
         """Test combine metadata with lists with different values."""
-        from satpy.dataset.metadata import combine_metadata
         metadatas = [
             {"prerequisites": [1, 2, 3, 4]},
             {"prerequisites": [1, 2, 3, 5]},
@@ -241,7 +232,6 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_lists_different_size(self):
         """Test combine metadata with different size lists."""
-        from satpy.dataset.metadata import combine_metadata
         metadatas = [
             {"prerequisites": [1, 2, 3, 4]},
             {"prerequisites": []},
@@ -258,25 +248,21 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_identical_numpy_scalars(self):
         """Test combining identical fill values."""
-        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{"_FillValue": np.uint16(42)}, {"_FillValue": np.uint16(42)}]
         assert combine_metadata(*test_metadata) == {"_FillValue": 42}
 
     def test_combine_empty_metadata(self):
         """Test combining empty metadata."""
-        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{}, {}]
         assert combine_metadata(*test_metadata) == {}
 
     def test_combine_nans(self):
         """Test combining nan fill values."""
-        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{"_FillValue": np.nan}, {"_FillValue": np.nan}]
         assert combine_metadata(*test_metadata) == {"_FillValue": np.nan}
 
     def test_combine_numpy_arrays(self):
         """Test combining values that are numpy arrays."""
-        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{"valid_range": np.array([0., 0.00032], dtype=np.float32)},
                          {"valid_range": np.array([0., 0.00032], dtype=np.float32)},
                          {"valid_range": np.array([0., 0.00032], dtype=np.float32)}]
@@ -287,7 +273,6 @@ class TestCombineMetadata(unittest.TestCase):
         """Test combining values that are dask arrays."""
         import dask.array as da
 
-        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{"valid_range": da.from_array(np.array([0., 0.00032], dtype=np.float32))},
                          {"valid_range": da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
         result = combine_metadata(*test_metadata)
@@ -327,7 +312,6 @@ class TestCombineMetadata(unittest.TestCase):
                     "sensor": {"viirs"},
                     "raw_metadata": {"foo": {"bar": np.array([1, 2, 3])}}}
 
-        from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop("_FillValue"), expected.pop("_FillValue"), equal_nan=True)
         assert np.allclose(result.pop("valid_range"), expected.pop("valid_range"))
@@ -357,7 +341,6 @@ class TestCombineMetadata(unittest.TestCase):
                     "platform_name": "NOAA-20",
                     "sensor": {"viirs"}}
 
-        from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop("_FillValue"), expected.pop("_FillValue"), equal_nan=True)
         assert np.allclose(result.pop("valid_range"), expected.pop("valid_range"))
