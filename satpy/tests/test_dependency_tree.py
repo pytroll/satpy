@@ -30,15 +30,15 @@ def dep_tree1():
     This is what we are working with::
 
         None (No Data)
-         +DataID(name='comp19')
-         + +DataID(name='ds5', resolution=250, modifiers=('res_change',))
-         + + +DataID(name='ds5', resolution=250, modifiers=())
+         +DataID(name='comp19') (No Data)
+         + +DataID(name='ds5', resolution=250, modifiers=('res_change',)) (No Data)
+         + + +DataID(name='ds5', resolution=250, modifiers=()) (No Data)
+         + +DataID(name='comp13') (No Data)
+         + + +DataID(name='ds5', resolution=250, modifiers=('res_change',)) (No Data)
+         + + + +DataID(name='ds5', resolution=250, modifiers=()) (No Data)
+         + +DataID(name='ds2', resolution=250, calibration=<1>, modifiers=()) (No Data)
+         + +DataID(name='no_deps_comp') (No Data)
          + + +__EMPTY_LEAF_SENTINEL__ (No Data)
-         + +DataID(name='comp13')
-         + + +DataID(name='ds5', resolution=250, modifiers=('res_change',))
-         + + + +DataID(name='ds5', resolution=250, modifiers=())
-         + + + +__EMPTY_LEAF_SENTINEL__ (No Data)
-         + +DataID(name='ds2', resolution=250, calibration=<calibration.reflectance>, modifiers=())
 
     """
     dependency_tree = DependencyTree(None, None, None)
@@ -49,8 +49,6 @@ def dep_tree1():
     node_composite_1 = dependency_tree.add_leaf(composite_1)
     node_dependency_1 = dependency_tree.add_leaf(dependency_1, node_composite_1)
     dependency_tree.add_leaf(dependency_1_1, node_dependency_1)
-    # ToDo: do we really want the empty node to be at the same level as the unmodified data?
-    node_dependency_1.add_child(dependency_tree.empty_node)
 
     dependency_2 = make_cid(name="comp13")
     dependency_2_1 = dependency_1
@@ -60,6 +58,10 @@ def dep_tree1():
 
     dependency_3 = make_dataid(name="ds2", resolution=250, calibration="reflectance", modifiers=tuple())
     dependency_tree.add_leaf(dependency_3, node_composite_1)
+
+    dependency_4 = make_cid(name="no_deps_comp")
+    node_dependency_4 = dependency_tree.add_leaf(dependency_4, node_composite_1)
+    node_dependency_4.add_child(dependency_tree.empty_node)
     return dependency_tree
 
 
@@ -135,8 +137,8 @@ def test_copy_preserves_unique_empty_node(dep_tree1):
     new_dependency_tree = dep_tree1.copy()
     assert dep_tree1.empty_node is new_dependency_tree.empty_node
 
-    assert dep_tree1._root.children[0].children[0].children[1] is dep_tree1.empty_node
-    assert new_dependency_tree._root.children[0].children[0].children[1] is dep_tree1.empty_node
+    assert dep_tree1._root.children[0].children[3].children[0] is dep_tree1.empty_node
+    assert new_dependency_tree._root.children[0].children[3].children[0] is dep_tree1.empty_node
 
 
 def test_new_dependency_tree_preserves_unique_empty_node(dep_tree1):
