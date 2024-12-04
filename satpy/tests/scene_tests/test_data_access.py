@@ -94,38 +94,70 @@ class TestDataAccessMethods:
                 assert area_obj is None
                 assert ds_list_names == {"3"}
 
-    def test_bad_setitem(self):
-        """Test setting an item wrongly."""
-        scene = Scene()
-        with pytest.raises(ValueError, match="Key must be a DataID when value is not an xarray DataArray or dict"):
-            scene.__setitem__("1", np.arange(5))
-
     def test_setitem(self):
         """Test setting an item."""
+        # test:
+            # - setting dataarray with attributes to supplied str key generates "full" dataid key  # noqa E116
+            # - setting dataarray without attributes (without name attr) sets name attr from given str  # noqa E116
+            #   key or dataid key  # noqa E116
+            # - setting numpy array gives error -> deprecation warning!  # noqa E116
+            # - setting (overwriting) existing key "updates" the dataid key from the dataarray attrs  # noqa E116
+            # - dataid gets added to dependency tree => wrong id added in the case of overwriting  # noqa E116
+            #   existing key!!!!!  # noqa E116
         from satpy.tests.utils import make_dataid
+
+        # assignment of no attributes DataArray
         scene = Scene()
         scene["1"] = ds1 = xr.DataArray(np.arange(5))
         expected_id = make_cid(**ds1.attrs)
         assert set(scene._datasets.keys()) == {expected_id}
         assert set(scene._wishlist) == {expected_id}
+        assert scene["1"].attrs["name"] == "1"
+        assert scene["1"].attrs["_satpy_id"] == expected_id
+        assert scene["1"].name == "1"
 
-        did = make_dataid(name="oranges")
-        scene[did] = ds1
-        assert "oranges" in scene
-        nparray = np.arange(5*5).reshape(5, 5)
-        with pytest.raises(ValueError, match="Key must be a DataID when value is not an xarray DataArray or dict"):
-            scene["apples"] = nparray
-        assert "apples" not in scene
-        did = make_dataid(name="apples")
-        scene[did] = nparray
-        assert "apples" in scene
+        # assignment of DataArray with a DataID key which has the same name as an existing key but has additional
+        # more specific DataID attributes
+        ds1 = xr.DataArray(np.arange(5), attrs={"name": "1", "resolution": 2000,
+                                                "modifiers": ("xy_corrected", )})
+        new_id = make_dataid(**ds1.attrs)
+        scene[new_id] = ds1
+        assert len(scene._datasets.keys()) == 2  # currently fails which is expected due to https://github.com/pytroll/satpy/issues/2331
+        assert set(scene._datasets.keys()[1]) == {new_id}
+        assert set(scene._wishlist[1]) == {new_id}
+        assert scene[new_id].attrs["name"] == "1"
+        assert scene[new_id].attrs["_satpy_id"] == new_id
+        assert scene[new_id].name == "1"
+
+        # assignment of DataArray with attributes relevant to DataID
+        scene = Scene()
+        scene["2"] = ds2 = xr.DataArray(np.arange(5), attrs={"name": "2", "resolution": 2000,
+                                                             "modifiers": ("xy_corrected", )})
+        expected_id = make_dataid(**ds2.attrs)
+        assert set(scene._datasets.keys()) == {expected_id}
+        assert set(scene._wishlist) == {expected_id}
+        assert scene["2"].attrs["name"] == "2"
+        assert scene["2"].attrs["_satpy_id"] == expected_id
+        assert scene["2"].name == "2"
+
+    def test_setitem_copy(self):
+        """Test that copy of DataArray is made if DataArra is in Scene already."""
+        scene = Scene()
+        scene["1"] = xr.DataArray(np.arange(5), attrs={"name": "1"})
+
+        # test that a copy of the DataArray is made if it is in the Scene already but assigned to a new key
+        expected = scene["1"].copy()
+        scene["2"] = scene["1"]
+        scene["2"][0:2] = np.arange(6, 8)
+        assert len(scene._datasets.keys()) == 2
+        xr.testing.assert_identical(scene["1"], expected)
 
     def test_getitem(self):
         """Test __getitem__ with names only."""
         scene = Scene()
-        scene["1"] = ds1 = xr.DataArray(np.arange(5))
-        scene["2"] = ds2 = xr.DataArray(np.arange(5))
-        scene["3"] = ds3 = xr.DataArray(np.arange(5))
+        scene["1"] = ds1 = xr.DataArray(np.arange(5), name="1")
+        scene["2"] = ds2 = xr.DataArray(np.arange(5), name="2")
+        scene["3"] = ds3 = xr.DataArray(np.arange(5), name="3")
         assert scene["1"] is ds1
         assert scene["2"] is ds2
         assert scene["3"] is ds3
@@ -137,10 +169,10 @@ class TestDataAccessMethods:
         """Test __getitem__ with names and modifiers."""
         # Return least modified item
         scene = Scene()
-        scene["1"] = ds1_m0 = xr.DataArray(np.arange(5))
+        scene["1"] = ds1_m0 = xr.DataArray(np.arange(5), name="1")
         scene[make_dataid(name="1", modifiers=("mod1",))
-              ] = xr.DataArray(np.arange(5))
-        assert scene["1"] is ds1_m0
+              ] = xr.DataArray(np.arange(5), name="1")
+        assert scene["1"] is ds1_m0  # fails which is expected due to https://github.com/pytroll/satpy/issues/2331
         assert len(list(scene.keys())) == 2
 
         scene = Scene()
