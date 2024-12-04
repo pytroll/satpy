@@ -34,7 +34,7 @@ from netCDF4 import Dataset
 @pytest.fixture
 def nc_filename(tmp_path):
     """Create an nc test data file and return its filename."""
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.UTC)
     filename = f"VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc"
     filename_str = str(tmp_path / filename)
     # Create test data
