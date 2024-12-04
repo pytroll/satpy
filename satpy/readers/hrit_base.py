@@ -36,7 +36,6 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
-from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
@@ -117,8 +116,7 @@ class HRITFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the reader."""
-        super(HRITFileHandler, self).__init__(filename, filename_info,
-                                              filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self.mda = {}
         self.hdr_info = hdr_info
@@ -318,7 +316,7 @@ class HRITSegment:
         return self._read_data_from_disk()
 
     def _is_file_like(self):
-        return isinstance(self.filename, FSFile)
+        return not isinstance(self.filename, str)
 
     def _read_data_from_disk(self):
         # For reading the image data, unzip_context is faster than generic_open

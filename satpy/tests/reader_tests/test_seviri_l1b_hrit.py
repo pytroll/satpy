@@ -502,3 +502,21 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         new_data[:, :] = np.nan
         expected = expected.copy(data=new_data)
         xr.testing.assert_equal(res, expected)
+
+
+def test_read_real_prologue(tmp_path):
+    """Test reading from an actual file."""
+    contents = [
+        # prime header
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((128, 90, 3403688),
+                dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
+        # second header
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")])
+    ]
+
+    filename = tmp_path / "prologue"
+    with open(filename, "wb") as fh:
+        for array in contents:
+            array.tofile(fh)
+    # filehandler = HRITMSGPrologueFileHandler(filename, dict(), dict())
