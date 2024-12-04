@@ -28,10 +28,10 @@ import xarray as xr
 from satpy.readers.seviri_base import (
     MEIRINK_COEFS,
     MEIRINK_EPOCH,
+    MeirinkCoefficients,
     NoValidOrbitParams,
     OrbitPolynomial,
     OrbitPolynomialFinder,
-    SEVIRICalibrationHandler,
     chebyshev,
     dec10216,
     get_cds_time,
@@ -371,11 +371,9 @@ class TestMeirinkSlope:
     @pytest.mark.parametrize("channel_name", ["VIS006", "VIS008", "IR_016"])
     def test_get_meirink_slope_epoch(self, platform_id, channel_name):
         """Test the value of the slope of the Meirink calibration on 2000-01-01."""
-        coefs = {"coefs": {}}
-        coefs["coefs"]["NOMINAL"] = {"gain": -1, "offset": -1}
-        coefs["coefs"]["EXTERNAL"] = {}
-        calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, "MEIRINK-2023", MEIRINK_EPOCH)
-        assert calibration_handler.get_gain_offset()[0] == MEIRINK_COEFS["2023"][platform_id][channel_name][0]/1000.
+        comp = MeirinkCoefficients(platform_id, channel_name, MEIRINK_EPOCH)
+        coefs = comp.get_coefs("dummy_offset")
+        assert coefs["MEIRINK-2023"][channel_name]["gain"] == MEIRINK_COEFS["2023"][platform_id][channel_name][0]/1000.
 
     @pytest.mark.parametrize(("platform_id", "time", "expected"), [
         (321, dt.datetime(2005, 1, 18, 0, 0), [0.0250354716, 0.0315626684, 0.022880986]),
@@ -389,9 +387,7 @@ class TestMeirinkSlope:
     ])
     def test_get_meirink_slope_2020(self, platform_id, time, expected):
         """Test the value of the slope of the Meirink calibration."""
-        coefs = {"coefs": {}}
-        coefs["coefs"]["NOMINAL"] = {"gain": -1, "offset": -1}
-        coefs["coefs"]["EXTERNAL"] = {}
         for i, channel_name in enumerate(["VIS006", "VIS008", "IR_016"]):
-            calibration_handler = SEVIRICalibrationHandler(platform_id, channel_name, coefs, "MEIRINK-2023", time)
-            assert abs(calibration_handler.get_gain_offset()[0] - expected[i]) < 1e-6
+            comp = MeirinkCoefficients(platform_id, channel_name, time)
+            coefs = comp.get_coefs("dummy_offset")
+            assert abs(coefs["MEIRINK-2023"][channel_name]["gain"] - expected[i]) < 1e-6
