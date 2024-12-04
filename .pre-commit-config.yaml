@@ -3,7 +3,7 @@ fail_fast: false
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: 'v0.6.9'
+    rev: 'v0.8.1'
     hooks:
       - id: ruff
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -14,12 +14,12 @@ repos:
       - id: check-yaml
         args: [--unsafe]
   - repo: https://github.com/PyCQA/bandit
-    rev: '1.7.10' # Update me!
+    rev: '1.8.0' # Update me!
     hooks:
       - id: bandit
         args: [--ini, .bandit]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.11.2'  # Use the sha / tag you want to point at
+    rev: 'v1.13.0'  # Use the sha / tag you want to point at
     hooks:
       - id: mypy
         additional_dependencies:

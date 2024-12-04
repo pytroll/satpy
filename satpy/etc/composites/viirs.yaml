@@ -232,7 +232,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I02
-      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     standard_name: false_color
     high_resolution_band: green
 
@@ -405,7 +405,7 @@ composites:
     - name: M07
       modifiers: [sunz_corrected]
     - name: M12
-      modifiers: [nir_reflectance]
+      modifiers: [nir_reflectance_lowres]
     - M15
     standard_name: day_microphysics
 

@@ -238,7 +238,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return normalize_low_res_chunks(
             (1,) * num_nonyx_dims + ("auto", -1),
             var_shape,
-            (1,) * num_nonyx_dims + (scan_length_250m, -1),
+            (1,) * num_nonyx_dims + (scan_length_250m, var_shape[-1]),
             (1,) * num_nonyx_dims + (res_multiplier, res_multiplier),
             np.float32,
         )
@@ -333,6 +333,10 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         "satellite_zenith_angle": ("SensorZenith", "Sensor_Zenith"),
         "solar_azimuth_angle": ("SolarAzimuth", "SolarAzimuth"),
         "solar_zenith_angle": ("SolarZenith", "Solar_Zenith"),
+        "water_present": "WaterPresent",
+        "landsea_mask": "Land/SeaMask",
+        "height": "Height",
+        "range": "Range",
     }
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):

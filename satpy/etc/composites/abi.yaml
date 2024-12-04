@@ -36,7 +36,7 @@ composites:
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected_crefl]
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_raw:
@@ -710,7 +710,7 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected]
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green

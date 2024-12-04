@@ -87,7 +87,6 @@ composites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
           - name: 'vii_3740'
-            modifiers: [ co2_corrected ]
           - name: 'vii_10690'
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:

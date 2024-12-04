@@ -42,6 +42,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: test-environment
           channels: conda-forge
+          conda-remove-defaults: true
+          channel-priority: strict
 
       - name: Set cache environment variables
         shell: bash -l {0}
@@ -113,7 +115,7 @@ jobs:
           pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: unittests
           file: ./coverage.xml
@@ -134,7 +136,7 @@ jobs:
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: behaviourtests
           file: ./coverage.xml
