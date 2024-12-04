@@ -92,6 +92,7 @@ extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.todo",
 # Autosectionlabel
 # Make sure target is unique
 autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 3
 
 # API docs
 apidoc_module_dir = "../../satpy"
