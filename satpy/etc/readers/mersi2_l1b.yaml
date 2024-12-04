@@ -176,7 +176,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 0
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 0
+    calibration_index: 4
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -196,7 +196,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 1
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 1
+    calibration_index: 5
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -216,7 +216,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 2
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 2
+    calibration_index: 6
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -236,7 +236,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 3
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 3
+    calibration_index: 7
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -256,7 +256,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 4
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 4
+    calibration_index: 8
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -276,7 +276,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 5
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 5
+    calibration_index: 9
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -296,7 +296,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 6
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 6
+    calibration_index: 10
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -316,7 +316,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 7
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 7
+    calibration_index: 11
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -336,7 +336,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 8
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 8
+    calibration_index: 12
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -356,7 +356,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 9
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 9
+    calibration_index: 13
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -376,7 +376,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 10
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 10
+    calibration_index: 14
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -396,7 +396,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 11
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 11
+    calibration_index: 15
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -416,7 +416,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 12
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 12
+    calibration_index: 16
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -436,7 +436,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 13
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 13
+    calibration_index: 17
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
@@ -456,7 +456,7 @@ datasets:
     file_key: Data/EV_1KM_RefSB
     band_index: 14
     calibration_key: Calibration/VIS_Cal_Coeff
-    calibration_index: 14
+    calibration_index: 18
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
