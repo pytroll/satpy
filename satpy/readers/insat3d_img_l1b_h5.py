@@ -1,16 +1,13 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
+
+import datetime as dt
 from contextlib import suppress
-from datetime import datetime
 from functools import cached_property
 
 import dask.array as da
 import numpy as np
 import xarray as xr
-
-from satpy.utils import import_error_helper
-
-with import_error_helper("xarray-datatree"):
-    from datatree import DataTree
+from xarray.core.datatree import DataTree
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -120,13 +117,15 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        start_time = datetime.strptime(self.datatree.attrs['Acquisition_Start_Time'], '%d-%b-%YT%H:%M:%S')
+        start_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_Start_Time"], "%d-%b-%YT%H:%M:%S")
         return start_time
 
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.strptime(self.datatree.attrs['Acquisition_End_Time'], '%d-%b-%YT%H:%M:%S')
+        end_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_End_Time"], "%d-%b-%YT%H:%M:%S")
         return end_time
 
     @cached_property
@@ -154,7 +153,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
         darr = ds["IMG_" + ds_id["name"] + calibration]
 
-        nlat, nlon = ds.attrs['Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude']
+        nlat, nlon = ds.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"]
         darr.attrs["orbital_parameters"] = dict(satellite_nominal_longitude=float(nlon),
                                                 satellite_nominal_latitude=float(nlat),
                                                 satellite_nominal_altitude=float(ds.attrs["Nominal_Altitude(km)"]),
@@ -173,30 +172,40 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         lines = shape[-2]
         cols = shape[-1]
 
-        fov = self.datatree.attrs["Field_of_View(degrees)"]
+        # From empirical analysis, hardcoding the view of view to 18 degrees
+        # produces better geolocation results.
+        # Uncommenting the line below will use the fov from the file instead,
+        # this line is kept for reference.
+        #fov = self.datatree.attrs["Field_of_View(degrees)"]
+        fov = 18
         cfac = 2 ** 16 / (fov / cols)
-        lfac = 2 ** 16 / (fov / lines)
+
+        # From reverse engineering metadata from a netcdf file, we discovered
+        # the lfac is actually the same as cfac, ie dependent on cols, not lines!
+        lfac = 2 ** 16 / (fov / cols)
 
         h = self.datatree.attrs["Observed_Altitude(km)"] * 1000
         # WGS 84
         a = 6378137.0
         b = 6356752.314245
 
+        subsatellite_longitude = self.datatree.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"][1]
+
         pdict = {
-            'cfac': cfac,
-            'lfac': lfac,
-            'coff': cols / 2,
-            'loff': lines / 2,
-            'ncols': cols,
-            'nlines': lines,
-            'scandir': 'N2S',
-            'a': a,
-            'b': b,
-            'h': h,
-            'ssp_lon': 82.0,
-            'a_name': "insat3d82",
-            'a_desc': "insat3d82",
-            'p_id': 'geosmsg'
+            "cfac": cfac,
+            "lfac": lfac,
+            "coff": cols // 2 + 1,
+            "loff": lines // 2,
+            "ncols": cols,
+            "nlines": lines,
+            "scandir": "N2S",
+            "a": a,
+            "b": b,
+            "h": h,
+            "ssp_lon": subsatellite_longitude,
+            "a_name": "insat3d82",
+            "a_desc": "insat3d82",
+            "p_id": "geosmsg"
         }
         area_extent = get_area_extent(pdict)
         adef = get_area_definition(pdict, area_extent)

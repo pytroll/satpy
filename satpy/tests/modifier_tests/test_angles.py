@@ -14,10 +14,11 @@
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 """Tests for the angles in modifiers."""
+
 import contextlib
+import datetime as dt
 import warnings
 from copy import deepcopy
-from datetime import datetime, timedelta
 from glob import glob
 from typing import Optional, Union
 from unittest import mock
@@ -30,6 +31,10 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 
 import satpy
 from satpy.utils import PerformanceWarning
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
 
 
 def _angle_cache_area_def():
@@ -70,14 +75,14 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
         "satellite_nominal_longitude": 10.0,
         "satellite_nominal_latitude": 0.0,
     }
-    stime = datetime(2020, 1, 1, 12, 0, 0)
+    stime = dt.datetime(2020, 1, 1, 12, 0, 0)
     data = da.zeros(shape, chunks=chunks)
     vis = xr.DataArray(data,
                        dims=dims,
                        attrs={
-                           'area': area_def,
-                           'start_time': stime,
-                           'orbital_parameters': orb_params,
+                           "area": area_def,
+                           "start_time": stime,
+                           "orbital_parameters": orb_params,
                        })
     return vis
 
@@ -100,12 +105,16 @@ def _get_angle_test_data_odd_chunks():
     return _get_angle_test_data(chunks=((2, 1, 2), (1, 1, 2, 1)))
 
 
+def _get_angle_test_data_odd_chunks2():
+    return _get_angle_test_data(chunks=((1, 4), (2, 3)))
+
+
 def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
     # change data slightly
     new_data = orig_data.copy()
     old_lon = new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
     new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + lon_offset
-    new_data.attrs["start_time"] = new_data.attrs["start_time"] + timedelta(hours=36)
+    new_data.attrs["start_time"] = new_data.attrs["start_time"] + dt.timedelta(hours=36)
     return new_data
 
 
@@ -222,6 +231,7 @@ class TestAngleGeneration:
             (_get_angle_test_data, 9, ((2, 2, 1), (2, 2, 1))),
             (_get_stacked_angle_test_data, 3, ((5,), (2, 2, 1))),
             (_get_angle_test_data_odd_chunks, 9, ((2, 1, 2), (1, 1, 2, 1))),
+            (_get_angle_test_data_odd_chunks2, 4, ((1, 4), (2, 3))),
             (_get_angle_test_data_rgb, 9, ((2, 2, 1), (2, 2, 1))),
             (_get_angle_test_data_rgb_nodims, 9, ((2, 2, 1), (2, 2, 1))),
         ])
@@ -309,9 +319,33 @@ class TestAngleGeneration:
         def _fake_func(shape, chunks):
             return np.zeros(shape)
 
-        with pytest.raises(ValueError), \
+        with pytest.raises(ValueError, match="Zarr caching currently only supports dask arrays. Got .*"), \
                 satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
             _fake_func((5, 5), ((5,), (5,)))
+
+    def test_caching_with_array_in_args_warns(self, tmp_path):
+        """Test that trying to cache with non-dask arrays fails."""
+        from satpy.modifiers.angles import cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats")
+        def _fake_func(array):
+            return array + 1
+
+        with pytest.warns(UserWarning), \
+                satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
+            _fake_func(da.zeros(100))
+
+    def test_caching_with_array_in_args_does_not_warn_when_caching_is_not_enabled(self, tmp_path, recwarn):
+        """Test that trying to cache with non-dask arrays fails."""
+        from satpy.modifiers.angles import cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats")
+        def _fake_func(array):
+            return array + 1
+
+        with satpy.config.set(cache_lonlats=False, cache_dir=str(tmp_path)):
+            _fake_func(da.zeros(100))
+        assert len(recwarn) == 0
 
     def test_no_cache_dir_fails(self, tmp_path):
         """Test that 'cache_dir' not being set fails."""
@@ -337,17 +371,17 @@ class TestAngleGeneration:
         assert isinstance(raa, xr.DataArray)
         np.testing.assert_allclose(expected_raa, raa)
 
-    def test_solazi_correction(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_solazi_correction(self, dtype):
         """Test that solar azimuth angles are corrected into the right range."""
-        from datetime import datetime
-
         from satpy.modifiers.angles import _get_sun_azimuth_ndarray
 
-        lats = np.array([-80, 40, 0, 40, 80])
-        lons = np.array([-80, 40, 0, 40, 80])
+        lats = np.array([-80, 40, 0, 40, 80], dtype=dtype)
+        lons = np.array([-80, 40, 0, 40, 80], dtype=dtype)
 
-        dt = datetime(2022, 1, 5, 12, 50, 0)
+        date = dt.datetime(2022, 1, 5, 12, 50, 0)
 
-        azi = _get_sun_azimuth_ndarray(lats, lons, dt)
+        azi = _get_sun_azimuth_ndarray(lats, lons, date)
 
         assert np.all(azi > 0)
+        assert azi.dtype == dtype

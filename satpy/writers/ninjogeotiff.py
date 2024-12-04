@@ -17,13 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for GeoTIFF images with tags for the NinJo visualization tool.
 
-The next version of NinJo (release expected spring 2022) will be able
-to read standard GeoTIFF images, with required metadata encoded as a set
-of XML tags in the GDALMetadata TIFF tag.  Each of the XML tags must be
-prepended with ``'NINJO_'``.  For NinJo delivery, these GeoTIFF files
-supersede the old NinJoTIFF format.  The :class:`NinJoGeoTIFFWriter`
-therefore supersedes the old Satpy NinJoTIFF writer and the pyninjotiff
-package.
+Starting with NinJo 7, NinJo is able to read standard GeoTIFF images,
+with required metadata encoded as a set of XML tags in the GDALMetadata
+TIFF tag.  Each of the XML tags must be prepended with ``'NINJO_'``.
+For NinJo delivery, these GeoTIFF files supersede the old NinJoTIFF
+format.  The :class:`NinJoGeoTIFFWriter` therefore supersedes the old
+Satpy NinJoTIFF writer and the pyninjotiff package.
 
 The reference documentation for valid NinJo tags and their meaning is
 contained in `NinJoPedia`_.  Since this page is not in the public web,
@@ -70,6 +69,18 @@ their functionality has become redundant.  This applies to
 Instead, pass those values in source units to the
 :func:`~satpy.enhancements.stretch` enhancement with the ``min_stretch``
 and ``max_stretch`` arguments.
+
+For images where the pixel value corresponds directly to a physical value,
+NinJo has a functionality to read the corresponding quantity (example:
+brightness temperature or reflectance).  To make this possible, the writer
+adds the tags ``Gradient`` and ``AxisIntercept``.  Those tags are added if
+and only if the image has mode ``L``, ``P``, or ``LA`` and ``PhysicUnit`` is not set
+to ``"N/A"``.  In other words, to suppress those tags for images with mode
+``L`` or ``LA`` (for example, for the composite ``vis_with_ir``, where the
+physical interpretation of individual pixels is lost), one should set
+``PhysicUnit`` to ``"N/A"``, ``"n/a"``, ``"1"``, or ``""`` (empty string).
+If the image has mode ``P``, ``Gradient`` is set to ``1.0`` and ``AxisIntercept``
+to ``0.0`` (as expected by NinJo).
 """
 
 import copy
@@ -92,7 +103,9 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
     :meth:`~NinJoGeoTIFFWriter.save_image`.
     """
 
-    def save_image(
+    scale_offset_tag_names = ("ninjo_Gradient", "ninjo_AxisIntercept")
+
+    def save_image(  # noqa: D417
             self, image, filename=None, fill_value=None,
             compute=True, keep_palette=False, cmap=None, overviews=None,
             overviews_minsize=256, overviews_resampling=None,
@@ -149,7 +162,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                 "Temperature", PhysicUnit is set to "C", but data attributes
                 incidate the data have unit "K", then the writer will adapt the
                 header ``ninjo_AxisIntercept`` such that data are interpreted
-                in units of "C".
+                in units of "C".  If PhysicUnit is set to "N/A", no
+                AxisIntercept and Gradient tags will be written.
             PhysicValue (str)
                 NinJo label for quantity (example: "temperature")
 
@@ -192,8 +206,21 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overviews_minsize=overviews_minsize,
             overviews_resampling=overviews_resampling,
             tags={**(tags or {}), **ninjo_tags},
-            scale_offset_tags=None if image.mode.startswith("RGB") else ("ninjo_Gradient", "ninjo_AxisIntercept"),
+            scale_offset_tags=self._get_scale_offset_tags(image, PhysicUnit),
             **gdal_opts)
+
+    def _get_scale_offset_tags(self, image, unit):
+        """Get scale offset tags (tuple or dict)."""
+        if self._check_include_scale_offset(image, unit):
+            # image.mode cannot be trusted https://github.com/pytroll/satpy/issues/2300
+            try:
+                mod = image.data.attrs["mode"]
+            except KeyError:
+                mod = image.mode
+            if mod == "P":
+                return dict(zip(self.scale_offset_tag_names, (1, 0)))
+            return self.scale_offset_tag_names
+        return None  # explicit is better than implicit
 
     def _fix_units(self, image, quantity, unit):
         """Adapt units between °C and K.
@@ -219,6 +246,12 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                     "No conversion applied.")
 
         return image
+
+    def _check_include_scale_offset(self, image, unit):
+        """Check if scale-offset tags should be included."""
+        if image.mode[0] in "LP" and unit.lower() not in ("n/a", "1", ""):
+            return True
+        return False
 
 
 class NinJoTagGenerator:
@@ -442,7 +475,7 @@ class NinJoTagGenerator:
             return "SPOL"
         raise ValueError(
                 "Unknown mapping from area "
-                f"'{self.dataset.attrs['area'].description}' with CRS coordinate "
+                f"{self.dataset.attrs['area'].description!r} with CRS coordinate "
                 f"operation name {name:s} to NinJo projection.  NinJo understands only "
                 "equidistant cylindrical, mercator, or stereographic projections.")
 

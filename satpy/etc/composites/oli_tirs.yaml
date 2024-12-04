@@ -1,0 +1,422 @@
+sensor_name: visir/oli_tirs
+
+modifiers:
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_antarctic:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: antarctic_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_continental_average:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_average_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_continental_clean:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_clean_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_continental_polluted:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_polluted_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_desert:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: desert_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_marine_clean:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_clean_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_marine_polluted:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_polluted_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_marine_tropical:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_rural:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rural_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+  rayleigh_corrected_urban:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: urban_aerosol
+    prerequisites:
+      - name: 'B4'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: satellite_azimuth_angle
+      - name: satellite_zenith_angle
+      - name: solar_azimuth_angle
+      - name: solar_zenith_angle
+
+
+composites:
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B4'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    - name: 'B3'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    - name: 'B2'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_antarctic:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_antarctic]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_antarctic]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_antarctic]
+    standard_name: true_color
+
+  true_color_continental_average:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_average]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_average]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_average]
+    standard_name: true_color
+
+  true_color_continental_clean:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_clean]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_clean]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_clean]
+    standard_name: true_color
+
+  true_color_continental_polluted:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_polluted]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_polluted]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_polluted]
+    standard_name: true_color
+
+  true_color_desert:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
+    standard_name: true_color
+
+  true_color_marine_clean:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_clean]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_clean]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_clean]
+    standard_name: true_color
+
+  true_color_marine_polluted:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_polluted]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_polluted]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_polluted]
+    standard_name: true_color
+
+  true_color_marine_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+    standard_name: true_color
+
+  true_color_rural:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_rural]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_rural]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_rural]
+    standard_name: true_color
+
+  true_color_urban:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_urban]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_urban]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_urban]
+    standard_name: true_color
+
+  true_color_uncorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B2'
+        modifiers: [effective_solar_pathlength_corrected]
+    standard_name: true_color
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B4'
+        # modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B3'
+        # modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B2'
+        # modifiers: [effective_solar_pathlength_corrected]
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B6'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B5'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B4'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: natural_color
+
+  urban_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B7'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B6'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: natural_color
+
+  false_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B5'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B4'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      - name: 'B3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: natural_color
+
+  ndvi:
+    # Normalized Difference Vegetation Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'B5'
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: 'B4'
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+          - name: 'B5'
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: 'B4'
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: ndvi_msi
+
+  ndmi:
+    # Normalized Difference Moisture Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndmi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'B5'
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: 'B6'
+            modifiers: [effective_solar_pathlength_corrected]
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+          - name: 'B5'
+            modifiers: [effective_solar_pathlength_corrected]
+          - name: 'B6'
+            modifiers: [effective_solar_pathlength_corrected]
+    standard_name: ndmi_msi
+
+  ndwi:
+    # Normalized Difference Water Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'B3'
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: 'B5'
+            modifiers: [effective_solar_pathlength_corrected]
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+          - name: 'B3'
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: 'B5'
+            modifiers: [effective_solar_pathlength_corrected]
+    standard_name: ndwi_msi
+
+  ndsi:
+    # Normalized Difference Snow Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - name: 'B6'
+      modifiers: [effective_solar_pathlength_corrected]
+    - compositor: !!python/name:satpy.composites.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: 'B3'
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: 'B6'
+            modifiers: [effective_solar_pathlength_corrected]
+      - compositor: !!python/name:satpy.composites.SumCompositor
+        prerequisites:
+          - name: 'B3'
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+          - name: 'B6'
+            modifiers: [effective_solar_pathlength_corrected]
+    conditions:
+    - method: less_equal
+      value: 0.42
+      transparency: 100
+    - method: isnan
+      transparency: 100
+    standard_name: ndsi_msi
+
+  ndsi_with_true_color:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    prerequisites:
+      - name: ndsi
+      - name: true_color
+    standard_name: no_enhancement

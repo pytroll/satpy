@@ -22,13 +22,10 @@ import unittest
 from unittest import mock
 
 import numpy as np
-from pyresample.utils import proj4_radius_parameters
 from xarray import DataArray
 
 from satpy.readers.goes_imager_hrit import (
     ALTITUDE,
-    EQUATOR_RADIUS,
-    POLE_RADIUS,
     HRITGOESFileHandler,
     HRITGOESPrologueFileHandler,
     make_gvar_float,
@@ -51,8 +48,8 @@ class TestGVARFloat(unittest.TestCase):
                      (100.1640625, b"\x42\x64\x2a\x00")]
 
         for expected, str_val in test_data:
-            val = np.frombuffer(str_val, dtype='>i4')
-            self.assertEqual(expected, make_gvar_float(val))
+            val = np.frombuffer(str_val, dtype=">i4")
+            assert expected == make_gvar_float(val)
 
 
 class TestMakeSGSTime(unittest.TestCase):
@@ -63,98 +60,98 @@ class TestMakeSGSTime(unittest.TestCase):
         # 2018-129 (may 9th), 21:33:27.999
         tcds = np.array([(32, 24, 18, 146, 19, 50, 121, 153)], dtype=sgs_time)
         expected = datetime.datetime(2018, 5, 9, 21, 33, 27, 999000)
-        self.assertEqual(make_sgs_time(tcds[0]), expected)
+        assert make_sgs_time(tcds[0]) == expected
 
 
-test_pro = {'TISTR': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TCurr': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TCLMT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'SubSatLongitude': 100.1640625,
-            'TCHED': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TLTRL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TIPFS': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TISPC': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'ReferenceLatitude': 0.0,
-            'TIIRT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TLHED': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TIVIT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'SubSatLatitude': 0.0,
-            'TIECL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'ReferenceLongitude': 100.1640625,
-            'TCTRL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TLRAN': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TINFS': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TIBBC': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'TIONA': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-            'ReferenceDistance': 100.1640625,
-            'SatelliteID': 15}
+test_pro = {"TISTR": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TCurr": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TCLMT": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "SubSatLongitude": 100.1640625,
+            "TCHED": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TLTRL": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TIPFS": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TISPC": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "ReferenceLatitude": 0.0,
+            "TIIRT": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TLHED": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TIVIT": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "SubSatLatitude": 0.0,
+            "TIECL": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "ReferenceLongitude": 100.1640625,
+            "TCTRL": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TLRAN": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TINFS": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TIBBC": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "TIONA": datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            "ReferenceDistance": 100.1640625,
+            "SatelliteID": 15}
 
 
 class TestHRITGOESPrologueFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.goes_imager_hrit.recarray2dict')
-    @mock.patch('satpy.readers.goes_imager_hrit.np.fromfile')
-    @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
+    @mock.patch("satpy.readers.goes_imager_hrit.recarray2dict")
+    @mock.patch("satpy.readers.goes_imager_hrit.np.fromfile")
+    @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.__init__")
     def test_init(self, new_fh_init, fromfile, recarray2dict):
         """Setup the hrit file handler for testing."""
         recarray2dict.side_effect = lambda x: x[0]
-        new_fh_init.return_value.filename = 'filename'
-        HRITGOESPrologueFileHandler.filename = 'filename'
-        HRITGOESPrologueFileHandler.mda = {'total_header_length': 1}
+        new_fh_init.return_value.filename = "filename"
+        HRITGOESPrologueFileHandler.filename = "filename"
+        HRITGOESPrologueFileHandler.mda = {"total_header_length": 1}
         ret = {}
         the_time = np.array([(32, 24, 18, 146, 19, 50, 121, 153)], dtype=sgs_time)[0]
-        for key in ['TCurr', 'TCHED', 'TCTRL', 'TLHED', 'TLTRL', 'TIPFS',
-                    'TINFS', 'TISPC', 'TIECL', 'TIBBC', 'TISTR', 'TLRAN',
-                    'TIIRT', 'TIVIT', 'TCLMT', 'TIONA']:
+        for key in ["TCurr", "TCHED", "TCTRL", "TLHED", "TLTRL", "TIPFS",
+                    "TINFS", "TISPC", "TIECL", "TIBBC", "TISTR", "TLRAN",
+                    "TIIRT", "TIVIT", "TCLMT", "TIONA"]:
             ret[key] = the_time
-        ret['SubSatLatitude'] = np.frombuffer(b"\x00\x00\x00\x00", dtype='>i4')[0]
-        ret['ReferenceLatitude'] = np.frombuffer(b"\x00\x00\x00\x00", dtype='>i4')[0]
-        ret['SubSatLongitude'] = np.frombuffer(b"\x42\x64\x2a\x00", dtype='>i4')[0]
-        ret['ReferenceLongitude'] = np.frombuffer(b"\x42\x64\x2a\x00", dtype='>i4')[0]
-        ret['ReferenceDistance'] = np.frombuffer(b"\x42\x64\x2a\x00", dtype='>i4')[0]
-        ret['SatelliteID'] = 15
+        ret["SubSatLatitude"] = np.frombuffer(b"\x00\x00\x00\x00", dtype=">i4")[0]
+        ret["ReferenceLatitude"] = np.frombuffer(b"\x00\x00\x00\x00", dtype=">i4")[0]
+        ret["SubSatLongitude"] = np.frombuffer(b"\x42\x64\x2a\x00", dtype=">i4")[0]
+        ret["ReferenceLongitude"] = np.frombuffer(b"\x42\x64\x2a\x00", dtype=">i4")[0]
+        ret["ReferenceDistance"] = np.frombuffer(b"\x42\x64\x2a\x00", dtype=">i4")[0]
+        ret["SatelliteID"] = 15
         fromfile.return_value = [ret]
         m = mock.mock_open()
-        with mock.patch('satpy.readers.goes_imager_hrit.open', m, create=True) as newopen:
+        with mock.patch("satpy.readers.goes_imager_hrit.open", m, create=True) as newopen:
             newopen.return_value.__enter__.return_value.seek.return_value = 1
             self.reader = HRITGOESPrologueFileHandler(
-                'filename', {'platform_shortname': 'GOES15',
-                             'start_time': datetime.datetime(2016, 3, 3, 0, 0),
-                             'service': 'test_service'},
-                {'filetype': 'info'})
+                "filename", {"platform_shortname": "GOES15",
+                             "start_time": datetime.datetime(2016, 3, 3, 0, 0),
+                             "service": "test_service"},
+                {"filetype": "info"})
 
-        self.assertEqual(test_pro, self.reader.prologue)
+        assert test_pro == self.reader.prologue
 
 
 class TestHRITGOESFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
+    @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.__init__")
     def setUp(self, new_fh_init):
         """Set up the hrit file handler for testing."""
-        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
-        mda = {'projection_parameters': {'SSP_longitude': -123.0},
-               'spectral_channel_id': 1,
-               'image_data_function': blob}
-        HRITGOESFileHandler.filename = 'filename'
+        blob = "$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n".encode()
+        mda = {"projection_parameters": {"SSP_longitude": -123.0},
+               "spectral_channel_id": 1,
+               "image_data_function": blob}
+        HRITGOESFileHandler.filename = "filename"
         HRITGOESFileHandler.mda = mda
         self.prologue = mock.MagicMock()
         self.prologue.prologue = test_pro
-        self.reader = HRITGOESFileHandler('filename', {}, {}, self.prologue)
+        self.reader = HRITGOESFileHandler("filename", {}, {}, self.prologue)
 
     def test_init(self):
         """Test the init."""
-        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
-        mda = {'spectral_channel_id': 1,
-               'projection_parameters': {'SSP_longitude': 100.1640625},
-               'image_data_function': blob}
-        self.assertEqual(self.reader.mda, mda)
+        blob = "$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n".encode()
+        mda = {"spectral_channel_id": 1,
+               "projection_parameters": {"SSP_longitude": 100.1640625},
+               "image_data_function": blob}
+        assert self.reader.mda == mda
 
-    @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset')
+    @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
         """Test get_dataset."""
-        key = make_dataid(name="CH1", calibration='reflectance')
+        key = make_dataid(name="CH1", calibration="reflectance")
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
         res = self.reader.get_dataset(key, {})
         expected = np.array([[np.nan, 0.097752, 0.195503, 0.293255, 0.391007],
@@ -163,37 +160,36 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                              [1.466276, 1.564027, 1.661779, 1.759531, 1.857283],
                              [1.955034, 2.052786, 2.150538, 2.248289, 2.346041]])
 
-        self.assertTrue(np.allclose(res.values, expected, equal_nan=True))
-        self.assertEqual(res.attrs['units'], '%')
-        self.assertDictEqual(res.attrs['orbital_parameters'],
-                             {'projection_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
-                              'projection_latitude': 0.0,
-                              'projection_altitude': ALTITUDE})
+        assert np.allclose(res.values, expected, equal_nan=True)
+        assert res.attrs["units"] == "%"
+        ssp_longitude = self.reader.mda["projection_parameters"]["SSP_longitude"]
+        assert res.attrs["orbital_parameters"] == {"projection_longitude": ssp_longitude,
+                                                   "projection_latitude": 0.0,
+                                                   "projection_altitude": ALTITUDE}
 
     def test_get_area_def(self):
         """Test getting the area definition."""
+        from pyproj import CRS
+
         self.reader.mda.update({
-            'cfac': 10216334,
-            'lfac': 10216334,
-            'coff': 1408.0,
-            'loff': 944.0,
-            'number_of_lines': 464,
-            'number_of_columns': 2816
+            "cfac": 10216334,
+            "lfac": 10216334,
+            "coff": 1408.0,
+            "loff": 944.0,
+            "number_of_lines": 464,
+            "number_of_columns": 2816
         })
-        dsid = make_dataid(name="CH1", calibration='reflectance',
+        dsid = make_dataid(name="CH1", calibration="reflectance",
                            resolution=3000)
         area = self.reader.get_area_def(dsid)
 
-        a, b = proj4_radius_parameters(area.proj_dict)
-        assert a == EQUATOR_RADIUS
-        assert b == POLE_RADIUS
-        assert area.proj_dict['h'] == ALTITUDE
-        assert area.proj_dict['lon_0'] == 100.1640625
-        assert area.proj_dict['proj'] == 'geos'
-        assert area.proj_dict['units'] == 'm'
+        expected_crs = CRS(dict(h=ALTITUDE, lon_0=100.1640625, proj="geos", units="m",
+                                rf=295.488065897001, a=6378169))
+        assert area.crs == expected_crs
+
         assert area.width == 2816
         assert area.height == 464
-        assert area.area_id == 'goes-15_goes_imager_fd_3km'
+        assert area.area_id == "goes-15_goes_imager_fd_3km"
         area_extent_exp = (-5639254.900260435, 1925159.4881528523,
                            5643261.475678028, 3784210.48191544)
         np.testing.assert_allclose(area.area_extent, area_extent_exp)

@@ -15,6 +15,15 @@ enhancements:
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: 1.5}
+  surface_reflectance_default:
+    standard_name: surface_bidirectional_reflectance
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 1.5}
   true_color_default:
     standard_name: true_color
     operations:
@@ -262,6 +271,29 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
 
+  four_level_cloud_mask:
+    standard_name: cloud_mask
+    reader: clavrx
+    operations:
+      - name: palettize
+        method: !!python/name:satpy.enhancements.palettize
+        kwargs:
+          palettes:
+            - {'values': [-127,# Fill Value
+                             0, # Clear
+                             1, # Probably Clear
+                             2, # Probably Cloudy
+                             3, # Cloudy
+                         ],
+               'colors': [[0, 0, 0], # black,-127 = Fill Value
+                          [94, 79, 162], # blue,    0 = Clear
+                          [73, 228, 242], # cyan,    1 = Probably Clear
+                          [158, 1, 66], # red,     2 = Probably Cloudy
+                          [255, 255, 255], # white,   3 = Cloudy
+                         ],
+               'color_scale': 255,
+              }
+
   sar-ice:
     standard_name: sar-ice
     operations:
@@ -331,6 +363,19 @@ enhancements:
       args:
       - [true, true, true]
 
+  green-sar:
+    standard_name: green-sar
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        # R -- VH: 0.00109 to 0.0594
+        # G -- VV_db: -17.57 to -3.3
+        # B -- VV: 0.00332 to 0.3
+        min_stretch: [0.00109, -17.57, 0.00332]
+        max_stretch: [0.0594, -3.3, .3]
+
   sar-quick:
     standard_name: sar-quick
     operations:
@@ -353,202 +398,368 @@ enhancements:
   cloudtype:
     standard_name: cloudtype
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ct_pal
+            color_scale: 255
+            # NB: setting min_value and max_value that differ from the valid_range in the data
+            # will result in wrong colors.  It's safer to not set min_value and max_value at all.
+
   cloudmask:
     standard_name: cloudmask
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: cma_pal
+            color_scale: 255
+
+  pps_cma:
+    standard_name: pps_cma
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cma_pal
+            color_scale: 255
+
+  pps_ct:
+    standard_name: pps_ct
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: ct_pal
+            color_scale: 255
+
+  pps_phase:
+    standard_name: pps_phase
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_phase_pal
+            color_scale: 255
+
+  pps_ctth:
+    standard_name: pps_ctth
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: ctth_alti_pal
+
+  pps_cmaprob:
+    standard_name: pps_cmaprob
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmaprob_pal
+
+  pps_cot:
+    standard_name: pps_cot
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cot_pal
+            color_scale: 255
+
+  pps_cwp:
+    standard_name: pps_cwp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cwp_pal
+            color_scale: 255
+
+  pps_iwp:
+    standard_name: pps_iwp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_iwp_pal
+
+  pps_lwp:
+    standard_name: pps_lwp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_lwp_pal
+
+  pps_cre:
+    standard_name: pps_cre
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cre_pal
+
+  cloudmask_extended:
+    standard_name: cloudmask_extended
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+          - dataset: cma_extended_pal
+            color_scale: 255
+
   cloudmask_probability:
     standard_name: cloudmask_probability
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: cmaprob_pal
+            color_scale: 255
 
   cloud_top_height:
-    standard_name: cloud_top_height
+    standard_name: cloud_top_height_geo
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ctth_alti_pal
+            color_scale: 255
+
+  cloud_top_height_pps:
+    standard_name: cloud_top_height_pps
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: ctth_alti_pal
+
+  cloud_top_height_geo:
+    standard_name: cloud_top_height_geo
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+          - dataset: ctth_alti_pal
+            color_scale: 255
+
   cloud_top_pressure:
     standard_name: cloud_top_pressure
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ctth_pres_pal
+            color_scale: 255
+
   cloud_top_temperature:
     standard_name: cloud_top_temperature
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ctth_tempe_pal
+            color_scale: 255
+
   cloud_top_phase:
     standard_name: cloud_top_phase
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
-  cloud_drop_effective_radius:
-    standard_name: cloud_drop_effective_radius
+        palettes:
+          - dataset: cmic_phase_pal
+            color_scale: 255
+
+  cloud_drop_effective_radius_geo:
+    standard_name: cloud_drop_effective_radius_geo
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
-  cloud_optical_thickness:
-    standard_name: cloud_optical_thickness
+        palettes:
+          - dataset: cmic_reff_pal
+            color_scale: 255
+
+  cloud_drop_effective_radius_pps:
+    standard_name: cloud_drop_effective_radius_pps
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: cmic_cre_pal
+            color_scale: 255
+
+  cloud_optical_thickness_geo:
+    standard_name: cloud_optical_thickness_geo
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
+      kwargs:
+        palettes:
+          - dataset: cmic_cot_pal
+            color_scale: 255
+
+  cloud_optical_thickness_pps:
+    standard_name: cloud_optical_thickness_pps
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cot_pal
+            color_scale: 255
+
   cloud_liquid_water_path:
     standard_name: cloud_liquid_water_path
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: cmic_lwp_pal
+            color_scale: 255
+
   cloud_ice_water_path:
     standard_name: cloud_ice_water_path
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: cmic_iwp_pal
+            color_scale: 255
+
   precipitation_probability:
     standard_name: precipitation_probability
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: pc_pal
+            color_scale: 255
+
   convective_rain_rate:
     standard_name: convective_rain_rate
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: crr_pal
+            color_scale: 255
+
   convective_precipitation_hourly_accumulation:
     standard_name: convective_precipitation_hourly_accumulation
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: crr_pal
+            color_scale: 255
+
   total_precipitable_water:
     standard_name: total_precipitable_water
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ishai_tpw_pal
+            color_scale: 255
+
   showalter_index:
     standard_name: showalter_index
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ishai_shw_pal
+            color_scale: 255
+
   lifted_index:
     standard_name: lifted_index
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ishai_li_pal
+            color_scale: 255
+
   convection_initiation_prob30:
     standard_name: convection_initiation_prob30
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ci_pal
+            color_scale: 255
+
   convection_initiation_prob60:
     standard_name: convection_initiation_prob60
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ci_pal
+            color_scale: 255
+
   convection_initiation_prob90:
     standard_name: convection_initiation_prob90
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: ci_pal
+            color_scale: 255
+
   rdt_cell_type:
     standard_name: rdt_cell_type
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: MapCellCatType_pal
+            color_scale: 255
+
   asii_prob:
     standard_name: asii_prob
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+    - name: palettize
+      method: !!python/name:satpy.enhancements.palettize
       kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [1, 1, 1]
+        palettes:
+          - dataset: asii_turb_prob_pal
+            color_scale: 255
 
   day_microphysics_ahi:
     standard_name: day_microphysics_ahi
@@ -718,6 +929,7 @@ enhancements:
                          [252, 254, 254], [253, 254, 254], [253, 254, 254], [
                              253, 254, 254], [253, 254, 254],
                          [254, 254, 254], [254, 254, 254], [254, 254, 254], [254, 254, 254], [255, 255, 255]]
+
   night_microphysics_default:
     standard_name: night_microphysics
     operations:
@@ -727,6 +939,21 @@ enhancements:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 10, 293]
+
+  24h_microphysics_default:
+    standard_name: 24h_microphysics
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 248]
+        max_stretch: [2, 6, 303]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [ 1, 1.2, 1 ]
+
   ir_overview_default:
     standard_name: ir_overview
     operations:
@@ -765,6 +992,41 @@ enhancements:
         method: !!python/name:satpy.enhancements.three_d_effect
         kwargs:
           weight: 1.0
+
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    operations:
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert
+        args:
+          - [True, false]
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+
+  geo_color_low_clouds:
+    standard_name: geo_color_low_clouds
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: [[140.25, 191.25, 249.9]]}
+
+  geo_color_day_night_blend:
+    standard_name: geo_color_day_night_blend
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,0,0 ]
+          max_stretch: [ 1,1,1 ]
 
   colorized_ir_clouds:
     standard_name: colorized_ir_clouds
@@ -881,7 +1143,7 @@ enhancements:
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: linear, cutoffs: [0.02, 0.02]}
+      kwargs: {stretch: linear, cutoffs: [[0.02, 0.02], [0.02, 0.02], [0.02, 0.02], [0.02, 0.02]]}
     - name: inverse
       method: !!python/name:satpy.enhancements.invert
       args:
@@ -921,6 +1183,18 @@ enhancements:
   chlor_a_default:
     name: chlor_a
     reader: seadas_l2
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: log
+          base: "10"
+          factor: 21.0
+          min_stretch: 0.0
+          max_stretch: 20.0
+  chlor_a_bgc:
+    name: chlor_a
+    reader: oci_l2_bgc
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
@@ -974,4 +1248,44 @@ enhancements:
 
   day_essl_colorized_low_level_moisture:
     standard_name: day_essl_colorized_low_level_moisture
+    operations: []
+
+  rocket_plume:
+    standard_name: rocket_plume
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273, 233, 0.]
+          max_stretch: [338, 253, 80.]
+
+  true_color_reproduction_color_stretch:
+    standard_name: true_color_reproduction_color_stretch
+    operations:
+      - name: color
+        method: !!python/name:satpy.enhancements.jma_true_color_reproduction
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+         stretch: log
+         min_stretch: [3.,3.,3.] # tweak min/max values for desired contrast
+         max_stretch: [150., 150., 150.]
+
+  true_color_reproduction:
+    standard_name: true_color_reproduction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+         stretch: crude
+         min_stretch: [0,0,0]
+         max_stretch: [1,1,1]
+
+  imager_with_lightning:
+    standard_name: imager_with_lightning
+    operations: []
+
+  image_ready:
+    standard_name: image_ready
     operations: []

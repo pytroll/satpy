@@ -1,7 +1,7 @@
 reader:
   name: viirs_compact
   short_name: VIIRS Compact
-  long_name: SNPP VIIRS SDR data in HDF5 Compact format
+  long_name: JPSS VIIRS SDR data in HDF5 Compact format
   description: Generic Eumetsat Compact VIIRS Reader
   status: Nominal
   supports_fsspec: false

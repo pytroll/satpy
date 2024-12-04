@@ -1,0 +1,60 @@
+enhancements:
+# note that the colormap parameters are tuned for 5 minutes of files accumulation
+# these are tentative recipes that will need to be further tuned as we gain experience with LI data
+
+  acc_flash:
+    standard_name: acc_flash
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 5}
+
+  acc_flash_alpha:
+    standard_name: acc_flash_alpha
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 5,
+           min_alpha: 120, max_alpha: 180}
+
+  acc_flash_area:
+    standard_name: acc_flash_area
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 20}
+
+  acc_flash_area_alpha:
+    standard_name: acc_flash_area_alpha
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 20,
+           min_alpha: 120, max_alpha: 180}
+
+  lightning_radiance:
+    standard_name: lightning_radiance
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 1000}
+
+  lightning_radiance_alpha:
+    standard_name: lightning_radiance_alpha
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+        - {colors: ylorrd, min_value: 0, max_value: 1000,
+           min_alpha: 120, max_alpha: 180}

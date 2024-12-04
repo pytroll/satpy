@@ -23,17 +23,6 @@ modifiers:
       - solar_zenith
 
 composites:
-  sepia:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: 'vii_443'
-      modifiers: [sunz_corrected]
-    - name: 'vii_555'
-      modifiers: [sunz_corrected]
-    - name: 'vii_668'
-      modifiers: [sunz_corrected]
-    standard_name: sepia
-
   true_color_uncorrected:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -98,7 +87,6 @@ composites:
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:
           - name: 'vii_3740'
-            modifiers: [ co2_corrected ]
           - name: 'vii_10690'
       - compositor: !!python/name:satpy.composites.DifferenceCompositor
         prerequisites:

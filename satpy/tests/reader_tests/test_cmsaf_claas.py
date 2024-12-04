@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'cmsaf-claas2_l2_nc' reader."""
 
-import datetime
+import datetime  # noqa: I001
 import os
 
 import numpy as np
@@ -26,6 +26,11 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy.tests.utils import make_dataid
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+# - request
 
 
 @pytest.fixture(
@@ -42,7 +47,7 @@ def start_time_str(start_time):
     return start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dataset(start_time_str):
     """Create a CLAAS-like test dataset."""
     cph = xr.DataArray(
@@ -89,7 +94,7 @@ def fake_file(fake_dataset, encoding, tmp_path):
     """Write a fake dataset to file."""
     filename = tmp_path / "CPPin20140101001500305SVMSG01MD.nc"
     fake_dataset.to_netcdf(filename, encoding=encoding)
-    yield filename
+    return filename
 
 
 @pytest.fixture
@@ -101,7 +106,7 @@ def fake_files(fake_dataset, encoding, tmp_path):
     ]
     for filename in filenames:
         fake_dataset.to_netcdf(filename, encoding=encoding)
-    yield filenames
+    return filenames
 
 
 @pytest.fixture
@@ -152,7 +157,7 @@ class TestCLAAS2MultiFile:
         assert multi_file_reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
 
     @pytest.mark.parametrize(
-        "ds_name,expected",
+        ("ds_name", "expected"),
         [
             ("cph", [[0, 1], [2, 0], [0, 1], [2, 0]]),
             ("ctt", [[280, 290], [300, 310], [280, 290], [300, 310]]),
@@ -212,10 +217,10 @@ class TestCLAAS2SingleFile:
         assert area == area_exp
 
     @pytest.mark.parametrize(
-        "ds_name,expected",
+        ("ds_name", "expected"),
         [
-            ("ctt", xr.DataArray([[280, 290], [300, 310]], dims=('y', 'x'))),
-            ("cph", xr.DataArray([[0, 1], [2, 0]], dims=('y', 'x'))),
+            ("ctt", xr.DataArray([[280, 290], [300, 310]], dims=("y", "x"))),
+            ("cph", xr.DataArray([[0, 1], [2, 0]], dims=("y", "x"))),
         ]
     )
     def test_get_dataset(self, file_handler, ds_name, expected):

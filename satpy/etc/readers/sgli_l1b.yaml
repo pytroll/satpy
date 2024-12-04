@@ -1,0 +1,458 @@
+reader:
+  name: sgli_l1b
+  short_name: SGLI GCOM-C L1B
+  long_name: GCOM-C SGLI Level 1B HDF5 format
+  description: Reader for SGLI data
+  status: Beta
+  supports_fsspec: false
+  reference: https://gportal.jaxa.jp/gpr/assets/mng_upload/GCOM-C/SGLI_Level1_Product_Format_Description_en.pdf
+  sensors: [sgli]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+  data_identification_keys:
+    name:
+      required: true
+    wavelength:
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+          - reflectance
+          - brightness_temperature
+          - radiance
+          - counts
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+
+
+
+file_types:
+    gcom-c_l1b_v:
+        file_reader: !!python/name:satpy.readers.sgli_l1b.HDF5SGLI
+        # GC1SG1_202002231142M25511_1BSG_VNRDQ_1008.h5
+        file_patterns:
+         - '{platform_id:3s}{sensor_id:3s}_{start_time:%Y%m%d%H%M}{second:1s}{path:3s}{scene:2s}_1BS{type:1s}_VNR{mode:1s}{resolution:1s}_{algorithm_version:1s}{parameter_version:3d}.h5'
+         #- '{platform_id:3s}{sensor_id:3s}_{start_time:%Y%m%d%H%M}{second:1s}{path:3s}{scene:2s}_{level:2s}S{type:1s}_{subsystem:3s}{mode:1s}{resolution:1s}_{algorithm_version:1s}{parameter_version:3d}.h5'
+
+    gcom-c_l1b_p:
+        file_reader: !!python/name:satpy.readers.sgli_l1b.HDF5SGLI
+        file_patterns:
+         - '{platform_id:3s}{sensor_id:3s}_{start_time:%Y%m%d%H%M}{second:1s}{path:3s}{scene:2s}_1BS{type:1s}_POL{mode:1s}{resolution:1s}_{algorithm_version:1s}{parameter_version:3d}.h5'
+         #- '{platform_id:3s}{sensor_id:3s}_{start_time:%Y%m%d%H%M}{second:1s}{path:3s}{scene:2s}_{level:2s}S{type:1s}_{subsystem:3s}{mode:1s}{resolution:1s}_{algorithm_version:1s}{parameter_version:3d}.h5'
+
+    gcom-c_l1b_ir:
+        file_reader: !!python/name:satpy.readers.sgli_l1b.HDF5SGLI
+        file_patterns:
+         - '{platform_id:3s}{sensor_id:3s}_{start_time:%Y%m%d%H%M}{second:1s}{path:3s}{scene:2s}_1BS{type:1s}_IRS{mode:1s}{resolution:1s}_{algorithm_version:1s}{parameter_version:3d}.h5'
+         #- '{platform_id:3s}{sensor_id:3s}_{start_time:%Y%m%d%H%M}{second:1s}{path:3s}{scene:2s}_{level:2s}S{type:1s}_{subsystem:3s}{mode:1s}{resolution:1s}_{algorithm_version:1s}{parameter_version:3d}.h5'
+
+
+datasets:
+  longitude_v:
+    name: longitude_v
+    resolution: [250, 1000]
+    standard_name: longitude
+    units: degree
+    file_key: Geometry_data/Longitude
+    file_type: gcom-c_l1b_v
+
+  latitude_v:
+    name: latitude_v
+    resolution: [250, 1000]
+    standard_name: latitude
+    units: degree
+    file_key: Geometry_data/Latitude
+    file_type: gcom-c_l1b_v
+
+  longitude_p:
+    name: longitude_p
+    resolution: 1000
+    polarization: [0, -60, 60]
+    standard_name: longitude
+    units: degree
+    file_key: Geometry_data/Longitude
+    file_type: gcom-c_l1b_p
+
+  latitude_p:
+    name: latitude_p
+    resolution: 1000
+    polarization: [0, -60, 60]
+    standard_name: latitude
+    units: degree
+    file_key: Geometry_data/Latitude
+    file_type: gcom-c_l1b_p
+
+  longitude_ir:
+    name: longitude_ir
+    resolution: [250, 500, 1000]
+    standard_name: longitude
+    units: degree
+    file_key: Geometry_data/Longitude
+    file_type: gcom-c_l1b_ir
+
+  latitude_ir:
+    name: latitude_ir
+    resolution: [250, 500, 1000]
+    standard_name: latitude
+    units: degree
+    file_key: Geometry_data/Latitude
+    file_type: gcom-c_l1b_ir
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: sgli
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: [250, 1000]
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Geometry_data/Solar_zenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: sgli
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: [250, 1000]
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Geometry_data/Solar_azimuth
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: sgli
+    units: degree
+    standard_name: satellite_zenith_angle
+    resolution: [250, 1000]
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Geometry_data/Sensor_zenith
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: sgli
+    units: degree
+    standard_name: satellite_azimuth_angle
+    resolution: [250, 1000]
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Geometry_data/Sensor_azimuth
+
+
+  VN1:
+    name: VN1
+    sensor: sgli
+    wavelength: [0.375, 0.38, 0.385]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN01
+
+  VN2:
+    name: VN2
+    sensor: sgli
+    wavelength: [0.407, 0.412, 0.417]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN02
+
+
+  VN3:
+    name: VN3
+    sensor: sgli
+    wavelength: [0.438, 0.443, 0.448]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN03
+
+  VN4:
+    name: VN4
+    sensor: sgli
+    wavelength: [0.485,0.49,0.495]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN04
+
+
+  VN5:
+    name: VN5
+    sensor: sgli
+    wavelength: [0.520, 0.530, 0.540]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN05
+
+  VN6:
+    name: VN6
+    sensor: sgli
+    wavelength: [0.555, 0.565, 0.575]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN06
+
+  VN7:
+    name: VN7
+    sensor: sgli
+    wavelength: [0.6635, 0.6735, 0.6835]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN07
+
+  VN8:
+    name: VN8
+    sensor: sgli
+    wavelength: [0.6635, 0.6735, 0.6835]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN08
+
+  VN9:
+    name: VN9
+    sensor: sgli
+    wavelength: [0.757, 0.763, 0.769]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN09
+
+  VN10:
+    name: VN10
+    sensor: sgli
+    wavelength: [0.8585, 0.8685, 0.8785]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN10
+
+  VN11:
+    name: VN11
+    sensor: sgli
+    wavelength: [0.8585, 0.8685, 0.8785]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN11
+
+  P1:
+    name: P1
+    sensor: sgli
+    wavelength: [0.6635, 0.6735, 0.6835]
+    resolution: 1000
+    polarization: [0, -60, 60]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_p, latitude_p]
+    file_type: gcom-c_l1b_p
+    file_key: Image_data/Lt_P1_{polarization}
+
+  P2:
+    name: P2
+    sensor: sgli
+    wavelength: [0.8585, 0.8685, 0.8785]
+    resolution: 1000
+    polarization: [0, -60, 60]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_p, latitude_p]
+    file_type: gcom-c_l1b_p
+    file_key: Image_data/Lt_P2_{polarization}
+
+  SW1:
+    name: SW1
+    sensor: sgli
+    wavelength: [1.04, 1.05, 1.05]
+    resolution: 1000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_ir, latitude_ir]
+    file_type: gcom-c_l1b_ir
+    file_key: Image_data/Lt_SW01
+
+  SW2:
+    name: SW2
+    sensor: sgli
+    wavelength: [1.37, 1.38, 1.39]
+    resolution: 1000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_ir, latitude_ir]
+    file_type: gcom-c_l1b_ir
+    file_key: Image_data/Lt_SW02
+
+  SW3:
+    name: SW3
+    sensor: sgli
+    wavelength: [1.53, 1.63, 1.73]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_ir, latitude_ir]
+    file_type: gcom-c_l1b_ir
+    file_key: Image_data/Lt_SW03
+
+  SW4:
+    name: SW4
+    sensor: sgli
+    wavelength: [2.185, 2.21, 2.235]
+    resolution: 1000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_ir, latitude_ir]
+    file_type: gcom-c_l1b_ir
+    file_key: Image_data/Lt_SW04
+
+  T1:
+    name: T1
+    sensor: sgli
+    wavelength: [10.45, 10.8, 11.15]
+    resolution: [250, 500, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+
+    coordinates: [longitude_ir, latitude_ir]
+    file_type: gcom-c_l1b_ir
+    file_key: Image_data/Lt_TI01
+
+  T2:
+    name: T2
+    sensor: sgli
+    wavelength: [11.65, 12.0, 12.35]
+    resolution: [250, 500, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+
+    coordinates: [longitude_ir, latitude_ir]
+    file_type: gcom-c_l1b_ir
+    file_key: Image_data/Lt_TI02

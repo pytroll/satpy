@@ -89,6 +89,7 @@ datasets:
             - latitude
         file_type: avhrr_eps
 
+
     latitude:
         name: latitude
         resolution: 1050
@@ -126,6 +127,13 @@ datasets:
 
     satellite_azimuth_angle:
         name: satellite_azimuth_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    cloud_flags:
+        name: cloud_flags
         sensor: avhrr-3
         resolution: 1050
         coordinates: [longitude, latitude]

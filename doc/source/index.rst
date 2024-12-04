@@ -7,11 +7,11 @@ remote-sensing earth-observing satellite instruments. Satpy
 provides users with readers that convert geophysical parameters from various
 file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
-scientific python libraries. Satpy also provides interfaces for creating
-RGB (Red/Green/Blue) images and other composite types by combining data
-from multiple instrument bands or products. Various atmospheric corrections
-and visual enhancements are provided for improving the usefulness and quality
-of output images. Output data can be written to
+scientific python libraries. For a full list of available readers see :ref:`reader_table`.
+Satpy also provides interfaces for creating RGB (Red/Green/Blue) images and other
+composite types by combining data from multiple instrument bands or products.
+Various atmospheric corrections and visual enhancements are provided for
+improving the usefulness and quality of output images. Output data can be written to
 multiple output file formats such as PNG, GeoTIFF, and CF standard NetCDF
 files. Satpy also allows users to resample data to geographic projected grids
 (areas). Satpy is maintained by the open source
@@ -40,11 +40,19 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
-.. versionchanged:: 0.20.0
-
-    Dropped Python 2 support.
-
 .. _project: http://github.com/pytroll/satpy
+
+
+Getting Help
+============
+
+Having trouble installing or using Satpy? Feel free to ask questions at
+any of the contact methods for the PyTroll group
+`here <https://pytroll.github.io/#getting-in-touch>`_ or file an issue on
+`Satpy's GitHub page <https://github.com/pytroll/satpy/issues>`_.
+
+Documentation
+=============
 
 .. toctree::
     :maxdepth: 2
@@ -55,12 +63,12 @@ the base Satpy installation.
     data_download
     examples/index
     quickstart
-    readers
+    reading
     remote_reading
     composites
     resample
     enhancements
-    writers
+    writing
     multiscene
     dev_guide/index
 
@@ -72,10 +80,11 @@ the base Satpy installation.
     Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
-.. _reader_table:
 
-.. include:: reader_table.rst
+.. note::
 
+    Please note that the reader table that used to be placed here has moved to the "reading"
+    section here:  :ref:`reader_table`.
 
 Indices and tables
 ==================

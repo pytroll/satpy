@@ -19,54 +19,52 @@
 
 import numpy as np
 
-from satpy.composites import ColormapCompositor, GenericCompositor
+from satpy.composites import GenericCompositor, SingleBandCompositor
 
 
-class CloudTopHeightCompositor(ColormapCompositor):
-    """Colorize with a palette, put cloud-free pixels as black."""
-
-    @staticmethod
-    def build_colormap(palette, info):
-        """Create the colormap from the `raw_palette` and the valid_range."""
-        from trollimage.colormap import Colormap
-        if 'palette_meanings' in palette.attrs:
-            palette_indices = palette.attrs['palette_meanings']
-        else:
-            palette_indices = range(len(palette))
-
-        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
-        tups = [(val, tuple(tup))
-                for (val, tup) in zip(palette_indices, squeezed_palette)]
-        colormap = Colormap(*tups)
-        if 'palette_meanings' not in palette.attrs:
-            sf = info.get('scale_factor', np.array(1))
-            colormap.set_range(
-                *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
-
-        return colormap, squeezed_palette
+class CloudCompositorWithoutCloudfree(SingleBandCompositor):
+    """Put cloud-free pixels as fill_value_color in palette."""
 
     def __call__(self, projectables, **info):
         """Create the composite."""
-        if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" %
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-        data, palette, status = projectables
-        fill_value_color = palette.attrs.get("fill_value_color", [0, 0, 0])
-        colormap, palette = self.build_colormap(palette, data.attrs)
-        mapped_channels = colormap.colorize(data.data)
-        valid = status != status.attrs['_FillValue']
-        # cloud-free pixels are marked invalid (fill_value in ctth_alti) but have status set to 1.
-        status_not_cloud_free = status % 2 == 0
-        not_cloud_free = np.logical_or(status_not_cloud_free, np.logical_not(valid))
+        data, status = projectables
+        valid = status != status.attrs["_FillValue"]
+        status_cloud_free = status % 2 == 1  # bit 0 is set
+        cloud_free = np.logical_and(valid, status_cloud_free)
+        if "bad_optical_conditions" in status.attrs.get("flag_meanings", "") and data.name == "cmic_cre":
+            bad_optical_conditions = np.bitwise_and(np.right_shift(status, 1), 1)
+            cloud_free = np.logical_and(cloud_free, np.logical_not(bad_optical_conditions))
+        # Where condition is true keep data, in other place update to scaled_FillValue:
+        data = data.where(np.logical_not(cloud_free), data.attrs["scaled_FillValue"])
+        # Update not cloudfree product and nodata to NaN (already done for scaled vars in the reader)
+        # Keep cloudfree or valid product
+        data = data.where(np.logical_or(cloud_free, data != data.attrs["scaled_FillValue"]), np.nan)
+        res = SingleBandCompositor.__call__(self, [data], **data.attrs)
+        res.attrs["_FillValue"] = np.nan
+        return res
 
-        channels = []
-        for (channel, cloud_free_color) in zip(mapped_channels, fill_value_color):
-            channel_data = self._create_masked_dataarray_like(channel, data, valid)
-            # Set cloud-free pixels as fill_value_color
-            channels.append(channel_data.where(not_cloud_free, cloud_free_color))
 
-        res = GenericCompositor.__call__(self, channels, **data.attrs)
-        res.attrs['_FillValue'] = np.nan
+class CloudCompositorCommonMask(SingleBandCompositor):
+    """Put cloud-free pixels as fill_value_color in palette."""
+
+    def __call__(self, projectables, **info):
+        """Create the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
+                             (len(projectables), ))
+        data, cma = projectables
+        valid_cma = cma != cma.attrs["_FillValue"]
+        valid_prod = data != data.attrs["_FillValue"]
+        valid_prod = np.logical_and(valid_prod, np.logical_not(np.isnan(data)))
+        # Update valid_cma and not valid_prod means: keep not valid cma or valid prod
+        data = data.where(np.logical_or(np.logical_not(valid_cma), valid_prod),
+                          data.attrs["scaled_FillValue"])
+        data = data.where(np.logical_or(valid_prod, valid_cma), np.nan)
+        res = SingleBandCompositor.__call__(self, [data], **data.attrs)
+        res.attrs["_FillValue"] = np.nan
         return res
 
 
@@ -97,15 +95,15 @@ class PrecipCloudsRGB(GenericCompositor):
         scalef1 = 1.0 / maxs1 - 1 / 255.0
 
         p1data = (light*scalef1).where(light != 0)
-        p1data = p1data.where(light != light.attrs['_FillValue'])
+        p1data = p1data.where(light != light.attrs["_FillValue"])
         p1data.attrs = light.attrs
         data = moderate*scalef2
         p2data = data.where(moderate != 0)
-        p2data = p2data.where(moderate != moderate.attrs['_FillValue'])
+        p2data = p2data.where(moderate != moderate.attrs["_FillValue"])
         p2data.attrs = moderate.attrs
         data = intense*scalef3
         p3data = data.where(intense != 0)
-        p3data = p3data.where(intense != intense.attrs['_FillValue'])
+        p3data = p3data.where(intense != intense.attrs["_FillValue"])
         p3data.attrs = intense.attrs
 
         res = super(PrecipCloudsRGB, self).__call__((p3data, p2data, p1data),

@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Advanced Technology Microwave Sounder (ATMS) Level 1B product reader.
 
 The format is explained in the `ATMS L1B Product User Guide`_
@@ -21,14 +22,14 @@ The format is explained in the `ATMS L1B Product User Guide`_
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
-DATE_FMT = '%Y-%m-%dT%H:%M:%SZ'
+DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 class AtmsL1bNCFileHandler(NetCDF4FileHandler):
@@ -43,12 +44,12 @@ class AtmsL1bNCFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get observation start time."""
-        return datetime.strptime(self['/attr/time_coverage_start'], DATE_FMT)
+        return dt.datetime.strptime(self["/attr/time_coverage_start"], DATE_FMT)
 
     @property
     def end_time(self):
         """Get observation end time."""
-        return datetime.strptime(self['/attr/time_coverage_end'], DATE_FMT)
+        return dt.datetime.strptime(self["/attr/time_coverage_end"], DATE_FMT)
 
     @property
     def platform_name(self):
@@ -113,8 +114,8 @@ class AtmsL1bNCFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        name = dataset_id['name']
-        logger.debug(f'Reading in file to get dataset with name {name}.')
+        name = dataset_id["name"]
+        logger.debug(f"Reading in file to get dataset with name {name}.")
         dataset = self._select_dataset(name)
         dataset = self._merge_attributes(dataset, ds_info)
         dataset = self._drop_coords(dataset)

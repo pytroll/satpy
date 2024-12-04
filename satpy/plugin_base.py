@@ -60,5 +60,5 @@ class Plugin(object):
 
     def load_yaml_config(self, conf):
         """Load a YAML configuration file and recursively update the overall configuration."""
-        with open(conf, 'r', encoding='utf-8') as fd:
+        with open(conf, "r", encoding="utf-8") as fd:
             self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))

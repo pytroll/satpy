@@ -43,17 +43,17 @@ class HighlightCompositor(GenericCompositor):
 
     """
 
-    def __init__(self, name, min_highlight=0.0, max_highlight=10.0,
+    def __init__(self, name, min_highlight=0.0, max_highlight=10.0,  # noqa: D417
                  max_factor=(0.8, 0.8, -0.8, 0), **kwargs):
         """Initialize composite with highlight factor options.
 
         Args:
             min_highlight (float): Minimum raw value of the "highlight" data
                 that will be used for linearly scaling the data along with
-                ``max_hightlight``.
+                ``max_highlight``.
             max_highlight (float): Maximum raw value of the "highlight" data
                 that will be used for linearly scaling the data along with
-                ``min_hightlight``.
+                ``min_highlight``.
             max_factor (tuple): Maximum effect that the highlight data can
                 have on each channel of the primary image data. This will be
                 multiplied by the linearly scaled highlight data and then
@@ -61,8 +61,8 @@ class HighlightCompositor(GenericCompositor):
                 docstring for more information. By default this is set to
                 ``(0.8, 0.8, -0.8, 0)`` meaning the Red and Green channel
                 will be added to by at most 0.8, the Blue channel will be
-                subtracted from by at most 0.8, and the Alpha channel will
-                not be effected.
+                subtracted from by at most 0.8 (resulting in yellow highlights),
+                and the Alpha channel will not be affected.
 
         """
         self.min_highlight = min_highlight
@@ -74,7 +74,7 @@ class HighlightCompositor(GenericCompositor):
     def _get_enhanced_background_data(background_layer):
         img = get_enhanced_image(background_layer)
         img.data = img.data.clip(0.0, 1.0)
-        img = img.convert('RGBA')
+        img = img.convert("RGBA")
         return img.data
 
     def _get_highlight_factor(self, highlight_data):
@@ -93,10 +93,10 @@ class HighlightCompositor(GenericCompositor):
 
     def _update_attrs(self, new_data, background_layer, highlight_layer):
         new_data.attrs = background_layer.attrs.copy()
-        new_data.attrs['units'] = 1
+        new_data.attrs["units"] = 1
         new_sensors = self._get_sensors((highlight_layer, background_layer))
         new_data.attrs.update({
-            'sensor': new_sensors,
+            "sensor": new_sensors,
         })
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
@@ -107,7 +107,7 @@ class HighlightCompositor(GenericCompositor):
         # Adjust the colors of background by highlight layer
         factor = self._get_highlight_factor(highlight_product)
         new_channels = self._apply_highlight_effect(background_data, factor)
-        new_data = xr.concat(new_channels, dim='bands')
+        new_data = xr.concat(new_channels, dim="bands")
         self._update_attrs(new_data, background_layer,
                            highlight_product)
         return super(HighlightCompositor, self).__call__((new_data,), **attrs)

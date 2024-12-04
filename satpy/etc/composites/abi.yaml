@@ -36,7 +36,7 @@ composites:
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected_crefl]
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_raw:
@@ -537,7 +537,7 @@ composites:
           - name: C13
     standard_name: snow
 
-  night_microphysics_abi:
+  night_microphysics:
     description: >
       Nighttime Microphysics RGB, for GOESR: NASA, NOAA
     references:
@@ -553,6 +553,22 @@ composites:
           - name: C13
           - name: C07
       - name: C13
+    standard_name: night_microphysics
+
+  night_microphysics_eum:
+    description: >
+      Nighttime Microphysics RGB following the EUMETSAT recipe
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C15
+          - name: C14
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C14
+          - name: C07
+      - name: C14
     standard_name: night_microphysics
 
   fire_temperature_awips:
@@ -694,7 +710,7 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected]
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green
@@ -705,3 +721,88 @@ composites:
     prerequisites:
       - name: C14
     standard_name: highlighted_toa_brightness_temperature
+
+  true_color_reproduction:
+    # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
+    # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_reproduction
+    lim_low: 77.
+    lim_high: 88.
+    prerequisites:
+      - true_color_reproduction_corr
+      - true_color_reproduction_uncorr
+
+  true_color_reproduction_corr:
+    # JMA True Color Reproduction corrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction_color_stretch
+
+  true_color_reproduction_uncorr:
+    # JMA True Color Reproduction uncorrected composite.
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C02
+      - name: green_nocorr
+      - name: C01
+    standard_name: true_color_reproduction_color_stretch
+
+  # GeoColor
+  geo_color:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    description: >
+      GeoColor is a multi-layer blended RGB composite where the day-time part of the image is represented by true
+      color imagery and the nighttime part of the image by a three layer vertically blended stack composed of a
+      high-level cloud layer (single IR window channel), a low-level cloud layer (IR split window) and a static
+      surface terrain layer with city lights (NASA Black Marble).
+    references:
+      Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
+    lim_low: 78
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color
+      - geo_color_night
+
+  # GeoColor Night-time
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    compositor: !!python/name:satpy.composites.HighCloudCompositor
+    prerequisites:
+      - name: C13
+
+  geo_color_low_clouds:
+    standard_name: geo_color_low_clouds
+    compositor: !!python/name:satpy.composites.LowCloudCompositor
+    values_water: 0
+    values_land: 100
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C13
+          - name: C07
+      - name: C13
+      - compositor: !!python/name:satpy.composites.StaticImageCompositor
+        standard_name: land_water_mask
+        url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
+        known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+
+  geo_color_background_with_low_clouds:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - _night_background_hires
+
+  geo_color_night:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_background_with_low_clouds

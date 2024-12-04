@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """EUMETSAT EPS-SG Ice Cloud Imager (ICI) Level 1B products reader.
 
 The format is explained in the
@@ -26,8 +27,8 @@ This version is applicable for the ici test data released in Jan 2021.
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 from enum import Enum
 from functools import cached_property
 
@@ -65,26 +66,26 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             filename, filename_info, filetype_info, auto_maskandscale=True,
         )
         # Read the variables which are required for the calibration
-        measurement = 'data/measurement_data'
-        self._bt_conversion_a = self[f'{measurement}/bt_conversion_a'].values
-        self._bt_conversion_b = self[f'{measurement}/bt_conversion_b'].values
-        self._channel_cw = self[f'{measurement}/centre_wavenumber'].values
+        measurement = "data/measurement_data"
+        self._bt_conversion_a = self[f"{measurement}/bt_conversion_a"].values
+        self._bt_conversion_b = self[f"{measurement}/bt_conversion_b"].values
+        self._channel_cw = self[f"{measurement}/centre_wavenumber"].values
         self._n_samples = self[measurement].n_samples.size
         self._filetype_info = filetype_info
-        self.orthorect = filetype_info.get('orthorect', True)
+        self.orthorect = filetype_info.get("orthorect", True)
 
     @property
     def start_time(self):
         """Get observation start time."""
         try:
-            start_time = datetime.strptime(
-                self['/attr/sensing_start_time_utc'],
-                '%Y%m%d%H%M%S.%f',
+            start_time = dt.datetime.strptime(
+                self["/attr/sensing_start_time_utc"],
+                "%Y%m%d%H%M%S.%f",
             )
         except ValueError:
-            start_time = datetime.strptime(
-                self['/attr/sensing_start_time_utc'],
-                '%Y-%m-%d %H:%M:%S.%f',
+            start_time = dt.datetime.strptime(
+                self["/attr/sensing_start_time_utc"],
+                "%Y-%m-%d %H:%M:%S.%f",
             )
         return start_time
 
@@ -92,26 +93,26 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def end_time(self):
         """Get observation end time."""
         try:
-            end_time = datetime.strptime(
-                self['/attr/sensing_end_time_utc'],
-                '%Y%m%d%H%M%S.%f',
+            end_time = dt.datetime.strptime(
+                self["/attr/sensing_end_time_utc"],
+                "%Y%m%d%H%M%S.%f",
             )
         except ValueError:
-            end_time = datetime.strptime(
-                self['/attr/sensing_end_time_utc'],
-                '%Y-%m-%d %H:%M:%S.%f',
+            end_time = dt.datetime.strptime(
+                self["/attr/sensing_end_time_utc"],
+                "%Y-%m-%d %H:%M:%S.%f",
             )
         return end_time
 
     @property
     def platform_name(self):
         """Return platform name."""
-        return self['/attr/spacecraft']
+        return self["/attr/spacecraft"]
 
     @property
     def sensor(self):
         """Return sensor."""
-        return self['/attr/instrument']
+        return self["/attr/instrument"]
 
     @property
     def ssp_lon(self):
@@ -176,8 +177,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         latitude,
         n_samples,
     ):
-        """
-        Perform the interpolation of geographic coordinates from tie points to pixel points.
+        """Perform the interpolation of geographic coordinates from tie points to pixel points.
 
         Args:
             longitude: xarray DataArray containing the longitude dataset to
@@ -198,7 +198,10 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         n_subs = longitude.n_subs
         lons = da.zeros((n_scan.size, n_samples, horns.size))
         lats = da.zeros((n_scan.size, n_samples, horns.size))
-        n_subs = np.linspace(0, n_samples - 1, n_subs.size).astype(int)
+        n_subs = np.append(
+            np.arange(0, n_samples, np.ceil(n_samples / n_subs.size)),
+            n_samples - 1
+        ).astype(int)
         for horn in horns.values:
             satint = GeoInterpolator(
                 (longitude.values[:, :, horn], latitude.values[:, :, horn]),
@@ -208,7 +211,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             lons_horn, lats_horn = satint.interpolate()
             lons[:, :, horn] = lons_horn
             lats[:, :, horn] = lats_horn
-        dims = ['y', 'x', third_dim_name]
+        dims = ["y", "x", third_dim_name]
         lon = xr.DataArray(
             lons,
             attrs=longitude.attrs,
@@ -229,8 +232,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         zenith,
         n_samples,
     ):
-        """
-        Perform the interpolation of angular coordinates from tie points to pixel points.
+        """Perform the interpolation of angular coordinates from tie points to pixel points.
 
         Args:
             azimuth: xarray DataArray containing the azimuth angle dataset to
@@ -258,16 +260,16 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         """Interpolate from tie points to pixel points."""
         try:
             if interpolation_type is InterpolationType.SOLAR_ANGLES:
-                var_key1 = self.filetype_info['solar_azimuth']
-                var_key2 = self.filetype_info['solar_zenith']
+                var_key1 = self.filetype_info["solar_azimuth"]
+                var_key2 = self.filetype_info["solar_zenith"]
                 interp_method = self._interpolate_viewing_angle
             elif interpolation_type is InterpolationType.OBSERVATION_ANGLES:
-                var_key1 = self.filetype_info['observation_azimuth']
-                var_key2 = self.filetype_info['observation_zenith']
+                var_key1 = self.filetype_info["observation_azimuth"]
+                var_key2 = self.filetype_info["observation_zenith"]
                 interp_method = self._interpolate_viewing_angle
             else:
-                var_key1 = self.filetype_info['longitude']
-                var_key2 = self.filetype_info['latitude']
+                var_key1 = self.filetype_info["longitude"]
+                var_key2 = self.filetype_info["latitude"]
                 interp_method = self._interpolate_geo
             return interp_method(
                 self[var_key1],
@@ -275,7 +277,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 self._n_samples,
             )
         except KeyError:
-            logger.warning(f'Datasets for {interpolation_type.name} interpolation not correctly defined in YAML file')  # noqa: E501
+            logger.warning(f"Datasets for {interpolation_type.name} interpolation not correctly defined in YAML file")  # noqa: E501
         return None, None
 
     @staticmethod
@@ -308,18 +310,18 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 original metadata.
 
         """
-        calibration_name = dataset_info['calibration']
-        if calibration_name == 'brightness_temperature':
-            chan_index = dataset_info['chan_index']
+        calibration_name = dataset_info["calibration"]
+        if calibration_name == "brightness_temperature":
+            chan_index = dataset_info["chan_index"]
             cw = self._channel_cw[chan_index]
             a = self._bt_conversion_a[chan_index]
             b = self._bt_conversion_b[chan_index]
             calibrated_variable = self._calibrate_bt(variable, cw, a, b)
             calibrated_variable.attrs = variable.attrs
-        elif calibration_name == 'radiance':
+        elif calibration_name == "radiance":
             calibrated_variable = variable
         else:
-            raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info['name']))  # noqa: E501
+            raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info["name"]))  # noqa: E501
 
         return calibrated_variable
 
@@ -345,18 +347,18 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             orthorect_data = orthorect_data.sel({dim: variable[dim]})
             variable += np.degrees(orthorect_data.values / MEAN_EARTH_RADIUS)
         except KeyError:
-            logger.warning('Required dataset %s for orthorectification not available, skipping', orthorect_data_name)  # noqa: E501
+            logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)  # noqa: E501
         return variable
 
     @staticmethod
     def _standardize_dims(variable):
         """Standardize dims to y, x."""
-        if 'n_scan' in variable.dims:
-            variable = variable.rename({'n_scan': 'y'})
-        if 'n_samples' in variable.dims:
-            variable = variable.rename({'n_samples': 'x'})
-        if variable.dims[0] == 'x':
-            variable = variable.transpose('y', 'x')
+        if "n_scan" in variable.dims:
+            variable = variable.rename({"n_scan": "y"})
+        if "n_samples" in variable.dims:
+            variable = variable.rename({"n_samples": "x"})
+        if variable.dims[0] == "x":
+            variable = variable.transpose("y", "x")
         return variable
 
     def _filter_variable(self, variable, dataset_info):
@@ -385,12 +387,12 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def _fetch_variable(self, var_key):
         """Fetch variable."""
         if var_key in [
-            'longitude',
-            'latitude',
-            'observation_zenith',
-            'observation_azimuth',
-            'solar_zenith',
-            'solar_azimuth',
+            "longitude",
+            "latitude",
+            "observation_zenith",
+            "observation_azimuth",
+            "solar_zenith",
+            "solar_azimuth",
         ] and getattr(self, var_key) is not None:
             variable = getattr(self, var_key).copy()
         else:
@@ -399,18 +401,18 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using file_key in dataset_info."""
-        var_key = dataset_info['file_key']
-        logger.debug(f'Reading in file to get dataset with key {var_key}.')
+        var_key = dataset_info["file_key"]
+        logger.debug(f"Reading in file to get dataset with key {var_key}.")
         try:
             variable = self._fetch_variable(var_key)
         except KeyError:
-            logger.warning(f'Could not find key {var_key} in NetCDF file, no valid Dataset created')  # noqa: E501
+            logger.warning(f"Could not find key {var_key} in NetCDF file, no valid Dataset created")  # noqa: E501
             return None
         variable = self._filter_variable(variable, dataset_info)
-        if dataset_info.get('calibration') is not None:
+        if dataset_info.get("calibration") is not None:
             variable = self._calibrate(variable, dataset_info)
         if self.orthorect:
-            orthorect_data_name = dataset_info.get('orthorect_data', None)
+            orthorect_data_name = dataset_info.get("orthorect_data", None)
             if orthorect_data_name is not None:
                 variable = self._orthorectify(variable, orthorect_data_name)
         variable = self._manage_attributes(variable, dataset_info)
@@ -420,7 +422,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
     def _manage_attributes(self, variable, dataset_info):
         """Manage attributes of the dataset."""
-        variable.attrs.setdefault('units', None)
+        variable.attrs.setdefault("units", None)
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
         return variable
@@ -428,21 +430,21 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def _get_global_attributes(self):
         """Create a dictionary of global attributes."""
         return {
-            'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.platform_name,
-            'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor,
-            'filename_start_time': self.filename_info['sensing_start_time'],
-            'filename_end_time': self.filename_info['sensing_end_time'],
-            'platform_name': self.platform_name,
-            'quality_group': self._get_quality_attributes(),
+            "filename": self.filename,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "spacecraft_name": self.platform_name,
+            "ssp_lon": self.ssp_lon,
+            "sensor": self.sensor,
+            "filename_start_time": self.filename_info["sensing_start_time"],
+            "filename_end_time": self.filename_info["sensing_end_time"],
+            "platform_name": self.platform_name,
+            "quality_group": self._get_quality_attributes(),
         }
 
     def _get_quality_attributes(self):
         """Get quality attributes."""
-        quality_group = self['quality']
+        quality_group = self["quality"]
         quality_dict = {}
         for key in quality_group:
             # Add the values (as Numpy array) of each variable in the group
