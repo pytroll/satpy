@@ -306,7 +306,6 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         """Retrieve the projection configuration details."""
         # We retrieve the projection variable name directly from our swath settings:
         proj_var = self.swath_coordinates["projection"]
-        logger.error(proj_var)
         geos_proj = self.get_measured_variable(proj_var, fill_value=None)
         # cast projection attributes to float/str:
         major_axis = float(geos_proj.attrs["semi_major_axis"])
