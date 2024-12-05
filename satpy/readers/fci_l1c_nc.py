@@ -182,6 +182,18 @@ def _get_channel_name_from_dsname(dsname):
 
     return channel_name
 
+# Platform names according to the MTG FCI L1 Product User Guide,
+# EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+# MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+# MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+#
+# Not sure how the numbering will be considering MTG-S1 and MTG-S2 will be launched
+# in-between.
+_platform_name_translate = {
+    "MTI1": "Meteosat-12",
+    "MTI2": "MTG-I2",
+    "MTI3": "MTG-I3",
+    "MTI4": "MTG-I4"}
 
 class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
@@ -193,21 +205,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
-
-    # Platform names according to the MTG FCI L1 Product User Guide,
-    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
-    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
-    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
-    #
-    # After launch: translate to METEOSAT-xx instead?  Not sure how the
-    # numbering will be considering MTG-S1 and MTG-S2 will be launched
-    # in-between.
-    _platform_name_translate = {
-        "MTI1": "MTG-I1",
-        "MTI2": "MTG-I2",
-        "MTI3": "MTG-I3",
-        "MTI4": "MTG-I4"}
-
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
         super().__init__(filename, filename_info,

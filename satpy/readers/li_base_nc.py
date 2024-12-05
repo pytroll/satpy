@@ -191,6 +191,7 @@ import numpy as np
 import xarray as xr
 from pyproj import Proj
 
+from satpy.readers.fci_l1c_nc import _platform_name_translate
 from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
@@ -516,11 +517,13 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
 
         ds_name = var_name if oc_name is None else f"{var_name}_{oc_name}_sector"
 
+        platform = self.filename_info["mission_prefix"] + "I" + self.filename_info["spacecraft_id"]
+
         ds_info = {
             "name": ds_name,
             "variable_name": var_name,
             "sensor": "li",
-            "platform_name": "MTG-I1",
+            "platform_name": _platform_name_translate[platform],
             "file_type": self.filetype_info["file_type"]
         }
 
