@@ -33,10 +33,10 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
     EQUATOR_RADIUS,
     POLE_RADIUS,
-    DatasetWrapper,
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
     Interpolator,
+    preprocess_dataset,
 )
 from satpy.tests.utils import make_dataid
 
@@ -256,6 +256,7 @@ area_ir_wv_exp = area_vis_exp.copy(
     height=2
 )
 
+
 @pytest.fixture(name="time_fake_dataset")
 def fixture_time_fake_dataset():
     """Create time for fake dataset."""
@@ -265,6 +266,7 @@ def fixture_time_fake_dataset():
     time = time.reshape(2, 2)
 
     return time
+
 
 @pytest.fixture(name="fake_dataset")
 def fixture_fake_dataset(time_fake_dataset):
@@ -346,28 +348,34 @@ def fixture_projection_longitude(request):
     return request.param
 
 
+@pytest.fixture(name="fake_file")
+def fixture_fake_file(fake_dataset, tmp_path):
+    """Create test file."""
+    filename = tmp_path / "test_mviri_fiduceo.nc"
+    fake_dataset.to_netcdf(filename)
+    return filename
+
+
 @pytest.fixture(
     name="file_handler",
     params=[FiduceoMviriEasyFcdrFileHandler,
             FiduceoMviriFullFcdrFileHandler]
 )
-def fixture_file_handler(fake_dataset, request, projection_longitude):
+def fixture_file_handler(fake_file, request, projection_longitude):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
     if marker:
         mask_bad_quality = marker.kwargs["mask_bad_quality"]
     fh_class = request.param
-    with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.xr.open_dataset") as open_dataset:
-        open_dataset.return_value = fake_dataset
-        return fh_class(
-            filename="filename",
-            filename_info={"platform": "MET7",
-                           "sensor": "MVIRI",
-                           "projection_longitude": projection_longitude},
-            filetype_info={"foo": "bar"},
-            mask_bad_quality=mask_bad_quality
-        )
+    return fh_class(
+        filename=fake_file,
+        filename_info={"platform": "MET7",
+                       "sensor": "MVIRI",
+                       "projection_longitude": projection_longitude},
+        filetype_info={"foo": "bar"},
+        mask_bad_quality=mask_bad_quality
+    )
 
 
 @pytest.fixture(name="reader")
@@ -384,7 +392,6 @@ def fixture_reader():
 
 class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
-
 
     @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
     def test_init(self, file_handler, projection_longitude):
@@ -435,11 +442,8 @@ class TestFiduceoMviriFileHandlers:
 
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
-        # Time may have different names and satellite position might be missing
-        file_handler.nc.nc = file_handler.nc.nc.rename(
-            {"time_ir_wv": "time"}
-        )
-        file_handler.nc.nc = file_handler.nc.nc.drop_vars(
+        # Satellite position might be missing
+        file_handler.nc.ds = file_handler.nc.ds.drop_vars(
             ["sub_satellite_longitude_start"]
         )
 
@@ -564,7 +568,7 @@ class TestFiduceoMviriFileHandlers:
     @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):
         """Test warning about bad VIS quality."""
-        file_handler.nc.nc["quality_pixel_bitmask"] = 2
+        file_handler.nc.ds["quality_pixel_bitmask"] = 2
         vis = make_dataid(name="VIS", resolution=2250,
                           calibration="reflectance")
         with pytest.warns(UserWarning):
@@ -586,75 +590,56 @@ class TestFiduceoMviriFileHandlers:
         assert len(files) == 6
 
 
-class TestDatasetWrapper:
-    """Unit tests for DatasetWrapper class."""
+class TestDatasetPreprocessor:
+    """Test dataset preprocessing."""
 
-    def test_fix_duplicate_dimensions(self):
-        """Test the renaming of duplicate dimensions.
+    @pytest.fixture(name="dataset")
+    def fixture_dataset(self):
+        """Get dataset before preprocessing.
 
-        If duplicate dimensions are within the Dataset, opening the datasets with chunks throws a warning.
-        The dimensions need to be renamed.
+        - Encoded timestamps including fill values
+        - Duplicate dimension names
+        - x/y coordinates not assigned
         """
-        foo_time = 60*60
-        foo_time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
-
-        foo = xr.Dataset(
+        time = 60*60
+        return xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
-                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time, foo_time], [foo_time, foo_time]],
+                "time_ir_wv": (("y", "x"), [[time, fill_val], [time, time]],
                                {"_FillValue": fill_val, "add_offset": 0})
-                       }
+            }
         )
-        foo_ds = DatasetWrapper(foo)
 
-        foo_exp = xr.Dataset(
+    @pytest.fixture(name="dataset_exp")
+    def fixture_dataset_exp(self):
+        """Get expected dataset after preprocessing.
+
+        - Timestamps should have been converted to datetime64
+        - Time dimension should have been renamed
+        - Duplicate dimensions should have been removed
+        - x/y coordinates should have been assigned
+        """
+        time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
+        return xr.Dataset(
             data_vars={
                 "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
-                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), [[foo_time_exp, foo_time_exp], [foo_time_exp, foo_time_exp]])
-            }
-        )
-
-        xr.testing.assert_allclose(foo_ds.nc, foo_exp)
-
-    def test_reassign_coords(self):
-        """Test reassigning of coordinates.
-
-        For some reason xarray does not always assign (y, x) coordinates to
-        the high resolution datasets, although they have dimensions (y, x) and
-        coordinates y and x exist. A dataset with these properties seems
-        impossible to create (neither dropping, resetting or deleting
-        coordinates seems to work). Instead use mock as a workaround.
-        """
-        nc = mock.MagicMock(
-            coords={
-                "y": [.1, .2],
-                "x": [.3, .4]
+                "time": (("y", "x"), [[time_exp, np.datetime64("NaT")], [time_exp, time_exp]])
             },
-            dims=("y", "x")
-        )
-        nc.__getitem__.return_value = xr.DataArray(
-            [[1, 2],
-             [3, 4]],
-            dims=("y", "x")
-        )
-        foo_exp = xr.DataArray(
-            [[1, 2],
-             [3, 4]],
-            dims=("y", "x"),
             coords={
-                "y": [.1, .2],
-                "x": [.3, .4]
+                "y": [0, 1],
+                "x": [0, 1]
             }
         )
-        with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.DatasetWrapper._fix_duplicate_dimensions"):
-           with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.DatasetWrapper._decode_cf"):
-            ds = DatasetWrapper(nc)
-            foo = ds["foo"]
-            xr.testing.assert_equal(foo, foo_exp)
+
+    def test_preprocess(self, dataset, dataset_exp):
+        """Test dataset preprocessing."""
+        preprocessed = preprocess_dataset(dataset)
+        xr.testing.assert_allclose(preprocessed, dataset_exp)
+
 
 class TestInterpolator:
     """Unit tests for Interpolator class."""
