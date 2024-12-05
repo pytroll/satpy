@@ -30,6 +30,7 @@ from satpy.readers.li_l2_nc import LI_GRID_SHAPE, LIL2NCFileHandler
 from satpy.readers.yaml_reader import load_yaml_configs
 from satpy.tests.reader_tests._li_test_utils import (
     FakeLIFileHandlerBase,
+    expected_product_dtype,
     extract_filetype_info,
     get_product_schema,
     products_dict,
@@ -94,7 +95,6 @@ class TestLIL2():
         """Check the loading of the non in sector variables."""
         assert "variables" in ds_desc
         all_vars = ds_desc["variables"]
-
         variables = settings.get("variables")
         for vname, desc in variables.items():
             # variable should be in list of dataset:
@@ -125,7 +125,10 @@ class TestLIL2():
     def _test_dataset_variable(self, var_params, sname=""):
         """Test the validity of a given (sector) variable."""
         dataset_info, desc, dname, handler, shape, var_path = var_params
+        product_type = handler.ds_desc["product_type"]
         res = self.get_variable_dataset(dataset_info, dname, handler)
+        resd = self.get_variable_dataset(None,dataset_info["name"], handler)
+        assert resd.dtype == expected_product_dtype[product_type][dname]
         assert res.shape == shape
         assert res.dims[0] == "y"
         # Should retrieve content with fullname key:
@@ -175,9 +178,8 @@ class TestLIL2():
                 "start_time": "0000",
                 "end_time": "1000"
             }
-
             handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, ftype),
-                                        with_area_definition=False)
+                                       with_area_definition=False)
             ds_desc = handler.ds_desc
 
             # retrieve the schema that what used to generate the content for that product:
@@ -275,10 +277,10 @@ class TestLIL2():
         handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         # Check variable paths:
-        var1 = handler.get_first_valid_variable(["dummy/path", "data/north/event_id"])
-        var2 = handler.get_first_valid_variable(["dummy/path", "data/east/event_id"])
-        var3 = handler.get_first_valid_variable(["dummy/path", "data/south/group_id"])
-        var4 = handler.get_first_valid_variable(["dummy/path", "data/west/group_id"])
+        var1 = handler.get_first_valid_variable(["dummy/path", "data/north/detector_column"])
+        var2 = handler.get_first_valid_variable(["dummy/path", "data/east/detector_column"])
+        var3 = handler.get_first_valid_variable(["dummy/path", "data/south/detector_row"])
+        var4 = handler.get_first_valid_variable(["dummy/path", "data/west/detector_row"])
 
         assert isinstance(var1, xr.DataArray)
         assert isinstance(var2, xr.DataArray)
@@ -290,15 +292,15 @@ class TestLIL2():
         assert id(var3) != id(var4)
 
         mix1 = handler.get_first_valid_variable(["dummy/path",
-                                                 "data/north/event_id",
-                                                 "data/east/event_id",
-                                                 "data/south/group_id"])
+                                                 "data/north/detector_column",
+                                                 "data/east/detector_column",
+                                                 "data/south/detector_row"])
 
         mix2 = handler.get_first_valid_variable(["dummy/path",
-                                                 "data/west/group_id",
-                                                 "data/north/event_id",
-                                                 "data/east/event_id",
-                                                 "data/south/group_id"])
+                                                 "data/west/detector_row",
+                                                 "data/north/detector_column",
+                                                 "data/east/detector_column",
+                                                 "data/south/detector_row"])
 
         # first mix should give us var1 and the second one var4:
         assert id(mix1) == id(var1)
@@ -307,8 +309,8 @@ class TestLIL2():
         # get the measured variables now:
         # Note that we must specify fill_value==None below otherwise
         # a new array is generated filling the invalid values:
-        meas1 = handler.get_measured_variable("east/event_id", fill_value=None)
-        meas2 = handler.get_measured_variable("south/group_id", fill_value=None)
+        meas1 = handler.get_measured_variable("east/detector_column", fill_value=None)
+        meas2 = handler.get_measured_variable("south/detector_row", fill_value=None)
 
         assert id(meas1) == id(var2)
         assert id(meas2) == id(var3)
@@ -632,6 +634,10 @@ class TestLIL2():
             elevation_vals = elevation.values * point_height
             azimuth_vals *= -1
             lon_ref, lat_ref = projection(azimuth_vals, elevation_vals, inverse=True)
+
+            # Convert lon_ref, lat_ref to a np.float32
+            lon_ref = lon_ref.astype(np.float32)
+            lat_ref = lat_ref.astype(np.float32)
 
             handler.generate_coords_from_scan_angles()
             lon = handler.internal_variables["longitude"].values
