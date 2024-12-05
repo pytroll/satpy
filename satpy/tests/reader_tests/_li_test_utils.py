@@ -259,7 +259,7 @@ def l2_lef_schema(settings=None):
             "detector_row": {
                 "format": "u2",
                 "shape": ("events",),
-                "fill_value":  65535,
+                "fill_value": 65535,
                 "long_name": "Detector row position of event pixel",
                 "units": "1",
                 "default_data": lambda: RANDOM_GEN.integers(1, 1000, nobs)
@@ -267,7 +267,7 @@ def l2_lef_schema(settings=None):
             "detector_column": {
                 "format": "u2",
                 "shape": ("events",),
-                "fill_value":  65535,
+                "fill_value": 65535,
                 "long_name": "Detector column position of event pixel",
                 "units": "1",
                 "default_data": lambda: RANDOM_GEN.integers(1, 1000, nobs)
