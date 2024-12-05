@@ -46,28 +46,16 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         self.sensors = {"iasi_ng"}
 
-        # List of datasets provided by this handler:
         self.dataset_infos = None
-
-        # Description of the available variables:
         self.variable_desc = {}
-
-        # Description of the available dimensions:
         self.dimensions_desc = {}
 
-        # Ignored variable patterns:
         patterns = self.filetype_info.get("ignored_patterns", [])
         self.ignored_patterns = [re.compile(pstr) for pstr in patterns]
 
-        # dataset aliases:
-        self.dataset_aliases = self.filetype_info.get("dataset_aliases", {})
+        aliases = self.filetype_info.get("dataset_aliases", {})
+        self.dataset_aliases = {re.compile(key): val for key, val in aliases.items()}
 
-        # Transform the aliases on regex patterns:
-        self.dataset_aliases = {
-            re.compile(key): val for key, val in self.dataset_aliases.items()
-        }
-
-        # broadcasts timestamps flag:
         self.broadcast_timestamps = self.filetype_info.get("broadcast_timestamps", False)
 
         self.register_available_datasets()
@@ -100,9 +88,9 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Determine automatically the datasets provided by this file.
 
-        Uses a per product type dataset registration mechanism.
+        First yield on any element from the provided configured_datasets,
+        and then continues with the internally provided datasets.
         """
-        # pass along existing datasets
         for is_avail, ds_info in configured_datasets or []:
             yield is_avail, ds_info
 
@@ -124,45 +112,49 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         self.dataset_infos[ds_name] = ds_infos
 
+    def same_dim_names_for_different_groups(self, dim_name, value):
+        """Check if we already have this dim_name registered from another group."""
+        return (
+            dim_name in self.dimensions_desc and self.dimensions_desc[dim_name] != value
+        )
+
     def process_dimension(self, key, value):
         """Process a dimension entry from the file_content."""
         dim_name = key.split("/")[-1]
 
-        if dim_name in self.dimensions_desc and self.dimensions_desc[dim_name] != value:
-            # This might happen if we have the same dim name from different groups:
+        if self.same_dim_names_for_different_groups(dim_name, value):
             raise KeyError(f"Detected duplicated dim name: {dim_name}")
 
         self.dimensions_desc[dim_name] = value
+
+    def has_variable_desc(self, var_path):
+        """Check if a given variable path is available."""
+        return var_path in self.variable_desc
 
     def process_attribute(self, key, value):
         """Process a attribute entry from the file_content."""
         var_path, aname = key.split("/attr/")
 
-        if var_path not in self.variable_desc:
-            # maybe this variable is ignored, or this is a group attr.
+        if not self.has_variable_desc(var_path):
             return
 
         self.variable_desc[var_path]["attribs"][aname] = value
 
-    def process_variable(self, key):
-        """Process a variable entry from the file_content."""
-        shape = self.file_content[f"{key}/shape"]
+    def has_at_most_one_element(self, shape):
+        """Check if a shape corresponds to an array with at most 1 element."""
+        return np.prod(shape) <= 1
 
-        if np.prod(shape) <= 1:
-            # Ignoring scalar variable.
-            return
+    def is_variable_ignored(self, var_name):
+        """Check if a variable should be ignored."""
+        return any(p.search(var_name) is not None for p in self.ignored_patterns)
 
-        # Check if this variable should be ignored:
-        if any(p.search(key) is not None for p in self.ignored_patterns):
-            # Ignoring variable on user request.
-            return
-
-        # Prepare a description for this variable:
+    def prepare_variable_description(self, key, shape):
+        """Prepare a description for a given variable."""
         prefix, var_name = key.rsplit("/", 1)
         dims = self.file_content[f"{key}/dimensions"]
         dtype = self.file_content[f"{key}/dtype"]
 
-        desc = {
+        return {
             "location": key,
             "prefix": prefix,
             "var_name": var_name,
@@ -172,7 +164,17 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             "attribs": {},
         }
 
-        self.variable_desc[key] = desc
+    def process_variable(self, key):
+        """Process a variable entry from the file_content."""
+        shape = self.file_content[f"{key}/shape"]
+
+        if self.has_at_most_one_element(shape):
+            return
+
+        if self.is_variable_ignored(key):
+            return
+
+        self.variable_desc[key] = self.prepare_variable_description(key, shape)
 
     def parse_file_content(self):
         """Parse the file_content to discover the available datasets and dimensions."""
@@ -186,44 +188,38 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
                 self.process_attribute(key, val)
                 continue
 
-            # if isinstance(val, netCDF4.Variable):
             if f"{key}/shape" in self.file_content:
                 self.process_variable(key)
                 continue
 
+    def check_variable_alias(self, vpath, ds_name):
+        """Check if a variable path matches an alias pattern."""
+        for pat, sub in self.dataset_aliases.items():
+            match = pat.search(vpath)
+            if match:
+                var_name = match.group(1)
+                return sub.replace("${VAR_NAME}", var_name)
+
+        return ds_name
+
     def register_available_datasets(self):
         """Register the available dataset in the current product file."""
         if self.dataset_infos is not None:
-            # Datasets are already registered.
             return
 
-        # Otherwise, we need to perform the registration:
         self.dataset_infos = {}
 
-        # Parse the file content:
         self.parse_file_content()
 
         for vpath, desc in self.variable_desc.items():
-            # Check if we have an alias for this variable:
             ds_name = desc["var_name"]
-
-            # Check if this variable path matches an alias pattern:
-            for pat, sub in self.dataset_aliases.items():
-                # Search for the pattern in the input string
-                match = pat.search(vpath)
-                if match:
-                    # Extract the captured group(s)
-                    var_name = match.group(1)
-                    ds_name = sub.replace("${VAR_NAME}", var_name)
-                    break
+            ds_name = self.check_variable_alias(vpath, ds_name)
 
             unit = desc["attribs"].get("units", None)
             if unit is not None and unit.startswith("seconds since "):
-                # request conversion to datetime:
                 desc["seconds_since_epoch"] = unit.replace("seconds since ", "")
 
             if self.broadcast_timestamps and desc["var_name"] == "onboard_utc":
-                # Broadcast on the "n_fov" dimension:
                 desc["broadcast_on_dim"] = "n_fov"
 
             self.register_dataset(ds_name, desc)
@@ -235,24 +231,30 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         return self.dataset_infos[ds_name]
 
+    def is_attribute_path(self, var_path):
+        """Check if a given path is a root attribute path."""
+        return var_path.startswith("/attr")
+
+    def is_property_path(self, var_path):
+        """Check if a given path is a sub-property path."""
+        return var_path.endswith(("/dtype", "/shape", "/dimensions"))
+
+    def is_netcdf_group(self, obj):
+        """Check if a given object is a netCDF group."""
+        return isinstance(obj, netCDF4.Group)
+
     def variable_path_exists(self, var_path):
         """Check if a given variable path is available in the underlying netCDF file.
 
         All we really need to do here is to access the file_content dictionary
         and check if we have a variable under that var_path key.
         """
-        # but we ignore attributes: or sub properties:
-        if var_path.startswith("/attr") or var_path.endswith(
-            ("/dtype", "/shape", "/dimensions")
-        ):
+        if self.is_attribute_path(var_path) or self.is_property_path(var_path):
             return False
 
-        # Check if the path is found:
         if var_path in self.file_content:
-            # This is only a valid variable if it is not a netcdf group:
-            return not isinstance(self.file_content[var_path], netCDF4.Group)
+            return not self.is_netcdf_group(self.file_content[var_path])
 
-        # Var path not in file_content:
         return False
 
     def convert_data_type(self, data_array, dtype="auto"):
@@ -278,13 +280,11 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """Apply the rescaling transform on a given array."""
         dtype = np.dtype(data_array.dtype).name
         if dtype not in ["float32", "float64"]:
-            # We won't be able to use NaN in the other cases:
             return data_array
 
         nan_val = np.nan if dtype == "float64" else np.float32(np.nan)
         attribs = data_array.attrs
 
-        # Apply the min/max valid range:
         if "valid_min" in attribs:
             vmin = attribs["valid_min"]
             data_array = data_array.where(data_array >= vmin, other=nan_val)
@@ -298,7 +298,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             data_array = data_array.where(data_array >= vrange[0], other=nan_val)
             data_array = data_array.where(data_array <= vrange[1], other=nan_val)
 
-        # Check the missing value:
         missing_val = attribs.get("missing_value", None)
         missing_val = attribs.get("_FillValue", missing_val)
 
@@ -309,7 +308,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def apply_rescaling(self, data_array):
         """Apply the rescaling transform on a given array."""
-        # Check if we have the scaling elements:
         attribs = data_array.attrs
         if "scale_factor" in attribs or "add_offset" in attribs:
             scale_factor = attribs.setdefault("scale_factor", 1)
@@ -317,7 +315,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
             data_array = (data_array * scale_factor) + add_offset
 
-            # rescale the valid range accordingly
             for key in ["valid_range", "valid_min", "valid_max"]:
                 if key in attribs:
                     attribs[key] = attribs[key] * scale_factor + add_offset
@@ -366,23 +363,19 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             raise KeyError(f"Invalid dimension name {dim_name}")
         rep_count = self.dimensions_desc[dim_name]
 
-        # Apply "a repeat operation" with the last dimension size:
         data_array = xr.concat([data_array] * rep_count, dim=data_array.dims[-1])
 
         return data_array
 
     def get_transformed_dataset(self, ds_info):
         """Retrieve a dataset with all transformations applied on it."""
-        # Extract location:
         vname = ds_info["location"]
 
         if not self.variable_path_exists(vname):
             raise KeyError(f"Invalid variable path: {vname}")
 
-        # Read the raw variable data from file (this is an xr.DataArray):
         arr = self[vname]
 
-        # Apply the transformations:
         arr = self.convert_data_type(arr)
         arr = self.apply_fill_value(arr)
         arr = self.apply_rescaling(arr)
@@ -400,19 +393,14 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """Get a dataset."""
         ds_name = dataset_id["name"]
 
-        # In case this dataset name is not explicitly provided by this file
-        # handler then we should simply return None.
         if ds_name not in self.dataset_infos:
             return None
 
-        # Retrieve default infos if missing:
         if ds_info is None:
             ds_info = self.get_dataset_infos(ds_name)
 
         ds_name = ds_info["name"]
 
-        # Retrieve the transformed data array:
         data_array = self.get_transformed_dataset(ds_info)
 
-        # Return the resulting array:
         return data_array
