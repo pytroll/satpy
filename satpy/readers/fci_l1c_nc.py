@@ -388,7 +388,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         res.attrs.update(info)
         res.attrs.update(attrs)
 
-        res.attrs["platform_name"] = self._platform_name_translate.get(
+        res.attrs["platform_name"] = _platform_name_translate.get(
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
