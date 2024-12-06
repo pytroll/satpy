@@ -126,32 +126,31 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
     chunks = (10, 10, 10)
 
     def inject_missing_value(self, dask_array, attribs):
-        """Inject missing value in data array."""
-        # Force setting a few elements to this missing value (but still lazily with
-        # dask map_blocks function)
+        """Inject missing value in data array.
+
+        This method is used to randomly set a few elements of the in the
+        input array to the configured missing value read from the attribs
+        dict. This operation is done lazily using the dask map_blocks
+        function.
+        """
         missing_value = attribs["missing_value"]
 
-        # Ratio of elements to replace with missing value:
         missing_ratio = 0.05
 
         def set_missing_values(block):
-            # Generate random indices to set as missing values within this block
             block_shape = block.shape
 
             block_size = np.prod(block_shape)
             block_num_to_replace = int(block_size * missing_ratio)
 
-            # Create a Generator instance
             rng = np.random.default_rng()
 
-            # Generate unique random indices to set as missing values within this block
             flat_indices = rng.choice(block_size, block_num_to_replace, replace=False)
             unraveled_indices = np.unravel_index(flat_indices, block_shape)
             block[unraveled_indices] = missing_value
 
             return block
 
-        # Apply the function lazily to each block
         dask_array = dask_array.map_blocks(set_missing_values, dtype=dask_array.dtype)
 
         return dask_array
@@ -173,14 +172,11 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
             if dtype == "float32":
                 dask_array = dask_array.astype(np.float32)
 
-            # Max flaot32 value is 3.4028235e38, we use a smaller value
-            # by default here:
             vmin = attribs.get("valid_min", -1e16)
             vmax = attribs.get("valid_max", 1e16)
             rand_min = vmin - (vmax - vmin) * 0.1
             rand_max = vmax + (vmax - vmin) * 0.1
 
-            # Scale and shift to the desired range [min_val, max_val]
             dask_array = dask_array * (rand_max - rand_min) + rand_min
         else:
             raise ValueError(f"Unsupported data type: {dtype}")
@@ -189,21 +185,17 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
     def add_rand_data(self, desc):
         """Build a random DataArray from a given description."""
-        # Create a lazy dask array with random int32 values
         dtype = desc.get("data_type", "int32")
         dims = desc["dims"]
         attribs = desc["attribs"]
         key = desc["key"]
 
         dask_array = self.generate_dask_array(dims, dtype, attribs)
-        # Define the chunk size for dask array
 
         if "missing_value" in attribs:
             dask_array = self.inject_missing_value(dask_array, attribs)
 
-        # Wrap the dask array with xarray.DataArray
         data_array = xr.DataArray(dask_array, dims=dims)
-
         data_array.attrs.update(attribs)
 
         self.content[key] = data_array
@@ -218,9 +210,9 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
         """Retrieve only the valid attributes from a list."""
         attribs = {}
         for idx, val in enumerate(alist):
-            # AEnsure we do not inject "None" attribute values:
             if val is not None:
                 attribs[anames[idx]] = val
+
         return attribs
 
     def get_test_content(self, _filename, _filename_info, _filetype_info):
@@ -236,15 +228,10 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
         self.content = {}
 
-        # Note: below we use the full range of int32 to generate the random
-        # values, we expect the handler to "fix" out of range values replacing
-        # them with NaNs.
         for grp_desc in DATA_DESC:
-            # get the group prefix:
             prefix = grp_desc["group"]
             anames = grp_desc["attrs"]
             for vname, vdesc in grp_desc["variables"].items():
-                # For each variable we create a dataset descriptor:
                 attribs = self.get_valid_attribs(anames, vdesc[2])
 
                 desc = {
@@ -256,7 +243,6 @@ class FakeIASINGFileHandlerBase(FakeNetCDF4FileHandler):
 
                 self.add_rand_data(desc)
 
-        # We should also register the dimensions as we will need access to "n_fov" for instance:
         for key, val in self.dims.items():
             self.content[f"data/dimension/{key}"] = val
 
@@ -305,21 +291,17 @@ class TestIASINGL2NCReader:
         """Create an handler for the given file checking that it can be parsed correctly."""
         reader = load_reader(self.reader_configs)
 
-        # Test if the file is recognized by the reader
         files = reader.select_files_from_pathnames([filename])
         assert len(files) == 1, "File should be recognized by the reader"
 
-        # Create the file handler:
         reader.create_filehandlers(files)
 
-        # We should have our handler now:
         assert len(reader.file_handlers) == 1
 
         assert self.reader_name in reader.file_handlers
 
         handlers = reader.file_handlers[self.reader_name]
 
-        # We should have a single handler for a single file:
         assert len(handlers) == 1
         assert isinstance(handlers[0], IASINGL2NCFileHandler)
 
@@ -327,7 +309,6 @@ class TestIASINGL2NCReader:
 
     def test_filename_matching(self):
         """Test filename matching against some random name."""
-        # Example filename
         prefix = "W_fr-meteo-sat,GRAL,MTI1-IASING-2"
         suffix = (
             "C_EUMS_20220101120000_LEO_O_D_20220101115425_20220101115728_____W______.nc"
@@ -338,10 +319,9 @@ class TestIASINGL2NCReader:
 
     def test_real_filename_matching(self):
         """Test that we will match an actual IASI NG L2 product file name."""
-        # Below we test the TWV,CLD,GHG,SFC,O3_ and CO_ products:
-        ptypes = ["TWV", "CLD", "GHG", "SFC", "O3_", "CO_"]
+        supported_types = ["TWV", "CLD", "GHG", "SFC", "O3_", "CO_"]
 
-        for ptype in ptypes:
+        for ptype in supported_types:
             filename = f"{self.file_prefix}-{ptype}_{self.file_suffix}"
             handler = self._create_file_handler(filename)
 
@@ -388,7 +368,6 @@ class TestIASINGL2NCReader:
         lat = twv_scene["sounder_pixel_latitude"]
         lon = twv_scene["sounder_pixel_longitude"]
 
-        # Should be 2D now:
         assert len(lat.dims) == 2
         assert len(lon.dims) == 2
         assert lat.dims[0] == "x"
@@ -396,15 +375,12 @@ class TestIASINGL2NCReader:
         assert lon.dims[0] == "x"
         assert lon.dims[1] == "y"
 
-        # Should have been converted to float64:
         assert lat.dtype == np.float64
         assert lon.dtype == np.float64
 
-        # All valid lat values should be in range [-90.0,90.0]
         assert np.nanmin(lat) >= -90.0
         assert np.nanmax(lat) <= 90.0
 
-        # All valid lon values should be in range [-180.0,180.0]
         assert np.nanmin(lon) >= -180.0
         assert np.nanmax(lon) <= 180.0
 
@@ -413,15 +389,12 @@ class TestIASINGL2NCReader:
         twv_scene.load(["onboard_utc", "sounder_pixel_latitude"])
         dset = twv_scene["onboard_utc"]
 
-        # Should be 2D now:
         assert len(dset.dims) == 2
         assert dset.dims[0] == "x"
         assert dset.dims[1] == "y"
 
-        # Should have been converted to datetime:
         assert dset.dtype == np.dtype("datetime64[ns]")
 
-        # Should also have the same size as "lattitude" for instance:
         lat = twv_scene["sounder_pixel_latitude"]
 
         assert lat.shape == dset.shape
@@ -432,7 +405,6 @@ class TestIASINGL2NCReader:
         dset = twv_scene["nbr_iterations"]
 
         assert len(dset.dims) == 2
-        # Should still be in int32 type:
         assert dset.dtype == np.int32
 
     def test_register_dataset(self, twv_handler):
@@ -442,7 +414,6 @@ class TestIASINGL2NCReader:
         assert "test_dataset" in twv_handler.dataset_infos
         assert twv_handler.dataset_infos["test_dataset"]["attr"] == "value"
 
-        # Should refuse to register the same dataset again afterwards:
         with pytest.raises(KeyError):
             twv_handler.register_dataset("test_dataset", {"attr": "new_value"})
 
@@ -452,7 +423,6 @@ class TestIASINGL2NCReader:
         twv_handler.process_dimension("group/dimension/test_dim", 10)
         assert twv_handler.dimensions_desc["test_dim"] == 10
 
-        # Should refuse to process the same dim again:
         with pytest.raises(KeyError):
             twv_handler.process_dimension("group/dimension/test_dim", 20)
 
@@ -464,8 +434,6 @@ class TestIASINGL2NCReader:
 
     def test_process_variable(self, twv_handler):
         """Test the process_variable method."""
-        # Note: we only support variables inside a group,
-        # because this is always the case in the IASI-NG file format.
         twv_handler.file_content = {
             "group/test_var/shape": (10, 10),
             "group/test_var/dimensions": ("x", "y"),
@@ -477,8 +445,6 @@ class TestIASINGL2NCReader:
 
     def test_ignore_scalar_variable(self, twv_handler):
         """Test ignoring of scalar variable."""
-        # Note: we only support variables inside a group,
-        # because this is always the case in the IASI-NG file format.
         twv_handler.file_content = {
             "group/test_var/shape": (1, 1),
             "group/test_var/dimensions": ("x", "y"),
@@ -490,8 +456,6 @@ class TestIASINGL2NCReader:
 
     def test_ignore_pattern_variable(self, twv_handler):
         """Test ignoring of pattern in variable."""
-        # Note: we only support variables inside a group,
-        # because this is always the case in the IASI-NG file format.
         twv_handler.file_content = {
             "group/test_var/shape": (10, 10),
             "group/test_var/dimensions": ("x", "y"),
@@ -567,7 +531,6 @@ class TestIASINGL2NCReader:
         result = twv_handler.convert_data_type(data, dtype="float64")
         assert result.dtype == np.float64
 
-        # Should stay as f32 if dtype is auto:
         data.attrs["scale_factor"] = 2.0
         result = twv_handler.convert_data_type(data, dtype="auto")
         assert result.dtype == np.float32
