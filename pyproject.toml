@@ -62,7 +62,7 @@ seviri_l2_bufr = ["eccodes"]
 seviri_l2_grib = ["eccodes"]
 hsaf_grib = ["pygrib"]
 remote_reading = ["fsspec"]
-insat_3d = ["xarray-datatree"]
+insat_3d = ["xarray>=2024.10.0"]
 gms5-vissr_l1b = ["numba"]
 # Writers:
 cf = ["h5netcdf >= 0.7.3"]
@@ -87,7 +87,7 @@ satpos_from_tle = ["skyfield", "astropy"]
 tests = ["behave", "h5py", "netCDF4", "pyhdf", "imageio",
          "rasterio", "geoviews", "trollimage", "fsspec", "bottleneck",
          "rioxarray", "pytest", "pytest-lazy-fixtures", "defusedxml",
-         "s3fs", "eccodes", "h5netcdf", "xarray-datatree",
+         "s3fs", "eccodes", "h5netcdf", "xarray>=2024.10.0",
          "skyfield", "ephem", "pint-xarray", "astropy", "dask-image", "python-geotiepoints", "numba"]
 dev = ["satpy[doc,tests]"]
 
