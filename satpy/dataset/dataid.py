@@ -239,48 +239,43 @@ class ModifierTuple(tuple):
 
 
 #: Default ID keys DataArrays.
-default_id_keys_config = {"name": {
-                              "required": True,
-                          },
-                          "wavelength": {
-                              "type": WavelengthRange,
-                          },
-                          "resolution": {
-                              "transitive": False,
-                              },
-                          "calibration": {
-                              "enum": [
-                                  "reflectance",
-                                  "brightness_temperature",
-                                  "radiance",
-                                  "radiance_wavenumber",
-                                  "counts"
-                                  ],
-                              "transitive": True,
-                          },
-                          "modifiers": {
-                              "default": ModifierTuple(),
-                              "type": ModifierTuple,
-                          },
-                          }
+default_id_keys_config = {
+    "name": {
+        "required": True,
+    },
+    "wavelength": {
+        "type": WavelengthRange,
+    },
+    "resolution": {
+        "transitive": False,
+    },
+    "calibration": {
+        "enum": [
+            "reflectance",
+            "brightness_temperature",
+            "radiance",
+            "radiance_wavenumber",
+            "counts",
+        ],
+        "transitive": True,
+    },
+    "modifiers": {
+        "default": ModifierTuple(),
+        "type": ModifierTuple,
+    },
+}
 
 #: Default ID keys for coordinate DataArrays.
-default_co_keys_config = {"name": {
-                              "required": True,
-                          },
-                          "resolution": {
-                              "transitive": True,
-                          }
-                          }
+default_co_keys_config = {
+    "name": default_id_keys_config["name"],
+    "resolution": default_id_keys_config["resolution"],
+}
 
 #: Minimal ID keys for DataArrays, for example composites.
-minimal_default_keys_config = {"name": {
-                                  "required": True,
-                              },
-                               "resolution": {
-                                   "transitive": True,
-                               }
-                              }
+minimal_default_keys_config = {
+    "name": default_id_keys_config["name"],
+    "resolution": default_id_keys_config["resolution"],
+}
 
 
 class DataID(dict):
