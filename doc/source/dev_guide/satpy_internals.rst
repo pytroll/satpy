@@ -137,8 +137,9 @@ DataID and DataQuery interactions
 Different DataIDs and DataQuerys can have different metadata items defined. As such
 we define equality between different instances of these classes, and across the classes
 as equality between the sorted key/value pairs shared between the instances.
-If a DataQuery has one or more values set to `'*'`, the corresponding key/value pair will be omitted from the comparison.
-Instances sharing no keys will no be equal.
+If a DataQuery has one or more values set to ``'*'``, the corresponding key/value pair will be omitted from the comparison.
+If any key in a DataQuery (not equal to ``"*"``) is missing from a DataID they
+are considered not equal.
 
 
 Breaking changes from DatasetIDs
@@ -151,8 +152,9 @@ Breaking changes from DatasetIDs
 Creating DataID for tests
 =========================
 
-Sometimes, it is useful to create `DataID` instances for testing purposes. For these cases, the `satpy.tests.utils` module
-now has a `make_dsid` function that can be used just for this::
+Sometimes, it is useful to create ``DataID`` instances for testing purposes.
+For these cases, the ``satpy.tests.utils`` module now has a ``make_dataid``
+function that can be used just for this::
 
   from satpy.tests.utils import make_dataid
   did = make_dataid(name='camembert', modifiers=('runny',))
