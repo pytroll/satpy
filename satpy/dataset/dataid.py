@@ -532,12 +532,17 @@ class DataQuery:
         """Hash."""
         fields = []
         values = []
-        for field, value in sorted(self._dict.items()):
-            if value != "*":
-                fields.append(field)
-                if isinstance(value, (list, set)):
-                    value = tuple(value)
-                values.append(value)
+        for field, value in sorted(self._to_trimmed_dict().items()):
+            if value == "*":
+                continue
+            fields.append(field)
+            if isinstance(value, list):
+                # list or tuple is ordered (ex. modifiers)
+                value = tuple(value)
+            elif isinstance(value, set):
+                # a set is unordered, but must be sorted for consistent hashing
+                value = tuple(sorted(value))
+            values.append(value)
         return hash(tuple(zip(fields, values)))
 
     def get(self, key, default=None):

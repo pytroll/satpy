@@ -614,6 +614,27 @@ class TestIDQueryInteractions:
         did = DataID(self.default_id_keys_config, name="cheese_shops")
         assert hash(dq) == hash(did)
 
+    def test_hash_wildcard_equality(self):
+        """Test hashes are equal with or without wildcards."""
+        assert DataQuery(name="1", resolution="*") == DataQuery(name="1")
+
+    @pytest.mark.parametrize(
+        "modifiers",
+        [
+            ("a", "b", "c"),
+            ["a", "b", "c"],
+        ],
+    )
+    def test_hash_list_equality(self, modifiers):
+        """Test hashes are equal regardless of list type."""
+        assert hash(DataQuery(name="1", modifiers=("a", "b", "c"))) == hash(DataQuery(name="1", modifiers=modifiers))
+
+    def test_hash_set_equality(self):
+        """Test hashes are equal regardless of set type."""
+        the_set = {"c", "b", "a"}
+        the_tuple = ("a", "b", "c")
+        assert hash(DataQuery(name="1", some_set=the_set)) == hash(DataQuery(name="1", some_set=the_tuple))
+
     def test_id_filtering(self):
         """Check did filtering."""
         dq = DataQuery(modifiers=tuple(), name="cheese_shops")
