@@ -639,7 +639,17 @@ class TestIDQueryInteractions:
         did = make_cid(name="static_image")
         assert len(dq.filter_dataids([did])) == 0
 
-    def test_inequality(self):
+    def test_equality_no_modifiers(self):
+        """Test that a query finds unmodified ID when not specified."""
+        data_id = DataID(self.default_id_keys_config, name="1", resolution=500)
+        assert data_id["modifiers"] == tuple()
+        assert DataQuery(name="1", resolution=500) == data_id
+
+    def test_inequality_missing_keys(self):
+        """Check inequality against a DataID missing a query parameter."""
+        assert DataQuery(name="1", resolution=500) != DataID(self.default_id_keys_config, name="1")
+
+    def test_inequality_diff_required_keys(self):
         """Check (in)equality."""
         assert DataQuery(wavelength=10) != DataID(self.default_id_keys_config, name="VIS006")
 

@@ -491,7 +491,8 @@ def _generalize_value_for_comparison(val):
 class DataQuery:
     """The data query object.
 
-    A DataQuery can be used in Satpy to query for a Dataset. This way
+    A DataQuery can be used in Satpy to query a dict using ``DataID`` objects
+    as keys. This way
     a fully qualified DataID can be found even if some DataID
     elements are unknown. In this case a `*` signifies something that is
     unknown or not applicable to the requested Dataset.
@@ -513,17 +514,18 @@ class DataQuery:
         A DataQuery is considered equal to another DataQuery or DataID
         if they have common keys that have equal values.
         """
-        sdict = self._asdict()
+        sdict = self._to_trimmed_dict()
         try:
             odict = other._asdict()
         except AttributeError:
             return False
         common_keys = False
         for key, val in sdict.items():
-            if key in odict:
-                common_keys = True
-                if odict[key] != val and val is not None:
-                    return False
+            if key not in odict:
+                return False
+            common_keys = True
+            if odict[key] != val:
+                return False
         return common_keys
 
     def __hash__(self):
