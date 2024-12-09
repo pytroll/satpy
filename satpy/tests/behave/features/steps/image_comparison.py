@@ -51,17 +51,18 @@ def setup_hooks():
     use_fixture(before_all, Context)
 
 setup_hooks()
-@given("I have a {composite} reference image file from {satellite}")
-def step_given_reference_image(context, composite, satellite):
+@given("I have a {composite} reference image file from {satellite} resampled to <area>")
+def step_given_reference_image(context, composite, satellite, area):
     """Prepare a reference image."""
-    reference_image = f"reference_image_{satellite}_{composite}.png"
+    reference_image = f"reference_image_{satellite}_{composite}_{area}.png"
     context.reference_image = cv2.imread(f"{ext_data_path}/reference_images/{reference_image}")
     context.satellite = satellite
     context.composite = composite
+    context.area = area
 
 
-@when("I generate a new {composite} image file from {satellite}")
-def step_when_generate_image(context, composite, satellite):
+@when("I generate a new {composite} image file from {satellite} with {reader} for {area}")
+def step_when_generate_image(context, composite, satellite, reader, area):
     """Generate test images."""
     os.environ["OMP_NUM_THREADS"] = os.environ["MKL_NUM_THREADS"] = "2"
     os.environ["PYTROLL_CHUNK_SIZE"] = "1024"
@@ -71,13 +72,13 @@ def step_when_generate_image(context, composite, satellite):
     # Get the list of satellite files to open
     filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*.nc")
 
-    scn = Scene(reader="abi_l1b", filenames=filenames)
+    scn = Scene(reader=reader, filenames=filenames)
 
     scn.load([composite])
 
     # Save the generated image in the generated folder
     generated_image_path = os.path.join(context.test_results_dir, "generated",
-                                        f"generated_{context.satellite}_{context.composite}.png")
+                                        f"generated_{context.satellite}_{context.composite}_{context.area}.png")
     scn.save_datasets(writer="simple_image", filename=generated_image_path)
 
     # Save the generated image in the context
