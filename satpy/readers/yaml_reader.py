@@ -636,8 +636,9 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
                     self.file_handlers.get(filetype, []) + filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
-        # load any additional dataset IDs determined dynamically from the file
-        # and update any missing metadata that only the file knows
+        # Update dataset IDs with IDs determined dynamically from the file
+        # and/or update any missing metadata that only the file knows.
+        # Check if the dataset ID is loadable from that file.
         self.update_ds_ids_from_file_handlers()
         return created_fhs
 

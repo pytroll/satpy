@@ -28,7 +28,11 @@ Currently the reader supports:
     - m[o/y]d35_l2: cloud_mask dataset
     - some datasets in m[o/y]d06 files
 
-To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../reading`.
+Additionally the reader tries to add non yaml configured 2D datasets dynamically. As mentioned above there are a lot
+of different level 2 datasets so this might not work in every case (for example bit encoded datasets similar to the
+supported m[0/y]d35_l2 cloud mask are not decoded).
+
+To get a list of the available datasets for a given file refer to the :ref:`reading:available datasets` section.
 
 
 Geolocation files
@@ -144,6 +148,46 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
         self._add_satpy_metadata(dataset_id, dataset)
         return dataset
+
+    def available_datasets(self, configured_datasets):
+        """Add dataset information from arbitrary level 2 files.
+
+        Adds dataset information not specifically specified in reader yaml file
+        from arbitrary modis level 2 product files to available datasets.
+
+        Notes:
+             Currently only adds 2D datasets and does not decode bit encoded information.
+        """
+        # pass along yaml configured (handled) datasets and collect their file keys to check against dynamically
+        # collected variables later on.
+        handled = set()
+        for is_avail, ds_info in (configured_datasets or []):
+            file_key = ds_info.get("file_key", ds_info["name"])
+            handled.add(file_key)
+
+            if is_avail is not None:
+                yield is_avail, ds_info
+                continue
+            yield self.file_type_matches(ds_info["file_type"]), ds_info
+
+        res_dict = {5416: 250, 2708: 500, 1354: 1000, 270: 5000, 135: 10000}
+
+        # get variables from file dynamically and only add those which are not already configured in yaml
+        for var_name, val in self.sd.datasets().items():
+            if var_name in handled:
+                continue
+            if len(val[0]) != 2:
+                continue
+            resolution = res_dict.get(val[1][-1])
+            if resolution is not None:
+                ds_info = {
+                    "file_type": self.filetype_info["file_type"],
+                    "resolution": resolution,
+                    "name": var_name,
+                    "file_key": var_name,
+                    "coordinates": ["longitude", "latitude"]
+                }
+                yield True, ds_info
 
     def _extract_and_mask_category_dataset(self, dataset_id, dataset_info, var_name):
         # what dimension is per-byte
