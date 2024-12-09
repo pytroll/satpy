@@ -24,11 +24,20 @@ import cv2
 import dask
 import numpy as np
 from behave import given, then, when
+from pyresample.area_config import create_area_def
 
 from satpy import Scene
 
 ext_data_path = "/app/ext_data"
 threshold = 2000
+
+# test areas used only for testing
+test_areas = {
+        "north_atlantic": create_area_def(
+            "ofz", 4087, description="oceanographer fracture zone",
+            area_extent=[-4230000, 4675000, -3562000, 5232000],
+            resolution=750)
+        }
 
 def before_all(context):
     """Define a before_all hook to create the timestamp and test results directory."""
@@ -51,7 +60,7 @@ def setup_hooks():
     use_fixture(before_all, Context)
 
 setup_hooks()
-@given("I have a {composite} reference image file from {satellite} resampled to <area>")
+@given("I have a {composite} reference image file from {satellite} resampled to {area}")
 def step_given_reference_image(context, composite, satellite, area):
     """Prepare a reference image."""
     reference_image = f"reference_image_{satellite}_{composite}_{area}.png"
@@ -76,10 +85,15 @@ def step_when_generate_image(context, composite, satellite, reader, area):
 
     scn.load([composite])
 
+    if area == "null":
+        ls = scn
+    else:
+        ls = scn.resample(test_areas.get(area, area))
+
     # Save the generated image in the generated folder
     generated_image_path = os.path.join(context.test_results_dir, "generated",
                                         f"generated_{context.satellite}_{context.composite}_{context.area}.png")
-    scn.save_datasets(writer="simple_image", filename=generated_image_path)
+    ls.save_datasets(writer="simple_image", filename=generated_image_path)
 
     # Save the generated image in the context
     context.generated_image = cv2.imread(generated_image_path)
