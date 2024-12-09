@@ -17,7 +17,6 @@
 """Test objects and functions in the dataset module."""
 
 import datetime as dt
-import unittest
 
 import numpy as np
 import pytest
@@ -584,32 +583,30 @@ class TestDataQuery:
         assert not d2.create_less_modified_query()["modifiers"]
 
 
-class TestIDQueryInteractions(unittest.TestCase):
+class TestIDQueryInteractions:
     """Test the interactions between DataIDs and DataQuerys."""
 
-    def setUp(self) -> None:
-        """Set up the test case."""
-        self.default_id_keys_config = {
-            "name": {
-                "required": True,
-            },
-            "wavelength": {
-                "type": WavelengthRange,
-            },
-            "resolution": None,
-            "calibration": {
-                "enum": [
-                    "reflectance",
-                    "brightness_temperature",
-                    "radiance",
-                    "counts"
-                ]
-            },
-            "modifiers": {
-                "default": ModifierTuple(),
-                "type": ModifierTuple,
-            },
-        }
+    default_id_keys_config = {
+        "name": {
+            "required": True,
+        },
+        "wavelength": {
+            "type": WavelengthRange,
+        },
+        "resolution": None,
+        "calibration": {
+            "enum": [
+                "reflectance",
+                "brightness_temperature",
+                "radiance",
+                "counts"
+            ]
+        },
+        "modifiers": {
+            "default": ModifierTuple(),
+            "type": ModifierTuple,
+        },
+    }
 
     def test_hash_equality(self):
         """Test hash equality."""
