@@ -28,24 +28,70 @@ It is absolutely not intended for any operational production of satellite
 imagery.
 """
 
-import sys
+import argparse
+import pathlib
 from glob import glob
 
-from dask.diagnostics import ProgressBar
-
 from satpy import Scene
+from satpy.tests.behave.features.steps.image_comparison import test_areas
 
-ext_data_path = sys.argv[1]
-outdir = sys.argv[2]
-satellite = sys.argv[3]
 
-filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*.nc")
+def generate_images(reader, filenames, area, composites, outdir):
+    """Generate reference images for testing purposes."""
+    from dask.diagnostics import ProgressBar
+    scn = Scene(reader="abi_l1b", filenames=filenames)
 
-scn = Scene(reader="abi_l1b", filenames=filenames)
+    composites = ["ash", "airmass"]
+    scn.load(composites)
+    if area is None:
+        ls = scn
+    elif area == "native":
+        ls = scn.resample(resampler="native")
+    else:
+        ls = scn.resample(test_areas.get(area, area))
 
-composites = ["ash", "airmass"]
-scn.load(composites)
-ls = scn.resample(resampler="native")
-with ProgressBar():
-    ls.save_datasets(writer="simple_image", filename=outdir +
-                      "/satpy-reference-image-{platform_name}-{sensor}-{start_time:%Y%m%d%H%M}-{area.area_id}-{name}.png")
+    with ProgressBar():
+        ls.save_datasets(writer="simple_image", filename=outdir +
+                          "/satpy-reference-image-{platform_name}-{sensor}-{start_time:%Y%m%d%H%M}-{area.area_id}-{name}.png")
+
+def get_parser():
+    """Return argument parser."""
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    parser.add_argument(
+            "satellite", action="store", type=str,
+            help="Satellite name.")
+
+    parser.add_argument(
+            "reader", action="store", type=str,
+            help="Reader name.")
+
+    parser.add_argument(
+            "area", action="store", type=str,
+            help="Area name, 'null' (no resampling) or 'native' (native resampling)")
+
+    parser.add_argument(
+            "basedir", action="store", type=pathlib.Path,
+            help="Root directory where reference input data are contained.")
+
+    parser.add_argument(
+            "outdir", action="store", type=pathlib.Path,
+            help="Directory where to write resulting images.")
+
+    return parser
+
+def main():
+    """Main function."""
+    parsed = get_parser().parse_args()
+    ext_data_path = parsed.basedir
+    reader = parsed.reader
+    area = parsed.area
+    outdir = parsed.outdir
+    satellite = parsed.satellite
+
+    filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*")
+    generate_images(reader, filenames, None if area.lower() == "null" else
+                    area, ["airmass", "ash"], outdir)
+
+if __name__ == "__main__":
+    main()
