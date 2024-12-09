@@ -635,7 +635,7 @@ class TestIDQueryInteractions:
         the_tuple = ("a", "b", "c")
         assert hash(DataQuery(name="1", some_set=the_set)) == hash(DataQuery(name="1", some_set=the_tuple))
 
-    def test_id_filtering(self):
+    def test_id_filtering_name(self):
         """Check did filtering."""
         dq = DataQuery(modifiers=tuple(), name="cheese_shops")
         did = DataID(self.default_id_keys_config, name="cheese_shops")
@@ -644,18 +644,37 @@ class TestIDQueryInteractions:
         assert len(res) == 1
         assert res[0] == did
 
-        dataid_container = [DataID(self.default_id_keys_config,
-                                   name="ds1",
-                                   resolution=250,
-                                   calibration="reflectance",
-                                   modifiers=tuple())]
-        dq = DataQuery(wavelength=0.22, modifiers=tuple())
-        assert len(dq.filter_dataids(dataid_container)) == 0
-        dataid_container = [DataID(minimal_default_keys_config,
-                                   name="natural_color")]
+    @pytest.mark.parametrize(
+        ("id_kwargs", "query_kwargs", "exp_match"),
+        [
+            ({}, {}, 0),
+            ({"wavelength": (0.1, 0.2, 0.3)}, {}, 1),
+        ],
+    )
+    def test_id_filtering_wavelength(self, id_kwargs, query_kwargs, exp_match):
+        """Test that a query on wavelength doesn't match ID without."""
+        dataid_container = [
+            DataID(self.default_id_keys_config,
+                   name="ds1",
+                   resolution=250,
+                   calibration="reflectance",
+                   modifiers=tuple(),
+                   **id_kwargs,
+                   ),
+        ]
+        dq = DataQuery(wavelength=0.22, modifiers=tuple(), **query_kwargs)
+        assert len(dq.filter_dataids(dataid_container)) == exp_match
+
+    def test_id_filtering_composite_resolution(self):
+        """Test that a query for a composite with resolution still finds the composite."""
+        dataid_container = [
+            DataID(minimal_default_keys_config, name="natural_color"),
+        ]
         dq = DataQuery(name="natural_color", resolution=250)
         assert len(dq.filter_dataids(dataid_container)) == 1
 
+    def test_id_filtering_wavelength_unrelated(self):
+        """Test that no name query doesn't match name-only ID."""
         dq = make_dsq(wavelength=0.22, modifiers=("mod1",))
         did = make_cid(name="static_image")
         assert len(dq.filter_dataids([did])) == 0
