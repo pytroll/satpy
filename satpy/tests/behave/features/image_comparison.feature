@@ -11,4 +11,4 @@ Feature: Image Comparison
       |GOES16   |airmass  | abi_l1b | null
       |GOES16   |ash      | abi_l1b | null
       |GOES17   |ash      | abi_l1b | null
-      |METEOSAT12 | cloudtop | fci_l1b_nc | north_atlantic
+      |METEOSAT12 | cloudtop | fci_l1b_nc | sve

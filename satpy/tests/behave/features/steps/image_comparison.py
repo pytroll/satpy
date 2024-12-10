@@ -24,20 +24,11 @@ import cv2
 import dask
 import numpy as np
 from behave import given, then, when
-from pyresample.area_config import create_area_def
 
 from satpy import Scene
 
 ext_data_path = "/app/ext_data"
 threshold = 2000
-
-# test areas used only for testing
-test_areas = {
-        "north_atlantic": create_area_def(
-            "ofz", 4087, description="oceanographer fracture zone",
-            area_extent=[-4230000, 4675000, -3562000, 5232000],
-            resolution=750)
-        }
 
 def before_all(context):
     """Define a before_all hook to create the timestamp and test results directory."""
@@ -88,7 +79,7 @@ def step_when_generate_image(context, composite, satellite, reader, area):
     if area == "null":
         ls = scn
     else:
-        ls = scn.resample(test_areas.get(area, area))
+        ls = scn.resample(area)
 
     # Save the generated image in the generated folder
     generated_image_path = os.path.join(context.test_results_dir, "generated",

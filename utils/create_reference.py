@@ -33,7 +33,6 @@ import pathlib
 from glob import glob
 
 from satpy import Scene
-from satpy.tests.behave.features.steps.image_comparison import test_areas
 
 
 def generate_images(reader, filenames, area, composites, outdir):
@@ -48,7 +47,7 @@ def generate_images(reader, filenames, area, composites, outdir):
     elif area == "native":
         ls = scn.resample(resampler="native")
     else:
-        ls = scn.resample(test_areas.get(area, area))
+        ls = scn.resample(area)
 
     with ProgressBar():
         ls.save_datasets(writer="simple_image", filename=outdir +
