@@ -51,9 +51,9 @@ def random_date(start, end):
 def aws_file(tmp_path_factory):
     """Create an AWS file."""
     ds = DataTree()
-    start_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
+    start_time = datetime(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
+    end_time = datetime(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
     processing_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
 
@@ -94,16 +94,15 @@ def aws_file(tmp_path_factory):
 def aws_handler(aws_file):
     """Create an aws filehandler."""
     filename_info = parse(file_pattern, os.path.basename(aws_file))
-    return AWSL1BFile(aws_file, filename_info, dict())
+    filetype_info = dict()
+    filetype_info["file_type"] = "aws_l1b"
+    return AWSL1BFile(aws_file, filename_info, filetype_info)
 
 
-def test_start_end_time(aws_file):
+def test_start_end_time(aws_handler):
     """Test that start and end times are read correctly."""
-    filename_info = parse(file_pattern, os.path.basename(aws_file))
-    handler = AWSL1BFile(aws_file, filename_info, dict())
-
-    assert handler.start_time == filename_info["start_time"]
-    assert handler.end_time == filename_info["end_time"]
+    assert aws_handler.start_time == datetime(2024, 9, 1, 12, 0)
+    assert aws_handler.end_time == datetime(2024, 9, 1, 12, 15)
 
 
 def test_metadata(aws_handler):
