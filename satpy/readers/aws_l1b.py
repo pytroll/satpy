@@ -15,6 +15,10 @@
 """Reader for the Arctic Weather Satellite (AWS) Sounder level-1b data.
 
 Test data provided by ESA August 23, 2023.
+
+Sample data for five orbits in September 2024 provided by ESA to the Science
+Advisory Group for MWS and AWS, November 26, 2024.
+
 """
 
 import logging
@@ -46,6 +50,11 @@ class AWSL1BFile(NetCDF4FileHandler):
                          cache_var_size=10000,
                          cache_handle=True)
         self.filename_info = filename_info
+
+        if filetype_info["file_type"].startswith("eps_sterna"):
+            self._feed_horn_group_name = "n_feedhorns"
+        else:
+            self._feed_horn_group_name = "n_geo_groups"
 
     @property
     def start_time(self):
@@ -147,11 +156,13 @@ class AWSL1BFile(NetCDF4FileHandler):
         return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
 
     def _get_navigation_data(self, dataset_id, dataset_info):
+        """Get the navigation (geolocation) data for one feed horn."""
         geo_data = self[dataset_info["file_key"]]
-        geo_data.coords["n_geo_groups"] = ["1", "2", "3", "4"]
+        geo_data.coords[self._feed_horn_group_name] = ["1", "2", "3", "4"]
         geo_data = geo_data.rename({"n_fovs": "x", "n_scans": "y"})
         horn = dataset_id["horn"].name
-        return geo_data.sel(n_geo_groups=horn).drop_vars("n_geo_groups")
+        _selection = {self._feed_horn_group_name: horn}
+        return geo_data.sel(_selection).drop_vars(self._feed_horn_group_name)
 
 
 def mask_and_scale(data_array):
