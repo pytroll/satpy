@@ -18,25 +18,22 @@ file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{process
 
 rng = np.random.default_rng()
 
-fake_data_np = rng.integers(0, 700000, size=19*5*5).reshape((19, 5, 5))
+fake_data_np = rng.integers(0, 700000, size=10*145*19).reshape((10, 145, 19))
 fake_data_np[0, 0, 0] = -2147483648
-fake_data_np[0, 0, 1] = 700000 + 10
-fake_data_np[0, 0, 2] = -10
+fake_data_np[1, 0, 0] = 700000 + 10
+fake_data_np[2, 0, 0] = -10
 
-fake_data = xr.DataArray(fake_data_np,
-                         dims=["n_channels", "n_fovs", "n_scans"])
-fake_lon_data = xr.DataArray(rng.integers(0, 3599999, size=25 * 4).reshape((4, 5, 5)),
-                             dims=["n_geo_groups", "n_fovs", "n_scans"])
-fake_lat_data = xr.DataArray(rng.integers(-900000, 900000, size=25 * 4).reshape((4, 5, 5)),
-                             dims=["n_geo_groups", "n_fovs", "n_scans"])
-fake_sun_azi_data = xr.DataArray(rng.integers(0, 36000, size=25 * 4).reshape((4, 5, 5)),
-                                 dims=["n_geo_groups", "n_fovs", "n_scans"])
-fake_sun_zen_data = xr.DataArray(rng.integers(0, 36000, size=25 * 4).reshape((4, 5, 5)),
-                                 dims=["n_geo_groups", "n_fovs", "n_scans"])
-fake_sat_azi_data = xr.DataArray(rng.integers(0, 36000, size=25 * 4).reshape((4, 5, 5)),
-                                 dims=["n_geo_groups", "n_fovs", "n_scans"])
-fake_sat_zen_data = xr.DataArray(rng.integers(0, 36000, size=25 * 4).reshape((4, 5, 5)),
-                                 dims=["n_geo_groups", "n_fovs", "n_scans"])
+ARRAY_DIMS = ["n_scans", "n_fovs", "n_channels"]
+fake_data = xr.DataArray(fake_data_np, dims=ARRAY_DIMS)
+
+GEO_DIMS = ["n_scans", "n_fovs", "n_geo_groups"]
+GEO_SIZE = 10*145*4
+fake_lon_data = xr.DataArray(rng.integers(0, 3599999, size=GEO_SIZE).reshape((10, 145, 4)), dims=GEO_DIMS)
+fake_lat_data = xr.DataArray(rng.integers(-900000, 900000, size=GEO_SIZE).reshape((10, 145, 4)), dims=GEO_DIMS)
+fake_sun_azi_data = xr.DataArray(rng.integers(0, 36000, size=GEO_SIZE).reshape((10, 145, 4)), dims=GEO_DIMS)
+fake_sun_zen_data = xr.DataArray(rng.integers(0, 36000, size=GEO_SIZE).reshape((10, 145, 4)), dims=GEO_DIMS)
+fake_sat_azi_data = xr.DataArray(rng.integers(0, 36000, size=GEO_SIZE).reshape((10, 145, 4)), dims=GEO_DIMS)
+fake_sat_zen_data = xr.DataArray(rng.integers(0, 36000, size=GEO_SIZE).reshape((10, 145, 4)), dims=GEO_DIMS)
 
 
 def random_date(start, end):
@@ -80,7 +77,6 @@ def aws_file(tmp_path_factory):
     ds["status/satellite/subsat_longitude_start"] = np.array(304.79)
     ds["status/satellite/subsat_latitude_start"] = np.array(55.41)
     ds["status/satellite/subsat_longitude_end"] = np.array(296.79)
-
 
     tmp_dir = tmp_path_factory.mktemp("aws_l1b_tests")
     filename = tmp_dir / compose(file_pattern, dict(start_time=start_time, end_time=end_time,
@@ -129,7 +125,7 @@ def test_get_channel_data(aws_handler):
     assert "y" in res.dims
     assert "orbital_parameters" in res.attrs
     assert res.attrs["orbital_parameters"]["sub_satellite_longitude_end"] == 296.79
-    assert res.dims == ("x", "y")
+    assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
     assert res.attrs["sensor"] == "AWS"
     assert res.attrs["platform_name"] == "AWS1"
@@ -152,7 +148,7 @@ def test_get_navigation_data(aws_handler, id_name, file_key, fake_array):
     assert "x" in res.dims
     assert "y" in res.dims
     assert "orbital_parameters" in res.attrs
-    assert res.dims == ("x", "y")
+    assert res.dims == ("y", "x")
     assert "standard_name" in res.attrs
     assert "n_geo_groups" not in res.coords
     if id_name == "longitude":
@@ -167,16 +163,16 @@ def test_get_navigation_data(aws_handler, id_name, file_key, fake_array):
 def test_get_viewing_geometry_data(aws_handler, id_name, file_key, fake_array):
     """Test retrieving the angles_data."""
     Horn = Enum("Horn", ["1", "2", "3", "4"])
-    did = dict(name=id_name, horn=Horn["1"])
+    dset_id = dict(name=id_name, horn=Horn["1"])
 
     dataset_info = dict(file_key=file_key, standard_name=id_name)
-    res = aws_handler.get_dataset(did, dataset_info)
+    res = aws_handler.get_dataset(dset_id, dataset_info)
 
     np.testing.assert_allclose(res, fake_array.isel(n_geo_groups=0))
     assert "x" in res.dims
     assert "y" in res.dims
     assert "orbital_parameters" in res.attrs
-    assert res.dims == ("x", "y")
+    assert res.dims == ("y", "x")
     assert "standard_name" in res.attrs
     assert "n_geo_groups" not in res.coords
     if id_name == "longitude":
