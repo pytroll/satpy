@@ -700,7 +700,7 @@ class SEVIRICalibrationHandler:
                              "brightness_temperature"]:
             gain, offset = self.get_gain_offset()
             res = self._algo.convert_to_radiance(
-                data.astype(np.float32), gain, offset
+                data.astype(np.float32), np.float32(gain), np.float32(offset)
             )
         else:
             raise ValueError(
