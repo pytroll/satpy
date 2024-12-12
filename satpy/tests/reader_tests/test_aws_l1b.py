@@ -8,8 +8,8 @@ from random import randrange
 import numpy as np
 import pytest
 import xarray as xr
-from datatree import DataTree
 from trollsift import compose, parse
+from xarray import DataTree
 
 from satpy.readers.aws_l1b import DATETIME_FORMAT, AWSL1BFile
 
