@@ -237,8 +237,8 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             data += factors[1]
 
         # update scale_factor and scale_offset
-        data.attrs['scale_factor'] = scale_factor
-        data.attrs['add_offset'] = scale_offset
+        data.attrs["scale_factor"] = scale_factor
+        data.attrs["add_offset"] = scale_offset
 
         # rename dimensions to correspond to satpy's 'y' and 'x' standard
         if "number_of_lines" in data.dims:
