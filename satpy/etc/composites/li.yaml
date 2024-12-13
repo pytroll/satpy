@@ -10,69 +10,78 @@ composites:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: acc_flash
     prerequisites:
-    - flash_accumulation
+      - flash_accumulation
   acc_flash_alpha:
     description: Composite to colorise the AF product using the flash accumulation with transparency
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: acc_flash_alpha
     prerequisites:
-    - flash_accumulation
+      - flash_accumulation
 
   acc_flash_area:
     description: Composite to colorise the AFA product using the flash area
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: acc_flash_area
     prerequisites:
-    - accumulated_flash_area
+      - accumulated_flash_area
   acc_flash_area_alpha:
     description: Composite to colorise the AFA product using the flash area with transparency
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: acc_flash_area_alpha
     prerequisites:
-    - accumulated_flash_area
+      - accumulated_flash_area
 
   acc_flash_radiance:
     description: Composite to colorise the AFR product using the flash radiance
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: lightning_radiance
     prerequisites:
-    - flash_radiance
+      - flash_radiance
   acc_flash_radiance_alpha:
     description: Composite to colorise the AFR product using the flash radiance with transparency
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: lightning_radiance_alpha
     prerequisites:
-    - flash_radiance
+      - flash_radiance
 
   flash_radiance:
     description: Composite to colorise the LFL product using the flash radiance
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: lightning_radiance
     prerequisites:
-    - radiance
+      - radiance
   flash_radiance_alpha:
     description: Composite to colorise the LFL product using the flash radiance with transparency
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: lightning_radiance_alpha
     prerequisites:
-    - radiance
+      - radiance
 
   group_radiance:
     description: Composite to colorise the LGR product using the flash radiance
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: lightning_radiance
     prerequisites:
-    - radiance
+      - radiance
   group_radiance_alpha:
     description: Composite to colorise the LGR product using the flash radiance with transparency
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: lightning_radiance_alpha
     prerequisites:
-    - radiance
+      - radiance
 
   # DEPRECATED, USE acc_flash_area INSTEAD
   flash_area:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     standard_name: acc_flash_area
     prerequisites:
-    - accumulated_flash_area
+      - accumulated_flash_area
+
+  flash_age:
+    description: Composite to colorise the LFL product using the flash time
+    compositor: !!python/name:satpy.composites.lightning.LightningTimeCompositor
+    standard_name: lightning_time
+    time_range: 60 # range for colormap in minutes
+    reference_time: end_time
+    prerequisites:
+      - flash_time
