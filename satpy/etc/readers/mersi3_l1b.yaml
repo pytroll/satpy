@@ -438,7 +438,7 @@ datasets:
         standard_name: counts
   '19':
     name: '19'
-    wavelength: [1.23, 1.24, 1.25]  # or 1.03um?
+    wavelength: [1.02, 1.03, 1.04]
     resolution: 1000
     file_type: mersi3_l1b_1000
     file_key: Data/EV_1KM_RefSB
