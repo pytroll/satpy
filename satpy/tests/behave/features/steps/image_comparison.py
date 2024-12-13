@@ -15,6 +15,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Image comparison tests."""
 
+import hdf5plugin  # noqa: F401  isort:skip
 import os
 import warnings
 from datetime import datetime
@@ -22,7 +23,6 @@ from glob import glob
 
 import cv2
 import dask
-import hdf5plugin  # noqa: F401
 import numpy as np
 from behave import given, then, when
 
@@ -80,7 +80,7 @@ def step_when_generate_image(context, composite, satellite, reader, area):
     if area == "null":
         ls = scn
     else:
-        ls = scn.resample(area)
+        ls = scn.resample(area, resampler="gradient_search")
 
     # Save the generated image in the generated folder
     generated_image_path = os.path.join(context.test_results_dir, "generated",
