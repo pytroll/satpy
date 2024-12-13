@@ -18,40 +18,50 @@
 
 Script to create reference images for the automated image testing system.
 
-create_reference.py <input-data> <output-directory> <satellite-name>
-
 The input data directory must follow the data structure from the
 image-comparison-tests repository with satellite_data/<satellite-name>.
 
 This script is a work in progress and expected to change significantly.
-It is absolutely not intended for any operational production of satellite
-imagery.
+
+DO NOT USE FOR OPERATIONAL PRODUCTION!
 """
 
 import argparse
+import os
 import pathlib
-from glob import glob
+
+import hdf5plugin  # noqa: F401
 
 from satpy import Scene
 
 
-def generate_images(reader, filenames, area, composites, outdir):
-    """Generate reference images for testing purposes."""
-    from dask.diagnostics import ProgressBar
-    scn = Scene(reader="abi_l1b", filenames=filenames)
+def generate_images(props):
+    """Generate reference images for testing purposes.
 
-    composites = ["ash", "airmass"]
-    scn.load(composites)
-    if area is None:
-        ls = scn
-    elif area == "native":
+    Args:
+        props (namespace): Object with attributes corresponding to command line
+        arguments as defined by :func:get_parser.
+    """
+    filenames = (props.basedir / "satellite_data" / props.satellite).glob("*")
+
+    scn = Scene(reader=props.reader, filenames=filenames)
+
+    scn.load(props.composites)
+    if props.area == "native":
         ls = scn.resample(resampler="native")
+    elif props.area is not None:
+        ls = scn.resample(props.area, resampler="gradient_search")
     else:
-        ls = scn.resample(area)
+        ls = scn
 
+    from dask.diagnostics import ProgressBar
     with ProgressBar():
-        ls.save_datasets(writer="simple_image", filename=outdir +
-                          "/satpy-reference-image-{platform_name}-{sensor}-{start_time:%Y%m%d%H%M}-{area.area_id}-{name}.png")
+        ls.save_datasets(
+                writer="simple_image",
+                filename=os.fspath(
+                    props.basedir / "reference_images" /
+                    "satpy-reference-image-{platform_name}-{sensor}-"
+                    "{start_time:%Y%m%d%H%M}-{area.area_id}-{name}.png"))
 
 def get_parser():
     """Return argument parser."""
@@ -66,31 +76,35 @@ def get_parser():
             help="Reader name.")
 
     parser.add_argument(
-            "area", action="store", type=str,
-            help="Area name, 'null' (no resampling) or 'native' (native resampling)")
+            "-b", "--basedir", action="store", type=pathlib.Path,
+            default=pathlib.Path("."),
+            help="Base directory for reference data. "
+                 "This must contain a subdirectories satellite_data and "
+                 "reference_images.  The directory satellite_data must contain "
+                 "input data in a subdirectory for the satellite. Output images "
+                 "will be written to the subdirectory reference_images.")
 
     parser.add_argument(
-            "basedir", action="store", type=pathlib.Path,
-            help="Root directory where reference input data are contained.")
-
-    parser.add_argument(
-            "outdir", action="store", type=pathlib.Path,
+            "-o", "--outdir", action="store", type=pathlib.Path,
+            default=pathlib.Path("."),
             help="Directory where to write resulting images.")
+
+    parser.add_argument(
+            "-c", "--composites", nargs="+", help="composites to generate",
+            type=str, default=["ash", "airmass"])
+
+    parser.add_argument(
+            "-a", "--area", action="store",
+            default=None,
+            help="Area name, or 'native' (native resampling)")
 
     return parser
 
 def main():
     """Main function."""
     parsed = get_parser().parse_args()
-    ext_data_path = parsed.basedir
-    reader = parsed.reader
-    area = parsed.area
-    outdir = parsed.outdir
-    satellite = parsed.satellite
 
-    filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*")
-    generate_images(reader, filenames, None if area.lower() == "null" else
-                    area, ["airmass", "ash"], outdir)
+    generate_images(parsed)
 
 if __name__ == "__main__":
     main()
