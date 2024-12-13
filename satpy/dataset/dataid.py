@@ -21,7 +21,7 @@ from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
 from enum import Enum, IntEnum
-from typing import NoReturn
+from typing import Any, NoReturn
 
 import numpy as np
 
@@ -492,10 +492,13 @@ class DataQuery:
     """The data query object.
 
     A DataQuery can be used in Satpy to query a dict using ``DataID`` objects
-    as keys. This way
-    a fully qualified DataID can be found even if some DataID
-    elements are unknown. In this case a `*` signifies something that is
-    unknown or not applicable to the requested Dataset.
+    as keys. In a plain Python builtin ``dict`` object a fully matching
+    ``DataQuery`` can be used to access the value of the matching ``DataID``.
+    Using Satpy's special :class:``~satpy.dataid.data_dict.DatasetDict`` a
+    ``DataQuery`` will match the closest matching ``DataID``. In this case a
+    ``"*"`` in the query signifies something that is unknown or not applicable
+    to the requested Dataset. See the ``DatasetDict`` class for more information
+    including retrieving all items matching a ``DataQuery``.
     """
 
     def __init__(self, **kwargs):
@@ -511,30 +514,74 @@ class DataQuery:
     def __eq__(self, other):
         """Compare the DataQuerys.
 
-        A DataQuery is considered equal to another DataQuery or DataID
-        if they have common keys that have equal values.
+        A DataQuery is considered equal to another DataQuery if all keys
+        are shared between them and are equal. A DataQuery is considered
+        equal to a DataID if all elements in the query are equal to those
+        elements in the DataID. The DataID is still considered equal if it
+        contains additional elements. Any DataQuery elements with the value
+        ``"*"`` are ignored.
+
         """
-        sdict = self._to_trimmed_dict()
+        sdict = self._asdict()
         try:
             odict = other._asdict()
         except AttributeError:
             return False
-        common_keys = False
-        for key, val in sdict.items():
-            if key not in odict:
+
+        if not sdict and not odict:
+            return True
+
+        # if other is a DataID then must match this query exactly
+        keys_to_match = set(sdict.keys())
+        o_is_id = hasattr(other, "id_keys")
+        if not o_is_id:
+            # if another DataQuery, then compare both sets of keys
+            keys_to_match |= set(odict.keys())
+        if not keys_to_match:
+            return False
+
+        for key in keys_to_match:
+            if not self._compare_key_equality(sdict, odict, key, o_is_id):
                 return False
-            common_keys = True
-            if odict[key] != val:
-                return False
-        return common_keys
+        return True
+
+    @staticmethod
+    def _compare_key_equality(sdict: dict, odict: dict, key: str, o_is_id: bool) -> bool:
+        if key not in sdict:
+            return False
+        sval = sdict[key]
+        if sval == "*":
+            return True
+
+        if key not in odict:
+            return False
+        oval = odict[key]
+        if oval == "*":
+            # Gotcha: if a DataID contains a "*" this could cause
+            #    unexpected matches. A DataID is not expected to use "*"
+            return True
+
+        if isinstance(sval, list) or isinstance(oval, list):
+            # multiple options to match
+            if not isinstance(sval, list):
+                # query to query comparison, make a list to iterate over
+                sval = [sval]
+            if o_is_id:
+                return oval in sval
+
+            # we're matching against a DataQuery who could have its own list
+            if not isinstance(oval, list):
+                oval = [oval]
+            s_in_o = any(_sval in oval for _sval in sval)
+            o_in_s = any(_oval in sval for _oval in oval)
+            return s_in_o or o_in_s
+        return oval == sval
 
     def __hash__(self):
         """Hash."""
         fields = []
         values = []
         for field, value in sorted(self._to_trimmed_dict().items()):
-            if value == "*":
-                continue
             fields.append(field)
             if isinstance(value, list):
                 # list or tuple is ordered (ex. modifiers)
@@ -579,30 +626,8 @@ class DataQuery:
 
     def filter_dataids(self, dataid_container):
         """Filter DataIDs based on this query."""
-        keys = list(filter(self._match_dataid, dataid_container))
-
+        keys = list(filter(self.__eq__, dataid_container))
         return keys
-
-    def _match_dataid(self, dataid):
-        """Match the dataid with the current query."""
-        if self._shares_required_keys(dataid):
-            keys_to_check = set(dataid.keys()) & set(self._fields)
-        else:
-            keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
-        if not keys_to_check:
-            return False
-        return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
-
-    def _shares_required_keys(self, dataid):
-        """Check if dataid shares required keys with the current query."""
-        for key, val in dataid._id_keys.items():
-            try:
-                if val.get("required", False):
-                    if key in self._fields:
-                        return True
-            except AttributeError:
-                continue
-        return False
 
     def _match_query_value(self, key, id_val):
         val = self._dict[key]
@@ -734,21 +759,20 @@ def create_filtered_query(dataset_key, filter_query):
     return DataQuery.from_dict(ds_dict)
 
 
-def _update_dict_with_filter_query(ds_dict, filter_query):
+def _update_dict_with_filter_query(ds_dict: dict[str, Any], filter_query: dict[str, Any]) -> None:
     if filter_query is not None:
         for key, value in filter_query.items():
             if value != "*":
                 ds_dict.setdefault(key, value)
 
 
-def _create_id_dict_from_any_key(dataset_key):
-    try:
+def _create_id_dict_from_any_key(dataset_key: DataQuery | DataID | str | numbers.Number) -> dict[str, Any]:
+    if hasattr(dataset_key, "to_dict"):
         ds_dict = dataset_key.to_dict()
-    except AttributeError:
-        if isinstance(dataset_key, str):
-            ds_dict = {"name": dataset_key}
-        elif isinstance(dataset_key, numbers.Number):
-            ds_dict = {"wavelength": dataset_key}
-        else:
-            raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
+    elif isinstance(dataset_key, str):
+        ds_dict = {"name": dataset_key}
+    elif isinstance(dataset_key, numbers.Number):
+        ds_dict = {"wavelength": dataset_key}
+    else:
+        raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
     return ds_dict

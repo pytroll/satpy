@@ -143,16 +143,18 @@ class DatasetDict(dict):
         """Get multiple fully-specified keys that match the provided query.
 
         Args:
-            key (DataID): DataID of query parameters to use for
-                          searching. Any parameter that is `None`
-                          is considered a wild card and any match is
-                          accepted. Can also be a string representing the
-                          dataset name or a number representing the dataset
-                          wavelength.
+            match_key (DataID): DataID of query parameters to use for
+                searching. Any parameter that is `None`
+                is considered a wild card and any match is
+                accepted. Can also be a string representing the
+                dataset name or a number representing the dataset
+                wavelength.
             num_results (int): Number of results to return. If `0` return all,
-                               if `1` return only that element, otherwise
-                               return a list of matching keys.
-            **dfilter (dict): See `get_key` function for more information.
+                if `1` return only that element, otherwise
+                return a list of matching keys.
+            best (bool): Sort results to get "best" result first
+                (default: True). See `get_best_dataset_key` for details.
+            **dfilter (dict): See :func:`get_key` function for more information.
 
         """
         return get_key(match_key, self.keys(), num_results=num_results,

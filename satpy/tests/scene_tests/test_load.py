@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for loading-related functionality in scene.py."""
-
 from unittest import mock
 
 import pytest

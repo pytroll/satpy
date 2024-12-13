@@ -20,6 +20,7 @@ import datetime as dt
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
 from satpy.dataset.metadata import combine_metadata
@@ -616,7 +617,7 @@ class TestIDQueryInteractions:
 
     def test_hash_wildcard_equality(self):
         """Test hashes are equal with or without wildcards."""
-        assert DataQuery(name="1", resolution="*") == DataQuery(name="1")
+        assert hash(DataQuery(name="1", resolution="*")) == hash(DataQuery(name="1"))
 
     @pytest.mark.parametrize(
         "modifiers",
@@ -649,6 +650,7 @@ class TestIDQueryInteractions:
         [
             ({}, {}, 0),
             ({"wavelength": (0.1, 0.2, 0.3)}, {}, 1),
+            ({}, {"name": "ds1"}, 0),
         ],
     )
     def test_id_filtering_wavelength(self, id_kwargs, query_kwargs, exp_match):
@@ -671,10 +673,10 @@ class TestIDQueryInteractions:
             DataID(minimal_default_keys_config, name="natural_color"),
         ]
         dq = DataQuery(name="natural_color", resolution=250)
-        assert len(dq.filter_dataids(dataid_container)) == 1
+        assert len(dq.filter_dataids(dataid_container)) == 0
 
-    def test_id_filtering_wavelength_unrelated(self):
-        """Test that no name query doesn't match name-only ID."""
+    def test_id_filtering_unrelated(self):
+        """Test that a query doesn't match an ID with no matching keys."""
         dq = make_dsq(wavelength=0.22, modifiers=("mod1",))
         did = make_cid(name="static_image")
         assert len(dq.filter_dataids([did])) == 0
@@ -684,6 +686,66 @@ class TestIDQueryInteractions:
         data_id = DataID(self.default_id_keys_config, name="1", resolution=500)
         assert data_id["modifiers"] == tuple()
         assert DataQuery(name="1", resolution=500) == data_id
+
+    @pytest.mark.parametrize(
+        ("dq1", "dq2"),
+        [
+            (DataQuery(name="1"), DataQuery(name="1")),
+            (DataQuery(name="1", resolution="*"), DataQuery(name="1")),
+            (DataQuery(name="1", resolution="*"), DataQuery(name="1", resolution=500)),
+            (DataQuery(name="1", resolution=500), DataQuery(name="1", resolution="*")),  # opposite order
+            (DataQuery(), DataQuery()),
+            (DataQuery(name="1", resolution=[250, 500]), DataQuery(name="1", resolution=[500, 750])),  # opposite order
+            (DataQuery(name="1", resolution=500), DataQuery(name="1", resolution=[500, 750])),  # opposite order
+            (DataQuery(name="1", resolution=[250, 500]), DataQuery(name="1", resolution=500)),  # opposite order
+        ],
+    )
+    def test_equality_queries(self, dq1, dq2):
+        """Test various query to query comparisons."""
+        assert dq1 == dq2
+
+    @pytest.mark.parametrize(
+        ("dq1", "dq2"),
+        [
+            (DataQuery(name="1", resolution=[250, 500]), DataQuery(name="1", resolution=[750, 1000])),  # opposite order
+            (DataQuery(name="1"), DataQuery(name="1", resolution=750)),  # opposite order
+        ],
+    )
+    def test_inequality_queries(self, dq1, dq2):
+        """Test various query to query inequality cases."""
+        assert dq1 != dq2
+
+    @pytest.mark.parametrize(
+        ("dq", "id_dict"),
+        [
+            (DataQuery(name="1"), dict(name="1")),
+            (DataQuery(name="1", resolution="*"), dict(name="1")),
+            (DataQuery(name="1", resolution="*"), dict(name="1", resolution=500)),
+            # DataID shouldn't use * but we still test it:
+            (DataQuery(name="1", resolution=500), dict(name="1", resolution="*")),
+            (DataQuery(), dict()),  # probably not useful, but it is a case
+            (DataQuery(name="1", resolution=[250, 500]), dict(name="1", resolution=500)),
+        ],
+    )
+    def test_equality_ids(self, dq, id_dict):
+        """Test various query to DataID equality cases."""
+        assert dq == DataID(self.default_id_keys_config, **id_dict)
+
+    @pytest.mark.parametrize(
+        ("dq", "id_dict"),
+        [
+            (DataQuery(name="1", resolution=500), dict(name="1", resolution=None)),
+            (DataQuery(), dict(name="1", resolution=1000)),
+            (DataQuery(name="1", resolution=[250, 500]), dict(name="1", resolution=1000)),
+        ],
+    )
+    def test_inequality_ids(self, dq, id_dict):
+        """Test various query to DataID inequality cases."""
+        assert dq != DataID(self.default_id_keys_config, **id_dict)
+
+    def test_inequality_unknown_type(self):
+        """Test equality against non ID/query type."""
+        assert DataQuery(name="1") != "1"
 
     def test_inequality_missing_keys(self):
         """Check inequality against a DataID missing a query parameter."""
@@ -1029,3 +1091,24 @@ def test_wavelength_range_cf_roundtrip():
 
     assert WavelengthRange.from_cf(wr.to_cf()) == wr
     assert WavelengthRange.from_cf([str(item) for item in wr]) == wr
+
+
+def test_dataset_dict_contains_inexact_match():
+    """Test that DatasetDict does not match inexact keys to existing keys.
+
+    Specifically, check that additional DataID properties aren't ignored
+    when querying the DatasetDict.
+
+    See https://github.com/pytroll/satpy/issues/2331.
+    """
+    from satpy.dataset.data_dict import DatasetDict
+
+    dd = DatasetDict()
+    name = "1"
+    item = xr.DataArray(())
+    dd[name] = item
+    exact_id = DataQuery(name=name)
+    assert exact_id in dd
+
+    inexact_id = DataQuery(name=name, resolution=2000)
+    assert inexact_id not in dd

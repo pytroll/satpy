@@ -19,13 +19,16 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Container, Iterable, Optional
 
 import numpy as np
+from holoviews.core.options import Compositor
 
-from satpy import DataID, DatasetDict
+from satpy import DataID, DataQuery, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
+from satpy.dataset.dataid import default_id_keys_config
 from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 
@@ -245,8 +248,9 @@ class DependencyTree(Tree):
         unknown_datasets = list()
         known_nodes = list()
         for key in dataset_keys.copy():
+            dsq = create_filtered_query(key, query)
+
             try:
-                dsq = create_filtered_query(key, query)
                 node = self._create_subtree_for_key(dsq, query)
             except MissingDependencies as unknown:
                 unknown_datasets.append(unknown.missing_dependencies)
@@ -405,7 +409,7 @@ class DependencyTree(Tree):
             LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dsq, node.name))
             return node
         except KeyError:
-            # composite hasn't been loaded yet, let's load it below
+            # composite hasn't been loaded yet, let's load it next
             LOG.trace("Composite hasn't been loaded yet, will load: {}".format(dsq))
             raise MissingDependencies({dsq})
 
@@ -424,6 +428,7 @@ class DependencyTree(Tree):
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
 
+        orig_query = dataset_key
         if dataset_key.is_modified():
             implicit_dependency_node = self._create_implicit_dependency_subtree(dataset_key, query)
             dataset_key = self._promote_query_to_modified_dataid(dataset_key, implicit_dependency_node.name)
@@ -438,10 +443,21 @@ class DependencyTree(Tree):
             except KeyError:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
 
-        root = CompositorNode(compositor)
+        new_id_dict = compositor.id.to_dict()
+        new_id = None
+        # TODO: dataset_key could include ID parameters from composite YAML, is this different from load kwargs?
+        if compositor.id.to_dict() != dataset_key._asdict():
+            id_keys = default_id_keys_config  # minimal_default_keys_config
+            for query_key, query_val in dataset_key.to_dict().items():
+                # XXX: What if the query_val is a list?
+                if new_id_dict.get(query_key) is None and query_key in id_keys and query_val != "*":
+                    new_id_dict[query_key] = query_val
+            new_id = DataID(id_keys, **new_id_dict)
+
+        root = CompositorNode(compositor, new_id=new_id)
         composite_id = root.name
 
-        prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
+        prerequisite_filter = composite_id.create_filter_query_without_required_fields(orig_query)
 
         # Get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
@@ -488,7 +504,7 @@ class DependencyTree(Tree):
                 orig_dict[key] = dep_val
         return dep_key.from_dict(orig_dict)
 
-    def get_compositor(self, key):
+    def get_compositor(self, key: DataQuery):
         """Get a compositor."""
         for sensor_name in sorted(self.compositors):
             try:
@@ -496,6 +512,44 @@ class DependencyTree(Tree):
             except KeyError:
                 continue
 
+        if key.get("name", default="*") != "*" and len(key.to_dict()) == 1:
+            # the query key is just the name and still couldn't be found
+            raise KeyError("Could not find compositor '{}'".format(key))
+
+        # Get the generic version of the compositor (by name only)
+        # then save our new version under the new name
+
+        return self._get_compositor_by_name(key)
+
+    def _get_compositor_by_name(self, key: DataQuery) -> Compositor | None:
+        name_query = DataQuery(name=key["name"])
+        for sensor_name in sorted(self.compositors):
+            sensor_data_dict = self.compositors[sensor_name]
+            try:
+                # get all IDs that have the minimum "distance" for our composite name
+                all_comp_ids = sensor_data_dict.get_key(name_query, num_results=0)
+                # Filter to those that don't disagree with the original query
+                matching_comp_ids = []
+                for comp_id in all_comp_ids:
+                    for query_key, query_val in key.to_dict().items():
+                        # TODO: Handle query_vals that are lists
+                        if comp_id.get(query_key, query_val) != query_val:
+                            break
+                    else:
+                        # all query keys match
+                        matching_comp_ids.append(comp_id)
+                if len(matching_comp_ids) > 1:
+                    warnings.warn("Multiple compositors matching {name_query} to create {key} variant. "
+                                  "Going to use the name-only 'base' compositor definition.")
+                    matching_comp_ids = matching_comp_ids[:1]
+            except KeyError:
+                continue
+
+            if len(matching_comp_ids) != 1:
+                raise KeyError("Can't find compositor {key['name']} by name only.")
+            comp_id = matching_comp_ids[0]
+            # should use the "short-circuit" path and find the exact name-only compositor by DataID
+            return sensor_data_dict[comp_id]
         raise KeyError("Could not find compositor '{}'".format(key))
 
     def get_modifier(self, comp_id):
