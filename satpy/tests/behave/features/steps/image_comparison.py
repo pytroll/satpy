@@ -32,6 +32,8 @@ from behave import given, then, when
 
 from satpy import Scene
 
+from satpy.utils import debug_on; debug_on()
+
 ext_data_path = "/app/ext_data"
 threshold = 2000
 
