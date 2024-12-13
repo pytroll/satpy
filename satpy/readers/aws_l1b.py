@@ -43,7 +43,6 @@ class AWSL1BFile(NetCDF4FileHandler):
     ``"aws_l1b_nc"``.
 
     """
-
     def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=True):
         """Initialize the handler."""
         super().__init__(filename, filename_info, filetype_info,
