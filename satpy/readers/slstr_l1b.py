@@ -306,10 +306,23 @@ class NCSLSTRAngles(BaseFileHandler):
             variable.attrs["resolution"] = key.get("resolution", 1000)
 
             from scipy.interpolate import RectBivariateSpline
-            spl = RectBivariateSpline(
-                tie_y, tie_x, variable.data[:, ::-1])
 
-            values = spl.ev(full_y, full_x)
+            # Check if we are interpolating angles
+            if "angle" in key["name"]:
+                # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
+                # interpolation artifacts such as values <0 or >360.
+                indat =  variable.data[:, ::-1]
+                sin_angles = np.sin(np.radians(indat))
+                cos_angles = np.cos(np.radians(indat))
+                sin_interp = RectBivariateSpline(tie_y, tie_x, sin_angles)
+                cos_interp = RectBivariateSpline(tie_y, tie_x, cos_angles)
+                values_sin = sin_interp.ev(full_y, full_x)
+                values_cos = cos_interp.ev(full_y, full_x)
+                values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
+            else:
+                # Otherwise, interpolate as normal.
+                spl = RectBivariateSpline(tie_y, tie_x, variable.data[:, ::-1])
+                values = spl.ev(full_y, full_x)
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                                     dims=["y", "x"], attrs=variable.attrs)
