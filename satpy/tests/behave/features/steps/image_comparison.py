@@ -17,6 +17,10 @@
 
 import hdf5plugin  # noqa: F401  isort:skip
 import os
+import os.path
+
+os.environ["HDF5_PLUGIN_PATH"] = os.path.dirname(hdf5plugin.__file__) + "/plugins/"
+
 import warnings
 from datetime import datetime
 from glob import glob
