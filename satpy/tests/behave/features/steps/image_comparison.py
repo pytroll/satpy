@@ -22,6 +22,7 @@ from glob import glob
 
 import cv2
 import dask
+import hdf5plugin  # noqa: F401
 import numpy as np
 from behave import given, then, when
 
@@ -54,7 +55,7 @@ setup_hooks()
 @given("I have a {composite} reference image file from {satellite} resampled to {area}")
 def step_given_reference_image(context, composite, satellite, area):
     """Prepare a reference image."""
-    reference_image = f"reference_image_{satellite}_{composite}_{area}.png"
+    reference_image = f"satpy-reference-image-{satellite}-{composite}-{area}.png"
     context.reference_image = cv2.imread(f"{ext_data_path}/reference_images/{reference_image}")
     context.satellite = satellite
     context.composite = composite

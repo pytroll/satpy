@@ -6,9 +6,10 @@ Feature: Image Comparison
     Then the generated image should be the same as the reference image
 
     Examples:
-      |satellite |composite  | reader | area
-      |GOES17   |airmass  | abi_l1b | null
-      |GOES16   |airmass  | abi_l1b | null
-      |GOES16   |ash      | abi_l1b | null
-      |GOES17   |ash      | abi_l1b | null
-      |METEOSAT12 | cloudtop | fci_l1b_nc | sve
+      |satellite |composite  | reader | area |
+      |GOES17   |airmass  | abi_l1b | null |
+      |GOES16   |airmass  | abi_l1b | null |
+      |GOES16   |ash      | abi_l1b | null |
+      |GOES17   |ash      | abi_l1b | null |
+      |Meteosat-12 | cloudtop | fci_l1c_nc | sve |
+      |Meteosat-12 | night_microphysics | fci_l1c_nc | sve |
