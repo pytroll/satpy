@@ -357,14 +357,14 @@ class TestVIIRSL1BReaderDay:
                            ])
         for v in datasets.values():
             if v.attrs["units"] == "%":
-                assert int(v.attrs['scale_factor']) == 110
-                assert int(v.attrs['add_offset']) == 10
+                assert int(v.attrs["scale_factor"]) == 110
+                assert int(v.attrs["add_offset"]) == 10
             elif v.attrs["units"] == "K":
-                assert v.attrs['scale_factor'] == 1
-                assert v.attrs['add_offset'] == 0
+                assert v.attrs["scale_factor"] == 1
+                assert v.attrs["add_offset"] == 0
             elif v.attrs["calibration"] == "radiance" and v.attrs["units"] == "W m-2 um-1 sr-1":
-                assert v.attrs['scale_factor'] == 1.1
-                assert v.attrs['add_offset'] == 0.1
+                assert v.attrs["scale_factor"] == 1.1
+                assert v.attrs["add_offset"] == 0.1
         
 
 class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):
