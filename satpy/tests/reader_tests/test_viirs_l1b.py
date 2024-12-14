@@ -365,7 +365,7 @@ class TestVIIRSL1BReaderDay:
             elif v.attrs["calibration"] == "radiance" and v.attrs["units"] == "W m-2 um-1 sr-1":
                 assert v.attrs["scale_factor"] == 1.1
                 assert v.attrs["add_offset"] == 0.1
-        
+
 
 class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):
     """Test VIIRS L1b with night data.
