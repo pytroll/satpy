@@ -12,13 +12,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for the Arctic Weather Satellite (AWS) Sounder level-1b data.
+"""Reader for the Arctic Weather Satellite (AWS) Sounder level-1c data.
 
-Test data provided by ESA August 23, 2023.
-
-Sample data for five orbits in September 2024 provided by ESA to the Science
-Advisory Group for MWS and AWS, November 26, 2024.
-
+Sample data provided by ESA September 27, 2024.
 """
 
 import logging
@@ -34,26 +30,22 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 AWS_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
 
 
-class AWSL1BFile(NetCDF4FileHandler):
-    """Class implementing the AWS L1b Filehandler.
+class AWSL1CFile(NetCDF4FileHandler):
+    """Class implementing the AWS L1c Filehandler.
 
     This class implements the ESA Arctic Weather Satellite (AWS) Level-1b
     NetCDF reader. It is designed to be used through the :class:`~satpy.Scene`
     class using the :mod:`~satpy.Scene.load` method with the reader
-    ``"aws_l1b_nc"``.
+    ``"aws_l1c_nc"``.
 
     """
+
     def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=True):
         """Initialize the handler."""
         super().__init__(filename, filename_info, filetype_info,
                          cache_var_size=10000,
                          cache_handle=True)
         self.filename_info = filename_info
-
-        if filetype_info["file_type"].startswith("eps_sterna"):
-            self._feed_horn_group_name = "n_feedhorns"
-        else:
-            self._feed_horn_group_name = "n_geo_groups"
 
     @property
     def start_time(self):
@@ -68,69 +60,23 @@ class AWSL1BFile(NetCDF4FileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self["/attr/instrument"]
+        return "MWR"
 
     @property
     def platform_name(self):
         """Get the platform name."""
         return self.filename_info["platform_name"]
 
-    @property
-    def orbit_start(self):
-        """Get the orbit number for the start of data."""
-        return int(self["/attr/orbit_start"])
-
-    @property
-    def orbit_end(self):
-        """Get the orbit number for the end of data."""
-        return int(self["/attr/orbit_end"])
-
-    @property
-    def sub_satellite_longitude_start(self):
-        """Get the longitude of sub-satellite point at start of the product."""
-        return self["status/satellite/subsat_longitude_start"].data.item()
-
-    @property
-    def sub_satellite_latitude_start(self):
-        """Get the latitude of sub-satellite point at start of the product."""
-        return self["status/satellite/subsat_latitude_start"].data.item()
-
-    @property
-    def sub_satellite_longitude_end(self):
-        """Get the longitude of sub-satellite point at end of the product."""
-        return self["status/satellite/subsat_longitude_end"].data.item()
-
-    @property
-    def sub_satellite_latitude_end(self):
-        """Get the latitude of sub-satellite point at end of the product."""
-        return self["status/satellite/subsat_latitude_end"].data.item()
-
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""
         if dataset_id["name"] in AWS_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
-        elif dataset_id["name"] in ["satellite_zenith_horn1",
-                                    "satellite_zenith_horn2",
-                                    "satellite_zenith_horn3",
-                                    "satellite_zenith_horn4",
-                                    "solar_azimuth_horn1",
-                                    "solar_azimuth_horn2",
-                                    "solar_azimuth_horn3",
-                                    "solar_azimuth_horn4",
-                                    "solar_zenith_horn1",
-                                    "solar_zenith_horn2",
-                                    "solar_zenith_horn3",
-                                    "solar_zenith_horn4",
-                                    "satellite_azimuth_horn1",
-                                    "satellite_azimuth_horn2",
-                                    "satellite_azimuth_horn3",
-                                    "satellite_azimuth_horn4"]:
-            data_array = self._get_navigation_data(dataset_id, dataset_info)
-
-        elif dataset_id["name"] in ["longitude", "latitude"]:
+        elif (dataset_id["name"] in ["longitude", "latitude",
+                                     "solar_azimuth", "solar_zenith",
+                                     "satellite_zenith", "satellite_azimuth"]):
             data_array = self._get_navigation_data(dataset_id, dataset_info)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Dataset {dataset_id['name']} not available or not supported yet!")
 
         data_array = mask_and_scale(data_array)
         if dataset_id["name"] == "longitude":
@@ -138,14 +84,8 @@ class AWSL1BFile(NetCDF4FileHandler):
 
         data_array.attrs.update(dataset_info)
 
-        data_array.attrs["orbital_parameters"] = {"sub_satellite_latitude_start": self.sub_satellite_latitude_start,
-                                                  "sub_satellite_longitude_start": self.sub_satellite_longitude_start,
-                                                  "sub_satellite_latitude_end": self.sub_satellite_latitude_end,
-                                                  "sub_satellite_longitude_end": self.sub_satellite_longitude_end}
-
         data_array.attrs["platform_name"] = self.platform_name
         data_array.attrs["sensor"] = self.sensor
-        data_array.attrs["orbit_number"] = self.orbit_start
         return data_array
 
     def _get_channel_data(self, dataset_id, dataset_info):
@@ -155,13 +95,9 @@ class AWSL1BFile(NetCDF4FileHandler):
         return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
 
     def _get_navigation_data(self, dataset_id, dataset_info):
-        """Get the navigation (geolocation) data for one feed horn."""
         geo_data = self[dataset_info["file_key"]]
-        geo_data.coords[self._feed_horn_group_name] = ["1", "2", "3", "4"]
         geo_data = geo_data.rename({"n_fovs": "x", "n_scans": "y"})
-        horn = dataset_id["horn"].name
-        _selection = {self._feed_horn_group_name: horn}
-        return geo_data.sel(_selection).drop_vars(self._feed_horn_group_name)
+        return geo_data
 
 
 def mask_and_scale(data_array):

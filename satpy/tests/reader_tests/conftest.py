@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
+# Copyright (c) 2021, 2024 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,4 +15,5 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Setup and configuration for all reader tests."""

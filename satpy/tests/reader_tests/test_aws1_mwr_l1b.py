@@ -11,7 +11,7 @@ import xarray as xr
 from trollsift import compose, parse
 from xarray import DataTree
 
-from satpy.readers.aws_l1b import DATETIME_FORMAT, AWSL1BFile
+from satpy.readers.mwr_l1b import DATETIME_FORMAT, AWS_EPS_Sterna_MWR_L1BFile
 
 platform_name = "AWS1"
 file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc"  # noqa
@@ -45,8 +45,8 @@ def random_date(start, end):
 
 
 @pytest.fixture(scope="session")
-def aws_file(tmp_path_factory):
-    """Create an AWS file."""
+def aws_mwr_file(tmp_path_factory):
+    """Create an AWS MWR l1b file."""
     ds = DataTree()
     start_time = datetime(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
@@ -54,7 +54,7 @@ def aws_file(tmp_path_factory):
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
     processing_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
 
-    instrument = "AWS"
+    instrument = "MWR"
     ds.attrs["instrument"] = instrument
     ds.attrs["orbit_start"] = 9991
     ds.attrs["orbit_end"] = 9992
@@ -87,27 +87,33 @@ def aws_file(tmp_path_factory):
 
 
 @pytest.fixture
-def aws_handler(aws_file):
-    """Create an aws filehandler."""
-    filename_info = parse(file_pattern, os.path.basename(aws_file))
+def mwr_handler(aws_mwr_file):
+    """Create an AWS MWR filehandler."""
+    filename_info = parse(file_pattern, os.path.basename(aws_mwr_file))
     filetype_info = dict()
-    filetype_info["file_type"] = "aws_l1b"
-    return AWSL1BFile(aws_file, filename_info, filetype_info)
+    filetype_info["file_type"] = "aws1_mwr_l1b"
+    return AWS_EPS_Sterna_MWR_L1BFile(aws_mwr_file, filename_info, filetype_info)
 
 
-def test_start_end_time(aws_handler):
+def test_start_end_time(mwr_handler):
     """Test that start and end times are read correctly."""
-    assert aws_handler.start_time == datetime(2024, 9, 1, 12, 0)
-    assert aws_handler.end_time == datetime(2024, 9, 1, 12, 15)
+    assert mwr_handler.start_time == datetime(2024, 9, 1, 12, 0)
+    assert mwr_handler.end_time == datetime(2024, 9, 1, 12, 15)
 
 
-def test_metadata(aws_handler):
+def test_orbit_number_start_end(mwr_handler):
+    """Test that start and end orbit number is read correctly."""
+    assert mwr_handler.orbit_start == 9991
+    assert mwr_handler.orbit_end == 9992
+
+
+def test_metadata(mwr_handler):
     """Test that the metadata is read correctly."""
-    assert aws_handler.sensor == "AWS"
-    assert aws_handler.platform_name == platform_name
+    assert mwr_handler.sensor == "MWR"
+    assert mwr_handler.platform_name == platform_name
 
 
-def test_get_channel_data(aws_handler):
+def test_get_channel_data(mwr_handler):
     """Test retrieving the channel data."""
     did = dict(name="1")
     dataset_info = dict(file_key="data/calibration/aws_toa_brightness_temperature")
@@ -119,7 +125,7 @@ def test_get_channel_data(aws_handler):
     expected = expected.where(expected >= 0)
     # "calibrate"
     expected = expected * 0.001
-    res = aws_handler.get_dataset(did, dataset_info)
+    res = mwr_handler.get_dataset(did, dataset_info)
     np.testing.assert_allclose(res, expected)
     assert "x" in res.dims
     assert "y" in res.dims
@@ -127,7 +133,7 @@ def test_get_channel_data(aws_handler):
     assert res.attrs["orbital_parameters"]["sub_satellite_longitude_end"] == 296.79
     assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
-    assert res.attrs["sensor"] == "AWS"
+    assert res.attrs["sensor"] == "MWR"
     assert res.attrs["platform_name"] == "AWS1"
 
 
@@ -135,12 +141,12 @@ def test_get_channel_data(aws_handler):
                          [("longitude", "data/navigation/aws_lon", fake_lon_data * 1e-4),
                           ("latitude", "data/navigation/aws_lat", fake_lat_data),
                           ])
-def test_get_navigation_data(aws_handler, id_name, file_key, fake_array):
+def test_get_navigation_data(mwr_handler, id_name, file_key, fake_array):
     """Test retrieving the geolocation (lon-lat) data."""
     Horn = Enum("Horn", ["1", "2", "3", "4"])
     did = dict(name=id_name, horn=Horn["1"])
     dataset_info = dict(file_key=file_key, standard_name=id_name)
-    res = aws_handler.get_dataset(did, dataset_info)
+    res = mwr_handler.get_dataset(did, dataset_info)
     if id_name == "longitude":
         fake_array = fake_array.where(fake_array <= 180, fake_array - 360)
 
@@ -160,13 +166,13 @@ def test_get_navigation_data(aws_handler, id_name, file_key, fake_array):
                           ("solar_zenith_horn1", "data/navigation/aws_solar_zenith_angle", fake_sun_zen_data),
                           ("satellite_azimuth_horn1", "data/navigation/aws_satellite_azimuth_angle", fake_sat_azi_data),
                           ("satellite_zenith_horn1", "data/navigation/aws_satellite_zenith_angle", fake_sat_zen_data)])
-def test_get_viewing_geometry_data(aws_handler, id_name, file_key, fake_array):
+def test_get_viewing_geometry_data(mwr_handler, id_name, file_key, fake_array):
     """Test retrieving the angles_data."""
     Horn = Enum("Horn", ["1", "2", "3", "4"])
     dset_id = dict(name=id_name, horn=Horn["1"])
 
     dataset_info = dict(file_key=file_key, standard_name=id_name)
-    res = aws_handler.get_dataset(dset_id, dataset_info)
+    res = mwr_handler.get_dataset(dset_id, dataset_info)
 
     np.testing.assert_allclose(res, fake_array.isel(n_geo_groups=0))
     assert "x" in res.dims
@@ -177,3 +183,12 @@ def test_get_viewing_geometry_data(aws_handler, id_name, file_key, fake_array):
     assert "n_geo_groups" not in res.coords
     if id_name == "longitude":
         assert res.max() <= 180
+
+def test_try_get_data_not_in_file(mwr_handler):
+    """Test retrieving a data field that is not available in the file."""
+    did = dict(name="toa_brightness_temperature")
+    dataset_info = dict(file_key="data/calibration/toa_brightness_temperature")
+
+    match_str = "Dataset toa_brightness_temperature not available or not supported yet!"
+    with pytest.raises(NotImplementedError, match=match_str):
+        _ = mwr_handler.get_dataset(did, dataset_info)
