@@ -379,16 +379,6 @@ class DataQuery:
         keys = list(filter(self.__eq__, dataid_container))
         return keys
 
-    def _match_query_value(self, key, id_val):
-        val = self._dict[key]
-        if val == "*":
-            return True
-        if isinstance(id_val, tuple) and isinstance(val, (tuple, list)):
-            return tuple(val) == id_val
-        if not isinstance(val, list):
-            val = [val]
-        return id_val in val
-
     def sort_dataids_with_preference(self, all_ids, preference):
         """Sort `all_ids` given a sorting `preference` (DataQuery or None)."""
         try:
