@@ -18,11 +18,16 @@
 
 import datetime as dt
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
+from satpy.dataset.data_dict import DatasetDict
+from satpy.dataset.dataid import DataID, DataQuery
+from satpy.dataset.id_keys import ModifierTuple, ValueList, WavelengthRange
+from satpy.dataset.id_keys import default_id_keys_config as dikc
+from satpy.dataset.id_keys import minimal_default_keys_config as mdkc
 from satpy.dataset.metadata import combine_metadata
 from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyQuadrupleSideBand, FrequencyRange
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
@@ -33,10 +38,6 @@ class TestDataID:
 
     def test_basic_init(self):
         """Test basic ways of creating a DataID."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.dataid import default_id_keys_config as dikc
-        from satpy.dataset.dataid import minimal_default_keys_config as mdkc
-
         did = DataID(dikc, name="a")
         assert did["name"] == "a"
         assert did["modifiers"] == tuple()
@@ -54,15 +55,11 @@ class TestDataID:
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.dataid import default_id_keys_config as dikc
         with pytest.raises(TypeError):
             DataID(dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DataID(dikc, name="a", wavelength=None)
 
@@ -72,15 +69,11 @@ class TestDataID:
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.dataid import default_id_keys_config as dikc
         with pytest.raises(ValueError, match="_bad_ invalid value for <enum 'calibration'>"):
             DataID(dikc, name="C05", calibration="_bad_")
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=("hej",))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -89,8 +82,6 @@ class TestDataID:
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=("hej",))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -177,16 +168,13 @@ class TestCombineMetadata:
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
-        from numpy import arange, ones
-        from xarray import DataArray
-
         dts = [
-            {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
-            {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
-            {"quality": ones((5, 5,), "?")},
+            {"quality": (np.arange(25) % 2).reshape(5, 5).astype("?")},
+            {"quality": (np.arange(1, 26) % 3).reshape(5, 5).astype("?")},
+            {"quality": np.ones((5, 5,), "?")},
         ]
         assert "quality" not in combine_metadata(*dts)
-        dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
+        dts2 = [{"quality": xr.DataArray(d["quality"])} for d in dts]
         assert "quality" not in combine_metadata(*dts2)
         # the ancillary_variables attribute is actually a list of data arrays
         dts3 = [{"quality": [d["quality"]]} for d in dts]
@@ -204,9 +192,9 @@ class TestCombineMetadata:
         assert "quality" in combine_metadata(*dts5)
         # check with other types
         dts6 = [
-            DataArray(arange(5), attrs=dts[0]),
-            DataArray(arange(5), attrs=dts[0]),
-            DataArray(arange(5), attrs=dts[1]),
+            xr.DataArray(np.arange(5), attrs=dts[0]),
+            xr.DataArray(np.arange(5), attrs=dts[0]),
+            xr.DataArray(np.arange(5), attrs=dts[1]),
             object()
         ]
         assert "quality" not in combine_metadata(*dts6)
@@ -270,8 +258,6 @@ class TestCombineMetadata:
 
     def test_combine_dask_arrays(self):
         """Test combining values that are dask arrays."""
-        import dask.array as da
-
         test_metadata = [{"valid_range": da.from_array(np.array([0., 0.00032], dtype=np.float32))},
                          {"valid_range": da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
         result = combine_metadata(*test_metadata)
@@ -406,8 +392,6 @@ def test_combine_dicts_different(test_mda):
 
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset.dataid import DataID, ModifierTuple, ValueList, WavelengthRange
-
     # Check that enum is translated to type.
     did = make_dataid()
     assert issubclass(did._id_keys["calibration"]["type"], ValueList)
@@ -468,7 +452,6 @@ def test_dataid():
 
 def test_dataid_equal_if_enums_different():
     """Check that dataids with different enums but same items are equal."""
-    from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
     id_keys_config1 = {"name": None,
                        "wavelength": {
                            "type": WavelengthRange,
@@ -513,9 +496,6 @@ def test_dataid_copy():
     """Test copying a DataID."""
     from copy import deepcopy
 
-    from satpy.dataset.dataid import DataID
-    from satpy.dataset.dataid import default_id_keys_config as dikc
-
     did = DataID(dikc, name="a", resolution=1000)
     did2 = deepcopy(did)
     assert did2 == did
@@ -526,7 +506,6 @@ def test_dataid_pickle():
     """Test dataid pickling roundtrip."""
     import pickle
 
-    from satpy.tests.utils import make_dataid
     did = make_dataid(name="hi", wavelength=(10, 11, 12), resolution=1000, calibration="radiance")
     assert did == pickle.loads(pickle.dumps(did))
 
@@ -541,7 +520,6 @@ def test_dataid_elements_picklable():
     """
     import pickle
 
-    from satpy.tests.utils import make_dataid
     did = make_dataid(name="hi", wavelength=(10, 11, 12), resolution=1000, calibration="radiance")
     for value in did.values():
         pickled_value = pickle.loads(pickle.dumps(value))
@@ -553,8 +531,6 @@ class TestDataQuery:
 
     def test_dataquery(self):
         """Test DataQuery objects."""
-        from satpy.dataset import DataQuery
-
         DataQuery(name="cheese_shops")
 
         # Check repr
@@ -566,7 +542,6 @@ class TestDataQuery:
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset import DataQuery
         d1 = DataQuery(name="a", wavelength=0.2, modifiers=("hej",))
         d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
 
@@ -575,7 +550,6 @@ class TestDataQuery:
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset import DataQuery
         d1 = DataQuery(name="a", wavelength=0.2, modifiers=("hej",))
         d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
 
@@ -669,7 +643,7 @@ class TestIDQueryInteractions:
     def test_id_filtering_composite_resolution(self):
         """Test that a query for a composite with resolution still finds the composite."""
         dataid_container = [
-            DataID(minimal_default_keys_config, name="natural_color"),
+            DataID(mdkc, name="natural_color"),
         ]
         dq = DataQuery(name="natural_color", resolution=250)
         assert len(dq.filter_dataids(dataid_container)) == 0
@@ -1113,8 +1087,6 @@ def test_dataset_dict_contains_inexact_match():
 
     See https://github.com/pytroll/satpy/issues/2331.
     """
-    from satpy.dataset.data_dict import DatasetDict
-
     dd = DatasetDict()
     name = "1"
     item = xr.DataArray(())

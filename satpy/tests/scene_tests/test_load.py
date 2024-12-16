@@ -587,7 +587,7 @@ class TestLoadingComposites:
         nodes are unique and that DataIDs.
 
         """
-        from satpy.dataset.dataid import WavelengthRange
+        from satpy.dataset import WavelengthRange
 
         # Check dependency tree nodes
         # initialize the dep tree without loading the data

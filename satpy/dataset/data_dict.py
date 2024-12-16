@@ -19,7 +19,8 @@
 
 import numpy as np
 
-from .dataid import DataID, create_filtered_query, minimal_default_keys_config
+from .dataid import DataID, create_filtered_query
+from .id_keys import minimal_default_keys_config
 
 
 class TooManyResults(KeyError):

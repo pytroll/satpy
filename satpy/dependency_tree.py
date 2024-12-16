@@ -28,7 +28,7 @@ from holoviews.core.options import Compositor
 from satpy import DataID, DataQuery, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.dataset.dataid import default_id_keys_config
+from satpy.dataset.id_keys import default_id_keys_config
 from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 

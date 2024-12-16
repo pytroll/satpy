@@ -14,7 +14,7 @@ reader:
     name:
       required: true
     wavelength:
-      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+      type: !!python/name:satpy.dataset.id_keys.WavelengthRange
     polarization:
       transitive: true
     resolution:

@@ -30,7 +30,7 @@ from yaml import UnsafeLoader
 import satpy
 from satpy import DataID, DataQuery
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
-from satpy.dataset.dataid import minimal_default_keys_config
+from satpy.dataset.id_keys import minimal_default_keys_config
 from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)

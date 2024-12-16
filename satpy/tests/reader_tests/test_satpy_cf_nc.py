@@ -27,7 +27,7 @@ import xarray as xr
 from pyresample import AreaDefinition, SwathDefinition
 
 from satpy import Scene
-from satpy.dataset.dataid import WavelengthRange
+from satpy.dataset import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 
 # NOTE:
@@ -477,7 +477,8 @@ class TestCFReader:
 
     def test_dataid_attrs_equal_matching_dataset(self, cf_scene, nc_filename):
         """Check that get_dataset returns valid dataset when keys matches."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.id_keys import default_id_keys_config
         _create_test_netcdf(nc_filename, resolution=742)
         reader = SatpyCFFileHandler(nc_filename, {}, {"filetype": "info"})
         ds_id = DataID(default_id_keys_config, name="solar_zenith_angle", resolution=742, modifiers=())
@@ -486,7 +487,8 @@ class TestCFReader:
 
     def test_dataid_attrs_equal_not_matching_dataset(self, cf_scene, nc_filename):
         """Check that get_dataset returns None when key(s) are not matching."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.id_keys import default_id_keys_config
         _create_test_netcdf(nc_filename, resolution=742)
         reader = SatpyCFFileHandler(nc_filename, {}, {"filetype": "info"})
         not_existing_resolution = 9999999
@@ -496,7 +498,8 @@ class TestCFReader:
 
     def test_dataid_attrs_equal_contains_not_matching_key(self, cf_scene, nc_filename):
         """Check that get_dataset returns valid dataset when dataid have key(s) not existing in data."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.id_keys import default_id_keys_config
         _create_test_netcdf(nc_filename, resolution=742)
         reader = SatpyCFFileHandler(nc_filename, {}, {"filetype": "info"})
         ds_id = DataID(default_id_keys_config, name="solar_zenith_angle", resolution=742,

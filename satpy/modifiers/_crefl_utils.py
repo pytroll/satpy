@@ -69,7 +69,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.dataset.dataid import WavelengthRange
+from satpy.dataset import WavelengthRange
 
 LOG = logging.getLogger(__name__)
 
