@@ -18,9 +18,6 @@
 import hdf5plugin  # noqa: F401  isort:skip
 import os
 import os.path
-
-os.environ["HDF5_PLUGIN_PATH"] = os.path.dirname(hdf5plugin.__file__) + "/plugins/"
-
 import warnings
 from datetime import datetime
 from glob import glob
@@ -31,8 +28,6 @@ import numpy as np
 from behave import given, then, when
 
 from satpy import Scene
-
-from satpy.utils import debug_on; debug_on()
 
 ext_data_path = "/app/ext_data"
 threshold = 2000
@@ -68,8 +63,8 @@ def step_given_reference_image(context, composite, satellite, area):
     context.area = area
 
 
-@when("I generate a new {composite} image file from {satellite} with {reader} for {area}")
-def step_when_generate_image(context, composite, satellite, reader, area):
+@when("I generate a new {composite} image file from {satellite} with {reader} for {area} with clipping {clip}")
+def step_when_generate_image(context, composite, satellite, reader, area, clip):
     """Generate test images."""
     os.environ["OMP_NUM_THREADS"] = os.environ["MKL_NUM_THREADS"] = "2"
     os.environ["PYTROLL_CHUNK_SIZE"] = "1024"
@@ -79,7 +74,10 @@ def step_when_generate_image(context, composite, satellite, reader, area):
     # Get the list of satellite files to open
     filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*.nc")
 
-    scn = Scene(reader=reader, filenames=filenames)
+    reader_kwargs = {}
+    if clip != "null":
+        reader_kwargs["clip_negative_radiances"] = clip
+    scn = Scene(reader=reader, filenames=filenames, reader_kwargs=reader_kwargs)
 
     scn.load([composite])
 
