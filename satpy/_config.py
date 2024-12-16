@@ -53,6 +53,12 @@ _CONFIG_DEFAULTS = {
     "sensor_angles_position_preference": "actual",
     "readers": {
         "clip_negative_radiances": False,
+        "preload": {
+            "enable": False,
+            "step": 2,
+            "attempts": 300,
+            "assume_distributed": False,
+        },
     },
 }
 
