@@ -1,4 +1,4 @@
-# Copyright (c) 2023, 2024 Pytroll Developers
+# Copyright (c) 2024 Pytroll Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for the Arctic Weather Satellite (AWS) Sounder level-1c data.
+"""Reader for the Arctic Weather Satellite (AWS) MWR level-1c data.
+
+MWR = Microwaver Radiometer, onboard AWS and EPS-Sterna
 
 Sample data provided by ESA September 27, 2024.
 """

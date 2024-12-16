@@ -1,8 +1,8 @@
 reader:
-  name: eps_sterna_l1b_nc
-  short_name: AWS L1B RAD NetCDF4
-  long_name: AWS L1B Radiance (NetCDF4)
-  description: Reader for the EUMETSAT EPS-Sterna Sounder level-1b files in netCDF4.
+  name: aws_l1c_nc
+  short_name: AWS L1C RAD NetCDF4
+  long_name: AWS L1C Radiance (NetCDF4)
+  description: Reader for the ESA AWS (Arctic Weather Satellite) MWR level-1c files in netCDF4.
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [mwr,]
   status: Beta
@@ -20,12 +20,6 @@ reader:
       enum:
         - QH
         - QV
-    horn:
-      enum:
-        - "1"
-        - "2"
-        - "3"
-        - "4"
     calibration:
       enum:
         - brightness_temperature
@@ -43,12 +37,6 @@ reader:
       enum:
         - QH
         - QV
-    horn:
-      enum:
-        - "1"
-        - "2"
-        - "3"
-        - "4"
 
 datasets:
     '1':
@@ -62,10 +50,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '2':
         name: '2'
         frequency_range:
@@ -77,10 +64,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '3':
         name: '3'
         frequency_range:
@@ -92,10 +78,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '4':
         name: '4'
         frequency_range:
@@ -107,10 +92,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '5':
         name: '5'
         frequency_range:
@@ -122,10 +106,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '6':
         name: '6'
         frequency_range:
@@ -137,10 +120,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '7':
         name: '7'
         frequency_range:
@@ -152,10 +134,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '8':
         name: '8'
         frequency_range:
@@ -167,10 +148,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "1"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '9':
         name: '9'
         frequency_range:
@@ -182,10 +162,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "2"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '10':
         name: '10'
         frequency_range:
@@ -197,10 +176,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "3"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '11':
         name: '11'
         frequency_range:
@@ -212,10 +190,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "3"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '12':
         name: '12'
         frequency_range:
@@ -227,10 +204,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "3"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '13':
         name: '13'
         frequency_range:
@@ -242,10 +218,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "3"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '14':
         name: '14'
         frequency_range:
@@ -257,10 +232,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "3"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '15':
         name: '15'
         frequency_range:
@@ -272,10 +246,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "3"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '16':
         name: '16'
         frequency_double_sideband:
@@ -288,10 +261,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "4"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '17':
         name: '17'
         frequency_double_sideband:
@@ -304,10 +276,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "4"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '18':
         name: '18'
         frequency_double_sideband:
@@ -320,10 +291,9 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "4"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
     '19':
         name: '19'
         frequency_double_sideband:
@@ -336,197 +306,70 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
-        horn: "4"
         coordinates: [longitude, latitude]
-        file_type: eps_sterna_l1b_nc
-        file_key: data/calibration/toa_brightness_temperature
+        file_type: aws_l1c_nc
+        file_key: data/calibration/aws_toa_brightness_temperature
 
 # --- Coordinates ---
 
     longitude:
         name: longitude
-        file_type: eps_sterna_l1b_nc
+        file_type: aws_l1c_nc
         standard_name: longitude
         units: degrees_east
-        horn: ["1", "2", "3", "4"]
-        file_key: data/navigation/longitude
-
+        file_key: data/navigation/aws_lon
 
     latitude:
         name: latitude
-        file_type: eps_sterna_l1b_nc
+        file_type: aws_l1c_nc
         standard_name: latitude
         units: degrees_north
-        horn: ["1", "2", "3", "4"]
-        file_key: data/navigation/latitude
-
+        file_key: data/navigation/aws_lat
 
 # --- Navigation data ---
 
-    solar_azimuth_horn1:
-        name: solar_azimuth_horn1
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_azimuth_angle
+    solar_azimuth:
+        name: solar_azimuth
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_solar_azimuth_angle
         standard_name: solar_azimuth_angle
-        horn: "1"
         coordinates:
             - longitude
             - latitude
 
-    solar_azimuth_horn2:
-        name: solar_azimuth_horn2
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_azimuth_angle
-        standard_name: solar_azimuth_angle
-        horn: "2"
-        coordinates:
-            - longitude
-            - latitude
-
-    solar_azimuth_horn3:
-        name: solar_azimuth_horn3
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_azimuth_angle
-        standard_name: solar_azimuth_angle
-        horn: "3"
-        coordinates:
-            - longitude
-            - latitude
-
-    solar_azimuth_horn4:
-        name: solar_azimuth_horn4
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_azimuth_angle
-        standard_name: solar_azimuth_angle
-        horn: "4"
-        coordinates:
-            - longitude
-            - latitude
-
-    solar_zenith_horn1:
-        name: solar_zenith_horn1
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_zenith_angle
+    solar_zenith:
+        name: solar_zenith
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_solar_zenith_angle
         standard_name: solar_zenith_angle
-        horn: "1"
         coordinates:
             - longitude
             - latitude
 
-    solar_zenith_horn2:
-        name: solar_zenith_horn2
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_zenith_angle
-        standard_name: solar_zenith_angle
-        horn: "2"
-        coordinates:
-            - longitude
-            - latitude
-
-    solar_zenith_horn3:
-        name: solar_zenith_horn3
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_zenith_angle
-        standard_name: solar_zenith_angle
-        horn: "3"
-        coordinates:
-            - longitude
-            - latitude
-
-    solar_zenith_horn4:
-        name: solar_zenith_horn4
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/solar_zenith_angle
-        standard_name: solar_zenith_angle
-        horn: "4"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_zenith_horn1:
-        name: satellite_zenith_horn1
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        horn: "1"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_zenith_horn2:
-        name: satellite_zenith_horn2
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        horn: "2"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_zenith_horn3:
-        name: satellite_zenith_horn3
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        horn: "3"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_zenith_horn4:
-        name: satellite_zenith_horn4
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_zenith_angle
-        standard_name: satellite_zenith_angle
-        horn: "4"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_azimuth_horn1:
-        name: satellite_azimuth_horn1
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_azimuth_angle
+    satellite_azimuth:
+        name: satellite_azimuth
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_satellite_azimuth_angle
         standard_name: satellite_azimuth_angle
-        horn: "1"
         coordinates:
             - longitude
             - latitude
 
-    satellite_azimuth_horn2:
-        name: satellite_azimuth_horn2
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_azimuth_angle
-        standard_name: satellite_azimuth_angle
-        horn: "2"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_azimuth_horn3:
-        name: satellite_azimuth_horn3
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_azimuth_angle
-        standard_name: satellite_azimuth_angle
-        horn: "3"
-        coordinates:
-            - longitude
-            - latitude
-
-    satellite_azimuth_horn4:
-        name: satellite_azimuth_horn4
-        file_type: eps_sterna_l1b_nc
-        file_key: data/navigation/satellite_azimuth_angle
-        standard_name: satellite_azimuth_angle
-        horn: "4"
+    satellite_zenith:
+        name: satellite_zenith
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_satellite_zenith_angle
+        standard_name: satellite_zenith_angle
         coordinates:
             - longitude
             - latitude
 
 file_types:
-    eps_sterna_l1b_nc:
-        # W_XX-EUMETSAT-Darmstadt,SAT,AWS1-MWR-1B-RAD_C_EUMT_20241121085911_G_D_20241109234502_20241110004559_T_N____.nc
-        file_reader: !!python/name:satpy.readers.mwr_l1b.AWS_EPS_Sterna_MWR_L1BFile
+    aws_l1c_nc:
+        # W_XX-OHB-Unknown,SAT,1-AWS-1B-RAD_C_OHB_20230707124607_G_D_20220621090100_20220621090618_T_B____.nc
+        # W_XX-OHB-Stockholm,SAT,AWS1-MWR-1B-RAD_C_OHB_20230823161321_G_D_20240115111111_20240115125434_T_B____.nc
+        # W_XX-OHB-Stockholm,SAT,AWS1-MWR-1B-RAD_C_OHB_20230816120142_G_D_20240115111111_20240115125434_T_B____radsim.nc
+        file_reader: !!python/name:satpy.readers.mwr_l1c.AWSL1CFile
         file_patterns: [
-        'W_XX-EUMETSAT-Darmstadt,SAT,{platform_name}-MWR-1B-RAD_C_EUMT_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc',
-        ]
+        'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc',
+        'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB__{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc',]
