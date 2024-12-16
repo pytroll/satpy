@@ -14,5 +14,5 @@ composites:
     prerequisites:
     - name: '16'
     - name: '17'
-    - name: '18'
+    - name: '22'
     standard_name: mw183_humidity_surface
