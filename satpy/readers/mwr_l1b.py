@@ -25,17 +25,11 @@ Sample EPS-Sterna l1b format AWS data from 16 orbits the 9th of November 2024.
 
 """
 
-import logging
-
 import xarray as xr
 
 from .netcdf_utils import NetCDF4FileHandler
 
-logger = logging.getLogger(__name__)
-
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-
-AWS_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
+MWR_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
 
 
 class AWS_EPS_Sterna_MWR_L1BFile(NetCDF4FileHandler):
@@ -111,7 +105,7 @@ class AWS_EPS_Sterna_MWR_L1BFile(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""
-        if dataset_id["name"] in AWS_CHANNEL_NAMES:
+        if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
         elif dataset_id["name"] in ["satellite_zenith_horn1",
                                     "satellite_zenith_horn2",
@@ -154,7 +148,7 @@ class AWS_EPS_Sterna_MWR_L1BFile(NetCDF4FileHandler):
 
     def _get_channel_data(self, dataset_id, dataset_info):
         channel_data = self[dataset_info["file_key"]]
-        channel_data.coords["n_channels"] = AWS_CHANNEL_NAMES
+        channel_data.coords["n_channels"] = MWR_CHANNEL_NAMES
         channel_data = channel_data.rename({"n_fovs": "x", "n_scans": "y"})
         return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
 

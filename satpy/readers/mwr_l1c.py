@@ -19,20 +19,10 @@ MWR = Microwaver Radiometer, onboard AWS and EPS-Sterna
 Sample data provided by ESA September 27, 2024.
 """
 
-import logging
-
-import xarray as xr
-
-from .netcdf_utils import NetCDF4FileHandler
-
-logger = logging.getLogger(__name__)
-
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-
-AWS_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
+from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_MWR_L1BFile, mask_and_scale
 
 
-class AWSL1CFile(NetCDF4FileHandler):
+class AWS_MWR_L1CFile(AWS_EPS_Sterna_MWR_L1BFile):
     """Class implementing the AWS L1c Filehandler.
 
     This class implements the ESA Arctic Weather Satellite (AWS) Level-1b
@@ -41,37 +31,19 @@ class AWSL1CFile(NetCDF4FileHandler):
     ``"aws_l1c_nc"``.
 
     """
-
     def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=True):
         """Initialize the handler."""
-        super().__init__(filename, filename_info, filetype_info,
-                         cache_var_size=10000,
-                         cache_handle=True)
+        super().__init__(filename, filename_info, filetype_info, auto_maskandscale)
         self.filename_info = filename_info
-
-    @property
-    def start_time(self):
-        """Get the start time."""
-        return self.filename_info["start_time"]
-
-    @property
-    def end_time(self):
-        """Get the end time."""
-        return self.filename_info["end_time"]
 
     @property
     def sensor(self):
         """Get the sensor name."""
         return "MWR"
 
-    @property
-    def platform_name(self):
-        """Get the platform name."""
-        return self.filename_info["platform_name"]
-
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""
-        if dataset_id["name"] in AWS_CHANNEL_NAMES:
+        if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
         elif (dataset_id["name"] in ["longitude", "latitude",
                                      "solar_azimuth", "solar_zenith",
@@ -90,35 +62,9 @@ class AWSL1CFile(NetCDF4FileHandler):
         data_array.attrs["sensor"] = self.sensor
         return data_array
 
-    def _get_channel_data(self, dataset_id, dataset_info):
-        channel_data = self[dataset_info["file_key"]]
-        channel_data.coords["n_channels"] = AWS_CHANNEL_NAMES
-        channel_data = channel_data.rename({"n_fovs": "x", "n_scans": "y"})
-        return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
 
     def _get_navigation_data(self, dataset_id, dataset_info):
+        """Get the navigation (geolocation) data."""
         geo_data = self[dataset_info["file_key"]]
         geo_data = geo_data.rename({"n_fovs": "x", "n_scans": "y"})
         return geo_data
-
-
-def mask_and_scale(data_array):
-    """Mask then scale the data array."""
-    if "missing_value" in data_array.attrs:
-        with xr.set_options(keep_attrs=True):
-            data_array = data_array.where(data_array != data_array.attrs["missing_value"])
-        data_array.attrs.pop("missing_value")
-    if "valid_max" in data_array.attrs:
-        with xr.set_options(keep_attrs=True):
-            data_array = data_array.where(data_array <= data_array.attrs["valid_max"])
-        data_array.attrs.pop("valid_max")
-    if "valid_min" in data_array.attrs:
-        with xr.set_options(keep_attrs=True):
-            data_array = data_array.where(data_array >= data_array.attrs["valid_min"])
-        data_array.attrs.pop("valid_min")
-    if "scale_factor" in data_array.attrs and "add_offset" in data_array.attrs:
-        with xr.set_options(keep_attrs=True):
-            data_array = data_array * data_array.attrs["scale_factor"] + data_array.attrs["add_offset"]
-        data_array.attrs.pop("scale_factor")
-        data_array.attrs.pop("add_offset")
-    return data_array
