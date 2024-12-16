@@ -121,6 +121,7 @@ CHANS_HRFI = {"solar": ["vis_06", "nir_22"],
 DICT_CALIBRATION = {"radiance": {"dtype": np.float32,
                                  "value_1": 15,
                                  "value_0": 9700,
+                                 "value_2": -5,
                                  "attrs_dict": {"calibration": "radiance",
                                                 "units": "mW m-2 sr-1 (cm-1)-1",
                                                 "radiance_unit_conversion_coefficient": np.float32(1234.56)
@@ -134,8 +135,9 @@ DICT_CALIBRATION = {"radiance": {"dtype": np.float32,
                                     },
 
                     "counts": {"dtype": np.uint16,
-                               "value_1": 1,
+                               "value_1": 5,
                                "value_0": 5000,
+                               "value_2": 1,
                                "attrs_dict": {"calibration": "counts",
                                               "units": "count",
                                               },
@@ -144,6 +146,7 @@ DICT_CALIBRATION = {"radiance": {"dtype": np.float32,
                     "brightness_temperature": {"dtype": np.float32,
                                                "value_1": np.float32(209.68275),
                                                "value_0": np.float32(1888.8513),
+                                               "value_2": np.float32("nan"),
                                                "attrs_dict": {"calibration": "brightness_temperature",
                                                               "units": "K",
                                                               },
@@ -293,16 +296,17 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
 
     common_attrs = {
         "scale_factor": 5,
-        "add_offset": 10,
+        "add_offset": -10,
         "long_name": "Effective Radiance",
         "units": "mW.m-2.sr-1.(cm-1)-1",
         "ancillary_variables": "pixel_quality"
     }
     if "38" in ch_path:
         fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
-        data_without_fires = da.ones((n_rows_cols[0] - 1, n_rows_cols[1]), dtype="uint16", chunks=1024)
+        data_without_fires = da.full((n_rows_cols[0] - 2, n_rows_cols[1]), 5, dtype="uint16", chunks=1024)
+        neg_rad = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024)
         d = FakeH5Variable(
-            da.concatenate([fire_line, data_without_fires], axis=0),
+            da.concatenate([fire_line, data_without_fires, neg_rad], axis=0),
             dims=("y", "x"),
             attrs={
                 "valid_range": [0, 8191],
@@ -313,7 +317,7 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
         )
     else:
         d = FakeH5Variable(
-            da.ones(n_rows_cols, dtype="uint16", chunks=1024),
+            da.full(n_rows_cols, 5, dtype="uint16", chunks=1024),
             dims=("y", "x"),
             attrs={
                 "valid_range": [0, 4095],
@@ -542,11 +546,11 @@ def reader_configs():
         os.path.join("readers", "fci_l1c_nc.yaml"))
 
 
-def _get_reader_with_filehandlers(filenames, reader_configs):
+def _get_reader_with_filehandlers(filenames, reader_configs, **reader_kwargs):
     from satpy.readers import load_reader
     reader = load_reader(reader_configs)
     loadables = reader.select_files_from_pathnames(filenames)
-    reader.create_filehandlers(loadables)
+    reader.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
     clear_cache(reader)
     return reader
 
@@ -738,7 +742,8 @@ class ModuleTestFCIL1cNcReader:
     def _other_calibration_test(res, ch, dict_arg):
         """Test of other calibration test."""
         if ch == "ir_38":
-            numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_1"])
+            numpy.testing.assert_array_equal(res[ch][-1], dict_arg["value_2"])
+            numpy.testing.assert_array_equal(res[ch][-2], dict_arg["value_1"])
             numpy.testing.assert_array_equal(res[ch][0], dict_arg["value_0"])
         else:
             numpy.testing.assert_array_equal(res[ch], dict_arg["value_1"])
@@ -859,6 +864,19 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             self._shape_test(res, ch, grid_type, DICT_CALIBRATION[calibration])
             self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],
                                   fh_param["filenames"][0])
+
+    @pytest.mark.parametrize("fh_param", [lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")])
+    def test_load_calibration_negative_rad(self, reader_configs, fh_param):
+        """Test calibrating negative radiances.
+
+        See https://github.com/pytroll/satpy/issues/3009.
+        """
+        reader = _get_reader_with_filehandlers(fh_param["filenames"],
+                                               reader_configs,
+                                               clip_negative_radiance=True)
+        res = reader.load([make_dataid(name="ir_38", calibration="radiance")],
+                           pad_data=False)
+        numpy.testing.assert_array_equal(res["ir_38"][-1, :], 5)  # smallest positive radiance
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
