@@ -28,7 +28,9 @@ import xarray as xr
 from trollsift import compose, parse
 from xarray import DataTree
 
-from satpy.readers.mwr_l1b import DATETIME_FORMAT, AWS_EPS_Sterna_MWR_L1BFile
+from satpy.readers.mwr_l1b import AWS_EPS_Sterna_MWR_L1BFile
+
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
 platform_name = "AWS1"
 # W_XX-EUMETSAT-Darmstadt,SAT,AWS1-MWR-1B-RAD_C_EUMT_20241121085911_G_D_20241109234502_20241110004559_T_N____.nc
