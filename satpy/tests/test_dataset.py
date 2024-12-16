@@ -755,6 +755,19 @@ class TestIDQueryInteractions:
         """Check (in)equality."""
         assert DataQuery(wavelength=10) != DataID(self.default_id_keys_config, name="VIS006")
 
+    def test_id_filtering_no_id_wavelength(self):
+        """Test that a DataID with no wavelength doesn't match a query for a wavelength."""
+        did_keys = {
+            "name": {"required": True},
+            "level": {},
+            "modifiers": {"default": [], "type": ModifierTuple}
+        }
+        did1 = DataID(did_keys, name="test1")
+        did2 = DataID(did_keys, name="test2")
+        dq = DataQuery(wavelength=1.8, modifiers=())
+        matched_ids = dq.filter_dataids([did1, did2])
+        assert len(matched_ids) == 0
+
     def test_sort_dataids(self):
         """Check dataid sorting."""
         dq = DataQuery(name="cheese_shops", wavelength=2, modifiers="*")
