@@ -23,7 +23,7 @@ from typing import Any, NoReturn
 
 import numpy as np
 
-from satpy.dataset.id_keys import ModifierTuple, ValueList, minimal_default_keys_config
+from satpy.dataset.id_keys import ModifierTuple, ValueList, default_id_keys_config, minimal_default_keys_config
 
 logger = logging.getLogger(__name__)
 
@@ -526,3 +526,21 @@ def _create_id_dict_from_any_key(dataset_key: DataQuery | DataID | str | numbers
     else:
         raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
     return ds_dict
+
+
+def update_id_with_query(orig_id: DataID, query: DataQuery) -> DataID:
+    """Update a DataID with additional info from a query used to find it."""
+    query_dict = query.to_dict()
+    if not query_dict:
+        return orig_id
+
+    new_id_dict = orig_id.to_dict()
+    orig_id_keys = orig_id.id_keys
+    for query_key, query_val in query_dict.items():
+        # XXX: What if the query_val is a list?
+        if new_id_dict.get(query_key) is None:
+            new_id_dict[query_key] = query_val
+    # don't replace ID key information if we don't have to
+    id_keys = orig_id_keys if all(key in orig_id_keys for key in new_id_dict) else default_id_keys_config
+    new_id = DataID(id_keys, **new_id_dict)
+    return new_id

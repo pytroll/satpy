@@ -28,7 +28,7 @@ from holoviews.core.options import Compositor
 from satpy import DataID, DataQuery, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.dataset.id_keys import default_id_keys_config
+from satpy.dataset.dataid import update_id_with_query
 from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 
@@ -443,17 +443,7 @@ class DependencyTree(Tree):
             except KeyError:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
 
-        new_id_dict = compositor.id.to_dict()
-        new_id = None
-        # TODO: dataset_key could include ID parameters from composite YAML, is this different from load kwargs?
-        if compositor.id.to_dict() != dataset_key._asdict():
-            id_keys = default_id_keys_config  # minimal_default_keys_config
-            for query_key, query_val in dataset_key.to_dict().items():
-                # XXX: What if the query_val is a list?
-                if new_id_dict.get(query_key) is None and query_key in id_keys and query_val != "*":
-                    new_id_dict[query_key] = query_val
-            new_id = DataID(id_keys, **new_id_dict)
-
+        new_id = update_id_with_query(compositor.id, dataset_key)
         root = CompositorNode(compositor, new_id=new_id)
         composite_id = root.name
 
