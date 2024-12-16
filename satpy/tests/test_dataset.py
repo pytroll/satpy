@@ -114,67 +114,66 @@ class TestCombineMetadata:
         ret = average_datetimes(dts)
         assert dts[2] == ret
 
-    def test_combine_start_times(self):
-        """Test the combine_metadata with start times."""
-        # The times need to be in ascending order (oldest first)
-        start_time_dts = (
-            {"start_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        ret = combine_metadata(*start_time_dts)
-        assert ret["start_time"] == start_time_dts[0]["start_time"]
-
-    def test_combine_end_times(self):
-        """Test the combine_metadata with end times."""
-        # The times need to be in ascending order (oldest first)
-        end_time_dts = (
-            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        ret = combine_metadata(*end_time_dts)
-        assert ret["end_time"] == end_time_dts[-1]["end_time"]
-
-    def test_combine_start_times_with_none(self):
-        """Test the combine_metadata with start times when there's a None included."""
-        start_time_dts_with_none = (
-            {"start_time": None},
-            {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        ret = combine_metadata(*start_time_dts_with_none)
-        assert ret["start_time"] == start_time_dts_with_none[1]["start_time"]
-
-    def test_combine_end_times_with_none(self):
-        """Test the combine_metadata with end times when there's a None included."""
-        end_time_dts_with_none = (
-            {"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"end_time": None},
-        )
-        ret = combine_metadata(*end_time_dts_with_none)
-        assert ret["end_time"] == end_time_dts_with_none[-2]["end_time"]
-
-    def test_combine_other_times(self):
-        """Test the combine_metadata with other time values than start or end times."""
-        other_time_dts = (
-            {"other_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
-            {"other_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        ret = combine_metadata(*other_time_dts)
-        assert ret["other_time"] == other_time_dts[2]["other_time"]
+    @pytest.mark.parametrize(
+        ("meta_dicts", "key", "result_idx"),
+        [
+            (
+                    # The times need to be in ascending order (oldest first)
+                    ({"start_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+                     ),
+                    "start_time",
+                    0,
+            ),
+            (
+                    ({"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+                    ),
+                    "end_time",
+                    -1,
+            ),
+            (
+                    ({"start_time": None},
+                     {"start_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+                     {"start_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+                    ),
+                    "start_time",
+                    1,
+            ),
+            (
+                    ({"end_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+                     {"end_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+                     {"end_time": None},
+                    ),
+                    "end_time",
+                    -2,
+            ),
+            (
+                    ({"other_time": dt.datetime(2018, 2, 1, 11, 58, 0)},
+                     {"other_time": dt.datetime(2018, 2, 1, 11, 59, 0)},
+                     {"other_time": dt.datetime(2018, 2, 1, 12, 0, 0)},
+                     {"other_time": dt.datetime(2018, 2, 1, 12, 1, 0)},
+                     {"other_time": dt.datetime(2018, 2, 1, 12, 2, 0)},
+                    ),
+                    "other_time",
+                    2,
+            ),
+        ],
+    )
+    def test_combine_times(self, meta_dicts, key, result_idx):
+        """Test the combine_metadata with times."""
+        ret = combine_metadata(*meta_dicts)
+        assert ret[key] == meta_dicts[result_idx][key]
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
