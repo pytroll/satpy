@@ -444,8 +444,13 @@ class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
     cached_file_content: Dict[str, xr.DataArray] = {}
-    # overwritten by FDHSI and HRFI FIle Handlers
+    # overwritten by FDHSI and HRFI File Handlers
     chan_patterns: Dict[str, Dict[str, Union[List[int], str]]] = {}
+
+    def __init__(self, *args, **kwargs):
+        """Initiative fake file handler."""
+        kwargs.pop("clip_negative_radiances", None)
+        super().__init__(*args, **kwargs)
 
     def _get_test_content_all_channels(self):
         data = {}
@@ -873,7 +878,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         """
         reader = _get_reader_with_filehandlers(fh_param["filenames"],
                                                reader_configs,
-                                               clip_negative_radiance=True)
+                                               clip_negative_radiances=True)
         res = reader.load([make_dataid(name="ir_38", calibration="radiance")],
                            pad_data=False)
         numpy.testing.assert_array_equal(res["ir_38"][-1, :], 5)  # smallest positive radiance

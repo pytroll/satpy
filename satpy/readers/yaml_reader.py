@@ -474,8 +474,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
     def __init__(self,
                  config_dict,
                  filter_parameters=None,
-                 filter_filenames=True,
-                 **kwargs):
+                 filter_filenames=True):
         """Set up initial internal storage for loading file data."""
         super().__init__(config_dict, filter_parameters, filter_filenames)
 

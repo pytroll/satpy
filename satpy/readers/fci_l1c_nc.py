@@ -208,7 +208,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         "MTI3": "MTG-I3",
         "MTI4": "MTG-I4"}
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 clip_negative_radiances=False, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
@@ -233,6 +234,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         else:
             self.is_iqt = False
 
+        self.clip_negative_radiances = clip_negative_radiances
         self._cache = {}
 
     @property
@@ -661,6 +663,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
+        if self.clip_negative_radiances:
+            data = self._clipneg(data)
         if key["name"] == "ir_38":
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
@@ -676,6 +680,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data.attrs.update({"radiance_unit_conversion_coefficient":
                                self.get_and_cache_npxr(measured + "/radiance_unit_conversion_coefficient")})
         return data
+
+    @staticmethod
+    def _clipneg(data):
+        """Clip counts to avoid negative radiances."""
+        lo = -data.attrs.get("add_offset", 0) // data.attrs.get("scale_factor", 1) + 1
+        return data.where(data>=lo, lo)
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
