@@ -1,5 +1,5 @@
 reader:
-  name: aws_l1c_nc
+  name: aws1_mwr_l1c_nc
   short_name: AWS L1C RAD NetCDF4
   long_name: AWS L1C Radiance (NetCDF4)
   description: Reader for the ESA AWS (Arctic Weather Satellite) MWR level-1c files in netCDF4.
