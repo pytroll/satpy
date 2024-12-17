@@ -299,57 +299,14 @@ class DataQuery:
 
         # if other is a DataID then must match this query exactly
         o_is_id = hasattr(other, "id_keys")
-        keys_to_match = self._keys_to_compare(sdict, odict, o_is_id, shared_keys)
+        keys_to_match = _keys_to_compare(sdict, odict, o_is_id, shared_keys)
         if not keys_to_match:
             return False
 
         for key in keys_to_match:
-            if not self._compare_key_equality(sdict, odict, key, o_is_id):
+            if not _compare_key_equality(sdict, odict, key, o_is_id):
                 return False
         return True
-
-    @staticmethod
-    def _keys_to_compare(sdict: dict, odict: dict, o_is_id: bool, shared_keys: bool) -> set:
-        keys_to_match = set(sdict.keys())
-        if not o_is_id:
-            # if another DataQuery, then compare both sets of keys
-            keys_to_match |= set(odict.keys())
-        if shared_keys:
-            # only compare with the keys that both objects share
-            keys_to_match &= set(odict.keys())
-        return keys_to_match
-
-    @staticmethod
-    def _compare_key_equality(sdict: dict, odict: dict, key: str, o_is_id: bool) -> bool:
-        if key not in sdict:
-            return False
-        sval = sdict[key]
-        if sval == "*":
-            return True
-
-        if key not in odict:
-            return False
-        oval = odict[key]
-        if oval == "*":
-            # Gotcha: if a DataID contains a "*" this could cause
-            #    unexpected matches. A DataID is not expected to use "*"
-            return True
-
-        if isinstance(sval, list) or isinstance(oval, list):
-            # multiple options to match
-            if not isinstance(sval, list):
-                # query to query comparison, make a list to iterate over
-                sval = [sval]
-            if o_is_id:
-                return oval in sval
-
-            # we're matching against a DataQuery who could have its own list
-            if not isinstance(oval, list):
-                oval = [oval]
-            s_in_o = any(_sval in oval for _sval in sval)
-            o_in_s = any(_oval in sval for _oval in oval)
-            return s_in_o or o_in_s
-        return oval == sval
 
     def __hash__(self):
         """Hash."""
@@ -559,3 +516,50 @@ def update_id_with_query(orig_id: DataID, query: DataQuery) -> DataID:
     id_keys = orig_id_keys if all(key in orig_id_keys for key in new_id_dict) else default_id_keys_config
     new_id = DataID(id_keys, **new_id_dict)
     return new_id
+
+
+def _keys_to_compare(sdict: dict, odict: dict, o_is_id: bool, shared_keys: bool) -> set:
+    keys_to_match = set(sdict.keys())
+    if not o_is_id:
+        # if another DataQuery, then compare both sets of keys
+        keys_to_match |= set(odict.keys())
+    if shared_keys:
+        # only compare with the keys that both objects share
+        keys_to_match &= set(odict.keys())
+    return keys_to_match
+
+
+def _compare_key_equality(sdict: dict, odict: dict, key: str, o_is_id: bool) -> bool:
+    if key not in sdict:
+        return False
+    sval = sdict[key]
+    if sval == "*":
+        return True
+
+    if key not in odict:
+        return False
+    oval = odict[key]
+    if oval == "*":
+        # Gotcha: if a DataID contains a "*" this could cause
+        #    unexpected matches. A DataID is not expected to use "*"
+        return True
+
+    return _compare_values(sval, oval, o_is_id)
+
+
+def _compare_values(sval: Any, oval: Any, o_is_id: bool) -> bool:
+    if isinstance(sval, list) or isinstance(oval, list):
+        # multiple options to match
+        if not isinstance(sval, list):
+            # query to query comparison, make a list to iterate over
+            sval = [sval]
+        if o_is_id:
+            return oval in sval
+
+        # we're matching against a DataQuery who could have its own list
+        if not isinstance(oval, list):
+            oval = [oval]
+        s_in_o = any(_sval in oval for _sval in sval)
+        o_in_s = any(_oval in sval for _oval in oval)
+        return s_in_o or o_in_s
+    return oval == sval
