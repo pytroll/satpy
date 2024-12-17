@@ -20,16 +20,18 @@
 from __future__ import annotations
 
 import warnings
-from typing import Container, Iterable, Optional
+from typing import TYPE_CHECKING, Container, Iterable, Optional
 
 import numpy as np
-from holoviews.core.options import Compositor
 
 from satpy import DataID, DataQuery, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
 from satpy.dataset.dataid import update_id_with_query
 from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
+
+if TYPE_CHECKING:
+    from satpy.composites import CompositeBase
 
 
 class Tree:
@@ -511,7 +513,7 @@ class DependencyTree(Tree):
 
         return self._get_compositor_by_name(key)
 
-    def _get_compositor_by_name(self, key: DataQuery) -> Compositor | None:
+    def _get_compositor_by_name(self, key: DataQuery) -> CompositeBase | None:
         name_query = DataQuery(name=key["name"])
         for sensor_name in sorted(self.compositors):
             sensor_data_dict = self.compositors[sensor_name]
