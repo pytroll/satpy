@@ -515,26 +515,17 @@ class DependencyTree(Tree):
         name_query = DataQuery(name=key["name"])
         for sensor_name in sorted(self.compositors):
             sensor_data_dict = self.compositors[sensor_name]
-            try:
-                # get all IDs that have the minimum "distance" for our composite name
-                all_comp_ids = sensor_data_dict.get_key(name_query, num_results=0)
-                # Filter to those that don't disagree with the original query
-                matching_comp_ids = []
-                for comp_id in all_comp_ids:
-                    for query_key, query_val in key.to_dict().items():
-                        # TODO: Handle query_vals that are lists
-                        if comp_id.get(query_key, query_val) != query_val:
-                            break
-                    else:
-                        # all query keys match
-                        matching_comp_ids.append(comp_id)
-                if len(matching_comp_ids) > 1:
-                    warnings.warn("Multiple compositors matching {name_query} to create {key} variant. "
-                                  "Going to use the name-only 'base' compositor definition.")
-                    matching_comp_ids = matching_comp_ids[:1]
-            except KeyError:
+            # get all IDs that have the minimum "distance" for our composite name
+            all_comp_ids = sensor_data_dict.get_key(name_query, num_results=0)
+            if len(all_comp_ids) == 0:
                 continue
 
+            # Filter to those that don't disagree with the original query
+            matching_comp_ids = key.filter_dataids(all_comp_ids, shared_keys=True)
+            if len(matching_comp_ids) > 1:
+                warnings.warn("Multiple compositors matching {name_query} to create {key} variant. "
+                              "Going to use the name-only 'base' compositor definition.")
+                matching_comp_ids = matching_comp_ids[:1]
             if len(matching_comp_ids) != 1:
                 raise KeyError("Can't find compositor {key['name']} by name only.")
             comp_id = matching_comp_ids[0]

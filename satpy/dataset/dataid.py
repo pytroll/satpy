@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Dataset identifying objects."""
+from __future__ import annotations
 
 import logging
 import numbers
 from copy import copy, deepcopy
 from enum import Enum
+from functools import partial
 from typing import Any, NoReturn
 
 import numpy as np
@@ -261,7 +263,7 @@ class DataQuery:
         """Get an item."""
         return self._dict[key]
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """Compare the DataQuerys.
 
         A DataQuery is considered equal to another DataQuery if all keys
@@ -270,6 +272,20 @@ class DataQuery:
         elements in the DataID. The DataID is still considered equal if it
         contains additional elements. Any DataQuery elements with the value
         ``"*"`` are ignored.
+
+        """
+        return self.equal(other, shared_keys=False)
+
+    def equal(self, other: Any, shared_keys: bool = False) -> bool:
+        """Compare this DataQuery to another DataQuery or a DataID.
+
+        Args:
+            other: Other DataQuery or DataID to compare against.
+            shared_keys: Limit keys being compared to those shared
+                by both objects. If False (default), then all of the
+                current query's keys are used when compared against
+                a DataID. If compared against another DataQuery then
+                all keys are compared between the two queries.
 
         """
         sdict = self._asdict()
@@ -287,6 +303,9 @@ class DataQuery:
         if not o_is_id:
             # if another DataQuery, then compare both sets of keys
             keys_to_match |= set(odict.keys())
+        if shared_keys:
+            # only compare with the keys that both objects share
+            keys_to_match &= set(odict.keys())
         if not keys_to_match:
             return False
 
@@ -374,9 +393,10 @@ class DataQuery:
         items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
-    def filter_dataids(self, dataid_container):
+    def filter_dataids(self, dataid_container, shared_keys: bool = False):
         """Filter DataIDs based on this query."""
-        keys = list(filter(self.__eq__, dataid_container))
+        func = partial(self.equal, shared_keys=shared_keys)
+        keys = list(filter(func, dataid_container))
         return keys
 
     def sort_dataids_with_preference(self, all_ids, preference):
