@@ -11,9 +11,11 @@ def get_keys_from_config(common_id_keys: dict, config: dict) -> dict:
     """Gather keys for a new DataID from the ones available in configured dataset."""
     id_keys = {}
     for key, val in common_id_keys.items():
-        has_key = key in config
-        is_required_or_default = val is not None and (val.get("required") is True or val.get("default") is not None)
-        if has_key or is_required_or_default:
+        if key in config:
+            id_keys[key] = val
+        if val is None:
+            continue
+        if val.get("required") is True or val.get("default") is not None:
             id_keys[key] = val
     if not id_keys:
         raise ValueError("Metadata does not contain enough information to create a DataID.")
