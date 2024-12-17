@@ -22,7 +22,7 @@ import xarray as xr
 from dask import array as da
 
 from satpy import Scene
-from satpy.dataset.dataid import default_id_keys_config
+from satpy.dataset.id_keys import default_id_keys_config
 from satpy.tests.utils import make_cid, make_dataid
 
 # NOTE:

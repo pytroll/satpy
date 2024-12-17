@@ -183,7 +183,7 @@ import xarray as xr
 from pyresample import AreaDefinition
 
 import satpy.cf.decoding
-from satpy.dataset.dataid import WavelengthRange
+from satpy.dataset import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
