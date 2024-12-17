@@ -475,34 +475,23 @@ class TestCFReader:
         scn_.load(["solar_zenith_angle"], resolution=371)
         assert scn_["solar_zenith_angle"].attrs["resolution"] == 371
 
-    def test_dataid_attrs_equal_matching_dataset(self, cf_scene, nc_filename):
-        """Check that get_dataset returns valid dataset when keys matches."""
+    @pytest.mark.parametrize(
+        ("data_id_kwargs", "exp_match"),
+        [
+            ({"name": "solar_zenith_angle", "resolution": 742, "modifiers": ()}, True),
+            ({"name": "solar_zenith_angle", "resolution": 9999999, "modifiers": ()}, False),
+            ({"name": "solar_zenith_angle", "resolution": 742, "modifiers": (), "calibration": "counts"}, True),
+        ],
+    )
+    def test_dataid_attrs_equal_matching_dataset(self, cf_scene, nc_filename, data_id_kwargs, exp_match):
+        """Check that get_dataset returns valid dataset when keys match."""
         from satpy.dataset.dataid import DataID
         from satpy.dataset.id_keys import default_id_keys_config
         _create_test_netcdf(nc_filename, resolution=742)
         reader = SatpyCFFileHandler(nc_filename, {}, {"filetype": "info"})
-        ds_id = DataID(default_id_keys_config, name="solar_zenith_angle", resolution=742, modifiers=())
+        ds_id = DataID(default_id_keys_config, **data_id_kwargs)
         res = reader.get_dataset(ds_id, {})
-        assert res.attrs["resolution"] == 742
-
-    def test_dataid_attrs_equal_not_matching_dataset(self, cf_scene, nc_filename):
-        """Check that get_dataset returns None when key(s) are not matching."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.id_keys import default_id_keys_config
-        _create_test_netcdf(nc_filename, resolution=742)
-        reader = SatpyCFFileHandler(nc_filename, {}, {"filetype": "info"})
-        not_existing_resolution = 9999999
-        ds_id = DataID(default_id_keys_config, name="solar_zenith_angle", resolution=not_existing_resolution,
-                       modifiers=())
-        assert reader.get_dataset(ds_id, {}) is None
-
-    def test_dataid_attrs_equal_contains_not_matching_key(self, cf_scene, nc_filename):
-        """Check that get_dataset returns valid dataset when dataid have key(s) not existing in data."""
-        from satpy.dataset.dataid import DataID
-        from satpy.dataset.id_keys import default_id_keys_config
-        _create_test_netcdf(nc_filename, resolution=742)
-        reader = SatpyCFFileHandler(nc_filename, {}, {"filetype": "info"})
-        ds_id = DataID(default_id_keys_config, name="solar_zenith_angle", resolution=742,
-                       modifiers=(), calibration="counts")
-        res = reader.get_dataset(ds_id, {})
-        assert res.attrs["resolution"] == 742
+        if not exp_match:
+            assert res is None
+        else:
+            assert res.attrs["resolution"] == 742
