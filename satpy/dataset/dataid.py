@@ -298,14 +298,8 @@ class DataQuery:
             return True
 
         # if other is a DataID then must match this query exactly
-        keys_to_match = set(sdict.keys())
         o_is_id = hasattr(other, "id_keys")
-        if not o_is_id:
-            # if another DataQuery, then compare both sets of keys
-            keys_to_match |= set(odict.keys())
-        if shared_keys:
-            # only compare with the keys that both objects share
-            keys_to_match &= set(odict.keys())
+        keys_to_match = self._keys_to_compare(sdict, odict, o_is_id, shared_keys)
         if not keys_to_match:
             return False
 
@@ -313,6 +307,17 @@ class DataQuery:
             if not self._compare_key_equality(sdict, odict, key, o_is_id):
                 return False
         return True
+
+    @staticmethod
+    def _keys_to_compare(sdict: dict, odict: dict, o_is_id: bool, shared_keys: bool) -> set:
+        keys_to_match = set(sdict.keys())
+        if not o_is_id:
+            # if another DataQuery, then compare both sets of keys
+            keys_to_match |= set(odict.keys())
+        if shared_keys:
+            # only compare with the keys that both objects share
+            keys_to_match &= set(odict.keys())
+        return keys_to_match
 
     @staticmethod
     def _compare_key_equality(sdict: dict, odict: dict, key: str, o_is_id: bool) -> bool:
