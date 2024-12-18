@@ -29,6 +29,7 @@ from trollsift import compose, parse
 from xarray import DataTree
 
 from satpy.readers.mwr_l1b import AWS_EPS_Sterna_MWR_L1BFile
+from satpy.readers.mwr_l1c import AWS_MWR_L1CFile
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -37,6 +38,9 @@ platform_name = "AWS1"
 eumetsat_file_pattern = "W_XX-EUMETSAT-Darmstadt,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc"  # noqa
 
 esa_file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc"  # noqa
+
+esa_l1c_file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB__{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc"  # noqa
+
 
 rng = np.random.default_rng()
 
@@ -59,21 +63,32 @@ def fake_mwr_data_array():
     return xr.DataArray(fake_data_np, dims=array_dims)
 
 
-def make_fake_angles(geo_size, geo_dims):
+def make_fake_angles(geo_size, geo_dims, shape=(10, 145, 4)):
     """Return fake sun-satellite angle array."""
     maxval = 36000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int32")
-    return xr.DataArray(dummy_array.reshape((10, 145, 4)), dims=geo_dims)
+    return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
 
 
 def make_fake_mwr_lonlats(geo_size, geo_dims):
-    """Return fake geolocation data arrays."""
+    """Return fake geolocation data arrays for all 4 MWR horns."""
     maxval = 3600000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int32")
     fake_lon_data = xr.DataArray(dummy_array.reshape((10, 145, 4)), dims=geo_dims)
     maxval = 1800000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size - maxval/2).astype("int32")
     fake_lat_data = xr.DataArray(dummy_array.reshape((10, 145, 4)), dims=geo_dims)
+    return (fake_lon_data, fake_lat_data)
+
+
+def make_fake_mwr_l1c_lonlats(geo_size, geo_dims):
+    """Return fake level-1c geolocation data arrays."""
+    maxval = 3600000
+    dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int32")
+    fake_lon_data = xr.DataArray(dummy_array.reshape((10, 145)), dims=geo_dims)
+    maxval = 1800000
+    dummy_array = (np.arange(0, geo_size) * maxval/geo_size - maxval/2).astype("int32")
+    fake_lat_data = xr.DataArray(dummy_array.reshape((10, 145)), dims=geo_dims)
     return (fake_lon_data, fake_lat_data)
 
 
@@ -188,3 +203,55 @@ def aws_mwr_handler(aws_mwr_file):
     filetype_info = dict()
     filetype_info["file_type"] = "aws1_mwr_l1b"
     return AWS_EPS_Sterna_MWR_L1BFile(aws_mwr_file, filename_info, filetype_info)
+
+
+@pytest.fixture(scope="session")
+def aws_mwr_l1c_file(tmp_path_factory, fake_mwr_data_array):
+    """Create an AWS MWR l1c file."""
+    geo_dims = ["n_scans", "n_fovs"]
+    geo_size = 10*145
+
+    ds = DataTree()
+    start_time = datetime(2024, 9, 1, 12, 0)
+    ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
+    end_time = datetime(2024, 9, 1, 12, 15)
+    ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
+    processing_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
+
+    ds.attrs["instrument"] = "MWR"
+    ds.attrs["orbit_start"] = 9991
+    ds.attrs["orbit_end"] = 9992
+    ds["data/calibration/aws_toa_brightness_temperature"] = fake_mwr_data_array
+    ds["data/calibration/aws_toa_brightness_temperature"].attrs["scale_factor"] = 0.001
+    ds["data/calibration/aws_toa_brightness_temperature"].attrs["add_offset"] = 0.0
+    ds["data/calibration/aws_toa_brightness_temperature"].attrs["missing_value"] = -2147483648
+    ds["data/calibration/aws_toa_brightness_temperature"].attrs["valid_min"] = 0
+    ds["data/calibration/aws_toa_brightness_temperature"].attrs["valid_max"] = 700000
+
+    fake_lon_data, fake_lat_data = make_fake_mwr_l1c_lonlats(geo_size, geo_dims)
+
+    ds["data/navigation/aws_lon"] = fake_lon_data
+    ds["data/navigation/aws_lon"].attrs["scale_factor"] = 1e-4
+    ds["data/navigation/aws_lon"].attrs["add_offset"] = 0.0
+    ds["data/navigation/aws_lat"] = fake_lat_data
+    ds["data/navigation/aws_solar_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
+    ds["data/navigation/aws_solar_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
+    ds["data/navigation/aws_satellite_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
+    ds["data/navigation/aws_satellite_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
+
+    tmp_dir = tmp_path_factory.mktemp("aws_l1c_tests")
+    filename = tmp_dir / compose(esa_l1c_file_pattern, dict(start_time=start_time, end_time=end_time,
+                                                            processing_time=processing_time,
+                                                            platform_name=platform_name))
+
+    ds.to_netcdf(filename)
+    return filename
+
+
+@pytest.fixture
+def aws_mwr_l1c_handler(aws_mwr_l1c_file):
+    """Create an AWS MWR level-1c filehandler."""
+    filename_info = parse(esa_l1c_file_pattern, os.path.basename(aws_mwr_l1c_file))
+    filetype_info = dict()
+    filetype_info["file_type"] = "aws1_mwr_l1c"
+    return AWS_MWR_L1CFile(aws_mwr_l1c_file, filename_info, filetype_info)

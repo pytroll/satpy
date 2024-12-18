@@ -19,10 +19,10 @@ MWR = Microwaver Radiometer, onboard AWS and EPS-Sterna
 Sample data provided by ESA September 27, 2024.
 """
 
-from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_MWR_L1BFile, mask_and_scale
+from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_BaseFileHandler, mask_and_scale
 
 
-class AWS_MWR_L1CFile(AWS_EPS_Sterna_MWR_L1BFile):
+class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
     """Class implementing the AWS L1c Filehandler.
 
     This class implements the ESA Arctic Weather Satellite (AWS) Level-1b

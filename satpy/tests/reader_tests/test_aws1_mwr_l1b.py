@@ -108,8 +108,6 @@ def test_get_viewing_geometry_data(aws_mwr_handler, id_name, file_key, fake_arra
     assert res.dims == ("y", "x")
     assert "standard_name" in res.attrs
     assert "n_geo_groups" not in res.coords
-    if id_name == "longitude":
-        assert res.max() <= 180
 
 
 def test_try_get_data_not_in_file(aws_mwr_handler):

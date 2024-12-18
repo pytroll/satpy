@@ -32,26 +32,15 @@ from .netcdf_utils import NetCDF4FileHandler
 MWR_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
 
 
-class AWS_EPS_Sterna_MWR_L1BFile(NetCDF4FileHandler):
-    """Class implementing the AWS/EPS-Sterna MWR L1b Filehandler.
+class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
+    """Base class implementing the AWS/EPS-Sterna MWR Level-1b&c Filehandlers."""
 
-    This class implements the ESA Arctic Weather Satellite (AWS) and EPS-Sterna
-    MWR Level-1b NetCDF reader. It is designed to be used through the
-    :class:`~satpy.Scene` class using the :mod:`~satpy.Scene.load` method with
-    the reader ``"mwr_l1b_nc"``.
-
-    """
     def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=True):
         """Initialize the handler."""
         super().__init__(filename, filename_info, filetype_info,
                          cache_var_size=10000,
                          cache_handle=True)
         self.filename_info = filename_info
-
-        if filetype_info["file_type"].startswith("eps_sterna"):
-            self._feed_horn_group_name = "n_feedhorns"
-        else:
-            self._feed_horn_group_name = "n_geo_groups"
 
     @property
     def start_time(self):
@@ -82,6 +71,37 @@ class AWS_EPS_Sterna_MWR_L1BFile(NetCDF4FileHandler):
     def orbit_end(self):
         """Get the orbit number for the end of data."""
         return int(self["/attr/orbit_end"])
+
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get the data."""
+        raise NotImplementedError("This is not implemented in the Base class.")
+
+    def _get_channel_data(self, dataset_id, dataset_info):
+        channel_data = self[dataset_info["file_key"]]
+        channel_data.coords["n_channels"] = MWR_CHANNEL_NAMES
+        channel_data = channel_data.rename({"n_fovs": "x", "n_scans": "y"})
+        return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
+
+
+
+class AWS_EPS_Sterna_MWR_L1BFile(AWS_EPS_Sterna_BaseFileHandler):
+    """Class implementing the AWS/EPS-Sterna MWR L1b Filehandler.
+
+    This class implements the ESA Arctic Weather Satellite (AWS) and EPS-Sterna
+    MWR Level-1b NetCDF reader. It is designed to be used through the
+    :class:`~satpy.Scene` class using the :mod:`~satpy.Scene.load` method with
+    the reader ``"mwr_l1b_nc"``.
+
+    """
+    def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=True):
+        """Initialize the handler."""
+        super().__init__(filename, filename_info, filetype_info, auto_maskandscale)
+
+        if filetype_info["file_type"].startswith("eps_sterna"):
+            self._feed_horn_group_name = "n_feedhorns"
+        else:
+            self._feed_horn_group_name = "n_geo_groups"
+
 
     @property
     def sub_satellite_longitude_start(self):
@@ -145,12 +165,6 @@ class AWS_EPS_Sterna_MWR_L1BFile(NetCDF4FileHandler):
         data_array.attrs["sensor"] = self.sensor
         data_array.attrs["orbit_number"] = self.orbit_start
         return data_array
-
-    def _get_channel_data(self, dataset_id, dataset_info):
-        channel_data = self[dataset_info["file_key"]]
-        channel_data.coords["n_channels"] = MWR_CHANNEL_NAMES
-        channel_data = channel_data.rename({"n_fovs": "x", "n_scans": "y"})
-        return channel_data.sel(n_channels=dataset_id["name"]).drop_vars("n_channels")
 
     def _get_navigation_data(self, dataset_id, dataset_info):
         """Get the navigation (geolocation) data for one feed horn."""
