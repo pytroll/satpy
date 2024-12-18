@@ -685,7 +685,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _clipneg(data):
         """Clip counts to avoid negative radiances."""
         lo = -data.attrs.get("add_offset", 0) // data.attrs.get("scale_factor", 1) + 1
-        return data.where(data>=lo, lo)
+        return data.where((~data.notnull())|(data>=lo), lo)
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
