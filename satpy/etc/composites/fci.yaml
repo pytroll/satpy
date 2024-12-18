@@ -423,3 +423,49 @@ composites:
     - name: ir_38
       modifiers: [nir_reflectance]
     standard_name: snow
+
+  masked_colorised_low_level_moisture:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    standard_name: essl_colorised_low_level_moisture
+    prerequisites:
+      - essl_colorized_low_level_moisture
+      - cloud_state
+    conditions:
+      - method: equal
+        value: Not processed (no or corrupt data)
+        transparency: 100
+      - method: equal
+        value: Cloud free (no cloud, snow or ice)
+        transparency: 0
+      - method: equal
+        value: Cloud contaminated (partial or semitransparent cloud)
+        transparency: 100
+      - method: equal
+        value: Cloud filled (opaque cloud filled)
+        transparency: 100
+      - method: equal
+        value: Dust contaminated
+        transparency: 100
+      - method: equal
+        value: Dust filled (opaque)
+        transparency: 100
+      - method: equal
+        value: Ash contaminated
+        transparency: 100
+      - method: equal
+        value: Ash filled (opaque)
+        transparency: 100
+      - method: equal
+        value: Snow or ice contaminated
+        transparency: 0
+      - method: equal
+        value: Undefined
+        transparency: 0
+    mode: RGBA
+
+  colorised_low_level_moisture_with_vis06:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: image_ready
+    prerequisites:
+      - masked_colorised_low_level_moisture
+      - dwd_vis06
