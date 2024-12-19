@@ -71,7 +71,9 @@ class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self["/attr/instrument"]
+        # This should have been self["/attr/instrument"]
+        # But the sensor name is currently incorrect in the ESA level-1b files
+        return "mwr"
 
     @property
     def platform_name(self):

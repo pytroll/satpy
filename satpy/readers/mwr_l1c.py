@@ -39,7 +39,9 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return "MWR"
+        # This should have been self["/attr/instrument"]
+        # But the sensor name is currently incorrect in the ESA level-1b files
+        return "mwr"
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""

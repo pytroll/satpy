@@ -57,7 +57,7 @@ def test_get_channel_data(aws_mwr_l1c_handler, fake_mwr_data_array):
     assert "y" in res.dims
     assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
-    assert res.attrs["sensor"] == "MWR"
+    assert res.attrs["sensor"] == "mwr"
     assert res.attrs["platform_name"] == "AWS1"
 
 

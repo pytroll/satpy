@@ -366,9 +366,6 @@ datasets:
 
 file_types:
     aws_l1c_nc:
-        # W_XX-OHB-Unknown,SAT,1-AWS-1B-RAD_C_OHB_20230707124607_G_D_20220621090100_20220621090618_T_B____.nc
-        # W_XX-OHB-Stockholm,SAT,AWS1-MWR-1B-RAD_C_OHB_20230823161321_G_D_20240115111111_20240115125434_T_B____.nc
-        # W_XX-OHB-Stockholm,SAT,AWS1-MWR-1B-RAD_C_OHB_20230816120142_G_D_20240115111111_20240115125434_T_B____radsim.nc
         file_reader: !!python/name:satpy.readers.mwr_l1c.AWS_MWR_L1CFile
         file_patterns: [
         'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc',

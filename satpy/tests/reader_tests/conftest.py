@@ -19,7 +19,8 @@
 """Setup and configuration for all reader tests."""
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime as dt
+from datetime import timedelta
 from random import randrange
 
 import numpy as np
@@ -99,11 +100,11 @@ def eps_sterna_mwr_file(tmp_path_factory, fake_mwr_data_array):
     geo_size = 10 * 145 * 4
 
     ds = DataTree()
-    start_time = datetime(2024, 9, 1, 12, 0)
+    start_time = dt(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = datetime(2024, 9, 1, 12, 15)
+    end_time = dt(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
-    processing_time = random_date(datetime(2024, 9, 1, 13), datetime(2030, 6, 1))
+    processing_time = random_date(dt(2024, 9, 1, 13), dt(2030, 6, 1))
 
     instrument = "MWR"
     ds.attrs["instrument"] = instrument
@@ -140,7 +141,7 @@ def eps_sterna_mwr_file(tmp_path_factory, fake_mwr_data_array):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def eps_sterna_mwr_handler(eps_sterna_mwr_file):
     """Create an EPS-Sterna MWR filehandler."""
     filename_info = parse(eumetsat_file_pattern, os.path.basename(eps_sterna_mwr_file))
@@ -149,18 +150,18 @@ def eps_sterna_mwr_handler(eps_sterna_mwr_file):
     return AWS_EPS_Sterna_MWR_L1BFile(eps_sterna_mwr_file, filename_info, filetype_info)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def aws_mwr_file(tmp_path_factory, fake_mwr_data_array):
     """Create an AWS MWR l1b file."""
     geo_dims = ["n_scans", "n_fovs", "n_geo_groups"]
-    geo_size = 10*145*4
+    geo_size = 10 * 145 * 4
 
     ds = DataTree()
-    start_time = datetime(2024, 9, 1, 12, 0)
+    start_time = dt(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = datetime(2024, 9, 1, 12, 15)
+    end_time = dt(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
-    processing_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
+    processing_time = random_date(dt(2024, 6, 1), dt(2030, 6, 1))
 
     instrument = "MWR"
     ds.attrs["instrument"] = instrument
@@ -196,7 +197,7 @@ def aws_mwr_file(tmp_path_factory, fake_mwr_data_array):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def aws_mwr_handler(aws_mwr_file):
     """Create an AWS MWR filehandler."""
     filename_info = parse(esa_file_pattern, os.path.basename(aws_mwr_file))
@@ -205,18 +206,18 @@ def aws_mwr_handler(aws_mwr_file):
     return AWS_EPS_Sterna_MWR_L1BFile(aws_mwr_file, filename_info, filetype_info)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def aws_mwr_l1c_file(tmp_path_factory, fake_mwr_data_array):
     """Create an AWS MWR l1c file."""
     geo_dims = ["n_scans", "n_fovs"]
     geo_size = 10*145
 
     ds = DataTree()
-    start_time = datetime(2024, 9, 1, 12, 0)
+    start_time = dt(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = datetime(2024, 9, 1, 12, 15)
+    end_time = dt(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
-    processing_time = random_date(datetime(2024, 6, 1), datetime(2030, 6, 1))
+    processing_time = random_date(dt(2024, 6, 1), dt(2030, 6, 1))
 
     ds.attrs["instrument"] = "MWR"
     ds.attrs["orbit_start"] = 9991
@@ -248,7 +249,7 @@ def aws_mwr_l1c_file(tmp_path_factory, fake_mwr_data_array):
     return filename
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def aws_mwr_l1c_handler(aws_mwr_l1c_file):
     """Create an AWS MWR level-1c filehandler."""
     filename_info = parse(esa_l1c_file_pattern, os.path.basename(aws_mwr_l1c_file))

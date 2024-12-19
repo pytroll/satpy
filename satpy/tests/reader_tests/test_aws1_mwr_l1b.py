@@ -1,6 +1,6 @@
 """Tests for aws l1b filehandlers."""
 
-from datetime import datetime
+from datetime import datetime as dt
 from enum import Enum
 
 import numpy as np
@@ -24,8 +24,8 @@ fake_sat_zen_data = make_fake_angles(geo_size, geo_dims)
 
 def test_start_end_time(aws_mwr_handler):
     """Test that start and end times are read correctly."""
-    assert aws_mwr_handler.start_time == datetime(2024, 9, 1, 12, 0)
-    assert aws_mwr_handler.end_time == datetime(2024, 9, 1, 12, 15)
+    assert aws_mwr_handler.start_time == dt(2024, 9, 1, 12, 0)
+    assert aws_mwr_handler.end_time == dt(2024, 9, 1, 12, 15)
 
 
 def test_orbit_number_start_end(aws_mwr_handler):
@@ -36,7 +36,7 @@ def test_orbit_number_start_end(aws_mwr_handler):
 
 def test_metadata(aws_mwr_handler):
     """Test that the metadata is read correctly."""
-    assert aws_mwr_handler.sensor == "MWR"
+    assert aws_mwr_handler.sensor == "mwr"
     assert aws_mwr_handler.platform_name == platform_name
 
 
@@ -60,7 +60,7 @@ def test_get_channel_data(aws_mwr_handler, fake_mwr_data_array):
     assert res.attrs["orbital_parameters"]["sub_satellite_longitude_end"] == 296.79
     assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
-    assert res.attrs["sensor"] == "MWR"
+    assert res.attrs["sensor"] == "mwr"
     assert res.attrs["platform_name"] == "AWS1"
 
 

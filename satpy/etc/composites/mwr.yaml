@@ -15,7 +15,7 @@ composites:
     - name: '9'
     - name: '10'
     - name: '12'
-    standard_name: mw183_humidity_surface
+    standard_name: mw_humidity_surface
 
   mw325_humidity_surface:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -23,7 +23,7 @@ composites:
     - name: '9'
     - name: '10'
     - name: '19'
-    standard_name: mw325_humidity_surface
+    standard_name: mw_humidity_surface
 
   mw325_humidity:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -31,7 +31,7 @@ composites:
     - name: '16'
     - name: '18'
     - name: '19'
-    standard_name: mw325_humidity
+    standard_name: mw_humidity_surface
 
   ch1_tbs_colors:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
