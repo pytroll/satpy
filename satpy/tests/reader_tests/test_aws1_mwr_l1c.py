@@ -19,7 +19,6 @@
 """Tests for ESA Arctic Weather Satellite (AWS) level-1c file reading."""
 
 
-
 import numpy as np
 import pytest
 
