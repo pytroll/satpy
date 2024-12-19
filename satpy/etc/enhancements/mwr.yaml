@@ -3,16 +3,16 @@ enhancements:
   mw183_humidity:
     standard_name: mw183_humidity
     operations:
-    - name: inverse
-      method: !!python/name:satpy.enhancements.invert
-      args:
-      - [true, true, true]
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: linear}
+      kwargs:
+        stretch: crude
+        min_stretch: [290, 290, 290]
+        max_stretch: [190, 190, 190]
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
-      kwargs: {gamma: 1.2}
+      kwargs:
+        gamma: [1.5, 1.2, 1.2]
 
   mw183_humidity_surface:
     standard_name: mw183_humidity_surface

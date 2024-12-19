@@ -31,6 +31,22 @@ from .netcdf_utils import NetCDF4FileHandler
 
 MWR_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
 
+NAVIGATION_DATASET_NAMES = ["satellite_zenith_horn1",
+                            "satellite_zenith_horn2",
+                            "satellite_zenith_horn3",
+                            "satellite_zenith_horn4",
+                            "solar_azimuth_horn1",
+                            "solar_azimuth_horn2",
+                            "solar_azimuth_horn3",
+                            "solar_azimuth_horn4",
+                            "solar_zenith_horn1",
+                            "solar_zenith_horn2",
+                            "solar_zenith_horn3",
+                            "solar_zenith_horn4",
+                            "satellite_azimuth_horn1",
+                            "satellite_azimuth_horn2",
+                            "satellite_azimuth_horn3",
+                            "satellite_azimuth_horn4"]
 
 class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
     """Base class implementing the AWS/EPS-Sterna MWR Level-1b&c Filehandlers."""
@@ -127,22 +143,7 @@ class AWS_EPS_Sterna_MWR_L1BFile(AWS_EPS_Sterna_BaseFileHandler):
         """Get the data."""
         if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
-        elif dataset_id["name"] in ["satellite_zenith_horn1",
-                                    "satellite_zenith_horn2",
-                                    "satellite_zenith_horn3",
-                                    "satellite_zenith_horn4",
-                                    "solar_azimuth_horn1",
-                                    "solar_azimuth_horn2",
-                                    "solar_azimuth_horn3",
-                                    "solar_azimuth_horn4",
-                                    "solar_zenith_horn1",
-                                    "solar_zenith_horn2",
-                                    "solar_zenith_horn3",
-                                    "solar_zenith_horn4",
-                                    "satellite_azimuth_horn1",
-                                    "satellite_azimuth_horn2",
-                                    "satellite_azimuth_horn3",
-                                    "satellite_azimuth_horn4"]:
+        elif dataset_id["name"] in NAVIGATION_DATASET_NAMES:
             data_array = self._get_navigation_data(dataset_id, dataset_info)
 
         elif dataset_id["name"] in ["longitude", "latitude"]:
