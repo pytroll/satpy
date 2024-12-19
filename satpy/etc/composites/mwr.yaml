@@ -1,4 +1,4 @@
-sensor_name: aws
+sensor_name: mwr
 
 composites:
   mw183_humidity:
