@@ -96,7 +96,7 @@ def make_fake_mwr_l1c_lonlats(geo_size, geo_dims):
 def eps_sterna_mwr_file(tmp_path_factory, fake_mwr_data_array):
     """Create an EPS-Sterna MWR l1b file."""
     geo_dims = ["n_scans", "n_fovs", "n_feedhorns"]
-    geo_size = 10*145*4
+    geo_size = 10 * 145 * 4
 
     ds = DataTree()
     start_time = datetime(2024, 9, 1, 12, 0)
