@@ -1291,7 +1291,7 @@ enhancements:
     operations: []
 
   mw183_humidity:
-    # matches EPS-Sterna and AWS MWR
+    # matches EPS-Sterna and AWS MWR, and ATMS and MHS
     standard_name: mw183_humidity
     operations:
     - name: stretch
