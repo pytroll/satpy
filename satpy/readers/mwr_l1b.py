@@ -29,7 +29,7 @@ import xarray as xr
 
 from .netcdf_utils import NetCDF4FileHandler
 
-MWR_CHANNEL_NAMES = list(str(i) for i in range(1, 20))
+MWR_CHANNEL_NAMES = [str(i) for i in range(1, 20)]
 
 NAVIGATION_DATASET_NAMES = ["satellite_zenith_horn1",
                             "satellite_zenith_horn2",
