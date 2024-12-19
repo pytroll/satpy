@@ -19,7 +19,6 @@
 """Tests for ESA Arctic Weather Satellite (AWS) level-1c file reading."""
 
 
-
 import numpy as np
 import pytest
 
@@ -83,10 +82,10 @@ def test_get_navigation_data(aws_mwr_l1c_handler, id_name, file_key, fake_array)
 
 
 @pytest.mark.parametrize(("id_name", "file_key", "fake_array"),
-                         [("solar_azimuth", "data/navigation/aws_solar_azimuth_angle", fake_sun_azi_data),
-                          ("solar_zenith", "data/navigation/aws_solar_zenith_angle", fake_sun_zen_data),
-                          ("satellite_azimuth", "data/navigation/aws_satellite_azimuth_angle", fake_sat_azi_data),
-                          ("satellite_zenith", "data/navigation/aws_satellite_zenith_angle", fake_sat_zen_data)])
+                         [("solar_azimuth_angle", "data/navigation/aws_solar_azimuth_angle", fake_sun_azi_data),
+                          ("solar_zenith_angle", "data/navigation/aws_solar_zenith_angle", fake_sun_zen_data),
+                          ("satellite_azimuth_angle", "data/navigation/aws_satellite_azimuth_angle", fake_sat_azi_data),
+                          ("satellite_zenith_angle", "data/navigation/aws_satellite_zenith_angle", fake_sat_zen_data)])
 def test_get_viewing_geometry_data(aws_mwr_l1c_handler, id_name, file_key, fake_array):
     """Test retrieving the angles_data."""
     dset_id = dict(name=id_name)

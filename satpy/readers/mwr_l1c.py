@@ -48,8 +48,8 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
         elif (dataset_id["name"] in ["longitude", "latitude",
-                                     "solar_azimuth", "solar_zenith",
-                                     "satellite_zenith", "satellite_azimuth"]):
+                                     "solar_azimuth_angle", "solar_zenith_angle",
+                                     "satellite_zenith_angle", "satellite_azimuth_angle"]):
             data_array = self._get_navigation_data(dataset_id, dataset_info)
         else:
             raise NotImplementedError(f"Dataset {dataset_id['name']} not available or not supported yet!")
