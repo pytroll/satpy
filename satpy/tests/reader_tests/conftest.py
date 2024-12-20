@@ -147,7 +147,7 @@ def eps_sterna_mwr_file(tmp_path_factory, fake_mwr_data_array):
     tmp_dir = tmp_path_factory.mktemp("eps_sterna_mwr_l1b_tests")
     start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
     end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
-    platform_name = "AWS1"
+    platform_name = "ST01"
     processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
     filename = tmp_dir / compose(file_pattern, dict(country="XX",
                                                     organisation="EUMETSAT",

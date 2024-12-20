@@ -24,10 +24,7 @@ import pytest
 
 from satpy.tests.reader_tests.conftest import make_fake_angles, make_fake_mwr_l1c_lonlats
 
-platform_name = "AWS1"
-# W_XX-OHB-Stockholm,SAT,AWS1-MWR-1C-RAD_C_OHB__20241126183628_G_D_20240913222540_20240914000332_T_B____.nc
-file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB__{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc"  # noqa
-
+PLATFORM_NAME = "AWS1"
 
 geo_dims = ["n_scans", "n_fovs"]
 geo_size = 10 * 145
@@ -57,7 +54,7 @@ def test_get_channel_data(aws_mwr_l1c_handler, fake_mwr_data_array):
     assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
     assert res.attrs["sensor"] == "mwr"
-    assert res.attrs["platform_name"] == "AWS1"
+    assert res.attrs["platform_name"] == PLATFORM_NAME
 
 
 @pytest.mark.parametrize(("id_name", "file_key", "fake_array"),

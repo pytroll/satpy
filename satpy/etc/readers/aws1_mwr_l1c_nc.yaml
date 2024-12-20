@@ -1,7 +1,7 @@
 reader:
   name: aws1_mwr_l1c_nc
-  short_name: AWS L1C RAD NetCDF4
-  long_name: AWS L1C Radiance (NetCDF4)
+  short_name: AWS1 MWR L1C
+  long_name: AWS1 MWR L1C Radiance (NetCDF4)
   description: Reader for the ESA AWS (Arctic Weather Satellite) MWR level-1c files in netCDF4.
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [mwr,]
@@ -328,8 +328,8 @@ datasets:
 
 # --- Navigation data ---
 
-    solar_azimuth:
-        name: solar_azimuth
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
         file_type: aws_l1c_nc
         file_key: data/navigation/aws_solar_azimuth_angle
         standard_name: solar_azimuth_angle
@@ -337,8 +337,8 @@ datasets:
             - longitude
             - latitude
 
-    solar_zenith:
-        name: solar_zenith
+    solar_zenith_angle:
+        name: solar_zenith_angle
         file_type: aws_l1c_nc
         file_key: data/navigation/aws_solar_zenith_angle
         standard_name: solar_zenith_angle
@@ -346,8 +346,8 @@ datasets:
             - longitude
             - latitude
 
-    satellite_azimuth:
-        name: satellite_azimuth
+    satellite_azimuth_angle:
+        name: satellite_azimuth_angle
         file_type: aws_l1c_nc
         file_key: data/navigation/aws_satellite_azimuth_angle
         standard_name: satellite_azimuth_angle
@@ -355,8 +355,8 @@ datasets:
             - longitude
             - latitude
 
-    satellite_zenith:
-        name: satellite_zenith
+    satellite_zenith_angle:
+        name: satellite_zenith_angle
         file_type: aws_l1c_nc
         file_key: data/navigation/aws_satellite_zenith_angle
         standard_name: satellite_zenith_angle

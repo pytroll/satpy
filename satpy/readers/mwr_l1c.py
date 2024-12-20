@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for the Arctic Weather Satellite (AWS) MWR level-1c data.
 
-MWR = Microwaver Radiometer, onboard AWS and EPS-Sterna
+MWR = Microwave Radiometer, onboard AWS and EPS-Sterna
 
 Sample data provided by ESA September 27, 2024.
 """

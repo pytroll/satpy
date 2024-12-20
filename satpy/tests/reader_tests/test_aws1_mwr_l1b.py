@@ -8,8 +8,7 @@ import pytest
 
 from satpy.tests.reader_tests.conftest import make_fake_angles, make_fake_mwr_lonlats
 
-platform_name = "AWS1"
-file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1B-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc"  # noqa
+PLATFORM_NAME = "AWS1"
 
 
 geo_dims = ["n_scans", "n_fovs", "n_geo_groups"]
@@ -37,7 +36,7 @@ def test_orbit_number_start_end(aws_mwr_handler):
 def test_metadata(aws_mwr_handler):
     """Test that the metadata is read correctly."""
     assert aws_mwr_handler.sensor == "mwr"
-    assert aws_mwr_handler.platform_name == platform_name
+    assert aws_mwr_handler.platform_name == PLATFORM_NAME
 
 
 def test_get_channel_data(aws_mwr_handler, fake_mwr_data_array):
@@ -61,7 +60,7 @@ def test_get_channel_data(aws_mwr_handler, fake_mwr_data_array):
     assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
     assert res.attrs["sensor"] == "mwr"
-    assert res.attrs["platform_name"] == "AWS1"
+    assert res.attrs["platform_name"] == PLATFORM_NAME
 
 
 @pytest.mark.parametrize(("id_name", "file_key", "fake_array"),

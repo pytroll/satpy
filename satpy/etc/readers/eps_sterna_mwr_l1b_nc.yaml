@@ -1,7 +1,7 @@
 reader:
   name: eps_sterna_mwr_l1b_nc
-  short_name: AWS L1B RAD NetCDF4
-  long_name: AWS L1B Radiance (NetCDF4)
+  short_name: EPS-Sterna MWR L1B
+  long_name: EPS-Sterna MWR L1B Radiance (NetCDF4)
   description: Reader for the EUMETSAT EPS-Sterna radiometer level-1b files in netCDF4.
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [mwr,]

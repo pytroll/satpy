@@ -61,3 +61,8 @@ def test_try_get_data_not_in_file(eps_sterna_mwr_handler):
     match_str = "Dataset aws_toa_brightness_temperature not available or not supported yet!"
     with pytest.raises(NotImplementedError, match=match_str):
         _ = eps_sterna_mwr_handler.get_dataset(did, dataset_info)
+
+def test_metadata(eps_sterna_mwr_handler):
+    """Test that the metadata is read correctly."""
+    assert eps_sterna_mwr_handler.sensor == "mwr"
+    assert eps_sterna_mwr_handler.platform_name == "ST01"
