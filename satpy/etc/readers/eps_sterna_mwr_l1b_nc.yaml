@@ -528,5 +528,5 @@ file_types:
         # W_XX-EUMETSAT-Darmstadt,SAT,AWS1-MWR-1B-RAD_C_EUMT_20241121085911_G_D_20241109234502_20241110004559_T_N____.nc
         file_reader: !!python/name:satpy.readers.mwr_l1b.AWS_EPS_Sterna_MWR_L1BFile
         file_patterns: [
-        'W_XX-EUMETSAT-Darmstadt,SAT,{platform_name}-MWR-1B-RAD_C_EUMT_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc',
+        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
         ]

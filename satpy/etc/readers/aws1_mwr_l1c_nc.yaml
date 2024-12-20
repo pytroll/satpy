@@ -368,5 +368,5 @@ file_types:
     aws_l1c_nc:
         file_reader: !!python/name:satpy.readers.mwr_l1c.AWS_MWR_L1CFile
         file_patterns: [
-        'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc',
-        'W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB__{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_B____.nc',]
+        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1C-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
+        ]
