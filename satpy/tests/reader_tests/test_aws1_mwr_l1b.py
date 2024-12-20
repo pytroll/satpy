@@ -1,6 +1,6 @@
 """Tests for aws l1b filehandlers."""
 
-from datetime import datetime as dt
+import datetime as dt
 from enum import Enum
 
 import numpy as np
@@ -24,8 +24,8 @@ fake_sat_zen_data = make_fake_angles(geo_size, geo_dims)
 
 def test_start_end_time(aws_mwr_handler):
     """Test that start and end times are read correctly."""
-    assert aws_mwr_handler.start_time == dt(2024, 9, 1, 12, 0)
-    assert aws_mwr_handler.end_time == dt(2024, 9, 1, 12, 15)
+    assert aws_mwr_handler.start_time == dt.datetime(2024, 9, 1, 12, 0)
+    assert aws_mwr_handler.end_time == dt.datetime(2024, 9, 1, 12, 15)
 
 
 def test_orbit_number_start_end(aws_mwr_handler):

@@ -30,7 +30,7 @@ file_pattern = "W_XX-OHB-Stockholm,SAT,{platform_name}-MWR-1C-RAD_C_OHB__{proces
 
 
 geo_dims = ["n_scans", "n_fovs"]
-geo_size = 10*145
+geo_size = 10 * 145
 fake_lon_data, fake_lat_data = make_fake_mwr_l1c_lonlats(geo_size, geo_dims)
 fake_sun_azi_data = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
 fake_sun_zen_data = make_fake_angles(geo_size, geo_dims, shape=(10, 145))

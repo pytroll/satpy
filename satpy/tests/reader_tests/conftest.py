@@ -18,8 +18,8 @@
 
 """Setup and configuration for all reader tests."""
 
+import datetime as dt
 import os
-from datetime import datetime as dt
 from datetime import timedelta
 from random import randrange
 
@@ -106,9 +106,9 @@ def aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True):
     geo_size = 10 * 145 * 4
 
     ds = DataTree()
-    start_time = dt(2024, 9, 1, 12, 0)
+    start_time = dt.datetime(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = dt(2024, 9, 1, 12, 15)
+    end_time = dt.datetime(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
 
     instrument = "MWR"
@@ -146,10 +146,10 @@ def eps_sterna_mwr_file(tmp_path_factory, fake_mwr_data_array):
     ds = aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True)
 
     tmp_dir = tmp_path_factory.mktemp("eps_sterna_mwr_l1b_tests")
-    start_time = dt.fromisoformat(ds.attrs["sensing_start_time_utc"])
-    end_time = dt.fromisoformat(ds.attrs["sensing_end_time_utc"])
+    start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
+    end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
     platform_name = "AWS1"
-    processing_time = random_date(dt(2024, 9, 1, 13), dt(2030, 6, 1))
+    processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
     filename = tmp_dir / compose(file_pattern, dict(country="XX",
                                                     organisation="EUMETSAT",
                                                     location="Darmstadt",
@@ -167,10 +167,10 @@ def aws_mwr_file(tmp_path_factory, fake_mwr_data_array):
     ds = aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=False)
 
     tmp_dir = tmp_path_factory.mktemp("aws_l1b_tests")
-    start_time = dt.fromisoformat(ds.attrs["sensing_start_time_utc"])
-    end_time = dt.fromisoformat(ds.attrs["sensing_end_time_utc"])
+    start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
+    end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
     platform_name = "AWS1"
-    processing_time = random_date(dt(2024, 9, 1, 13), dt(2030, 6, 1))
+    processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
     filename = tmp_dir / compose(file_pattern, dict(country="SE",
                                                     organisation="SMHI",
                                                     location="Norrkoping",
@@ -190,11 +190,11 @@ def aws_mwr_l1c_file(tmp_path_factory, fake_mwr_data_array):
     geo_size = 10 * 145
 
     ds = DataTree()
-    start_time = dt(2024, 9, 1, 12, 0)
+    start_time = dt.datetime(2024, 9, 1, 12, 0)
     ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = dt(2024, 9, 1, 12, 15)
+    end_time = dt.datetime(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
-    processing_time = random_date(dt(2024, 6, 1), dt(2030, 6, 1))
+    processing_time = random_date(dt.datetime(2024, 6, 1), dt.datetime(2030, 6, 1))
 
     ds.attrs["instrument"] = "MWR"
     ds.attrs["orbit_start"] = 9991
