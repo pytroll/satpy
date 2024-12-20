@@ -13,3 +13,12 @@ enhancements:
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: 1.2}
+
+  tbs_colors:
+    standard_name: tbs_colors
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+        palettes:
+          - {colors: spectral, min_value: 280, max_value: 180}
