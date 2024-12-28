@@ -15,7 +15,7 @@ file_types:
     camel_emis_file:
         file_reader: !!python/name:satpy.readers.camel_l3_nc.CAMELL3NCFileHandler
         file_patterns:
-         - 'CAM5K30EM_emis_{start_time:%Y%m}_V{version:3s}.nc'
+         - 'CAM5K30EM_emis_{start_period:%Y%m}_V{version:3s}.nc'
 
 
 datasets:

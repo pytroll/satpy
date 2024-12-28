@@ -53,8 +53,6 @@ class CAMELL3NCFileHandler(BaseFileHandler):
             raise ValueError("Only 0.05 degree grid data is supported.")
         if self.nc.attrs["geospatial_lat_resolution"] != "0.05 degree grid ":
             raise ValueError("Only 0.05 degree grid data is supported.")
-        if self.nc.sizes["spectra"] != 13:
-            raise ValueError("Only CAMEL files with 13 spectral bands are supported.")
 
         self.nlines = self.nc.sizes["latitude"]
         self.ncols = self.nc.sizes["longitude"]
@@ -82,6 +80,8 @@ class CAMELL3NCFileHandler(BaseFileHandler):
 
         # For the emissivity there are multiple bands, so we need to select the correct one
         if var == "camel_emis":
+            if info["band_id"] >= variable.shape[2]:
+                raise ValueError("Band id requested is larger than dataset.")
             variable = variable[:, :, info["band_id"]]
 
         # Rename the latitude and longitude dimensions to x and y
