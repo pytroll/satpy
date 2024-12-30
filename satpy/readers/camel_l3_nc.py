@@ -39,7 +39,7 @@ GLOB_AREA_EXT = [-180, -90, 180, 90]
 
 
 class CAMELL3NCFileHandler(BaseFileHandler):
-    """File handler for Himawari L2 NOAA enterprise data in netCDF format."""
+    """File handler for CAMEL data in netCDF format."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
