@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2024 Satpy developers
 #
-# This file is part of satpy.
+# This file is part of Satpy.
 #
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
@@ -49,9 +49,9 @@ class CAMELL3NCFileHandler(BaseFileHandler):
                                   mask_and_scale=True,
                                   chunks={"xc": "auto", "yc": "auto"})
 
-        if self.nc.attrs["geospatial_lon_resolution"] != "0.05 degree grid ":
+        if "0.05" not in self.nc.attrs["geospatial_lon_resolution"]:
             raise ValueError("Only 0.05 degree grid data is supported.")
-        if self.nc.attrs["geospatial_lat_resolution"] != "0.05 degree grid ":
+        if "0.05" not in self.nc.attrs["geospatial_lat_resolution"]:
             raise ValueError("Only 0.05 degree grid data is supported.")
 
         self.nlines = self.nc.sizes["latitude"]
