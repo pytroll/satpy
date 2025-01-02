@@ -356,8 +356,8 @@ class TestVIIRSL1BReaderDay:
                            make_dataid(name="I04", calibration="radiance"),
                            ])
         for v in datasets.values():
-            assert ('scale_factor' not in v.attrs)
-            assert ('add_offset' not in v.attrs)
+            assert ("scale_factor" not in v.attrs)
+            assert ("add_offset" not in v.attrs)
 
 
 class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):
