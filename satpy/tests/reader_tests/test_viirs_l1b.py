@@ -339,7 +339,7 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["sensor"] == "viirs"
 
     def test_scale_factor_and_offset_update(self):
-        """Test if scale_factor and add_offset are updated correctly."""
+        """Test if scale_factor and add_offset are removed correctly."""
         from satpy.readers import load_reader
         from satpy.tests.utils import make_dataid
         r = load_reader(self.reader_configs)
@@ -356,15 +356,8 @@ class TestVIIRSL1BReaderDay:
                            make_dataid(name="I04", calibration="radiance"),
                            ])
         for v in datasets.values():
-            if v.attrs["units"] == "%":
-                assert int(v.attrs["scale_factor"]) == 110
-                assert int(v.attrs["add_offset"]) == 10
-            elif v.attrs["units"] == "K":
-                assert v.attrs["scale_factor"] == 1
-                assert v.attrs["add_offset"] == 0
-            elif v.attrs["calibration"] == "radiance" and v.attrs["units"] == "W m-2 um-1 sr-1":
-                assert v.attrs["scale_factor"] == 1.1
-                assert v.attrs["add_offset"] == 0.1
+            assert ('scale_factor' not in v.attrs)
+            assert ('add_offset' not in v.attrs)
 
 
 class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):
