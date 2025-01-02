@@ -236,7 +236,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             data *= factors[0]
             data += factors[1]
 
-        # update scale_factor and scale_offset
+        # remove scale_factor and scale_offset
         data.attrs.pop("scale_factor", None)
         data.attrs.pop("add_offset", None)
 
