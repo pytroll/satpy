@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2021, 2024 Satpy developers
+# Copyright (c) 2021, 2024, 2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -139,47 +139,41 @@ def aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True):
 
     return ds
 
+
+def create_mwr_file(tmpdir, data_array, eps_sterna=False):
+    """Create an AWS or EPS-Sterna MWR l1b file."""
+    ds = aws_eps_sterna_mwr_l1bfile(data_array, eps_sterna=eps_sterna)
+    start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
+    end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
+    if eps_sterna:
+        platform_name = "ST01"
+    else:
+        platform_name = "AWS1"
+
+    processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
+    filename = tmpdir / compose(file_pattern, dict(country="XX",
+                                                   organisation="EUMETSAT",
+                                                   location="Darmstadt",
+                                                   processing_level="1B",
+                                                   originator="EUMT",
+                                                   start_time=start_time, end_time=end_time,
+                                                   processing_time=processing_time,
+                                                   platform_name=platform_name))
+    ds.to_netcdf(filename)
+    return filename
+
 @pytest.fixture(scope="module")
 def eps_sterna_mwr_file(tmp_path_factory, fake_mwr_data_array):
     """Create an EPS-Sterna MWR l1b file."""
-    ds = aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True)
+    tmpdir = tmp_path_factory.mktemp("eps_sterna_mwr_l1b_tests")
+    return create_mwr_file(tmpdir, fake_mwr_data_array, eps_sterna=True)
 
-    tmp_dir = tmp_path_factory.mktemp("eps_sterna_mwr_l1b_tests")
-    start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
-    end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
-    platform_name = "ST01"
-    processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
-    filename = tmp_dir / compose(file_pattern, dict(country="XX",
-                                                    organisation="EUMETSAT",
-                                                    location="Darmstadt",
-                                                    processing_level="1B",
-                                                    originator="EUMT",
-                                                    start_time=start_time, end_time=end_time,
-                                                    processing_time=processing_time,
-                                                    platform_name=platform_name))
-    ds.to_netcdf(filename)
-    return filename
 
 @pytest.fixture(scope="module")
 def aws_mwr_file(tmp_path_factory, fake_mwr_data_array):
     """Create an AWS MWR l1b file."""
-    ds = aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=False)
-
-    tmp_dir = tmp_path_factory.mktemp("aws_l1b_tests")
-    start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
-    end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
-    platform_name = "AWS1"
-    processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
-    filename = tmp_dir / compose(file_pattern, dict(country="SE",
-                                                    organisation="SMHI",
-                                                    location="Norrkoping",
-                                                    processing_level="1B",
-                                                    originator="SMHI",
-                                                    start_time=start_time, end_time=end_time,
-                                                    processing_time=processing_time,
-                                                    platform_name=platform_name))
-    ds.to_netcdf(filename)
-    return filename
+    tmpdir = tmp_path_factory.mktemp("aws_l1b_tests")
+    return create_mwr_file(tmpdir, fake_mwr_data_array, eps_sterna=False)
 
 
 @pytest.fixture(scope="module")
