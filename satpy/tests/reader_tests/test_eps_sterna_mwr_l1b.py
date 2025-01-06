@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2024 Satpy developers
+# Copyright (c) 2024, 2025 Satpy developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,9 @@ from satpy.tests.reader_tests.conftest import make_fake_mwr_lonlats
 
 geo_dims = ["n_scans", "n_fovs", "n_feedhorns"]
 geo_size = 10*145*4
-fake_lon_data, fake_lat_data = make_fake_mwr_lonlats(geo_size, geo_dims)
+shape = (10, 145, 4)
+fake_lon_data, fake_lat_data = make_fake_mwr_lonlats(geo_size, geo_dims, shape)
+
 
 @pytest.mark.parametrize(("id_name", "file_key", "fake_array"),
                          [("longitude", "data/navigation/longitude", fake_lon_data * 1e-4),

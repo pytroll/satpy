@@ -13,11 +13,12 @@ PLATFORM_NAME = "AWS1"
 
 geo_dims = ["n_scans", "n_fovs", "n_geo_groups"]
 geo_size = 10*145*4
-fake_lon_data, fake_lat_data = make_fake_mwr_lonlats(geo_size, geo_dims)
-fake_sun_azi_data = make_fake_angles(geo_size, geo_dims)
-fake_sun_zen_data = make_fake_angles(geo_size, geo_dims)
-fake_sat_azi_data = make_fake_angles(geo_size, geo_dims)
-fake_sat_zen_data = make_fake_angles(geo_size, geo_dims)
+shape = (10, 145, 4)
+fake_lon_data, fake_lat_data = make_fake_mwr_lonlats(geo_size, geo_dims, shape)
+fake_sun_azi_data = make_fake_angles(geo_size, geo_dims, shape)
+fake_sun_zen_data = make_fake_angles(geo_size, geo_dims, shape)
+fake_sat_azi_data = make_fake_angles(geo_size, geo_dims, shape)
+fake_sat_zen_data = make_fake_angles(geo_size, geo_dims, shape)
 
 
 

@@ -59,21 +59,21 @@ def fake_mwr_data_array():
     return xr.DataArray(fake_data_np, dims=array_dims)
 
 
-def make_fake_angles(geo_size, geo_dims, shape=(10, 145, 4)):
+def make_fake_angles(geo_size, geo_dims, shape):
     """Return fake sun-satellite angle array."""
     maxval = 36000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int32")
     return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
 
 
-def make_fake_mwr_lonlats(geo_size, geo_dims):
+def make_fake_mwr_lonlats(geo_size, geo_dims, shape):
     """Return fake geolocation data arrays for all 4 MWR horns."""
     maxval = 3600000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int32")
-    fake_lon_data = xr.DataArray(dummy_array.reshape((10, 145, 4)), dims=geo_dims)
+    fake_lon_data = xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
     maxval = 1800000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size - maxval/2).astype("int32")
-    fake_lat_data = xr.DataArray(dummy_array.reshape((10, 145, 4)), dims=geo_dims)
+    fake_lat_data = xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
     return (fake_lon_data, fake_lat_data)
 
 
@@ -88,7 +88,7 @@ def make_fake_mwr_l1c_lonlats(geo_size, geo_dims):
     return (fake_lon_data, fake_lat_data)
 
 
-def aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True):
+def aws_eps_sterna_mwr_level1_file(fake_mwr_data_array, eps_sterna=True, l1b=True):
     """Create an AWS and EPS-Sterna MWR l1b file."""
     if eps_sterna:
         n_feedhorns="n_feedhorns"
@@ -101,8 +101,14 @@ def aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True):
         longitude_attr = "aws_lon"
         latitude_attr = "aws_lat"
 
-    geo_dims = ["n_scans", "n_fovs", n_feedhorns]
-    geo_size = 10 * 145 * 4
+    if l1b:
+        geo_dims = ["n_scans", "n_fovs", n_feedhorns]
+        geo_size = 10 * 145 * 4
+        shape = (10, 145, 4)
+    else:
+        geo_dims = ["n_scans", "n_fovs"]
+        geo_size = 10 * 145
+        shape = (10, 145)
 
     ds = DataTree()
     start_time = dt.datetime(2024, 9, 1, 12, 0)
@@ -110,8 +116,7 @@ def aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True):
     end_time = dt.datetime(2024, 9, 1, 12, 15)
     ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
 
-    instrument = "MWR"
-    ds.attrs["instrument"] = instrument
+    ds.attrs["instrument"] = "MWR"
     ds.attrs["orbit_start"] = 9991
     ds.attrs["orbit_end"] = 9992
     dset_name = f"data/calibration/{prefix}toa_brightness_temperature"
@@ -122,27 +127,28 @@ def aws_eps_sterna_mwr_l1bfile(fake_mwr_data_array, eps_sterna=True):
     ds[dset_name].attrs["valid_min"] = 0
     ds[dset_name].attrs["valid_max"] = 700000
 
-    fake_lon_data, fake_lat_data = make_fake_mwr_lonlats(geo_size, geo_dims)
+    fake_lon_data, fake_lat_data = make_fake_mwr_lonlats(geo_size, geo_dims, shape)
 
     ds[f"data/navigation/{longitude_attr}"] = fake_lon_data
     ds[f"data/navigation/{longitude_attr}"].attrs["scale_factor"] = 1e-4
     ds[f"data/navigation/{longitude_attr}"].attrs["add_offset"] = 0.0
     ds[f"data/navigation/{latitude_attr}"] = fake_lat_data
-    ds[f"data/navigation/{prefix}solar_azimuth_angle"] = make_fake_angles(geo_size, geo_dims)
-    ds[f"data/navigation/{prefix}solar_zenith_angle"] = make_fake_angles(geo_size, geo_dims)
-    ds[f"data/navigation/{prefix}satellite_azimuth_angle"] = make_fake_angles(geo_size, geo_dims)
-    ds[f"data/navigation/{prefix}satellite_zenith_angle"] = make_fake_angles(geo_size, geo_dims)
-    ds["status/satellite/subsat_latitude_end"] = np.array(22.39)
-    ds["status/satellite/subsat_longitude_start"] = np.array(304.79)
-    ds["status/satellite/subsat_latitude_start"] = np.array(55.41)
-    ds["status/satellite/subsat_longitude_end"] = np.array(296.79)
+    ds[f"data/navigation/{prefix}solar_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}solar_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}satellite_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}satellite_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape)
+    if l1b:
+        ds["status/satellite/subsat_latitude_end"] = np.array(22.39)
+        ds["status/satellite/subsat_longitude_start"] = np.array(304.79)
+        ds["status/satellite/subsat_latitude_start"] = np.array(55.41)
+        ds["status/satellite/subsat_longitude_end"] = np.array(296.79)
 
     return ds
 
 
-def create_mwr_file(tmpdir, data_array, eps_sterna=False):
-    """Create an AWS or EPS-Sterna MWR l1b file."""
-    ds = aws_eps_sterna_mwr_l1bfile(data_array, eps_sterna=eps_sterna)
+def create_mwr_file(tmpdir, data_array, eps_sterna=False, l1b=True):
+    """Create an AWS or EPS-Sterna MWR l1b (or level-1c) file."""
+    ds = aws_eps_sterna_mwr_level1_file(data_array, eps_sterna=eps_sterna, l1b=l1b)
     start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
     end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
     if eps_sterna:
@@ -179,48 +185,8 @@ def aws_mwr_file(tmp_path_factory, fake_mwr_data_array):
 @pytest.fixture(scope="module")
 def aws_mwr_l1c_file(tmp_path_factory, fake_mwr_data_array):
     """Create an AWS MWR l1c file."""
-    geo_dims = ["n_scans", "n_fovs"]
-    geo_size = 10 * 145
-
-    ds = DataTree()
-    start_time = dt.datetime(2024, 9, 1, 12, 0)
-    ds.attrs["sensing_start_time_utc"] = start_time.strftime(DATETIME_FORMAT)
-    end_time = dt.datetime(2024, 9, 1, 12, 15)
-    ds.attrs["sensing_end_time_utc"] = end_time.strftime(DATETIME_FORMAT)
-    processing_time = random_date(dt.datetime(2024, 6, 1), dt.datetime(2030, 6, 1))
-
-    ds.attrs["instrument"] = "MWR"
-    ds.attrs["orbit_start"] = 9991
-    ds.attrs["orbit_end"] = 9992
-    ds["data/calibration/aws_toa_brightness_temperature"] = fake_mwr_data_array
-    ds["data/calibration/aws_toa_brightness_temperature"].attrs["scale_factor"] = 0.001
-    ds["data/calibration/aws_toa_brightness_temperature"].attrs["add_offset"] = 0.0
-    ds["data/calibration/aws_toa_brightness_temperature"].attrs["missing_value"] = -2147483648
-    ds["data/calibration/aws_toa_brightness_temperature"].attrs["valid_min"] = 0
-    ds["data/calibration/aws_toa_brightness_temperature"].attrs["valid_max"] = 700000
-
-    fake_lon_data, fake_lat_data = make_fake_mwr_l1c_lonlats(geo_size, geo_dims)
-
-    ds["data/navigation/aws_lon"] = fake_lon_data
-    ds["data/navigation/aws_lon"].attrs["scale_factor"] = 1e-4
-    ds["data/navigation/aws_lon"].attrs["add_offset"] = 0.0
-    ds["data/navigation/aws_lat"] = fake_lat_data
-    ds["data/navigation/aws_solar_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
-    ds["data/navigation/aws_solar_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
-    ds["data/navigation/aws_satellite_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
-    ds["data/navigation/aws_satellite_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
-
-    tmp_dir = tmp_path_factory.mktemp("aws_l1c_tests")
-    filename = tmp_dir / compose(file_pattern, dict(country="SE",
-                                                    organisation="SMHI",
-                                                    location="Norrkoping",
-                                                    processing_level="1C",
-                                                    originator="SMHI",
-                                                    start_time=start_time, end_time=end_time,
-                                                    processing_time=processing_time,
-                                                    platform_name=platform_name))
-    ds.to_netcdf(filename)
-    return filename
+    tmpdir = tmp_path_factory.mktemp("aws_l1c_tests")
+    return create_mwr_file(tmpdir, fake_mwr_data_array, eps_sterna=False, l1b=False)
 
 
 @pytest.fixture(scope="module")
