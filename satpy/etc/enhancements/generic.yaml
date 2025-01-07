@@ -1241,7 +1241,7 @@ enhancements:
     operations: []
 
   essl_colorized_low_level_moisture:
-    name: essl_colorized_low_level_moisture
+    standard_name: essl_colorized_low_level_moisture
     operations:
       - name: essl_moisture
         method: !!python/name:satpy.enhancements.atmosphere.essl_moisture

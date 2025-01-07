@@ -424,9 +424,9 @@ composites:
       modifiers: [nir_reflectance]
     standard_name: snow
 
-  masked_colorised_low_level_moisture:
+  masked_colorized_low_level_moisture:
     compositor: !!python/name:satpy.composites.MaskingCompositor
-    standard_name: essl_colorised_low_level_moisture
+    standard_name: essl_colorized_low_level_moisture
     prerequisites:
       - essl_colorized_low_level_moisture
       - cloud_state
@@ -461,11 +461,11 @@ composites:
       - method: equal
         value: Undefined
         transparency: 0
-    mode: RGBA
+    mode: LA
 
-  colorised_low_level_moisture_with_vis06:
+  colorized_low_level_moisture_with_vis06:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: image_ready
     prerequisites:
-      - masked_colorised_low_level_moisture
-      - dwd_vis06
+      - masked_colorized_low_level_moisture
+      - vis_06
