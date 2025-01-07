@@ -426,7 +426,7 @@ composites:
 
   masked_colorized_low_level_moisture:
     compositor: !!python/name:satpy.composites.MaskingCompositor
-    standard_name: essl_colorized_low_level_moisture
+    standard_name: masked_essl_colorized_low_level_moisture
     prerequisites:
       - essl_colorized_low_level_moisture
       - cloud_state
