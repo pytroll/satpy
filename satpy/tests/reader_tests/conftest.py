@@ -151,16 +151,15 @@ def create_mwr_file(tmpdir, data_array, eps_sterna=False, l1b=True):
     ds = aws_eps_sterna_mwr_level1_file(data_array, eps_sterna=eps_sterna, l1b=l1b)
     start_time = dt.datetime.fromisoformat(ds.attrs["sensing_start_time_utc"])
     end_time = dt.datetime.fromisoformat(ds.attrs["sensing_end_time_utc"])
-    if eps_sterna:
-        platform_name = "ST01"
-    else:
-        platform_name = "AWS1"
+
+    platform_name = "ST01" if eps_sterna else "AWS1"
+    processing_level = "1B" if l1b else "1C"
 
     processing_time = random_date(dt.datetime(2024, 9, 1, 13), dt.datetime(2030, 6, 1))
     filename = tmpdir / compose(file_pattern, dict(country="XX",
                                                    organisation="EUMETSAT",
                                                    location="Darmstadt",
-                                                   processing_level="1B",
+                                                   processing_level=processing_level,
                                                    originator="EUMT",
                                                    start_time=start_time, end_time=end_time,
                                                    processing_time=processing_time,
