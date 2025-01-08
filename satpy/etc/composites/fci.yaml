@@ -468,4 +468,12 @@ composites:
     standard_name: image_ready
     prerequisites:
       - masked_colorized_low_level_moisture
-      - vis_06
+      - name: vis_06
+        modifiers: [effective_solar_pathlength_corrected]
+
+  colorized_low_level_moisture_with_ir105:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: image_ready
+    prerequisites:
+      - masked_colorized_low_level_moisture
+      - night_ir105
