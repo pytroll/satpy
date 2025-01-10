@@ -18,7 +18,6 @@
 """Composite classes for the LI instrument."""
 
 import logging
-import sys
 
 import numpy as np
 import xarray as xr
@@ -38,16 +37,15 @@ class LightningTimeCompositor(CompositeBase):
       """
       def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
           """Initialisation of the class."""
-          self.name = name
           super().__init__(name, prerequisites, optional_prerequisites, **kwargs)
           # Get the time_range which is in minute
           self.time_range = self.attrs["time_range"]
           self.standard_name = self.attrs["standard_name"]
-          self.reference_time = self.attrs["reference_time"]
+          self.reference_time_attr = self.attrs["reference_time"]
 
 
-      def _normalize_time(self,data:xr.DataArray,attrs:dict)->xr.DataArray:
-          """Normalised the time in the range between [end_time,end_time - time_range].
+      def _normalize_time(self, data:xr.DataArray, attrs:dict) -> xr.DataArray:
+          """Normalize the time in the range between [end_time, end_time - time_range].
 
           The range of the normalised data is between 0 and 1 where 0 corresponds to the date end_time - time_range
           and 1 to the end_time. Where end_times represent the latest lightning event and time_range is the range of
@@ -61,7 +59,7 @@ class LightningTimeCompositor(CompositeBase):
               xr.DataArray: Normalised time
           """
           # Compute the maximum time value
-          end_time = np.array(np.datetime64(data.attrs[self.reference_time]))
+          end_time = np.array(np.datetime64(data.attrs[self.reference_time_attr]))
           # Compute the minimum time value based on the time range
           begin_time = end_time - np.timedelta64(self.time_range, "m")
           # Drop values that are bellow begin_time
@@ -69,11 +67,13 @@ class LightningTimeCompositor(CompositeBase):
           # exit if data is empty afer filtering
           if data.size == 0 :
               LOG.error(f"All the flash_age events happened before {begin_time}")
-              sys.exit(1)
+              raise ValueError(f"Invalid data: data size is zero. All flash_age \
+                events occurred before the specified start time ({begin_time})."
+                )
           # Normalize the time values
           normalized_data = (data - begin_time) / (end_time - begin_time)
           # Ensure the result is still an xarray.DataArray
-          return xr.DataArray(normalized_data, dims=data.dims, coords=data.coords,attrs=attrs)
+          return xr.DataArray(normalized_data, dims=data.dims, coords=data.coords, attrs=attrs)
 
 
       @staticmethod
@@ -92,7 +92,7 @@ class LightningTimeCompositor(CompositeBase):
               dict: atualised attributes
           """
           attrs["name"] = self.standard_name
-          attrs["standard_name"] =self.standard_name
+          attrs["standard_name"] = self.standard_name
           # Attributes to describe the values range
           return attrs
 
@@ -103,4 +103,4 @@ class LightningTimeCompositor(CompositeBase):
           new_attrs = data.attrs.copy()
           self._update_missing_metadata(new_attrs, attrs)
           new_attrs = self._redefine_metadata(new_attrs)
-          return self._normalize_time(data,new_attrs)
+          return self._normalize_time(data, new_attrs)
