@@ -1,4 +1,4 @@
-# Copyright (c) 2023, 2024 Pytroll Developers
+# Copyright (c) 2023 - 2025 Pytroll Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,36 @@ Advisory Group for MWS and AWS, November 26, 2024.
 
 Sample EPS-Sterna l1b format AWS data from 16 orbits the 9th of November 2024.
 
+Continous feed (though restricted to the SAG members and selected European
+users/evaluators) in the EUMETSAT Data Store of global AWS data from January
+9th, 2025.
+
+Example:
+--------
+Here is an example how to read the data in satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    from glob import glob
+
+    filenames = glob("data/W_NO-KSAT-Tromso,SAT,AWS1-MWR-1B-RAD_C_OHB__*_G_O_20250110114708*.nc"
+    scn = Scene(filenames=filenames, reader='aws1_mwr_l1b_nc')
+
+    composites = ['mw183_humidity']
+    dataset_names = composites + ['1']
+
+    scn.load(dataset_names)
+    print(scn['1'])
+    scn.show('mw183_humidity')
+
+
+As the file format for the EPS Sterna Level-1b is slightly different from the
+ESA format, reading the EPS Sterna level-1b data uses a different reader, named
+`eps_sterna_mwr_l1b_nc`. So, if specifying the reader name as in the above code
+example, please provide the actual name for that data: eps_sterna_mwr_l1b_nc.
+
+
 """
 
 import xarray as xr
@@ -46,7 +76,9 @@ NAVIGATION_DATASET_NAMES = ["satellite_zenith_horn1",
                             "satellite_azimuth_horn1",
                             "satellite_azimuth_horn2",
                             "satellite_azimuth_horn3",
-                            "satellite_azimuth_horn4"]
+                            "satellite_azimuth_horn4",
+                            "longitude",
+                            "latitude"]
 
 class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
     """Base class implementing the AWS/EPS-Sterna MWR Level-1b&c Filehandlers."""
@@ -103,23 +135,12 @@ class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
 
 
 class AWS_EPS_Sterna_MWR_L1BFile(AWS_EPS_Sterna_BaseFileHandler):
-    """Class implementing the AWS/EPS-Sterna MWR L1b Filehandler.
+    """Class implementing the AWS/EPS-Sterna MWR L1b Filehandler."""
 
-    This class implements the ESA Arctic Weather Satellite (AWS) and EPS-Sterna
-    MWR Level-1b NetCDF reader. It is designed to be used through the
-    :class:`~satpy.Scene` class using the :mod:`~satpy.Scene.load` method with
-    the reader ``"mwr_l1b_nc"``.
-
-    """
     def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=True):
         """Initialize the handler."""
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale)
-
-        if filetype_info["file_type"].startswith("eps_sterna"):
-            self._feed_horn_group_name = "n_feedhorns"
-        else:
-            self._feed_horn_group_name = "n_geo_groups"
-
+        self._feed_horn_group_name = filetype_info.get("feed_horn_group_name")
 
     @property
     def sub_satellite_longitude_start(self):
@@ -146,9 +167,6 @@ class AWS_EPS_Sterna_MWR_L1BFile(AWS_EPS_Sterna_BaseFileHandler):
         if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
         elif dataset_id["name"] in NAVIGATION_DATASET_NAMES:
-            data_array = self._get_navigation_data(dataset_id, dataset_info)
-
-        elif dataset_id["name"] in ["longitude", "latitude"]:
             data_array = self._get_navigation_data(dataset_id, dataset_info)
         else:
             raise NotImplementedError(f"Dataset {dataset_id['name']} not available or not supported yet!")

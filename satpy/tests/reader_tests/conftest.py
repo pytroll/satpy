@@ -48,7 +48,7 @@ def random_date(start, end):
     return start + dt.timedelta(seconds=random_second)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def fake_mwr_data_array():
     """Return a fake AWS/EPS-Sterna MWR l1b data array."""
     fake_data_np = rng.integers(0, 700000, size=10*145*19).reshape((10, 145, 19))
@@ -194,6 +194,7 @@ def eps_sterna_mwr_handler(eps_sterna_mwr_file):
     filename_info = parse(file_pattern, os.path.basename(eps_sterna_mwr_file))
     filetype_info = dict()
     filetype_info["file_type"] = "eps_sterna_mwr_l1b"
+    filetype_info["feed_horn_group_name"] = "n_feedhorns"
     return AWS_EPS_Sterna_MWR_L1BFile(eps_sterna_mwr_file, filename_info, filetype_info)
 
 
@@ -203,6 +204,7 @@ def aws_mwr_handler(aws_mwr_file):
     filename_info = parse(file_pattern, os.path.basename(aws_mwr_file))
     filetype_info = dict()
     filetype_info["file_type"] = "aws1_mwr_l1b"
+    filetype_info["feed_horn_group_name"] = "n_geo_groups"
     return AWS_EPS_Sterna_MWR_L1BFile(aws_mwr_file, filename_info, filetype_info)
 
 
@@ -212,4 +214,5 @@ def aws_mwr_l1c_handler(aws_mwr_l1c_file):
     filename_info = parse(file_pattern, os.path.basename(aws_mwr_l1c_file))
     filetype_info = dict()
     filetype_info["file_type"] = "aws1_mwr_l1c"
+    filetype_info["feed_horn_group_name"] = None
     return AWS_MWR_L1CFile(aws_mwr_l1c_file, filename_info, filetype_info)

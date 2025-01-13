@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Pytroll Developers
+# Copyright (c) 2024 - 2025 Pytroll Developers
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,30 @@
 MWR = Microwave Radiometer, onboard AWS and EPS-Sterna
 
 Sample data provided by ESA September 27, 2024.
+
+
+Example:
+--------
+Here is an example how to read the data in satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    from glob import glob
+
+    filenames = glob("data/W_XX-OHB-Stockholm,SAT,AWS1-MWR-1C-RAD_C_OHB_*20240913204851_*.nc")
+
+    scn = Scene(filenames=filenames, reader='aws1_mwr_l1c_nc')
+
+    composites = ['mw183_humidity']
+    dataset_names = composites + ['1']
+
+    scn.load(dataset_names)
+    print(scn['1'])
+    scn.show('mw183_humidity')
+
 """
+
 
 from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_BaseFileHandler, mask_and_scale
 
