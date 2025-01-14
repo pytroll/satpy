@@ -20,9 +20,9 @@
 
 import datetime
 import logging
-from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.composites.lightning import LightningTimeCompositor
@@ -66,8 +66,9 @@ def test_empty_array_error(caplog):
                                    time_range=60,
                                    reference_time="end_time")
     attrs_flash_age = {"variable_name": "flash_time","name": "flash_time",
-                       "start_time": datetime.datetime(2024, 8, 1, 10, 50, 0),
-                       "end_time": datetime.datetime(2024, 8, 1, 11, 0, 0),"reader": "li_l2_nc"}
+                       "start_time": np.datetime64(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+                       "end_time": datetime.datetime(2024, 8, 1, 11, 0, 0),
+                       "reader": "li_l2_nc"}
     flash_age_value = np.array(["2024-08-01T09:00:00"], dtype="datetime64[ns]")
     flash_age = xr.DataArray(
     flash_age_value,
@@ -75,14 +76,17 @@ def test_empty_array_error(caplog):
     coords={
         "crs": "8B +proj=longlat +ellps=WGS84 +type=crs"
     },attrs = attrs_flash_age,name="flash_time")
-    with mock.patch("sys.exit") as mock_exit:
-        # Capture logging output
-        with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.ERROR):
+        # Simulate the operation that raises the exception
+        with pytest.raises(ValueError, match="data size is zero") as excinfo:
             _ = comp([flash_age])
 
-        mock_exit.assert_called_once_with(1)
-
-        assert "All the flash_age events happened before 2024-08-01T10:00:00" in caplog.text
+    # Assert the exception message
+    assert str(excinfo.value) == (
+        f"Invalid data: data size is zero. All flash_age events occurred before "
+        f"the specified start time ({attrs_flash_age['start_time']})."
+    )
+    assert "All the flash_age events happened before 2024-08-01T10:00:00" in caplog.text
 
 def test_update_missing_metadata():
     """Test the _update_missing_metadata method."""

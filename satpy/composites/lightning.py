@@ -67,8 +67,8 @@ class LightningTimeCompositor(CompositeBase):
           # exit if data is empty afer filtering
           if data.size == 0 :
               LOG.error(f"All the flash_age events happened before {begin_time}")
-              raise ValueError(f"Invalid data: data size is zero. All flash_age \
-                events occurred before the specified start time ({begin_time})."
+              raise ValueError(f"Invalid data: data size is zero. All flash_age "
+                f"events occurred before the specified start time ({begin_time})."
                 )
           # Normalize the time values
           normalized_data = (data - begin_time) / (end_time - begin_time)
