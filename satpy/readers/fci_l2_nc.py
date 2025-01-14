@@ -81,14 +81,16 @@ class FciL2CommonFunctions(object):
         }
         return attributes
 
-    def _set_attributes(self, variable, dataset_info, segmented=False):
+    def _set_attributes(self, variable, dataset_info, product_type="pixel"):
         """Set dataset attributes."""
-        if segmented:
-            xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
-        else:
+        if product_type == "pixel":
             xdim, ydim = "number_of_columns", "number_of_rows"
+        elif product_type == "segmented":
+            xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
 
-        if dataset_info["nc_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
+        if product_type in ["pixel", "segmented"] and dataset_info["nc_key"] not in ["product_quality",
+                                                                                     "product_completeness",
+                                                                                     "product_timeliness"]:
             variable = variable.swap_dims({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
@@ -382,7 +384,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if "fill_value" in dataset_info:
             variable = self._mask_data(variable, dataset_info["fill_value"])
 
-        variable = self._set_attributes(variable, dataset_info, segmented=True)
+        variable = self._set_attributes(variable, dataset_info, product_type="segmented")
 
         return variable
 
@@ -489,7 +491,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             return None
 
         # Manage the attributes of the dataset
-        variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+        variable = self._set_attributes(variable, dataset_info, product_type="amv")
 
         return variable
