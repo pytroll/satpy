@@ -83,15 +83,16 @@ class FciL2CommonFunctions(object):
 
     def _set_attributes(self, variable, dataset_info, product_type="pixel"):
         """Set dataset attributes."""
-        if product_type == "pixel":
-            xdim, ydim = "number_of_columns", "number_of_rows"
-        elif product_type == "segmented":
-            xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
+        if product_type in ["pixel", "segmented"]:
+            if product_type == "pixel":
+                xdim, ydim = "number_of_columns", "number_of_rows"
+            elif product_type == "segmented":
+                xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
 
-        if product_type in ["pixel", "segmented"] and dataset_info["nc_key"] not in ["product_quality",
-                                                                                     "product_completeness",
-                                                                                     "product_timeliness"]:
-            variable = variable.swap_dims({ydim: "y", xdim: "x"})
+            if dataset_info["nc_key"] not in ["product_quality",
+                                              "product_completeness",
+                                              "product_timeliness"]:
+                variable = variable.swap_dims({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
         if "unit" in variable.attrs:
