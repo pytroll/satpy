@@ -29,7 +29,7 @@ TEST_START_TIME = dt.datetime(2021, 1, 4, 8, 0)
 TEST_END_TIME = TEST_START_TIME + dt.timedelta(hours=1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file(tmp_path):
     """Create UALF2 file for the tests."""
     fname = tmp_path / "2021.01.04.08.00.txt"
@@ -48,7 +48,7 @@ def fake_file(tmp_path):
     return fname
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_filehandler(fake_file):
     """Create FileHandler for the tests."""
     filename_info = {}
@@ -297,7 +297,7 @@ def test_column_names_length():
     np.testing.assert_equal(actual, expected)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_scn(fake_file):
     """Create fake file for tests."""
     from satpy import Scene

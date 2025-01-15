@@ -468,7 +468,8 @@ class TestVIIRSJRRReader:
         [
             ("npp", "Suomi-NPP"),
             ("JPSS-1", "NOAA-20"),
-            ("J01", "NOAA-20")
+            ("J01", "NOAA-20"),
+            ("n21", "NOAA-21")
         ])
     def test_get_platformname(self, surface_reflectance_file, filename_platform, exp_shortname):
         """Test finding start and end times of granules."""

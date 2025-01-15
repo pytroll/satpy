@@ -1192,6 +1192,18 @@ enhancements:
           factor: 21.0
           min_stretch: 0.0
           max_stretch: 20.0
+  chlor_a_bgc:
+    name: chlor_a
+    reader: oci_l2_bgc
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: log
+          base: "10"
+          factor: 21.0
+          min_stretch: 0.0
+          max_stretch: 20.0
 
   cimss_cloud_type:
     standard_name: cimss_cloud_type
@@ -1273,3 +1285,22 @@ enhancements:
   imager_with_lightning:
     standard_name: imager_with_lightning
     operations: []
+
+  image_ready:
+    standard_name: image_ready
+    operations: []
+
+  mw183_humidity:
+    # matches EPS-Sterna and AWS MWR, and ATMS and MHS
+    standard_name: mw183_humidity
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [290, 290, 290]
+        max_stretch: [190, 190, 190]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.5, 1.2, 1.2]

@@ -25,7 +25,7 @@ import xarray as xr
 class TestUpdateEncoding:
     """Test update of dataset encodings."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def fake_ds(self):
         """Create fake data for testing."""
         ds = xr.Dataset({"foo": (("y", "x"), [[1, 2], [3, 4]]),
@@ -35,7 +35,7 @@ class TestUpdateEncoding:
                                 "lon": (("y", "x"), [[7, 8], [9, 10]])})
         return ds
 
-    @pytest.fixture()
+    @pytest.fixture
     def fake_ds_digit(self):
         """Create fake data for testing."""
         ds_digit = xr.Dataset({"CHANNEL_1": (("y", "x"), [[1, 2], [3, 4]]),

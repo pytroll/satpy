@@ -117,7 +117,7 @@ def _fake_reader(counts_data: xr.DataArray) -> Iterator[AMIL1bNetCDF]:
                             {"file_type": "ir087"})
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_vis_reader():
     """Create fake reader for loading visible data."""
     attrs = _fake_vis_attrs()
@@ -146,7 +146,7 @@ def _fake_vis_attrs():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_ir_reader():
     """Create fake reader for loading IR data."""
     attrs = _fake_ir_attrs()
@@ -175,7 +175,7 @@ def _fake_ir_attrs():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_ir_reader2():
     """Create fake reader for testing radiance clipping."""
     counts_arr = FAKE_IR_DATA.copy()

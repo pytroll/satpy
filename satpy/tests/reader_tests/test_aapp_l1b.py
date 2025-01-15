@@ -106,6 +106,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             for name in ["1", "2", "3a"]:
                 key = make_dataid(name=name, calibration="reflectance")
                 res = fh.get_dataset(key, info)
+                assert res.dtype == np.float32
                 assert res.min() == 0
                 assert res.max() >= 100
                 mins.append(res.min().values)
@@ -116,14 +117,13 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             for name in ["3b", "4", "5"]:
                 key = make_dataid(name=name, calibration="reflectance")
                 res = fh.get_dataset(key, info)
+                assert res.dtype == np.float32
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
                 if name == "3b":
                     assert np.all(np.isnan(res[2:, :]))
-
-            np.testing.assert_allclose(mins, [0., 0., 0., 204.10106939, 103.23477235, 106.42609758])
-            np.testing.assert_allclose(maxs, [108.40391775, 107.68545158, 106.80061233,
-                                              337.71416096, 355.15898219, 350.87182166])
+            np.testing.assert_allclose(mins, [0., 0., 0., 204.1018, 103.24155, 106.426704])
+            np.testing.assert_allclose(maxs, [108.40393, 107.68546, 106.80061, 337.71414, 355.15897, 350.87186])
 
     def test_angles(self):
         """Test reading the angles."""
@@ -136,6 +136,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             info = {}
             key = make_dataid(name="solar_zenith_angle")
             res = fh.get_dataset(key, info)
+            assert res.dtype == np.float32
             assert np.all(res == 0)
 
     def test_navigation(self):
@@ -149,9 +150,11 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             info = {}
             key = make_dataid(name="longitude")
             res = fh.get_dataset(key, info)
+            assert res.dtype == np.float32
             assert np.all(res == 0)
             key = make_dataid(name="latitude")
             res = fh.get_dataset(key, info)
+            assert res.dtype == np.float32
             assert np.all(res == 0)
 
     def test_interpolation(self):
@@ -188,7 +191,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                  -176.7503, -177.5758, -178.3968, -179.2157, 179.9646, 179.1416,
                  178.3124, 177.4742, 176.6238, 175.7577, 174.8724, 173.9635,
                  173.0263, 172.0552, 171.0436, 169.9833, 168.8643, 167.6734,
-                 166.3931, 164.9982, 163.4507]])
+                 166.3931, 164.9982, 163.4507]], dtype=np.float32)
             lats40km = np.array([
                 [78.6613, 78.9471, 79.0802, 79.1163, 79.0889, 79.019, 78.9202,
                  78.8016, 78.6695, 78.528, 78.38, 78.2276, 78.0721, 77.9145,
@@ -213,11 +216,12 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                  75.3844, 75.1911, 74.9921, 74.7864, 74.5734, 74.3518, 74.1207,
                  73.8786, 73.624, 73.3552, 73.0699, 72.7658, 72.4398, 72.0882,
                  71.7065, 71.2891, 70.8286, 70.3158, 69.7381, 69.0782, 68.3116,
-                 67.4012, 66.2872]])
+                 67.4012, 66.2872]], dtype=np.float32)
             fh._get_coordinates_in_degrees = mock.MagicMock()
             fh._get_coordinates_in_degrees.return_value = (lons40km, lats40km)
             (lons, lats) = fh._get_all_interpolated_coordinates()
             lon_data = lons.compute()
+            assert lon_data.dtype == np.float32
             assert (np.max(lon_data) <= 180)
             # Not longitdes between -110, 110 in indata
             assert np.all(np.abs(lon_data) > 110)
@@ -242,7 +246,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                   116.14, 115.96, 115.78, 115.6, 115.43, 115.25, 115.08, 114.9, 114.72, 114.54,
                   114.36, 114.17, 113.98, 113.78, 113.57, 113.36, 113.14, 112.91, 112.67, 112.42,
                   112.15, 111.86, 111.55, 111.21, 110.84, 110.43, 109.98, 109.46, 108.87, 108.17,
-                  107.32]])
+                  107.32]], dtype=np.float32)
             satz40km = np.array(
                 [[6.623e+01, 6.281e+01, 5.960e+01, 5.655e+01, 5.360e+01, 5.075e+01, 4.797e+01,
                   4.524e+01, 4.256e+01, 3.992e+01, 3.731e+01, 3.472e+01, 3.216e+01, 2.962e+01,
@@ -259,7 +263,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                   7.370e+00, 9.820e+00, 1.227e+01, 1.474e+01, 1.720e+01, 1.968e+01, 2.216e+01,
                   2.466e+01, 2.717e+01, 2.969e+01, 3.223e+01, 3.479e+01, 3.737e+01, 3.998e+01,
                   4.263e+01, 4.531e+01, 4.804e+01, 5.082e+01, 5.368e+01, 5.662e+01, 5.969e+01,
-                  6.290e+01, 6.633e+01]])
+                  6.290e+01, 6.633e+01]], dtype=np.float32)
             azidiff40km = np.array([
                 [56.9, 56.24, 55.71, 55.27, 54.9, 54.57, 54.29, 54.03, 53.8, 53.59,
                  53.4, 53.22, 53.05, 52.89, 52.74, 52.6, 52.47, 52.34, 52.22, 52.1,
@@ -272,10 +276,13 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                  51.98, 51.87, 51.76, 51.65, 51.55, 128.55, 128.65, 128.75, 128.86, 128.96,
                  129.06, 129.17, 129.27, 129.38, 129.49, 129.6, 129.71, 129.83, 129.95, 130.08,
                  130.21, 130.35, 130.49, 130.65, 130.81, 130.99, 131.18, 131.39, 131.62, 131.89,
-                 132.19]])
+                 132.19]], dtype=np.float32)
             fh._get_tiepoint_angles_in_degrees = mock.MagicMock()
             fh._get_tiepoint_angles_in_degrees.return_value = (sunz40km, satz40km, azidiff40km)
             (sunz, satz, azidiff) = fh._get_all_interpolated_angles()
+            assert sunz.dtype == np.float32
+            assert satz.dtype == np.float32
+            assert azidiff.dtype == np.float32
             assert (np.max(sunz) <= 123)
             assert (np.max(satz) <= 70)
 

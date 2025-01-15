@@ -25,7 +25,7 @@ from pyresample import AreaDefinition, SwathDefinition
 from satpy.cf.area import _add_grid_mapping, area2cf
 
 
-@pytest.fixture()
+@pytest.fixture
 def input_data_arr() -> xr.DataArray:
     """Create a data array."""
     return xr.DataArray(

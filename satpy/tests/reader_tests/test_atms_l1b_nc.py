@@ -28,7 +28,7 @@ from satpy.readers.atms_l1b_nc import AtmsL1bNCFileHandler
 # - tmp_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def reader(l1b_file):
     """Return reader of ATMS level1b data."""
     return AtmsL1bNCFileHandler(
@@ -38,7 +38,7 @@ def reader(l1b_file):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def l1b_file(tmp_path, atms_fake_dataset):
     """Return file path to level1b file."""
     l1b_file_path = tmp_path / "test_file_atms_l1b.nc"
@@ -46,7 +46,7 @@ def l1b_file(tmp_path, atms_fake_dataset):
     return l1b_file_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def atms_fake_dataset():
     """Return fake ATMS dataset."""
     atrack = 2

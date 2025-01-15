@@ -721,7 +721,7 @@ class DayNightCompositor(GenericCompositor):
         self.day_night = day_night
         self.include_alpha = include_alpha
         self._has_sza = False
-        super(DayNightCompositor, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
 
     def __call__(
             self,
@@ -985,6 +985,7 @@ def add_bands(data, bands):
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes["y"],
                               data.sizes["x"]),
+                             dtype=new_data[0].dtype,
                              chunks=new_data[0].chunks)
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"
