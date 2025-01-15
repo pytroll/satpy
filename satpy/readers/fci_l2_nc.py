@@ -60,7 +60,7 @@ class FciL2CommonFunctions(object):
                            f"of {SSP_DEFAULT} degrees east instead")
             return SSP_DEFAULT
 
-    def _get_global_attributes(self):
+    def _get_global_attributes(self,product_type="pixel"):
         """Create a dictionary of global attributes to be added to all datasets.
 
         Returns:
@@ -70,15 +70,23 @@ class FciL2CommonFunctions(object):
                 ssp_lon: longitude of subsatellite point
                 sensor: name of sensor
                 platform_name: name of the platform
+            Only for AMVS product:
+                channel: channel at which the AMVs have been retrieved
+
 
         """
         attributes = {
             "filename": self.filename,
             "spacecraft_name": self.spacecraft_name,
-            "ssp_lon": self.ssp_lon,
             "sensor": self.sensor_name,
             "platform_name": self.spacecraft_name,
         }
+
+        if product_type=="amv":
+            attributes["channel"] = self.filename_info["channel"]
+        else:
+            attributes["ssp_lon"] = self.ssp_lon
+
         return attributes
 
     def _set_attributes(self, variable, dataset_info, product_type="pixel"):
@@ -101,7 +109,7 @@ class FciL2CommonFunctions(object):
             del variable.attrs["unit"]
 
         variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+        variable.attrs.update(self._get_global_attributes(product_type))
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if import_enum_information:
@@ -460,25 +468,25 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             }
         )
 
-    def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets.
+    # def _get_global_attributes(self):
+    #     """Create a dictionary of global attributes to be added to all datasets.
 
-        Returns:
-            dict: A dictionary of global attributes.
-                filename: name of the product file
-                spacecraft_name: name of the spacecraft
-                sensor: name of sensor
-                platform_name: name of the platform
+    #     Returns:
+    #         dict: A dictionary of global attributes.
+    #             filename: name of the product file
+    #             spacecraft_name: name of the spacecraft
+    #             sensor: name of sensor
+    #             platform_name: name of the platform
 
-        """
-        attributes = {
-            "filename": self.filename,
-            "spacecraft_name": self.spacecraft_name,
-            "sensor": self.sensor_name,
-            "platform_name": self.spacecraft_name,
-            "channel": self.filename_info["channel"]
-        }
-        return attributes
+    #     """
+    #     attributes = {
+    #         "filename": self.filename,
+    #         "spacecraft_name": self.spacecraft_name,
+    #         "sensor": self.sensor_name,
+    #         "platform_name": self.spacecraft_name,
+    #         "channel": self.filename_info["channel"]
+    #     }
+    #     return attributes
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the nc_key in dataset_info."""
