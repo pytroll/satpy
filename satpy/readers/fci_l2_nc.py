@@ -70,7 +70,7 @@ class FciL2CommonFunctions(object):
                 ssp_lon: longitude of subsatellite point
                 sensor: name of sensor
                 platform_name: name of the platform
-            Only for AMVS product:
+            Only for AMVs product:
                 channel: channel at which the AMVs have been retrieved
 
 
@@ -108,7 +108,7 @@ class FciL2CommonFunctions(object):
             del variable.attrs["unit"]
 
         variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes(product_type))
+        variable.attrs.update(self._get_global_attributes(product_type=product_type))
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if import_enum_information:
