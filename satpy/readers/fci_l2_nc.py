@@ -80,12 +80,11 @@ class FciL2CommonFunctions(object):
             "spacecraft_name": self.spacecraft_name,
             "sensor": self.sensor_name,
             "platform_name": self.spacecraft_name,
+            "ssp_lon": self.ssp_lon,
         }
 
         if product_type=="amv":
             attributes["channel"] = self.filename_info["channel"]
-        else:
-            attributes["ssp_lon"] = self.ssp_lon
 
         return attributes
 
