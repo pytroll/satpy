@@ -468,26 +468,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             }
         )
 
-    # def _get_global_attributes(self):
-    #     """Create a dictionary of global attributes to be added to all datasets.
-
-    #     Returns:
-    #         dict: A dictionary of global attributes.
-    #             filename: name of the product file
-    #             spacecraft_name: name of the spacecraft
-    #             sensor: name of sensor
-    #             platform_name: name of the platform
-
-    #     """
-    #     attributes = {
-    #         "filename": self.filename,
-    #         "spacecraft_name": self.spacecraft_name,
-    #         "sensor": self.sensor_name,
-    #         "platform_name": self.spacecraft_name,
-    #         "channel": self.filename_info["channel"]
-    #     }
-    #     return attributes
-
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the nc_key in dataset_info."""
         var_key = dataset_info["nc_key"]
