@@ -888,6 +888,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             res2 = reader2.load([did], pad_data=False)
         numpy.testing.assert_array_equal(res["ir_38"][-1, :], 5)  # smallest positive radiance
         numpy.testing.assert_array_equal(res2["ir_38"][-1, :], 5)  # smallest positive radiance
+        assert res["ir_38"].dtype == res2["ir_38"].dtype == np.dtype("float32")
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
