@@ -876,12 +876,18 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
 
         See https://github.com/pytroll/satpy/issues/3009.
         """
+        import satpy
         reader = _get_reader_with_filehandlers(fh_param["filenames"],
                                                reader_configs,
                                                clip_negative_radiances=True)
-        res = reader.load([make_dataid(name="ir_38", calibration="radiance")],
-                           pad_data=False)
+        did = make_dataid(name="ir_38", calibration="radiance")
+        res = reader.load([did], pad_data=False)
+        with satpy.config.set({"readers.clip_negative_radiances": True}):
+            reader2 = _get_reader_with_filehandlers(fh_param["filenames"],
+                                                    reader_configs)
+            res2 = reader2.load([did], pad_data=False)
         numpy.testing.assert_array_equal(res["ir_38"][-1, :], 5)  # smallest positive radiance
+        numpy.testing.assert_array_equal(res2["ir_38"][-1, :], 5)  # smallest positive radiance
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)

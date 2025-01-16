@@ -127,6 +127,7 @@ from netCDF4 import default_fillvals
 from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
+import satpy
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
@@ -209,7 +210,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         "MTI4": "MTG-I4"}
 
     def __init__(self, filename, filename_info, filetype_info,
-                 clip_negative_radiances=False, **kwargs):
+                 clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
@@ -234,6 +235,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         else:
             self.is_iqt = False
 
+        if clip_negative_radiances is None:
+            clip_negative_radiances = satpy.config.get("readers.clip_negative_radiances")
         self.clip_negative_radiances = clip_negative_radiances
         self._cache = {}
 
