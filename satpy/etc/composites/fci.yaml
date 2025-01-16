@@ -309,18 +309,18 @@ composites:
 ### other RGBs
   cloud_type:
     description: >
-      Equal to cimss_cloud_type recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+      Equal to cimss_cloud_type recipe, but with the solar_pathlength_corrected modifier to avoid saturation at the terminator.
     references:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
       Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: nir_13
-        modifiers: [ sunz_corrected, sunz_reduced ]
+        modifiers: [ solar_pathlength_corrected ]
       - name: vis_06
-        modifiers: [ sunz_corrected, sunz_reduced ]
+        modifiers: [ solar_pathlength_corrected ]
       - name: nir_16
-        modifiers: [ sunz_corrected, sunz_reduced ]
+        modifiers: [ solar_pathlength_corrected ]
     standard_name: cimss_cloud_type
 
   cloud_type_with_night_ir105:
@@ -336,18 +336,18 @@ composites:
 
   cloud_phase:
     description: >
-      Equal to cloud_phase recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+      Equal to cloud_phase recipe, but with the solar_pathlength_corrected modifier to avoid saturation at the terminator.
     references:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
       Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: nir_16
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [ solar_pathlength_corrected ]
       - name: nir_22
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [ solar_pathlength_corrected ]
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+        modifiers: [ solar_pathlength_corrected, rayleigh_corrected ]
     standard_name: cloud_phase
 
   cloud_phase_with_night_ir105:
