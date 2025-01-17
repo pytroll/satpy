@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Satpy developers
+# Copyright (c) 2024-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -42,7 +42,8 @@ def generate_images(props):
         props (namespace): Object with attributes corresponding to command line
         arguments as defined by :func:get_parser.
     """
-    filenames = (props.basedir / "satellite_data" / props.satellite).glob("*")
+    filenames = (props.basedir / "satellite_data" / props.satellite /
+                 props.case).glob("*")
 
     scn = Scene(reader=props.reader, filenames=filenames)
 
@@ -76,12 +77,15 @@ def get_parser():
             help="Reader name.")
 
     parser.add_argument(
+            "case", help="case to generate", type=str)
+
+    parser.add_argument(
             "-b", "--basedir", action="store", type=pathlib.Path,
             default=pathlib.Path("."),
             help="Base directory for reference data. "
                  "This must contain a subdirectories satellite_data and "
                  "reference_images.  The directory satellite_data must contain "
-                 "input data in a subdirectory for the satellite. Output images "
+                 "input data in a subdirectory for the satellite and case. Output images "
                  "will be written to the subdirectory reference_images.")
 
     parser.add_argument(
