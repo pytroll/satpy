@@ -85,11 +85,6 @@ def get_parser():
                  "will be written to the subdirectory reference_images.")
 
     parser.add_argument(
-            "-o", "--outdir", action="store", type=pathlib.Path,
-            default=pathlib.Path("."),
-            help="Directory where to write resulting images.")
-
-    parser.add_argument(
             "-c", "--composites", nargs="+", help="composites to generate",
             type=str, default=["ash", "airmass"])
 
