@@ -60,7 +60,7 @@ class FciL2CommonFunctions(object):
                            f"of {SSP_DEFAULT} degrees east instead")
             return SSP_DEFAULT
 
-    def _get_global_attributes(self,product_type="pixel"):
+    def _get_global_attributes(self, product_type="pixel"):
         """Create a dictionary of global attributes to be added to all datasets.
 
         Returns:
