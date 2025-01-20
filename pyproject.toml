@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = [
     "platformdirs",
-    "dask[array]>=0.17.1",
+    "dask[array]>=0.17.1,<2025.1.0",
     "donfig",
     "numpy>=1.21",
     "packaging",
