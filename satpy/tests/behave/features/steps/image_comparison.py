@@ -63,8 +63,9 @@ def step_given_reference_image(context, composite, satellite, area):
     context.area = area
 
 
-@when("I generate a new {composite} image file from {satellite} with {reader} for {area} with clipping {clip}")
-def step_when_generate_image(context, composite, satellite, reader, area, clip):
+@when("I generate a new {composite} image file from {satellite} case {case} "
+      "with {reader} for {area} with clipping {clip}")
+def step_when_generate_image(context, composite, satellite, case, reader, area, clip):
     """Generate test images."""
     os.environ["OMP_NUM_THREADS"] = os.environ["MKL_NUM_THREADS"] = "2"
     os.environ["PYTROLL_CHUNK_SIZE"] = "1024"
@@ -72,7 +73,7 @@ def step_when_generate_image(context, composite, satellite, reader, area, clip):
     dask.config.set(scheduler="threads", num_workers=4)
 
     # Get the list of satellite files to open
-    filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*.nc")
+    filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/{case}/*.nc")
 
     reader_kwargs = {}
     if clip != "null":
