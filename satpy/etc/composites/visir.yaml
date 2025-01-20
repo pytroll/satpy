@@ -626,8 +626,8 @@ composites:
       is still under development and may be subject to change.
     compositor: !!python/name:satpy.composites.RatioCompositor
     prerequisites:
-    - wavelength: 0.86
     - wavelength: 0.905
+    - wavelength: 0.86
     standard_name: essl_colorized_low_level_moisture
 
   day_essl_colorized_low_level_moisture:
@@ -638,7 +638,7 @@ composites:
     day_night: day_only
     prerequisites:
     - name: essl_colorized_low_level_moisture
-    standard_name: day_essl_colorized_low_level_moisture
+    standard_name: image_ready
 
   rocket_plume_day:
     description: >

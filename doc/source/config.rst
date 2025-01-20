@@ -272,7 +272,7 @@ If ``clip_negative_radiances=False``, pixels with negative radiances will have
 
 Clipping of negative radiances is currently implemented for the following readers:
 
-* ``abi_l1b``, ``ami_l1b``
+* ``abi_l1b``, ``ami_l1b``, ``fci_l1c_nc``
 
 
 Temporary Directory
