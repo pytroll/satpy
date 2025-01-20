@@ -112,6 +112,16 @@ build-backend = "hatchling.build"
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "satpy",
+    "doc",
+    "AUTHORS.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CITATION",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["satpy"]
 
