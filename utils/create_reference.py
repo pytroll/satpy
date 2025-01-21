@@ -45,7 +45,11 @@ def generate_images(props):
     filenames = (props.basedir / "satellite_data" / props.satellite /
                  props.case).glob("*")
 
-    scn = Scene(reader=props.reader, filenames=filenames)
+    if "," in props.reader:
+        reader = props.reader.split(",")
+    else:
+        reader = props.reader
+    scn = Scene(reader=reader, filenames=filenames)
 
     scn.load(props.composites)
     if props.area == "native":
@@ -74,7 +78,7 @@ def get_parser():
 
     parser.add_argument(
             "reader", action="store", type=str,
-            help="Reader name.")
+            help="Reader name.  Multiple readers (if needed) can be comma-seperated.")
 
     parser.add_argument(
             "case", help="case to generate", type=str)
