@@ -63,7 +63,9 @@ class LightningTimeCompositor(CompositeBase):
           # Compute the minimum time value based on the time range
           begin_time = end_time - np.timedelta64(self.time_range, "m")
           # Drop values that are bellow begin_time
-          data = data.where(data >= begin_time, drop=True)
+          condition_time = data >= begin_time
+          condition_time_computed = condition_time.compute()
+          data = data.where(condition_time_computed, drop=True)
           # exit if data is empty afer filtering
           if data.size == 0 :
               LOG.error(f"All the flash_age events happened before {begin_time}")
