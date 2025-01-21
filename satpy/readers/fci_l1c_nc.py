@@ -127,6 +127,7 @@ from netCDF4 import default_fillvals
 from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
+import satpy
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.fci_base import platform_name_translate
@@ -194,7 +195,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
@@ -219,6 +221,9 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         else:
             self.is_iqt = False
 
+        if clip_negative_radiances is None:
+            clip_negative_radiances = satpy.config.get("readers.clip_negative_radiances")
+        self.clip_negative_radiances = clip_negative_radiances
         self._cache = {}
 
     @property
@@ -647,6 +652,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
+        if self.clip_negative_radiances:
+            data = self._clipneg(data)
         if key["name"] == "ir_38":
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
@@ -662,6 +669,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data.attrs.update({"radiance_unit_conversion_coefficient":
                                self.get_and_cache_npxr(measured + "/radiance_unit_conversion_coefficient")})
         return data
+
+    @staticmethod
+    def _clipneg(data):
+        """Clip counts to avoid negative radiances."""
+        lo = -data.attrs.get("add_offset", 0) // data.attrs.get("scale_factor", 1) + 1
+        return data.where((~data.notnull())|(data>=lo), lo)
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
