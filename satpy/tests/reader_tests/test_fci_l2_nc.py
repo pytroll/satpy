@@ -616,13 +616,14 @@ class TestFciL2NCAMVFileHandler:
         assert amv_filehandler.sensor_name == "test_data_source"
         assert amv_filehandler.ssp_lon == 0.0
 
-        global_attributes = amv_filehandler._get_global_attributes()
+        global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
         expected_global_attributes = {
             "filename": amv_file,
             "spacecraft_name": "test_platform",
             "sensor": "test_data_source",
             "platform_name": "test_platform",
-            "channel": "test_channel"
+            "channel": "test_channel",
+            "ssp_lon": 0.0,
         }
         assert global_attributes == expected_global_attributes
 
