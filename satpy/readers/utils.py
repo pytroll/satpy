@@ -593,7 +593,7 @@ class CalibrationCoefficientPicker:
 
         calib_wishlist = {
             "ch1": "meirink",
-            ("ch2", "ch3"): "gsics"
+            ("ch2", "ch3"): "gsics",
             "ch4": {"mygain": 123},
         }
         # Also possible: Same mode for all channels via
