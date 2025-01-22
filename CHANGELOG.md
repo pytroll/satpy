@@ -1,3 +1,56 @@
+## Version 0.54.0 (2025/01/20)
+
+### Issues Closed
+
+* [Issue 3020](https://github.com/pytroll/satpy/issues/3020) - Re-implement essl_colorized_low_level_moisture using colorize ([PR 3021](https://github.com/pytroll/satpy/pull/3021) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 3009](https://github.com/pytroll/satpy/issues/3009) - artefacts in FCI RGBs using 3.8 µm ([PR 3013](https://github.com/pytroll/satpy/pull/3013) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2991](https://github.com/pytroll/satpy/issues/2991) - Resampling MTG FCI high res bands fails when the resample includes bands at different spatial resolutions
+* [Issue 2981](https://github.com/pytroll/satpy/issues/2981) - Fix the bug with `satpy` when using `numpy 2.x` which leads to `SEVIRI` resampled files having a double size ([PR 2983](https://github.com/pytroll/satpy/pull/2983) by [@pkhalaj](https://github.com/pkhalaj))
+* [Issue 2979](https://github.com/pytroll/satpy/issues/2979) - Improving resolution when setting extent
+* [Issue 2977](https://github.com/pytroll/satpy/issues/2977) - CRS data is being printed to title of image
+* [Issue 2975](https://github.com/pytroll/satpy/issues/2975) - can't create ABI geo_color composite
+* [Issue 2963](https://github.com/pytroll/satpy/issues/2963) - ahi_hrit reader cannot create a Scene
+* [Issue 2814](https://github.com/pytroll/satpy/issues/2814) - Reading LI L2 point data is not daskified ([PR 2985](https://github.com/pytroll/satpy/pull/2985) by [@ClementLaplace](https://github.com/ClementLaplace))
+* [Issue 2566](https://github.com/pytroll/satpy/issues/2566) - Wrong version numbers at readthedocs
+* [Issue 1997](https://github.com/pytroll/satpy/issues/1997) - Resampling from SwathDefinition to AreaDefinition fails with OSError and AssertionError
+* [Issue 1788](https://github.com/pytroll/satpy/issues/1788) - integration / regression tests that compare images
+* [Issue 1755](https://github.com/pytroll/satpy/issues/1755) - Store project metadata in pyproject.toml
+* [Issue 1240](https://github.com/pytroll/satpy/issues/1240) - iber projection lost in the North Pacific
+
+In this release 14 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3035](https://github.com/pytroll/satpy/pull/3035) - Pin dask to avoid dataframe problem
+* [PR 3030](https://github.com/pytroll/satpy/pull/3030) - Fix sdist tarball including unnecessary files
+* [PR 2995](https://github.com/pytroll/satpy/pull/2995) - Add new ABI L2 "CPS" variable name for Cloud Particle Size
+* [PR 2985](https://github.com/pytroll/satpy/pull/2985) - li2_nc reader daskified ([2814](https://github.com/pytroll/satpy/issues/2814))
+* [PR 2983](https://github.com/pytroll/satpy/pull/2983) - Fix dtype promotion in SEVIRI native reader ([2981](https://github.com/pytroll/satpy/issues/2981))
+* [PR 2976](https://github.com/pytroll/satpy/pull/2976) - Fix dtype promotion in `mersi2_l1b` reader
+* [PR 2969](https://github.com/pytroll/satpy/pull/2969) - Fix geos proj parameters for Insat 3d satellites
+* [PR 2959](https://github.com/pytroll/satpy/pull/2959) - Modified the issue with the calibration coefficient indices for FY-3 satellite data reader
+
+#### Features added
+
+* [PR 3034](https://github.com/pytroll/satpy/pull/3034) - Set issue type in templates
+* [PR 3021](https://github.com/pytroll/satpy/pull/3021) - Change ESSL colorisation approach ([3020](https://github.com/pytroll/satpy/issues/3020))
+* [PR 3013](https://github.com/pytroll/satpy/pull/3013) - Clip negative FCI radiances ([3009](https://github.com/pytroll/satpy/issues/3009))
+* [PR 3007](https://github.com/pytroll/satpy/pull/3007) - Add t865 dataset to olci l2 list ([1767](https://github.com/pytroll/satpy/issues/1767))
+* [PR 2999](https://github.com/pytroll/satpy/pull/2999) - Add Accsos image comparison tests
+* [PR 2941](https://github.com/pytroll/satpy/pull/2941) - Refactor MVIRI dataset access
+* [PR 2565](https://github.com/pytroll/satpy/pull/2565) - Add level-1 readers for the arctic weather satelliter data
+
+#### Clean ups
+
+* [PR 3030](https://github.com/pytroll/satpy/pull/3030) - Fix sdist tarball including unnecessary files
+* [PR 3014](https://github.com/pytroll/satpy/pull/3014) - Remove xarray-datatree dependency from CI
+* [PR 3010](https://github.com/pytroll/satpy/pull/3010) - Remove version limit on pytest in CI
+
+In this release 18 pull requests were closed.
+
+
 ## Version 0.53.0 (2024/11/08)
 
 ### Issues Closed

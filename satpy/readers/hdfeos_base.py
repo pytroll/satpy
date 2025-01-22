@@ -301,7 +301,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
     def _add_satpy_metadata(self, data_id: DataID, data_arr: xr.DataArray):
         """Add metadata that is specific to Satpy."""
         new_attrs = {
-            "platform_name": "EOS-" + self.metadata_platform_name,
+            "platform_name": self.metadata_platform_name,
             "sensor": "modis",
         }
 
