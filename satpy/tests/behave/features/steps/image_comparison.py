@@ -66,7 +66,7 @@ def step_given_reference_image(context, composite, satellite, area):
 
 @when("I generate a new {composite} image file from {satellite} case {case} "
       "with {reader} for {area} resampling with {resampler} with clipping {clip}")
-def step_when_generate_image(context, composite, satellite, case, reader, area, resampler,clip):
+def step_when_generate_image(context, composite, satellite, case, reader, area, resampler, clip):
     """Generate test images."""
     os.environ["OMP_NUM_THREADS"] = os.environ["MKL_NUM_THREADS"] = "2"
     os.environ["PYTROLL_CHUNK_SIZE"] = "1024"
