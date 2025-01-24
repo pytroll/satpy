@@ -47,15 +47,17 @@ def generate_images(props):
 
     if "," in props.reader:
         reader = props.reader.split(",")
+        resampler = "nearest"  # use nearest when combining with cloud mask
     else:
         reader = props.reader
+        resampler = "gradient_search"
     scn = Scene(reader=reader, filenames=filenames)
 
     scn.load(props.composites)
     if props.area == "native":
         ls = scn.resample(resampler="native")
     elif props.area is not None:
-        ls = scn.resample(props.area, resampler="gradient_search")
+        ls = scn.resample(props.area, resampler=resampler)
     else:
         ls = scn
 
