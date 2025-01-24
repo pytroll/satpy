@@ -10,6 +10,7 @@ Feature: Image Comparison
       |Meteosat-12 | scan_night | cloudtop | fci_l1c_nc | sve | True |
       |Meteosat-12 | scan_night | night_microphysics | fci_l1c_nc | sve | True |
       |Meteosat-12 | mali_day | essl_colorized_low_level_moisture | fci_l1c_nc | mali | False |
+      |Meteosat-12 | spain_day | colorized_low_level_moisture_with_vis06 | fci_l1c_nc,fci_l2_nc | spain | False |
       |GOES17   | americas_night | airmass  | abi_l1b | null | null |
       |GOES16   | americas_night | airmass  | abi_l1b | null | null |
       |GOES16   | americas_night | ash      | abi_l1b | null | null |

@@ -27,6 +27,7 @@ import dask
 import numpy as np
 from behave import given, then, when
 
+import satpy
 from satpy import Scene
 
 ext_data_path = "/app/ext_data"
@@ -75,12 +76,12 @@ def step_when_generate_image(context, composite, satellite, case, reader, area, 
     # Get the list of satellite files to open
     filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/{case}/*.nc")
 
-    reader_kwargs = {}
-    if clip != "null":
-        reader_kwargs["clip_negative_radiances"] = clip
-    scn = Scene(reader=reader, filenames=filenames, reader_kwargs=reader_kwargs)
 
-    scn.load([composite])
+    if "," in reader:
+        reader = reader.split(",")
+    with satpy.config.set({"readers.clip_negative_radiances": False if clip == "null" else clip}):
+        scn = Scene(reader=reader, filenames=filenames)
+        scn.load([composite])
 
     if area == "null":
         ls = scn
