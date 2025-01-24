@@ -425,6 +425,12 @@ composites:
     standard_name: snow
 
   masked_colorized_low_level_moisture:
+    description: >
+      Like essl_colorized_low_level_moisture, but with clouds masked out
+      according to the EUMETSAT FCI L2 CLM product.  Note that due to the
+      categorical nature of the mask, resampling this composite should
+      only be done with nearest neighbour.  The colormap for the cloudfree
+      part has been developed by the European Severe Storms Laboratory (ESSL).
     compositor: !!python/name:satpy.composites.MaskingCompositor
     standard_name: masked_essl_colorized_low_level_moisture
     prerequisites:
@@ -464,6 +470,13 @@ composites:
     mode: LA
 
   colorized_low_level_moisture_with_vis06:
+    description: >
+      Like essl_colorized_low_level_moisture, but with clouds shown according
+      to the vis_06 channel (enhanced with effective_solar_pathlength_corrected).
+      Note that due to the categorical nature of the mask, resampling this
+      composite should only be done with nearest neighbour.  The colormap
+      for the cloudfree part has been developed by the European Severe Storms
+      Laboratory (ESSL)
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: image_ready
     prerequisites:
@@ -472,6 +485,13 @@ composites:
         modifiers: [effective_solar_pathlength_corrected]
 
   colorized_low_level_moisture_with_ir105:
+    description: >
+      Like essl_colorized_low_level_moisture, but with clouds shown according
+      to the in_105 channel (inverted so clouds are white).
+      Note that due to the categorical nature of the mask, resampling this
+      composite should only be done with nearest neighbour.  The colormap
+      for the cloudfree part has been developed by the European Severe Storms
+      Laboratory (ESSL).
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: image_ready
     prerequisites:

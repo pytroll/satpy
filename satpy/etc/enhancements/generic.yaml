@@ -1242,6 +1242,7 @@ enhancements:
 
   essl_colorized_low_level_moisture:
     # this enhancement is only found if using name but not standard_name
+    # The colormap was developed by the European Severe Storms Laboratory (ESSL).
     name: essl_colorized_low_level_moisture
     operations: &masked_llm
       - name: colorize
