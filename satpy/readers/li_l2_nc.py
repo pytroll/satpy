@@ -158,7 +158,8 @@ class LIL2NCFileHandler(LINCFileHandler):
         data_2d = da.map_blocks(_np_add_at_wrapper, data_2d, (rows, cols), data_array,
                                 dtype=data_array.dtype,
                                 chunks=(LI_GRID_SHAPE[0], LI_GRID_SHAPE[1]))
-        data_2d = da.where(data_2d > 0, data_2d, np.nan).astype(np.float32)
+        data_2d = data_2d.astype(np.float32)
+        data_2d = da.where(data_2d > 0, data_2d, np.nan)
         xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=("y", "x"))
         xarr.attrs = attrs
         return xarr
