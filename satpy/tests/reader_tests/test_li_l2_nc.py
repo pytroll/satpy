@@ -19,6 +19,7 @@ import datetime as dt
 import os
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -131,6 +132,7 @@ class TestLIL2():
         assert resd.dtype == expected_product_dtype[product_type][dname]
         assert res.shape == shape
         assert res.dims[0] == "y"
+        assert isinstance(res.data,da.Array)
         # Should retrieve content with fullname key:
         full_name = self.create_fullname_key(desc, var_path, dname, sname=sname)
         # Note: 'content' is not recognized as a valid member of the class below

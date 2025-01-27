@@ -18,6 +18,7 @@ import logging
 import math
 import os
 import unittest.mock
+import warnings
 
 import dask.array as da
 import dask.config
@@ -368,13 +369,13 @@ class TestParallaxCorrectionClass:
             resolution=res2,
             area_extent=[-1, -1, 1, 1])
 
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             sc = make_fake_scene(
                     {"CTH_clear": np.full(area1.shape, np.nan)},
                     daskify=False,
                     area=area1,
                     common_attrs=_get_attrs(0, 0, 35_000))
-        assert len(record) == 0
 
         corrector = ParallaxCorrection(area2)
         new_area = corrector(sc["CTH_clear"])
