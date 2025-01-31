@@ -31,7 +31,7 @@ from xarray import DataArray
 from satpy import Scene
 from satpy.composites import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
-from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
+from satpy.dataset.id_keys import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
 from satpy.readers.file_handlers import BaseFileHandler
 

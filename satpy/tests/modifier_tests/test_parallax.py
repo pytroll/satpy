@@ -731,7 +731,7 @@ class TestParallaxCorrectionSceneLoad:
     def fake_scene(self, yaml_code):
         """Produce fake scene and prepare fake composite config."""
         from satpy import Scene
-        from satpy.dataset.dataid import WavelengthRange
+        from satpy.dataset import WavelengthRange
         from satpy.tests.utils import make_dataid
 
         area = _get_fake_areas((0, 0), [5], 1)[0]
