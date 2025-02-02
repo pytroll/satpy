@@ -57,7 +57,7 @@ datasets:
            central: 50.3
            bandwidth: 0.180
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -72,7 +72,7 @@ datasets:
            central: 52.8
            bandwidth: 0.400
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -87,7 +87,7 @@ datasets:
            central: 53.246
            bandwidth: 0.300
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -102,7 +102,7 @@ datasets:
            central: 53.596
            bandwidth: 0.370
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -117,7 +117,7 @@ datasets:
            central: 54.4
            bandwidth: 0.400
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -132,7 +132,7 @@ datasets:
            central: 54.94
            bandwidth: 0.400
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -147,7 +147,7 @@ datasets:
            central: 55.5
            bandwidth: 0.330
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -162,7 +162,7 @@ datasets:
            central: 57.290344
            bandwidth: 0.330
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -190,9 +190,9 @@ datasets:
         name: '10'
         frequency_range:
            central: 165.5
-           bandwidth: 2.700
+           bandwidth: 2.800
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 20000
         calibration:
           brightness_temperature:
