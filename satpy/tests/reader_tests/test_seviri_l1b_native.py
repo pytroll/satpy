@@ -1314,6 +1314,8 @@ def test_read_physical_seviri_nat_file(full_path):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
         scene.load(["VIS006"])
+        assert scene["VIS006"].dtype == np.float32
+        assert scene["VIS006"].values.dtype == np.float32
         assert scene["VIS006"].shape == (3712, 3712)
         assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
 

@@ -257,20 +257,28 @@ class TestRatioSharpenedCompositors:
         with pytest.raises(ValueError, match="SelfSharpenedRGB requires at least one high resolution band, not 'None'"):
             comp((self.ds1, self.ds2, self.ds3))
 
-    def test_basic_no_high_res(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_basic_no_high_res(self, dtype):
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color")
-        res = comp((self.ds1, self.ds2, self.ds3))
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
         assert res.shape == (3, 2, 2)
+        assert res.dtype == dtype
+        assert res.values.dtype == dtype
 
-    def test_basic_no_sharpen(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_basic_no_sharpen(self, dtype):
         """Test that color None does no sharpening."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color", high_resolution_band=None)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)),
+                   optional_datasets=(self.ds4.astype(dtype),))
         assert res.shape == (3, 2, 2)
+        assert res.dtype == dtype
+        assert res.values.dtype == dtype
 
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize(
         ("high_resolution_band", "neutral_resolution_band", "exp_r", "exp_g", "exp_b"),
         [
@@ -300,22 +308,26 @@ class TestRatioSharpenedCompositors:
              np.array([[1.0, 1.0], [np.nan, 1.0]], dtype=np.float64))
         ]
     )
-    def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b):
+    def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b, dtype):
         """Test RatioSharpenedRGB by different groups of high_resolution_band and neutral_resolution_band."""
         from satpy.composites import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color", high_resolution_band=high_resolution_band,
                                  neutral_resolution_band=neutral_resolution_band)
-        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)),
+                   optional_datasets=(self.ds4.astype(dtype),))
 
         assert "units" not in res.attrs
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
+        assert res.dtype == dtype
 
         data = res.values
         np.testing.assert_allclose(data[0], exp_r, rtol=1e-5)
         np.testing.assert_allclose(data[1], exp_g, rtol=1e-5)
         np.testing.assert_allclose(data[2], exp_b, rtol=1e-5)
+        assert res.dtype == dtype
 
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize(
         ("exp_shape", "exp_r", "exp_g", "exp_b"),
         [
@@ -325,17 +337,19 @@ class TestRatioSharpenedCompositors:
              np.array([[16 / 3, 16 / 3], [16 / 3, 0]], dtype=np.float64))
         ]
     )
-    def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b):
+    def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b, dtype):
         """Test that three datasets can be passed without optional high res."""
         from satpy.composites import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name="true_color")
-        res = comp((self.ds1, self.ds2, self.ds3))
-        data = res.values
+        res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
+        assert res.dtype == dtype
 
+        data = res.values
         assert data.shape == exp_shape
         np.testing.assert_allclose(data[0], exp_r, rtol=1e-5)
         np.testing.assert_allclose(data[1], exp_g, rtol=1e-5)
         np.testing.assert_allclose(data[2], exp_b, rtol=1e-5)
+        assert data.dtype == dtype
 
 
 class TestDifferenceCompositor(unittest.TestCase):
@@ -1302,7 +1316,7 @@ class TestAddBands(unittest.TestCase):
         from satpy.composites import add_bands
 
         # L + RGB -> RGB
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["L"]})
         new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
                                  coords={"bands": ["R", "G", "B"]})
@@ -1311,13 +1325,14 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_l_rgba(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # L + RGBA -> RGBA
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["L"]}, attrs={"mode": "L"})
         new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
                                  coords={"bands": ["R", "G", "B", "A"]})
@@ -1326,13 +1341,14 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_la_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # LA + RGB -> RGBA
-        data = xr.DataArray(da.ones((2, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((2, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["L", "A"]}, attrs={"mode": "LA"})
         new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
                                  coords={"bands": ["R", "G", "B"]})
@@ -1341,13 +1357,14 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_rgb_rbga(self):
         """Test adding bands."""
         from satpy.composites import add_bands
 
         # RGB + RGBA -> RGBA
-        data = xr.DataArray(da.ones((3, 3, 3)), dims=("bands", "y", "x"),
+        data = xr.DataArray(da.ones((3, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
                             coords={"bands": ["R", "G", "B"]},
                             attrs={"mode": "RGB"})
         new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
@@ -1357,6 +1374,7 @@ class TestAddBands(unittest.TestCase):
         assert res.attrs["mode"] == "".join(res_bands)
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords["bands"], res_bands)
+        assert res.dtype == np.float32
 
     def test_add_bands_p_l(self):
         """Test adding bands."""

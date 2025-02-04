@@ -111,6 +111,10 @@ class LIL2NCFileHandler(LINCFileHandler):
         var_with_swath_coord = self.is_var_with_swath_coord(dataset_id)
         if var_with_swath_coord and self.with_area_def:
             data_array = self.get_array_on_fci_grid(data_array)
+        else :
+            if data_array is not None:
+                if not isinstance(data_array.data, da.Array):
+                    data_array.data = da.from_array(data_array.data)
         return data_array
 
     def get_area_def(self, dsid):
@@ -161,6 +165,7 @@ class LIL2NCFileHandler(LINCFileHandler):
         data_2d = da.where(data_2d > 0, data_2d, np.nan)
 
         xarr = xr.DataArray(da.asarray(data_2d, CHUNK_SIZE), dims=("y", "x"))
+
         xarr.attrs = attrs
 
         return xarr
