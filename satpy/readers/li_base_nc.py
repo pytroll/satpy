@@ -742,7 +742,6 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         # Retrieve default infos if missing:
         if ds_info is None:
             ds_info = self.get_dataset_infos(dataset_id["name"])
-
         # check for potential error:
         if ds_info is None:
             raise KeyError(f"No dataset registered for {dataset_id}")
