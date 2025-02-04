@@ -327,20 +327,20 @@ class TestIASINGL2NCReader:
         assert np.nanmin(lon) >= -180.0
         assert np.nanmax(lon) <= 180.0
 
-    # def test_onboard_utc_dataset(self, twv_scene):
-    #     """Test loading the onboard_utc dataset."""
-    #     twv_scene.load(["onboard_utc", "sounder_pixel_latitude"])
-    #     dset = twv_scene["onboard_utc"]
+    def test_onboard_utc_dataset(self, twv_scene):
+        """Test loading the onboard_utc dataset."""
+        twv_scene.load(["onboard_utc", "sounder_pixel_latitude"])
+        dset = twv_scene["onboard_utc"]
 
-    #     assert len(dset.dims) == 2
-    #     assert dset.dims[0] == "x"
-    #     assert dset.dims[1] == "y"
+        assert len(dset.dims) == 2
+        assert dset.dims[0] == "x"
+        assert dset.dims[1] == "y"
 
-    #     assert dset.dtype == np.dtype("datetime64[ns]")
+        assert dset.dtype == np.dtype("datetime64[ns]")
 
-    #     lat = twv_scene["sounder_pixel_latitude"]
+        lat = twv_scene["sounder_pixel_latitude"]
 
-    #     assert lat.shape == dset.shape
+        assert lat.shape == dset.shape
 
     def test_nbr_iterations_dataset(self, twv_scene):
         """Test loading the nbr_iterations dataset."""
