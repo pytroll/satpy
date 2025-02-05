@@ -359,9 +359,10 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def apply_broadcast(self, data_array, ds_info):
         """Apply the broadcast of the data array."""
         dim_name = ds_info["broadcast_on_dim"]
-        if dim_name not in self.dimensions_desc:
-            raise KeyError(f"Invalid dimension name {dim_name}")
-        rep_count = self.dimensions_desc[dim_name]
+        try:
+            rep_count = self.dimensions_desc[dim_name]
+        except KeyError as exc:
+            raise KeyError(f"Invalid dimension name {dim_name}") from exc
 
         data_array = xr.concat([data_array] * rep_count, dim=data_array.dims[-1])
 

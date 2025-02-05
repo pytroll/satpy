@@ -188,16 +188,6 @@ def write_fake_iasing_l2_file(output_path):
     return os.fspath(output_path)
 
 
-@pytest.fixture
-def fake_iasing_twv_file(tmp_path):
-    """Create a fake IASI-NG TWV file."""
-    file_prefix = "W_XX-EUMETSAT-Darmstadt,SAT,SGA1-IAS-02"
-    file_suffix = "C_EUMT_20170616120000_G_V_20070912084329_20070912084600_O_N____.nc"
-    twv_filename = f"{file_prefix}-TWV_{file_suffix}"
-    output_path = tmp_path / twv_filename
-    return write_fake_iasing_l2_file(output_path)
-
-
 class TestIASINGL2NCReader:
     """Test class for the IASI NG L2 reader."""
 
