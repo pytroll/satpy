@@ -64,6 +64,12 @@ file_types:
         file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
         file_patterns:
             - 'JRR-IceAge_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_volcanicash:
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        drop_variables:
+          - Det_QF_Size
+        file_patterns:
+            - 'JRR-VolcanicAsh_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
 
 
 datasets:
