@@ -695,6 +695,180 @@ class TestBucketSum(unittest.TestCase):
             skipna=True)
 
 
+class TestBucketMin(unittest.TestCase):
+    """Test the min bucket resampler."""
+
+    def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
+        from satpy.resample import BucketMin
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketMin(self.source_geo_def, self.target_geo_def)
+
+    def _compute_mocked_bucket_min(self, data, return_data=None, **kwargs):
+        """Compute the mocked bucket min."""
+        self.bucket.resampler = mock.MagicMock()
+        if return_data is not None:
+            self.bucket.resampler.get_min.return_value = return_data
+        else:
+            self.bucket.resampler.get_min.return_value = data
+        res = self.bucket.compute(data, **kwargs)
+        return res
+
+    def test_compute(self):
+        """Test min bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        data = da.ones((5,))
+        res = self._compute_mocked_bucket_min(data)
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        data = da.ones((5, 5))
+        res = self._compute_mocked_bucket_min(data)
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        data = da.ones((3, 5, 5))
+        res = self._compute_mocked_bucket_min(data, return_data=data[0, :, :])
+        self.assertEqual(res.shape, (3, 5, 5))
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', True)
+    def test_compute_and_use_skipna_handling(self):
+        """Test bucket resampler computation and use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_min(data, mask_all_nan=True)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            skipna=True)
+
+        self._compute_mocked_bucket_min(data, skipna=False)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            skipna=False)
+
+        self._compute_mocked_bucket_min(data)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            skipna=True)
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', False)
+    def test_compute_and_not_use_skipna_handling(self):
+        """Test bucket resampler computation and not use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_min(data, mask_all_nan=True)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            mask_all_nan=True)
+
+        self._compute_mocked_bucket_min(data, mask_all_nan=False)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_min(data)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_min(data, fill_value=2, skipna=True)
+        self.bucket.resampler.get_min.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
+
+
+class TestBucketMax(unittest.TestCase):
+    """Test the max bucket resampler."""
+
+    def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
+        from satpy.resample import BucketMax
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketMax(self.source_geo_def, self.target_geo_def)
+
+    def _compute_mocked_bucket_max(self, data, return_data=None, **kwargs):
+        """Compute the mocked bucket max."""
+        self.bucket.resampler = mock.MagicMock()
+        if return_data is not None:
+            self.bucket.resampler.get_max.return_value = return_data
+        else:
+            self.bucket.resampler.get_max.return_value = data
+        res = self.bucket.compute(data, **kwargs)
+        return res
+
+    def test_compute(self):
+        """Test max bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        data = da.ones((5,))
+        res = self._compute_mocked_bucket_max(data)
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        data = da.ones((5, 5))
+        res = self._compute_mocked_bucket_max(data)
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        data = da.ones((3, 5, 5))
+        res = self._compute_mocked_bucket_max(data, return_data=data[0, :, :])
+        self.assertEqual(res.shape, (3, 5, 5))
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', True)
+    def test_compute_and_use_skipna_handling(self):
+        """Test bucket resampler computation and use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_max(data, mask_all_nan=True)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            skipna=True)
+
+        self._compute_mocked_bucket_max(data, skipna=False)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            skipna=False)
+
+        self._compute_mocked_bucket_max(data)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            skipna=True)
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', False)
+    def test_compute_and_not_use_skipna_handling(self):
+        """Test bucket resampler computation and not use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_max(data, mask_all_nan=True)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            mask_all_nan=True)
+
+        self._compute_mocked_bucket_max(data, mask_all_nan=False)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_max(data)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_max(data, fill_value=2, skipna=True)
+        self.bucket.resampler.get_max.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
+
+
 class TestBucketCount(unittest.TestCase):
     """Test the count bucket resampler."""
 
