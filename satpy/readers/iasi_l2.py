@@ -150,7 +150,7 @@ def read_dataset(fid, key):
         dims = ["y", "x", "level"]
     else:
         dims = ["y", "x"]
-    data = xr.DataArray(da.from_array(dset[()], chunks=CHUNK_SIZE),
+    data = xr.DataArray(da.from_array(_harmonize_data(dset[()]), chunks=CHUNK_SIZE),
                         name=key["name"], dims=dims)
     if data.dtype == np.float32:
         data = xr.where(data > 1e30, np.nan, data)
@@ -176,6 +176,14 @@ def _get_names_and_group(key):
         raise KeyError(f"Unsupported name: {key}")
 
     return names, group
+
+
+def _harmonize_data(arr):
+    if arr.shape[1] == 30:
+        # This is specifically for AMSU flags that have not been repeated for the IASI footprints
+        return np.repeat(arr, 4, axis=1)
+    return arr
+
 
 def read_geo(fid, key):
     """Read geolocation and related datasets."""
