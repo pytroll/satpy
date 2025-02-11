@@ -49,21 +49,39 @@ SHORT_NAMES = {"M01": "Metop-B",
                "M02": "Metop-A",
                "M03": "Metop-C"}
 
-DSET_NAMES = {"ozone_mixing_ratio": "O",
-              "ozone_mixing_ratio_quality": "QO",
-              "pressure": "P",
-              "pressure_quality": "QP",
-              "temperature": "T",
-              "temperature_quality": "QT",
-              "water_mixing_ratio": "W",
-              "water_mixing_ratio_quality": "QW",
-              "water_total_column": "WC",
-              "ozone_total_column": "OC",
-              "surface_skin_temperature": "Ts",
-              "surface_skin_temperature_quality": "QTs",
-              "emissivity": "E",
-              "emissivity_quality": "QE"}
+# Data in the "PWLR" group
+DSET_NAMES = {
+    "ozone_mixing_ratio": "O",
+    "ozone_mixing_ratio_quality": "QO",
+    "pressure": "P",
+    "pressure_quality": "QP",
+    "temperature": "T",
+    "temperature_quality": "QT",
+    "water_mixing_ratio": "W",
+    "water_mixing_ratio_quality": "QW",
+    "water_total_column": "WC",
+    "ozone_total_column": "OC",
+    "surface_skin_temperature": "Ts",
+    "surface_skin_temperature_quality": "QTs",
+    "emissivity": "E",
+    "emissivity_quality": "QE",
+}
+# Data in "INFO" group
+INFO_DSET_NAMES = {
+    "amsu_instrument_flags": "FLG_AMSUBAD",
+    "iasi_instrument_flags": "FLG_IASIBAD",
+    "mhs_instrument_flags": "FLG_MHSBAD",
+    "observation_minus_calculation": "OmC",
+}
+# Data in "Maps" group
+MAPS_DSET_NAMES = {
+    "surface_elevation": "Height",
+    "surface_elevation_std": "HeightStd",
+}
 
+ALL_DATASET_NAMES = tuple(DSET_NAMES.keys()) + tuple(INFO_DSET_NAMES.keys()) + tuple(MAPS_DSET_NAMES.keys())
+
+# Data in "L1C" group
 GEO_NAMES = {"latitude": "Latitude",
              "longitude": "Longitude",
              "satellite_azimuth_angle": "SatAzimuth",
@@ -113,7 +131,7 @@ class IASIL2HDF5(BaseFileHandler):
         """Load a dataset."""
         with h5py.File(self.filename, "r") as fid:
             LOGGER.debug("Reading %s.", key["name"])
-            if key["name"] in DSET_NAMES:
+            if key["name"] in ALL_DATASET_NAMES:
                 m_data = read_dataset(fid, key)
             else:
                 m_data = read_geo(fid, key)
@@ -125,21 +143,39 @@ class IASIL2HDF5(BaseFileHandler):
 
 def read_dataset(fid, key):
     """Read dataset."""
-    dsid = DSET_NAMES[key["name"]]
-    dset = fid["/PWLR/" + dsid]
+    names, group = _get_names_and_group(key)
+    dsid = names[key["name"]]
+    dset = fid[group + dsid]
     if dset.ndim == 3:
         dims = ["y", "x", "level"]
     else:
         dims = ["y", "x"]
     data = xr.DataArray(da.from_array(dset[()], chunks=CHUNK_SIZE),
-                        name=key["name"], dims=dims).astype(np.float32)
-    data = xr.where(data > 1e30, np.nan, data)
+                        name=key["name"], dims=dims)
+    if data.dtype == np.float32:
+        data = xr.where(data > 1e30, np.nan, data)
 
     dset_attrs = dict(dset.attrs)
     data.attrs.update(dset_attrs)
 
     return data
 
+
+def _get_names_and_group(key):
+    name = key["name"]
+    if name in DSET_NAMES:
+        names = DSET_NAMES
+        group = "/PWLR/"
+    elif name in INFO_DSET_NAMES:
+        names = INFO_DSET_NAMES
+        group = "/INFO/"
+    elif name in MAPS_DSET_NAMES:
+        names = MAPS_DSET_NAMES
+        group = "/Maps/"
+    else:
+        raise KeyError(f"Unsupported name: {key}")
+
+    return names, group
 
 def read_geo(fid, key):
     """Read geolocation and related datasets."""
