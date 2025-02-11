@@ -23,7 +23,6 @@ import logging
 
 import dask.array as da
 import numpy as np
-import pytest
 import xarray as xr
 
 from satpy.composites.lightning import LightningTimeCompositor
@@ -53,7 +52,7 @@ def test_flash_age_compositor():
                        "standard_name": "ligtning_time"
                        }
     expected_array = xr.DataArray(
-    da.array([0.0,0.5,1.0]),
+    da.array([np.nan, 0.0,0.5,1.0]),
     dims=["y"],
     coords={
         "crs": "8B +proj=longlat +ellps=WGS84 +type=crs"
@@ -77,17 +76,10 @@ def test_empty_array_error(caplog):
     coords={
         "crs": "8B +proj=longlat +ellps=WGS84 +type=crs"
     },attrs = attrs_flash_age,name="flash_time")
-    with caplog.at_level(logging.ERROR):
-        # Simulate the operation that raises the exception
-        with pytest.raises(ValueError, match="data size is zero") as excinfo:
-            _ = comp([flash_age])
-
-    # Assert the exception message
-    assert str(excinfo.value) == (
-        f"Invalid data: data size is zero. All flash_age events occurred before "
-        f"the specified start time ({attrs_flash_age['start_time']})."
-    )
-    assert "All the flash_age events happened before 2024-08-01T10:00:00" in caplog.text
+    with caplog.at_level(logging.WARNING):
+        _ = comp([flash_age])
+    # Assert that the log contains the expected warning message
+    assert "All the flash_age events happened before" in caplog.text
 
 def test_update_missing_metadata():
     """Test the _update_missing_metadata method."""
