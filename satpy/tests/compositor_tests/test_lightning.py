@@ -31,7 +31,7 @@ from satpy.composites.lightning import LightningTimeCompositor
 def test_flash_age_compositor():
     """Test the flash_age compsitor by comparing two xarrays object."""
     comp = LightningTimeCompositor("flash_age",prerequisites=["flash_time"],
-                                   standard_name="ligthning_time",
+                                   standard_name="lightning_time",
                                    time_range=60,
                                    reference_time="end_time")
     attrs_flash_age = {"variable_name": "flash_time","name": "flash_time",
