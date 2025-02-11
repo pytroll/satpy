@@ -48,7 +48,7 @@ class FciL2CommonFunctions(object):
     @property
     def sensor_name(self):
         """Return instrument name."""
-        return self.nc.attrs["data_source"]
+        return self.nc.attrs["data_source"].lower()
 
     @property
     def ssp_lon(self):

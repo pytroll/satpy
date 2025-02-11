@@ -98,9 +98,11 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         # use entire scans as chunks
         row_chunks_m = max(get_chunk_size_limit() // 4 // M_COLS, 1)  # 32-bit floats
         row_chunks_i = row_chunks_m * 2
+        drop_variables = filetype_info.get("drop_variables", None)
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
+                                  drop_variables=drop_variables,
                                   chunks={
                                       "Columns": -1,
                                       "Rows": row_chunks_m,
