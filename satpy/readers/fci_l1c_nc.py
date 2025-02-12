@@ -357,7 +357,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = _ensure_dataarray(data)
 
         fv = attrs.pop(
-            "FillValue",
+            "_FillValue",
             default_fillvals.get(data.dtype.str[1:], np.float32(np.nan)))
         vr = attrs.get("valid_range", [np.float32(-np.inf), np.float32(np.inf)])
         if key["calibration"] == "counts":
