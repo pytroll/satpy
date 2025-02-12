@@ -287,6 +287,7 @@ class TestIasiL2:
         assert data.dtype == dtype
         if units:
             assert data.attrs["units"] == units
+        assert data.attrs["platform_name"] == "Metop-B"
 
     def test_read_dataset(self):
         """Test read_dataset() function."""

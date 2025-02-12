@@ -107,10 +107,11 @@ class IASIL2HDF5(BaseFileHandler):
         self.lons = None
         self.lats = None
         self.sensor = "iasi"
+        short_name = filename_info["platform_id"]
+        self.platform_name = SHORT_NAMES.get(short_name, short_name)
 
         self.mda = {}
-        short_name = filename_info["platform_id"]
-        self.mda["platform_name"] = SHORT_NAMES.get(short_name, short_name)
+        self.mda["platform_name"] = self.platform_name
         self.mda["sensor"] = "iasi"
 
     @property
@@ -137,6 +138,7 @@ class IASIL2HDF5(BaseFileHandler):
                 m_data = read_geo(fid, key)
         m_data.attrs.update(info)
         m_data.attrs["sensor"] = self.sensor
+        m_data.attrs["platform_name"] = self.platform_name
 
         return m_data
 
