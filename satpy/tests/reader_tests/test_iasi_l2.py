@@ -19,7 +19,6 @@
 
 import math
 import os
-import unittest
 
 import numpy as np
 import pytest
@@ -126,10 +125,10 @@ def save_test_data(path):
                         TEST_DATA[grp][dset]["attrs"][attr]
 
 
-class TestIasiL2(unittest.TestCase):
+class TestIasiL2:
     """Test IASI L2 reader."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create temporary data to test on."""
         import datetime as dt
         import tempfile
@@ -151,7 +150,7 @@ class TestIasiL2(unittest.TestCase):
                            "file_type": "iasi_l2_hdf5"}
         self.reader = IASIL2HDF5(self.fname, self.fname_info, self.ftype_info)
 
-    def tearDown(self):
+    def teardown_method(self):
         """Remove the temporary directory created for a test."""
         try:
             import shutil
