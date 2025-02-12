@@ -27,22 +27,23 @@ import xarray as xr
 
 SCAN_WIDTH = 120
 NUM_LEVELS = 138
-NUM_SCANLINES = 1
+NUM_SCANLINES = 10
 FNAME = "W_XX-EUMETSAT-kan,iasi,metopb+kan_C_EUMS_20170920103559_IASI_PW3_02_M01_20170920102217Z_20170920102912Z.hdf"
 # Structure for the test data, to be written to HDF5 file
 TEST_DATA = {
-    # Not implemented in the reader
-    "Amsu": {
-        "FLG_AMSUBAD": {"data": np.zeros((NUM_SCANLINES, 30), dtype=np.uint8),
-                        "attrs": {}}
-    },
-    # Not implemented in the reader
     "INFO": {
         "OmC": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                 "attrs": {"long_name": "Cloud signal. Predicted average window channel 'Obs minus Calc",
                           "units": "K"}},
+        "FLG_AMSUBAD": {"data": np.zeros((NUM_SCANLINES, 30), dtype=np.uint8),
+                        "attrs": {}},
+        "FLG_IASIBAD": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.uint8),
+                        "attrs": {}},
+        "FLG_MHSBAD": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.uint8),
+                        "attrs": {}},
+        # Not implemented in the reader
         "mdist": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                  "attrs": {}}
+                  "attrs": {}},
     },
     "L1C": {
         "Latitude": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
@@ -53,26 +54,20 @@ TEST_DATA = {
                        "attrs": {"units": "degrees"}},
         "SatZenith": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                       "attrs": {"units": "degrees"}},
-        "SensingTime_day": {"data": np.array([6472], dtype=np.uint16),
+        "SensingTime_day": {"data": 6472 * np.ones(NUM_SCANLINES, dtype=np.uint16),
                             "attrs": {}},
-        "SensingTime_msec": {"data": np.array([37337532], dtype=np.uint32),
+        "SensingTime_msec": {"data": np.arange(37337532, 37338532, 100, dtype=np.uint32),
                              "attrs": {}},
         "SunAzimuth": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                        "attrs": {"units": "degrees"}},
         "SunZenith": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                       "attrs": {"units": "degrees"}},
     },
-    # Not implemented in the reader
     "Maps": {
         "Height": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                    "attrs": {"units": "m"}},
         "HeightStd": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                       "attrs": {"units": "m"}},
-    },
-    # Not implemented in the reader
-    "Mhs": {
-        "FLG_MHSBAD": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.uint8),
-                       "attrs": {}}
     },
     "PWLR": {
         "E": {"data": np.zeros((NUM_SCANLINES, SCAN_WIDTH, 10), dtype=np.float32),
