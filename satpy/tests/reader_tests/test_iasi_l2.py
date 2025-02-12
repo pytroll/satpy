@@ -269,6 +269,25 @@ class TestIasiL2:
             assert np.unique(times[0, i * 4:i * 4 + 4]).size == 1
         assert np.unique(times[0, :]).size == SCAN_WIDTH / 4
 
+    @pytest.mark.parametrize(("dset", "dtype", "units"), [
+        ("amsu_instrument_flags", np.uint8, None),
+        ("iasi_instrument_flags", np.uint8, None),
+        ("mhs_instrument_flags", np.uint8, None),
+        ("observation_minus_calculation", np.float32, "K"),
+        ("surface_elevation", np.float32, "m"),
+        ("surface_elevation_std", np.float32, "m")
+        ])
+    def test_get_info_and_maps(self, dset, dtype, units):
+        """Test datasets in INFO and Maps groups are read."""
+        from satpy.tests.utils import make_dataid
+        info = {"eggs": "spam"}
+        key = make_dataid(name=dset)
+        data = self.reader.get_dataset(key, info).compute()
+        assert data.shape == (NUM_SCANLINES, SCAN_WIDTH)
+        assert data.dtype == dtype
+        if units:
+            assert data.attrs["units"] == units
+
     def test_read_dataset(self):
         """Test read_dataset() function."""
         import h5py
