@@ -158,9 +158,11 @@ class Node:
 class CompositorNode(Node):
     """Implementation of a compositor-specific node."""
 
-    def __init__(self, compositor):
+    def __init__(self, compositor, new_id=None):
         """Set up the node."""
-        super().__init__(compositor.id, data=(compositor, [], []))
+        if new_id is None:
+            new_id = compositor.id
+        super().__init__(new_id, data=(compositor, [], []))
 
     def add_required_nodes(self, children):
         """Add nodes to the required field."""
