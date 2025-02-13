@@ -22,7 +22,8 @@ in the `EPS-SG 3MI Level 1C Product Format Specification`_. Details of format an
 found at:
 https://user.eumetsat.int/resources/user-guides/metop-sg-3-mi-l1b-and-l1c-data-guide
 
-This version is an initial draft trial version.
+This is an initial draft version. Note that as the 3MI uses 1D arrays, the data has to be
+resampled first before using the "show()" function. Working on a conversion to a 2D array at input to fix this.
 
 """
 
@@ -87,7 +88,8 @@ class Thr3miL1cNCFileHandler(NetCDF4FileHandler):
                 return None
             if i_overlap > 0:
                 if var_key[-9:] != 'longitude' and var_key[-8:] != 'latitude':
-                    variable = xr.concat([variable[:, view_key], variable_old[:, view_key]], dim="geo_reference_grid_cells")
+                    variable = xr.concat([variable[:, view_key], variable_old[:, view_key]],
+                                         dim="geo_reference_grid_cells")
                 else:
                     variable = xr.concat([variable, variable_old], dim="geo_reference_grid_cells")
             variable_old = variable.copy(deep=True)

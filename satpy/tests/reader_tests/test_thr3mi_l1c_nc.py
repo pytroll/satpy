@@ -22,10 +22,8 @@ import datetime
 import os
 import unittest
 import uuid
-#from unittest import mock
 
 import numpy as np
-import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
@@ -65,22 +63,20 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
             g1_1_1 = g1_1.createGroup("measurement_data")
             g1_1_2 = g1_1.createGroup("geolocation_data")
 
-            g1_1_1_1 = g1_1_1.createGroup("r_865")
+            g1_1_1_1 = g1_1_1.createGroup("r_0865")
 
             # Add variables to data/measurement_data group
-            reflectance_Q = g1_1_1_1.createVariable("reflectance_", np.float32,
+            reflectance_Q = g1_1_1_1.createVariable("reflectance_Q", np.float32,
                                                     dimensions=("geo_reference_grid_cells", "viewing_directions_VNIR"))
-            reflectance_Q[:,0] = 75.
-            reflectance_Q[:,1] = 76.
+            reflectance_Q[:, 0] = 75.
+            reflectance_Q[:, 1] = 76.
+            reflectance_Q[:, 2] = 77.
+
             reflectance_Q.test_attr = "attr"
 
-            lon = g1_1_2.createVariable("longitude",
-                                      np.float32,
-                                      dimensions=("geo_reference_grid_cells"))
+            lon = g1_1_2.createVariable("longitude", np.float32, dimensions="geo_reference_grid_cells")
             lon[:] = 150.
-            lat = g1_1_2.createVariable("latitude",
-                                      np.float32,
-                                      dimensions=("geo_reference_grid_cells"))
+            lat = g1_1_2.createVariable("latitude", np.float32, dimensions="geo_reference_grid_cells")
             lat[:] = 12.
 
             # Create quality group
@@ -166,9 +162,29 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
             }
         }
 
+        expected_longitude = np.ones(10)*150.
+        expected_latitude = np.ones(10)*12.
+        expected_Q = np.ones((10, 3))
+        expected_Q[:, 0] = 75.
+        expected_Q[:, 1] = 76.
+        expected_Q[:, 2] = 77.
+
+        longitude = self.reader.get_dataset(None, {"file_key": "data/overlap_XXX/geolocation_data/longitude",
+                                                   "file_key_overlap": "/dimension/overlaps"})
+        latitude = self.reader.get_dataset(None, {"file_key": "data/overlap_XXX/geolocation_data/latitude",
+                                                  "file_key_overlap": "/dimension/overlaps"})
+        reflectance_Q = self.reader.get_dataset(None, {"file_key":
+                                                       "data/overlap_XXX/measurement_data/r_0865/reflectance_",
+                                                       "file_key_overlap": "/dimension/overlaps", "view":
+                                                       "view2", "polarization": "Q"})
+
+        assert (longitude == expected_longitude).all()
+        assert (latitude == expected_latitude).all()
+        assert (reflectance_Q == expected_Q).all()
+
         global_attributes = self.reader._get_global_attributes()
         # Since the global_attributes dictionary contains numpy arrays,
-        # it is not possible to peform a simple equality test
+        # it is not possible to perform a simple equality test
         # Must iterate on all keys to confirm that the dictionaries are equal
         assert global_attributes.keys() == expected_global_attributes.keys()
         for key in expected_global_attributes:
@@ -189,25 +205,19 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
                     assert equal
 
-
     def test_standardize_dims(self):
-        """Test the standardize dims function."""
+        """Test the standardize_dims function."""
         test_variable = xr.DataArray(
-            dims=("geo_reference_grid_cells"),
+            dims="geo_reference_grid_cells",
             name="test_data",
             attrs={
                 "key_1": "value_lat_1",
                 "key_2": "value_lat_2"
             },
-            data=np.ones((10)) * 1.
+            data=np.ones(10) * 1.
         )
         out_variable = self.reader._standardize_dims(test_variable)
         print("out_variable ", out_variable)
         assert np.allclose(out_variable.values, np.ones(10))
         assert out_variable.dims == ("y",)
         assert out_variable.attrs["key_1"] == "value_lat_1"
-
-
-
-
-

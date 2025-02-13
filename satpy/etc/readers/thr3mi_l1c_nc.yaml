@@ -41,7 +41,8 @@ file_types:
   nc_3mi_l1c_rad:
 
     file_reader: !!python/name:satpy.readers.thr3mi_l1c_nc.Thr3miL1cNCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-3MI-1C-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-3MI-1C-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:
+    }_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
 
 datasets:
 
@@ -218,7 +219,7 @@ datasets:
   3mi_1370:
     name: 3mi_1370
     file_type: nc_3mi_l1c_rad
-    file_key: data/overlap_XXX/measurement_data/r_0910/reflectance_
+    file_key: data/overlap_XXX/measurement_data/r_1370/reflectance_
     file_key_overlap: /dimension/overlaps
     coordinates: [lat_pixels, lon_pixels]
     view: [view1, view2, view3, view4, view5, view6, view7, view8, view9, view10, view11, view12]
@@ -235,7 +236,7 @@ datasets:
   3mi_1650:
     name: 3mi_1650
     file_type: nc_3mi_l1c_rad
-    file_key: data/overlap_XXX/measurement_data/r_0910/reflectance_
+    file_key: data/overlap_XXX/measurement_data/r_1650/reflectance_
     file_key_overlap: /dimension/overlaps
     coordinates: [lat_pixels, lon_pixels]
     view: [view1, view2, view3, view4, view5, view6, view7, view8, view9, view10, view11, view12]
@@ -252,7 +253,7 @@ datasets:
   3mi_2130:
     name: 3mi_2130
     file_type: nc_3mi_l1c_rad
-    file_key: data/overlap_XXX/measurement_data/r_0910/reflectance_
+    file_key: data/overlap_XXX/measurement_data/r_2130/reflectance_
     file_key_overlap: /dimension/overlaps
     coordinates: [lat_pixels, lon_pixels]
     view: [view1, view2, view3, view4, view5, view6, view7, view8, view9, view10, view11, view12]
