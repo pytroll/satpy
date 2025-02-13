@@ -504,19 +504,112 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_equal(res, expected)
 
 
-def test_read_real_prologue(tmp_path):
-    """Test reading from an actual file."""
-    contents = [
+@pytest.fixture
+def prologue_file(tmp_path, prologue_header_contents):
+    """Create a dummy prologue file."""
+    from satpy.readers.seviri_l1b_native_hdr import hrit_prologue
+    header = prologue_header_contents
+    contents = np.void(1, dtype=hrit_prologue)
+    contents["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"] = 324
+    return create_file(tmp_path / "prologue", header + [contents])
+
+@pytest.fixture
+def prologue_header_contents():
+    """Get the contents of the header."""
+    return [
         # prime header
         np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
         np.void((128, 90, 3403688),
                 dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
         # second header
-        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")])
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        # np.void(1, dtype=[("text", "|S61")]),
+        np.array(b"H-000-MSG4__-MSG4________-_________-PRO______-201802281500-__", dtype="|S61"),
+        # timestamp record
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (21973, 54911033)),
+                dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])])
     ]
 
-    filename = tmp_path / "prologue"
+
+@pytest.fixture
+def epilogue_file(tmp_path, epilogue_header_contents):
+    """Create a dummy epilogue file."""
+    from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue
+    header = epilogue_header_contents
+    contents = np.void(1, dtype=hrit_epilogue)
+    return create_file(tmp_path / "epilogue", header + [contents])
+
+
+@pytest.fixture
+def epilogue_header_contents():
+    """Get the contents of the header."""
+    return [
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((129, 90, 3042600),
+                dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.array(b"H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__", dtype="|S61"),
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (21973, 54911033)),
+                dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])]),
+    ]
+
+
+def create_file(filename, file_contents):
+    """Create an hrit file."""
     with open(filename, "wb") as fh:
-        for array in contents:
+        for array in file_contents:
             array.tofile(fh)
-    # filehandler = HRITMSGPrologueFileHandler(filename, dict(), dict())
+    return filename
+
+
+@pytest.fixture
+def segment_file(tmp_path):
+    """Create a segment_file."""
+    cols = 3712
+    lines = 464
+    bpp = 10
+    header = [
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((0, 6198, 17223680), dtype=[("file_type", "u1"), ("total_header_length", ">u4"),
+                                            ("data_field_length", ">u8")]),
+        np.void((1, 9), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((bpp, cols, lines, 0), dtype=[("number_of_bits_per_pixel", "u1"), ("number_of_columns", ">u2"),
+                                           ("number_of_lines", ">u2"), ("compression_flag_for_data", "u1")]),
+        np.void((2, 51), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((b"GEOS(+000.0)                    ", -13642337, -13642337, 1856, 1856),
+                dtype=[("projection_name", "S32"),
+                       ("cfac", ">i4"), ("lfac", ">i4"),
+                       ("coff", ">i4"), ("loff", ">i4")]),
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.array(b"H-000-MSG4__-MSG4________-VIS008___-000001___-201802281500-__", dtype="|S61"),
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (21973, 54911033)), dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"),
+                                                                                      ("Milliseconds", ">u4")])]),
+        np.void((128, 13), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((324, 2, 1, 1, 8, 0), dtype=[("GP_SC_ID", ">i2"), ("spectral_channel_id", "i1"),
+                                             ("segment_sequence_number", ">u2"),
+                                             ("planned_start_segment_number", ">u2"),
+                                             ("planned_end_segment_number", ">u2"),
+                                             ("data_field_representation", "i1")]),
+        np.void((129, 6035), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.zeros((464, ), dtype=[("line_number_in_grid", ">i4"),
+                                 ("line_mean_acquisition", [("days", ">u2"), ("milliseconds", ">u4")]),
+                                 ("line_validity", "u1"), ("line_radiometric_quality", "u1"),
+                                 ("line_geometric_quality", "u1")]),
+        ]
+    contents = np.empty(cols * lines * bpp // 8, dtype="u1")
+
+    return create_file(tmp_path / "segment", header + [contents])
+
+
+def test_read_real_segment(prologue_file, epilogue_file, segment_file):
+    """Test reading an hrit segment."""
+    info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
+    prologue_fh = HRITMSGPrologueFileHandler(prologue_file, info, dict())
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue_file, info, dict())
+    filehandler = HRITMSGFileHandler(segment_file, info, dict(), prologue_fh, epilogue_fh)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    res.compute()
