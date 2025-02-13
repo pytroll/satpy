@@ -633,13 +633,44 @@ def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file,
             for hrit_file in ("prologue", "epilogue", "segment")}
 
 def test_read_real_segment_zipped(compressed_seviri_hrit_files):
-    """Test reading an hrit segment."""
+    """Test reading a remote hrit segment passed as FSFile."""
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
     prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
     epilogue = FSFile(fsspec.open(compressed_seviri_hrit_files["epilogue"]))
     epilogue_fh = HRITMSGEpilogueFileHandler(epilogue, info, dict())
     segment = FSFile(fsspec.open(compressed_seviri_hrit_files["segment"]))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+        filehandler = HRITMSGFileHandler(segment, info, dict(), prologue_fh, epilogue_fh)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    res.compute()
+
+
+def to_upath(fsfile):
+    """Convert FSFile instance to UPath."""
+    from upath import UPath
+    fsfile_fs = fsfile.fs.to_dict()
+    fsfile_fs.pop("cls")
+    path = UPath(os.fspath(fsfile), **fsfile_fs)
+    return path
+
+
+def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
+    """Test reading a remote hrit segment passed as UPath."""
+    info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
+
+    prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
+    prologue = to_upath(prologue)
+    prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
+
+    epilogue = FSFile(fsspec.open(compressed_seviri_hrit_files["epilogue"]))
+    epilogue = to_upath(epilogue)
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue, info, dict())
+
+    segment = FSFile(fsspec.open(compressed_seviri_hrit_files["segment"]))
+    segment = to_upath(segment)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
         filehandler = HRITMSGFileHandler(segment, info, dict(), prologue_fh, epilogue_fh)
