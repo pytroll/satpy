@@ -87,14 +87,18 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def decompress(infile):
+def decompress_file(infile) -> bytes:
     """Decompress an XRIT data file and return the decompressed buffer."""
-    from pyPublicDecompWT import xRITDecompress
-
     # decompress in-memory
     with open(infile, mode="rb") as fh:
-        xrit = xRITDecompress()
-        xrit.decompress(fh.read())
+        return decompress_buffer(fh.read())
+
+
+def decompress_buffer(buffer) -> bytes:
+    """Decompress buffer."""
+    from pyPublicDecompWT import xRITDecompress
+    xrit = xRITDecompress()
+    xrit.decompress(buffer)
 
     return xrit.data()
 
@@ -333,7 +337,7 @@ class HRITSegment:
 
             if self.compressed:
                 return np.frombuffer(
-                    decompress(fn),
+                    decompress_file(fn),
                     offset=self.offset,
                     dtype=dtype,
                     count=np.prod(shape)
@@ -350,12 +354,15 @@ class HRITSegment:
         # filename is likely to be a file-like object, already in memory
         dtype, shape = self._get_input_info()
         with utils.generic_open(self.filename, mode="rb") as fp:
+            decompressed_buffer = fp.read()
+            if self.compressed:
+                decompressed_buffer = decompress_buffer(decompressed_buffer)
             no_elements = np.prod(shape)
-            fp.seek(self.offset)
             return np.frombuffer(
-                fp.read(np.dtype(dtype).itemsize * no_elements),
+                decompressed_buffer,
                 dtype=np.dtype(dtype),
-                count=no_elements.item()
+                count=no_elements.item(),
+                offset=self.offset
             ).reshape(shape)
 
     def _get_input_info(self):
