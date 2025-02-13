@@ -19,9 +19,13 @@
 """The HRIT msg reader tests package."""
 
 import datetime as dt
+import os
 import unittest
+import warnings
+import zipfile
 from unittest import mock
 
+import fsspec
 import numpy as np
 import pytest
 import xarray as xr
@@ -29,6 +33,7 @@ from numpy import testing as npt
 from pyproj import CRS
 
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
+from satpy.readers import FSFile
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
@@ -504,16 +509,17 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_equal(res, expected)
 
 
-@pytest.fixture
-def prologue_file(tmp_path, prologue_header_contents):
+@pytest.fixture(scope="session")
+def prologue_file(session_tmp_path, prologue_header_contents):
     """Create a dummy prologue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_prologue
     header = prologue_header_contents
     contents = np.void(1, dtype=hrit_prologue)
     contents["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"] = 324
-    return create_file(tmp_path / "prologue", header + [contents])
+    return create_file(session_tmp_path / "prologue", header + [contents])
 
-@pytest.fixture
+
+@pytest.fixture(scope="session")
 def prologue_header_contents():
     """Get the contents of the header."""
     return [
@@ -523,7 +529,6 @@ def prologue_header_contents():
                 dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
         # second header
         np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-        # np.void(1, dtype=[("text", "|S61")]),
         np.array(b"H-000-MSG4__-MSG4________-_________-PRO______-201802281500-__", dtype="|S61"),
         # timestamp record
         np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
@@ -532,16 +537,16 @@ def prologue_header_contents():
     ]
 
 
-@pytest.fixture
-def epilogue_file(tmp_path, epilogue_header_contents):
+@pytest.fixture(scope="session")
+def epilogue_file(session_tmp_path, epilogue_header_contents):
     """Create a dummy epilogue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue
     header = epilogue_header_contents
     contents = np.void(1, dtype=hrit_epilogue)
-    return create_file(tmp_path / "epilogue", header + [contents])
+    return create_file(session_tmp_path / "epilogue", header + [contents])
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def epilogue_header_contents():
     """Get the contents of the header."""
     return [
@@ -564,8 +569,8 @@ def create_file(filename, file_contents):
     return filename
 
 
-@pytest.fixture
-def segment_file(tmp_path):
+@pytest.fixture(scope="session")
+def segment_file(session_tmp_path):
     """Create a segment_file."""
     cols = 3712
     lines = 464
@@ -601,7 +606,7 @@ def segment_file(tmp_path):
         ]
     contents = np.empty(cols * lines * bpp // 8, dtype="u1")
 
-    return create_file(tmp_path / "segment", header + [contents])
+    return create_file(session_tmp_path / "segment", header + [contents])
 
 
 def test_read_real_segment(prologue_file, epilogue_file, segment_file):
@@ -609,7 +614,35 @@ def test_read_real_segment(prologue_file, epilogue_file, segment_file):
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
     prologue_fh = HRITMSGPrologueFileHandler(prologue_file, info, dict())
     epilogue_fh = HRITMSGEpilogueFileHandler(epilogue_file, info, dict())
-    filehandler = HRITMSGFileHandler(segment_file, info, dict(), prologue_fh, epilogue_fh)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+        filehandler = HRITMSGFileHandler(segment_file, info, dict(), prologue_fh, epilogue_fh)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    res.compute()
+
+
+@pytest.fixture(scope="session")
+def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file, segment_file):
+    """Return the fsspec paths to the given seviri hrit files inside a zip file."""
+    zip_full_path = session_tmp_path / "test_seviri_hrit.zip"
+    with zipfile.ZipFile(zip_full_path, mode="w") as archive:
+        for filename in (prologue_file, epilogue_file, segment_file):
+            archive.write(filename, os.path.basename(filename))
+    return {hrit_file: f"zip://{hrit_file}::file://{zip_full_path.as_posix()}"
+            for hrit_file in ("prologue", "epilogue", "segment")}
+
+def test_read_real_segment_zipped(compressed_seviri_hrit_files):
+    """Test reading an hrit segment."""
+    info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
+    prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
+    prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
+    epilogue = FSFile(fsspec.open(compressed_seviri_hrit_files["epilogue"]))
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue, info, dict())
+    segment = FSFile(fsspec.open(compressed_seviri_hrit_files["segment"]))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+        filehandler = HRITMSGFileHandler(segment, info, dict(), prologue_fh, epilogue_fh)
     res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
                                   dict(units="", wavelength=0.8, standard_name="counts"))
     res.compute()
