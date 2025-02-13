@@ -1286,8 +1286,8 @@ def tmp_seviri_nat_filename(session_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
-    """Compress the given seviri native file into a zip file."""
+def compressed_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
+    """Return the fsspec path to the given seviri native file inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_native.zip"
     with zipfile.ZipFile(zip_full_path, mode="w") as archive:
         archive.write(tmp_seviri_nat_filename, os.path.basename(tmp_seviri_nat_filename))
@@ -1296,7 +1296,7 @@ def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
 
 @pytest.mark.parametrize(("full_path"), [
     lf("tmp_seviri_nat_filename"),
-    lf("compress_seviri_native_file")
+    lf("compressed_seviri_native_file")
 ])
 def test_read_physical_seviri_nat_file(full_path):
     """Test that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
@@ -1312,7 +1312,7 @@ def test_read_physical_seviri_nat_file(full_path):
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning)
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
         scene.load(["VIS006"])
         assert scene["VIS006"].dtype == np.float32
         assert scene["VIS006"].values.dtype == np.float32
