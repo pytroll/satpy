@@ -1272,12 +1272,6 @@ def test_read_header():
 
 
 @pytest.fixture(scope="session")
-def session_tmp_path(tmp_path_factory):
-    """Generate a single temp path to use for the entire session."""
-    return tmp_path_factory.mktemp("data")
-
-
-@pytest.fixture(scope="session")
 def tmp_seviri_nat_filename(session_tmp_path):
     """Create a fully-qualified filename for a seviri native format file."""
     full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
