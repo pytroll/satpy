@@ -68,8 +68,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             nc.createDimension("maximum_number_of_layers", 2)
 
             # add global attributes
-            nc.data_source = "test_data_source"
-            nc.platform = "test_platform"
+            nc.data_source = "TEST_DATA_SOURCE"
+            nc.platform = "TEST_PLATFORM"
 
             # Add datasets
             x = nc.createVariable("x", np.float32, dimensions=("number_of_columns",))
@@ -121,17 +121,17 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
     def test_all_basic(self):
         """Test all basic functionalities."""
-        assert self.fh.spacecraft_name == "test_platform"
+        assert self.fh.spacecraft_name == "TEST_PLATFORM"
         assert self.fh.sensor_name == "test_data_source"
         assert self.fh.ssp_lon == 0.0
 
         global_attributes = self.fh._get_global_attributes()
         expected_global_attributes = {
             "filename": self.test_file,
-            "spacecraft_name": "test_platform",
+            "spacecraft_name": "TEST_PLATFORM",
             "ssp_lon": 0.0,
             "sensor": "test_data_source",
-            "platform_name": "test_platform"
+            "platform_name": "TEST_PLATFORM"
         }
         assert global_attributes == expected_global_attributes
 
@@ -184,7 +184,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "fill_value": -999,
                                        "file_type": "test_file_type"})
         np.testing.assert_allclose(dataset.values, 2 * np.ones((100, 10)))
-        assert dataset.attrs["spacecraft_name"] == "test_platform"
+        assert dataset.attrs["spacecraft_name"] == "TEST_PLATFORM"
 
     def test_dataset_with_invalid_filekey(self):
         """Test the correct execution of the get_dataset function with an invalid nc_key."""
@@ -283,8 +283,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             nc.createDimension("number_of_categories", 6)
 
             # add global attributes
-            nc.data_source = "test_fci_data_source"
-            nc.platform = "test_fci_platform"
+            nc.data_source = "TEST_FCI_DATA_SOURCE"
+            nc.platform = "TEST_FCI_PLATFORM"
 
             # Add datasets
             x = nc.createVariable("x", np.float32, dimensions=("number_of_FoR_cols",))
@@ -326,7 +326,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         """Test all basic functionalities."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
 
-        assert self.fh.spacecraft_name == "test_fci_platform"
+        assert self.fh.spacecraft_name == "TEST_FCI_PLATFORM"
         assert self.fh.sensor_name == "test_fci_data_source"
         assert self.fh.ssp_lon == 0.0
 
@@ -334,10 +334,10 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
 
         expected_global_attributes = {
             "filename": self.seg_test_file,
-            "spacecraft_name": "test_fci_platform",
+            "spacecraft_name": "TEST_FCI_PLATFORM",
             "ssp_lon": 0.0,
             "sensor": "test_fci_data_source",
-            "platform_name": "test_fci_platform"
+            "platform_name": "TEST_FCI_PLATFORM"
         }
         assert global_attributes == expected_global_attributes
 
@@ -498,8 +498,8 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             nc_byte.createDimension("number_of_rows", 1)
 
             # add global attributes
-            nc_byte.data_source = "test_data_source"
-            nc_byte.platform = "test_platform"
+            nc_byte.data_source = "TEST_DATA_SOURCE"
+            nc_byte.platform = "TEST_PLATFORM"
 
             # Add datasets
             x = nc_byte.createVariable("x", np.float32, dimensions=("number_of_columns",))
@@ -571,8 +571,8 @@ def amv_file(tmp_path_factory):
         nc.createDimension("number_of_winds", 50000)
 
         # add global attributes
-        nc.data_source = "test_data_source"
-        nc.platform = "test_platform"
+        nc.data_source = "TEST_DATA_SOURCE"
+        nc.platform = "TEST_PLATFORM"
 
         # Add datasets
         latitude = nc.createVariable("latitude", np.float32, dimensions=("number_of_winds",))
@@ -612,16 +612,16 @@ class TestFciL2NCAMVFileHandler:
 
     def test_all_basic(self, amv_filehandler, amv_file):
         """Test all basic functionalities."""
-        assert amv_filehandler.spacecraft_name == "test_platform"
+        assert amv_filehandler.spacecraft_name == "TEST_PLATFORM"
         assert amv_filehandler.sensor_name == "test_data_source"
         assert amv_filehandler.ssp_lon == 0.0
 
         global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
         expected_global_attributes = {
             "filename": amv_file,
-            "spacecraft_name": "test_platform",
+            "spacecraft_name": "TEST_PLATFORM",
             "sensor": "test_data_source",
-            "platform_name": "test_platform",
+            "platform_name": "TEST_PLATFORM",
             "channel": "test_channel",
             "ssp_lon": 0.0,
         }
