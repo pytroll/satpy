@@ -124,19 +124,23 @@ class HRITFileHandler(BaseFileHandler):
         self._start_time = filename_info["start_time"]
         self._end_time = self._start_time + dt.timedelta(minutes=15)
 
-    def _get_hd(self, hdr_info):
+    def _get_hd(self, hdr_info, verbose=False):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
-
         with utils.generic_open(self.filename, mode="rb") as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
                 hdr_id = get_header_id(fp)
+                if verbose:
+                    print("hdr_id")  # noqa: T201
+                    print(f'np.void({hdr_id}, dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),')  # noqa: T201
                 the_type = hdr_map[hdr_id["hdr_id"]]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id["record_length"] - 3) /
                                        the_type.itemsize)
                     current_hdr = get_header_content(fp, the_type, field_length)
+                    if verbose:
+                        print(f"np.zeros(({field_length}, ), dtype={the_type}),")  # noqa: T201
                     key = variable_length_headers[the_type]
                     if key in self.mda:
                         if not isinstance(self.mda[key], list):
@@ -150,9 +154,13 @@ class HRITFileHandler(BaseFileHandler):
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
                     current_hdr = get_header_content(fp, new_type)[0]
+                    if verbose:
+                        print(f'np.array({current_hdr}, dtype="{new_type}"),')  # noqa: T201
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
                     current_hdr = get_header_content(fp, the_type)[0]
+                    if verbose:
+                        print(f"np.void({current_hdr}, dtype={the_type}),")  # noqa: T201
                     self.mda.update(
                         dict(zip(current_hdr.dtype.names, current_hdr)))
 
