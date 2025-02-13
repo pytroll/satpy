@@ -19,9 +19,13 @@
 """The HRIT msg reader tests package."""
 
 import datetime as dt
+import os
 import unittest
+import warnings
+import zipfile
 from unittest import mock
 
+import fsspec
 import numpy as np
 import pytest
 import xarray as xr
@@ -29,6 +33,7 @@ from numpy import testing as npt
 from pyproj import CRS
 
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
+from satpy.readers import FSFile
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
@@ -502,3 +507,173 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         new_data[:, :] = np.nan
         expected = expected.copy(data=new_data)
         xr.testing.assert_equal(res, expected)
+
+
+@pytest.fixture(scope="session")
+def prologue_file(session_tmp_path, prologue_header_contents):
+    """Create a dummy prologue file."""
+    from satpy.readers.seviri_l1b_native_hdr import hrit_prologue
+    header = prologue_header_contents
+    contents = np.void(1, dtype=hrit_prologue)
+    contents["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"] = 324
+    return create_file(session_tmp_path / "prologue", header + [contents])
+
+
+@pytest.fixture(scope="session")
+def prologue_header_contents():
+    """Get the contents of the header."""
+    return [
+        # prime header
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((128, 90, 3403688),
+                dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
+        # second header
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.array(b"H-000-MSG4__-MSG4________-_________-PRO______-201802281500-__", dtype="|S61"),
+        # timestamp record
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (21973, 54911033)),
+                dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])])
+    ]
+
+
+@pytest.fixture(scope="session")
+def epilogue_file(session_tmp_path, epilogue_header_contents):
+    """Create a dummy epilogue file."""
+    from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue
+    header = epilogue_header_contents
+    contents = np.void(1, dtype=hrit_epilogue)
+    return create_file(session_tmp_path / "epilogue", header + [contents])
+
+
+@pytest.fixture(scope="session")
+def epilogue_header_contents():
+    """Get the contents of the header."""
+    return [
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((129, 90, 3042600),
+                dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.array(b"H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__", dtype="|S61"),
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (21973, 54911033)),
+                dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])]),
+    ]
+
+
+def create_file(filename, file_contents):
+    """Create an hrit file."""
+    with open(filename, "wb") as fh:
+        for array in file_contents:
+            array.tofile(fh)
+    return filename
+
+
+@pytest.fixture(scope="session")
+def segment_file(session_tmp_path):
+    """Create a segment_file."""
+    cols = 3712
+    lines = 464
+    bpp = 10
+    header = [
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((0, 6198, 17223680), dtype=[("file_type", "u1"), ("total_header_length", ">u4"),
+                                            ("data_field_length", ">u8")]),
+        np.void((1, 9), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((bpp, cols, lines, 0), dtype=[("number_of_bits_per_pixel", "u1"), ("number_of_columns", ">u2"),
+                                           ("number_of_lines", ">u2"), ("compression_flag_for_data", "u1")]),
+        np.void((2, 51), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((b"GEOS(+000.0)                    ", -13642337, -13642337, 1856, 1856),
+                dtype=[("projection_name", "S32"),
+                       ("cfac", ">i4"), ("lfac", ">i4"),
+                       ("coff", ">i4"), ("loff", ">i4")]),
+        np.void((4, 64), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.array(b"H-000-MSG4__-MSG4________-VIS008___-000001___-201802281500-__", dtype="|S61"),
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (21973, 54911033)), dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"),
+                                                                                      ("Milliseconds", ">u4")])]),
+        np.void((128, 13), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((324, 2, 1, 1, 8, 0), dtype=[("GP_SC_ID", ">i2"), ("spectral_channel_id", "i1"),
+                                             ("segment_sequence_number", ">u2"),
+                                             ("planned_start_segment_number", ">u2"),
+                                             ("planned_end_segment_number", ">u2"),
+                                             ("data_field_representation", "i1")]),
+        np.void((129, 6035), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.zeros((464, ), dtype=[("line_number_in_grid", ">i4"),
+                                 ("line_mean_acquisition", [("days", ">u2"), ("milliseconds", ">u4")]),
+                                 ("line_validity", "u1"), ("line_radiometric_quality", "u1"),
+                                 ("line_geometric_quality", "u1")]),
+        ]
+    contents = np.empty(cols * lines * bpp // 8, dtype="u1")
+
+    return create_file(session_tmp_path / "segment", header + [contents])
+
+
+def test_read_real_segment(prologue_file, epilogue_file, segment_file):
+    """Test reading an hrit segment."""
+    info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
+    prologue_fh = HRITMSGPrologueFileHandler(prologue_file, info, dict())
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue_file, info, dict())
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+        filehandler = HRITMSGFileHandler(segment_file, info, dict(), prologue_fh, epilogue_fh)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    res.compute()
+
+
+@pytest.fixture(scope="session")
+def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file, segment_file):
+    """Return the fsspec paths to the given seviri hrit files inside a zip file."""
+    zip_full_path = session_tmp_path / "test_seviri_hrit.zip"
+    with zipfile.ZipFile(zip_full_path, mode="w") as archive:
+        for filename in (prologue_file, epilogue_file, segment_file):
+            archive.write(filename, os.path.basename(filename))
+    return {hrit_file: f"zip://{hrit_file}::file://{zip_full_path.as_posix()}"
+            for hrit_file in ("prologue", "epilogue", "segment")}
+
+def test_read_real_segment_zipped(compressed_seviri_hrit_files):
+    """Test reading a remote hrit segment passed as FSFile."""
+    info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
+    prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
+    prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
+    epilogue = FSFile(fsspec.open(compressed_seviri_hrit_files["epilogue"]))
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue, info, dict())
+    segment = FSFile(fsspec.open(compressed_seviri_hrit_files["segment"]))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+        filehandler = HRITMSGFileHandler(segment, info, dict(), prologue_fh, epilogue_fh)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    res.compute()
+
+
+def to_upath(fsfile):
+    """Convert FSFile instance to UPath."""
+    from upath import UPath
+    fsfile_fs = fsfile.fs.to_dict()
+    fsfile_fs.pop("cls")
+    path = UPath(os.fspath(fsfile), **fsfile_fs)
+    return path
+
+
+def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
+    """Test reading a remote hrit segment passed as UPath."""
+    info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
+
+    prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
+    prologue = to_upath(prologue)
+    prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
+
+    epilogue = FSFile(fsspec.open(compressed_seviri_hrit_files["epilogue"]))
+    epilogue = to_upath(epilogue)
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue, info, dict())
+
+    segment = FSFile(fsspec.open(compressed_seviri_hrit_files["segment"]))
+    segment = to_upath(segment)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+        filehandler = HRITMSGFileHandler(segment, info, dict(), prologue_fh, epilogue_fh)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    res.compute()

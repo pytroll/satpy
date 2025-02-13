@@ -46,6 +46,7 @@ dependencies:
   - pytest
   - pytest-cov
   - fsspec
+  - universal_pathlib
   - botocore>=1.33
   - s3fs
   - python-geotiepoints
