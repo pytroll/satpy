@@ -29,7 +29,9 @@ resampled first before using the "show()" function. Working on a conversion to a
 
 import logging
 from datetime import datetime
+
 import xarray as xr
+
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)

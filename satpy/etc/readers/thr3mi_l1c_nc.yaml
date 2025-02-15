@@ -297,6 +297,3 @@ datasets:
     file_key_overlap: /dimension/overlaps
     view: [view1, view2, view3, view4, view5, view6, view7, view8, view9, view10, view11, view12, view13, view14]
     coordinates: [lat_pixels, lon_pixels]
-
-
-
