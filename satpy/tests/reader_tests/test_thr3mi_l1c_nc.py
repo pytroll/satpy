@@ -48,37 +48,53 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
             nc.spacecraft = "test_spacecraft"
             nc.instrument = "test_instrument"
 
-            nc.createDimension("overlaps", 1)
+            nc.createDimension("overlaps", 2)
 
             # Create data group
             g1 = nc.createGroup("data")
 
             # Create data/measurement_data group
             g1_1 = g1.createGroup("overlap_000")
+            g1_2 = g1.createGroup("overlap_001")
 
             # Add dimensions to data/measurement_data group
             g1_1.createDimension("geo_reference_grid_cells", 10)
             g1_1.createDimension("viewing_directions_VNIR", 3)
+            g1_2.createDimension("geo_reference_grid_cells", 10)
+            g1_2.createDimension("viewing_directions_VNIR", 3)
 
             g1_1_1 = g1_1.createGroup("measurement_data")
             g1_1_2 = g1_1.createGroup("geolocation_data")
 
+            g1_2_1 = g1_2.createGroup("measurement_data")
+            g1_2_2 = g1_2.createGroup("geolocation_data")
+
             g1_1_1_1 = g1_1_1.createGroup("r_0865")
+            g1_2_1_1 = g1_2_1.createGroup("r_0865")
 
             # Add variables to data/measurement_data group
-            reflectance_Q = g1_1_1_1.createVariable("reflectance_Q", np.float32,
+            reflectance_Q1 = g1_1_1_1.createVariable("reflectance_Q", np.float32,
                                                     dimensions=("geo_reference_grid_cells", "viewing_directions_VNIR"))
-            reflectance_Q[:, 0] = 75.
-            reflectance_Q[:, 1] = 76.
-            reflectance_Q[:, 2] = 77.
+            reflectance_Q2 = g1_2_1_1.createVariable("reflectance_Q", np.float32,
+                                                    dimensions=("geo_reference_grid_cells", "viewing_directions_VNIR"))
+            reflectance_Q1[:, 0] = 75.
+            reflectance_Q1[:, 1] = 76.
+            reflectance_Q1[:, 2] = 77.
 
-            reflectance_Q.test_attr = "attr"
+            reflectance_Q2[:, 0] = 78.
+            reflectance_Q2[:, 1] = 79.
+            reflectance_Q2[:, 2] = 80.
 
-            lon = g1_1_2.createVariable("longitude", np.float32, dimensions="geo_reference_grid_cells")
-            lon[:] = 150.
-            lat = g1_1_2.createVariable("latitude", np.float32, dimensions="geo_reference_grid_cells")
-            lat[:] = 12.
+            reflectance_Q1.test_attr = "attr"
 
+            lon1 = g1_1_2.createVariable("longitude", np.float32, dimensions="geo_reference_grid_cells")
+            lon1[:] = 150.
+            lat1 = g1_1_2.createVariable("latitude", np.float32, dimensions="geo_reference_grid_cells")
+            lat1[:] = 12.
+            lon2 = g1_2_2.createVariable("longitude", np.float32, dimensions="geo_reference_grid_cells")
+            lon2[:] = 150.
+            lat2 = g1_2_2.createVariable("latitude", np.float32, dimensions="geo_reference_grid_cells")
+            lat2[:] = 12.
             # Create quality group
             g2 = nc.createGroup("quality")
 
@@ -162,12 +178,11 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
             }
         }
 
-        expected_longitude = np.ones(10)*150.
-        expected_latitude = np.ones(10)*12.
-        expected_Q = np.ones((10, 3))
-        expected_Q[:, 0] = 75.
-        expected_Q[:, 1] = 76.
-        expected_Q[:, 2] = 77.
+        expected_longitude = np.ones(20)*150.
+        expected_latitude = np.ones(20)*12.
+        expected_Q = np.ones((20))
+        expected_Q[:10] = 79.
+        expected_Q[10:20] = 76.
 
         longitude = self.reader.get_dataset(None, {"file_key": "data/overlap_XXX/geolocation_data/longitude",
                                                    "file_key_overlap": "/dimension/overlaps"})
@@ -176,7 +191,7 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
         reflectance_Q = self.reader.get_dataset(None, {"file_key":
                                                        "data/overlap_XXX/measurement_data/r_0865/reflectance_",
                                                        "file_key_overlap": "/dimension/overlaps", "view":
-                                                       "view2", "polarization": "Q"})
+                                                       1, "polarization": "Q"})
 
         assert (longitude == expected_longitude).all()
         assert (latitude == expected_latitude).all()
@@ -214,10 +229,10 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
                 "key_1": "value_lat_1",
                 "key_2": "value_lat_2"
             },
-            data=np.ones(10) * 1.
+            data=np.ones(20) * 1.
         )
         out_variable = self.reader._standardize_dims(test_variable)
         print("out_variable ", out_variable)
-        assert np.allclose(out_variable.values, np.ones(10))
+        assert np.allclose(out_variable.values, np.ones(20))
         assert out_variable.dims == ("y",)
         assert out_variable.attrs["key_1"] == "value_lat_1"
