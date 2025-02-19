@@ -355,10 +355,10 @@ def generic_open(filename, *args, **kwargs):
             fp = filename.open(*args, **kwargs)
         except AttributeError:
             fp = open(filename, *args, **kwargs)
-
-    yield fp
-
-    fp.close()
+    try:
+        yield fp
+    finally:
+        fp.close()
 
 
 def fromfile(filename, dtype, count=1, offset=0):

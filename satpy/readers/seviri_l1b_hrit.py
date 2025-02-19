@@ -312,7 +312,7 @@ class HRITMSGPrologueEpilogueBase(HRITFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the file handler for prologue and epilogue files."""
-        super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
+        super().__init__(filename, filename_info, filetype_info, hdr_info)
         self._reduced = None
 
     def _reduce(self, mda, max_size):
@@ -333,11 +333,11 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
-        super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
-                                                         filetype_info,
-                                                         (msg_hdr_map,
-                                                          msg_variable_length_headers,
-                                                          msg_text_headers))
+        super().__init__(filename, filename_info,
+                         filetype_info,
+                         (msg_hdr_map,
+                          msg_variable_length_headers,
+                          msg_text_headers))
         self.prologue = {}
         self.read_prologue()
 

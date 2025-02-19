@@ -36,7 +36,6 @@ import xarray as xr
 from pyresample import geometry
 
 import satpy.readers.utils as utils
-from satpy.readers import FSFile
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
@@ -88,14 +87,18 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def decompress(infile):
+def decompress_file(infile) -> bytes:
     """Decompress an XRIT data file and return the decompressed buffer."""
-    from pyPublicDecompWT import xRITDecompress
-
     # decompress in-memory
     with open(infile, mode="rb") as fh:
-        xrit = xRITDecompress()
-        xrit.decompress(fh.read())
+        return decompress_buffer(fh.read())
+
+
+def decompress_buffer(buffer) -> bytes:
+    """Decompress buffer."""
+    from pyPublicDecompWT import xRITDecompress
+    xrit = xRITDecompress()
+    xrit.decompress(buffer)
 
     return xrit.data()
 
@@ -117,8 +120,7 @@ class HRITFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the reader."""
-        super(HRITFileHandler, self).__init__(filename, filename_info,
-                                              filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self.mda = {}
         self.hdr_info = hdr_info
@@ -126,19 +128,23 @@ class HRITFileHandler(BaseFileHandler):
         self._start_time = filename_info["start_time"]
         self._end_time = self._start_time + dt.timedelta(minutes=15)
 
-    def _get_hd(self, hdr_info):
+    def _get_hd(self, hdr_info, verbose=False):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
-
         with utils.generic_open(self.filename, mode="rb") as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
                 hdr_id = get_header_id(fp)
+                if verbose:
+                    print("hdr_id")  # noqa: T201
+                    print(f'np.void({hdr_id}, dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),')  # noqa: T201
                 the_type = hdr_map[hdr_id["hdr_id"]]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id["record_length"] - 3) /
                                        the_type.itemsize)
                     current_hdr = get_header_content(fp, the_type, field_length)
+                    if verbose:
+                        print(f"np.zeros(({field_length}, ), dtype={the_type}),")  # noqa: T201
                     key = variable_length_headers[the_type]
                     if key in self.mda:
                         if not isinstance(self.mda[key], list):
@@ -152,9 +158,13 @@ class HRITFileHandler(BaseFileHandler):
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
                     current_hdr = get_header_content(fp, new_type)[0]
+                    if verbose:
+                        print(f'np.array({current_hdr}, dtype="{new_type}"),')  # noqa: T201
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
                     current_hdr = get_header_content(fp, the_type)[0]
+                    if verbose:
+                        print(f"np.void({current_hdr}, dtype={the_type}),")  # noqa: T201
                     self.mda.update(
                         dict(zip(current_hdr.dtype.names, current_hdr)))
 
@@ -318,7 +328,7 @@ class HRITSegment:
         return self._read_data_from_disk()
 
     def _is_file_like(self):
-        return isinstance(self.filename, FSFile)
+        return not isinstance(self.filename, str)
 
     def _read_data_from_disk(self):
         # For reading the image data, unzip_context is faster than generic_open
@@ -327,7 +337,7 @@ class HRITSegment:
 
             if self.compressed:
                 return np.frombuffer(
-                    decompress(fn),
+                    decompress_file(fn),
                     offset=self.offset,
                     dtype=dtype,
                     count=np.prod(shape)
@@ -344,12 +354,15 @@ class HRITSegment:
         # filename is likely to be a file-like object, already in memory
         dtype, shape = self._get_input_info()
         with utils.generic_open(self.filename, mode="rb") as fp:
+            decompressed_buffer = fp.read()
+            if self.compressed:
+                decompressed_buffer = decompress_buffer(decompressed_buffer)
             no_elements = np.prod(shape)
-            fp.seek(self.offset)
             return np.frombuffer(
-                fp.read(np.dtype(dtype).itemsize * no_elements),
+                decompressed_buffer,
                 dtype=np.dtype(dtype),
-                count=no_elements.item()
+                count=no_elements.item(),
+                offset=self.offset
             ).reshape(shape)
 
     def _get_input_info(self):

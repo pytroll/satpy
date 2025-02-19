@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Pytest configuration and setup functions."""
+import pytest
 
 
 def pytest_configure(config):
@@ -28,3 +29,9 @@ def pytest_unconfigure(config):
     """Undo previous configurations."""
     from satpy import aux_download
     aux_download.RUNNING_TESTS = False
+
+
+@pytest.fixture(scope="session")
+def session_tmp_path(tmp_path_factory):
+    """Generate a single temp path to use for the entire session."""
+    return tmp_path_factory.mktemp("data")
