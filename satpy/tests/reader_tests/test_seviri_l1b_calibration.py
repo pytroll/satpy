@@ -23,8 +23,9 @@ import unittest
 import numpy as np
 import pytest
 import xarray as xr
+from pytest_lazy_fixtures.lazy_fixture import lf
 
-from satpy.readers.seviri_base import SEVIRICalibrationAlgorithm, SEVIRICalibrationHandler
+import satpy.readers.seviri_base as sev
 
 COUNTS_INPUT = xr.DataArray(
     np.array([[377.,  377.,  377.,  376.,  375.],
@@ -108,7 +109,7 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
 
     def setUp(self):
         """Set up the SEVIRI Calibration algorithm for testing."""
-        self.algo = SEVIRICalibrationAlgorithm(
+        self.algo = sev.SEVIRICalibrationAlgorithm(
             platform_id=PLATFORM_ID,
             scan_time=dt.datetime(2020, 8, 15, 13, 0, 40)
         )
@@ -148,57 +149,87 @@ class TestSeviriCalibrationHandler:
     def test_init(self):
         """Test initialization of the calibration handler."""
         with pytest.raises(ValueError, match="Invalid calibration mode: INVALID. Choose one of (.*)"):
-            SEVIRICalibrationHandler(
-                platform_id=None,
-                channel_name=None,
-                coefs=None,
-                calib_mode="invalid",
-                scan_time=None
-            )
+            self._get_calibration_handler("IR_108", "INVALID")
 
-    def _get_calibration_handler(self, calib_mode="NOMINAL", ext_coefs=None):
+    def _get_calibration_handler(self, channel, calib_mode="NOMINAL", ext_coefs=None):
         """Provide a calibration handler."""
-        return SEVIRICalibrationHandler(
-            platform_id=324,
-            channel_name="IR_108",
-            coefs={
-                "coefs": {
-                    "NOMINAL": {
+        int_coefs = {
+                "NOMINAL": {
+                    "IR_108": {
                         "gain": 10,
                         "offset": -1
                     },
-                    "GSICS": {
+                    "VIS006": {
                         "gain": 20,
                         "offset": -2
                     },
-                    "EXTERNAL": ext_coefs or {}
                 },
-                "radiance_type": 1
-            },
-            calib_mode=calib_mode,
+                "GSICS": {
+                    "IR_108": {
+                        "gain": 30,
+                        "offset": -3
+                    },
+                },
+            }
+        calib_params = sev.CalibParams(
+            mode=calib_mode,
+            internal_coefs=int_coefs,
+            external_coefs=ext_coefs,
+            radiance_type=1)
+        scan_params = sev.ScanParams(
+            platform_id=324,
+            channel_name=channel,
             scan_time=None
         )
+        return sev.SEVIRICalibrationHandler(calib_params, scan_params)
 
     def test_calibrate_exceptions(self):
         """Test exceptions raised by the calibration handler."""
-        calib = self._get_calibration_handler()
+        calib = self._get_calibration_handler("IR_108")
         with pytest.raises(ValueError, match="Invalid calibration invalid for channel IR_108"):
             calib.calibrate(None, "invalid")
 
+    @pytest.fixture
+    def external_coefs(self):
+        """Get external coefficients."""
+        return {"IR_108": {"gain": 40, "offset": -4}}
+
+    @pytest.fixture
+    def coefs_ir108_nominal_exp(self):
+        """Get expected IR coefficients in nominal calib mode."""
+        return {"coefs": {"gain": 10, "offset": -1}, "mode": "NOMINAL"}
+
+    @pytest.fixture
+    def coefs_vis006_exp(self):
+        """Get expected VIS coefficients."""
+        return {"coefs": {"gain": 20, "offset": -2}, "mode": "NOMINAL"}
+
+    @pytest.fixture
+    def coefs_ir108_gsics_exp(self):
+        """Get expected IR coefficients in GSICS calib mode."""
+        return {"coefs": {"gain": 30, "offset": -3}, "mode": "GSICS"}
+
+    @pytest.fixture
+    def coefs_ir108_external_exp(self):
+        """Get expected IR coefficients in the presence of external coefficients."""
+        return {"coefs": {"gain": 40, "offset": -4}, "mode": "external"}
+
     @pytest.mark.parametrize(
-        ("calib_mode", "ext_coefs", "expected"),
+        ("channel", "calib_mode", "ext_coefs", "expected"),
         [
-            ("NOMINAL", {}, (10, -1)),
-            ("GSICS", {}, (20, -40)),
-            ("GSICS", {"gain": 30, "offset": -3}, (30, -3)),
-            ("NOMINAL", {"gain": 30, "offset": -3}, (30, -3))
+            ("IR_108", "NOMINAL", None, lf("coefs_ir108_nominal_exp")),
+            ("IR_108", "GSICS", None, lf("coefs_ir108_gsics_exp")),
+            ("IR_108", "NOMINAL", lf("external_coefs"), lf("coefs_ir108_external_exp")),
+            # For VIS006 there's only nominal coefficients in this example
+            ("VIS006", "NOMINAL", None, lf("coefs_vis006_exp")),
+            ("VIS006", "GSICS", None, lf("coefs_vis006_exp")),
+            ("VIS006", "NOMINAL", lf("external_coefs"), lf("coefs_vis006_exp"))
         ]
     )
-    def test_get_gain_offset(self, calib_mode, ext_coefs, expected):
+    def test_get_coefs(self, channel, calib_mode, ext_coefs, expected):
         """Test selection of gain and offset."""
-        calib = self._get_calibration_handler(calib_mode=calib_mode,
-                                              ext_coefs=ext_coefs)
-        coefs = calib.get_gain_offset()
+        calib = self._get_calibration_handler(channel, calib_mode, ext_coefs)
+        coefs = calib.get_coefs()
         assert coefs == expected
 
 
