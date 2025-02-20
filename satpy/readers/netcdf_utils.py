@@ -211,7 +211,15 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[fc_key] = global_attrs[key] = value
         self.file_content["/attrs"] = global_attrs
 
-    def _get_object_attrs(self, obj):
+    @classmethod
+    def _get_object_attrs(cls, obj):
+        """Do not try to use __dict__ if obj is a compound variable."""
+        try:
+            if obj.dtype.kind == "V":
+                LOG.warning(f"Warning: Cannot load attributes for compound variable ({obj.name})")
+                return {}
+        except (AttributeError, KeyError):
+            pass
         return obj.__dict__
 
     def _collect_attrs(self, name, obj):
