@@ -268,6 +268,24 @@ def _create_lst_variables() -> dict[str, xr.DataArray]:
     return data_vars
 
 
+@pytest.fixture(scope="module")
+def volcanic_ash_file(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake *partial* Volcanic Ash VIIRs EDR file."""
+    fn = f"JRR-VolcanicAsh_v3r0_j01_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
+    data_vars = _create_continuous_variables(
+        ("AshBeta",),
+        data_attrs={
+            "units": "1",
+            "_FillValue": -999.,
+        }
+    )
+    # The 'Det_QF_Size' variable is actually a scalar, but the there's no way to check it is dropped other than
+    # making it 2D
+    data_vars["Det_QF_Size"] = xr.DataArray(np.array([[1, 2]], dtype=np.int32),
+                                            attrs={"_FillValue": -999, "units": "1"})
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
 def _create_continuous_variables(
         var_names: Iterable[str],
         data_attrs: None | dict = None
@@ -480,6 +498,17 @@ class TestVIIRSJRRReader:
         scn = Scene(reader="viirs_edr", filenames=[new_name])
         scn.load(["surf_refl_I01"])
         assert scn["surf_refl_I01"].attrs["platform_name"] == exp_shortname
+
+    def test_volcanic_ash_drop_variables(self, volcanic_ash_file):
+        """Test that Det_QF_Size variable is dropped when reading VolcanicAsh products.
+
+        The said variable is also used as a dimension in v3r0 files, so the reading fails
+        if it is not dropped.
+        """
+        from satpy import Scene
+        scn = Scene(reader="viirs_edr", filenames=[volcanic_ash_file])
+        available = scn.available_dataset_names()
+        assert "Det_QF_Size" not in available
 
 
 def _check_surf_refl_qf_data_arr(data_arr: xr.DataArray, multiple_files: bool) -> None:
