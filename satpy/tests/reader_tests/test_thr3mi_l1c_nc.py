@@ -31,7 +31,6 @@ from satpy.readers.thr3mi_l1c_nc import Thr3miL1cNCFileHandler
 
 TEST_FILE = "test_file_thr3mi_l1c_nc.nc"
 
-
 class TestThr3miNCL1cFileHandler(unittest.TestCase):
     """Test the Thr3miNCL1cFileHandler reader."""
 
@@ -146,11 +145,9 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
         expected_start_time = datetime.datetime(year=2017, month=9, day=20,
                                                 hour=17, minute=30, second=40, microsecond=888000)
         assert self.reader.start_time == expected_start_time
-
         expected_end_time = datetime.datetime(year=2017, month=9, day=20,
-                                              hour=17, minute=41, second=17, microsecond=555000)
+                                                      hour=17, minute=41, second=17, microsecond=555000)
         assert self.reader.end_time == expected_end_time
-
         assert self.reader.spacecraft_name == "test_spacecraft"
         assert self.reader.sensor == "test_instrument"
         assert self.reader.ssp_lon is None
@@ -192,10 +189,20 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
                                                        "data/overlap_XXX/measurement_data/r_0865/reflectance_",
                                                        "file_key_overlap": "/dimension/overlaps", "view":
                                                        1, "polarization": "Q"})
+        wrong_var = self.reader.get_dataset(None, {"file_key":
+                                                       "data/overlap_XXX/measurement_data/r_0865/reflectance_",
+                                                       "file_key_overlap": "/dimension/overlaps", "view":
+                                                       1, "polarization": "X"})
+        wrong_overlaps = self.reader.get_dataset(None, {"file_key":
+                                                       "data/overlap_XXX/measurement_data/r_0865/reflectance_",
+                                                       "file_key_overlap": "/dimension/wrong_overlaps", "view":
+                                                       1, "polarization": "I"})
 
         assert (longitude == expected_longitude).all()
         assert (latitude == expected_latitude).all()
         assert (reflectance_Q == expected_Q).all()
+        assert (wrong_var == None)
+        assert (wrong_overlaps == None)
 
         global_attributes = self.reader._get_global_attributes()
         # Since the global_attributes dictionary contains numpy arrays,
@@ -232,7 +239,6 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
             data=np.ones(20) * 1.
         )
         out_variable = self.reader._standardize_dims(test_variable)
-        print("out_variable ", out_variable)
         assert np.allclose(out_variable.values, np.ones(20))
         assert out_variable.dims == ("y",)
         assert out_variable.attrs["key_1"] == "value_lat_1"

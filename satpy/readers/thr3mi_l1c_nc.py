@@ -77,14 +77,16 @@ class Thr3miL1cNCFileHandler(NetCDF4FileHandler):
             if var_key[-9:] != "longitude" and var_key[-8:] != "latitude":
                 view_key = dataset_info["view"]
                 var_key = var_key + dataset_info["polarization"]
-
             logger.debug("Reading in file to get dataset with key %s.", var_key)
             try:
                 variable = self[var_key]
             except KeyError:
                 logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
                 return None
+            if i_overlap == 0:
+                variable_old = variable.copy(deep=True)
             if i_overlap > 0:
+                #variable_old = variable.copy(deep=True)
                 if var_key[-9:] != "longitude" and var_key[-8:] != "latitude":
                     variable = xr.concat([variable[:, view_key], variable_old[:, view_key]],
                                          dim="geo_reference_grid_cells")
