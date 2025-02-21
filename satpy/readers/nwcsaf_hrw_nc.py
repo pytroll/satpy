@@ -61,7 +61,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.sensor = SENSOR.get(self.platform_name, "seviri")
         self.lons = {}
         self.lats = {}
-        # Imaging period
+        # Imaging period, which is set after reading any data, and used to calculate end time
         self.period = None
 
         # The resolution is given in kilometers, convert to meters
