@@ -17,7 +17,85 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """NWC SAF GEO v2021 HRW.
 
-This is a reader for the High Resolution Winds (HRW) data produced with NWC SAF GEO.
+This module contains the :class:`NWCSAFGEOHRWFileHandler` file handler for the High Resolution Winds (HRW)
+data produced with NWC SAF GEO.
+
+There are 37 different quantities in the files, and predicted trajectories for each
+observation. Reading of the trajectory data are not currently supported.
+
+The data in the files are grouped separately for each original imaging channel, which there are up to
+seven. The number of channels depends on the configuration of NWC SAF GEO software.
+
+By default the reader treats each imaging channel separately, and thus lists
+7 (channels) * 37 (variables) = 259 distinct datasets::
+
+    import pprint
+    from satpy import Scene
+
+    filename = "S_NWC_HRW_MSG3_MSG-N-BS_20250206T130000Z.nc"
+    scn = Scene(reader="nwcsaf-geo", filenames=[filename])
+    pprint.pprint(scn.available_dataset_names())
+
+This print all the available datasets. The truncated output of this is::
+
+    ['wind_hrvis_air_pressure',
+     'wind_hrvis_air_pressure_correction',
+     'wind_hrvis_air_pressure_error',
+     'wind_hrvis_air_pressure_nwp_at_best_fit_level',
+     'wind_hrvis_air_temperature',
+     ...
+     'wind_wv073_wind_speed',
+     'wind_wv073_wind_speed_difference_nwp_at_amv_level',
+     'wind_wv073_wind_speed_difference_nwp_at_best_fit_level',
+     'wind_wv073_wind_speed_nwp_at_amv_level',
+     'wind_wv073_wind_speed_nwp_at_best_fit_level']
+
+The channel name is used as a prefix for the datasets.
+
+It is also possible to merge all of these channel-by-channel datasets with a reader key-word argument::
+
+    scn = Scene(reader="nwcsaf-geo", filenames=[filename], reader_kwargs={"merge_channels": True})
+    pprint.pprint(scn.available_dataset_names())
+
+Full list of the printed datasets is::
+
+    ['air_pressure',
+     'air_pressure_correction',
+     'air_pressure_error',
+     'air_pressure_nwp_at_best_fit_level',
+     'air_temperature',
+     'cloud_type',
+     'correlation',
+     'correlation_test',
+     'height_assignment_method',
+     'latitude',
+     'latitude_increment',
+     'longitude',
+     'longitude_increment',
+     'number_of_winds',
+     'orographic_index',
+     'previous_wind_idx',
+     'quality_index_iwwg_value',
+     'quality_index_with_forecast',
+     'quality_index_without_forecast',
+     'quality_test',
+     'segment_x',
+     'segment_x_pix',
+     'segment_y',
+     'segment_y_pix',
+     'tracer_correlation_method',
+     'tracer_type',
+     'wind_from_direction',
+     'wind_from_direction_difference_nwp_at_amv_level',
+     'wind_from_direction_difference_nwp_at_best_fit_level',
+     'wind_from_direction_nwp_at_amv_level',
+     'wind_from_direction_nwp_at_best_fit_level',
+     'wind_idx',
+     'wind_speed',
+     'wind_speed_difference_nwp_at_amv_level',
+     'wind_speed_difference_nwp_at_best_fit_level',
+     'wind_speed_nwp_at_amv_level',
+     'wind_speed_nwp_at_best_fit_level']
 
 """
 
