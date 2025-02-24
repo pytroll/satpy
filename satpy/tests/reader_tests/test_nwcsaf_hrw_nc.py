@@ -94,7 +94,7 @@ SATELLITE_IDENTIFIER = np.bytes_("MSG3")
 # Dataset attributes accessed by the file handler
 TIME_PERIOD = np.array([15.], dtype=np.float32)
 
-NUM_OBS = 1234
+NUM_OBS = 123
 NUMBER_OF_DATASETS_WITHOUT_TRAJECTORIES = 259
 
 
@@ -184,6 +184,8 @@ def test_hrw_via_scene(hrw_file):
     scn.load(["wind_vis06_wind_from_direction"])
     data = scn["wind_vis06_wind_from_direction"]
 
+    assert scn.start_time == dt.datetime(2025, 2, 6, 13, 0)
+    assert scn.end_time == dt.datetime(2025, 2, 6, 13, 15)
     _check_scene_dataset_attrs(data)
     _check_common_attrs(data)
 
