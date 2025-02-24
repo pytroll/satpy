@@ -95,12 +95,12 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug("Reading %s.", key["name"])
-        data = self.read_dataset(key, info)
+        data = self._read_dataset(key, info)
         data.attrs.update(info)
 
         return data
 
-    def read_dataset(self, dataset_key, info):
+    def _read_dataset(self, dataset_key, info):
         """Read a dataset."""
         dataset_name = dataset_key["name"]
         key_parts = dataset_name.split("_")
