@@ -106,6 +106,13 @@ apidoc_modules = [
             "../../satpy/readers/caliop_l2_cloud.py",
             "../../satpy/readers/ghrsst_l3c_sst.py",
             "../../satpy/readers/scatsat1_l2b.py",
+            # Prefer to not document test modules. Most users will look at
+            # source code if needed and we want to avoid documentation builds
+            # suffering from import-time test data creation. We want to keep
+            # things contributors might be interested in like satpy.tests.utils.
+            "../../satpy/tests/test_*.py",
+            "../../satpy/tests/**/test_*.py",
+            "../../satpy/tests/**/_*.py",
         ],
     },
 ]
