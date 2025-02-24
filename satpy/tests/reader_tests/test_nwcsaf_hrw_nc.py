@@ -95,7 +95,9 @@ SATELLITE_IDENTIFIER = np.bytes_("MSG3")
 TIME_PERIOD = np.array([15.], dtype=np.float32)
 
 NUM_OBS = 123
-NUMBER_OF_DATASETS_WITHOUT_TRAJECTORIES = 259
+
+FILENAME_INFO = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
+FILETYPE_INFO = {"file_type": "nc_nwcsaf_geo_hrw"}
 
 
 @pytest.fixture
@@ -132,12 +134,10 @@ def test_hrw_handler_init(hrw_file):
     """Test the filehandler initialization works."""
     from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
 
-    filename_info = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
-    filetype_info = {"file_type": "nc_nwcsaf_geo_hrw"}
-    fh = NWCSAFGEOHRWFileHandler(hrw_file, filename_info, filetype_info)
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, FILENAME_INFO, FILETYPE_INFO)
 
-    assert fh.filename_info == filename_info
-    assert fh.filetype_info == filetype_info
+    assert fh.filename_info == FILENAME_INFO
+    assert fh.filetype_info == FILETYPE_INFO
     assert fh.platform_name is not None
     assert fh.sensor == "seviri"
 
@@ -146,27 +146,45 @@ def test_available_datasets(hrw_file):
     """Test that dynamic creation of available datasets works."""
     from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
 
-    filename_info = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
-    filetype_info = {"file_type": "nc_nwcsaf_geo_hrw"}
-    fh = NWCSAFGEOHRWFileHandler(hrw_file, filename_info, filetype_info)
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, FILENAME_INFO, FILETYPE_INFO)
 
     avail = fh.available_datasets()
 
-    assert len(list(avail)) == NUMBER_OF_DATASETS_WITHOUT_TRAJECTORIES
+    assert len(list(avail)) == len(WIND_CHANNELS) * len(WIND_DTYPES)
+
+
+def test_available_merged_datasets(hrw_file):
+    """Test that dynamic creation of available datasets works when the channels are merge together."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, FILENAME_INFO, FILETYPE_INFO, merge_channels=True)
+
+    avail = fh.available_datasets()
+
+    assert len(list(avail)) == len(WIND_DTYPES)
 
 
 def test_get_dataset(hrw_file):
     """Test reading a dataset."""
     from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
 
-    filename_info = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
-    filetype_info = {"file_type": "nc_nwcsaf_geo_hrw"}
-    fh = NWCSAFGEOHRWFileHandler(hrw_file, filename_info, filetype_info)
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, FILENAME_INFO, FILETYPE_INFO)
 
     data = fh.get_dataset({"name": "wind_vis06_wind_speed"}, {"the_answer": 42})
 
     assert data.attrs["the_answer"] == 42
     _check_common_attrs(data)
+
+
+def test_get_merged_dataset(hrw_file):
+    """Test reading a merged dataset."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, FILENAME_INFO, FILETYPE_INFO, merge_channels=True)
+
+    data = fh.get_dataset({"name": "wind_speed"}, {})
+
+    assert data.size == len(WIND_CHANNELS) * NUM_OBS
 
 
 def _check_common_attrs(data):
@@ -202,3 +220,14 @@ def _check_scene_dataset_attrs(data):
     assert data.attrs["reader"] == "nwcsaf-geo"
     assert isinstance(data.attrs["area"], SwathDefinition)
     assert data.attrs["area"].shape == (NUM_OBS,)
+
+
+def test_merged_hrw_via_scene(hrw_file):
+    """Test reading HRW merged datasets via Scene."""
+    from satpy import Scene
+
+    scn = Scene(reader="nwcsaf-geo", filenames=[hrw_file], reader_kwargs={"merge_channels": True})
+    scn.load(["wind_from_direction"])
+    data = scn["wind_from_direction"]
+
+    assert data.shape == (len(WIND_CHANNELS) * NUM_OBS,)
