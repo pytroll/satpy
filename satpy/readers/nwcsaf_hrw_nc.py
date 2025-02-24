@@ -126,6 +126,48 @@ WIND_CHANNELS = [
     "wind_wv073",
 ]
 
+# Source: NWC/CDOP3/GEO/AEMET/SW/DOF
+DATASET_UNITS = {
+    "air_pressure": "Pa",
+    "air_pressure_correction": "Pa",
+    "air_pressure_error": "Pa",
+    "air_pressure_nwp_at_best_fit_level": "Pa",
+    "air_temperature": "K",
+    "cloud_type": "1",
+    "correlation": "%",
+    "correlation_test": "1",
+    "height_assignment_method": "1",
+    "latitude": "degree_north",
+    "latitude_increment": "degree_north",
+    "longitude": "degree_east",
+    "longitude_increment": "degree_east",
+    "number_of_winds": "1",
+    "orographic_index": "1",
+    "previous_wind_idx": "1",
+    "quality_index_iwwg_value": "%",
+    "quality_index_with_forecast": "%",
+    "quality_index_without_forecast": "%",
+    "quality_test": "1",
+    "segment_x": "m",
+    "segment_x_pix": "1",
+    "segment_y": "m",
+    "segment_y_pix": "1",
+    "tracer_correlation_method": "1",
+    "tracer_type": "1",
+    "wind_from_direction": "degree",
+    "wind_from_direction_difference_nwp_at_amv_level": "degree",
+    "wind_from_direction_difference_nwp_at_best_fit_level": "degree",
+    "wind_from_direction_nwp_at_amv_level": "degree",
+    "wind_from_direction_nwp_at_best_fit_level": "degree",
+    "wind_idx": "1",
+    "wind_speed": "m/s",
+    "wind_speed_difference_nwp_at_amv_level": "m/s",
+    "wind_speed_difference_nwp_at_best_fit_level": "m/s",
+    "wind_speed_nwp_at_amv_level": "m/s",
+    "wind_speed_nwp_at_best_fit_level": "m/s"
+}
+
+
 class NWCSAFGEOHRWFileHandler(BaseFileHandler):
     """A file handler class for NWC SAF GEO HRW files."""
 
@@ -181,14 +223,14 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         """Load a dataset."""
         logger.debug("Reading %s.", key["name"])
         if self.merge_channels:
-            data = self._read_merged_dataset(key, info)
+            data = self._read_merged_dataset(key)
         else:
-            data = self._read_dataset(key, info)
+            data = self._read_dataset(key)
         data.attrs.update(info)
 
         return data
 
-    def _read_merged_dataset(self, dataset_key, info):
+    def _read_merged_dataset(self, dataset_key):
         """Read a dataset merged from every channel."""
         dataset_name = dataset_key["name"]
 
@@ -207,12 +249,15 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
             except ValueError:
                 logger.warning("Reading %s is not supported.", dataset_name)
 
+        units = DATASET_UNITS[dataset_name]
+
         return self._create_xarray(
             np.concat(data),
             dataset_name,
             np.concat(self.lons["merged"]),
             np.concat(self.lats["merged"]),
-            info)
+            units
+            )
 
     def _append_merged_coordinates(self, channel):
         if "merged" not in self.lons:
@@ -222,17 +267,17 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.lats["merged"].append(self.lats[channel])
 
     @staticmethod
-    def _create_xarray(data, dataset_name, lons, lats, info, prefix=""):
+    def _create_xarray(data, dataset_name, lons, lats, units, prefix=""):
         xr_data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
                                name=dataset_name,
                                dims=["y"])
         xr_data[prefix + "longitude"] = ("y", lons)
         xr_data[prefix + "latitude"] = ("y", lats)
-        xr_data.attrs.update(info)
+        xr_data.attrs["units"] = units
 
         return xr_data
 
-    def _read_dataset(self, dataset_key, info):
+    def _read_dataset(self, dataset_key):
         """Read a dataset."""
         dataset_name = dataset_key["name"]
         key_parts = dataset_name.split("_")
@@ -246,9 +291,11 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         except ValueError:
             logger.warning("Reading %s is not supported.", dataset_name)
 
+        units = DATASET_UNITS[measurand]
         prefix = channel + "_"
 
-        return self._create_xarray(data, dataset_name, self.lons[channel], self.lats[channel], info, prefix=prefix)
+        return self._create_xarray(
+            data, dataset_name, self.lons[channel], self.lats[channel], units, prefix=prefix)
 
 
     def _read_channel_coordinates(self, channel):

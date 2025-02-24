@@ -192,6 +192,7 @@ def _check_common_attrs(data):
     assert "wind_vis06_latitude" in data.coords
     assert data.dtype == np.float32
     assert data.values.dtype == np.float32
+    assert "units" in data.attrs
 
 
 def test_hrw_via_scene(hrw_file):
