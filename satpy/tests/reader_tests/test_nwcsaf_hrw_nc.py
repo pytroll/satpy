@@ -92,9 +92,10 @@ NOMINAL_PRODUCT_TIME = "2025-02-06T13:00:00Z"
 SPATIAL_RESOLUTION = np.array([3.], dtype=np.float32)
 SATELLITE_IDENTIFIER = np.bytes_("MSG3")
 # Dataset attributes accessed by the file handler
-PERIOD = np.array([15.], dtype=np.float32)
+TIME_PERIOD = np.array([15.], dtype=np.float32)
 
 NUM_OBS = 1234
+NUMBER_OF_DATASETS_WITHOUT_TRAJECTORIES = 259
 
 
 @pytest.fixture
@@ -112,7 +113,7 @@ def hrw_file(tmp_path):
 
 def _create_channel_dataset(h5f, name):
     dset = h5f.create_dataset(name, shape=(NUM_OBS,), dtype=np.dtype(WIND_DTYPES))
-    dset.attrs["period"] = PERIOD
+    dset.attrs["time_period"] = TIME_PERIOD
     data = _create_data()
     for i in range(NUM_OBS):
         dset[i] = data
@@ -139,3 +140,63 @@ def test_hrw_handler_init(hrw_file):
     assert fh.filetype_info == filetype_info
     assert fh.platform_name is not None
     assert fh.sensor == "seviri"
+
+
+def test_available_datasets(hrw_file):
+    """Test that dynamic creation of available datasets works."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    filename_info = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
+    filetype_info = {"file_type": "nc_nwcsaf_geo_hrw"}
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, filename_info, filetype_info)
+
+    avail = fh.available_datasets()
+
+    assert len(list(avail)) == NUMBER_OF_DATASETS_WITHOUT_TRAJECTORIES
+
+
+def test_get_dataset(hrw_file):
+    """Test reading a dataset."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    filename_info = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
+    filetype_info = {"file_type": "nc_nwcsaf_geo_hrw"}
+    fh = NWCSAFGEOHRWFileHandler(hrw_file, filename_info, filetype_info)
+
+    data = fh.get_dataset({"name": "wind_vis06_wind_speed"}, {"the_answer": 42})
+
+    assert data.attrs["the_answer"] == 42
+    _check_common_attrs(data)
+
+
+def _check_common_attrs(data):
+    assert "wind_vis06_longitude" in data.coords
+    assert "wind_vis06_latitude" in data.coords
+    assert data.dtype == np.float32
+    assert data.values.dtype == np.float32
+
+
+def test_hrw_via_scene(hrw_file):
+    """Test reading HRW datasets via Scene."""
+    from satpy import Scene
+
+    scn = Scene(reader="nwcsaf-geo", filenames=[hrw_file])
+    scn.load(["wind_vis06_wind_from_direction"])
+    data = scn["wind_vis06_wind_from_direction"]
+
+    _check_scene_dataset_attrs(data)
+    _check_common_attrs(data)
+
+
+def _check_scene_dataset_attrs(data):
+    from pyresample.geometry import SwathDefinition
+
+    assert data.attrs["file_type"] == "nc_nwcsaf_geo_hrw"
+    assert data.attrs["resolution"] == 3000.0
+    assert data.attrs["name"] == "wind_vis06_wind_from_direction"
+    assert data.attrs["coordinates"] == ("wind_vis06_longitude", "wind_vis06_latitude")
+    assert data.attrs["start_time"] == dt.datetime(2025, 2, 6, 13, 0)
+    assert data.attrs["end_time"] == dt.datetime(2025, 2, 6, 13, 15)
+    assert data.attrs["reader"] == "nwcsaf-geo"
+    assert isinstance(data.attrs["area"], SwathDefinition)
+    assert data.attrs["area"].shape == (NUM_OBS,)
