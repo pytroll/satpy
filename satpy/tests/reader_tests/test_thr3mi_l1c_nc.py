@@ -201,8 +201,8 @@ class TestThr3miNCL1cFileHandler(unittest.TestCase):
         assert (longitude == expected_longitude).all()
         assert (latitude == expected_latitude).all()
         assert (reflectance_Q == expected_Q).all()
-        assert (wrong_var == None)
-        assert (wrong_overlaps == None)
+        assert (wrong_var is None)
+        assert (wrong_overlaps is None)
 
         global_attributes = self.reader._get_global_attributes()
         # Since the global_attributes dictionary contains numpy arrays,

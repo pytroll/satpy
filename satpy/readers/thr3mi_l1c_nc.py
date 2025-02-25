@@ -50,7 +50,7 @@ class Thr3miL1cNCFileHandler(NetCDF4FileHandler):
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
 
     def _standardize_dims(self, variable):
-        """Standardize dims to y, note only 1D data for 3MI"""
+        """Standardize dims to y, note only 1D data for 3MI."""
         # lat/lon dimensions
         if "geo_reference_grid_cells" in variable.dims:
             variable = variable.rename({"geo_reference_grid_cells": "y"})
