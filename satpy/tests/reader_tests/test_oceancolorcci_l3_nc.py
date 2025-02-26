@@ -32,7 +32,7 @@ from pyresample.geometry import AreaDefinition
 # - tmp_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dataset():
     """Create a CLAAS-like test dataset."""
     adg = xr.DataArray(
@@ -95,7 +95,7 @@ ds_list_iop = ["adg_490", "water_class10", "seawifs_nobs_sum", "atot_665"]
 ds_list_kd = ["kd_490", "water_class10", "seawifs_nobs_sum"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file_dict(fake_dataset, tmp_path):
     """Write a fake dataset to file."""
     fdict = {}
@@ -150,7 +150,7 @@ class TestOCCCIReader:
         assert reader.file_handlers
         return reader
 
-    @pytest.fixture()
+    @pytest.fixture
     def area_exp(self):
         """Get expected area definition."""
         proj_dict = {"datum": "WGS84", "no_defs": "None", "proj": "longlat", "type": "crs"}

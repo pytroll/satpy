@@ -280,6 +280,8 @@ def test_filehandler_returns_area(insat_filehandler):
     area_def = fh.get_area_def(ds_id)
     _ = area_def.get_lonlats(chunks=1000)
     assert subsatellite_longitude == area_def.crs.to_cf()["longitude_of_projection_origin"]
+    np.testing.assert_allclose(area_def.area_extent, [-5620072.101427, -5640108.009097,
+                                                      5620072.101427, 5644115.190631])
 
 
 def test_filehandler_has_start_and_end_time(insat_filehandler):

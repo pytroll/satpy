@@ -2,11 +2,12 @@ name: readthedocs
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.11
   - pip
   - platformdirs
   - dask
   - dask-image
+  - dask-expr
   - defusedxml
   - donfig
   # 2.19.1 seems to cause library linking issues
@@ -31,7 +32,7 @@ dependencies:
   - xarray
   - zarr
   - xarray-datatree
-  - cartopy
+  - geoviews
   - pip:
     - graphviz
     - pytest-lazy-fixtures

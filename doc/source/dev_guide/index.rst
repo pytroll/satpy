@@ -128,6 +128,15 @@ additional packages are needed. These can be installed with ::
 
     pip install -e ".[doc]"
 
+Generating the documentation requires a one-time script to generate a list
+of previews of all of the AreaDefinition objects used by the documentation.
+This script can take 2+ minutes to execute so it is run separately from the
+normal documentation build process. To run it::
+
+    cd doc/source/
+    python generate_area_def_list.py
+    cd ../../
+
 After editing the source files there the documentation can be generated locally::
 
     cd doc

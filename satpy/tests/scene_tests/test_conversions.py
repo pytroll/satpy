@@ -17,7 +17,9 @@
 """Unit tests for Scene conversion functionality."""
 
 import datetime as dt
+from datetime import datetime
 
+import numpy as np
 import pytest
 import xarray as xr
 from dask import array as da
@@ -50,14 +52,6 @@ class TestSceneSerialization:
 
 class TestSceneConversions:
     """Test Scene conversion to geoviews, xarray, etc."""
-
-    def test_to_xarray_dataset_with_empty_scene(self):
-        """Test converting empty Scene to xarray dataset."""
-        scn = Scene()
-        xrds = scn.to_xarray_dataset()
-        assert isinstance(xrds, xr.Dataset)
-        assert len(xrds.variables) == 0
-        assert len(xrds.coords) == 0
 
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
@@ -149,7 +143,7 @@ class TestToXarrayConversion:
         assert len(ds.variables) == 0
         assert len(ds.coords) == 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def single_area_scn(self):
         """Define Scene with single area."""
         from pyresample.geometry import AreaDefinition
@@ -164,7 +158,44 @@ class TestToXarrayConversion:
         scn["var1"] = data_array
         return scn
 
-    @pytest.fixture()
+    def test_to_xarray_dataset_with_conflicting_variables(self):
+        """Test converting Scene with DataArrays with conflicting variables.
+
+        E.g. "acq_time" in the seviri_l1b_nc reader
+        """
+        from pyresample.geometry import AreaDefinition
+        area = AreaDefinition("test", "test", "test",
+                              {"proj": "geos", "lon_0": -95.5, "h": 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        scn = Scene()
+
+        acq_time_1 = ("y", [np.datetime64("1958-01-02 00:00:01"),
+                            np.datetime64("1958-01-02 00:00:02")])
+        ds = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=("y", "x"),
+                attrs={"start_time": datetime(2018, 1, 1), "area": area})
+        ds["acq_time"] = acq_time_1
+
+        scn["ds1"] = ds
+
+        acq_time_2 = ("y", [np.datetime64("1958-02-02 00:00:01"),
+                            np.datetime64("1958-02-02 00:00:02")])
+        ds2 = ds.copy()
+        ds2["acq_time"] = acq_time_2
+
+        scn["ds2"] = ds2
+
+        # drop case (compat="minimal")
+        xrds = scn.to_xarray_dataset()
+        assert isinstance(xrds, xr.Dataset)
+        assert "acq_time" not in xrds.coords
+
+        # override: pick variable from first dataset
+        xrds = scn.to_xarray_dataset(datasets=["ds1", "ds2"], compat="override")
+        assert isinstance(xrds, xr.Dataset)
+        assert "acq_time" in xrds.coords
+        xr.testing.assert_equal(xrds["acq_time"], ds["acq_time"])
+
+    @pytest.fixture
     def multi_area_scn(self):
         """Define Scene with multiple area."""
         from pyresample.geometry import AreaDefinition

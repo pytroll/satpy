@@ -98,9 +98,11 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         # use entire scans as chunks
         row_chunks_m = max(get_chunk_size_limit() // 4 // M_COLS, 1)  # 32-bit floats
         row_chunks_i = row_chunks_m * 2
+        drop_variables = filetype_info.get("drop_variables", None)
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
+                                  drop_variables=drop_variables,
                                   chunks={
                                       "Columns": -1,
                                       "Rows": row_chunks_m,
@@ -197,9 +199,12 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         platform_path = self.filename_info["platform_shortname"]
         platform_dict = {"NPP": "Suomi-NPP",
                          "JPSS-1": "NOAA-20",
+                         "SNPP": "Suomi-NPP",
                          "J01": "NOAA-20",
+                         "N20": "NOAA-20",
                          "JPSS-2": "NOAA-21",
-                         "J02": "NOAA-21"}
+                         "J02": "NOAA-21",
+                         "N21": "NOAA-21"}
         return platform_dict[platform_path.upper()]
 
     def available_datasets(self, configured_datasets=None):

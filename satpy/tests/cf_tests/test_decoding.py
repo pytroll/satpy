@@ -28,7 +28,7 @@ import satpy.cf.decoding
 class TestDecodeAttrs:
     """Test decoding of CF-encoded attributes."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def attrs(self):
         """Get CF-encoded attributes."""
         return {
@@ -41,7 +41,7 @@ class TestDecodeAttrs:
             "my_dict": '{"a": {"b": [1, 2, 3]}, "c": {"d": "2000-01-01 12:15:33.123456"}}'
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected(self):
         """Get expected decoded results."""
         return {

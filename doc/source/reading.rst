@@ -216,6 +216,9 @@ load the datasets using e.g.::
     :meth:`scn.missing_datasets <satpy.scene.Scene.missing_datasets>`
     property for any ``DataID`` that could not be loaded.
 
+Available datasets
+------------------
+
 To find out what datasets are available from a reader from the files that were
 provided to the ``Scene`` use
 :meth:`~satpy.scene.Scene.available_dataset_ids`::
@@ -297,6 +300,9 @@ time etc. The following attributes are standardized across all readers:
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
+* ``sensor``: The name of the sensor that recorded the data. For full support through Satpy this
+  should be all lowercase. If the dataset is the result of observations from multiple sensors a
+  ``set`` object can be used to specify more than one sensor name.
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
   See the :ref:`orbital_parameters` section below for more information.
@@ -305,6 +311,13 @@ time etc. The following attributes are standardized across all readers:
   should happen and when they actually do. See :ref:`time_metadata` below for
   details.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
+* ``rows_per_scan``: Optional integer indicating how many rows of data
+  represent a single scan of the instrument. This is primarily used by
+  some resampling algorithms (ex. EWA) to produce better results and only
+  makes sense for swath-based (usually polar-orbiting) instruments. For
+  example, MODIS 1km data has 10 rows of data per scan. If an instrument
+  does not have multiple rows per scan this should usually be set to 0 rather
+  than 1 to indicate that the entire swath should be treated as a whole.
 
 Note that the above attributes are not necessarily available for each dataset.
 

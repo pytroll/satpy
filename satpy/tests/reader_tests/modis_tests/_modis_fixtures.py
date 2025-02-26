@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 import pytest
@@ -215,6 +215,30 @@ def _get_l1b_geo_variable_info(filename: str,
         variables_info.update(_get_angles_variable_info(geo_resolution))
     return variables_info
 
+def _get_l3_land_cover_info() -> dict:
+
+    lc_data = np.zeros((2400, 2400), dtype=np.uint8)
+
+    variables_info = \
+    {
+        "LC_Type1": {"data": lc_data,
+                     "type": SDC.UINT8,
+                     "fill_value": 255,
+                     "attrs": {
+                         "dim_labels": ["YDim:MCD12Q1", "XDim:MCD12Q1"],
+                     },
+                     },
+        "LC_Type2": {"data": lc_data,
+                     "type": SDC.UINT8,
+                     "fill_value": 255,
+                     "attrs": {
+                         "dim_labels": ["YDim:MCD12Q1", "XDim:MCD12Q1"],
+                     },
+                     },
+    }
+
+    return variables_info
+
 
 def generate_nasa_l1b_filename(prefix):
     """Generate a filename that follows NASA MODIS L1b convention."""
@@ -331,19 +355,30 @@ def _create_struct_metadata_cmg(ftype: str) -> str:
         gridline = 'GridName="MOD09CMG"\n'
         upleft = "UpperLeftPointMtrs=(-180000000.000000,90000000.000000)\n"
         upright = "LowerRightMtrs=(180000000.000000,-90000000.000000)\n"
+        XDim=7200
+        YDim=3600
+    # Case of a MCD12Q1 file
+    elif ftype == "MCD12Q1":
+        gridline = 'GridName="MCD12Q1"\n'
+        upleft = "UpperLeftPointMtrs=(-8895604.157333,-1111950.519667)\n"
+        upright = "LowerRightMtrs=(-7783653.637667,-2223901.039333)\n"
+        XDim=2400
+        YDim=2400
     # Case of a MCD43 file
     else:
         gridline = 'GridName="MCD_CMG_BRDF_0.05Deg"\n'
         upleft = "UpperLeftPointMtrs=(-180.000000,90.000000)\n"
         upright = "LowerRightMtrs=(180.000000,-90.000000)\n"
+        XDim=7200
+        YDim=3600
 
     struct_metadata_header = ("GROUP=SwathStructure\n"
                               "END_GROUP=SwathStructure\n"
                               "GROUP=GridStructure\n"
                               "GROUP=GRID_1\n"
                               f"{gridline}\n"
-                              "XDim=7200\n"
-                              "YDim=3600\n"
+                              f"XDim={XDim}\n"
+                              f"YDim={YDim}\n"
                               f"{upleft}\n"
                               f"{upright}\n"
                               "END_GROUP=GRID_1\n"
@@ -409,7 +444,7 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture()
+@pytest.fixture
 def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
     """Create a single MOD02QKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Qkm")
@@ -461,11 +496,20 @@ def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_
 # Level 2 Fixtures
 
 
-def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
+def _get_basic_variable_info(var_name: str, resolution: int, dim_size: Literal[2, 3]=2) -> dict:
     shape = _shape_for_resolution(resolution)
-    data = np.ones((shape[0], shape[1]), dtype=np.uint16)
+
     row_dim_name = f"Cell_Along_Swath_{resolution}m:modl2"
     col_dim_name = f"Cell_Across_Swath_{resolution}m:modl2"
+
+    if dim_size == 3:
+        data = np.ones((1, shape[0], shape[1]), dtype=np.uint16)
+        dim_labels = ["channel", row_dim_name, col_dim_name]
+    elif dim_size == 2:
+        data = np.ones((shape[0], shape[1]), dtype=np.uint16)
+        dim_labels = [row_dim_name, col_dim_name]
+
+
     return {
         var_name: {
             "data": data,
@@ -473,8 +517,7 @@ def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
             "fill_value": 0,
             "attrs": {
                 # dim_labels are just unique dimension names, may not match exactly with real world files
-                "dim_labels": [row_dim_name,
-                               col_dim_name],
+                "dim_labels": dim_labels,
                 "valid_range": (0, 32767),
                 "scale_factor": 2.0,
                 "add_offset": -1.0,
@@ -598,6 +641,10 @@ def generate_nasa_l2_filename(prefix: str) -> str:
     now = dt.datetime.now()
     return f"{prefix}_L2.A{now:%Y%j.%H%M}.061.{now:%Y%j%H%M%S}.hdf"
 
+def generate_nasa_l3_tile_filename(prefix: str) -> str:
+    """Generate a file name that follows MODIS sinusoidal grid tile pattern."""
+    now = dt.datetime.now()
+    return f"{prefix}.A{now:%Y}001.h34v07.061.{now:%Y%j%H%M%S}.hdf"
 
 @pytest.fixture(scope="session")
 def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
@@ -613,6 +660,31 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
+@pytest.fixture(scope="session")
+def modis_l3_nasa_mcd12q1_file(tmpdir_factory) -> list[str]:
+    """Create a single MOD35 L2 HDF4 file with headers."""
+    filename = generate_nasa_l3_tile_filename("MCD12Q1")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l3_land_cover_info()
+    archive_header = \
+"""GROUP                  = ARCHIVEDMETADATA
+  GROUPTYPE            = MASTERGROUP
+
+  OBJECT                 = NADIRDATARESOLUTION
+    NUM_VAL              = 1
+    VALUE                = "500m"
+  END_OBJECT             = NADIRDATARESOLUTION
+
+END_GROUP              = ARCHIVEDMETADATA
+
+END
+"""
+    create_hdfeos_test_file(full_path,
+                            variable_infos,
+                            _create_struct_metadata_cmg("MCD12Q1"),
+                            _create_core_metadata("MCD12Q1"),
+                            archive_header)
+    return [full_path]
 
 def generate_nasa_l3_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 09 L3 convention in a temporary directory."""
@@ -664,6 +736,8 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_basic_variable_info("Surface_Pressure", 5000))
+    variable_infos.update(_get_basic_variable_info("non_yaml_configured_2D_var", 5000))
+    variable_infos.update(_get_basic_variable_info("non_yaml_configured_3D_var", 5000, dim_size=3))
     create_hdfeos_test_file(full_path,
                             variable_infos,
                             _create_struct_metadata(5000),
@@ -671,6 +745,23 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
+@pytest.fixture(scope="session")
+def modis_l2_nasa_mod99_file(tmpdir_factory) -> list[str]:
+    """Create an "artificial" MOD99 L2 HDF4 file with headers.
+
+    There exists no MOD99 Level 2 product. This is just for testing available datasets
+    in arbitrary level 2 file.
+    """
+    filename = generate_nasa_l2_filename("MOD99")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
+    variable_infos.update(_get_basic_variable_info("non_yaml_configured_2D_var", 1000))
+    create_hdfeos_test_file(full_path,
+                            variable_infos,
+                            _create_struct_metadata(5000),
+                            _create_core_metadata("MOD99"),
+                            _create_header_metadata())
+    return [full_path]
 
 @pytest.fixture(scope="session")
 def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:

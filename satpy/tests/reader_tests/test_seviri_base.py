@@ -250,7 +250,7 @@ ORBIT_POLYNOMIALS_INVALID = {
 class TestSatellitePosition:
     """Test locating the satellite."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def orbit_polynomial(self):
         """Get an orbit polynomial for testing."""
         return OrbitPolynomial(
@@ -269,7 +269,7 @@ class TestSatellitePosition:
             )
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def time(self):
         """Get scan timestamp for testing."""
         return dt.datetime(2006, 1, 1, 12, 15, 9, 304888)

@@ -892,7 +892,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 class TestNativeMSGDataset:
     """Tests for getting the dataset."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_handler(self):
         """Create a file handler for testing."""
         trailer = {
@@ -1133,7 +1133,7 @@ class TestNativeMSGPadder(unittest.TestCase):
 class TestNativeMSGFilenames:
     """Test identification of Native format filenames."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths
@@ -1314,6 +1314,8 @@ def test_read_physical_seviri_nat_file(full_path):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
         scene.load(["VIS006"])
+        assert scene["VIS006"].dtype == np.float32
+        assert scene["VIS006"].values.dtype == np.float32
         assert scene["VIS006"].shape == (3712, 3712)
         assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
 
