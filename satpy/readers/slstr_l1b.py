@@ -311,7 +311,7 @@ class NCSLSTRAngles(BaseFileHandler):
             if "angle" in key["name"]:
                 # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
                 # interpolation artifacts such as values <0 or >360.
-                indat =  variable.data[:, ::-1]
+                indat = variable.data[:, ::-1]
                 sin_angles = np.sin(np.radians(indat))
                 cos_angles = np.cos(np.radians(indat))
                 sin_interp = RectBivariateSpline(tie_y, tie_x, sin_angles)
