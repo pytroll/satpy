@@ -1241,8 +1241,10 @@ enhancements:
     operations: []
 
   essl_colorized_low_level_moisture:
+    # this enhancement is only found if using name but not standard_name
+    # The colormap was developed by the European Severe Storms Laboratory (ESSL).
     name: essl_colorized_low_level_moisture
-    operations:
+    operations: &masked_llm
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
         kwargs:
@@ -1351,6 +1353,11 @@ enhancements:
               - [255, 243, 175]
               - [255, 249, 183]
               - [255, 255, 191]
+
+  masked_essl_colorized_low_level_moisture:
+    # this enhancement is only found if using standard_name but not name
+    standard_name: masked_essl_colorized_low_level_moisture
+    operations: *masked_llm
 
   rocket_plume:
     standard_name: rocket_plume
