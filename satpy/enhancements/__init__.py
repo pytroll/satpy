@@ -219,11 +219,12 @@ def cira_stretch(img, **kwargs):
 
 @exclude_alpha
 def _cira_stretch(band_data):
-    log_root = np.log10(0.0223)
+    dtype = band_data.dtype
+    log_root = np.log10(0.0223, dtype=dtype)
     denom = (1.0 - log_root) * 0.75
     band_data *= 0.01
     band_data = band_data.clip(np.finfo(float).eps)
-    band_data = np.log10(band_data)
+    band_data = np.log10(band_data, dtype=dtype)
     band_data -= log_root
     band_data /= denom
     return band_data
@@ -631,6 +632,9 @@ def _jma_true_color_reproduction(img_data, platform=None):
                 "goes-18": np.array([[1.1629, 0.1539, -0.2175],
                                      [-0.0252, 0.8725, 0.1300],
                                      [-0.0204, -0.1100, 1.0633]]),
+                "goes-19": np.array([[0.9481, 0.3706, -0.2194],
+                                     [-0.0150, 0.8605, 0.1317],
+                                     [-0.0174, -0.1009, 1.0512]]),
 
                 "mtg-i1": np.array([[0.9007, 0.2086, -0.0100],
                                     [-0.0475, 1.0662, -0.0414],

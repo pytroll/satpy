@@ -42,7 +42,7 @@ class VIIRSSDRBenchmarkBase:
         except ImportError:
             assert len(self.get_filenames()) == 6 * 3  # nosec
         download_rsr()
-        download_luts(aerosol_type="rayleigh_only")
+        download_luts(aerosol_types=["rayleigh_only"])
 
     def setup(self, name):
         """Set up the benchmarks."""

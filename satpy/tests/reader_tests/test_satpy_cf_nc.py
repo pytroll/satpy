@@ -262,7 +262,7 @@ def cf_scene(datasets, common_attrs):
     return scene
 
 
-@pytest.fixture()
+@pytest.fixture
 def nc_filename(tmp_path):
     """Create an nc filename for viirs m band."""
     now = dt.datetime.utcnow()
@@ -270,7 +270,7 @@ def nc_filename(tmp_path):
     return str(tmp_path / filename)
 
 
-@pytest.fixture()
+@pytest.fixture
 def nc_filename_i(tmp_path):
     """Create an nc filename for viirs i band."""
     now = dt.datetime.utcnow()

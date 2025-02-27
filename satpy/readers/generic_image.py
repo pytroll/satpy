@@ -147,7 +147,7 @@ def _mask_image_data(data, info):
         if not np.issubdtype(data.dtype, np.integer):
             raise ValueError("Only integer datatypes can be used as a mask.")
         mask = data.data[-1, :, :] == np.iinfo(data.dtype).min
-        data = data.astype(np.float64)
+        data = data.astype(np.float32)
         masked_data = da.stack([da.where(mask, np.nan, data.data[i, :, :])
                                 for i in range(data.shape[0])])
         data.data = masked_data

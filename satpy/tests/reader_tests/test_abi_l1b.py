@@ -137,7 +137,7 @@ def generate_l1b_filename(chan_name: str) -> str:
     return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230_suffix.nc"
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_refl(tmp_path) -> xr.DataArray:
     """Load c01 reflectances."""
     with _apply_dask_chunk_size():
@@ -145,7 +145,7 @@ def c01_refl(tmp_path) -> xr.DataArray:
         return reader.load(["C01"])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_rad(tmp_path) -> xr.DataArray:
     """Load c01 radiances."""
     with _apply_dask_chunk_size():
@@ -153,7 +153,7 @@ def c01_rad(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
     """Load c01 radiances through h5netcdf."""
     shape = RAD_SHAPE[1000]
@@ -176,7 +176,7 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_counts(tmp_path) -> xr.DataArray:
     """Load c01 counts."""
     with _apply_dask_chunk_size():
@@ -184,7 +184,7 @@ def c01_counts(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="counts")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c07_bt_creator(tmp_path) -> Callable:
     """Create a loader for c07 brightness temperatures."""
     def _load_data_array(

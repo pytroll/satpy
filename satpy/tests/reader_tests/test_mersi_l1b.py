@@ -31,23 +31,27 @@ def _get_calibration(num_scans, ftype):
     calibration = {
         f"Calibration/{ftype}_Cal_Coeff":
             xr.DataArray(
-                da.ones((19, 3), chunks=1024),
-                attrs={"Slope": np.array([1.] * 19), "Intercept": np.array([0.] * 19)},
+                da.ones((19, 3), chunks=1024, dtype=np.float32),
+                attrs={"Slope": np.array([1.] * 19, dtype=np.float32),
+                       "Intercept": np.array([0.] * 19, dtype=np.float32)},
                 dims=("_bands", "_coeffs")),
         "Calibration/Solar_Irradiance":
             xr.DataArray(
-                da.ones((19, ), chunks=1024),
-                attrs={"Slope": np.array([1.] * 19), "Intercept": np.array([0.] * 19)},
+                da.ones((19, ), chunks=1024, dtype=np.float32),
+                attrs={"Slope": np.array([1.] * 19, dtype=np.float32),
+                       "Intercept": np.array([0.] * 19, dtype=np.float32)},
                 dims=("_bands")),
         "Calibration/Solar_Irradiance_LL":
             xr.DataArray(
-                da.ones((1, ), chunks=1024),
-                attrs={"Slope": np.array([1.]), "Intercept": np.array([0.])},
+                da.ones((1, ), chunks=1024, dtype=np.float32),
+                attrs={"Slope": np.array([1.], dtype=np.float32),
+                       "Intercept": np.array([0.], dtype=np.float32)},
                 dims=("_bands")),
         "Calibration/IR_Cal_Coeff":
             xr.DataArray(
-                da.ones((6, 4, num_scans), chunks=1024),
-                attrs={"Slope": np.array([1.] * 6), "Intercept": np.array([0.] * 6)},
+                da.ones((6, 4, num_scans), chunks=1024, dtype=np.float32),
+                attrs={"Slope": np.array([1.] * 6, dtype=np.float32),
+                       "Intercept": np.array([0.] * 6, dtype=np.float32)},
                 dims=("_bands", "_coeffs", "_scans")),
     }
     return calibration
@@ -62,7 +66,7 @@ def _get_250m_data(num_scans, rows_per_scan, num_cols, filetype_info):
 
     def_attrs = {fill_value_name: 65535,
                  "valid_range": [0, 4095],
-                 "Slope": np.array([1.] * 1), "Intercept": np.array([0.] * 1)
+                 "Slope": np.array([1.] * 1, dtype=np.float32), "Intercept": np.array([0.] * 1, dtype=np.float32)
                  }
     nounits_attrs = {**def_attrs, **{"units": "NO"}}
     radunits_attrs = {**def_attrs, **{"units": "mW/ (m2 cm-1 sr)"}}
@@ -116,7 +120,7 @@ def _get_500m_data(num_scans, rows_per_scan, num_cols):
                 da.ones((5, num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
                 attrs={
-                    "Slope": np.array([1.] * 5), "Intercept": np.array([0.] * 5),
+                    "Slope": np.array([1.] * 5, dtype=np.float32), "Intercept": np.array([0.] * 5, dtype=np.float32),
                     "FillValue": 65535,
                     "units": "NO",
                     "valid_range": [0, 4095],
@@ -128,7 +132,7 @@ def _get_500m_data(num_scans, rows_per_scan, num_cols):
                 da.ones((3, num_scans * rows_per_scan, num_cols), chunks=1024,
                         dtype=np.uint16),
                 attrs={
-                    "Slope": np.array([1.] * 3), "Intercept": np.array([0.] * 3),
+                    "Slope": np.array([1.] * 3, dtype=np.float32), "Intercept": np.array([0.] * 3, dtype=np.float32),
                     "FillValue": 65535,
                     "units": "mW/ (m2 cm-1 sr)",
                     "valid_range": [0, 25000],
@@ -150,7 +154,8 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
 
     data = {"Data/EV_1KM_LL":
             xr.DataArray(da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs={"Slope": np.array([1.]), "Intercept": np.array([0.]),
+                attrs={"Slope": np.array([1.], dtype=np.float32),
+                       "Intercept": np.array([0.], dtype=np.float32),
                        "FillValue": 65535,
                        "units": "NO",
                        "valid_range": [0, 4095],
@@ -158,7 +163,8 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
                 dims=("_rows", "_cols")),
             f"{key_prefix}EV_1KM_RefSB":
             xr.DataArray(da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs={"Slope": np.array([1.] * 15), "Intercept": np.array([0.] * 15),
+                attrs={"Slope": np.array([1.] * 15, dtype=np.float32),
+                       "Intercept": np.array([0.] * 15, dtype=np.float32),
                        fill_value_name: 65535,
                        "units": "NO",
                        "valid_range": [0, 4095],
@@ -166,7 +172,8 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
                 dims=("_ref_bands", "_rows", "_cols")),
         "Data/EV_1KM_Emissive":
             xr.DataArray(da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs={"Slope": np.array([1.] * 4), "Intercept": np.array([0.] * 4),
+                attrs={"Slope": np.array([1.] * 4, dtype=np.float32),
+                       "Intercept": np.array([0.] * 4, dtype=np.float32),
                        "FillValue": 65535,
                        "units": "mW/ (m2 cm-1 sr)",
                        "valid_range": [0, 25000],
@@ -174,7 +181,8 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
                 dims=("_ir_bands", "_rows", "_cols")),
         f"{key_prefix}EV_250_Aggr.1KM_RefSB":
             xr.DataArray(da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs={"Slope": np.array([1.] * 4), "Intercept": np.array([0.] * 4),
+                attrs={"Slope": np.array([1.] * 4, dtype=np.float32),
+                       "Intercept": np.array([0.] * 4, dtype=np.float32),
                        fill_value_name: 65535,
                        "units": "NO",
                        "valid_range": [0, 4095],
@@ -182,14 +190,16 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
                 dims=("_ref250_bands", "_rows", "_cols")),
         f"{key_prefix}EV_250_Aggr.1KM_Emissive":
             xr.DataArray(da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                attrs={"Slope": np.array([1.]), "Intercept": np.array([0.]),
+                attrs={"Slope": np.array([1.], dtype=np.float32),
+                       "Intercept": np.array([0.], dtype=np.float32),
                        fill_value_name: 65535,
                        "units": radunits,
                        "valid_range": [0, 4095],
                        "long_name": b"250m Emissive Bands Earth View Science Data Aggregated to 1 km"},
                 dims=("_rows", "_cols")) if is_mersi1 else
                 xr.DataArray(da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.uint16),
-                    attrs={"Slope": np.array([1.] * 2), "Intercept": np.array([0.] * 2),
+                    attrs={"Slope": np.array([1.] * 2, dtype=np.float32),
+                           "Intercept": np.array([0.] * 2, dtype=np.float32),
                            "FillValue": 65535,
                            "units": "mW/ (m2 cm-1 sr)",
                            "valid_range": [0, 4095],
@@ -197,9 +207,10 @@ def _get_1km_data(num_scans, rows_per_scan, num_cols, filetype_info):
                     dims=("_ir250_bands", "_rows", "_cols")),
         f"{key_prefix}SensorZenith":
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.int16),
                     attrs={
-                        "Slope": np.array([.01] * 1), "Intercept": np.array([0.] * 1),
+                        "Slope": np.array([.01] * 1, dtype=np.float32),
+                        "Intercept": np.array([0.] * 1, dtype=np.float32),
                         "units": "degree",
                         "valid_range": [0, 28000],
                     },
@@ -212,7 +223,7 @@ def _get_250m_ll_data(num_scans, rows_per_scan, num_cols):
     # Set some default attributes
     def_attrs = {"FillValue": 65535,
                  "valid_range": [0, 4095],
-                 "Slope": np.array([1.]), "Intercept": np.array([0.]),
+                 "Slope": np.array([1.], dtype=np.float32), "Intercept": np.array([0.], dtype=np.float32),
                  "long_name": b"250m Earth View Science Data",
                  "units": "mW/ (m2 cm-1 sr)",
                  }
@@ -235,27 +246,27 @@ def _get_geo_data(num_scans, rows_per_scan, num_cols, prefix):
     geo = {
         prefix + "Longitude":
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.float64),
                 attrs={
-                    "Slope": np.array([1.] * 1), "Intercept": np.array([0.] * 1),
+                    "Slope": np.array([1.] * 1, dtype=np.float64), "Intercept": np.array([0.] * 1, dtype=np.float64),
                     "units": "degree",
                     "valid_range": [-90, 90],
                 },
                 dims=("_rows", "_cols")),
         prefix + "Latitude":
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.float64),
                 attrs={
-                    "Slope": np.array([1.] * 1), "Intercept": np.array([0.] * 1),
+                    "Slope": np.array([1.] * 1, dtype=np.float64), "Intercept": np.array([0.] * 1, dtype=np.float64),
                     "units": "degree",
                     "valid_range": [-180, 180],
                 },
                 dims=("_rows", "_cols")),
         prefix + "SensorZenith":
             xr.DataArray(
-                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                da.ones((num_scans * rows_per_scan, num_cols), chunks=1024, dtype=np.int16),
                 attrs={
-                    "Slope": np.array([.01] * 1), "Intercept": np.array([0.] * 1),
+                    "Slope": np.array([.01] * 1, dtype=np.float32), "Intercept": np.array([0.] * 1, dtype=np.float32),
                     "units": "degree",
                     "valid_range": [0, 28000],
                 },
@@ -288,13 +299,13 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             "/attr/Observing Ending Time": "18:38:36.728",
         }
         fy3a_attrs = {
-            "/attr/VIR_Cal_Coeff": np.array([0.0, 1.0, 0.0] * 19),
+            "/attr/VIR_Cal_Coeff": np.array([0.0, 1.0, 0.0] * 19, dtype=np.float32),
         }
         fy3b_attrs = {
-            "/attr/VIS_Cal_Coeff": np.array([0.0, 1.0, 0.0] * 19),
+            "/attr/VIS_Cal_Coeff": np.array([0.0, 1.0, 0.0] * 19, dtype=np.float32),
         }
         fy3d_attrs = {
-            "/attr/Solar_Irradiance": np.array([1.0] * 19),
+            "/attr/Solar_Irradiance": np.array([1.0] * 19, dtype=np.float32),
         }
 
         global_attrs, ftype = self._set_sensor_attrs(global_attrs)
@@ -384,11 +395,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             return
 
         if "_1000" in self.filetype_info["file_type"]:
-            global_attrs["/attr/TBB_Trans_Coefficient_A"] = np.array([1.0] * 6)
-            global_attrs["/attr/TBB_Trans_Coefficient_B"] = np.array([0.0] * 6)
+            global_attrs["/attr/TBB_Trans_Coefficient_A"] = np.array([1.0] * 6, dtype=np.float32)
+            global_attrs["/attr/TBB_Trans_Coefficient_B"] = np.array([0.0] * 6, dtype=np.float32)
         else:
-            global_attrs["/attr/TBB_Trans_Coefficient_A"] = np.array([0.0] * 6)
-            global_attrs["/attr/TBB_Trans_Coefficient_B"] = np.array([0.0] * 6)
+            global_attrs["/attr/TBB_Trans_Coefficient_A"] = np.array([0.0] * 6, dtype=np.float32)
+            global_attrs["/attr/TBB_Trans_Coefficient_B"] = np.array([0.0] * 6, dtype=np.float32)
 
     @property
     def _num_cols_for_file_type(self):
@@ -512,6 +523,10 @@ class MERSI12llL1BTester(MERSIL1BTester):
             _test_multi_resolutions(available_datasets, self.ir_250_bands, resolution, ir_num_results)
 
             res = reader.load(self.bands_1000 + self.bands_250)
+            for i in res:
+                assert res[i].dtype == np.float32
+                assert res[i].values.dtype == np.float32
+
             if resolution != "250":
                 assert len(res) == len(self.bands_1000 + self.bands_250)
             else:
