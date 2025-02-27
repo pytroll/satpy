@@ -35,21 +35,6 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return dt.datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
     @property
-    def day_night_flag(self):
-        """Get the day/night flag."""
-        return self["/attr/DayNightFlag"]
-
-    @property
-    def start_direction(self):
-        """Get the swath start direction flag."""
-        return self["/attr/startDirection"]
-
-    @property
-    def end_direction(self):
-        """Get the swath end direction flag."""
-        return self["/attr/endDirection"]
-
-    @property
     def start_orbit_number(self):
         """Get start orbit number."""
         try:
@@ -203,9 +188,9 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "file_units": file_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
-            "day_night": self.day_night_flag,
-            "start_direction": self.start_direction,
-            "end_direction": self.end_direction,
+            "day_night": self["/attr/DayNightFlag"],
+            "start_direction": self["/attr/startDirection"],
+            "end_direction": self["/attr/endDirection"],
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
