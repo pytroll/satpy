@@ -204,20 +204,25 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
             for measurand in dset.dtype.fields.keys():
                 if measurand == "trajectory":
                     continue
-                ds_info = {
-                    "file_type": self.filetype_info["file_type"],
-                    "resolution": self.resolution,
-                    "name": prefix + measurand,
-                }
-                if measurand not in ("longitude", "latitude"):
-                    ds_info["coordinates"] = (prefix + "longitude", prefix + "latitude")
-                if measurand == "longitude":
-                    ds_info["standard_name"] = "longitude"
-                if measurand == "latitude":
-                    ds_info["standard_name"] = "latitude"
+                ds_info = self._measurand_ds_info(prefix, measurand)
                 yield True, ds_info
             if self.merge_channels:
                 break
+
+    def _measurand_ds_info(self, prefix, measurand):
+        ds_info = {
+            "file_type": self.filetype_info["file_type"],
+            "resolution": self.resolution,
+            "name": prefix + measurand,
+        }
+        if measurand not in ("longitude", "latitude"):
+            ds_info["coordinates"] = (prefix + "longitude", prefix + "latitude")
+        if measurand == "longitude":
+            ds_info["standard_name"] = "longitude"
+        if measurand == "latitude":
+            ds_info["standard_name"] = "latitude"
+
+        return ds_info
 
     def get_dataset(self, key, info):
         """Load a dataset."""
