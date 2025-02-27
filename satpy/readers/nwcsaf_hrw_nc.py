@@ -197,9 +197,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Form the names for the available datasets."""
         for channel in WIND_CHANNELS:
-            prefix = channel + "_"
-            if self.merge_channels:
-                prefix = ""
+            prefix = self._get_channel_prefix(channel)
             dset = self.h5f[channel]
             for measurand in dset.dtype.fields.keys():
                 if measurand == "trajectory":
@@ -208,6 +206,11 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
                 yield True, ds_info
             if self.merge_channels:
                 break
+
+    def _get_channel_prefix(self, channel):
+        if self.merge_channels:
+            return ""
+        return channel + "_"
 
     def _measurand_ds_info(self, prefix, measurand):
         ds_info = {
