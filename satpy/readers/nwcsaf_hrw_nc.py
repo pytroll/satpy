@@ -260,12 +260,11 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         units = DATASET_UNITS[dataset_name]
 
         return self._create_xarray(
-            np.concat(data),
+            data,
             dataset_name,
-            np.concat(self.lons["merged"]),
-            np.concat(self.lats["merged"]),
-            units
-            )
+            units,
+            "merged"
+        )
 
     def _append_merged_coordinates(self, channel):
         if "merged" not in self.lons:
@@ -274,8 +273,17 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.lons["merged"].append(self.lons[channel])
         self.lats["merged"].append(self.lats[channel])
 
-    @staticmethod
-    def _create_xarray(data, dataset_name, lons, lats, units, prefix=""):
+    def _create_xarray(self, data, dataset_name, units, channel):
+        lons = self.lons[channel]
+        lats = self.lats[channel]
+
+        prefix = channel + "_"
+        if channel == "merged":
+            data = np.concat(data)
+            lons = np.concat(lons)
+            lats = np.concat(lats)
+            prefix = ""
+
         xr_data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
                                name=dataset_name,
                                dims=["y"])
@@ -300,10 +308,9 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
             logger.warning("Reading %s is not supported.", dataset_name)
 
         units = DATASET_UNITS[measurand]
-        prefix = channel + "_"
 
         return self._create_xarray(
-            data, dataset_name, self.lons[channel], self.lats[channel], units, prefix=prefix)
+            data, dataset_name, units, channel)
 
 
     def _read_channel_coordinates(self, channel):
