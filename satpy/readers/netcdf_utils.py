@@ -211,8 +211,8 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[fc_key] = global_attrs[key] = value
         self.file_content["/attrs"] = global_attrs
 
-    @classmethod
-    def _get_object_attrs(cls, obj):
+    @staticmethod
+    def _get_object_attrs(obj):
         """Get object attributes using __dict__ but retrieve recoverable attributes on failure."""
         try:
             return obj.__dict__
