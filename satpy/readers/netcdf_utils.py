@@ -224,7 +224,6 @@ class NetCDF4FileHandler(BaseFileHandler):
                     atts[attname] = obj.getncattr(attname)
                 except KeyError:
                     LOG.warning(f"Warning: Cannot load object ({obj.name}) attribute ({attname}).")
-                    pass
             return atts
 
     def _collect_attrs(self, name, obj):
