@@ -28,11 +28,11 @@ LOG = logging.getLogger(__name__)
 
 
 class LightningTimeCompositor(CompositeBase):
-      """Class used to create the flash_age compositor usefull for lighting event visualisation.
+      """Compositor class for lightning visualisation based on time.
 
-      The datas used are dates related to the lightning event that should be normalised between
-      0 and 1. The value 1 corresponds to the latest lightning event and the value 0 corresponds
-      to the latest lightning event - time_range. The time_range is defined in the satpy/etc/composites/li.yaml
+      The compositor normalises the lightning event times between 0 and 1.
+      The value 1 corresponds to the latest lightning event and the value 0 corresponds
+      to the latest lightning event - time_range. The time_range is defined in the composite recipe
       and is in minutes.
       """
       def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
@@ -49,7 +49,8 @@ class LightningTimeCompositor(CompositeBase):
 
           The range of the normalised data is between 0 and 1 where 0 corresponds to the date end_time - time_range
           and 1 to the end_time. Where end_times represent the latest lightning event and time_range is the range of
-          time you want to see the event.The dates that are earlier to end_time - time_range are removed.
+          time in minutes visualised in the composite.
+          The dates that are earlier to end_time - time_range are set to NaN.
 
           Args:
               data (xr.DataArray): datas containing dates to be normalised
@@ -62,16 +63,14 @@ class LightningTimeCompositor(CompositeBase):
           end_time = np.array(np.datetime64(data.attrs[self.reference_time_attr]))
           # Compute the minimum time value based on the time range
           begin_time = end_time - np.timedelta64(self.time_range, "m")
-          # Drop values that are bellow begin_time
+          # Invalidate values that are before begin_time
           condition_time = data >= begin_time
-          condition_time_computed = condition_time.compute()
-          data = data.where(condition_time_computed, drop=True)
-          # exit if data is empty afer filtering
-          if data.size == 0 :
-              LOG.error(f"All the flash_age events happened before {begin_time}")
-              raise ValueError(f"Invalid data: data size is zero. All flash_age "
-                f"events occurred before the specified start time ({begin_time})."
-                )
+          data = data.where(condition_time)
+
+          # raise a warning if data is empty after filtering
+          if np.all(np.isnan(data)) :
+              LOG.warning(f"All the flash_age events happened before {begin_time}, the composite will be empty.")
+
           # Normalize the time values
           normalized_data = (data - begin_time) / (end_time - begin_time)
           # Ensure the result is still an xarray.DataArray
@@ -91,15 +90,14 @@ class LightningTimeCompositor(CompositeBase):
               attrs (dict): data's attributes
 
           Returns:
-              dict: atualised attributes
+              dict: updated attributes
           """
           attrs["name"] = self.standard_name
           attrs["standard_name"] = self.standard_name
-          # Attributes to describe the values range
           return attrs
 
 
-      def __call__(self,projectables, nonprojectables=None, **attrs):
+      def __call__(self, projectables, nonprojectables=None, **attrs):
           """Normalise the dates."""
           data = projectables[0]
           new_attrs = data.attrs.copy()
