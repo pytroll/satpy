@@ -18,13 +18,11 @@
 import logging
 
 import numpy as np
-from pyresample import geometry
 import xarray as xr
+from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
 
-CHUNK_SIZE = get_legacy_chunk_size()
 logger = logging.getLogger(__name__)
 
 
@@ -60,8 +58,6 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         proj_dict = {
             "proj": "latlong",
             "datum": "WGS84",
-            "ellps": "WGS84",
-            "no_defs": True
         }
         area = geometry.AreaDefinition(
             "lat lon grid",
@@ -95,7 +91,7 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", yaml_info["name"])
-        nc = xr.open_dataset(self.filename, chunks={"y": CHUNK_SIZE, "x": 800})
+        nc = xr.open_dataset(self.filename, chunks={"y": "auto", "x": 900})
         name = yaml_info.get("nc_store_name", yaml_info["name"])
         file_key = yaml_info.get("nc_key", name)
         data = nc[file_key]
