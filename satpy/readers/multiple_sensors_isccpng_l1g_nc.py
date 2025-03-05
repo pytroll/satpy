@@ -18,6 +18,7 @@
 import logging
 
 import numpy as np
+from pyresample import geometry
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -53,6 +54,25 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         if len(data.dims) == 4:
             data = data[0, 0, :, :]
         return data.squeeze(drop=True)
+
+    def get_area_def(self, dsid):
+        """Get area definition."""
+        proj_dict = {
+            "proj": "latlong",
+            "datum": "WGS84",
+            "ellps": "WGS84",
+            "no_defs": True
+        }
+        area = geometry.AreaDefinition(
+            "lat lon grid",
+            "name_of_proj",
+            "id_of_proj",
+            proj_dict,
+            7200,
+            3600,
+            np.asarray([-180, -90, 180, 90])
+        )
+        return area
 
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
