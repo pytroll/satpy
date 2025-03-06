@@ -147,7 +147,7 @@ def get_valid_attribs(anames, alist):
     return attribs
 
 
-def add_dataset_variable(dims, grp, anames, vname, vdesc):
+def add_dataset_variable(dims, grp, anames, vname, vdesc, dim_refs):
     """Add a variable to a given dataset group."""
     dnames = vdesc[0]
     shape = tuple([dims[dname] for dname in dnames])
@@ -155,6 +155,9 @@ def add_dataset_variable(dims, grp, anames, vname, vdesc):
     attribs = get_valid_attribs(anames, vdesc[2])
     arr = create_random_data(shape, tname, attribs)
     dset = grp.create_dataset(vname, data=arr)
+
+    for i, dname in enumerate(dnames):
+        dset.dims[i].attach_scale(dim_refs[dname])
 
     for attr_name, attr_value in attribs.items():
         if attr_name in ["valid_min", "valid_max", "missing_value"]:
@@ -172,10 +175,12 @@ def write_fake_iasing_l2_file(output_path):
     with h5py.File(output_path, "w") as ds:
 
         grp = ds.create_group("data")
+        dim_refs = {}
         for dim_name, size in dims.items():
             dim_dset = grp.create_dataset(dim_name, (size,), dtype="int32")
             dim_dset.make_scale(dim_name)
             dim_dset[:] = range(size)
+            dim_refs[dim_name] = dim_dset
 
         for grp_desc in DATA_DESC:
             prefix = grp_desc["group"]
@@ -183,7 +188,7 @@ def write_fake_iasing_l2_file(output_path):
             anames = grp_desc["attrs"]
 
             for vname, vdesc in grp_desc["variables"].items():
-                add_dataset_variable(dims, grp, anames, vname, vdesc)
+                add_dataset_variable(dims, grp, anames, vname, vdesc, dim_refs)
 
     return os.fspath(output_path)
 
@@ -301,12 +306,8 @@ class TestIASINGL2NCReader:
         lat = twv_scene["sounder_pixel_latitude"]
         lon = twv_scene["sounder_pixel_longitude"]
 
-        assert len(lat.dims) == 2
-        assert len(lon.dims) == 2
-        assert lat.dims[0] == "x"
-        assert lat.dims[1] == "y"
-        assert lon.dims[0] == "x"
-        assert lon.dims[1] == "y"
+        assert lat.dims == ("n_lines", "n_for", "n_fov")
+        assert lon.dims == ("n_lines", "n_for", "n_fov")
 
         assert lat.dtype == np.float64
         assert lon.dtype == np.float64
@@ -322,9 +323,7 @@ class TestIASINGL2NCReader:
         twv_scene.load(["onboard_utc", "sounder_pixel_latitude"])
         dset = twv_scene["onboard_utc"]
 
-        assert len(dset.dims) == 2
-        assert dset.dims[0] == "x"
-        assert dset.dims[1] == "y"
+        assert dset.dims == ("n_lines", "n_for")
 
         assert dset.dtype == np.dtype("datetime64[ns]")
 
@@ -333,7 +332,7 @@ class TestIASINGL2NCReader:
         twv_scene.load(["nbr_iterations"])
         dset = twv_scene["nbr_iterations"]
 
-        assert len(dset.dims) == 2
+        assert len(dset.dims) == 3
         assert dset.dtype == np.int32
 
     def test_register_dataset(self, twv_handler):
@@ -492,13 +491,6 @@ class TestIASINGL2NCReader:
         )
         result = twv_handler.apply_rescaling(data)
         np.testing.assert_array_equal(result, [3, 5, 7])
-
-    def test_apply_reshaping(self, twv_handler):
-        """Test the apply_reshaping method."""
-        data = xr.DataArray(np.ones((2, 3, 4)), dims=("a", "b", "c"))
-        result = twv_handler.apply_reshaping(data)
-        assert result.dims == ("x", "y")
-        assert result.shape == (2, 12)
 
     def test_convert_to_datetime(self, twv_handler):
         """Test the convert_to_datetime method."""

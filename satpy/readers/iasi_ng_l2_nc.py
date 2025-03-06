@@ -318,25 +318,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         return data_array
 
-    def apply_reshaping(self, data_array):
-        """Apply the reshaping transform on a given IASI-NG data array.
-
-        Those arrays may come as 3D array, in which case we collapse the
-        last 2 dimensions on a single axis (ie. the number of columns or "y")
-
-        In the process, we also rename the first axis to "x"
-        """
-        if len(data_array.dims) > 2:
-            data_array = data_array.stack(y=(data_array.dims[1:]))
-
-        if data_array.dims[0] != "x":
-            data_array = data_array.rename({data_array.dims[0]: "x"})
-
-        if data_array.dims[1] != "y":
-            data_array = data_array.rename({data_array.dims[1]: "y"})
-
-        return data_array
-
     def convert_to_datetime(self, data_array, ds_info):
         """Convert the data to datetime values."""
         epoch = ds_info["seconds_since_epoch"]
@@ -363,7 +344,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         arr = self.convert_data_type(arr)
         arr = self.apply_fill_value(arr)
         arr = self.apply_rescaling(arr)
-        arr = self.apply_reshaping(arr)
 
         if "seconds_since_epoch" in ds_info:
             arr = self.convert_to_datetime(arr, ds_info)
