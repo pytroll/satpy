@@ -7,6 +7,7 @@ dependencies:
   - platformdirs
   - dask
   - dask-image
+  - dask-expr
   - defusedxml
   - donfig
   # 2.19.1 seems to cause library linking issues
@@ -24,9 +25,8 @@ dependencies:
   - rioxarray
   - setuptools
   - setuptools_scm
-  - sphinx
+  - sphinx>=8.2.0
   - sphinx_rtd_theme
-  - sphinxcontrib-apidoc
   - trollsift
   - xarray
   - zarr
