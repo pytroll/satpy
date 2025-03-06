@@ -137,6 +137,35 @@ def create_random_data(shape, dtype, attribs):
     return data
 
 
+def create_controlled_data(shape, dtype, attribs):
+    """Create data with controlled values for testing scaling and masking."""
+    if dtype.startswith("float"):
+        data = np.zeros(shape, dtype=dtype)
+    else:
+        data = np.zeros(shape, dtype=dtype)
+
+    rows, cols, fovs = shape
+
+    for i in range(rows):
+        for j in range(cols):
+            for k in range(fovs):
+                if dtype.startswith("int"):
+                    data[i, j, k] = ((i * 100) + (j * 10) + k) % int(
+                        attribs.get("valid_max", 1000)
+                    )
+                else:
+                    data[i, j, k] = ((i * 10.0) + (j * 1.0) + k / 10.0) % float(
+                        attribs.get("valid_max", 100.0)
+                    )
+
+    if "missing_value" in attribs:
+        data[0, 0, 0] = attribs["missing_value"]
+        if rows > 2 and cols > 2 and fovs > 2:
+            data[2, 2, 2] = attribs["missing_value"]
+
+    return data
+
+
 def get_valid_attribs(anames, alist):
     """Retrieve only the valid attributes from a list."""
     attribs = {}
@@ -153,7 +182,12 @@ def add_dataset_variable(dims, grp, anames, vname, vdesc, dim_refs):
     shape = tuple([dims[dname] for dname in dnames])
     tname = vdesc[1]
     attribs = get_valid_attribs(anames, vdesc[2])
-    arr = create_random_data(shape, tname, attribs)
+
+    if vname in ["sounder_pixel_latitude", "sounder_pixel_longitude"]:
+        arr = create_controlled_data(shape, tname, attribs)
+    else:
+        arr = create_random_data(shape, tname, attribs)
+
     dset = grp.create_dataset(vname, data=arr)
 
     for i, dname in enumerate(dnames):
@@ -317,6 +351,50 @@ class TestIASINGL2NCReader:
 
         assert np.nanmin(lon) >= -180.0
         assert np.nanmax(lon) <= 180.0
+
+    def test_scaling_latitude(self, tmp_path):
+        """Test that latitude values are correctly scaled and masked."""
+        twv_filename = f"{self.file_prefix}-TWV_{self.file_suffix}"
+        output_path = write_fake_iasing_l2_file(tmp_path / twv_filename)
+
+        scene = Scene(filenames=[output_path], reader=self.reader_name)
+        scene.load(["sounder_pixel_latitude"])
+        lat = scene["sounder_pixel_latitude"]
+
+        with h5py.File(output_path, "r") as f:
+            raw_lat = f["data/geolocation_information/sounder_pixel_latitude"][:]
+            scale_factor = f["data/geolocation_information/sounder_pixel_latitude"].attrs[
+                "scale_factor"
+            ]
+            add_offset = f["data/geolocation_information/sounder_pixel_latitude"].attrs[
+                "add_offset"
+            ]
+            missing_value = f[
+                "data/geolocation_information/sounder_pixel_latitude"
+            ].attrs["missing_value"]
+
+        assert np.isnan(lat.values[0, 0, 0])
+
+        valid_point = np.where(raw_lat != missing_value)
+        if len(valid_point[0]) > 0:
+            i, j, k = valid_point[0][0], valid_point[1][0], valid_point[2][0]
+            expected_value = raw_lat[i, j, k] * scale_factor + add_offset
+            np.testing.assert_almost_equal(lat.values[i, j, k], expected_value)
+
+        assert lat.attrs["units"] == "degrees_north"
+
+    def test_mask_propagation(self, twv_scene):
+        """Test that masks are properly propagated to derived datasets."""
+        twv_scene.load(["sounder_pixel_latitude", "sounder_pixel_longitude"])
+        lat = twv_scene["sounder_pixel_latitude"]
+        lon = twv_scene["sounder_pixel_longitude"]
+
+        assert np.isnan(lat.values[0, 0, 0])
+        assert np.isnan(lon.values[0, 0, 0])
+
+        if lat.shape[0] > 2 and lat.shape[1] > 2 and lat.shape[2] > 2:
+            assert np.isnan(lat.values[2, 2, 2])
+            assert np.isnan(lon.values[2, 2, 2])
 
     def test_onboard_utc_dataset(self, twv_scene):
         """Test loading the onboard_utc dataset."""
