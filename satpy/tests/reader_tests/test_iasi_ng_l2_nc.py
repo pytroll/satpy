@@ -139,28 +139,21 @@ def create_random_data(shape, dtype, attribs):
 
 def create_controlled_data(shape, dtype, attribs):
     """Create data with controlled values for testing scaling and masking."""
-    # Create base array of zeros with appropriate dtype
     data = np.zeros(shape, dtype=dtype)
 
-    # Generate indices for all positions
     indices = np.indices(shape)
     rows, cols, fovs = indices
 
-    # Create a pattern based on position
     if dtype.startswith("int"):
-        # Integer pattern: i*100 + j*10 + k, with modulo to stay within valid range
         valid_max = int(attribs.get("valid_max", 1000))
         data = ((rows * 100) + (cols * 10) + fovs) % valid_max
     else:
-        # Float pattern: i*10.0 + j*1.0 + k/10.0, with modulo to stay within valid range
         valid_max = float(attribs.get("valid_max", 100.0))
         data = ((rows * 10.0) + (cols * 1.0) + (fovs / 10.0)) % valid_max
 
-    # Add known missing values at specific positions
     if "missing_value" in attribs:
         data[0, 0, 0] = attribs["missing_value"]
-        if all(dim > 2 for dim in shape):
-            data[2, 2, 2] = attribs["missing_value"]
+        data[2, 2, 2] = attribs["missing_value"]
 
     return data
 
@@ -175,12 +168,15 @@ def get_valid_attribs(anames, alist):
     return attribs
 
 
-def add_dataset_variable(dims, grp, anames, vname, vdesc, dim_refs):
+def add_dataset_variable(grp, var_config, dim_refs):
     """Add a variable to a given dataset group."""
-    dnames = vdesc[0]
-    shape = tuple([dims[dname] for dname in dnames])
-    tname = vdesc[1]
-    attribs = get_valid_attribs(anames, vdesc[2])
+    dnames = var_config["dims"]
+    vname = var_config["name"]
+    tname = var_config["dtype"]
+    anames = var_config["allowed_attrs"]
+    attribs = get_valid_attribs(anames, var_config["attrs"])
+
+    shape = tuple([dim_refs[dname].size for dname in dnames])
 
     if vname in ["sounder_pixel_latitude", "sounder_pixel_longitude"]:
         arr = create_controlled_data(shape, tname, attribs)
@@ -206,7 +202,6 @@ def write_fake_iasing_l2_file(output_path):
     dims = {"n_lines": n_lines, "n_for": n_for, "n_fov": n_fov}
 
     with h5py.File(output_path, "w") as ds:
-
         grp = ds.create_group("data")
         dim_refs = {}
         for dim_name, size in dims.items():
@@ -218,10 +213,17 @@ def write_fake_iasing_l2_file(output_path):
         for grp_desc in DATA_DESC:
             prefix = grp_desc["group"]
             grp = ds.create_group(prefix)
-            anames = grp_desc["attrs"]
 
             for vname, vdesc in grp_desc["variables"].items():
-                add_dataset_variable(dims, grp, anames, vname, vdesc, dim_refs)
+                var_config = {
+                    "name": vname,
+                    "dims": vdesc[0],
+                    "dtype": vdesc[1],
+                    "attrs": vdesc[2],
+                    "allowed_attrs": grp_desc["attrs"],
+                }
+
+                add_dataset_variable(grp, var_config, dim_refs)
 
     return os.fspath(output_path)
 
@@ -391,9 +393,8 @@ class TestIASINGL2NCReader:
         assert np.isnan(lat.values[0, 0, 0])
         assert np.isnan(lon.values[0, 0, 0])
 
-        if lat.shape[0] > 2 and lat.shape[1] > 2 and lat.shape[2] > 2:
-            assert np.isnan(lat.values[2, 2, 2])
-            assert np.isnan(lon.values[2, 2, 2])
+        assert np.isnan(lat.values[2, 2, 2])
+        assert np.isnan(lon.values[2, 2, 2])
 
     def test_onboard_utc_dataset(self, twv_scene):
         """Test loading the onboard_utc dataset."""
