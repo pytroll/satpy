@@ -411,7 +411,7 @@ class TestIASINGL2NCReader:
         dset = twv_scene["nbr_iterations"]
 
         assert len(dset.dims) == 3
-        assert dset.dtype == np.int32
+        assert dset.dtype == np.float64
 
     def test_register_dataset(self, twv_handler):
         """Test the register_dataset method."""
@@ -530,45 +530,6 @@ class TestIASINGL2NCReader:
         assert not twv_handler.variable_path_exists("/attr/test_var")
         assert not twv_handler.variable_path_exists("test_var/dtype")
         assert not twv_handler.variable_path_exists("/grp/a_non_existing_var")
-
-    def test_convert_data_type(self, twv_handler):
-        """Test the convert_data_type method."""
-        data = xr.DataArray(np.array([1, 2, 3], dtype=np.float32))
-        result = twv_handler.convert_data_type(data, dtype="float64")
-        assert result.dtype == np.float64
-
-        data.attrs["scale_factor"] = 2.0
-        result = twv_handler.convert_data_type(data, dtype="auto")
-        assert result.dtype == np.float32
-
-    def test_apply_fill_value(self, twv_handler):
-        """Test the apply_fill_value method."""
-        data = xr.DataArray(
-            np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
-            attrs={"valid_min": 2.0, "valid_max": 4.0},
-        )
-        result = twv_handler.apply_fill_value(data)
-        assert np.isnan(result[0])
-        assert np.isnan(result[4])
-
-    def test_apply_fill_value_range(self, twv_handler):
-        """Test the apply_fill_value method with range."""
-        data = xr.DataArray(
-            np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
-            attrs={"valid_range": [2.0, 4.0]},
-        )
-        result = twv_handler.apply_fill_value(data)
-        assert np.isnan(result[0])
-        assert np.isfinite(result[1])
-        assert np.isnan(result[4])
-
-    def test_apply_rescaling(self, twv_handler):
-        """Test the apply_rescaling method."""
-        data = xr.DataArray(
-            np.array([1, 2, 3]), attrs={"scale_factor": 2, "add_offset": 1}
-        )
-        result = twv_handler.apply_rescaling(data)
-        np.testing.assert_array_equal(result, [3, 5, 7])
 
     def test_convert_to_datetime(self, twv_handler):
         """Test the convert_to_datetime method."""

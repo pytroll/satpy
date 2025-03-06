@@ -42,7 +42,9 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize object."""
-        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        super().__init__(
+            filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs
+        )
 
         self.sensors = {"iasi_ng"}
 
@@ -252,72 +254,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         return False
 
-    def convert_data_type(self, data_array, dtype="auto"):
-        """Convert the data type if applicable."""
-        attribs = data_array.attrs
-
-        cur_dtype = np.dtype(data_array.dtype).name
-
-        if dtype == "auto" and cur_dtype in ["float32", "float64"]:
-            dtype = cur_dtype
-
-        to_float = "scale_factor" in attribs or "add_offset" in attribs
-
-        if dtype == "auto":
-            dtype = "float64" if to_float else cur_dtype
-
-        if cur_dtype != dtype:
-            data_array = data_array.astype(dtype)
-
-        return data_array
-
-    def apply_fill_value(self, data_array):
-        """Apply the rescaling transform on a given array."""
-        dtype = np.dtype(data_array.dtype).name
-        if dtype not in ["float32", "float64"]:
-            return data_array
-
-        nan_val = np.nan if dtype == "float64" else np.float32(np.nan)
-        attribs = data_array.attrs
-
-        if "valid_min" in attribs:
-            vmin = attribs["valid_min"]
-            data_array = data_array.where(data_array >= vmin, other=nan_val)
-
-        if "valid_max" in attribs:
-            vmax = attribs["valid_max"]
-            data_array = data_array.where(data_array <= vmax, other=nan_val)
-
-        if "valid_range" in attribs:
-            vrange = attribs["valid_range"]
-            data_array = data_array.where(data_array >= vrange[0], other=nan_val)
-            data_array = data_array.where(data_array <= vrange[1], other=nan_val)
-
-        missing_val = attribs.get("missing_value", None)
-        missing_val = attribs.get("_FillValue", missing_val)
-
-        if missing_val is None:
-            return data_array
-
-        return data_array.where(data_array != missing_val, other=nan_val)
-
-    def apply_rescaling(self, data_array):
-        """Apply the rescaling transform on a given array."""
-        attribs = data_array.attrs
-        if "scale_factor" in attribs or "add_offset" in attribs:
-            scale_factor = attribs.setdefault("scale_factor", 1)
-            add_offset = attribs.setdefault("add_offset", 0)
-
-            data_array = (data_array * scale_factor) + add_offset
-
-            for key in ["valid_range", "valid_min", "valid_max"]:
-                if key in attribs:
-                    attribs[key] = attribs[key] * scale_factor + add_offset
-
-            data_array.attrs.update(attribs)
-
-        return data_array
-
     def convert_to_datetime(self, data_array, ds_info):
         """Convert the data to datetime values."""
         epoch = ds_info["seconds_since_epoch"]
@@ -340,10 +276,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             raise KeyError(f"Invalid variable path: {vname}")
 
         arr = self[vname]
-
-        arr = self.convert_data_type(arr)
-        arr = self.apply_fill_value(arr)
-        arr = self.apply_rescaling(arr)
 
         if "seconds_since_epoch" in ds_info:
             arr = self.convert_to_datetime(arr, ds_info)
