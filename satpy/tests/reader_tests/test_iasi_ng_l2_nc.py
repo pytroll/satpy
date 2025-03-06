@@ -139,28 +139,27 @@ def create_random_data(shape, dtype, attribs):
 
 def create_controlled_data(shape, dtype, attribs):
     """Create data with controlled values for testing scaling and masking."""
-    if dtype.startswith("float"):
-        data = np.zeros(shape, dtype=dtype)
+    # Create base array of zeros with appropriate dtype
+    data = np.zeros(shape, dtype=dtype)
+
+    # Generate indices for all positions
+    indices = np.indices(shape)
+    rows, cols, fovs = indices
+
+    # Create a pattern based on position
+    if dtype.startswith("int"):
+        # Integer pattern: i*100 + j*10 + k, with modulo to stay within valid range
+        valid_max = int(attribs.get("valid_max", 1000))
+        data = ((rows * 100) + (cols * 10) + fovs) % valid_max
     else:
-        data = np.zeros(shape, dtype=dtype)
+        # Float pattern: i*10.0 + j*1.0 + k/10.0, with modulo to stay within valid range
+        valid_max = float(attribs.get("valid_max", 100.0))
+        data = ((rows * 10.0) + (cols * 1.0) + (fovs / 10.0)) % valid_max
 
-    rows, cols, fovs = shape
-
-    for i in range(rows):
-        for j in range(cols):
-            for k in range(fovs):
-                if dtype.startswith("int"):
-                    data[i, j, k] = ((i * 100) + (j * 10) + k) % int(
-                        attribs.get("valid_max", 1000)
-                    )
-                else:
-                    data[i, j, k] = ((i * 10.0) + (j * 1.0) + k / 10.0) % float(
-                        attribs.get("valid_max", 100.0)
-                    )
-
+    # Add known missing values at specific positions
     if "missing_value" in attribs:
         data[0, 0, 0] = attribs["missing_value"]
-        if rows > 2 and cols > 2 and fovs > 2:
+        if all(dim > 2 for dim in shape):
             data[2, 2, 2] = attribs["missing_value"]
 
     return data
