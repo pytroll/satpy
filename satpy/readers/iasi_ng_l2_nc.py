@@ -56,8 +56,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         aliases = self.filetype_info.get("dataset_aliases", {})
         self.dataset_aliases = {re.compile(key): val for key, val in aliases.items()}
 
-        self.broadcast_timestamps = self.filetype_info.get("broadcast_timestamps", False)
-
         self.register_available_datasets()
 
     @property
@@ -219,9 +217,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             if unit is not None and unit.startswith("seconds since "):
                 desc["seconds_since_epoch"] = unit.replace("seconds since ", "")
 
-            if self.broadcast_timestamps and desc["var_name"] == "onboard_utc":
-                desc["broadcast_on_dim"] = "n_fov"
-
             self.register_dataset(ds_name, desc)
 
     def get_dataset_infos(self, ds_name):
@@ -356,18 +351,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         return data_array
 
-    def apply_broadcast(self, data_array, ds_info):
-        """Apply the broadcast of the data array."""
-        dim_name = ds_info["broadcast_on_dim"]
-        try:
-            rep_count = self.dimensions_desc[dim_name]
-        except KeyError as exc:
-            raise KeyError(f"Invalid dimension name {dim_name}") from exc
-
-        data_array = xr.concat([data_array] * rep_count, dim=data_array.dims[-1])
-
-        return data_array
-
     def get_transformed_dataset(self, ds_info):
         """Retrieve a dataset with all transformations applied on it."""
         vname = ds_info["location"]
@@ -384,9 +367,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         if "seconds_since_epoch" in ds_info:
             arr = self.convert_to_datetime(arr, ds_info)
-
-        if "broadcast_on_dim" in ds_info:
-            arr = self.apply_broadcast(arr, ds_info)
 
         return arr
 

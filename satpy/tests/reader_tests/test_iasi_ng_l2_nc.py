@@ -328,10 +328,6 @@ class TestIASINGL2NCReader:
 
         assert dset.dtype == np.dtype("datetime64[ns]")
 
-        lat = twv_scene["sounder_pixel_latitude"]
-
-        assert lat.shape == dset.shape
-
     def test_nbr_iterations_dataset(self, twv_scene):
         """Test loading the nbr_iterations dataset."""
         twv_scene.load(["nbr_iterations"])
@@ -512,29 +508,11 @@ class TestIASINGL2NCReader:
         assert result[0].values == np.datetime64("2000-01-01T00:00:00")
         assert result[1].values == np.datetime64("2000-01-02T00:00:00")
 
-    def test_apply_broadcast(self, twv_handler):
-        """Test the apply_broadcast method."""
-        data = xr.DataArray(np.array([1, 2, 3]), dims=("x",))
-        twv_handler.dimensions_desc = {"n_fov": 2}
-        ds_info = {"broadcast_on_dim": "n_fov"}
-        result = twv_handler.apply_broadcast(data, ds_info)
-        assert result.shape == (6,)
-
-    def test_apply_broadcast_failure(self, twv_handler):
-        """Test the apply_broadcast method fails on missing dim."""
-        data = xr.DataArray(np.array([1, 2, 3]), dims=("x",))
-        twv_handler.dimensions_desc = {}
-        ds_info = {"broadcast_on_dim": "n_fov"}
-
-        with pytest.raises(KeyError):
-            twv_handler.apply_broadcast(data, ds_info)
-
     def test_get_transformed_dataset(self, twv_handler):
         """Test the get_transformed_dataset method."""
         ds_info = {
             "location": "test_var",
             "seconds_since_epoch": "2000-01-01 00:00:00",
-            "broadcast_on_dim": "n_fov",
         }
         twv_handler.variable_path_exists = lambda _arg: True
         twv_handler.file_content["test_var"] = xr.DataArray(
@@ -544,7 +522,7 @@ class TestIASINGL2NCReader:
         twv_handler.dimensions_desc = {"n_fov": 2}
 
         result = twv_handler.get_transformed_dataset(ds_info)
-        assert result.shape == (1, 4)
+        assert result.shape == (1, 2)
         assert result.dtype == "datetime64[ns]"
 
     def test_get_transformed_dataset_failure(self, twv_handler):
@@ -552,7 +530,6 @@ class TestIASINGL2NCReader:
         ds_info = {
             "location": "test_var",
             "seconds_since_epoch": "2000-01-01 00:00:00",
-            "broadcast_on_dim": "n_fov",
         }
 
         with pytest.raises(KeyError):

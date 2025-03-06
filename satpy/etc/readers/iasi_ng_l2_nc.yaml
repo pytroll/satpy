@@ -24,7 +24,3 @@ file_types:
 
     dataset_aliases:
       "/optimal_estimation/(.+)$": "${VAR_NAME}_oem"
-
-    # Define if we should broadcast the timestamps from
-    # dims (n_lines, n_for) to (n_lines, n_for, n_fov):
-    broadcast_timestamps: true
