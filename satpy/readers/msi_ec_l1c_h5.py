@@ -61,6 +61,11 @@ class MSIECL1CFileHandler(HDF5FileHandler):
         # The dataset has incorrect units attribute (due to storing multiple types). Fix it here.
         data.attrs.update(ds_info)
         data.attrs.update({"units": ds_info.get("units")})
+
+        if "fill_value" in ds_info:
+            ds_fill = ds_info["fill_value"]
+            data = data.where(data != ds_fill)
+
         # VIS/SWIR data can have radiance or reflectance calibration.
         if "calibration" in ds_info:
             cal_type = ds_info["calibration"].name
