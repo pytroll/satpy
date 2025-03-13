@@ -34,6 +34,8 @@ datasets:
     file_key: ScienceData/pixel_values
     band_index: 0
     coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
   NIR:
     name: NIR
     sensor: ec_msi
@@ -50,6 +52,8 @@ datasets:
     file_key: ScienceData/pixel_values
     band_index: 1
     coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
   SWIR1:
     name: SWIR1
     sensor: ec_msi
@@ -82,6 +86,8 @@ datasets:
     file_key: ScienceData/pixel_values
     band_index: 3
     coordinates: [longitude, latitude]
+    fill_value: 996920996838686904677855295210258432.00
+
   TIR1:
     name: TIR1
     sensor: ec_msi
@@ -95,6 +101,8 @@ datasets:
     file_key: ScienceData/pixel_values
     band_index: 4
     coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
   TIR2:
     name: TIR2
     sensor: ec_msi
@@ -108,6 +116,8 @@ datasets:
     file_key: ScienceData/pixel_values
     band_index: 5
     coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
   TIR3:
     name: TIR3
     sensor: ec_msi
@@ -121,6 +131,7 @@ datasets:
     file_key: ScienceData/pixel_values
     band_index: 6
     coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
 
   # Relative error datasets
   VIS_rel_error:
