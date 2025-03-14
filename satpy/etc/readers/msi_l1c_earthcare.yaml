@@ -36,8 +36,8 @@ datasets:
     coordinates: [longitude, latitude]
     fill_value: 9969209968386869046778552952102584320.0
 
-  NIR:
-    name: NIR
+  VNIR:
+    name: VNIR
     sensor: ec_msi
     wavelength: [0.855, 0.865, 0.875]
     resolution: 500
@@ -143,8 +143,8 @@ datasets:
     file_type: msi_l1c_earthcare_rgr
     file_key: ScienceData/pixel_values_relative_error
     band_index: 0
-  NIR_rel_error:
-    name: NIR_rel_error
+  VNIR_rel_error:
+    name: VNIR_rel_error
     sensor: ec_msi
     resolution: 500
     standard_name: relative_error_in_toa_radiance
