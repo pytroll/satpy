@@ -15,7 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""A reader for Level 1C data produced by the MSI instrument aboard EarthCARE."""
+"""A reader for Level 1C data produced by the MSI instrument aboard EarthCARE.
+
+The MSI L1 files are described in the document "MSI L1 Product Definitions":
+https://earthcarehandbook.earth.esa.int/documents/d/earthcare-data-handbook/msi-l1-product-definitions-volume-a-nominal-products
+
+"""
 import logging
 
 import numpy as np
