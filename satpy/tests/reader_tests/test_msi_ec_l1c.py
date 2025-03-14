@@ -11,9 +11,11 @@ from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 N_BANDS = 7
 N_SCANS = 20
-N_COLS = 2048
+N_COLS = 384
 SHAPE_SC = (300, 6000)
-SOL_IRRAD = [30.9, 19.59, 14.77, 8.25, 0., 0., 0.]
+SOL_IRRAD = np.array([30.9, 19.59, 14.77, 8.25], dtype=np.float32)
+# Create 384 values for SOL_IRRAD
+SOL_IRRAD = SOL_IRRAD.reshape((-1, 1)) * np.ones(N_COLS, dtype=np.float32).reshape((1, -1))
 DIMLIST = np.ones((N_BANDS, N_SCANS, N_COLS))
 
 
@@ -49,11 +51,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
                     attrs={"units": "degrees"},
                     dims=("along_track", "across_track")),
-            "NonStandard/solar_irradiance":
+            "ScienceData/solar_spectral_irradiance":
                 xr.DataArray(
                     da.array(SOL_IRRAD),
                     attrs={"units": "W m-2"},
-                    dims=("band")),
+                    dims=("band", "across_track")),
         }
 
         return data
@@ -105,27 +107,27 @@ class TestECMSIL1C(ECMSIL1CTester):
         available_datasets = list(reader.available_dataset_ids)
         assert len(available_datasets) == 27
 
-        res = reader.load(["VIS", "NIR", "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
+        res = reader.load(["VIS", "VNIR", "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
         assert len(res) == 6
         with pytest.raises(KeyError):
             res["TIR2"]
         with pytest.raises(KeyError):
             res["SWIR1"]
 
-        assert res["VIS"].shape == (20, 2048)
+        assert res["VIS"].shape == (20, N_COLS)
         assert res["VIS"].attrs["calibration"] == "reflectance"
         assert res["VIS"].attrs["units"] == "%"
 
-        assert res["TIR1"].shape == (20, 2048)
+        assert res["TIR1"].shape == (20, N_COLS)
         assert res["TIR1"].attrs["calibration"] == "brightness_temperature"
         assert res["TIR1"].attrs["units"] == "K"
         assert res["TIR1"].dtype == np.float32
 
-        assert res["solar_azimuth_angle"].shape == (20, 2048)
+        assert res["solar_azimuth_angle"].shape == (20, N_COLS)
         assert res["solar_azimuth_angle"].attrs["units"] == "degrees"
         assert res["solar_azimuth_angle"].dtype == np.float32
 
-        assert res["land_water_mask"].shape == (20, 2048)
+        assert res["land_water_mask"].shape == (20, N_COLS)
         assert res["land_water_mask"].attrs["units"] == 1
         assert res["land_water_mask"].dtype == np.uint16
 
@@ -156,7 +158,7 @@ class TestECMSIL1C(ECMSIL1CTester):
         assert res["VIS"].attrs["units"] == "W m-2 sr-1"
         assert np.all(np.array(res["VIS"].data) == 1)
 
-        res = reader.load([make_dataid(name="NIR", calibration="reflectance")])
-        assert res["NIR"].attrs["calibration"] == "reflectance"
-        assert res["NIR"].attrs["units"] == "%"
-        assert np.all(np.array(res["NIR"].data) == 1 * np.pi * 100 / SOL_IRRAD[1])
+        res = reader.load([make_dataid(name="VNIR", calibration="reflectance")])
+        assert res["VNIR"].attrs["calibration"] == "reflectance"
+        assert res["VNIR"].attrs["units"] == "%"
+        assert np.all(np.array(res["VNIR"].data) == 1 * np.pi * 100 / SOL_IRRAD[1])
