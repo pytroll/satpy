@@ -40,6 +40,8 @@ Resampling algorithms
     "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
     "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketAvg`
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
+    "bucket_min", "Min Bucket Resampling", :class:`~satpy.resample.BucketMin`
+    "bucket_max", "Max Bucket Resampling", :class:`~satpy.resample.BucketMax`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
     "gradient_search", "Gradient Search Resampling", :meth:`~pyresample.gradient.create_gradient_search_resampler`
@@ -946,6 +948,78 @@ class BucketSum(BucketResamplerBase):
         return da.stack(results)
 
 
+class BucketMin(BucketResamplerBase):
+    """Class for min bucket resampling.
+
+    This resampler calculates the min of all the values
+    that are closest to each bin and inside the target area.
+
+    Parameters
+    ----------
+    fill_value : float (default: np.nan)
+        Fill value for missing data
+    skipna : boolean (default: True)
+        If True, skips NaN values for the min calculation
+        (similarly to Numpy's `nanmin`). Buckets containing only NaN are set to zero.
+        If False, sets the bucket to NaN if one or more NaN values are present in the bucket
+        (similarly to Numpy's `min`).
+        In both cases, empty buckets are set to 0.
+
+    """
+
+    def compute(self, data, skipna=True, **kwargs):
+        """Call the resampling."""
+        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
+
+        results = []
+        if data.ndim == 3:
+            for i in range(data.shape[0]):
+                res = self.resampler.get_min(data[i, :, :],
+                                             **kwargs)
+                results.append(res)
+        else:
+            res = self.resampler.get_min(data, **kwargs)
+            results.append(res)
+
+        return da.stack(results)
+
+
+class BucketMax(BucketResamplerBase):
+    """Class for max bucket resampling.
+
+    This resampler calculates the max of all the values
+    that are closest to each bin and inside the target area.
+
+    Parameters
+    ----------
+    fill_value : float (default: np.nan)
+        Fill value for missing data
+    skipna : boolean (default: True)
+        If True, skips NaN values for the max calculation
+        (similarly to Numpy's `nanmax`). Buckets containing only NaN are set to zero.
+        If False, sets the bucket to NaN if one or more NaN values are present in the bucket
+        (similarly to Numpy's `max`).
+        In both cases, empty buckets are set to 0.
+
+    """
+
+    def compute(self, data, skipna=True, **kwargs):
+        """Call the resampling."""
+        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
+
+        results = []
+        if data.ndim == 3:
+            for i in range(data.shape[0]):
+                res = self.resampler.get_max(data[i, :, :],
+                                             **kwargs)
+                results.append(res)
+        else:
+            res = self.resampler.get_max(data, **kwargs)
+            results.append(res)
+
+        return da.stack(results)
+
+
 class BucketCount(BucketResamplerBase):
     """Class for bucket resampling which implements hit-counting.
 
@@ -995,6 +1069,8 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "gradient_search": create_gradient_search_resampler,
               "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
+              "bucket_min": BucketMin,
+              "bucket_max": BucketMax,
               "bucket_count": BucketCount,
               "bucket_fraction": BucketFraction,
               "ewa": DaskEWAResampler,
