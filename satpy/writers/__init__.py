@@ -23,6 +23,7 @@ import os
 import warnings
 from typing import Optional
 
+import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
@@ -591,7 +592,13 @@ def compute_writer_results(results):
         delayeds.append(da.store(sources, targets, compute=False))
 
     if delayeds:
-        da.compute(delayeds)
+        # replace Delayed's graph optimization function with the Array function
+        # since a Delayed object here is only from the writer but the rest of
+        # the tasks are dask array operations we want to fully optimize all
+        # array operations. At the time of writing Array optimizations seem to
+        # include the optimizations done for Delayed objects alone.
+        with dask.config.set(delayed_optimization=dask.config.get("array_optimize", da.optimize)):
+            da.compute(delayeds)
 
     if targets:
         for target in targets:
