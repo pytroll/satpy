@@ -26,6 +26,7 @@ import re
 from ast import literal_eval
 from contextlib import suppress
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from pyhdf.error import HDF4Error
@@ -226,7 +227,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         dims = ("y", "x") if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
-        data = self._scale_and_mask_data_array(data, is_category=is_category)
+        data = _scale_and_mask_data_array(data, is_category=is_category)
 
         return data
 
@@ -255,48 +256,6 @@ class HDFEOSBaseFileReader(BaseFileHandler):
             if var_shape[-1] <= max_columns:
                 return res_multiplier
         return 1
-
-    def _scale_and_mask_data_array(self, data, is_category=False):
-        """Unscale byte data and mask invalid/fill values.
-
-        MODIS requires unscaling the in-file bytes in an unexpected way::
-
-            data = (byte_value - add_offset) * scale_factor
-
-        See the below L1B User's Guide Appendix C for more information:
-
-        https://mcst.gsfc.nasa.gov/sites/default/files/file_attachments/M1054E_PUG_2017_0901_V6.2.2_Terra_V6.2.1_Aqua.pdf
-
-        """
-        good_mask, new_fill = self._get_good_data_mask(data, is_category=is_category)
-        scale_factor = data.attrs.pop("scale_factor", None)
-        add_offset = data.attrs.pop("add_offset", None)
-        # don't scale category products, even though scale_factor may equal 1
-        # we still need to convert integers to floats
-        if scale_factor is not None and not is_category:
-            if add_offset is not None and add_offset != 0:
-                data = data - np.float32(add_offset)
-            data = data * np.float32(scale_factor)
-
-        if good_mask is not None:
-            data = data.where(good_mask, new_fill)
-        return data
-
-    def _get_good_data_mask(self, data_arr, is_category=False):
-        try:
-            fill_value = data_arr.attrs["_FillValue"]
-        except KeyError:
-            return None, None
-
-        # preserve integer data types if possible
-        if is_category and np.issubdtype(data_arr.dtype, np.integer):
-            # no need to mask, the fill value is already what it needs to be
-            return None, None
-        fill_type = data_arr.dtype.type if np.issubdtype(data_arr.dtype, np.floating) else np.float32
-        new_fill = fill_type(np.nan)
-        data_arr.attrs.pop("_FillValue", None)
-        good_mask = data_arr != fill_value
-        return good_mask, new_fill
 
     def _add_satpy_metadata(self, data_id: DataID, data_arr: xr.DataArray):
         """Add metadata that is specific to Satpy."""
@@ -401,7 +360,10 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             result2 = self.cache[(name2, resolution)]
         except KeyError:
             result1 = self._load_ds_by_name(name1)
-            result2 = self._load_ds_by_name(name2) - offset
+            result2 = self._load_ds_by_name(name2)
+            if offset != 0:
+                # avoid extra dask tasks if not necessary
+                result2 = result2 - offset
             try:
                 sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
             except KeyError:
@@ -413,7 +375,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                 self.geo_resolution, resolution
             )
             self.cache[(name1, resolution)] = result1
-            self.cache[(name2, resolution)] = result2 + offset
+            self.cache[(name2, resolution)] = result2 + offset if offset != 0 else result2
 
     def get_dataset(self, dataset_id: DataID, dataset_info: dict) -> xr.DataArray:
         """Get the geolocation dataset."""
@@ -459,3 +421,63 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         self._add_satpy_metadata(dataset_id, data)
 
         return data
+
+
+def _scale_and_mask_data_array(data_arr: xr.DataArray, is_category: bool = False) -> xr.DataArray:
+    """Unscale byte data and mask invalid/fill values.
+
+    MODIS requires unscaling the in-file bytes in an unexpected way::
+
+        data = (byte_value - add_offset) * scale_factor
+
+    See the below L1B User's Guide Appendix C for more information:
+
+    https://mcst.gsfc.nasa.gov/sites/default/files/file_attachments/M1054E_PUG_2017_0901_V6.2.2_Terra_V6.2.1_Aqua.pdf
+
+    """
+    scale_factor = data_arr.attrs.pop("scale_factor", None)
+    add_offset = data_arr.attrs.pop("add_offset", None)
+    # preserve _FillValue if category
+    fill_value = data_arr.attrs.get("_FillValue", None) if is_category else data_arr.attrs.pop("_FillValue", None)
+    noncat_dtype = data_arr.dtype.type if np.issubdtype(data_arr.dtype, np.floating) else np.float32
+    dtype = data_arr.dtype if is_category else noncat_dtype
+    new_data = da.map_blocks(
+        _mapblocks_scale_and_mask,
+        data_arr.data,
+        dtype=dtype,
+        meta=np.array((), dtype=dtype),
+        name="scale_and_mask",
+        scale_factor=scale_factor,
+        add_offset=add_offset,
+        fill_value=fill_value,
+        is_category=is_category)
+    data_arr = data_arr.copy()
+    data_arr.data = new_data
+    return data_arr
+
+
+def _mapblocks_scale_and_mask(arr, scale_factor, add_offset, fill_value, is_category):
+    good_mask, new_fill = _get_good_data_mask(arr, fill_value, is_category=is_category)
+    # don't scale category products, even though scale_factor may equal 1
+    # we still need to convert integers to floats
+    if scale_factor is not None and not is_category:
+        if add_offset is not None and add_offset != 0:
+            arr = arr - np.float32(add_offset)
+        arr = arr * np.float32(scale_factor)
+
+    if good_mask is not None:
+        arr = np.where(good_mask, arr, new_fill)
+    return arr
+
+
+def _get_good_data_mask(arr, fill_value, is_category=False):
+    if fill_value is None:
+        return None, None
+    # preserve integer data types if possible
+    if is_category and np.issubdtype(arr.dtype, np.integer):
+        # no need to mask, the fill value is already what it needs to be
+        return None, None
+    fill_type = arr.dtype.type if np.issubdtype(arr.dtype, np.floating) else np.float32
+    new_fill = fill_type(np.nan)
+    good_mask = arr != fill_value
+    return good_mask, new_fill
