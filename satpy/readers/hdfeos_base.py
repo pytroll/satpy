@@ -25,6 +25,7 @@ import logging
 import re
 from ast import literal_eval
 from contextlib import suppress
+from functools import cache
 
 import dask.array as da
 import numpy as np
@@ -301,7 +302,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geographical reader."""
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
-        self.cache = {}
+        self._load_interpolated_lonlat_pair = cache(self._load_interpolated_lonlat_pair_uncached)
+        self._load_interpolated_angle_pair = cache(self._load_interpolated_angle_pair_uncached)
 
     @staticmethod
     def is_geo_loadable_dataset(dataset_name: str) -> bool:
@@ -353,30 +355,6 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                 return self.load_dataset(var_names[1])
         return self.load_dataset(var_names)
 
-    def get_interpolated_dataset(self, name1, name2, resolution, offset=0):
-        """Load and interpolate datasets."""
-        try:
-            result1 = self.cache[(name1, resolution)]
-            result2 = self.cache[(name2, resolution)]
-        except KeyError:
-            result1 = self._load_ds_by_name(name1)
-            result2 = self._load_ds_by_name(name2)
-            if offset != 0:
-                # avoid extra dask tasks if not necessary
-                result2 = result2 - offset
-            try:
-                sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
-            except KeyError:
-                # no sensor zenith angle, do "simple" interpolation
-                sensor_zenith = None
-
-            result1, result2 = interpolate(
-                result1, result2, sensor_zenith,
-                self.geo_resolution, resolution
-            )
-            self.cache[(name1, resolution)] = result1
-            self.cache[(name2, resolution)] = result2 + offset if offset != 0 else result2
-
     def get_dataset(self, dataset_id: DataID, dataset_info: dict) -> xr.DataArray:
         """Get the geolocation dataset."""
         # Name of the dataset as it appears in the HDF EOS file
@@ -396,24 +374,11 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                 # they specified a custom variable name but
                 # we don't know how to interpolate this yet
                 raise NotImplementedError(
-                    "Interpolation for variable '{}' is not "
-                    "configured".format(dataset_name))
+                    f"Interpolation for variable '{dataset_name}' is not "
+                    "configured.")
 
-            # The data must be interpolated
-            logger.debug("Loading %s", dataset_name)
-            if dataset_name in ["longitude", "latitude"]:
-                self.get_interpolated_dataset("longitude", "latitude",
-                                              resolution)
-            elif dataset_name in ["satellite_azimuth_angle", "satellite_zenith_angle"]:
-                # Sensor dataset names differs between L1b and L2 products
-                self.get_interpolated_dataset("satellite_azimuth_angle", "satellite_zenith_angle",
-                                              resolution, offset=90)
-            elif dataset_name in ["solar_azimuth_angle", "solar_zenith_angle"]:
-                # Sensor dataset names differs between L1b and L2 products
-                self.get_interpolated_dataset("solar_azimuth_angle", "solar_zenith_angle",
-                                              resolution, offset=90)
-
-            data = self.cache[dataset_name, resolution]
+            logger.debug(f"Loading and interpolating {dataset_name}")
+            data = self.get_interpolated_dataset(dataset_name, resolution)
 
         for key in ("standard_name", "units"):
             if key in dataset_info:
@@ -421,6 +386,59 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         self._add_satpy_metadata(dataset_id, data)
 
         return data
+
+    def get_interpolated_dataset(self, dataset_name: str, resolution: int) -> xr.DataArray:
+        """Load and interpolate datasets."""
+        interp_pairs = {
+            ("longitude", "latitude"): self._load_interpolated_lonlat_pair,
+            ("satellite_azimuth_angle", "satellite_zenith_angle"): self._load_interpolated_angle_pair,
+            ("solar_azimuth_angle", "solar_zenith_angle"): self._load_interpolated_angle_pair,
+        }
+        for ds_name_pair, interp_func in interp_pairs.items():
+            try:
+                pair_index = ds_name_pair.index(dataset_name)
+            except ValueError:
+                continue
+            return interp_func(*ds_name_pair, resolution)[pair_index]
+        raise ValueError(f"Dataset {dataset_name} can not be interpolated")
+
+    def _load_interpolated_lonlat_pair_uncached(
+            self,
+            name1: str,
+            name2: str,
+            resolution: int
+    ) -> tuple[xr.DataArray, xr.DataArray]:
+        result1 = self._load_ds_by_name(name1)
+        result2 = self._load_ds_by_name(name2)
+
+        try:
+            sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
+        except KeyError:
+            # no sensor zenith angle, do "simple" interpolation
+            sensor_zenith = None
+        return interpolate(
+            result1, result2, sensor_zenith,
+            self.geo_resolution, resolution
+        )
+
+    def _load_interpolated_angle_pair_uncached(
+            self,
+            name1: str,
+            name2: str,
+            resolution: int
+    ) -> tuple[xr.DataArray, xr.DataArray]:
+        result1 = self._load_ds_by_name(name1)
+        result2 = self._load_ds_by_name(name2) - 90
+        try:
+            sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
+        except KeyError:
+            # no sensor zenith angle, do "simple" interpolation
+            sensor_zenith = None
+        interp_result1, interp_result2 = interpolate(
+            result1, result2, sensor_zenith,
+            self.geo_resolution, resolution
+        )
+        return interp_result1, interp_result2 + 90
 
 
 def _scale_and_mask_data_array(data_arr: xr.DataArray, is_category: bool = False) -> xr.DataArray:
