@@ -358,18 +358,28 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
             _get_sensor_angles_from_sat_pos.cache_clear()
 
-    def test_relative_azimuth_calculation(self):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("use_xarray", [False, True])
+    def test_relative_azimuth_calculation(self, use_xarray, dtype):
         """Test relative azimuth calculation."""
         from satpy.modifiers.angles import compute_relative_azimuth
 
-        saa = xr.DataArray(np.array([-120, 40., 0.04, 179.4, 94.2, 12.1]))
-        vaa = xr.DataArray(np.array([60., 57.7, 175.1, 234.18, 355.4, 12.1]))
+        saa = da.from_array(np.array([-120, 40., 0.04, 179.4, 94.2, 12.1], dtype=dtype), chunks=2)
+        vaa = da.from_array(np.array([60., 57.7, 175.1, 234.18, 355.4, 12.1], dtype=dtype), chunks=2)
+        if use_xarray:
+            saa = xr.DataArray(saa, dims=("y",), attrs={"test1": "same", "test2": "diff1"})
+            vaa = xr.DataArray(vaa, dims=("y",), attrs={"test1": "same", "test2": "diff2"})
 
-        expected_raa = xr.DataArray(np.array([180., 17.7, 175.06, 54.78, 98.8, 0.]))
+        expected_raa = np.array([180., 17.7, 175.06, 54.78, 98.8, 0.], dtype=dtype)
 
         raa = compute_relative_azimuth(vaa, saa)
-        assert isinstance(raa, xr.DataArray)
-        np.testing.assert_allclose(expected_raa, raa)
+        assert isinstance(raa, xr.DataArray if use_xarray else da.Array)
+        computed_raa = raa.compute()
+        assert computed_raa.dtype == raa.dtype
+        if use_xarray:
+            assert raa.attrs == {}
+            assert raa.dims == saa.dims
+        np.testing.assert_allclose(expected_raa, computed_raa, rtol=2e-7)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_solazi_correction(self, dtype):
