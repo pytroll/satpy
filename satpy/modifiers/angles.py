@@ -340,11 +340,12 @@ def compute_relative_azimuth(
     """Compute the relative azimuth angle.
 
     Args:
-        sat_azi: DataArray or dask array for the satellite azimuth angles, typically in 0-360 degree range.
-        sun_azi: DataArray or dask array for the solar azimuth angles, should be in same range as sat_azi.
+        sat_azi: satellite azimuth angles typically in the 0-360 degree range.
+        sun_azi: solar azimuth angles in same range as sat_azi.
 
     Returns:
-        A DataArray containing the relative azimuth angle in the 0-180 degree range.
+        The relative azimuth angle or difference between solar and satellite
+        azimuth angles in the 0-180 degree range.
 
     NOTE: Relative azimuth is defined such that:
     Relative azimuth is 0 when sun and satellite are aligned on one side of a pixel (back scatter).
