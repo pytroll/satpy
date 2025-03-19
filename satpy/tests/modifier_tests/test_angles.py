@@ -380,6 +380,7 @@ class TestAngleGeneration:
             assert raa.attrs == {}
             assert raa.dims == saa.dims
         np.testing.assert_allclose(expected_raa, computed_raa, rtol=2e-7)
+        assert raa.chunks == saa.chunks
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_solazi_correction(self, dtype):

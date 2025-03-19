@@ -350,6 +350,24 @@ def compute_relative_azimuth(
     Relative azimuth is 0 when sun and satellite are aligned on one side of a pixel (back scatter).
     Relative azimuth is 180 when sun and satellite are directly opposite each other (forward scatter).
     """
+    xarray_dims = getattr(sat_azi, "dims", None)
+    xarray_coords = getattr(sat_azi, "coords", None)
+    if xarray_dims is not None:
+        sat_azi = sat_azi.data
+        sun_azi = sun_azi.data
+    rel_azi = da.map_blocks(
+        _compute_relative_azimuth,
+        sat_azi, sun_azi,
+        dtype=sat_azi.dtype,
+        meta=np.array((), dtype=sat_azi.dtype),
+        name="relative_azimuth",
+    )
+    if xarray_dims is None:
+        return rel_azi
+    return xr.DataArray(rel_azi, dims=xarray_dims, coords=xarray_coords)
+
+
+def _compute_relative_azimuth(sat_azi: np.ndarray, sun_azi: np.ndarray) -> np.ndarray:
     ssadiff = np.absolute(sun_azi - sat_azi)
     dtype = sun_azi.dtype.type
     return np.minimum(ssadiff, dtype(360.0) - ssadiff)
