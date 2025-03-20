@@ -125,11 +125,11 @@ FTYPE_INFO = {"file_reader": IASIL2HDF5,
               "file_type": "iasi_l2_hdf5"}
 
 
-@pytest.fixture
-def test_data(tmp_path):
+@pytest.fixture(scope="module")
+def test_data(tmp_path_factory):
     """Save the test to the indicated directory."""
     import h5py
-    test_file = os.path.join(tmp_path, FNAME)
+    test_file = os.path.join(tmp_path_factory.mktemp("data"), FNAME)
     with h5py.File(test_file, "w") as fid:
         # Create groups
         for grp in TEST_DATA:
