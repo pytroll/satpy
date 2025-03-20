@@ -410,16 +410,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     ) -> tuple[xr.DataArray, xr.DataArray]:
         result1 = self._load_ds_by_name(name1)
         result2 = self._load_ds_by_name(name2)
-
-        try:
-            sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
-        except KeyError:
-            # no sensor zenith angle, do "simple" interpolation
-            sensor_zenith = None
-        return interpolate(
-            result1, result2, sensor_zenith,
-            self.geo_resolution, resolution
-        )
+        return self._interpolate_using_sza(result1, result2, resolution)
 
     def _load_interpolated_angle_pair_uncached(
             self,
@@ -429,16 +420,24 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     ) -> tuple[xr.DataArray, xr.DataArray]:
         result1 = self._load_ds_by_name(name1)
         result2 = self._load_ds_by_name(name2) - 90
+        interp_result1, interp_result2 = self._interpolate_using_sza(result1, result2, resolution)
+        return interp_result1, interp_result2 + 90
+
+    def _interpolate_using_sza(
+            self,
+            data1: xr.DataArray,
+            data2: xr.DataArray,
+            resolution: int
+    ) -> tuple[xr.DataArray, xr.DataArray]:
         try:
             sensor_zenith = self._load_ds_by_name("satellite_zenith_angle")
         except KeyError:
             # no sensor zenith angle, do "simple" interpolation
             sensor_zenith = None
-        interp_result1, interp_result2 = interpolate(
-            result1, result2, sensor_zenith,
+        return interpolate(
+            data1, data2, sensor_zenith,
             self.geo_resolution, resolution
         )
-        return interp_result1, interp_result2 + 90
 
 
 def _scale_and_mask_data_array(data_arr: xr.DataArray, is_category: bool = False) -> xr.DataArray:
