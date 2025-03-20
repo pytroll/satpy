@@ -36,7 +36,7 @@ By default the reader treats each imaging channel separately, and thus lists
     scn = Scene(reader="nwcsaf-geo", filenames=[filename])
     pprint.pprint(scn.available_dataset_names())
 
-This print all the available datasets. The truncated output of this is::
+This prints all the available datasets. The truncated output of this is::
 
     ['wind_hrvis_air_pressure',
      'wind_hrvis_air_pressure_correction',
