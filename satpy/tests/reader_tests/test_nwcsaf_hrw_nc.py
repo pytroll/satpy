@@ -100,10 +100,10 @@ FILENAME_INFO = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": d
 FILETYPE_INFO = {"file_type": "nc_nwcsaf_geo_hrw"}
 
 
-@pytest.fixture
-def hrw_file(tmp_path):
+@pytest.fixture(scope="module")
+def hrw_file(tmp_path_factory):
     """Create a HRW data file."""
-    fname = tmp_path / "S_NWC_HRW_MSG3_MSG-N-BS_20250206T130000Z.nc"
+    fname = tmp_path_factory.mktemp("data") / "S_NWC_HRW_MSG3_MSG-N-BS_20250206T130000Z.nc"
     with h5py.File(fname, "w") as h5f:
         h5f.attrs["nominal_product_time"] = NOMINAL_PRODUCT_TIME
         h5f.attrs["spatial_resolution"] = SPATIAL_RESOLUTION
