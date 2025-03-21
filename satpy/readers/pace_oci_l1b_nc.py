@@ -59,6 +59,22 @@ class NCOCIL1B(BaseFileHandler):
     rows_name = "scans"
     cols_name = "pixels"
 
+    @staticmethod
+    def _sort_wvls(inwvls, bw):
+        """Compute the bandwidth for each hyperspectral channel."""
+        wvls = np.dstack((inwvls, inwvls, inwvls)).squeeze()
+
+        # If we have a float, use that as the bandwidth for all bands.
+        if type(bw) is float:
+            wvls[:, 0] = wvls[:, 0] - bw
+            wvls[:, 2] = wvls[:, 2] + bw
+        # But otherwise, use the array as per-band bandwidths.
+        else:
+            wvls[:, 0] = wvls[:, 0] - bw / 2.
+            wvls[:, 2] = wvls[:, 2] + bw / 2.
+
+        return wvls / 1000.
+
     def __init__(self, filename, filename_info, filetype_info, engine=None, **kwargs):
         """Init the oci reader base."""
         super().__init__(filename, filename_info, filetype_info)
@@ -71,9 +87,11 @@ class NCOCIL1B(BaseFileHandler):
                            "red": self.nc["sensor_band_parameters"]["red_solar_irradiance"].values,
                            "swir": self.nc["sensor_band_parameters"]["SWIR_solar_irradiance"].values}
 
-        self.wvls = {"blue": self.nc["sensor_band_parameters"]["blue_wavelength"].values / 1000.,
-                     "red": self.nc["sensor_band_parameters"]["red_wavelength"].values / 1000.,
-                     "swir": self.nc["sensor_band_parameters"]["SWIR_wavelength"].values / 1000.}
+        swir_bw = self.nc["sensor_band_parameters"]["SWIR_bandpass"].values
+
+        self.wvls = {"blue": self._sort_wvls(self.nc["sensor_band_parameters"]["blue_wavelength"].values, 0.5),
+                     "red": self._sort_wvls(self.nc["sensor_band_parameters"]["red_wavelength"].values, 0.5),
+                     "swir": self._sort_wvls(self.nc["sensor_band_parameters"]["SWIR_wavelength"].values, swir_bw)}
 
         # Spatial resolution is hardcoded, same for all datasets.
         self.resolution = 1200
@@ -105,10 +123,10 @@ class NCOCIL1B(BaseFileHandler):
         """Retrieve the ds info for a given channel."""
         ds_info = {"file_type": self.filetype_info["file_type"],
                    "resolution": self.resolution,
-                   "name": f"chan_{band.lower()}_{self.wvls[band.lower()][i]:4.0f}".replace(" ", ""),
-                   "wavelength": [self.wvls[band.lower()][i]-0.5,
-                                  self.wvls[band.lower()][i],
-                                  self.wvls[band.lower()][i]+0.5],
+                   "name": f"chan_{band.lower()}_{self.wvls[band.lower()][i][1]*1000:4.0f}".replace(" ", ""),
+                   "wavelength": [self.wvls[band.lower()][i][0],
+                                  self.wvls[band.lower()][i][1],
+                                  self.wvls[band.lower()][i][2]],
                    "file_key": f"rhot_{band}",
                    "ds_key": band,
                    "idx": i,
@@ -133,7 +151,10 @@ class NCOCIL1B(BaseFileHandler):
         if "file_key" not in info:
             variable = self.nc[info["grp_key"]][key["name"]]
         else:
-            variable = self.nc[info["grp_key"]][info["file_key"]][info["idx"]]
+            if "idx" in info:
+                variable = self.nc[info["grp_key"]][info["file_key"]][info["idx"]]
+            else:
+                variable = self.nc[info["grp_key"]][info["file_key"]]
 
         # Datatree messes with the coordinates, for lats + lons we need to remove the coords.
         if key["name"] in ["longitude", "latitude"]:
