@@ -30,6 +30,7 @@ from pyresample.geometry import SwathDefinition
 from satpy._compat import cached_property
 from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import unzip_context
 from satpy.readers.xmlformat import XMLFormat
 from satpy.utils import get_legacy_chunk_size
 
@@ -168,7 +169,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def _read_all(self):
         logger.debug("Reading %s", self.filename)
-        self.sections, self.form = read_records(self.filename)
+        with unzip_context(self.filename) as fn:
+            self.sections, self.form = read_records(fn)
         self.scanlines = self["TOTAL_MDR"]
         if self.scanlines != len(self.sections[("mdr", 2)]):
             logger.warning("Number of declared records doesn't match number of scanlines in the file.")
