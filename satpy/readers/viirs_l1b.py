@@ -188,6 +188,9 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "file_units": file_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
+            "day_night": self["/attr/DayNightFlag"],
+            "start_direction": self["/attr/startDirection"],
+            "end_direction": self["/attr/endDirection"],
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
