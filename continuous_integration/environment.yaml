@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - xarray!=2022.9.0
-  - dask
+  - dask<2025.1.0
   - distributed
   - dask-image
   - donfig
@@ -46,6 +46,7 @@ dependencies:
   - pytest
   - pytest-cov
   - fsspec
+  - universal_pathlib
   - botocore>=1.33
   - s3fs
   - python-geotiepoints

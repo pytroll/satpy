@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = [
     "platformdirs",
-    "dask[array]>=0.17.1",
+    "dask[array]>=0.17.1,<2025.1.0",
     "donfig",
     "numpy>=1.21",
     "packaging",
@@ -112,6 +112,16 @@ build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "satpy",
+    "doc",
+    "AUTHORS.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CITATION",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["satpy"]
