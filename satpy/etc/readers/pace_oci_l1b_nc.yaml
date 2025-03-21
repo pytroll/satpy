@@ -1,0 +1,134 @@
+reader:
+  name: pace_oci_l1b_nc
+  short_name: PACE OCI Level 1b
+  long_name: PACE OCI Level 1B data in netCDF4 format
+  description: NC Reader for OCI data
+  status: Nominal
+  supports_fsspec: true
+  sensors: [oci]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    oci_l1b:
+        file_reader: !!python/name:satpy.readers.pace_oci_l1b_nc.NCOCIL1B
+        file_patterns:
+         - 'PACE_OCI.{start_time:%Y%m%dT%H%M%S}.L1B.V{version}.nc'
+
+
+datasets:
+  # Geolocation data
+  longitude:
+    name: longitude
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: longitude
+    units: degrees_east
+    grp_key: geolocation_data
+  latitude:
+    name: latitude
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: latitude
+    units: degrees_north
+    grp_key: geolocation_data
+  height:
+    name: height
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: height
+    units: meter
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+  quality_flag:
+    name: quality_flag
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: quality_flag
+    units: none
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+  sensor_azimuth:
+    name: sensor_azimuth
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: sensor_azimuth_angle
+    units: degree
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+  sensor_zenith:
+    name: sensor_zenith
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: sensor_zenith_angle
+    units: degree
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+  solar_azimuth:
+    name: solar_azimuth
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: solar_azimuth_angle
+    units: degree
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+  solar_zenith:
+    name: solar_zenith
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: solar_zenith_angle
+    units: degree
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+  watermask:
+    name: watermask
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: watermask
+    units: none
+    grp_key: geolocation_data
+    coordinates: [longitude, latitude]
+
+  # Navigation data
+  ccd_scan_angles:
+    name: ccd_scan_angles
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: ccd_scan_angles
+    units: degree
+    grp_key: navigation_data
+    coordinates: [longitude, latitude]
+  swir_scan_angles:
+    name: swir_scan_angles
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: swir_scan_angles
+    units: degree
+    grp_key: navigation_data
+    coordinates: [longitude, latitude]
+
+  # Observation data
+  qual_blue:
+    name: qual_blue
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: qual_blue
+    units: none
+    grp_key: observation_data
+    coordinates: [longitude, latitude]
+  qual_red:
+    name: qual_red
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: qual_red
+    units: none
+    grp_key: observation_data
+    coordinates: [longitude, latitude]
+  qual_swir:
+    name: qual_swir
+    resolution: 1200
+    file_type: oci_l1b
+    standard_name: qual_swir
+    units: none
+    grp_key: observation_data
+    coordinates: [longitude, latitude]
