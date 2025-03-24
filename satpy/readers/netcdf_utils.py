@@ -211,8 +211,20 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[fc_key] = global_attrs[key] = value
         self.file_content["/attrs"] = global_attrs
 
-    def _get_object_attrs(self, obj):
-        return obj.__dict__
+    @staticmethod
+    def _get_object_attrs(obj):
+        """Get object attributes using __dict__ but retrieve recoverable attributes on failure."""
+        try:
+            return obj.__dict__
+        except KeyError:
+            # Maybe unrecognised datatype.
+            atts = {}
+            for attname in obj.ncattrs():
+                try:
+                    atts[attname] = obj.getncattr(attname)
+                except KeyError:
+                    LOG.warning(f"Warning: Cannot load object ({obj.name}) attribute ({attname}).")
+            return atts
 
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""

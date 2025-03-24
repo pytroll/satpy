@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 import pytest
@@ -496,11 +496,20 @@ def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_
 # Level 2 Fixtures
 
 
-def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
+def _get_basic_variable_info(var_name: str, resolution: int, dim_size: Literal[2, 3]=2) -> dict:
     shape = _shape_for_resolution(resolution)
-    data = np.ones((shape[0], shape[1]), dtype=np.uint16)
+
     row_dim_name = f"Cell_Along_Swath_{resolution}m:modl2"
     col_dim_name = f"Cell_Across_Swath_{resolution}m:modl2"
+
+    if dim_size == 3:
+        data = np.ones((1, shape[0], shape[1]), dtype=np.uint16)
+        dim_labels = ["channel", row_dim_name, col_dim_name]
+    elif dim_size == 2:
+        data = np.ones((shape[0], shape[1]), dtype=np.uint16)
+        dim_labels = [row_dim_name, col_dim_name]
+
+
     return {
         var_name: {
             "data": data,
@@ -508,8 +517,7 @@ def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
             "fill_value": 0,
             "attrs": {
                 # dim_labels are just unique dimension names, may not match exactly with real world files
-                "dim_labels": [row_dim_name,
-                               col_dim_name],
+                "dim_labels": dim_labels,
                 "valid_range": (0, 32767),
                 "scale_factor": 2.0,
                 "add_offset": -1.0,
@@ -728,6 +736,8 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
     full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_basic_variable_info("Surface_Pressure", 5000))
+    variable_infos.update(_get_basic_variable_info("non_yaml_configured_2D_var", 5000))
+    variable_infos.update(_get_basic_variable_info("non_yaml_configured_3D_var", 5000, dim_size=3))
     create_hdfeos_test_file(full_path,
                             variable_infos,
                             _create_struct_metadata(5000),
@@ -735,6 +745,23 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
+@pytest.fixture(scope="session")
+def modis_l2_nasa_mod99_file(tmpdir_factory) -> list[str]:
+    """Create an "artificial" MOD99 L2 HDF4 file with headers.
+
+    There exists no MOD99 Level 2 product. This is just for testing available datasets
+    in arbitrary level 2 file.
+    """
+    filename = generate_nasa_l2_filename("MOD99")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
+    variable_infos.update(_get_basic_variable_info("non_yaml_configured_2D_var", 1000))
+    create_hdfeos_test_file(full_path,
+                            variable_infos,
+                            _create_struct_metadata(5000),
+                            _create_core_metadata("MOD99"),
+                            _create_header_metadata())
+    return [full_path]
 
 @pytest.fixture(scope="session")
 def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:

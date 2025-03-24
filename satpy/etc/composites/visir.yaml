@@ -603,9 +603,11 @@ composites:
       European Severe Storms Laboratory (ESSL).  For a color version,
       see essl_colorized_low_level_moisture.
     compositor: !!python/name:satpy.composites.RatioCompositor
-    prerequisites:
-    - wavelength: 0.905
-    - wavelength: 0.86
+    prerequisites: &llm
+      - wavelength: 0.905  # workaround for https://github.com/pytroll/satpy/issues/1913
+        calibration: reflectance
+      - wavelength: 0.86
+        calibration: reflectance
     standard_name: essl_low_level_moisture
 
   day_essl_low_level_moisture:
@@ -625,9 +627,7 @@ composites:
       European Severe Storms Laboratory (ESSL).  The colorization
       is still under development and may be subject to change.
     compositor: !!python/name:satpy.composites.RatioCompositor
-    prerequisites:
-    - wavelength: 0.905
-    - wavelength: 0.86
+    prerequisites: *llm
     standard_name: essl_colorized_low_level_moisture
 
   day_essl_colorized_low_level_moisture:
