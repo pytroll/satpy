@@ -353,7 +353,8 @@ composites:
 
   cira_day_convection:
     compositor: !!python/name:satpy.composites.GenericCompositor
-    standard_name: cira_day_convection
+    deprecation_warning: "'cira_day_convection' is deprecated. Use 'convection' instead."
+    standard_name: convection
     description: >
       The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
       indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
@@ -482,7 +483,9 @@ composites:
 
   convection:
     description: >
-      Day Convection RGB, for GOESR: NASA, NOAA
+      The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
+      indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
+      to the mature storm stage.
     references:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
