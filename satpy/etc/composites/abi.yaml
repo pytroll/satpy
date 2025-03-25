@@ -813,7 +813,6 @@ composites:
       Blowing Snow RGB
     references:
       Quick Guide: https://rammb2.cira.colostate.edu/wp-content/uploads/2024/11/GOES-BlowingSnowRGB1_QuickGuide_24April2024.pdf
-    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C02
       - name: C05
