@@ -59,16 +59,6 @@ enhancements:
         kwargs:
           gamma: [0.4, 1, 1]
 
-  cira_day_convection:
-    standard_name: cira_day_convection
-    operations:
-      - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
-        kwargs:
-          stretch: crude
-          min_stretch: [-35.0, -5.0, -75.0]
-          max_stretch: [5.0, 60.0, 25.0]
-
   cimss_cloud_type:
     standard_name: cimss_cloud_type
     operations:
