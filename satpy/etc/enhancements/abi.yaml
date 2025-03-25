@@ -273,3 +273,18 @@ enhancements:
           stretch: crude
           min_stretch: 0
           max_stretch: 500
+  blowing_snow:
+    ## RGB Recipe: https://rammb2.cira.colostate.edu/wp-content/uploads/2024/11/GOES-BlowingSnowRGB1_QuickGuide_24April2024.pdf
+    standard_name: blowing_snow
+    sensor: abi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.0, 0.0, 0.0]
+          max_stretch: [50.0, 20.0, 30.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [0.7, 1.0, 0.7]
