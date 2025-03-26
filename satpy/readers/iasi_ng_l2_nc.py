@@ -25,6 +25,10 @@ level:
 * IASI-L2-SFC
 * IASI-L2-O3
 * IASI-L2-CO
+
+For more information in the product files content, please refer to the
+EPS-SG IASI-NG Level 2 Format specification document provided by EUMETSAT at:
+https://www-cdn.eumetsat.int/files/2022-04/EPS-SG%20IASI-NG%20L2%20Product%20Format%20Specification_web_0.pdf
 """
 
 import re
