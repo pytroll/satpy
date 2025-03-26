@@ -17,11 +17,11 @@
 
 For now, this includes enhancement configuration utilities.
 """
+from __future__ import annotations
 
-import logging
 import os
 import warnings
-from typing import Optional
+from typing import Callable, Optional
 
 import dask
 import dask.array as da
@@ -36,9 +36,9 @@ from satpy._config import config_search_paths, get_entry_points_config_dirs, glo
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
-from satpy.utils import get_legacy_chunk_size, recursive_dict_update
+from satpy.utils import get_legacy_chunk_size, get_logger, recursive_dict_update
 
-LOG = logging.getLogger(__name__)
+LOG = get_logger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 
@@ -974,6 +974,7 @@ class DecisionTree(object):
     """
 
     any_key = None
+    _indent = "  "
 
     def __init__(self, decision_dicts, match_keys, multival_keys=None):
         """Init the decision tree.
@@ -1000,10 +1001,46 @@ class DecisionTree(object):
         """
         self._match_keys = match_keys
         self._multival_keys = multival_keys or []
-        self._tree = {}
+        self._log = get_logger(__name__ + f".{self.__class__.__name__}")
+        self._tree = _DecisionDict(self._match_keys[0], 0)
         if not isinstance(decision_dicts, (list, tuple)):
             decision_dicts = [decision_dicts]
         self.add_config_to_tree(*decision_dicts)
+
+    def _indented_trace(self, indent_level: int, msg: str):
+        indent = self._indent * indent_level
+        self._log.trace(f"{indent}{msg}")
+
+    def _indented_print(self, indent_level: int, msg: str):
+        indent = self._indent * indent_level
+        print(f"{indent}{msg}")  # noqa: T201
+
+    def print_tree(self, **pp_kwargs):
+        """Print the decision tree in a structured human-readable format."""
+        self._print_tree_level(0, self._tree, **pp_kwargs)
+
+    def _print_tree_level(self, level: int, curr_level: dict, **pp_kwargs):
+        if len(self._match_keys) == level:
+            # final component
+            self._print_matched_info(len(self._match_keys), curr_level, self._indented_print)
+            return
+
+        match_key = self._match_keys[level]
+        for match_val, next_level in curr_level.items():
+            if match_val is None:
+                match_val = "<wildcard>"
+            self._indented_print(level, f"{match_key}={match_val}")
+            self._print_tree_level(level + 1, next_level, **pp_kwargs)
+
+    def _print_matched_info(self, level: int, decision_info: dict, print_func: Callable) -> None:
+        any_keys = False
+        for key in self._match_keys:
+            if key not in decision_info:
+                continue
+            any_keys = True
+            print_func(level, f"| {key}={decision_info[key]}")
+        if not any_keys:
+            print_func(level, "| <global wildcard match>")
 
     def add_config_to_tree(self, *decision_dicts):
         """Add a configuration to the tree."""
@@ -1027,7 +1064,7 @@ class DecisionTree(object):
         for _section_name, sect_attrs in conf.items():
             # Set a path in the tree for each section in the config files
             curr_level = self._tree
-            for match_key in self._match_keys:
+            for match_level, match_key in enumerate(self._match_keys):
                 # or None is necessary if they have empty strings
                 this_attr_val = sect_attrs.get(match_key, self.any_key) or None
                 if match_key in self._multival_keys and isinstance(this_attr_val, list):
@@ -1040,7 +1077,7 @@ class DecisionTree(object):
                     # not persistent
                     curr_level[this_attr_val] = sect_attrs
                 elif level_needs_init:
-                    curr_level[this_attr_val] = {}
+                    curr_level[this_attr_val] = _DecisionDict(self._match_keys[match_level + 1], match_level + 1)
                 curr_level = curr_level[this_attr_val]
 
     @staticmethod
@@ -1062,11 +1099,15 @@ class DecisionTree(object):
         match = None
         curr_match_key = remaining_match_keys[0]
         if curr_match_key not in query_dict:
+            self._indented_trace(
+                len(self._match_keys) - len(remaining_match_keys),
+                f"Match key {curr_match_key!r} not in query dict"
+            )
             return match
 
         query_vals = self._get_query_values(query_dict, curr_match_key)
         for query_val in query_vals:
-            if query_val not in curr_level:
+            if not curr_level.traced_contains(query_val):
                 continue
             match = self._find_match(curr_level[query_val],
                                      remaining_match_keys[1:],
@@ -1079,12 +1120,18 @@ class DecisionTree(object):
         """Find a match."""
         if len(remaining_match_keys) == 0:
             # we're at the bottom level, we must have found something
+            self._indented_trace(len(self._match_keys), "Found match!")
+            self._print_matched_info(
+                len(self._match_keys),
+                curr_level,
+                self._indented_trace,
+            )
             return curr_level
 
         match = self._find_match_if_known(
             curr_level, remaining_match_keys, query_dict)
 
-        if match is None and self.any_key in curr_level:
+        if match is None and curr_level.traced_contains(self.any_key):
             # if we couldn't find it using the attribute then continue with
             # the other attributes down the 'any' path
             match = self._find_match(
@@ -1112,6 +1159,32 @@ class DecisionTree(object):
             raise KeyError("No decision section found for %s" %
                            (query_dict.get("uid", None),))
         return match
+
+
+class _DecisionDict(dict):
+    """Helper class for debugging decision tree choices.
+
+    At the time of writing this class does not do anything extra to the
+    behavior of what choices are made. It is only a record keeper to make
+    log messages and debugging operations easier. A simple `dict` should
+    be useable in its place.
+
+    """
+    def __init__(self, match_key: str, level: int):
+        self.match_key = match_key
+        self.level = level
+        self._log = get_logger(__name__ + f".{self.__class__.__name__}.{match_key}")
+        self._indent = DecisionTree._indent * self.level
+        super().__init__()
+
+    def _log_trace(self, msg: str):
+        self._log.trace(f"{self._indent}{msg}")
+
+    def traced_contains(self, item: str) -> bool:
+        contains = super().__contains__(item)
+        item_str = "<wildcard>" if item is DecisionTree.any_key else repr(item)
+        self._log_trace(f"Checking {self.match_key!r} level for {item_str}: {contains}")
+        return contains
 
 
 class EnhancementDecisionTree(DecisionTree):
