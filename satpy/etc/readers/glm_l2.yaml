@@ -50,3 +50,22 @@ datasets:
   total_energy:
     name: total_energy
     file_type: glm_l2_imagery
+  minimum_event_energy:
+    name: minimum_event_energy
+    file_type: glm_l2_imagery
+  event_flash_fraction:
+    name: event_flash_fraction
+    file_type: glm_l2_imagery
+  # 5 min windowed versions of some fields above (which are nominally 1 min)
+  total_energy_window:
+    name: total_energy_window
+    file_type: glm_l2_imagery
+  event_flash_fraction_window:
+    name: event_flash_fraction_window
+    file_type: glm_l2_imagery
+  flash_extent_density_window:
+    name: flash_extent_density_window
+    file_type: glm_l2_imagery
+  minimum_flash_area_window:
+    name: minimum_flash_area_window
+    file_type: glm_l2_imagery
