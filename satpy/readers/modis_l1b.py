@@ -280,7 +280,8 @@ def calibrate_refl(array, attributes, index):
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
     # convert to reflectance and convert from 1 to %
-    array = (array - offset) * scale * 100
+    array = (array - offset)
+    array = array * (scale * 100)  # avoid extra dask tasks by combining scalars
     return array
 
 
