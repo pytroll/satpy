@@ -144,4 +144,5 @@ file_types:
         file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile
         file_patterns: [
                        'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}',
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}.bz2',
                        'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}.nat']
