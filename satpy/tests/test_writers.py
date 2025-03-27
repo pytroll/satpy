@@ -117,6 +117,18 @@ class TestEnhancer:
         with pytest.raises(ValueError, match="YAML file doesn't exist or string is not YAML dict:.*"):
             Enhancer(enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
+    def test_print_tree(self, capsys):
+        """Test enhancement decision tree printing."""
+        from satpy.writers import Enhancer
+        enh = Enhancer()
+        enh.enhancement_tree.print_tree()
+        stdout = capsys.readouterr().out
+        lines = stdout.splitlines()
+        assert lines[0].startswith("name=<wildcard>")
+        # make sure lines are indented
+        assert lines[1].startswith("  reader=")
+        assert lines[2].startswith("    platform_name=")
+
 
 class _CustomImageWriter(ImageWriter):
     def __init__(self, **kwargs):

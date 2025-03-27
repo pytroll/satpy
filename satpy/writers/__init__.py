@@ -1015,11 +1015,11 @@ class DecisionTree(object):
         indent = self._indent * indent_level
         print(f"{indent}{msg}")  # noqa: T201
 
-    def print_tree(self, **pp_kwargs):
+    def print_tree(self):
         """Print the decision tree in a structured human-readable format."""
-        self._print_tree_level(0, self._tree, **pp_kwargs)
+        self._print_tree_level(0, self._tree)
 
-    def _print_tree_level(self, level: int, curr_level: dict, **pp_kwargs):
+    def _print_tree_level(self, level: int, curr_level: dict):
         if len(self._match_keys) == level:
             # final component
             self._print_matched_info(len(self._match_keys), curr_level, self._indented_print)
@@ -1030,7 +1030,7 @@ class DecisionTree(object):
             if match_val is None:
                 match_val = "<wildcard>"
             self._indented_print(level, f"{match_key}={match_val}")
-            self._print_tree_level(level + 1, next_level, **pp_kwargs)
+            self._print_tree_level(level + 1, next_level)
 
     def _print_matched_info(self, level: int, decision_info: dict, print_func: Callable) -> None:
         any_keys = False
