@@ -530,25 +530,9 @@ Enhancing the images
 After the composite is defined and created, it needs to be converted
 to an image.  To do this, it is necessary to describe how the data
 values are mapped to values stored in the image format.  This
-procedure is called ``stretching``, and in Satpy it is implemented by
-``enhancements``.
-
-The first step is to convert the composite to an
-:class:`~trollimage.xrimage.XRImage` object::
-
-    >>> from satpy.writers import to_image
-    >>> img = to_image(composite)
-
-Now it is possible to apply enhancements available in the class::
-
-    >>> img.invert([False, False, True])
-    >>> img.stretch("linear")
-    >>> img.gamma(1.7)
-
-And finally either show or save the image::
-
-    >>> img.show()
-    >>> img.save('image.tif')
+procedure is called ``stretching`` and in Satpy it is implemented by
+``enhancements``. See :doc:`enhancements` for more information on
+how enhancements work and how they can be customized.
 
 As pointed out in the composite section, it is better to define
 frequently used enhancements in configuration files under
