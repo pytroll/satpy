@@ -1908,6 +1908,9 @@ class MaskingCompositor(GenericCompositor):
         data_in = projectables[0]
         mask_in = projectables[1]
 
+        mask_in = mask_in.squeeze(drop=True)
+        mask_in = mask_in.round()  # Make sure to have whole numbers in case of smearing from resampling
+
         alpha_attrs = data_in.attrs.copy()
         data = self._select_data_bands(data_in)
 
