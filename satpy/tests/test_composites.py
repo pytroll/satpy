@@ -418,17 +418,25 @@ def fake_area():
 @pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
-    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
-    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32),
+                       attrs={"area": fake_area, "standard_name": "toa_bidirectional_reflectance"})
+    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32),
+                       attrs={"area": fake_area, "standard_name": "toa_bidirectional_reflectance"})
     return (ds1, ds2)
 
 
-def test_ratio_compositor(fake_dataset_pair):
+@pytest.mark.parametrize("kwargs", [{}, {"standard_name": "channel_ratio"}])
+def test_ratio_compositor(fake_dataset_pair, kwargs):
     """Test the ratio compositor."""
     from satpy.composites import RatioCompositor
-    comp = RatioCompositor(name="ratio", standard_name="channel_ratio")
+    comp = RatioCompositor("ratio", **kwargs)
     res = comp(fake_dataset_pair)
     np.testing.assert_allclose(res.values, 2)
+
+    if "standard_name" in kwargs:
+        assert res.attrs["standard_name"] == "channel_ratio"
+    else:
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
 
 
 def test_sum_compositor(fake_dataset_pair):
