@@ -1,0 +1,46 @@
+sensor_name: microwave/mwr
+
+composites:
+  mw183_humidity:
+    standard_name: mw183_humidity
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '11'
+    - name: '13'
+    - name: '15'
+
+  mw183_humidity_surface:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '9'
+    - name: '10'
+    - name: '12'
+    standard_name: mw_humidity_surface
+
+  mw325_humidity_surface:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '9'
+    - name: '10'
+    - name: '19'
+    standard_name: mw_humidity_surface
+
+  mw325_humidity:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '16'
+    - name: '18'
+    - name: '19'
+    standard_name: mw_humidity_surface
+
+  ch1_tbs_colors:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - name: '1'
+    standard_name: tbs_colors
+
+  ch10_tbs_colors:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+    - name: '10'
+    standard_name: tbs_colors

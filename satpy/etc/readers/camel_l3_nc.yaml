@@ -1,0 +1,147 @@
+reader:
+  name: camel_l3_nc
+  short_name: CAMEL L3
+  long_name: CAMEL emissivity level 3 data in netCDF4 format.
+  description: >
+    Reader for the CAMEL emissivity product, produced from various L2/L3
+    datasets on a monthly basis. More details
+    `here <https://lpdaac.usgs.gov/products/cam5k30emv002/>`_.
+  status: Nominal
+  supports_fsspec: false
+  sensors: [combined]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    camel_emis_file:
+        file_reader: !!python/name:satpy.readers.camel_l3_nc.CAMELL3NCFileHandler
+        file_patterns:
+         - 'CAM5K30EM_emis_{start_period:%Y%m}_V{version:3s}.nc'
+
+
+datasets:
+  # QA products
+  aster_ndvi:
+    name: aster_ndvi
+    file_key: aster_ndvi
+    file_type: [ camel_emis_file ]
+  aster_qflag:
+    name: aster_qflag
+    file_key: aster_qflag
+    file_type: [ camel_emis_file ]
+  bfemis_qflag:
+    name: bfemis_qflag
+    file_key: bfemis_qflag
+    file_type: [ camel_emis_file ]
+  camel_qflag:
+    name: camel_qflag
+    file_key: camel_qflag
+    file_type: [ camel_emis_file ]
+  snow_fraction:
+    name: snow_fraction
+    file_key: snow_fraction
+    file_type: [ camel_emis_file ]
+
+  # Emissivity bands
+  camel_emis_b1:
+    name: camel_emis_b1
+    file_key: camel_emis
+    band_id: 0
+    file_type: [ camel_emis_file ]
+    wavelength: 3.6
+    resolution: 0.05
+
+  camel_emis_b2:
+    name: camel_emis_b2
+    file_key: camel_emis
+    band_id: 1
+    file_type: [ camel_emis_file ]
+    wavelength: 4.3
+    resolution: 0.05
+
+  camel_emis_b3:
+    name: camel_emis_b3
+    file_key: camel_emis
+    band_id: 2
+    file_type: [ camel_emis_file ]
+    wavelength: 5.0
+    resolution: 0.05
+
+  camel_emis_b4:
+    name: camel_emis_b4
+    file_key: camel_emis
+    band_id: 3
+    file_type: [ camel_emis_file ]
+    wavelength: 5.8
+    resolution: 0.05
+
+  camel_emis_b5:
+    name: camel_emis_b5
+    file_key: camel_emis
+    band_id: 4
+    file_type: [ camel_emis_file ]
+    wavelength: 7.6
+    resolution: 0.05
+
+  camel_emis_b6:
+    name: camel_emis_b6
+    file_key: camel_emis
+    band_id: 5
+    file_type: [ camel_emis_file ]
+    wavelength: 8.3
+    resolution: 0.05
+
+  camel_emis_b7:
+    name: camel_emis_b7
+    file_key: camel_emis
+    band_id: 6
+    file_type: [ camel_emis_file ]
+    wavelength: 8.6
+    resolution: 0.05
+
+  camel_emis_b8:
+    name: camel_emis_b8
+    file_key: camel_emis
+    band_id: 7
+    file_type: [ camel_emis_file ]
+    wavelength: 9.1
+    resolution: 0.05
+
+  camel_emis_b9:
+    name: camel_emis_b9
+    file_key: camel_emis
+    band_id: 8
+    file_type: [ camel_emis_file ]
+    wavelength: 10.6
+    resolution: 0.05
+
+  camel_emis_b10:
+    name: camel_emis_b10
+    file_key: camel_emis
+    band_id: 9
+    file_type: [ camel_emis_file ]
+    wavelength: 10.8
+    resolution: 0.05
+
+  camel_emis_b11:
+    name: camel_emis_b11
+    file_key: camel_emis
+    band_id: 10
+    file_type: [ camel_emis_file ]
+    wavelength: 11.3
+    resolution: 0.05
+
+  camel_emis_b12:
+    name: camel_emis_b12
+    file_key: camel_emis
+    band_id: 11
+    file_type: [ camel_emis_file ]
+    wavelength: 12.1
+    resolution: 0.05
+
+  camel_emis_b13:
+    name: camel_emis_b13
+    file_key: camel_emis
+    band_id: 12
+    file_type: [ camel_emis_file ]
+    wavelength: 14.3
+    resolution: 0.05

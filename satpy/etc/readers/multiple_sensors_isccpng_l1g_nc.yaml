@@ -1,0 +1,355 @@
+reader:
+  name: multiple_sensors_isccpng_l1g_nc
+  short_name: ISCCP NG NetCDF4
+  long_name: ISCCP NG Level 1g NetCDF4
+  description: https://cimss.ssec.wisc.edu/isccp-ng/
+  sensors: [seviri, abi, ahi]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  group_keys: ["start_time", "satid"]
+
+file_types:
+    isccp_ng_l1g_nc_refl_0047um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_0047um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_00_51um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_51um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_01_38um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_38um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_02_20um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_02_20um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_01_60um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_60um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_03_80um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_03_80um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_08_60um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_08_60um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_09_70um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_09_70um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_11_00um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_11_00um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_10_40um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_10_40um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_12_00um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_12_00um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_13_30um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_13_30um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_00_65um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_65um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_refl_00_86um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_86um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_06_20um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_20um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_06_70um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_70um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_temp_07_30um:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_07_30um__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_solar_zenith:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_satellite_zenith:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__satellite_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_solar_azimuth:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_satellite_azimuth:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__satellite_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_time:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__pixel_time__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_wmo_id:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__wmo_id__{start_time:%Y%m%dT%H%M}.nc']
+
+
+datasets:
+  refl_0047um:
+    name: refl_0047um
+    resolution: 3000.403165817
+    wavelength: [0.450, 0.470, 0.490]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_0047um
+    nc_key: 'refl_0047um'
+
+  refl_00_51um:
+    name: refl_00_51um
+    resolution: 3000.403165817
+    wavelength: [0.49,0.51,0.53]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_00_51um
+    nc_key: 'refl_00_51um'
+
+  refl_01_38um:
+    name: refl_01_38um
+    resolution: 3000.403165817
+    wavelength: [1.3705, 1.378, 1.3855]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_01_38um
+    nc_key: 'refl_01_38um'
+
+  refl_02_20um:
+    name: refl_02_20um
+    resolution: 3000.403165817
+    wavelength: [2.225, 2.250, 2.275]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_02_20um
+    nc_key: 'refl_02_20um'
+
+  refl_01_60um:
+    name: refl_01_60um
+    resolution: 3000.403165817
+    wavelength: [1.5, 1.64, 1.78]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_01_60um
+    nc_key: 'refl_01_60um'
+
+  temp_03_80um:
+    name: temp_03_80um
+    resolution: 3000.403165817
+    wavelength: [3.48, 3.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_03_80um
+    nc_key: 'temp_03_80um'
+
+  temp_08_60um:
+    name: temp_08_60um
+    resolution: 3000.403165817
+    wavelength: [8.3, 8.7, 9.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_08_60um
+    nc_key: 'temp_08_60um'
+
+  temp_09_70um:
+    name: temp_09_70um
+    resolution: 3000.403165817
+    wavelength: [9.38, 9.66, 9.94]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_09_70um
+    nc_key: 'temp_09_70um'
+
+  temp_11_00um:
+    name: temp_11_00um
+    resolution: 3000.403165817
+    wavelength: [9.8, 10.8, 11.8]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_11_00um
+    nc_key: 'temp_11_00um'
+
+  temp_10_40um:
+    name: temp_10_40um
+    resolution: 3000.403165817
+    wavelength: [10.2, 10.4, 10.6]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_10_40um
+    nc_key: 'temp_10_40um'
+
+  temp_12_00um:
+    name: temp_12_00um
+    resolution: 3000.403165817
+    wavelength: [11.0, 12.0, 13.0]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_12_00um
+    nc_key: 'temp_12_00um'
+
+  temp_13_30um:
+    name: temp_13_30um
+    resolution: 3000.403165817
+    wavelength: [12.4, 13.4, 14.4]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_temp_13_30um
+    nc_key: 'temp_13_30um'
+
+  refl_00_65um:
+    name: refl_00_65um
+    resolution: 3000.403165817
+    wavelength: [0.56, 0.635, 0.71]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [lon, lat]
+    file_type: isccp_ng_l1g_nc_refl_00_65um
+    nc_key: 'refl_00_65um'
+
+  refl_00_86um:
+    name: refl_00_86um
+    resolution: 3000.403165817
+    wavelength: [0.74, 0.81, 0.88]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: isccp_ng_l1g_nc_refl_00_86um
+    nc_key: 'refl_00_86um'
+
+  temp_06_20um:
+    name: temp_06_20um
+    resolution: 3000.403165817
+    wavelength: [5.35, 6.25, 7.15]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [lon, lat]
+    file_type:  isccp_ng_l1g_nc_temp_06_20um
+    nc_key: 'temp_06_20um'
+
+  temp_06_70um:
+    name: temp_06_70um
+    resolution: 3000.403165817
+    wavelength: [6.7, 6.9, 7.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [lon, lat]
+    file_type:  isccp_ng_l1g_nc_temp_06_70um
+    nc_key: 'temp_06_70um'
+
+  temp_07_30um:
+    name: temp_07_30um
+    resolution: 3000.403165817
+    wavelength: [6.85, 7.35, 7.85]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [lon, lat]
+    file_type:  isccp_ng_l1g_nc_temp_07_30um
+    nc_key: 'temp_07_30um'
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 3000.403165817
+    file_type: isccp_ng_l1g_nc_solar_zenith
+    units: degrees
+    nc_key: 'solar_zenith_angle'
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    standard_name: satellite_zenith_angle
+    resolution: 3000.403165817
+    file_type:  isccp_ng_l1g_nc_satellite_zenith
+    units: degrees
+    nc_key: 'satellite_zenith_angle'
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 3000.403165817
+    file_type:  isccp_ng_l1g_nc_solar_azimuth
+    units: degrees
+    nc_key: 'solar_azimuth_angle'
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    standard_name: satellite_azimuth_angle
+    resolution: 3000.403165817
+    file_type:  isccp_ng_l1g_nc_satellite_azimuth
+    units: degrees
+    nc_key: 'satellite_azimuth_angle'
+
+  lon:
+    name: lon
+    resolution: 3000.403165817
+    file_type:
+     - isccp_ng_l1g_nc_time
+     - isccp_ng_l1g_nc_temp_11_00um
+     - isccp_ng_l1g_nc_temp_12_00um
+     - isccp_ng_l1g_nc_temp_03_80um
+    standard_name: longitude
+    units: "degrees"
+    nc_key: 'longitude'
+
+  lat:
+    name: lat
+    resolution: 3000.403165817
+    file_type:
+     - isccp_ng_l1g_nc_time
+     - isccp_ng_l1g_nc_temp_11_00um
+     - isccp_ng_l1g_nc_temp_12_00um
+     - isccp_ng_l1g_nc_temp_03_80um
+    standard_name: latitude
+    units: "degrees"
+    nc_key: 'latitude'
+
+  pixel_time:
+    name: pixel_time
+    standard_name: pixel_time
+    resolution: 3000.403165817
+    file_type: isccp_ng_l1g_nc_time
+    coordinates: [lon, lat]
+    nc_key: 'pixel_time'
+
+  wmo_id:
+    name: wmo_id
+    resolution: 3000.403165817
+    file_type: isccp_ng_l1g_nc_wmo_id
+    coordinates: [lon, lat]
+    nc_key: 'wmo_id'

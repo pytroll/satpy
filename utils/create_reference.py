@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Satpy developers
+# Copyright (c) 2024-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -18,34 +18,98 @@
 
 Script to create reference images for the automated image testing system.
 
-create_reference.py <input-data> <output-directory> <satellite-name>
-
 The input data directory must follow the data structure from the
 image-comparison-tests repository with satellite_data/<satellite-name>.
 
 This script is a work in progress and expected to change significantly.
-It is absolutely not intended for any operational production of satellite
-imagery.
+
+DO NOT USE FOR OPERATIONAL PRODUCTION!
 """
 
-import sys
-from glob import glob
+import argparse
+import os
+import pathlib
 
-from dask.diagnostics import ProgressBar
+import hdf5plugin  # noqa: F401
 
 from satpy import Scene
 
-ext_data_path = sys.argv[1]
-outdir = sys.argv[2]
-satellite = sys.argv[3]
 
-filenames = glob(f"{ext_data_path}/satellite_data/{satellite}/*.nc")
+def generate_images(props):
+    """Generate reference images for testing purposes.
 
-scn = Scene(reader="abi_l1b", filenames=filenames)
+    Args:
+        props (namespace): Object with attributes corresponding to command line
+        arguments as defined by :func:get_parser.
+    """
+    filenames = (props.basedir / "satellite_data" / props.satellite /
+                 props.case).glob("*")
 
-composites = ["ash", "airmass"]
-scn.load(composites)
-ls = scn.resample(resampler="native")
-with ProgressBar():
-    ls.save_datasets(writer="simple_image", filename=outdir +
-                      "/satpy-reference-image-{platform_name}-{sensor}-{start_time:%Y%m%d%H%M}-{area.area_id}-{name}.png")
+    if "," in props.reader:
+        reader = props.reader.split(",")
+        resampler = "nearest"  # use nearest when combining with cloud mask
+    else:
+        reader = props.reader
+        resampler = "gradient_search"
+    scn = Scene(reader=reader, filenames=filenames)
+
+    scn.load(props.composites)
+    if props.area == "native":
+        ls = scn.resample(resampler="native")
+    elif props.area is not None:
+        ls = scn.resample(props.area, resampler=resampler)
+    else:
+        ls = scn
+
+    from dask.diagnostics import ProgressBar
+    with ProgressBar():
+        ls.save_datasets(
+                writer="simple_image",
+                filename=os.fspath(
+                    props.basedir / "reference_images" /
+                    "satpy-reference-image-{platform_name}-{sensor}-"
+                    "{start_time:%Y%m%d%H%M}-{area.area_id}-{name}.png"))
+
+def get_parser():
+    """Return argument parser."""
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    parser.add_argument(
+            "satellite", action="store", type=str,
+            help="Satellite name.")
+
+    parser.add_argument(
+            "reader", action="store", type=str,
+            help="Reader name.  Multiple readers (if needed) can be comma-seperated.")
+
+    parser.add_argument(
+            "case", help="case to generate", type=str)
+
+    parser.add_argument(
+            "-b", "--basedir", action="store", type=pathlib.Path,
+            default=pathlib.Path("."),
+            help="Base directory for reference data. "
+                 "This must contain a subdirectories satellite_data and "
+                 "reference_images.  The directory satellite_data must contain "
+                 "input data in a subdirectory for the satellite and case. Output images "
+                 "will be written to the subdirectory reference_images.")
+
+    parser.add_argument(
+            "-c", "--composites", nargs="+", help="composites to generate",
+            type=str, default=["ash", "airmass"])
+
+    parser.add_argument(
+            "-a", "--area", action="store",
+            default=None,
+            help="Area name, or 'native' (native resampling)")
+
+    return parser
+
+def main():
+    """Main function."""
+    parsed = get_parser().parse_args()
+
+    generate_images(parsed)
+
+if __name__ == "__main__":
+    main()
