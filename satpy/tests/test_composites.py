@@ -1792,7 +1792,7 @@ class TestMaskingCompositor:
         # Test with numerical transparency data using 3d test mask data which can not be squeezed
         comp = MaskingCompositor("name", conditions=conditions_v3,
                                  mode=mode)
-        with pytest.raises(ValueError, match=".*Received 3 dimension\(s\) but expected 2.*"):
+        with pytest.raises(ValueError, match=".*Received 3 dimension\\(s\\) but expected 2.*"):
             comp([test_data, test_value_3d_data_bands])
 
     def test_call_named_fields(self, conditions_v2, test_data, test_ct_data,
