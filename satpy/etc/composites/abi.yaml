@@ -830,6 +830,7 @@ composites:
       Day Cloud Type, for GOES-R: NASA/NOAA
     references:
       Quick Guide: http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_Day_Cloud_Type_RGB.pdf
+      EUMeTrain Guide: https://resources.eumetrain.org/data/7/736/navmenu.php?tab=3&page=1.0.0
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C04
