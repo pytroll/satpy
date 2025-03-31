@@ -809,3 +809,18 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
+
+  blowing_snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      Blowing Snow RGB
+    references:
+      Quick Guide: https://rammb2.cira.colostate.edu/wp-content/uploads/2024/11/GOES-BlowingSnowRGB1_QuickGuide_24April2024.pdf
+    prerequisites:
+      - name: C02
+      - name: C05
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C13
+    standard_name: blowing_snow
