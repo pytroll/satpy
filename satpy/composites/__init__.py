@@ -299,9 +299,7 @@ class RatioCompositor(CompositeBase):
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
-        info["name"] = self.attrs["name"]
-        if "standard_name" in self.attrs:
-            info["standard_name"] = self.attrs["standard_name"]
+        info.update(self.attrs)
 
         proj = projectables[0] / projectables[1]
         proj.attrs = info

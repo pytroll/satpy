@@ -425,7 +425,7 @@ def fake_dataset_pair(fake_area):
     return (ds1, ds2)
 
 
-@pytest.mark.parametrize("kwargs", [{}, {"standard_name": "channel_ratio"}])
+@pytest.mark.parametrize("kwargs", [{}, {"standard_name": "channel_ratio", "foo": "bar"}])
 def test_ratio_compositor(fake_dataset_pair, kwargs):
     """Test the ratio compositor."""
     from satpy.composites import RatioCompositor
@@ -433,8 +433,12 @@ def test_ratio_compositor(fake_dataset_pair, kwargs):
     res = comp(fake_dataset_pair)
     np.testing.assert_allclose(res.values, 2)
 
+    assert res.attrs["name"] == "ratio"
+
     if "standard_name" in kwargs:
+        # See that the kwargs have been updated to the attrs
         assert res.attrs["standard_name"] == "channel_ratio"
+        assert res.attrs["foo"] == "bar"
     else:
         assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
 
