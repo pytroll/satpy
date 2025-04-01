@@ -1653,15 +1653,16 @@ class TestMaskingCompositor:
         return ct_data
 
     @pytest.fixture
-    def test_value_3d_data(self):
+    def value_3d_data(self):
         """Test 3D data array."""
         value_3d_data = da.array([[[1, 0, 0],
                                    [0, 1, 0],
                                    [0, 0, 1]]])
         value_3d_data = xr.DataArray(value_3d_data, dims=["bands", "y", "x"])
         return value_3d_data
+
     @pytest.fixture
-    def test_value_3d_data_bands(self):
+    def value_3d_data_bands(self):
         """Test 3D data array."""
         value_3d_data = da.array([[[1, 0, 0],
                                    [0, 1, 0],
@@ -1759,14 +1760,14 @@ class TestMaskingCompositor:
 
     @pytest.mark.parametrize("mode", ["LA", "RGBA"])
     def test_call_numerical_transparency_data_with_3d_mask_data(
-            self, test_data, test_value_3d_data, conditions_v3, mode):
+            self, test_data, value_3d_data, conditions_v3, mode):
         """Test call the compositor with numerical transparency data.
 
         Use parameterisation to test different image modes.
         """
         from satpy.composites import MaskingCompositor
 
-        reference_data_v3 = test_data.where(test_value_3d_data[0] > 0)
+        reference_data_v3 = test_data.where(value_3d_data[0] > 0)
         reference_alpha_v3 = xr.DataArray([[1., 0., 0.],
                                            [0., 1., 0.],
                                            [0., 0., 1.]])
@@ -1774,7 +1775,7 @@ class TestMaskingCompositor:
         # Test with numerical transparency data using 3d test mask data which can be squeezed
         comp = MaskingCompositor("name", conditions=conditions_v3,
                                  mode=mode)
-        res = comp([test_data, test_value_3d_data])
+        res = comp([test_data, value_3d_data])
         assert res.mode == mode
         for m in mode.rstrip("A"):
             np.testing.assert_allclose(res.sel(bands=m), reference_data_v3)
@@ -1782,7 +1783,7 @@ class TestMaskingCompositor:
 
     @pytest.mark.parametrize("mode", ["LA", "RGBA"])
     def test_call_numerical_transparency_data_with_3d_mask_data_exception(
-            self, test_data, test_value_3d_data_bands, conditions_v3, mode):
+            self, test_data, value_3d_data_bands, conditions_v3, mode):
         """Test call the compositor with numerical transparency data, too many dimensions to squeeze.
 
         Use parameterisation to test different image modes.
@@ -1793,7 +1794,7 @@ class TestMaskingCompositor:
         comp = MaskingCompositor("name", conditions=conditions_v3,
                                  mode=mode)
         with pytest.raises(ValueError, match=".*Received 3 dimension\\(s\\) but expected 2.*"):
-            comp([test_data, test_value_3d_data_bands])
+            comp([test_data, value_3d_data_bands])
 
     def test_call_named_fields(self, conditions_v2, test_data, test_ct_data,
                                reference_data, reference_alpha):
