@@ -83,53 +83,6 @@ class TestWritersModule:
         assert mock_get_image.return_value.show.called
 
 
-class TestEnhancer:
-    """Test basic `Enhancer` functionality with builtin configs."""
-
-    def test_basic_init_no_args(self):
-        """Test Enhancer init with no arguments passed."""
-        from satpy.writers import Enhancer
-        e = Enhancer()
-        assert e.enhancement_tree is not None
-
-    def test_basic_init_no_enh(self):
-        """Test Enhancer init requesting no enhancements."""
-        from satpy.writers import Enhancer
-        e = Enhancer(enhancement_config_file=False)
-        assert e.enhancement_tree is None
-
-    def test_basic_init_provided_enh(self):
-        """Test Enhancer init with string enhancement configs."""
-        from satpy.writers import Enhancer
-        e = Enhancer(enhancement_config_file=["""enhancements:
-  enh1:
-    standard_name: toa_bidirectional_reflectance
-    operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: linear}
-"""])
-        assert e.enhancement_tree is not None
-
-    def test_init_nonexistent_enh_file(self):
-        """Test Enhancer init with a nonexistent enhancement configuration file."""
-        from satpy.writers import Enhancer
-        with pytest.raises(ValueError, match="YAML file doesn't exist or string is not YAML dict:.*"):
-            Enhancer(enhancement_config_file="is_not_a_valid_filename_?.yaml")
-
-    def test_print_tree(self, capsys):
-        """Test enhancement decision tree printing."""
-        from satpy.writers import Enhancer
-        enh = Enhancer()
-        enh.enhancement_tree.print_tree()
-        stdout = capsys.readouterr().out
-        lines = stdout.splitlines()
-        assert lines[0].startswith("name=<wildcard>")
-        # make sure lines are indented
-        assert lines[1].startswith("  reader=")
-        assert lines[2].startswith("    platform_name=")
-
-
 class _CustomImageWriter(ImageWriter):
     def __init__(self, **kwargs):
         super().__init__(name="test", config_files=[], **kwargs)
@@ -213,7 +166,8 @@ enhancements:
         """Test that a DataArray with two sensors works."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "test1",
@@ -236,7 +190,8 @@ enhancements:
         """Test that a DataArray with two sensors can match exactly."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "my_comp",
@@ -259,7 +214,8 @@ enhancements:
         """Test Enhancer doesn't fail when query includes bad values."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name=["I", "am", "invalid"], sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
@@ -314,7 +270,8 @@ enhancements:
         """Test Enhancer doesn't fail with empty enhancement file."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor="test_empty", mode="L"),
                        dims=["y", "x"])
@@ -328,7 +285,8 @@ enhancements:
         """Test enhancing an image that has no configuration sections."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
@@ -365,7 +323,7 @@ enhancements:
         """Test using custom enhancements with writer."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer
+        from satpy.enhancements.enhancer import Enhancer
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", sensor="test_sensor", mode="L"),
                        dims=["y", "x"])
@@ -379,7 +337,8 @@ enhancements:
         """Test enhancing an image with a configuration section."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", sensor="test_sensor", mode="L"),
                        dims=["y", "x"])
@@ -407,7 +366,8 @@ enhancements:
         """Test enhancing an image with a more detailed configuration section."""
         from xarray import DataArray
 
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", units="kelvin",
                                   sensor="test_sensor", mode="L"),
@@ -473,7 +433,8 @@ enhancements:
         return ds
 
     def _get_enhanced_image(self, data_arr, test_configs_path):
-        from satpy.writers import Enhancer, get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer
+        from satpy.writers import get_enhanced_image
         e = Enhancer()
         assert e.enhancement_tree is not None
         img = get_enhanced_image(data_arr, enhance=e)
