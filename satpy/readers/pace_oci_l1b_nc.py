@@ -114,36 +114,36 @@ class NCOCIL1B(BaseFileHandler):
         for bnd in ["blue", "red", "SWIR"]:
             shper = self.nc["observation_data"][f"rhot_{bnd}"].shape
             for i in range(0, shper[0]):
-                yield True, self._retr_dsinfo_chans(bnd, i, cal="refl")
-                yield True, self._retr_dsinfo_chans(bnd, i, cal="radi")
-                yield True, self._retr_dsinfo_chans(bnd, i, dstype="qual", vatype="qual")
+                yield True, self._retr_dsinfo_chans(bnd, i, {"cal": "refl", "dst": "chan", "vatype": "rhot"})
+                yield True, self._retr_dsinfo_chans(bnd, i, {"cal": "radi", "dst": "chan", "vatype": "rhot"})
+                yield True, self._retr_dsinfo_chans(bnd, i, {"cal": "", "dst": "qual", "vatype": "qual"})
 
         for is_avail, ds_info in (configured_datasets or []):
             yield True, ds_info
 
-    def _retr_dsinfo_chans(self, band, i, cal="", dstype="chan", vatype="rhot"):
+    def _retr_dsinfo_chans(self, band, i, idic):
         """Retrieve the ds info for a given channel."""
         ds_info = {"file_type": self.filetype_info["file_type"],
                    "resolution": self.resolution,
-                   "name": f"{dstype}_{band.lower()}_{self.wvls[band.lower()][i][1] * 1000:4.0f}".replace(" ", ""),
+                   "name": f"{idic["dst"]}_{band.lower()}_{self.wvls[band.lower()][i][1] * 1000:4.0f}".replace(" ", ""),
                    "wavelength": [self.wvls[band.lower()][i][0],
                                   self.wvls[band.lower()][i][1],
                                   self.wvls[band.lower()][i][2]],
-                   "file_key": f"{vatype}_{band}",
+                   "file_key": f"{idic["vatype"]}_{band}",
                    "ds_key": band,
                    "idx": i,
                    "grp_key": "observation_data",
                    "coordinates": ("longitude", "latitude")}
 
-        if cal == "refl":
+        if idic["cal"] == "refl":
             ds_info["standard_name"] = "toa_bidirectional_reflectance"
             ds_info["units"] = "%"
             ds_info["calibration"] = "reflectance"
-        elif cal == "radi":
+        elif idic["cal"] == "radi":
             ds_info["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
             ds_info["units"] = "W m-2 sr-1 um-1"
             ds_info["calibration"] = "radiance"
-        elif dstype == "qual":
+        elif idic["dst"] == "qual":
             ds_info["standard_name"] = "quality_flags"
             ds_info["units"] = "1"
         return ds_info
