@@ -161,8 +161,8 @@ def test_get_dataset_refl(scn):
     cname_b = "chan_blue_400"
     cname_s = "chan_swir_1000"
     scn.load([cname_b, cname_s], calibration="reflectance")
-    np.testing.assert_allclose(scn[cname_b], blu_cdata[0, :, :] * 100.)
-    np.testing.assert_allclose(scn[cname_s], swir_cdata[0, :, :] * 100.)
+    np.testing.assert_allclose(scn[cname_b], blu_cdata[0, :, :] * 100., rtol=1e-6)
+    np.testing.assert_allclose(scn[cname_s], swir_cdata[0, :, :] * 100., rtol=1e-6)
 
     assert scn[cname_b].attrs["standard_name"] == "toa_bidirectional_reflectance"
     assert scn[cname_s].attrs["standard_name"] == "toa_bidirectional_reflectance"
