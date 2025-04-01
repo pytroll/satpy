@@ -142,7 +142,7 @@ class DecisionTree:
         """Add a configuration to the tree."""
         conf = {}
         for decision_dict in decision_dicts:
-            conf = recursive_dict_update(conf, decision_dict)
+            recursive_dict_update(conf, decision_dict)
         self._build_tree(conf)
 
     def _build_tree(self, conf):

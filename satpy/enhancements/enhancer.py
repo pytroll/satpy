@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import yaml
 from yaml import UnsafeLoader
@@ -46,34 +47,41 @@ class EnhancementDecisionTree(DecisionTree):
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
 
-    def add_config_to_tree(self, *decision_dict):
+    def add_config_to_tree(self, *decision_dict: str | Path | dict) -> None:
         """Add configuration to tree."""
-        conf = {}
+        conf: dict = {}
         for config_file in decision_dict:
-            if os.path.isfile(config_file):
-                with open(config_file) as fd:
-                    enhancement_config = yaml.load(fd, Loader=UnsafeLoader)
-                    if enhancement_config is None:
-                        # empty file
-                        continue
-                    enhancement_section = enhancement_config.get(
-                        self.prefix, {})
-                    if not enhancement_section:
-                        LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
-                        continue
-                    LOG.debug(f"Adding enhancement configuration from file: {config_file}")
-                    conf = recursive_dict_update(conf, enhancement_section)
-            elif isinstance(config_file, dict):
-                conf = recursive_dict_update(conf, config_file)
-            else:
-                LOG.debug("Loading enhancement config string")
-                d = yaml.load(config_file, Loader=UnsafeLoader)
-                if not isinstance(d, dict):
-                    raise ValueError(
-                        "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
-                conf = recursive_dict_update(conf, d)
-
+            config_dict = self._get_config_dict_from_user(config_file)
+            recursive_dict_update(conf, config_dict)
         self._build_tree(conf)
+
+    def _get_config_dict_from_user(self, config_file: str | Path | dict) -> dict:
+        if isinstance(config_file, (str, Path)) and os.path.isfile(config_file):
+            config_dict = self._get_yaml_enhancement_dict(config_file)
+        elif isinstance(config_file, dict):
+            config_dict = config_file
+        elif isinstance(config_file, str):
+            LOG.debug("Loading enhancement config string")
+            config_dict = yaml.load(config_file, Loader=UnsafeLoader)
+            if not isinstance(config_dict, dict):
+                raise ValueError(
+                    "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
+        else:
+            raise ValueError(f"Unexpected type for enhancement configuration: {type(config_file)}")
+        return config_dict
+
+    def _get_yaml_enhancement_dict(self, config_file: str | Path) -> dict:
+        with open(config_file) as fd:
+            enhancement_config = yaml.load(fd, Loader=UnsafeLoader)
+            if enhancement_config is None:
+                # empty file
+                return {}
+            enhancement_section = enhancement_config.get(self.prefix, {})
+            if not enhancement_section:
+                LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
+                return {}
+            LOG.debug(f"Adding enhancement configuration from file: {config_file}")
+        return enhancement_section
 
     def find_match(self, **query_dict):
         """Find a match."""
