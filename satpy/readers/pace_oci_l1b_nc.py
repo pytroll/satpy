@@ -129,7 +129,7 @@ class NCOCIL1B(BaseFileHandler):
                    "wavelength": [self.wvls[band.lower()][i][0],
                                   self.wvls[band.lower()][i][1],
                                   self.wvls[band.lower()][i][2]],
-                   "file_key": f"{idic["vatype"]}_{band}",
+                   "file_key": f"{idic['vatype']}_{band}",
                    "ds_key": band,
                    "idx": i,
                    "grp_key": "observation_data",
