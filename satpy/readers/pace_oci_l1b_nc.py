@@ -115,23 +115,23 @@ class NCOCIL1B(BaseFileHandler):
             for i in range(0, shper[0]):
                 yield True, self._retr_dsinfo_chans(bnd, i, cal="refl")
                 yield True, self._retr_dsinfo_chans(bnd, i, cal="radi")
+                yield True, self._retr_dsinfo_chans(bnd, i, dstype="qual", vatype="qual")
 
         for is_avail, ds_info in (configured_datasets or []):
             yield True, ds_info
 
-    def _retr_dsinfo_chans(self, band, i, cal=""):
+    def _retr_dsinfo_chans(self, band, i, cal="", dstype="chan", vatype="rhot"):
         """Retrieve the ds info for a given channel."""
         ds_info = {"file_type": self.filetype_info["file_type"],
                    "resolution": self.resolution,
-                   "name": f"chan_{band.lower()}_{self.wvls[band.lower()][i][1]*1000:4.0f}".replace(" ", ""),
+                   "name": f"{dstype}_{band.lower()}_{self.wvls[band.lower()][i][1]*1000:4.0f}".replace(" ", ""),
                    "wavelength": [self.wvls[band.lower()][i][0],
                                   self.wvls[band.lower()][i][1],
                                   self.wvls[band.lower()][i][2]],
-                   "file_key": f"rhot_{band}",
+                   "file_key": f"{vatype}_{band}",
                    "ds_key": band,
                    "idx": i,
                    "grp_key": "observation_data",
-                   "units": "%",
                    "coordinates": ("longitude", "latitude")}
 
         if cal == "refl":
@@ -142,6 +142,9 @@ class NCOCIL1B(BaseFileHandler):
             ds_info["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength",
             ds_info["units"] = "W m-2 sr-1 um-1"
             ds_info["calibration"] = "radiance"
+        elif dstype == "qual":
+            ds_info["standard_name"] = "quality_flags"
+            ds_info["units"] = "1"
         return ds_info
 
 
@@ -169,7 +172,7 @@ class NCOCIL1B(BaseFileHandler):
             elif key["calibration"] == "radiance":
                 sza = self.nc["geolocation_data/solar_zenith"]
                 esd = self.nc.attrs["earth_sun_distance_correction"]
-                irr = self.irradiance[info["ds_key"]][info["idx"]]
+                irr = self.irradiance[info["ds_key"].lower()][info["idx"]]
                 variable = (variable * irr * np.cos(np.radians(sza))) / (esd * np.pi)
                 variable.attrs["units"] = "W m-2 sr-1 um-1"
                 variable.attrs["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
