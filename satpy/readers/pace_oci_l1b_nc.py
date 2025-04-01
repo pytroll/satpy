@@ -76,10 +76,10 @@ class NCOCIL1B(BaseFileHandler):
 
         return wvls / 1000.
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Init the oci reader base."""
         super().__init__(filename, filename_info, filetype_info)
-        self._engine = engine
+        self._engine = kwargs.get("engine", None)
         self.sensor = "oci"
 
         # Get the per-band solar irradiance and central wavelength values, these are split across
