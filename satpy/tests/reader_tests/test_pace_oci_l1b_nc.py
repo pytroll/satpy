@@ -54,6 +54,7 @@ lat_data = rng.uniform(size=(n_scan, n_pix), low=-90, high=90)
 
 esd = 0.9989
 
+
 @pytest.fixture
 def temp_nc_file():
     """Create a temporary netCDF file for the tests."""

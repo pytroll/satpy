@@ -53,6 +53,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 
 logger = logging.getLogger(__name__)
 
+
 class NCOCIL1B(BaseFileHandler):
     """The OCI reader base."""
 
@@ -124,7 +125,7 @@ class NCOCIL1B(BaseFileHandler):
         """Retrieve the ds info for a given channel."""
         ds_info = {"file_type": self.filetype_info["file_type"],
                    "resolution": self.resolution,
-                   "name": f"{dstype}_{band.lower()}_{self.wvls[band.lower()][i][1]*1000:4.0f}".replace(" ", ""),
+                   "name": f"{dstype}_{band.lower()}_{self.wvls[band.lower()][i][1] * 1000:4.0f}".replace(" ", ""),
                    "wavelength": [self.wvls[band.lower()][i][0],
                                   self.wvls[band.lower()][i][1],
                                   self.wvls[band.lower()][i][2]],
@@ -135,11 +136,11 @@ class NCOCIL1B(BaseFileHandler):
                    "coordinates": ("longitude", "latitude")}
 
         if cal == "refl":
-            ds_info["standard_name"] = "toa_bidirectional_reflectance",
+            ds_info["standard_name"] = "toa_bidirectional_reflectance"
             ds_info["units"] = "%"
             ds_info["calibration"] = "reflectance"
         elif cal == "radi":
-            ds_info["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength",
+            ds_info["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
             ds_info["units"] = "W m-2 sr-1 um-1"
             ds_info["calibration"] = "radiance"
         elif dstype == "qual":
@@ -147,6 +148,21 @@ class NCOCIL1B(BaseFileHandler):
             ds_info["units"] = "1"
         return ds_info
 
+    def _sort_cal(self, variable, caltype, info):
+        """Apply calibration to the data, if needed, and update attrs."""
+        if caltype == "reflectance":
+            variable = variable * 100.
+            variable.attrs["units"] = "%"
+            variable.attrs["standard_name"] = "toa_bidirectional_reflectance"
+        elif caltype == "radiance":
+            sza = self.nc["geolocation_data/solar_zenith"]
+            esd = self.nc.attrs["earth_sun_distance_correction"]
+            irr = self.irradiance[info["ds_key"].lower()][info["idx"]]
+            variable = (variable * irr * np.cos(np.radians(sza))) / (esd * np.pi)
+            variable.attrs["units"] = "W m-2 sr-1 um-1"
+            variable.attrs["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
+
+        return variable
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -161,21 +177,11 @@ class NCOCIL1B(BaseFileHandler):
 
         # Datatree messes with the coordinates, for lats + lons we need to remove the coords.
         if key["name"] in ["longitude", "latitude"]:
-             variable = variable.reset_coords(names="longitude", drop=True)
-             variable = variable.reset_coords(names="latitude", drop=True)
+            variable = variable.reset_coords(names="longitude", drop=True)
+            variable = variable.reset_coords(names="latitude", drop=True)
         variable.attrs["standard_name"] = info["standard_name"]
         if "calibration" in key:
-            if key["calibration"] == "reflectance":
-                variable = variable * 100.
-                variable.attrs["units"] = "%"
-                variable.attrs["standard_name"] = "toa_bidirectional_reflectance"
-            elif key["calibration"] == "radiance":
-                sza = self.nc["geolocation_data/solar_zenith"]
-                esd = self.nc.attrs["earth_sun_distance_correction"]
-                irr = self.irradiance[info["ds_key"].lower()][info["idx"]]
-                variable = (variable * irr * np.cos(np.radians(sza))) / (esd * np.pi)
-                variable.attrs["units"] = "W m-2 sr-1 um-1"
-                variable.attrs["standard_name"] = "toa_outgoing_radiance_per_unit_wavelength"
+            variable = self._sort_cal(variable, key["calibration"], info)
 
         return variable.rename({self.cols_name: "x", self.rows_name: "y"})
 
