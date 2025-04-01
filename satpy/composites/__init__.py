@@ -1908,6 +1908,9 @@ class MaskingCompositor(GenericCompositor):
         data_in = projectables[0]
         mask_in = projectables[1]
 
+        # remove "bands" dimension for single band masks (ex. "L")
+        mask_in = mask_in.squeeze(drop=True)
+
         alpha_attrs = data_in.attrs.copy()
         data = self._select_data_bands(data_in)
 
