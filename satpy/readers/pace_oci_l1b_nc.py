@@ -125,7 +125,7 @@ class NCOCIL1B(BaseFileHandler):
         """Retrieve the ds info for a given channel."""
         ds_info = {"file_type": self.filetype_info["file_type"],
                    "resolution": self.resolution,
-                   "name": f"{idic["dst"]}_{band.lower()}_{self.wvls[band.lower()][i][1] * 1000:4.0f}".replace(" ", ""),
+                   "name": f"{idic['dst']}_{band.lower()}_{self.wvls[band.lower()][i][1] * 1000:4.0f}".replace(" ", ""),
                    "wavelength": [self.wvls[band.lower()][i][0],
                                   self.wvls[band.lower()][i][1],
                                   self.wvls[band.lower()][i][2]],
