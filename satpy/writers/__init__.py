@@ -17,8 +17,8 @@
 
 For now, this includes enhancement configuration utilities.
 """
+from __future__ import annotations
 
-import logging
 import os
 import warnings
 from typing import Optional
@@ -34,11 +34,12 @@ from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.aux_download import DataDownloadMixin
+from satpy.enhancements.enhancer import Enhancer
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
-from satpy.utils import get_legacy_chunk_size, recursive_dict_update
+from satpy.utils import get_legacy_chunk_size, get_logger
 
-LOG = logging.getLogger(__name__)
+LOG = get_logger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 
@@ -404,13 +405,13 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
 
     Args:
         dataset (xarray.DataArray): Data to be enhanced and converted to an image.
-        enhance (bool or Enhancer): Whether to automatically enhance
+        enhance (bool or satpy.enhancements.enhancer.Enhancer): Whether to automatically enhance
             data to be more visually useful and to fit inside the file
             format being saved to. By default, this will default to using
             the enhancement configuration files found using the default
-            :class:`~satpy.writers.Enhancer` class. This can be set to
+            :class:`~satpy.enhancements.enhancer.Enhancer` class. This can be set to
             `False` so that no enhancments are performed. This can also
-            be an instance of the :class:`~satpy.writers.Enhancer` class
+            be an instance of the :class:`~satpy.enhancements.enhancer.Enhancer` class
             if further custom enhancement is needed.
         overlay (dict): Options for image overlays. See :func:`add_overlay`
             for available options.
@@ -838,9 +839,9 @@ class ImageWriter(Writer):
                 data to be more visually useful and to fit inside the file
                 format being saved to. By default, this will default to using
                 the enhancement configuration files found using the default
-                :class:`~satpy.writers.Enhancer` class. This can be set to
+                :class:`~satpy.enhancements.enhancer.Enhancer` class. This can be set to
                 `False` so that no enhancments are performed. This can also
-                be an instance of the :class:`~satpy.writers.Enhancer` class
+                be an instance of the :class:`~satpy.enhancements.enhancer.Enhancer` class
                 if further custom enhancement is needed.
 
             kwargs (dict): Additional keyword arguments to pass to the
@@ -925,317 +926,3 @@ class ImageWriter(Writer):
 
         """
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
-
-
-class DecisionTree(object):
-    """Structure to search for nearest match from a set of parameters.
-
-    This class is used to find the best configuration section by matching
-    a set of attributes. The provided dictionary contains a mapping of
-    "section name" to "decision" dictionaries. Each decision dictionary
-    contains the attributes that will be used for matching plus any
-    additional keys that could be useful when matched. This class will
-    search these decisions and return the one with the most matching
-    parameters to the attributes passed to the
-    :meth:`~satpy.writers.DecisionTree.find_match` method.
-
-    Note that decision sections are provided as a dict instead of a list
-    so that they can be overwritten or updated by doing the equivalent
-    of a ``current_dicts.update(new_dicts)``.
-
-    Examples:
-        Decision sections are provided as a dictionary of dictionaries.
-        The returned match will be the first result found by searching
-        provided `match_keys` in order.
-
-        ::
-
-            decisions = {
-                'first_section': {
-                    'a': 1,
-                    'b': 2,
-                    'useful_key': 'useful_value',
-                },
-                'second_section': {
-                    'a': 5,
-                    'useful_key': 'other_useful_value1',
-                },
-                'third_section': {
-                    'b': 4,
-                    'useful_key': 'other_useful_value2',
-                },
-            }
-            tree = DecisionTree(decisions, ('a', 'b'))
-            tree.find_match(a=5, b=2)  # second_section dict
-            tree.find_match(a=1, b=2)  # first_section dict
-            tree.find_match(a=5, b=4)  # second_section dict
-            tree.find_match(a=3, b=2)  # no match
-
-    """
-
-    any_key = None
-
-    def __init__(self, decision_dicts, match_keys, multival_keys=None):
-        """Init the decision tree.
-
-        Args:
-            decision_dicts (dict): Dictionary of dictionaries. Each
-                sub-dictionary contains key/value pairs that can be
-                matched from the `find_match` method. Sub-dictionaries
-                can include additional keys outside the ``match_keys``
-                provided to act as the "result" of a query. The keys of
-                the root dict are arbitrary.
-            match_keys (list): Keys of the provided dictionary to use for
-                matching.
-            multival_keys (list): Keys of `match_keys` that can be provided
-                as multiple values.
-                A multi-value key can be specified as a single value
-                (typically a string) or a set. If a set, it will be sorted
-                and converted to a tuple and then used for matching.
-                When querying the tree, these keys will
-                be searched for exact multi-value results (the sorted tuple)
-                and if not found then each of the values will be searched
-                individually in alphabetical order.
-
-        """
-        self._match_keys = match_keys
-        self._multival_keys = multival_keys or []
-        self._tree = {}
-        if not isinstance(decision_dicts, (list, tuple)):
-            decision_dicts = [decision_dicts]
-        self.add_config_to_tree(*decision_dicts)
-
-    def add_config_to_tree(self, *decision_dicts):
-        """Add a configuration to the tree."""
-        conf = {}
-        for decision_dict in decision_dicts:
-            conf = recursive_dict_update(conf, decision_dict)
-        self._build_tree(conf)
-
-    def _build_tree(self, conf):
-        """Build the tree.
-
-        Create a tree structure of dicts where each level represents the
-        possible matches for a specific ``match_key``. When finding matches
-        we will iterate through the tree matching each key that we know about.
-        The last dict in the "tree" will contain the configure section whose
-        match values led down that path in the tree.
-
-        See :meth:`DecisionTree.find_match` for more information.
-
-        """
-        for _section_name, sect_attrs in conf.items():
-            # Set a path in the tree for each section in the config files
-            curr_level = self._tree
-            for match_key in self._match_keys:
-                # or None is necessary if they have empty strings
-                this_attr_val = sect_attrs.get(match_key, self.any_key) or None
-                if match_key in self._multival_keys and isinstance(this_attr_val, list):
-                    this_attr_val = tuple(sorted(this_attr_val))
-                is_last_key = match_key == self._match_keys[-1]
-                level_needs_init = this_attr_val not in curr_level
-                if is_last_key:
-                    # if we are at the last attribute, then assign the value
-                    # set the dictionary of attributes because the config is
-                    # not persistent
-                    curr_level[this_attr_val] = sect_attrs
-                elif level_needs_init:
-                    curr_level[this_attr_val] = {}
-                curr_level = curr_level[this_attr_val]
-
-    @staticmethod
-    def _convert_query_val_to_hashable(query_val):
-        _sorted_query_val = sorted(query_val)
-        query_vals = [tuple(_sorted_query_val)] + _sorted_query_val
-        query_vals += query_val
-        return query_vals
-
-    def _get_query_values(self, query_dict, curr_match_key):
-        query_val = query_dict[curr_match_key]
-        if curr_match_key in self._multival_keys and isinstance(query_val, set):
-            query_vals = self._convert_query_val_to_hashable(query_val)
-        else:
-            query_vals = [query_val]
-        return query_vals
-
-    def _find_match_if_known(self, curr_level, remaining_match_keys, query_dict):
-        match = None
-        curr_match_key = remaining_match_keys[0]
-        if curr_match_key not in query_dict:
-            return match
-
-        query_vals = self._get_query_values(query_dict, curr_match_key)
-        for query_val in query_vals:
-            if query_val not in curr_level:
-                continue
-            match = self._find_match(curr_level[query_val],
-                                     remaining_match_keys[1:],
-                                     query_dict)
-            if match is not None:
-                break
-        return match
-
-    def _find_match(self, curr_level, remaining_match_keys, query_dict):
-        """Find a match."""
-        if len(remaining_match_keys) == 0:
-            # we're at the bottom level, we must have found something
-            return curr_level
-
-        match = self._find_match_if_known(
-            curr_level, remaining_match_keys, query_dict)
-
-        if match is None and self.any_key in curr_level:
-            # if we couldn't find it using the attribute then continue with
-            # the other attributes down the 'any' path
-            match = self._find_match(
-                curr_level[self.any_key],
-                remaining_match_keys[1:],
-                query_dict)
-        return match
-
-    def find_match(self, **query_dict):
-        """Find a match.
-
-        Recursively search through the tree structure for a path that matches
-        the provided match parameters.
-
-        """
-        try:
-            match = self._find_match(self._tree, self._match_keys, query_dict)
-        except (KeyError, IndexError, ValueError, TypeError):
-            LOG.debug("Match exception:", exc_info=True)
-            LOG.error("Error when finding matching decision section")
-            match = None
-
-        if match is None:
-            # only possible if no default section was provided
-            raise KeyError("No decision section found for %s" %
-                           (query_dict.get("uid", None),))
-        return match
-
-
-class EnhancementDecisionTree(DecisionTree):
-    """The enhancement decision tree."""
-
-    def __init__(self, *decision_dicts, **kwargs):
-        """Init the decision tree."""
-        match_keys = kwargs.pop("match_keys",
-                                ("name",
-                                 "reader",
-                                 "platform_name",
-                                 "sensor",
-                                 "standard_name",
-                                 "units",
-                                 ))
-        self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor"])
-        super(EnhancementDecisionTree, self).__init__(
-            decision_dicts, match_keys, multival_keys)
-
-    def add_config_to_tree(self, *decision_dict):
-        """Add configuration to tree."""
-        conf = {}
-        for config_file in decision_dict:
-            if os.path.isfile(config_file):
-                with open(config_file) as fd:
-                    enhancement_config = yaml.load(fd, Loader=UnsafeLoader)
-                    if enhancement_config is None:
-                        # empty file
-                        continue
-                    enhancement_section = enhancement_config.get(
-                        self.prefix, {})
-                    if not enhancement_section:
-                        LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
-                        continue
-                    LOG.debug(f"Adding enhancement configuration from file: {config_file}")
-                    conf = recursive_dict_update(conf, enhancement_section)
-            elif isinstance(config_file, dict):
-                conf = recursive_dict_update(conf, config_file)
-            else:
-                LOG.debug("Loading enhancement config string")
-                d = yaml.load(config_file, Loader=UnsafeLoader)
-                if not isinstance(d, dict):
-                    raise ValueError(
-                        "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
-                conf = recursive_dict_update(conf, d)
-
-        self._build_tree(conf)
-
-    def find_match(self, **query_dict):
-        """Find a match."""
-        try:
-            return super(EnhancementDecisionTree, self).find_match(**query_dict)
-        except KeyError:
-            # give a more understandable error message
-            raise KeyError("No enhancement configuration found for %s" %
-                           (query_dict.get("uid", None),))
-
-
-class Enhancer(object):
-    """Helper class to get enhancement information for images."""
-
-    def __init__(self, enhancement_config_file=None):
-        """Initialize an Enhancer instance.
-
-        Args:
-            enhancement_config_file: The enhancement configuration to apply, False to leave as is.
-        """
-        self.enhancement_config_file = enhancement_config_file
-        # Set enhancement_config_file to False for no enhancements
-        if self.enhancement_config_file is None:
-            # it wasn't specified in the config or in the kwargs, we should
-            # provide a default
-            config_fn = os.path.join("enhancements", "generic.yaml")
-            paths = get_entry_points_config_dirs("satpy.enhancements")
-            self.enhancement_config_file = config_search_paths(config_fn, search_dirs=paths)
-
-        if not self.enhancement_config_file:
-            # They don't want any automatic enhancements
-            self.enhancement_tree = None
-        else:
-            if not isinstance(self.enhancement_config_file, (list, tuple)):
-                self.enhancement_config_file = [self.enhancement_config_file]
-
-            self.enhancement_tree = EnhancementDecisionTree(*self.enhancement_config_file)
-
-        self.sensor_enhancement_configs = []
-
-    def get_sensor_enhancement_config(self, sensor):
-        """Get the sensor-specific config."""
-        if isinstance(sensor, str):
-            # one single sensor
-            sensor = [sensor]
-
-        paths = get_entry_points_config_dirs("satpy.enhancements")
-        for sensor_name in sensor:
-            config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn, search_dirs=paths)
-            # Note: Enhancement configuration files can't overwrite individual
-            # options, only entire sections are overwritten
-            for config_file in config_files:
-                yield config_file
-
-    def add_sensor_enhancements(self, sensor):
-        """Add sensor-specific enhancements."""
-        # XXX: Should we just load all enhancements from the base directory?
-        new_configs = []
-        for config_file in self.get_sensor_enhancement_config(sensor):
-            if config_file not in self.sensor_enhancement_configs:
-                self.sensor_enhancement_configs.append(config_file)
-                new_configs.append(config_file)
-
-        if new_configs:
-            self.enhancement_tree.add_config_to_tree(*new_configs)
-
-    def apply(self, img, **info):
-        """Apply the enhancements."""
-        enh_kwargs = self.enhancement_tree.find_match(**info)
-
-        backup_id = f"<name={info.get('name')}, calibration={info.get('calibration')}>"
-        data_id = info.get("_satpy_id", backup_id)
-        LOG.debug(f"Data for {data_id} will be enhanced with options:\n\t{enh_kwargs['operations']}")
-        for operation in enh_kwargs["operations"]:
-            fun = operation["method"]
-            args = operation.get("args", [])
-            kwargs = operation.get("kwargs", {})
-            fun(img, *args, **kwargs)

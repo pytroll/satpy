@@ -117,6 +117,8 @@ The above example can be used in enhancements YAML config like this:
 
 .. _trollimage: http://trollimage.readthedocs.io/en/latest/
 
+.. _scene_multiple_saves:
+
 Saving multiple Scenes in one go
 ================================
 
