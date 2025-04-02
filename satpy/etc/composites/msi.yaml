@@ -414,6 +414,25 @@ composites:
       transparency: 100
     standard_name: ndsi_msi
 
+  dataspace_swir:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B12'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B8A'
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: 'B04'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: natural_color
+
+  dataspace_swir_uncorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: 'B12'
+      - name: 'B8A'
+      - name: 'B04'
+    standard_name: natural_color
+
   ndsi_with_true_color:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     prerequisites:
