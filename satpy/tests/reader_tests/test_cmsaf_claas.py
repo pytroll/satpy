@@ -79,7 +79,7 @@ def fake_dataset(start_time_str):
         },
         attrs=attrs
     )
-
+#TODO: ajouter y = 3712 sur une nouvelle fixture claas3
 
 @pytest.fixture
 def encoding():
@@ -210,6 +210,7 @@ class TestCLAAS2SingleFile:
             width=3636,
             height=3636,
         )
+#TODO ajouter une fixture/parameter (?)  area_exp_claas3
 
     def test_get_area_def(self, file_handler, area_exp):
         """Test area definition."""
