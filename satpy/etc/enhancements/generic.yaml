@@ -1230,7 +1230,7 @@ enhancements:
           max_stretch: [50, 50, 100]
 
   essl_low_level_moisture:
-    name: essl_low_level_moisture
+    standard_name: essl_low_level_moisture
     operations:
       - name: linear_stretch
         method: !!python/name:satpy.enhancements.stretch
@@ -1241,8 +1241,8 @@ enhancements:
     operations: []
 
   essl_colorized_low_level_moisture:
-    name: essl_colorized_low_level_moisture
-    operations:
+    standard_name: essl_colorized_low_level_moisture
+    operations: &masked_llm
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
         kwargs:
@@ -1351,6 +1351,10 @@ enhancements:
               - [255, 243, 175]
               - [255, 249, 183]
               - [255, 255, 191]
+
+  masked_essl_colorized_low_level_moisture:
+    standard_name: masked_essl_colorized_low_level_moisture
+    operations: *masked_llm
 
   rocket_plume:
     standard_name: rocket_plume

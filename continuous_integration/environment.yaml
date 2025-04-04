@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - xarray!=2022.9.0
-  - dask<2025.1.0
+  - dask
   - distributed
   - dask-image
   - donfig

@@ -646,7 +646,7 @@ class TestInterpolator:
     @pytest.fixture(name="time_ir_wv")
     def fixture_time_ir_wv(self):
         """Returns time_ir_wv."""
-        return xr.DataArray(
+        time_ir_wv = xr.DataArray(
             [
               [np.datetime64("1970-01-01 01:00"), np.datetime64("1970-01-01 02:00")],
               [np.datetime64("1970-01-01 03:00"), np.datetime64("1970-01-01 04:00")],
@@ -656,6 +656,7 @@ class TestInterpolator:
             dims=("y", "x"),
             coords={"y": [1, 3, 5, 7]}
         )
+        return time_ir_wv.astype("datetime64[ns]")
 
     @pytest.fixture(name="acq_time_exp")
     def fixture_acq_time_exp(self):
