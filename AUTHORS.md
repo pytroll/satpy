@@ -46,6 +46,7 @@ The following people have made contributions to this project:
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Jactry Zeng](https://github.com/jactry)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
+- Daniel Johnsson
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
