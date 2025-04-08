@@ -1,0 +1,273 @@
+reader:
+  name: msi_l1c_earthcare
+  short_name: MSI EarthCARE
+  long_name: Multispectral Imager for EarthCARE
+  description: Multispectral Imager for EarthCARE Level 1C (regridded) Reader
+  status: Nominal
+  supports_fsspec: true
+  sensors: [ec_msi]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+file_types:
+  msi_l1c_earthcare_rgr:
+    file_reader: !!python/name:satpy.readers.msi_ec_l1c_h5.MSIECL1CFileHandler
+    file_patterns:
+      - '{mission_id:s}_{processing_institute:s}_{sensor_id:s}_{file_id:s}_{proc_level:s}_{start_time:%Y%m%dT%H%M%S}Z_{end_time:%Y%m%dT%H%M%S}Z_{orbit_number:s}{frame_id:s}.h5'
+
+
+datasets:
+# Science measurement datasets
+  VIS:
+    name: VIS
+    sensor: ec_msi
+    wavelength: [0.66, 0.67, 0.68]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 0
+    coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
+  VNIR:
+    name: VNIR
+    sensor: ec_msi
+    wavelength: [0.855, 0.865, 0.875]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 1
+    coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
+  SWIR1:
+    name: SWIR1
+    sensor: ec_msi
+    wavelength: [1.64, 1.67, 1.70]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 2
+    coordinates: [longitude, latitude]
+  SWIR2:
+    name: SWIR2
+    sensor: ec_msi
+    wavelength: [2.16, 2.21, 2.26]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance
+        units: W m-2 sr-1
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 3
+    coordinates: [longitude, latitude]
+    fill_value: 996920996838686904677855295210258432.00
+
+  TIR1:
+    name: TIR1
+    sensor: ec_msi
+    wavelength: [8.35, 8.80, 9.25]
+    resolution: 500
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 4
+    coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
+  TIR2:
+    name: TIR2
+    sensor: ec_msi
+    wavelength: [10.35, 10.80, 11.25]
+    resolution: 500
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 5
+    coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
+  TIR3:
+    name: TIR3
+    sensor: ec_msi
+    wavelength: [11.55,12.00,12.45]
+    resolution: 500
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values
+    band_index: 6
+    coordinates: [longitude, latitude]
+    fill_value: 9969209968386869046778552952102584320.0
+
+  # Relative error datasets
+  VIS_rel_error:
+    name: VIS_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_radiance
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 0
+  VNIR_rel_error:
+    name: VNIR_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_radiance
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 1
+  SWIR1_rel_error:
+    name: SWIR1_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_radiance
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 2
+  SWIR2_rel_error:
+    name: SWIR2_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_radiance
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 3
+  TIR1_rel_error:
+    name: TIR1_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_brightness_temperature
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 4
+  TIR2_rel_error:
+    name: TIR2_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_brightness_temperature
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 5
+  TIR3_rel_error:
+    name: TIR3_rel_error
+    sensor: ec_msi
+    resolution: 500
+    standard_name: relative_error_in_toa_brightness_temperature
+    units: "%"
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/pixel_values_relative_error
+    band_index: 6
+
+# Geolocation data
+  longitude:
+    name: longitude
+    units: degrees_east
+    standard_name: longitude
+    resolution: 500
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/longitude
+  latitude:
+    name: latitude
+    units: degrees_north
+    standard_name: latitude
+    resolution: 500
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/latitude
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degrees
+    standard_name: solar_azimuth_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/solar_azimuth_angle
+  sensor_azimuth_angle:
+    name: sensor_azimuth_angle
+    units: degrees
+    standard_name: sensor_azimuth_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/sensor_azimuth_angle
+  sensor_view_angle:
+    name: sensor_zenith_angle
+    units: degrees
+    standard_name: sensor_zenith_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/sensor_view_angle
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degrees
+    standard_name: solar_zenith_angle
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/solar_zenith_angle
+
+# Ancillary data
+  land_flag:
+    name: land_water_mask
+    units: 1
+    standard_name: land_water_mask
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/land_flag
+  surface_elevation:
+    name: surface_elevation
+    units: m
+    standard_name: surface_elevation
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/surface_elevation
+  surface_index:
+    name: surface_index
+    units: 1
+    standard_name: surface_index
+    resolution: 500
+    coordinates: [longitude, latitude]
+    file_type: msi_l1c_earthcare_rgr
+    file_key: ScienceData/surface_index
