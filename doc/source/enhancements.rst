@@ -532,18 +532,22 @@ There are two ways of doing this (see below).
 Get Enhanced Image
 ^^^^^^^^^^^^^^^^^^
 
-Assuming you have a :class:`~satpy.scene.Scene` object named ``scn`` with
+If you have a :class:`~satpy.scene.Scene` object named ``scn`` with
 loaded data, you can run the :func:`~satpy.writers.get_enhanced_image`
 function. This function will convert the provided :class:`xarray.DataArray`
 into a :class:`~trollimage.xrimage.XRImage` object with YAML configured
-enhancments applied.
+enhancments applied. The enhanced DataArray can then be access via the
+``.data`` property of the ``XRImage``.
 
 .. code-block:: python
 
    from satpy.writers import get_enhanced_image
 
    scn = Scene(...)
-   scn.load([...])
+   scn.load(["my_dataset"])
+
+   img = get_enhanced_image(scn["my_dataset"])
+   enh_data_arr = img.data
 
 Call Enhancement Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
