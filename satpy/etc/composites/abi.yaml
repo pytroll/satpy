@@ -825,7 +825,7 @@ composites:
           - name: C13
     standard_name: blowing_snow
 
-  cloud_type:
+  day_cloud_type:
     description: >
       Day Cloud Type, for GOES-R: NASA/NOAA
     references:
@@ -836,4 +836,4 @@ composites:
       - name: C04
       - name: C02
       - name: C05
-    standard_name: cloud_type
+    standard_name: day_cloud_type

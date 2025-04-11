@@ -280,7 +280,7 @@ enhancements:
           gamma: [0.7, 1.0, 0.7]
   day_cloud_type:
     # Recipe PDF: http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_Day_Cloud_Type_RGB.pdf
-    standard_name: cloud_type
+    standard_name: day_cloud_type
     sensor: abi
     operations:
       - name: stretch
