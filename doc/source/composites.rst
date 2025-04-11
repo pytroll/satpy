@@ -523,56 +523,14 @@ Enhancing the images
     - three_d_effect
     - btemp_threshold
 
-.. todo::
-
-    Should this be in another file/page?
-
 After the composite is defined and created, it needs to be converted
 to an image.  To do this, it is necessary to describe how the data
 values are mapped to values stored in the image format.  This
-procedure is called ``stretching``, and in Satpy it is implemented by
-``enhancements``.
+procedure is called ``stretching`` and in Satpy it is implemented by
+``enhancements``. See :doc:`enhancements` for more information on
+how enhancements work, how they can be customized, and the built-in
+enhancement functions in Satpy.
 
-The first step is to convert the composite to an
-:class:`~trollimage.xrimage.XRImage` object::
-
-    >>> from satpy.writers import to_image
-    >>> img = to_image(composite)
-
-Now it is possible to apply enhancements available in the class::
-
-    >>> img.invert([False, False, True])
-    >>> img.stretch("linear")
-    >>> img.gamma(1.7)
-
-And finally either show or save the image::
-
-    >>> img.show()
-    >>> img.save('image.tif')
-
-As pointed out in the composite section, it is better to define
-frequently used enhancements in configuration files under
-``$SATPY_CONFIG_PATH/enhancements/``.  The enhancements can either be in
-``generic.yaml`` or instrument-specific file (e.g., ``seviri.yaml``).
-
-The above enhancement can be written (with the headers necessary for
-the file) as::
-
-  enhancements:
-    overview:
-      standard_name: overview
-      operations:
-        - name: inverse
-          method: !!python/name:satpy.enhancements.invert
-          args: [False, False, True]
-        - name: stretch
-          method: !!python/name:satpy.enhancements.stretch
-          kwargs:
-            stretch: linear
-        - name: gamma
-          method: !!python/name:satpy.enhancements.gamma
-          kwargs:
-            gamma: [1.7, 1.7, 1.7]
 
 .. warning::
    If you define a composite with no matching enhancement, Satpy will by
@@ -591,11 +549,5 @@ the file) as::
    It is recommended to define an enhancement even if you intend to use
    the default, in case the default should change in future versions of
    Satpy.
-
-More examples can be found in Satpy source code directory
-``satpy/etc/enhancements/generic.yaml``.
-
-See the :doc:`enhancements` documentation for more information on
-available built-in enhancements.
 
 .. include:: modifiers.rst

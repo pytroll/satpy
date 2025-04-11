@@ -42,7 +42,7 @@ class GeoTIFFWriter(ImageWriter):
 
         >>> scn.save_datasets(writer='geotiff')
 
-    By default the writer will use the :class:`~satpy.writers.Enhancer` class to
+    By default the writer will use the :class:`~satpy.enhancements.enhancer.Enhancer` class to
     linear stretch the data (see :doc:`../enhancements`).
     To get Un-enhanced images ``enhance=False`` can be specified which will
     write a geotiff with the data type of the dataset. The fill value defaults
