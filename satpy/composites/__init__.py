@@ -691,6 +691,126 @@ def _insert_palette_colors(channels, palette):
     return channels
 
 
+class MaskVisibleNightCompositor(GenericCompositor):
+    """A compositor masks night data on visible data.
+
+    Mask the night part of an image which is composed of visible channels only.
+    """
+
+    def __init__(self, name, lim_low=85., lim_high=88., include_alpha=True, **kwargs):  # noqa: D417
+        """Collect custom configuration values.
+
+        Args:
+            lim_low (float): lower limit of Sun zenith angle for the
+                             blending of the given channels
+
+        """
+        self.lim_low = lim_low
+        self._has_sza = False
+        super().__init__(name, **kwargs)
+
+    def __call__(
+            self,
+            datasets: Sequence[xr.DataArray],
+            optional_datasets: Optional[Sequence[xr.DataArray]] = None,
+            **attrs
+    ) -> xr.DataArray:
+        """Generate the composite."""
+        datasets = self.match_data_arrays(datasets)
+        # At least one composite is requested.
+        foreground_data = datasets[0]
+        weights = self._get_coszen_blending_weights(datasets)
+        # Apply enhancements to the foreground data
+        foreground_data = enhance2dataset(foreground_data)
+
+        fg_attrs = foreground_data.attrs.copy()
+        day_data, night_data, weights = self._get_data_for_single_side_product(foreground_data, weights)
+
+        # The computed coszen is for the full area, so it needs to be masked for missing and off-swath data
+        if not self._has_sza:
+            weights = self._mask_weights_with_data(weights, day_data, night_data)
+
+        data = self._weight_data(day_data, night_data, weights, fg_attrs)
+
+        return super().__call__(
+            data,
+            optional_datasets=optional_datasets,
+            **attrs
+        )
+
+    def _get_coszen_blending_weights(
+            self,
+            projectables: Sequence[xr.DataArray],
+    ) -> xr.DataArray:
+        lim_low = float(np.cos(np.deg2rad(self.lim_low)))
+        lim_high = float(np.cos(np.deg2rad(self.lim_low + 1)))
+        try:
+            coszen = np.cos(np.deg2rad(projectables[1]))
+            self._has_sza = True
+        except IndexError:
+            from satpy.modifiers.angles import get_cos_sza
+            LOG.debug("Computing sun zenith angles.")
+            # Get chunking that matches the data
+            coszen = get_cos_sza(projectables[0])
+        # Calculate blending weights
+        lum = xr.ufuncs.maximum(projectables[0].sel(bands="G"), projectables[0].sel(bands="B")) / 500
+        lum_zen = xr.ufuncs.maximum(lum, coszen)
+        coszen = xr.ones_like(coszen).where(coszen > lim_low, lum_zen)
+        coszen -= min(lim_high, lim_low)
+        coszen /= abs(lim_low - lim_high)
+        return coszen.clip(0, 1)
+
+    def _get_data_for_single_side_product(
+            self,
+            foreground_data: xr.DataArray,
+            weights: xr.DataArray,
+    ) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray]:
+        # Only one portion (day or night) is selected. One composite is requested.
+        # Add alpha band to single L/RGB composite to make the masked-out portion transparent when needed
+        # L -> LA
+        # RGB -> RGBA
+        foreground_data = add_alpha_bands(foreground_data)
+
+        night_data = self._get_night_fill(foreground_data)
+        return foreground_data, night_data, weights
+
+    def _get_night_fill(self, foreground_data):
+        return foreground_data.dtype.type(0)
+
+    def _mask_weights_with_data(
+            self,
+            weights: xr.DataArray,
+            day_data: xr.DataArray,
+            night_data: xr.DataArray,
+    ) -> xr.DataArray:
+        data_a = _get_single_channel(day_data)
+        data_b = _get_single_channel(night_data)
+        mask = _get_weight_mask_for_single_side_product(data_a, data_b)
+
+        return weights.where(mask, np.nan)
+
+    def _weight_data(
+            self,
+            day_data: xr.DataArray,
+            night_data: xr.DataArray,
+            weights: xr.DataArray,
+            attrs: dict,
+    ) -> list[xr.DataArray]:
+        data = []
+        for b in _get_band_names(day_data, night_data):
+            day_band = _get_single_band_data(day_data, b)
+            night_band = _get_single_band_data(night_data, b)
+            # For day-only and night-only products only the alpha channel is weighted
+            # If there's no alpha band, weight the actual data
+            if b == "A":
+                day_band = day_band * weights
+                night_band = night_band * (1 - weights)
+            band = day_band + night_band
+            band.attrs = attrs
+            data.append(band)
+        return data
+
+
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends day data with night data.
 
