@@ -87,7 +87,7 @@ Matching Enhancements
 ---------------------
 
 Choosing what enhancement should be applied to a particular ``DataArray``
-is based on the the metadata of that ``DataArray`'s ``.attrs``. Mapping
+is based on the the metadata of that ``DataArray``'s ``.attrs``. Mapping
 this metadata to a configured section is done by a type of "decision tree"
 that looks at specific metadata keys one at a time. In particular, the current
 implementation depends on the following keys:
