@@ -23,6 +23,7 @@ import os
 import numpy as np
 import pytest
 import xarray as xr
+import netCDF4
 from pyresample.geometry import AreaDefinition
 
 from satpy.tests.utils import make_dataid
@@ -183,40 +184,6 @@ class TestCLAAS2SingleFile:
         from satpy.readers.cmsaf_claas2 import CLAAS2
         return CLAAS2(fake_file, {}, {})
 
-    @pytest.fixture
-    def area_extent_exp(self, start_time):
-        """Get expected area extent."""
-        if start_time < datetime.datetime(2017, 12, 6):
-            return (-5454733.160460291, -5454733.160460292, 5454733.160460292, 5454733.160460291)
-        return (-5456233.362099582, -5453232.958821001, 5453232.958821001, 5456233.362099582)
-
-    @pytest.fixture
-    def area_exp(self, area_extent_exp):
-        """Get expected area definition."""
-        proj_dict = {
-            "a": 6378169.0,
-            "b": 6356583.8,
-            "h": 35785831.0,
-            "lon_0": 0.0,
-            "proj": "geos",
-            "units": "m",
-        }
-        return AreaDefinition(
-            area_id="msg_seviri_fes_3km",
-            description="MSG SEVIRI Full Earth Scanning service area definition with 3 km resolution",
-            proj_id="geos",
-            projection=proj_dict,
-            area_extent=area_extent_exp,
-            width=3636,
-            height=3636,
-        )
-#TODO ajouter une fixture/parameter (?)  area_exp_claas3
-
-    def test_get_area_def(self, file_handler, area_exp):
-        """Test area definition."""
-        area = file_handler.get_area_def(make_dataid(name="foo"))
-        assert area == area_exp
-
     @pytest.mark.parametrize(
         ("ds_name", "expected"),
         [
@@ -237,3 +204,69 @@ class TestCLAAS2SingleFile:
     def test_end_time(self, file_handler):
         """Test end time property."""
         assert file_handler.end_time == datetime.datetime(2085, 8, 13, 13, 15)
+
+class TestAreaDef:
+    @pytest.fixture(params=[3636, 3712])
+    def grid_size(self, request):
+        return request.param
+
+    @pytest.fixture
+    def fake_file(self, tmp_path, start_time, grid_size):
+        """Write a fake dataset to file.
+
+        Only add y dimension, so that the file is small but we can still check the
+        real-life area definition.
+        """
+        filename = tmp_path / "CPPin20140101001500305SVMSG01MD.nc"
+        ds = netCDF4.Dataset(filename, mode="w")
+        ds.createDimension("y", grid_size)
+        ds.setncattr("time_coverage_start", start_time.strftime("%Y%m%dT%H%MZ"))
+        ds.close()
+        return filename
+
+    @pytest.fixture
+    def file_handler(self, fake_file):
+        """Return a CLAAS-2 file handler."""
+        from satpy.readers.cmsaf_claas2 import CLAAS2
+        return CLAAS2(fake_file, {}, {})
+
+    @pytest.fixture
+    def area_extent_exp(self, start_time, grid_size):
+        """Get expected area extent."""
+        if start_time < datetime.datetime(2017, 12, 6):
+            extents = {
+                3636: (-5454733.160460291, -5454733.160460292, 5454733.160460292, 5454733.160460291),
+                3712: (-5568748.485046371, -5568748.485046371, 5568748.485046371, 5568748.485046371)
+            }
+        else:
+            extents = {
+                3636: (-5456233.362099582, -5453232.958821001, 5453232.958821001, 5456233.362099582),
+                3712: (-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662)
+            }
+        return extents[grid_size]
+
+    @pytest.fixture
+    def area_exp(self, area_extent_exp, grid_size):
+        """Get expected area definition."""
+        proj_dict = {
+            "a": 6378169.0,
+            "b": 6356583.8,
+            "h": 35785831.0,
+            "lon_0": 0.0,
+            "proj": "geos",
+            "units": "m",
+        }
+        return AreaDefinition(
+            area_id="msg_seviri_fes_3km",
+            description="MSG SEVIRI Full Earth Scanning service area definition with 3 km resolution",
+            proj_id="geos",
+            projection=proj_dict,
+            area_extent=area_extent_exp,
+            width=grid_size,
+            height=grid_size,
+        )
+
+    def test_get_area_def(self, file_handler, area_exp):
+        """Test area definition."""
+        area = file_handler.get_area_def(make_dataid(name="foo"))
+        assert area == area_exp
