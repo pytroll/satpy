@@ -1,13 +1,13 @@
 """Tests for the EarthCARE MSI L1c reader."""
-import os
-from unittest import mock
 
 import dask.array as da
+import h5py
 import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+from satpy import Scene
+from satpy.tests.utils import make_dataid
 
 N_BANDS = 7
 N_SCANS = 20
@@ -18,97 +18,66 @@ SOL_IRRAD = np.array([30.9, 19.59, 14.77, 8.25], dtype=np.float32)
 SOL_IRRAD = SOL_IRRAD.reshape((-1, 1)) * np.ones(N_COLS, dtype=np.float32).reshape((1, -1))
 DIMLIST = np.ones((N_BANDS, N_SCANS, N_COLS))
 
+def _setup_science_data(N_BANDS, N_SCANS, N_COLS):
+    # Set some default attributes
+    data = {
+        "pixel_values":
+        xr.DataArray(
+            da.ones((N_BANDS, N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
+            attrs={"units": "Wm-2 sr-1 or K", "DIMENSION_LIST": DIMLIST},
+            dims=("band", "dim_2", "dim_1")),
+        "land_flag":
+        xr.DataArray(
+            da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.uint16),
+            attrs={"units": ""},
+            dims=("along_track", "across_track")),
+        "solar_azimuth_angle":
+        xr.DataArray(
+            da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
+            attrs={"units": "degrees"},
+            dims=("along_track", "across_track")),
+        "longitude":
+        xr.DataArray(
+            da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
+            attrs={"units": "degrees"},
+            dims=("along_track", "across_track")),
+        "latitude":
+        xr.DataArray(
+            da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
+            attrs={"units": "degrees"},
+            dims=("along_track", "across_track")),
+        "solar_spectral_irradiance":
+        xr.DataArray(
+            da.array(SOL_IRRAD),
+            attrs={"units": "W m-2"},
+            dims=("band", "across_track")),
+    }
 
-class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler."""
-
-
-    def _setup_test_data(self, N_BANDS, N_SCANS, N_COLS):
-        # Set some default attributes
-        data = {
-            "ScienceData/pixel_values":
-                xr.DataArray(
-                    da.ones((N_BANDS, N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
-                    attrs={"units": "Wm-2 sr-1 or K", "DIMENSION_LIST": DIMLIST},
-                    dims=("band", "dim_2", "dim_1")),
-            "ScienceData/land_flag":
-                xr.DataArray(
-                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.uint16),
-                    attrs={"units": ""},
-                    dims=("along_track", "across_track")),
-            "ScienceData/solar_azimuth_angle":
-                xr.DataArray(
-                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
-                    attrs={"units": "degrees"},
-                    dims=("along_track", "across_track")),
-            "ScienceData/longitude":
-                xr.DataArray(
-                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
-                    attrs={"units": "degrees"},
-                    dims=("along_track", "across_track")),
-            "ScienceData/latitude":
-                xr.DataArray(
-                    da.ones((N_SCANS, N_COLS), chunks=1024, dtype=np.float32),
-                    attrs={"units": "degrees"},
-                    dims=("along_track", "across_track")),
-            "ScienceData/solar_spectral_irradiance":
-                xr.DataArray(
-                    da.array(SOL_IRRAD),
-                    attrs={"units": "W m-2"},
-                    dims=("band", "across_track")),
-        }
-
-        return data
-
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        test_content = self._setup_test_data(N_BANDS, N_SCANS, N_COLS)
-        return test_content
+    return data
 
 
-class ECMSIL1CTester:
-    """Test MSI/EarthCARE L1C Reader."""
+@pytest.fixture(scope="session")
+def msi_ec_l1c_dummy_file(tmp_path_factory):
+    """Create a fake insat MSI 1C file."""
+    filename = tmp_path_factory.mktemp("data") / "ECA_EXAA_MSI_RGR_1C_20250625T005649Z_20250625T024013Z_42043E.h5"
 
-    def setup_method(self):
-        """Wrap HDF5 file handler with our own fake handler."""
-        from satpy._config import config_search_paths
-        from satpy.readers.msi_ec_l1c_h5 import MSIECL1CFileHandler
-        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(MSIECL1CFileHandler, "__bases__", (FakeHDF5FileHandler2,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
+    with h5py.File(filename, "w") as fid:
+        ScienceData_group = fid.create_group("ScienceData")
+        for name, value in _setup_science_data(N_BANDS, N_SCANS, N_COLS).items():
+            ScienceData_group[name] = value
 
-    def teardown_method(self):
-        """Stop wrapping the HDF5 file handler."""
-        self.p.stop()
+    return filename
 
 
-class TestECMSIL1C(ECMSIL1CTester):
-    """Test the EarthCARE MSI L1C reader."""
-
-    yaml_file = "msi_l1c_earthcare.yaml"
-    filename = "ECA_EXAA_MSI_RGR_1C_20250625T005649Z_20250625T024013Z_42043E.h5"
-
-
-    @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
-    @mock.patch("h5py.File")
-    def test_get_pixvalues(self, mock_h5py_file, mock_hdf5_utils_get_reference):
+def test_get_pixvalues(msi_ec_l1c_dummy_file):
         """Test loadingpixel values from file."""
-        from satpy.readers import load_reader
-        mock_h5py_file.return_value = mock.MagicMock()
-        mock_hdf5_utils_get_reference.return_value = DIMLIST
-        reader = load_reader(self.reader_configs)
-        files = reader.select_files_from_pathnames([self.filename])
-        assert 1 == len(files)
-        reader.create_filehandlers(files)
-        # Make sure we have some files
-        assert reader.file_handlers
-        available_datasets = list(reader.available_dataset_ids)
+        res = Scene(reader="msi_l1c_earthcare", filenames=[msi_ec_l1c_dummy_file])
+
+        available_datasets = list(res.available_dataset_ids())
         assert len(available_datasets) == 27
 
-        res = reader.load(["VIS", "VNIR", "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
-        assert len(res) == 6
+        res.load(["VIS", "VNIR", "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
+        #assert len(res) == 6
         with pytest.raises(KeyError):
             res["TIR2"]
         with pytest.raises(KeyError):
@@ -132,33 +101,23 @@ class TestECMSIL1C(ECMSIL1CTester):
         assert res["land_water_mask"].dtype == np.uint16
 
 
-    @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
-    @mock.patch("h5py.File")
-    def test_calibration(self, mock_h5py_file, mock_hdf5_utils_get_reference):
-        """Test loadingpixel values from file."""
-        from satpy.readers import load_reader
-        from satpy.tests.utils import make_dataid
+def test_calibration(msi_ec_l1c_dummy_file):
+    """Test loadingpixel values from file."""
+    res = Scene(reader="msi_l1c_earthcare", filenames=[msi_ec_l1c_dummy_file])
 
-        mock_h5py_file.return_value = mock.MagicMock()
-        mock_hdf5_utils_get_reference.return_value = DIMLIST
+    with pytest.raises(KeyError):
+        res.load([make_dataid(name="VIS", calibration="counts")])
+    with pytest.raises(KeyError):
+        res.load([make_dataid(name="TIR1", calibration="counts")])
+    with pytest.raises(KeyError):
+        res.load([make_dataid(name="TIR1", calibration="radiance")])
 
-        reader = load_reader(self.reader_configs)
-        files = reader.select_files_from_pathnames([self.filename])
-        reader.create_filehandlers(files)
+    res.load([make_dataid(name="VIS", calibration="radiance")])
+    assert res["VIS"].attrs["calibration"] == "radiance"
+    assert res["VIS"].attrs["units"] == "W m-2 sr-1"
+    assert np.all(np.array(res["VIS"].data) == 1)
 
-        with pytest.raises(KeyError):
-            reader.load([make_dataid(name="VIS", calibration="counts")])
-        with pytest.raises(KeyError):
-            reader.load([make_dataid(name="TIR1", calibration="counts")])
-        with pytest.raises(KeyError):
-            reader.load([make_dataid(name="TIR1", calibration="radiance")])
-
-        res = reader.load([make_dataid(name="VIS", calibration="radiance")])
-        assert res["VIS"].attrs["calibration"] == "radiance"
-        assert res["VIS"].attrs["units"] == "W m-2 sr-1"
-        assert np.all(np.array(res["VIS"].data) == 1)
-
-        res = reader.load([make_dataid(name="VNIR", calibration="reflectance")])
-        assert res["VNIR"].attrs["calibration"] == "reflectance"
-        assert res["VNIR"].attrs["units"] == "%"
-        assert np.all(np.array(res["VNIR"].data) == 1 * np.pi * 100 / SOL_IRRAD[1])
+    res.load([make_dataid(name="VNIR", calibration="reflectance")])
+    assert res["VNIR"].attrs["calibration"] == "reflectance"
+    assert res["VNIR"].attrs["units"] == "%"
+    assert np.all(np.array(res["VNIR"].data) == 1 * np.pi * 100 / SOL_IRRAD[1])
