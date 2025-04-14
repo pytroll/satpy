@@ -80,26 +80,6 @@ class MSIECL1CFileHandler(HDF5FileHandler):
         if "dim_1" in data.dims:
             data = data.rename({"dim_1": "y", "dim_2": "x"})
 
-        # The dimension list is usually a reference to an H5 variable, which is problematic
-        # when making a copy of the data. This sorts out the dimensions and sets them correctly
-        # following the process done in the OMPS reader.
-        if "DIMENSION_LIST" in data.attrs:
-            data = self._fix_dims(data, file_key)
-
-        return data
-
-    def _fix_dims(self, data, file_key):
-        """The pixel data has badly named coordinates, this fixes them."""
-        data.attrs.pop("DIMENSION_LIST")
-        dimensions = self.get_reference(file_key, "DIMENSION_LIST")
-        dim_dict = {}
-        # We have to loop over dimensions to match dim sizes as the pixel data is 3d rather than 2d.
-        for i in range(0, len(data.dims)):
-            c_dim = data.dims[i]
-            for r_dim in dimensions:
-                if data.shape[i] == r_dim[0].shape[0]:
-                    dim_dict[c_dim] = r_dim[0]
-        data.assign_coords(dim_dict)
         return data
 
     def _calibrate(self, chan_data, band_index, cal_type):
