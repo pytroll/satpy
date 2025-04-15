@@ -29,7 +29,7 @@ from trollimage.colormap import Colormap
 import satpy
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, combine_metadata
-from satpy.dataset.dataid import minimal_default_keys_config
+from satpy.dataset.id_keys import minimal_default_keys_config
 from satpy.utils import unify_chunks
 from satpy.writers import get_enhanced_image
 

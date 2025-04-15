@@ -17,7 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for dealing with ancillary variables."""
 
-from .dataid import DataID, default_id_keys_config
+from .dataid import DataID
+from .id_keys import default_id_keys_config
 
 
 def dataset_walker(datasets):

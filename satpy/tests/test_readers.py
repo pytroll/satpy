@@ -34,8 +34,9 @@ import pytest
 import xarray as xr
 from pytest_lazy_fixtures import lf as lazy_fixture
 
+from satpy.dataset import ModifierTuple, WavelengthRange
 from satpy.dataset.data_dict import get_key
-from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
+from satpy.dataset.dataid import DataID
 from satpy.readers import FSFile, find_files_and_readers, open_file_or_filename
 
 # NOTE:

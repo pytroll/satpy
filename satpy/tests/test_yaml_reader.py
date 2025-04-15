@@ -31,8 +31,7 @@ import xarray as xr
 
 import satpy.readers.yaml_reader as yr
 from satpy._compat import cache
-from satpy.dataset import DataQuery
-from satpy.dataset.dataid import ModifierTuple
+from satpy.dataset import DataQuery, ModifierTuple
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyRange
 from satpy.tests.utils import make_dataid
