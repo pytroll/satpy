@@ -288,7 +288,7 @@ def volcanic_ash_file(tmp_path_factory: TempPathFactory) -> Path:
 
 @pytest.fixture(scope="module")
 def cloud_base_file(tmp_path_factory: TempPathFactory) -> Path:
-    """Generate fake AOD VIIRs EDR file."""
+    """Generate fake CloudBase VIIRs EDR file."""
     fn = f"JRR-CloudBase_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
     data_vars = _create_continuous_variables(
         ("CldBaseHght",),
@@ -506,7 +506,7 @@ class TestVIIRSJRRReader:
 
     @pytest.mark.parametrize("filter_cbh", [False, True])
     def test_get_dataset_cbh_filter(self, cloud_base_file, filter_cbh):
-        """Test retrieval of vegetation indices from surface reflectance files."""
+        """Test retrieval of cloud base height with and without filtering."""
         from satpy import Scene
 
         bytes_in_m_row = 4 * 3200

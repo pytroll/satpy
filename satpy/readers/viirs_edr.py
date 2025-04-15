@@ -411,10 +411,10 @@ class VIIRSAODHandler(VIIRSJRRFileHandler):
 
 
 class VIIRSCBHFilterHandler(VIIRSJRRFileHandler):
-    """File handler for surface reflectance files with optional vegetation indexes."""
+    """File handler for CloudBase files."""
 
     def __init__(self, *args, filter_cbh: bool = True, **kwargs) -> None:
-        """Initialize file handler and keep track of vegetation index filtering."""
+        """Initialize file handler and keep track of filtering options."""
         super().__init__(*args, **kwargs)
         self._filter_cbh = filter_cbh
 
