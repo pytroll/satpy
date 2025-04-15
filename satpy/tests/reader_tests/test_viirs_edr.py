@@ -286,6 +286,29 @@ def volcanic_ash_file(tmp_path_factory: TempPathFactory) -> Path:
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
+@pytest.fixture(scope="module")
+def cloud_base_file(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake AOD VIIRs EDR file."""
+    fn = f"JRR-CloudBase_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
+    data_vars = _create_continuous_variables(
+        ("CldBaseHght",),
+        data_attrs={
+            "valid_range": [-300.0, 20000.0],
+            "units": "Meter",
+            "_FillValue": -999.0,
+        }
+    )
+    qc_data = np.zeros(data_vars["CldBaseHght"].shape, dtype=np.int8)
+    qc_data[-1, -1] = 1
+    data_vars["SummaryQC_Cloud_Base"] = xr.DataArray(
+        qc_data,
+        dims=data_vars["CldBaseHght"].dims,
+        attrs={"valid_range": [0, 3]},
+    )
+    data_vars["SummaryQC_Cloud_Base"].encoding["_FillValue"] = -128
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
 def _create_continuous_variables(
         var_names: Iterable[str],
         data_attrs: None | dict = None
@@ -481,6 +504,26 @@ class TestVIIRSJRRReader:
             assert "NDVI" not in avail
             assert "EVI" not in avail
 
+    @pytest.mark.parametrize("filter_cbh", [False, True])
+    def test_get_dataset_cbh_filter(self, cloud_base_file, filter_cbh):
+        """Test retrieval of vegetation indices from surface reflectance files."""
+        from satpy import Scene
+
+        bytes_in_m_row = 4 * 3200
+        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+            scn = Scene(reader="viirs_edr", filenames=[cloud_base_file],
+                        reader_kwargs={"filter_cbh": filter_cbh})
+            scn.load(["CldBaseHght"])
+        _check_continuous_data_arr(scn["CldBaseHght"])
+        data_np = scn["CldBaseHght"].data.compute()
+        pixel_is_nan = np.isnan(data_np[-1, -1])
+        assert pixel_is_nan if filter_cbh else not pixel_is_nan
+
+        # filtering should never affect geolocation
+        lons, lats = scn["CldBaseHght"].attrs["area"].get_lonlats()
+        assert not np.isnan(lons[-1, -1].compute())
+        assert not np.isnan(lats[-1, -1].compute())
+
     @pytest.mark.parametrize(
         ("filename_platform", "exp_shortname"),
         [
@@ -571,6 +614,8 @@ def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32, multipl
     assert data_arr.attrs["area"].shape == data_arr.shape
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, dtype)
+    data_np = data_arr.data.compute()
+    assert data_np.dtype is data_arr.dtype
     is_mband_res = _is_mband_res(data_arr)
     shape_multiplier = 1 + int(multiple_files)
     exp_shape = (M_ROWS * shape_multiplier, M_COLS) if is_mband_res else (I_ROWS * shape_multiplier, I_COLS)
@@ -602,6 +647,10 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
         valid_range = data_arr.attrs["valid_range"]
         assert isinstance(valid_range, tuple)
         assert len(valid_range) == 2
+
+    units = data_arr.attrs["units"]
+    assert units != "Meter"
+    assert units != "unitless"
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:

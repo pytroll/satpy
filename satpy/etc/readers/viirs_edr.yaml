@@ -37,7 +37,7 @@ file_types:
         file_patterns:
             - 'LST_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_cloudbase:
-        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSCBHFilterHandler
         file_patterns:
             - 'JRR-CloudBase_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_clouddcomp:

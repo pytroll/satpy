@@ -134,6 +134,8 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         units = info.get("units", data_arr.attrs.get("units"))
         if units is None or units == "unitless":
             units = "1"
+        if units == "Meter":
+           units = "meter"
         if units == "%" and data_arr.attrs.get("units") in ("1", "unitless"):
             data_arr *= 100.0  # turn into percentages
         data_arr.attrs["units"] = units
@@ -406,3 +408,19 @@ class VIIRSAODHandler(VIIRSJRRFileHandler):
         LOG.debug(f"Filtering AOD data to include quality <= {self._aod_qc_filter}")
         qc_all = self.nc["QCAll"]
         return new_data_arr.where(qc_all <= self._aod_qc_filter)
+
+
+class VIIRSCBHFilterHandler(VIIRSJRRFileHandler):
+    """File handler for surface reflectance files with optional vegetation indexes."""
+
+    def __init__(self, *args, filter_cbh: bool = True, **kwargs) -> None:
+        """Initialize file handler and keep track of vegetation index filtering."""
+        super().__init__(*args, **kwargs)
+        self._filter_cbh = filter_cbh
+
+    def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
+        new_data_arr = super()._mask_invalid(data_arr, ds_info)
+        if ds_info["file_key"] in ("CldBaseHght",) and self._filter_cbh:
+            good_mask = self.nc["SummaryQC_Cloud_Base"] == 0
+            new_data_arr = new_data_arr.where(good_mask)
+        return new_data_arr
