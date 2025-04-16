@@ -33,7 +33,7 @@ class CLAAS2(NetCDF4FileHandler):
         """Initialise class."""
         super().__init__(*args, **kwargs, cache_handle=False,
                          auto_maskandscale=True)
-        self.grid_size =  self.file_content["/dimension/y"]
+        self.grid_size = self.file_content["/dimension/y"]
 
     @property
     def start_time(self):
