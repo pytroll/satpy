@@ -49,10 +49,12 @@ file_types:
         file_patterns:
             - 'JRR-CloudNCOMP_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_cloudlayers:
+        decode_cf: false
         file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
         file_patterns:
             - 'JRR-CloudCoverLayers_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
     jrr_cloudphase:
+        decode_cf: false
         file_reader: !!python/name:satpy.readers.viirs_edr.VIIRSJRRFileHandler
         file_patterns:
             - 'JRR-CloudPhase_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'

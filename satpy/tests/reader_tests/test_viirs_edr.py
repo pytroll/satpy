@@ -286,6 +286,29 @@ def volcanic_ash_file(tmp_path_factory: TempPathFactory) -> Path:
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
+@pytest.fixture(scope="module")
+def cloud_phase_file(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake AOD VIIRs EDR file."""
+    fn = f"JRR-CloudPhase_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
+
+    # get lon/lat variables
+    data_vars = _create_continuous_variables([])
+    phase_data = (RANDOM_GEN.random((M_ROWS, M_COLS)) * 6).astype(np.int8)
+    cloud_phase = xr.DataArray(
+        phase_data,
+        dims=("Rows", "Columns"),
+        attrs={
+            "valid_range": [np.int8(0), np.int8(5)],
+            "units": "1",
+            "coordinates": "Longitude Latitude",
+        },
+    )
+    cloud_phase.encoding["_FillValue"] = np.int8(-128)
+    cloud_phase.encoding["dtype"] = np.int8
+    data_vars["CloudPhase"] = cloud_phase
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
 def _create_continuous_variables(
         var_names: Iterable[str],
         data_attrs: None | dict = None
@@ -437,6 +460,17 @@ class TestVIIRSJRRReader:
         for var_name in var_names:
             _check_continuous_data_arr(scn[var_name])
 
+    def test_get_dataset_category(self, cloud_phase_file):
+        """Test loading category (integer) data products."""
+        from satpy import Scene
+        bytes_in_m_row = 4 * 3200
+        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+            scn = Scene(reader="viirs_edr", filenames=[cloud_phase_file])
+            scn.load(["CloudPhase"])
+        data_arr = scn["CloudPhase"]
+        _array_checks(data_arr, dtype=np.int8)
+        _shared_metadata_checks(data_arr)
+
     @pytest.mark.parametrize(
         ("aod_qc_filter", "exp_masked_pixel"),
         [
@@ -571,6 +605,8 @@ def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32, multipl
     assert data_arr.attrs["area"].shape == data_arr.shape
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, dtype)
+    data_np = data_arr.data.compute()
+    assert data_np.dtype == data_arr.dtype
     is_mband_res = _is_mband_res(data_arr)
     shape_multiplier = 1 + int(multiple_files)
     exp_shape = (M_ROWS * shape_multiplier, M_COLS) if is_mband_res else (I_ROWS * shape_multiplier, I_COLS)
@@ -602,6 +638,13 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
         valid_range = data_arr.attrs["valid_range"]
         assert isinstance(valid_range, tuple)
         assert len(valid_range) == 2
+
+    if np.issubdtype(data_arr.dtype, np.floating):
+        # floating point arrays always use NaN as fill and should not specify it in attrs
+        assert "_FillValue" not in data_arr.attrs
+    if "_FillValue" in data_arr.attrs:
+        # make sure fill vlaue is scalar
+        assert not hasattr(data_arr.attrs["_FillValue"], "shape")
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:
