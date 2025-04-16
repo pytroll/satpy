@@ -80,7 +80,7 @@ def fake_dataset(start_time_str):
         },
         attrs=attrs
     )
-#TODO: ajouter y = 3712 sur une nouvelle fixture claas3
+
 
 @pytest.fixture
 def encoding():
