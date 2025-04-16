@@ -642,6 +642,9 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
     if np.issubdtype(data_arr.dtype, np.floating):
         # floating point arrays always use NaN as fill and should not specify it in attrs
         assert "_FillValue" not in data_arr.attrs
+    if "_FillValue" in data_arr.attrs:
+        # make sure fill vlaue is scalar
+        assert not hasattr(data_arr.attrs["_FillValue"], "shape")
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:

@@ -75,7 +75,7 @@ will only preserve AOD550 values where the quality is 0 ("high") or
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from typing import Any, Iterable
 
 import dask.array as da
 import numpy as np
@@ -152,14 +152,22 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         if "valid_min" in data_arr.attrs and valid_range is None:
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
-            if "_FillValue" in data_arr.attrs and not np.issubdtype(data_arr.dtype, np.floating):
-                fill_value = data_arr.attrs["_FillValue"]
-            else:
-                # fill value is being overwritten with NaN
-                data_arr.attrs.pop("_FillValue", None)
-                fill_value = xr.core.dtypes.NA
+            # NOTE: may modify attrs in place
+            fill_value = self._handle_fill_value(data_arr)
             return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]), fill_value)
         return data_arr
+
+    def _handle_fill_value(self, data_arr: xr.DataArray) -> Any:
+        if "_FillValue" in data_arr.attrs and not np.issubdtype(data_arr.dtype, np.floating):
+            fill_value = data_arr.attrs["_FillValue"]
+            if hasattr(fill_value, "shape"):
+                fill_value = fill_value.item()
+                data_arr.attrs["_FillValue"] = fill_value
+        else:
+            # fill value is being overwritten with NaN
+            data_arr.attrs.pop("_FillValue", None)
+            fill_value = xr.core.dtypes.NA
+        return fill_value
 
     def _sanitize_metadata(self, data_arr: xr.DataArray, info: dict) -> xr.DataArray:
         if "valid_range" in data_arr.attrs:
