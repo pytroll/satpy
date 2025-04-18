@@ -834,6 +834,9 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: C04
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C05
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: day_cloud_type
