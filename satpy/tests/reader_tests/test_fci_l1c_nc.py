@@ -1128,12 +1128,26 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                                                                         "2023-10-16 13:00:00",
                                                                                         "%Y-%m-%d %H:%M:%S"))),
                               (lazy_fixture("FakeFCIFileHandlerFDHSIIQTI_fixture"), (1, 10,
-                                                                                     datetime.datetime.strptime(
+                                                                                    datetime.datetime.strptime(
                                                                                          "2023-10-16 12:50:00",
                                                                                          "%Y-%m-%d %H:%M:%S"),
-                                                                                     datetime.datetime.strptime(
+                                                                                    datetime.datetime.strptime(
                                                                                          "2023-10-16 13:00:00",
                                                                                          "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerFDHSIOtherCoverage_fixture"), (1, None,
+                                                                                    datetime.datetime.strptime(
+                                                                                         "2023-07-22 12:00:00",
+                                                                                         "%Y-%m-%d %H:%M:%S"),
+                                                                                    datetime.datetime.strptime(
+                                                                                         "2023-07-22 12:00:27",
+                                                                                         "%Y-%m-%d %H:%M:%S"))),
+                              (lazy_fixture("FakeFCIFileHandlerHRFIOtherCoverage_fixture"), (1, None,
+                                                                                    datetime.datetime.strptime(
+                                                                                         "2023-07-22 12:00:00",
+                                                                                         "%Y-%m-%d %H:%M:%S"),
+                                                                                    datetime.datetime.strptime(
+                                                                                         "2023-07-22 12:00:27",
+                                                                                         "%Y-%m-%d %H:%M:%S")))
                               ])
     def test_count_in_repeat_cycle_rc_period_min(self, reader_configs, fh_param, compare_tuples):
         """Test the rc_period_min value for each configuration."""
