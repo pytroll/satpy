@@ -24,9 +24,7 @@ from collections.abc import Collection
 from functools import partial, reduce
 from operator import eq, is_
 
-import dask.array as da
 import numpy as np
-import xarray as xr
 
 from satpy.writers.utils import flatten_dict
 
@@ -201,9 +199,7 @@ def _all_arrays_equal(arrays):
 
     If the arrays are lazy, just check if they have the same identity.
     """
-    if isinstance(arrays[0], da.Array) or (
-    isinstance(arrays[0], xr.DataArray) and isinstance(arrays[0].data, da.Array)
-    ):
+    if hasattr(arrays[0], "chunks") and arrays[0].chunks is not None:
         return _all_identical(arrays)
 
     return _all_values_equal(arrays)
