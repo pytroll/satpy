@@ -45,13 +45,19 @@ def generate_images(props):
     filenames = (props.basedir / "satellite_data" / props.satellite /
                  props.case).glob("*")
 
-    scn = Scene(reader=props.reader, filenames=filenames)
+    if "," in props.reader:
+        reader = props.reader.split(",")
+        resampler = "nearest"  # use nearest when combining with cloud mask
+    else:
+        reader = props.reader
+        resampler = "gradient_search"
+    scn = Scene(reader=reader, filenames=filenames)
 
     scn.load(props.composites)
     if props.area == "native":
         ls = scn.resample(resampler="native")
     elif props.area is not None:
-        ls = scn.resample(props.area, resampler="gradient_search")
+        ls = scn.resample(props.area, resampler=resampler)
     else:
         ls = scn
 
@@ -74,7 +80,7 @@ def get_parser():
 
     parser.add_argument(
             "reader", action="store", type=str,
-            help="Reader name.")
+            help="Reader name.  Multiple readers (if needed) can be comma-seperated.")
 
     parser.add_argument(
             "case", help="case to generate", type=str)
