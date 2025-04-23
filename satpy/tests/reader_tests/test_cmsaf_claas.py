@@ -206,6 +206,7 @@ class TestCLAAS2SingleFile:
         assert file_handler.end_time == datetime.datetime(2085, 8, 13, 13, 15)
 
 class TestAreaDef:
+    """Test the area of both CLAAS2 and CLAAS3 products"""
     @pytest.fixture(params=[3636, 3712])
     def grid_size(self, request):
         return request.param
