@@ -274,7 +274,7 @@ class NCSLSTRAngles(BaseFileHandler):
         self.cartx = self._loadcart(cartx_file)
 
     @staticmethod
-    def _interp_data(indata, x_full, y_full, x_tie, y_tie, ds_name):
+    def _interp_data(indata, full_grid, tie_grid, ds_name):
         """Interpolate data from tie point grid to full image grid."""
         from scipy.interpolate import RectBivariateSpline
 
@@ -285,15 +285,15 @@ class NCSLSTRAngles(BaseFileHandler):
             indat = indata[:, ::-1]
             sin_angles = np.sin(np.radians(indat))
             cos_angles = np.cos(np.radians(indat))
-            sin_interp = RectBivariateSpline(y_tie, x_tie, sin_angles)
-            cos_interp = RectBivariateSpline(y_tie, x_tie, cos_angles)
-            values_sin = sin_interp.ev(y_full, x_full)
-            values_cos = cos_interp.ev(y_full, x_full)
+            sin_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], sin_angles)
+            cos_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], cos_angles)
+            values_sin = sin_interp.ev(full_grid[1], full_grid[0])
+            values_cos = cos_interp.ev(full_grid[1], full_grid[0])
             values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
         else:
             # Otherwise, interpolate as normal.
-            spl = RectBivariateSpline(y_tie, x_tie, indata[:, ::-1])
-            values = spl.ev(y_full, x_full)
+            spl = RectBivariateSpline(tie_grid[1], tie_grid[0], indata[:, ::-1])
+            values = spl.ev(full_grid[1], full_grid[0])
         return values
 
 
@@ -329,7 +329,11 @@ class NCSLSTRAngles(BaseFileHandler):
             variable = variable.fillna(0)
             variable.attrs["resolution"] = key.get("resolution", 1000)
 
-            values = self._interp_data(variable.data, full_x, full_y, tie_x, tie_y, key["name"])
+            # Interpolate the data to the full image grid
+            values = self._interp_data(variable.data,
+                                       [full_x, full_y],
+                                       [tie_x, tie_y],
+                                       key["name"])
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                                     dims=["y", "x"], attrs=variable.attrs)
