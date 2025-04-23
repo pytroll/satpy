@@ -273,6 +273,30 @@ class NCSLSTRAngles(BaseFileHandler):
         self.carti = self._loadcart(carti_file)
         self.cartx = self._loadcart(cartx_file)
 
+    @staticmethod
+    def _interp_data(indata, x_full, y_full, x_tie, y_tie, ds_name):
+        """Interpolate data from tie point grid to full image grid."""
+        from scipy.interpolate import RectBivariateSpline
+
+        # Check if we are interpolating angles
+        if "angle" in ds_name:
+            # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
+            # interpolation artifacts such as values <0 or >360.
+            indat = indata[:, ::-1]
+            sin_angles = np.sin(np.radians(indat))
+            cos_angles = np.cos(np.radians(indat))
+            sin_interp = RectBivariateSpline(y_tie, x_tie, sin_angles)
+            cos_interp = RectBivariateSpline(y_tie, x_tie, cos_angles)
+            values_sin = sin_interp.ev(y_full, x_full)
+            values_cos = cos_interp.ev(y_full, x_full)
+            values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
+        else:
+            # Otherwise, interpolate as normal.
+            spl = RectBivariateSpline(y_tie, x_tie, indata[:, ::-1])
+            values = spl.ev(y_full, x_full)
+        return values
+
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if not key["view"].name.startswith(self.view[0]):
@@ -305,24 +329,7 @@ class NCSLSTRAngles(BaseFileHandler):
             variable = variable.fillna(0)
             variable.attrs["resolution"] = key.get("resolution", 1000)
 
-            from scipy.interpolate import RectBivariateSpline
-
-            # Check if we are interpolating angles
-            if "angle" in key["name"]:
-                # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
-                # interpolation artifacts such as values <0 or >360.
-                indat = variable.data[:, ::-1]
-                sin_angles = np.sin(np.radians(indat))
-                cos_angles = np.cos(np.radians(indat))
-                sin_interp = RectBivariateSpline(tie_y, tie_x, sin_angles)
-                cos_interp = RectBivariateSpline(tie_y, tie_x, cos_angles)
-                values_sin = sin_interp.ev(full_y, full_x)
-                values_cos = cos_interp.ev(full_y, full_x)
-                values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
-            else:
-                # Otherwise, interpolate as normal.
-                spl = RectBivariateSpline(tie_y, tie_x, variable.data[:, ::-1])
-                values = spl.ev(full_y, full_x)
+            values = self._interp_data(variable.data, full_x, full_y, tie_x, tie_y, key["name"])
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                                     dims=["y", "x"], attrs=variable.attrs)
