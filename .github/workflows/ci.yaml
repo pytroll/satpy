@@ -118,7 +118,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           flags: unittests
-          file: ./coverage.xml
+          files: ./coverage.xml
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Coveralls Parallel
@@ -139,7 +139,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           flags: behaviourtests
-          file: ./coverage.xml
+          files: ./coverage.xml
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
   coveralls:

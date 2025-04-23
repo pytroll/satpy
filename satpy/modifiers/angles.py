@@ -333,24 +333,45 @@ def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
     return xr.DataArray(arr, dims=("y", "x"))
 
 
-def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr.DataArray:
+def compute_relative_azimuth(
+        sat_azi: xr.DataArray | da.Array,
+        sun_azi: xr.DataArray | da.Array
+) -> xr.DataArray | da.Array:
     """Compute the relative azimuth angle.
 
     Args:
-        sat_azi: DataArray for the satellite azimuth angles, typically in 0-360 degree range.
-        sun_azi: DataArray for the solar azimuth angles, should be in same range as sat_azi.
+        sat_azi: satellite azimuth angles typically in the 0-360 degree range.
+        sun_azi: solar azimuth angles in same range as sat_azi.
 
     Returns:
-        A DataArray containing the relative azimuth angle in the 0-180 degree range.
+        The relative azimuth angle or difference between solar and satellite
+        azimuth angles in the 0-180 degree range.
 
     NOTE: Relative azimuth is defined such that:
     Relative azimuth is 0 when sun and satellite are aligned on one side of a pixel (back scatter).
     Relative azimuth is 180 when sun and satellite are directly opposite each other (forward scatter).
     """
-    ssadiff = np.absolute(sun_azi - sat_azi)
-    ssadiff = np.minimum(ssadiff, 360 - ssadiff)
+    xarray_dims = getattr(sat_azi, "dims", None)
+    xarray_coords = getattr(sat_azi, "coords", None)
+    if xarray_dims is not None:
+        sat_azi = sat_azi.data
+        sun_azi = sun_azi.data
+    rel_azi = da.map_blocks(
+        _compute_relative_azimuth,
+        sat_azi, sun_azi,
+        dtype=sat_azi.dtype,
+        meta=np.array((), dtype=sat_azi.dtype),
+        name="relative_azimuth",
+    )
+    if xarray_dims is None:
+        return rel_azi
+    return xr.DataArray(rel_azi, dims=xarray_dims, coords=xarray_coords)
 
-    return ssadiff
+
+def _compute_relative_azimuth(sat_azi: np.ndarray, sun_azi: np.ndarray) -> np.ndarray:
+    ssadiff = np.absolute(sun_azi - sat_azi)
+    dtype = sun_azi.dtype.type
+    return np.minimum(ssadiff, dtype(360.0) - ssadiff)
 
 
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:

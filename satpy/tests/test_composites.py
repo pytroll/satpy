@@ -418,17 +418,29 @@ def fake_area():
 @pytest.fixture
 def fake_dataset_pair(fake_area):
     """Return a fake pair of 2×2 datasets."""
-    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
-    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32),
+                       attrs={"area": fake_area, "standard_name": "toa_bidirectional_reflectance"})
+    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32),
+                       attrs={"area": fake_area, "standard_name": "toa_bidirectional_reflectance"})
     return (ds1, ds2)
 
 
-def test_ratio_compositor(fake_dataset_pair):
+@pytest.mark.parametrize("kwargs", [{}, {"standard_name": "channel_ratio", "foo": "bar"}])
+def test_ratio_compositor(fake_dataset_pair, kwargs):
     """Test the ratio compositor."""
     from satpy.composites import RatioCompositor
-    comp = RatioCompositor(name="ratio", standard_name="channel_ratio")
+    comp = RatioCompositor("ratio", **kwargs)
     res = comp(fake_dataset_pair)
     np.testing.assert_allclose(res.values, 2)
+
+    assert res.attrs["name"] == "ratio"
+
+    if "standard_name" in kwargs:
+        # See that the kwargs have been updated to the attrs
+        assert res.attrs["standard_name"] == "channel_ratio"
+        assert res.attrs["foo"] == "bar"
+    else:
+        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
 
 
 def test_sum_compositor(fake_dataset_pair):
@@ -1625,6 +1637,16 @@ class TestMaskingCompositor:
                  "transparency": 50}]
 
     @pytest.fixture
+    def conditions_v3(self):
+        """Masking conditions with other numerical values."""
+        return [{"method": "equal",
+                 "value": 0,
+                 "transparency": 100},
+                {"method": "equal",
+                 "value": 1,
+                 "transparency": 0}]
+
+    @pytest.fixture
     def test_data(self):
         """Test data to use with masking compositors."""
         return xr.DataArray(da.random.random((3, 3)), dims=["y", "x"])
@@ -1641,6 +1663,30 @@ class TestMaskingCompositor:
         ct_data.attrs["flag_meanings"] = flag_meanings
         ct_data.attrs["flag_values"] = flag_values
         return ct_data
+
+    @pytest.fixture
+    def value_3d_data(self):
+        """Test 3D data array."""
+        value_3d_data = da.array([[[1, 0, 0],
+                                   [0, 1, 0],
+                                   [0, 0, 1]]])
+        value_3d_data = xr.DataArray(value_3d_data, dims=["bands", "y", "x"])
+        return value_3d_data
+
+    @pytest.fixture
+    def value_3d_data_bands(self):
+        """Test 3D data array."""
+        value_3d_data = da.array([[[1, 0, 0],
+                                   [0, 1, 0],
+                                   [0, 0, 1]],
+                                  [[1, 0, 0],
+                                   [0, 1, 0],
+                                   [0, 0, 1]],
+                                  [[1, 0, 0],
+                                   [0, 1, 0],
+                                   [0, 0, 1]]])
+        value_3d_data = xr.DataArray(value_3d_data, dims=["bands", "y", "x"])
+        return value_3d_data
 
     @pytest.fixture
     def test_ct_data_v3(self, test_ct_data):
@@ -1723,6 +1769,44 @@ class TestMaskingCompositor:
         for m in mode.rstrip("A"):
             np.testing.assert_allclose(res.sel(bands=m), reference_data)
         np.testing.assert_allclose(res.sel(bands="A"), reference_alpha)
+
+    @pytest.mark.parametrize("mode", ["LA", "RGBA"])
+    def test_call_numerical_transparency_data_with_3d_mask_data(
+            self, test_data, value_3d_data, conditions_v3, mode):
+        """Test call the compositor with numerical transparency data.
+
+        Use parameterisation to test different image modes.
+        """
+        from satpy.composites import MaskingCompositor
+
+        reference_data_v3 = test_data.where(value_3d_data[0] > 0)
+        reference_alpha_v3 = xr.DataArray([[1., 0., 0.],
+                                           [0., 1., 0.],
+                                           [0., 0., 1.]])
+
+        # Test with numerical transparency data using 3d test mask data which can be squeezed
+        comp = MaskingCompositor("name", conditions=conditions_v3,
+                                 mode=mode)
+        res = comp([test_data, value_3d_data])
+        assert res.mode == mode
+        for m in mode.rstrip("A"):
+            np.testing.assert_allclose(res.sel(bands=m), reference_data_v3)
+        np.testing.assert_allclose(res.sel(bands="A"), reference_alpha_v3)
+
+    @pytest.mark.parametrize("mode", ["LA", "RGBA"])
+    def test_call_numerical_transparency_data_with_3d_mask_data_exception(
+            self, test_data, value_3d_data_bands, conditions_v3, mode):
+        """Test call the compositor with numerical transparency data, too many dimensions to squeeze.
+
+        Use parameterisation to test different image modes.
+        """
+        from satpy.composites import MaskingCompositor
+
+        # Test with numerical transparency data using 3d test mask data which can not be squeezed
+        comp = MaskingCompositor("name", conditions=conditions_v3,
+                                 mode=mode)
+        with pytest.raises(ValueError, match=".*Received 3 dimension\\(s\\) but expected 2.*"):
+            comp([test_data, value_3d_data_bands])
 
     def test_call_named_fields(self, conditions_v2, test_data, test_ct_data,
                                reference_data, reference_alpha):

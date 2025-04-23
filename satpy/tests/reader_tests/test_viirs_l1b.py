@@ -207,6 +207,8 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances."""
@@ -236,6 +238,8 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances."""
@@ -271,6 +275,8 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_i_band_angles(self):
         """Test loading all M bands as radiances."""
@@ -294,6 +300,8 @@ class TestVIIRSL1BReaderDay:
         for v in datasets.values():
             assert v.attrs["resolution"] == 371
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset."""
@@ -313,6 +321,8 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_dnb_angles(self):
         """Test loading all DNB angle datasets."""
@@ -337,6 +347,8 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
 
 class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):
