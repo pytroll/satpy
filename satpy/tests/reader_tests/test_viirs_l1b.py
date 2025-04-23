@@ -279,8 +279,10 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
             assert v.attrs["day_night"] == "Day"
-            assert v.attrs["start_direction"] == "Descending"
-            assert v.attrs["end_direction"] == "Ascending"
+            assert v.attrs["orbital_parameters"]["start_direction"] == "Descending"
+            assert v.attrs["orbital_parameters"]["end_direction"] == "Ascending"
+            assert v.attrs["orbital_parameters"]["start_orbit"] == 26384
+            assert v.attrs["orbital_parameters"]["end_orbit"] == 26384
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
