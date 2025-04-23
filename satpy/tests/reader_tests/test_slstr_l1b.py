@@ -73,24 +73,56 @@ class TestSLSTRL1B(unittest.TestCase):
     @mock.patch("satpy.readers.slstr_l1b.xr")
     def setUp(self, xr_):
         """Create a fake dataset using the given radiance data."""
-        self.base_data = np.array(([1., 2., 3.], [4., 5., 6.]))
-        self.det_data = np.array(([0, 1, 1], [0, 1, 0]))
+        self.base_data = np.array(([1., 2., 3., 4., 5., 6., 7., 8., 9.],
+                                   [7., 8., 9., 10., 11., 12., 13., 14., 15.],
+                                   [16., 17., 18., 19., 20., 21., 22., 23., 24.],
+                                   [25., 26., 27., 28., 29., 30., 31., 32., 33.]))
+        self.ang_data = np.array(([345., 355., 1., 5., 10.],
+                                  [346., 355., 0.5, 4.2, 15.],
+                                  [342., 356., 1., 5.3, 12.],
+                                  [344.3, 356.1, 0.0001, 4.9, 9.2],))
+
+        self.tx_data = np.array(([101000, 100500, 100000, 99500, 99000],
+                                 [101000, 100500, 100000, 99500, 99000],
+                                 [101000, 100500, 100000, 99500, 99000],
+                                 [101000, 100500, 100000, 99500, 99000]))
+        self.ty_data = np.array(([199500, 199500, 199500, 199500, 199500],
+                                 [200000, 200000, 200000, 200000, 200000],
+                                 [200500, 200500, 200500, 200500, 200500],
+                                 [201000, 201000, 201000, 201000, 201000],))
+
+        self.ix_data = np.array(([100800, 100600, 100400, 100200, 100000, 99800, 99600, 99400, 99200],
+                                 [100800, 100600, 100400, 100200, 100000, 99800, 99600, 99400, 99200],
+                                 [100800, 100600, 100400, 100200, 100000, 99800, 99600, 99400, 99200],
+                                 [100800, 100600, 100400, 100200, 100000, 99800, 99600, 99400, 99200]))
+        self.iy_data = np.array(([199800, 199800, 199800, 199800, 199800, 199800, 199800, 199800, 199800],
+                                 [200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000],
+                                 [200600, 200600, 200600, 200600, 200600, 200600, 200600, 200600, 200600],
+                                 [200800, 200800, 200800, 200800, 200800, 200800, 200800, 200800, 200800]))
+
+        self.det_data = np.array(([0, 1, 1, 0, 1, 0, 1, 0, 1],
+                                  [1, 0, 0, 0, 0, 1, 0, 1, 1],
+                                  [1, 1, 1, 1, 1, 1, 1, 0, 1],
+                                  [0, 1, 1, 0, 1, 1, 1, 1, 0]))
         self.start_time = "2020-05-10T12:01:15.585Z"
         self.end_time = "2020-05-10T12:06:18.012Z"
+
         self.rad = xr.DataArray(
             self.base_data,
             dims=("columns", "rows"),
             attrs={"scale_factor": 1.0, "add_offset": 0.0,
-                   "_FillValue": -32768, "units": "mW.m-2.sr-1.nm-1",
-                   }
-        )
+                   "_FillValue": -32768, "units": "mW.m-2.sr-1.nm-1",})
         det = xr.DataArray(
             self.base_data,
             dims=("columns", "rows"),
-            attrs={"scale_factor": 1.0, "add_offset": 0.0,
-                   "_FillValue": 255,
-                   }
-        )
+            attrs={"scale_factor": 1.0, "add_offset": 0.0,"_FillValue": 255,})
+        x_in = xr.DataArray(self.ix_data,dims=("columns", "rows"))
+        y_in = xr.DataArray(self.iy_data,dims=("columns", "rows"))
+
+        saa = xr.DataArray(self.ang_data,dims=("columns_t", "rows_t"))
+        x_tx = xr.DataArray(self.tx_data,dims=("columns_t", "rows_t"))
+        y_tx = xr.DataArray(self.ty_data,dims=("columns_t", "rows_t"))
+
         self.fake_dataset = xr.Dataset(
             data_vars={
                 "S5_radiance_an": self.rad,
@@ -99,14 +131,15 @@ class TestSLSTRL1B(unittest.TestCase):
                 "S5_solar_irradiances": self.rad,
                 "geometry_tn": self.rad,
                 "latitude_an": self.rad,
-                "x_tx": self.rad,
-                "y_tx": self.rad,
-                "x_in": self.rad,
-                "y_in": self.rad,
-                "x_an": self.rad,
-                "y_an": self.rad,
+                "x_in": x_in,
+                "y_in": y_in,
+                "x_an": x_in,
+                "y_an": y_in,
                 "flags_an": self.rad,
                 "detector_an": det,
+                "x_tx": x_tx,
+                "y_tx": y_tx,
+                "solar_azimuth_tn": saa,
             },
             attrs={
                 "start_time": self.start_time,
@@ -259,3 +292,32 @@ class TestSLSTRCalibration(TestSLSTRL1B):
 
         out_rad = NCSLSTR1B._cal_rad(rad, didx, solflux)
         np.testing.assert_allclose(out_rad, good_rad)
+
+
+class TestSLSTRAngles(TestSLSTRL1B):
+    """Test the implementation of the angle reconstruction."""
+
+    @mock.patch("satpy.readers.slstr_l1b.xr.open_dataset")
+    def test_radiance_calibration(self, xr_):
+        """Test radiance calibration steps."""
+        xr_.return_value = self.fake_dataset
+
+        res = np.array([[350.17659522, 353.31335956, 356.1441152, 358.55896366,
+                         0.4400064, 1.79903533, 3.18424353, 5.28496166, 8.80226547],
+                        [350.02717525, 353.48225908, 356.37905054, 358.72059252,
+                         0.5, 1.81840943, 3.23819125, 5.44552178, 9.13958444],
+                        [349.30986294, 354.38594648, 357.53203205, 359.49732861,
+                         1.00001215, 2.61842911, 4.45389453, 6.49348929, 8.72979111],
+                        [349.68116993, 354.62824808, 357.55405421, 359.31582013,
+                         0.74004914, 2.46431559, 4.44154365, 6.45655991, 8.30055946]])
+
+        ds_id = make_dataid(name="solar_azimuth_angle", view="nadir")
+        filename_info = {"mission_id": "S3A", "dataset_name": "solar_azimuth_angle",
+                         "start_time": 0, "end_time": 0,
+                         "stripe": "t", "view": "n"}
+
+        test = NCSLSTRAngles("somedir/geometry_tn.nc", filename_info, "c")
+        data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "solar_azimuth_tn"}))
+        assert data.attrs["units"] == "degrees"
+        assert data.shape == res.shape
+        np.testing.assert_allclose(data.values, res)
