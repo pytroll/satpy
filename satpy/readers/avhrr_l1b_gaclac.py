@@ -31,7 +31,9 @@ formats as well as calibration and navigation methods.
 """
 
 import datetime as dt
+import functools
 import logging
+from contextlib import suppress
 
 import dask.array as da
 import numpy as np
@@ -77,7 +79,7 @@ class GACLACFile(BaseFileHandler):
                 See the pygac documentation for available options.
 
         """
-        super(GACLACFile, self).__init__(
+        super().__init__(
             filename, filename_info, filetype_info)
 
         self.start_line = start_line
@@ -86,7 +88,6 @@ class GACLACFile(BaseFileHandler):
         self.interpolate_coords = interpolate_coords
         self.reader_kwargs = reader_kwargs
         self.creation_site = filename_info.get("creation_site")
-        self.reader = None
         self.calib_channels = None
         self.counts = None
         self.angles = None
@@ -94,10 +95,14 @@ class GACLACFile(BaseFileHandler):
         self.first_valid_lat = None
         self.last_valid_lat = None
         self._start_time = filename_info["start_time"]
-        self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
-                                             filename_info["end_time"].time())
-        if self._end_time < self._start_time:
-            self._end_time += dt.timedelta(days=1)
+        self._end_time = None
+
+        with suppress(AttributeError):
+            self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
+                                                 filename_info["end_time"].time())
+            if self._end_time < self._start_time:
+                self._end_time += dt.timedelta(days=1)
+
         self.platform_id = filename_info["platform_id"]
 
         if len(self.platform_id) == 3:
@@ -136,26 +141,31 @@ class GACLACFile(BaseFileHandler):
                                     "M1", "M2", "M3",
                                     "MOB", "MOA", "MOC"]
 
-    def read_raw_data(self):
-        """Create a pygac reader and read raw data from the file."""
-        if self.reader is None:
-            self.reader = self.reader_class(
-                interpolate_coords=self.interpolate_coords,
-                creation_site=self.creation_site,
-                **self.reader_kwargs)
-            self.reader.read(self.filename)
-            if np.all(self.reader.mask):
-                raise ValueError("All data is masked out")
+    @functools.cached_property
+    def reader(self):
+        """Get the reader."""
+        reader = self.reader_class(
+            interpolate_coords=self.interpolate_coords,
+            creation_site=self.creation_site,
+            **self.reader_kwargs)
+        reader.read(self.filename)
+        if np.all(reader.mask):
+            raise ValueError("All data is masked out")
+        return reader
+
+    @functools.cached_property
+    def cal_ds(self):
+        """Get the calibrated dataset."""
+        return self.reader.get_calibrated_dataset()
 
     def get_dataset(self, key, info):
         """Get the dataset."""
-        self.read_raw_data()
         if key["name"] in ["latitude", "longitude"]:
             # Lats/lons are buffered by the reader
             if key["name"] == "latitude":
-                _, data = self.reader.get_lonlat()
+                data = self.cal_ds["latitude"].values
             else:
-                data, _ = self.reader.get_lonlat()
+                data = self.cal_ds["longitude"].values
 
             # If coordinate interpolation is disabled, only every eighth
             # pixel has a lat/lon coordinate
