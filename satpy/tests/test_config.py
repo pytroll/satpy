@@ -371,7 +371,7 @@ class TestPluginsConfigs:
         import xarray as xr
         from trollimage.xrimage import XRImage
 
-        from satpy.writers import Enhancer
+        from satpy.enhancements.enhancer import Enhancer
 
         data_arr = xr.DataArray(
             da.zeros((10, 10), dtype=np.float32),

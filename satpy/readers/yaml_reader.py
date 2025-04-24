@@ -116,7 +116,7 @@ def load_yaml_configs(*config_files, loader=Loader):
     logger.debug("Reading %s", str(config_files))
     for config_file in config_files:
         with open(config_file, "r", encoding="utf-8") as fd:
-            config = recursive_dict_update(config, yaml.load(fd, Loader=loader))
+            recursive_dict_update(config, yaml.load(fd, Loader=loader))
     _verify_reader_info_assign_config_files(config, config_files)
     return config
 
