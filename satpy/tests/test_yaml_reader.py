@@ -25,6 +25,7 @@ import unittest
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, call, patch
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -1517,7 +1518,7 @@ class TestGEOVariableSegmentYAMLReader:
         """Test _get_empty_segment_with_height() for different new heights."""
         from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
 
-        empty_segment = xr.DataArray(np.ones((139, 5568)), dims=["y", "x"])
+        empty_segment = xr.DataArray(da.ones((139, 5568)), dims=["y", "x"])
         new_empty_segment = geswh(empty_segment, new_height, "y")
         assert new_empty_segment.shape == (new_height, 5568)
         assert (new_empty_segment == empty_segment[0,0]).all()
