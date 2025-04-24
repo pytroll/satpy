@@ -97,7 +97,7 @@ class GACLACFile(BaseFileHandler):
         self._start_time = filename_info["start_time"]
         self._end_time = None
 
-        with suppress(AttributeError):
+        with suppress(KeyError):
             self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
                                                  filename_info["end_time"].time())
             if self._end_time < self._start_time:
