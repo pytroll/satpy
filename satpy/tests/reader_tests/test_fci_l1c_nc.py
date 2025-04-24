@@ -290,7 +290,7 @@ def _get_test_calib_data_for_channel(data, ch_str):
         _get_test_calib_for_channel_ir(data, meas_path)
     elif ch_str.startswith("vis") or ch_str.startswith("nir"):
         _get_test_calib_for_channel_vis(data, meas_path)
-    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(da.array(1234.56, dtype=np.float32))
+    data[meas_path + "/radiance_unit_conversion_coefficient"] = xr.DataArray(np.array(1234.56, dtype=np.float32))
 
 
 def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
