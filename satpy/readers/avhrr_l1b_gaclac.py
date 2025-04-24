@@ -158,11 +158,11 @@ class GACLACFile(BaseFileHandler):
         """Get the calibrated dataset."""
         return self.reader.get_calibrated_dataset()
 
-    def get_dataset(self, key, info):
+    def get_dataset(self, dataset_id, ds_info):
         """Get the dataset."""
-        if key["name"] in ["latitude", "longitude"]:
+        if dataset_id["name"] in ["latitude", "longitude"]:
             # Lats/lons are buffered by the reader
-            if key["name"] == "latitude":
+            if dataset_id["name"] == "latitude":
                 data = self.cal_ds["latitude"].values
             else:
                 data = self.cal_ds["longitude"].values
@@ -171,11 +171,11 @@ class GACLACFile(BaseFileHandler):
             # pixel has a lat/lon coordinate
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
-        elif key["name"] in ANGLES:
-            data = self._get_angle(key)
+        elif dataset_id["name"] in ANGLES:
+            data = self._get_angle(dataset_id)
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
-        elif key["name"] == "qual_flags":
+        elif dataset_id["name"] == "qual_flags":
             data = self.reader.get_qual_flags()
             xdim = "num_flags"
             xcoords = ["Scan line number",
@@ -185,13 +185,13 @@ class GACLACFile(BaseFileHandler):
                        "Solar contamination of blackbody in channels 3",
                        "Solar contamination of blackbody in channels 4",
                        "Solar contamination of blackbody in channels 5"]
-        elif key["name"].upper() in self.chn_dict:
+        elif dataset_id["name"].upper() in self.chn_dict:
             # Read and calibrate channel data
-            data = self._get_channel(key)
+            data = self._get_channel(dataset_id)
             xdim = "x"
             xcoords = None
         else:
-            raise ValueError("Unknown dataset: {}".format(key["name"]))
+            raise ValueError("Unknown dataset: {}".format(dataset_id["name"]))
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
@@ -207,7 +207,7 @@ class GACLACFile(BaseFileHandler):
         chunk_cols = data.shape[1]
         chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
         res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
-                           dims=["y", xdim], attrs=info)
+                           dims=["y", xdim], attrs=ds_info)
         if xcoords:
             res[xdim] = xcoords
 
