@@ -278,3 +278,19 @@ enhancements:
         method: !!python/name:satpy.enhancements.gamma
         kwargs:
           gamma: [0.7, 1.0, 0.7]
+  day_cloud_type:
+    # Recipe PDF: http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_Day_Cloud_Type_RGB.pdf
+    standard_name: day_cloud_type
+    sensor: abi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          # limits taken from AWIPS. Quick Guide PDF is missing stretch limits
+          min_stretch: [0.0, 0.0, 0.0]
+          max_stretch: [10.0, 78.0, 59.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.5, 1, 1]

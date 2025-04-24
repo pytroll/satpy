@@ -824,3 +824,19 @@ composites:
           - name: C07
           - name: C13
     standard_name: blowing_snow
+
+  day_cloud_type:
+    description: >
+      Day Cloud Type, for GOES-R: NASA/NOAA
+    references:
+      Quick Guide: http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_Day_Cloud_Type_RGB.pdf
+      EUMeTrain Guide: https://resources.eumetrain.org/data/7/736/navmenu.php?tab=3&page=1.0.0
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C04
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: C02
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: C05
+        modifiers: [effective_solar_pathlength_corrected]
+    standard_name: day_cloud_type
