@@ -65,6 +65,9 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
             "/attr/orbit_number": 26384,
             "/attr/instrument": "VIIRS",
             "/attr/platform": "Suomi-NPP",
+            "/attr/DayNightFlag": "Day",
+            "/attr/startDirection": "Descending",
+            "/attr/endDirection": "Ascending",
         }
         self._fill_contents_with_default_data(file_content, file_type)
         self._set_dataset_specific_metadata(file_content)
@@ -275,6 +278,11 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["day_night"] == "Day"
+            assert v.attrs["orbital_parameters"]["start_direction"] == "Descending"
+            assert v.attrs["orbital_parameters"]["end_direction"] == "Ascending"
+            assert v.attrs["orbital_parameters"]["start_orbit"] == 26384
+            assert v.attrs["orbital_parameters"]["end_orbit"] == 26384
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 

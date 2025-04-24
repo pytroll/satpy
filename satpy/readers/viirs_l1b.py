@@ -182,12 +182,18 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         i = getattr(self[var_path], "attrs", {})
         i.update(ds_info)
         i.update(dataset_id.to_dict())
+        orb_param = {"start_direction": self["/attr/startDirection"],
+                     "end_direction": self["/attr/endDirection"],
+                     "start_orbit": self.start_orbit_number,
+                     "end_orbit": self.end_orbit_number,}
         i.update({
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
+            "day_night": self["/attr/DayNightFlag"],
+            "orbital_parameters": orb_param,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
