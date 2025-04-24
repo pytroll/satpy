@@ -44,7 +44,7 @@ from satpy import DatasetDict
 from satpy._compat import cache
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
-from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
+from satpy.dataset.id_keys import default_co_keys_config, default_id_keys_config, get_keys_from_config
 from satpy.resample import add_crs_xy_coords, get_area_def
 from satpy.utils import recursive_dict_update
 

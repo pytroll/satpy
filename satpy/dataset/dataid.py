@@ -14,273 +14,20 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Dataset identifying objects."""
+from __future__ import annotations
 
 import logging
 import numbers
-from collections import namedtuple
-from contextlib import suppress
 from copy import copy, deepcopy
-from enum import Enum, IntEnum
-from typing import NoReturn
+from enum import Enum
+from functools import partial
+from typing import Any, NoReturn
 
 import numpy as np
 
+from satpy.dataset.id_keys import ModifierTuple, ValueList, default_id_keys_config, minimal_default_keys_config
+
 logger = logging.getLogger(__name__)
-
-
-def get_keys_from_config(common_id_keys, config):
-    """Gather keys for a new DataID from the ones available in configured dataset."""
-    id_keys = {}
-    for key, val in common_id_keys.items():
-        if key in config:
-            id_keys[key] = val
-        elif val is not None and (val.get("required") is True or val.get("default") is not None):
-            id_keys[key] = val
-    if not id_keys:
-        raise ValueError("Metadata does not contain enough information to create a DataID.")
-    return id_keys
-
-
-class ValueList(IntEnum):
-    """A static value list.
-
-    This class is meant to be used for dynamically created Enums. Due to this
-    it should not be used as a normal Enum class or there may be some
-    unexpected behavior. For example, this class contains custom pickling and
-    unpickling handling that may break in subclasses.
-
-    """
-
-    @classmethod
-    def convert(cls, value):
-        """Convert value to an instance of this class."""
-        try:
-            return cls[value]
-        except KeyError:
-            raise ValueError("{} invalid value for {}".format(value, cls))
-
-    @classmethod
-    def _unpickle(cls, enum_name, enum_members, enum_member):
-        """Create dynamic class that was previously pickled.
-
-        See :meth:`__reduce_ex__` for implementation details.
-
-        """
-        enum_cls = cls(enum_name, enum_members)
-        return enum_cls[enum_member]
-
-    def __reduce_ex__(self, proto):
-        """Reduce the object for pickling."""
-        return (ValueList._unpickle,
-                (self.__class__.__name__, list(self.__class__.__members__.keys()), self.name))
-
-    def __eq__(self, other):
-        """Check equality."""
-        return self.name == other
-
-    def __ne__(self, other):
-        """Check non-equality."""
-        return self.name != other
-
-    def __hash__(self):
-        """Hash the object."""
-        return hash(self.name)
-
-    def __repr__(self):
-        """Represent the values."""
-        return "<" + str(self) + ">"
-
-
-wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=("µm",))  # type: ignore
-
-
-class WavelengthRange(wlklass):
-    """A named tuple for wavelength ranges.
-
-    The elements of the range are min, central and max values, and optionally a unit
-    (defaults to µm). No clever unit conversion is done here, it's just used for checking
-    that two ranges are comparable.
-    """
-
-    def __eq__(self, other):
-        """Return if two wavelengths are equal.
-
-        Args:
-            other (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
-
-        Return:
-            True if other is a scalar and min <= other <= max, or if other is
-            a tuple equal to self, False otherwise.
-
-        """
-        if other is None:
-            return False
-        if isinstance(other, numbers.Number):
-            return other in self
-        if isinstance(other, (tuple, list)) and len(other) == 3:
-            return self[:3] == other
-        return super().__eq__(other)
-
-    def __ne__(self, other):
-        """Return the opposite of `__eq__`."""
-        return not self == other
-
-    def __lt__(self, other):
-        """Compare to another wavelength."""
-        if other is None:
-            return False
-        return super().__lt__(other)
-
-    def __gt__(self, other):
-        """Compare to another wavelength."""
-        if other is None:
-            return True
-        return super().__gt__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
-
-    def __str__(self):
-        """Format for print out."""
-        return "{0.central} {0.unit} ({0.min}-{0.max} {0.unit})".format(self)
-
-    def __contains__(self, other):
-        """Check if this range contains *other*."""
-        if other is None:
-            return False
-        if isinstance(other, numbers.Number):
-            return self.min <= other <= self.max
-        with suppress(AttributeError):
-            if self.unit != other.unit:
-                raise NotImplementedError("Can't compare wavelength ranges with different units.")
-            return self.min <= other.min and self.max >= other.max
-        return False
-
-    def distance(self, value):
-        """Get the distance from value."""
-        if self == value:
-            try:
-                return abs(value.central - self.central)
-            except AttributeError:
-                if isinstance(value, (tuple, list)):
-                    return abs(value[1] - self.central)
-                return abs(value - self.central)
-        else:
-            return np.inf
-
-    @classmethod
-    def convert(cls, wl):
-        """Convert `wl` to this type if possible."""
-        if isinstance(wl, (tuple, list)):
-            return cls(*wl)
-        return wl
-
-    def to_cf(self):
-        """Serialize for cf export."""
-        return str(self)
-
-    @classmethod
-    def from_cf(cls, blob):
-        """Return a WavelengthRange from a cf blob."""
-        try:
-            obj = cls._read_cf_from_string_export(blob)
-        except TypeError:
-            obj = cls._read_cf_from_string_list(blob)
-        return obj
-
-    @classmethod
-    def _read_cf_from_string_export(cls, blob):
-        """Read blob as a string created by `to_cf`."""
-        pattern = "{central:f} {unit:s} ({min:f}-{max:f} {unit2:s})"
-        from trollsift import Parser
-        parser = Parser(pattern)
-        res_dict = parser.parse(blob)
-        res_dict.pop("unit2")
-        obj = cls(**res_dict)
-        return obj
-
-    @classmethod
-    def _read_cf_from_string_list(cls, blob):
-        """Read blob as a list of strings (legacy formatting)."""
-        min_wl, central_wl, max_wl, unit = blob
-        obj = cls(float(min_wl), float(central_wl), float(max_wl), unit)
-        return obj
-
-
-class ModifierTuple(tuple):
-    """A tuple holder for modifiers."""
-
-    @classmethod
-    def convert(cls, modifiers):
-        """Convert `modifiers` to this type if possible."""
-        if modifiers is None:
-            return None
-        if not isinstance(modifiers, (cls, tuple, list)):
-            raise TypeError("'DataID' modifiers must be a tuple or None, "
-                            "not {}".format(type(modifiers)))
-        return cls(modifiers)
-
-    def __eq__(self, other):
-        """Check equality."""
-        if isinstance(other, list):
-            other = tuple(other)
-        return super().__eq__(other)
-
-    def __ne__(self, other):
-        """Check non-equality."""
-        if isinstance(other, list):
-            other = tuple(other)
-        return super().__ne__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
-
-
-#: Default ID keys DataArrays.
-default_id_keys_config = {"name": {
-                              "required": True,
-                          },
-                          "wavelength": {
-                              "type": WavelengthRange,
-                          },
-                          "resolution": {
-                              "transitive": False,
-                              },
-                          "calibration": {
-                              "enum": [
-                                  "reflectance",
-                                  "brightness_temperature",
-                                  "radiance",
-                                  "radiance_wavenumber",
-                                  "counts"
-                                  ],
-                              "transitive": True,
-                          },
-                          "modifiers": {
-                              "default": ModifierTuple(),
-                              "type": ModifierTuple,
-                          },
-                          }
-
-#: Default ID keys for coordinate DataArrays.
-default_co_keys_config = {"name": {
-                              "required": True,
-                          },
-                          "resolution": {
-                              "transitive": True,
-                          }
-                          }
-
-#: Minimal ID keys for DataArrays, for example composites.
-minimal_default_keys_config = {"name": {
-                                  "required": True,
-                              },
-                               "resolution": {
-                                   "transitive": True,
-                               }
-                              }
 
 
 class DataID(dict):
@@ -496,10 +243,14 @@ def _generalize_value_for_comparison(val):
 class DataQuery:
     """The data query object.
 
-    A DataQuery can be used in Satpy to query for a Dataset. This way
-    a fully qualified DataID can be found even if some DataID
-    elements are unknown. In this case a `*` signifies something that is
-    unknown or not applicable to the requested Dataset.
+    A DataQuery can be used in Satpy to query a dict using ``DataID`` objects
+    as keys. In a plain Python builtin ``dict`` object a fully matching
+    ``DataQuery`` can be used to access the value of the matching ``DataID``.
+    Using Satpy's special :class:``~satpy.dataid.data_dict.DatasetDict`` a
+    ``DataQuery`` will match the closest matching ``DataID``. In this case a
+    ``"*"`` in the query signifies something that is unknown or not applicable
+    to the requested Dataset. See the ``DatasetDict`` class for more information
+    including retrieving all items matching a ``DataQuery``.
     """
 
     def __init__(self, **kwargs):
@@ -512,35 +263,64 @@ class DataQuery:
         """Get an item."""
         return self._dict[key]
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """Compare the DataQuerys.
 
-        A DataQuery is considered equal to another DataQuery or DataID
-        if they have common keys that have equal values.
+        A DataQuery is considered equal to another DataQuery if all keys
+        are shared between them and are equal. A DataQuery is considered
+        equal to a DataID if all elements in the query are equal to those
+        elements in the DataID. The DataID is still considered equal if it
+        contains additional elements. Any DataQuery elements with the value
+        ``"*"`` are ignored.
+
+        """
+        return self.equal(other, shared_keys=False)
+
+    def equal(self, other: Any, shared_keys: bool = False) -> bool:
+        """Compare this DataQuery to another DataQuery or a DataID.
+
+        Args:
+            other: Other DataQuery or DataID to compare against.
+            shared_keys: Limit keys being compared to those shared
+                by both objects. If False (default), then all of the
+                current query's keys are used when compared against
+                a DataID. If compared against another DataQuery then
+                all keys are compared between the two queries.
+
         """
         sdict = self._asdict()
         try:
             odict = other._asdict()
         except AttributeError:
             return False
-        common_keys = False
-        for key, val in sdict.items():
-            if key in odict:
-                common_keys = True
-                if odict[key] != val and val is not None:
-                    return False
-        return common_keys
+
+        if not sdict and not odict:
+            return True
+
+        # if other is a DataID then must match this query exactly
+        o_is_id = hasattr(other, "id_keys")
+        keys_to_match = _keys_to_compare(sdict, odict, o_is_id, shared_keys)
+        if not keys_to_match:
+            return False
+
+        for key in keys_to_match:
+            if not _compare_key_equality(sdict, odict, key, o_is_id):
+                return False
+        return True
 
     def __hash__(self):
         """Hash."""
         fields = []
         values = []
-        for field, value in sorted(self._dict.items()):
-            if value != "*":
-                fields.append(field)
-                if isinstance(value, (list, set)):
-                    value = tuple(value)
-                values.append(value)
+        for field, value in sorted(self._to_trimmed_dict().items()):
+            fields.append(field)
+            if isinstance(value, list):
+                # list or tuple is ordered (ex. modifiers)
+                value = tuple(value)
+            elif isinstance(value, set):
+                # a set is unordered, but must be sorted for consistent hashing
+                value = tuple(sorted(value))
+            values.append(value)
         return hash(tuple(zip(fields, values)))
 
     def get(self, key, default=None):
@@ -575,42 +355,11 @@ class DataQuery:
         items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
-    def filter_dataids(self, dataid_container):
+    def filter_dataids(self, dataid_container, shared_keys: bool = False):
         """Filter DataIDs based on this query."""
-        keys = list(filter(self._match_dataid, dataid_container))
-
+        func = partial(self.equal, shared_keys=shared_keys)
+        keys = list(filter(func, dataid_container))
         return keys
-
-    def _match_dataid(self, dataid):
-        """Match the dataid with the current query."""
-        if self._shares_required_keys(dataid):
-            keys_to_check = set(dataid.keys()) & set(self._fields)
-        else:
-            keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
-        if not keys_to_check:
-            return False
-        return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
-
-    def _shares_required_keys(self, dataid):
-        """Check if dataid shares required keys with the current query."""
-        for key, val in dataid._id_keys.items():
-            try:
-                if val.get("required", False):
-                    if key in self._fields:
-                        return True
-            except AttributeError:
-                continue
-        return False
-
-    def _match_query_value(self, key, id_val):
-        val = self._dict[key]
-        if val == "*":
-            return True
-        if isinstance(id_val, tuple) and isinstance(val, (tuple, list)):
-            return tuple(val) == id_val
-        if not isinstance(val, list):
-            val = [val]
-        return id_val in val
 
     def sort_dataids_with_preference(self, all_ids, preference):
         """Sort `all_ids` given a sorting `preference` (DataQuery or None)."""
@@ -732,21 +481,85 @@ def create_filtered_query(dataset_key, filter_query):
     return DataQuery.from_dict(ds_dict)
 
 
-def _update_dict_with_filter_query(ds_dict, filter_query):
+def _update_dict_with_filter_query(ds_dict: dict[str, Any], filter_query: dict[str, Any]) -> None:
     if filter_query is not None:
         for key, value in filter_query.items():
             if value != "*":
                 ds_dict.setdefault(key, value)
 
 
-def _create_id_dict_from_any_key(dataset_key):
-    try:
+def _create_id_dict_from_any_key(dataset_key: DataQuery | DataID | str | numbers.Number) -> dict[str, Any]:
+    if hasattr(dataset_key, "to_dict"):
         ds_dict = dataset_key.to_dict()
-    except AttributeError:
-        if isinstance(dataset_key, str):
-            ds_dict = {"name": dataset_key}
-        elif isinstance(dataset_key, numbers.Number):
-            ds_dict = {"wavelength": dataset_key}
-        else:
-            raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
+    elif isinstance(dataset_key, str):
+        ds_dict = {"name": dataset_key}
+    elif isinstance(dataset_key, numbers.Number):
+        ds_dict = {"wavelength": dataset_key}
+    else:
+        raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
     return ds_dict
+
+
+def update_id_with_query(orig_id: DataID, query: DataQuery) -> DataID:
+    """Update a DataID with additional info from a query used to find it."""
+    query_dict = query.to_dict()
+    if not query_dict:
+        return orig_id
+
+    new_id_dict = orig_id.to_dict()
+    orig_id_keys = orig_id.id_keys
+    for query_key, query_val in query_dict.items():
+        # XXX: What if the query_val is a list?
+        if new_id_dict.get(query_key) is None:
+            new_id_dict[query_key] = query_val
+    # don't replace ID key information if we don't have to
+    id_keys = orig_id_keys if all(key in orig_id_keys for key in new_id_dict) else default_id_keys_config
+    new_id = DataID(id_keys, **new_id_dict)
+    return new_id
+
+
+def _keys_to_compare(sdict: dict, odict: dict, o_is_id: bool, shared_keys: bool) -> set:
+    keys_to_match = set(sdict.keys())
+    if not o_is_id:
+        # if another DataQuery, then compare both sets of keys
+        keys_to_match |= set(odict.keys())
+    if shared_keys:
+        # only compare with the keys that both objects share
+        keys_to_match &= set(odict.keys())
+    return keys_to_match
+
+
+def _compare_key_equality(sdict: dict, odict: dict, key: str, o_is_id: bool) -> bool:
+    if key not in sdict:
+        return False
+    sval = sdict[key]
+    if sval == "*":
+        return True
+
+    if key not in odict:
+        return False
+    oval = odict[key]
+    if oval == "*":
+        # Gotcha: if a DataID contains a "*" this could cause
+        #    unexpected matches. A DataID is not expected to use "*"
+        return True
+
+    return _compare_values(sval, oval, o_is_id)
+
+
+def _compare_values(sval: Any, oval: Any, o_is_id: bool) -> bool:
+    if isinstance(sval, list) or isinstance(oval, list):
+        # multiple options to match
+        if not isinstance(sval, list):
+            # query to query comparison, make a list to iterate over
+            sval = [sval]
+        if o_is_id:
+            return oval in sval
+
+        # we're matching against a DataQuery who could have its own list
+        if not isinstance(oval, list):
+            oval = [oval]
+        s_in_o = any(_sval in oval for _sval in sval)
+        o_in_s = any(_oval in sval for _oval in oval)
+        return s_in_o or o_in_s
+    return oval == sval

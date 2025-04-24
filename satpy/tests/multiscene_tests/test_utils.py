@@ -26,7 +26,7 @@ import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy.dataset.dataid import ModifierTuple, WavelengthRange
+from satpy.dataset import ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
 
