@@ -1134,14 +1134,14 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                                                                     datetime.datetime.strptime(
                                                                                          "2023-10-16 13:00:00",
                                                                                          "%Y-%m-%d %H:%M:%S"))),
-                              (lazy_fixture("FakeFCIFileHandlerFDHSIOtherCoverage_fixture"), (1, None,
+                              (lazy_fixture("FakeFCIFileHandlerFDHSIOtherCoverage_fixture"), (2, None,
                                                                                     datetime.datetime.strptime(
                                                                                          "2023-07-22 12:00:00",
                                                                                          "%Y-%m-%d %H:%M:%S"),
                                                                                     datetime.datetime.strptime(
                                                                                          "2023-07-22 12:00:27",
                                                                                          "%Y-%m-%d %H:%M:%S"))),
-                              (lazy_fixture("FakeFCIFileHandlerHRFIOtherCoverage_fixture"), (1, None,
+                              (lazy_fixture("FakeFCIFileHandlerHRFIOtherCoverage_fixture"), (2, None,
                                                                                     datetime.datetime.strptime(
                                                                                          "2023-07-22 12:00:00",
                                                                                          "%Y-%m-%d %H:%M:%S"),

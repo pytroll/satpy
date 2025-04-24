@@ -1382,8 +1382,10 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
         # if current empty segment is too tall, slice the DataArray
         return empty_segment[:new_height, :]
     if empty_segment.shape[0] < new_height:
-        # if current empty segment is too short, concatenate a slice of the DataArray
-        return xr.concat([empty_segment, empty_segment[:new_height - empty_segment.shape[0], :]], dim=dim)
+        # if current empty segment is too short, pad to the new size using the empty segment values
+        return empty_segment.pad(pad_width={dim : (new_height - empty_segment.shape[0], 0)},
+                                 mode="constant",
+                                 constant_values=empty_segment[0, 0])
     return empty_segment
 
 
