@@ -248,20 +248,28 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         elif self.filename_info["coverage"] in ["FD", "AF"]:
             return 10
         else:
-            raise NotImplementedError(f"coverage for {self.filename_info['coverage']}"
-                                      " not supported by this reader")
+            logger.debug(f"Coverage \"{self.filename_info['coverage']}\" not recognised. "
+                         f"Using observation times for nominal times.")
+            return None
+
 
     @property
     def nominal_start_time(self):
         """Get nominal start time."""
-        rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        return rc_date + dt.timedelta(
-            minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
+        if self.rc_period_min is None:
+            return self.filename_info["start_time"]
+        else:
+            rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            return rc_date + dt.timedelta(
+                minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
 
     @property
     def nominal_end_time(self):
         """Get nominal end time."""
-        return self.nominal_start_time + dt.timedelta(minutes=self.rc_period_min)
+        if self.rc_period_min is None:
+            return self.filename_info["end_time"]
+        else:
+            return self.nominal_start_time + dt.timedelta(minutes=self.rc_period_min)
 
     @property
     def observation_start_time(self):
