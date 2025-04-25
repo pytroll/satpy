@@ -1,3 +1,52 @@
+## Version 0.56.0 (2025/04/24)
+
+### Issues Closed
+
+* [Issue 3108](https://github.com/pytroll/satpy/issues/3108) - Custom composite for reader 'generic_image'
+* [Issue 3105](https://github.com/pytroll/satpy/issues/3105) - gradient_search and native resampling not working with GOES-18
+* [Issue 3104](https://github.com/pytroll/satpy/issues/3104) - Replace all blue colors with transparent color
+* [Issue 3103](https://github.com/pytroll/satpy/issues/3103) - GeoTIFF. Reader 'generic_image'. No supported files found
+* [Issue 3098](https://github.com/pytroll/satpy/issues/3098) - SEVIRI. Where is built-in composite group_radiance_alpha defined?
+* [Issue 3095](https://github.com/pytroll/satpy/issues/3095) - Unable to run operations of MTG xarray.Dataset
+* [Issue 3092](https://github.com/pytroll/satpy/issues/3092) - maskingcompositor assumes the mask to be 2d array ([PR 3093](https://github.com/pytroll/satpy/pull/3093) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 3067](https://github.com/pytroll/satpy/issues/3067) - ``fci_l1c_nc`` reader drops channel attribute ``radiance_unit_conversion_coefficient`` when more than one file is loaded ([PR 3111](https://github.com/pytroll/satpy/pull/3111) by [@ClementLaplace](https://github.com/ClementLaplace))
+* [Issue 3015](https://github.com/pytroll/satpy/issues/3015) - extrapolation of satellite relative azimuiths? ([PR 3017](https://github.com/pytroll/satpy/pull/3017) by [@simonrp84](https://github.com/simonrp84))
+
+In this release 9 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3115](https://github.com/pytroll/satpy/pull/3115) - Fix padding for FCI xx coverage
+* [PR 3113](https://github.com/pytroll/satpy/pull/3113) - Fix angles tests computing xarray DataArrays instead of dask arrays
+* [PR 3111](https://github.com/pytroll/satpy/pull/3111) - Fix unit radiance attrs ([3067](https://github.com/pytroll/satpy/issues/3067))
+* [PR 3110](https://github.com/pytroll/satpy/pull/3110) - Improve handling of category products in VIIRS EDR reader
+* [PR 3093](https://github.com/pytroll/satpy/pull/3093) - Fix 3D masks with size 1 dimension in MaskingCompositor ([3092](https://github.com/pytroll/satpy/issues/3092))
+* [PR 3088](https://github.com/pytroll/satpy/pull/3088) - Deprecate "cira_day_convection" in favor of "convection"
+* [PR 3017](https://github.com/pytroll/satpy/pull/3017) - Fix SLSTR angle interpolation. ([3015](https://github.com/pytroll/satpy/issues/3015))
+* [PR 3016](https://github.com/pytroll/satpy/pull/3016) - Update scale factor and offset [viirs_l1b]
+
+#### Features added
+
+* [PR 3115](https://github.com/pytroll/satpy/pull/3115) - Fix padding for FCI xx coverage
+* [PR 3112](https://github.com/pytroll/satpy/pull/3112) - Fci l1c handle other coverage
+* [PR 3097](https://github.com/pytroll/satpy/pull/3097) - Add SWIR composite to Sentinel-2/MSI.
+* [PR 3091](https://github.com/pytroll/satpy/pull/3091) - Fix `RatioCompositor` `standard_name` handling
+* [PR 3090](https://github.com/pytroll/satpy/pull/3090) - Add enhancement trace logging and print function
+* [PR 3089](https://github.com/pytroll/satpy/pull/3089) - Add ABI Day Cloud Type ("cloud_type") RGB
+* [PR 3087](https://github.com/pytroll/satpy/pull/3087) - Add ABI Blowing Snow RGB
+* [PR 3080](https://github.com/pytroll/satpy/pull/3080) - Add reader for EarthCARE MSI L1 data
+* [PR 3040](https://github.com/pytroll/satpy/pull/3040) - Unpin dask
+* [PR 2891](https://github.com/pytroll/satpy/pull/2891) - Update VIIRS L1b reader to use additional netcdf attributes
+
+#### Backward incompatible changes
+
+* [PR 3088](https://github.com/pytroll/satpy/pull/3088) - Deprecate "cira_day_convection" in favor of "convection"
+
+In this release 19 pull requests were closed.
+
+
 ## Version 0.55.0 (2025/03/21)
 
 ### Issues Closed

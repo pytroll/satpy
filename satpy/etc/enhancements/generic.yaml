@@ -1230,7 +1230,7 @@ enhancements:
           max_stretch: [50, 50, 100]
 
   essl_low_level_moisture:
-    name: essl_low_level_moisture
+    standard_name: essl_low_level_moisture
     operations:
       - name: linear_stretch
         method: !!python/name:satpy.enhancements.stretch
@@ -1241,9 +1241,7 @@ enhancements:
     operations: []
 
   essl_colorized_low_level_moisture:
-    # this enhancement is only found if using name but not standard_name
-    # The colormap was developed by the European Severe Storms Laboratory (ESSL).
-    name: essl_colorized_low_level_moisture
+    standard_name: essl_colorized_low_level_moisture
     operations: &masked_llm
       - name: colorize
         method: !!python/name:satpy.enhancements.colorize
@@ -1355,7 +1353,6 @@ enhancements:
               - [255, 255, 191]
 
   masked_essl_colorized_low_level_moisture:
-    # this enhancement is only found if using standard_name but not name
     standard_name: masked_essl_colorized_low_level_moisture
     operations: *masked_llm
 

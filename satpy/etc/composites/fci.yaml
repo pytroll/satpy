@@ -87,6 +87,18 @@ composites:
         modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  ### Non-official HRV Clouds composite similar to SEVIRI
+  ### Both HRFI and FDHSI can be used to generate it
+  hrv_clouds:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_clouds
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected]
+      - name: vis_06
+        modifiers: [sunz_corrected]
+      - ir_105
+
   ### True Color
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB

@@ -199,8 +199,9 @@ def _all_arrays_equal(arrays):
 
     If the arrays are lazy, just check if they have the same identity.
     """
-    if hasattr(arrays[0], "compute"):
+    if getattr(arrays[0], "chunks", None) is not None:
         return _all_identical(arrays)
+
     return _all_values_equal(arrays)
 
 
