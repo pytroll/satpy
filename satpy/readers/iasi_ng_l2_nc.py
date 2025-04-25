@@ -264,8 +264,11 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         # Note: converting the time values to ns precision to avoid warnings
         # from panda+numpy:
+        base_time = np.datetime64(pd.to_datetime(epoch), "ns")
+        nanoseconds = data_array.astype("timedelta64[ns]") * 1e9
+
         data_array = xr.DataArray(
-            data=pd.to_datetime(epoch) + data_array.astype("timedelta64[ns]") * 1e9,
+            data=base_time + nanoseconds,
             dims=data_array.dims,
             attrs=data_array.attrs,
         )
