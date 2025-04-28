@@ -148,6 +148,21 @@ class Tree:
         """Render the dependency tree as a string."""
         return self._root.display()
 
+    def to_graphviz(self, *args, node_kwargs=None, **kwargs):
+        """Generate a graphviz 'DiGraph' object representation of this tree.
+
+        All arguments and keyword arguments are passed directly to
+        :class:`graphviz.DiGraph` except for ``node_kwargs`` which is passed
+        to each child node.
+
+        """
+        import graphviz
+        kwargs.setdefault("strict", True)
+        graph = graphviz.Digraph(*args, **kwargs)
+        node_kwargs = node_kwargs or {}
+        self._root.to_graphviz(graph, **node_kwargs)
+        return graph
+
 
 class DependencyTree(Tree):
     """Structure to discover and store `Dataset` dependencies.
