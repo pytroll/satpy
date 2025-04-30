@@ -51,7 +51,11 @@ value. For example:
 
     cache_dir: "/tmp"
     data_dir: "/tmp"
+    readers:
+      clip_negative_radiances: True
 
+Note that a dotted configuration key (such as ``readers.clip_negative_radiances``)
+should be written into ``satpy.yaml`` as a nested dictionary, such as in the example above.
 Lastly, it is possible to specify an additional config path to the above
 options by setting the environment variable ``SATPY_CONFIG``. The file
 specified with this environment variable will be added last after all of the
@@ -272,7 +276,7 @@ If ``clip_negative_radiances=False``, pixels with negative radiances will have
 
 Clipping of negative radiances is currently implemented for the following readers:
 
-* ``abi_l1b``, ``ami_l1b``
+* ``abi_l1b``, ``ami_l1b``, ``fci_l1c_nc``
 
 
 Temporary Directory

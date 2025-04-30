@@ -238,8 +238,13 @@ from satpy.readers.seviri_base import (
     HRV_NUM_COLUMNS,
     REPEAT_CYCLE_DURATION,
     SATNUM,
+    CalibParams,
+    GsicsCoefficients,
+    MeirinkCoefficients,
+    NominalCoefficients,
     NoValidOrbitParams,
     OrbitPolynomialFinder,
+    ScanParams,
     SEVIRICalibrationHandler,
     add_scanline_acq_time,
     create_coef_dict,
@@ -312,7 +317,7 @@ class HRITMSGPrologueEpilogueBase(HRITFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the file handler for prologue and epilogue files."""
-        super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
+        super().__init__(filename, filename_info, filetype_info, hdr_info)
         self._reduced = None
 
     def _reduce(self, mda, max_size):
@@ -333,11 +338,11 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
         """Initialize the reader."""
-        super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
-                                                         filetype_info,
-                                                         (msg_hdr_map,
-                                                          msg_variable_length_headers,
-                                                          msg_text_headers))
+        super().__init__(filename, filename_info,
+                         filetype_info,
+                         (msg_hdr_map,
+                          msg_variable_length_headers,
+                          msg_text_headers))
         self.prologue = {}
         self.read_prologue()
 
@@ -722,15 +727,20 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        calib = SEVIRICalibrationHandler(
-            platform_id=self.platform_id,
-            channel_name=self.channel_name,
-            coefs=self._get_calib_coefs(self.channel_name),
-            calib_mode=self.calib_mode,
-            scan_time=self.observation_start_time
-        )
+        calib = self._get_calibration_handler()
         res = calib.calibrate(data, calibration)
         return res
+
+    def _get_calibration_handler(self):
+        calib_params = CalibParams(
+            mode=self.calib_mode.upper(),
+            internal_coefs=self._get_calib_coefs(),
+            external_coefs=self.ext_calib_coefs,
+            radiance_type=self._get_radiance_type()
+        )
+        scan_params = ScanParams(self.platform_id, self.channel_name,
+                                 self.observation_start_time)
+        return SEVIRICalibrationHandler(calib_params, scan_params)
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
@@ -783,26 +793,34 @@ class HRITMSGFileHandler(HRITFileHandler):
         if self.include_raw_metadata:
             res.attrs["raw_metadata"] = self._get_raw_mda()
 
-    def _get_calib_coefs(self, channel_name):
+    def _get_calib_coefs(self):
         """Get coefficients for calibration from counts to radiance."""
-        band_idx = self.mda["spectral_channel_id"] - 1
+        band_idx = self._get_band_index()
         coefs_nominal = self.prologue["RadiometricProcessing"][
             "Level15ImageCalibration"]
         coefs_gsics = self.prologue["RadiometricProcessing"]["MPEFCalFeedback"]
-        radiance_types = self.prologue["ImageDescription"][
-                "Level15ImageProduction"]["PlannedChanProcessing"]
         return create_coef_dict(
-            coefs_nominal=(
+            nominal_coefs=NominalCoefficients(
+                self.channel_name,
                 coefs_nominal["CalSlope"][band_idx],
                 coefs_nominal["CalOffset"][band_idx]
             ),
-            coefs_gsics=(
+            gsics_coefs=GsicsCoefficients(
+                self.channel_name,
                 coefs_gsics["GSICSCalCoeff"][band_idx],
                 coefs_gsics["GSICSOffsetCount"][band_idx]
             ),
-            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
-            radiance_type=radiance_types[band_idx]
+            meirink_coefs=MeirinkCoefficients(self.platform_id, self.channel_name, self.observation_start_time)
         )
+
+    def _get_radiance_type(self):
+        band_idx = self._get_band_index()
+        radiance_types = self.prologue["ImageDescription"][
+            "Level15ImageProduction"]["PlannedChanProcessing"]
+        return radiance_types[band_idx]
+
+    def _get_band_index(self):
+        return self.mda["spectral_channel_id"] - 1
 
 
 def pad_data(data, final_size, east_bound, west_bound):

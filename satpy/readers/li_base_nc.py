@@ -306,7 +306,6 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         """Retrieve the projection configuration details."""
         # We retrieve the projection variable name directly from our swath settings:
         proj_var = self.swath_coordinates["projection"]
-
         geos_proj = self.get_measured_variable(proj_var, fill_value=None)
         # cast projection attributes to float/str:
         major_axis = float(geos_proj.attrs["semi_major_axis"])
@@ -355,9 +354,9 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         # Finally, we should store those arrays as internal variables for later retrieval as
         # standard datasets:
         self.internal_variables[lon_name] = xr.DataArray(
-            da.asarray(lon), dims=["y"], attrs={"standard_name": "longitude"})
+            da.asarray(lon), dims=["y"], attrs={"standard_name": "longitude"}).astype(np.float32)
         self.internal_variables[lat_name] = xr.DataArray(
-            da.asarray(lat), dims=["y"], attrs={"standard_name": "latitude"})
+            da.asarray(lat), dims=["y"], attrs={"standard_name": "latitude"}).astype(np.float32)
 
     def inverse_projection(self, azimuth, elevation, proj_dict):
         """Compute inverse projection."""
@@ -439,12 +438,11 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         # Also handle fill value here (but only if it is not None, so that we can still bypass this
         # step if needed)
         arr = self.apply_fill_value(arr, fill_value)
-
         return arr
 
     def apply_fill_value(self, arr, fill_value):
-        """Apply fill values, unless it is None."""
-        if fill_value is not None:
+        """Apply fill values, unless it is None and when _FillValue is provided in the array attributes."""
+        if fill_value is not None and arr.attrs.get("_FillValue") is not None:
             if np.isnan(fill_value):
                 fill_value = np.float32(np.nan)
             arr = arr.where(arr != arr.attrs.get("_FillValue"), fill_value)
@@ -597,9 +595,7 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
             # TODO remove scaling_factor fallback after issue in NetCDF is fixed
             scale_factor = attribs.setdefault("scale_factor", attribs.get("scaling_factor", 1))
             add_offset = attribs.setdefault("add_offset", 0)
-
             data_array = (data_array * scale_factor) + add_offset
-
             # rescale the valid range accordingly
             if "valid_range" in attribs.keys():
                 attribs["valid_range"] = attribs["valid_range"] * scale_factor + add_offset
@@ -742,7 +738,6 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         # Retrieve default infos if missing:
         if ds_info is None:
             ds_info = self.get_dataset_infos(dataset_id["name"])
-
         # check for potential error:
         if ds_info is None:
             raise KeyError(f"No dataset registered for {dataset_id}")

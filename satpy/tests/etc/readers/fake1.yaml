@@ -60,6 +60,7 @@ datasets:
   ds8:
     name: ds8
     wavelength: [0.7, 0.8, 0.9]
+    calibration: "reflectance"
     file_type: fake_file1
     coordinates: [lons, lats]
   ds9_fail_load:
@@ -70,6 +71,7 @@ datasets:
   ds10:
     name: ds10
     wavelength: [0.75, 0.85, 0.95]
+    calibration: "reflectance"
     file_type: fake_file1
     coordinates: [lons, lats]
   ds11:

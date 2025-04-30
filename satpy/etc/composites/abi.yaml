@@ -36,7 +36,7 @@ composites:
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected_crefl]
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_raw:
@@ -353,7 +353,8 @@ composites:
 
   cira_day_convection:
     compositor: !!python/name:satpy.composites.GenericCompositor
-    standard_name: cira_day_convection
+    deprecation_warning: "'cira_day_convection' is deprecated. Use 'convection' instead."
+    standard_name: convection
     description: >
       The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
       indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
@@ -482,7 +483,9 @@ composites:
 
   convection:
     description: >
-      Day Convection RGB, for GOESR: NASA, NOAA
+      The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
+      indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
+      to the mature storm stage.
     references:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -710,7 +713,7 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected]
       - name: C02
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green
@@ -806,3 +809,34 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
+
+  blowing_snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      Blowing Snow RGB
+    references:
+      Quick Guide: https://rammb2.cira.colostate.edu/wp-content/uploads/2024/11/GOES-BlowingSnowRGB1_QuickGuide_24April2024.pdf
+    prerequisites:
+      - name: C02
+      - name: C05
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C13
+    standard_name: blowing_snow
+
+  day_cloud_type:
+    description: >
+      Day Cloud Type, for GOES-R: NASA/NOAA
+    references:
+      Quick Guide: http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_Day_Cloud_Type_RGB.pdf
+      EUMeTrain Guide: https://resources.eumetrain.org/data/7/736/navmenu.php?tab=3&page=1.0.0
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C04
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: C02
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: C05
+        modifiers: [effective_solar_pathlength_corrected]
+    standard_name: day_cloud_type

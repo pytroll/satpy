@@ -20,6 +20,7 @@ The following people have made contributions to this project:
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
 - [Manuel Carranza (manucarran)](https://github.com/manucarran)
+- [Guido Cioni (guidocioni)](https://github.com/guidocioni)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
 - [Radar, Satellite and Nowcasting Division (meteoswiss-mdr)](https://github.com/meteoswiss-mdr)
@@ -38,6 +39,8 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
+- [Chung-Hsiang Horng(chorng)](https://github.com/chorng)
+- [Mario Hros (k3a)](https://github.com/k3a)
 - [Lloyd Hughes (system123)](https://github.com/system123)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
@@ -104,5 +107,5 @@ The following people have made contributions to this project:
 - [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
-- [Antonio Valentino](https://github.com/avalentino)
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
+- [Xuanhan Lai (sgxl)](https://github.com/sgxl)
