@@ -117,6 +117,7 @@ apidoc_modules = [
 ]
 apidoc_separate_modules = True
 apidoc_include_private = True
+apidoc_automodule_options = {"members", "show-inheritance", "undoc-members", "special-members"}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
