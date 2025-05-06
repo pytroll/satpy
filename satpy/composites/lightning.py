@@ -44,7 +44,7 @@ class LightningTimeCompositor(CompositeBase):
           self.reference_time_attr = self.attrs["reference_time"]
 
 
-      def _normalize_time(self, data:xr.DataArray, attrs:dict) -> xr.DataArray:
+      def _normalize_time(self, data: xr.DataArray, attrs: dict) -> xr.DataArray:
           """Normalize the time in the range between [end_time, end_time - time_range].
 
           The range of the normalised data is between 0 and 1 where 0 corresponds to the date end_time - time_range
@@ -53,11 +53,11 @@ class LightningTimeCompositor(CompositeBase):
           The dates that are earlier to end_time - time_range are set to NaN.
 
           Args:
-              data (xr.DataArray): datas containing dates to be normalised
-              attrs (dict): Attributes suited to the flash_age composite
+              data: datas containing dates to be normalised
+              attrs: Attributes suited to the flash_age composite
 
           Returns:
-              xr.DataArray: Normalised time
+              Normalised time
           """
           # Compute the maximum time value
           end_time = np.array(np.datetime64(data.attrs[self.reference_time_attr]))
@@ -83,14 +83,14 @@ class LightningTimeCompositor(CompositeBase):
               if key not in existing_attrs and val is not None:
                   existing_attrs[key] = val
 
-      def _redefine_metadata(self,attrs:dict)->dict:
+      def _redefine_metadata(self, attrs: dict) -> dict:
           """Modify the standard_name and name metadatas.
 
           Args:
-              attrs (dict): data's attributes
+              attrs: data's attributes
 
           Returns:
-              dict: updated attributes
+              updated attributes
           """
           attrs["name"] = self.standard_name
           attrs["standard_name"] = self.standard_name

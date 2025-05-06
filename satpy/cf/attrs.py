@@ -85,7 +85,7 @@ def _encode_object(obj):
     """Try to encode `obj` as a netCDF/Zarr compatible datatype which most closely resembles the object's nature.
 
     Raises:
-        ValueError if no such datatype could be found
+        ValueError: if no such datatype could be found
     """
     is_nonbool_int = isinstance(obj, int) and not isinstance(obj, (bool, np.bool_))
     is_encode_type = isinstance(obj, (float, str, np.integer, np.floating))

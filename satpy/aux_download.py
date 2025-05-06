@@ -53,7 +53,7 @@ def register_file(url, filename, component_type=None, known_hash=None):
     Returns:
         Cache key that can be used to retrieve the file later. The cache key
         consists of the ``component_type`` and provided ``filename``. This
-        should be passed to :func:`satpy.aux_download_retrieve` when the
+        should be passed to :func:`satpy.aux_download.retrieve` when the
         file will be used.
 
     """

@@ -65,7 +65,7 @@ Scenes contained in a MultiScene can be combined in different ways.
 Stacking scenes
 ***************
 
-The code below uses the :meth:`~satpy.multiscene.MultiScene.blend` method of
+The code below uses the :meth:`satpy.multiscene._multiscene.MultiScene.blend` method of
 the ``MultiScene`` object to stack two separate orbits from a VIIRS sensor. By
 default the ``blend`` method will use the :func:`~satpy.multiscene.stack`
 function which uses the first dataset as the base of the image and then

@@ -148,7 +148,7 @@ def average_datetimes(datetime_list):
         time zone (UTC).
 
     Args:
-        datetime_list (iterable): Datetime objects to average
+        datetime_list (Iterable): Datetime objects to average
 
     Returns: Average datetime as a datetime object
 

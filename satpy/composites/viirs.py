@@ -63,8 +63,9 @@ class HistogramDNB(CompositeBase):
     def __call__(self, datasets, **info):
         """Create the composite by scaling the DNB data using a histogram equalization method.
 
-        :param datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
-        :param **info: Miscellaneous metadata for the newly produced composite
+        Args:
+            datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
+            info: Miscellaneous metadata for the newly produced composite
         """
         if len(datasets) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(datasets), ))
@@ -83,12 +84,12 @@ class HistogramDNB(CompositeBase):
         output_dataset.attrs = info
         return output_dataset
 
-    def _run_dnb_normalization(self, dnb_data, sza_data):
+    def _run_dnb_normalization(self, dnb_data: np.ndarray, sza_data: np.ndarray) -> np.ndarray:
         """Scale the DNB data using a histogram equalization method.
 
         Args:
-            dnb_data (ndarray): Day/Night Band data array
-            sza_data (ndarray): Solar Zenith Angle data array
+            dnb_data: Day/Night Band data array
+            sza_data: Solar Zenith Angle data array
 
         """
         # convert dask arrays to DataArray objects

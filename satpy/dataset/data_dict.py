@@ -36,7 +36,7 @@ def get_best_dataset_key(key, choices):
 
     Args:
         key (DataQuery): Query parameters to sort `choices` by.
-        choices (iterable): `DataID` objects to sort through to determine
+        choices (Iterable): `DataID` objects to sort through to determine
                             the best dataset.
 
     Returns: List of best `DataID`s from `choices`. If there is more
