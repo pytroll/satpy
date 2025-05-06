@@ -653,3 +653,14 @@ def test_find_in_ancillary():
 def test_datetime64_to_pydatetime(dt64, expected):
     """Test conversion from datetime64 to Python datetime."""
     assert datetime64_to_pydatetime(dt64) == expected
+
+
+def test_flatten_dict():
+    """Test dictionary flattening."""
+    from satpy.utils import flatten_dict
+    d = {"a": 1, "b": {"c": 1, "d": {"e": 1, "f": {"g": [1, 2]}}}}
+    expected = {"a": 1,
+                "b_c": 1,
+                "b_d_e": 1,
+                "b_d_f_g": [1, 2]}
+    assert flatten_dict(d) == expected

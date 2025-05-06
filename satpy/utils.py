@@ -899,3 +899,18 @@ def datetime64_to_pydatetime(dt64):
         Converted timestamp
     """
     return dt64.astype("datetime64[us]").astype(datetime.datetime)
+
+
+def flatten_dict(d, parent_key="", sep="_"):
+    """Flatten a nested dictionary.
+
+    Based on https://stackoverflow.com/a/6027615/5703449
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, parent_key=new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
