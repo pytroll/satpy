@@ -45,7 +45,7 @@ Reader Table
     Alpha
         This denotes early development status. Reader is functional and implements some
         or all of the nominal features. There might be bugs. Exactness of results is
-        not be guaranteed. Use at your own risk.
+        not guaranteed. Use at your own risk.
 
     Beta
         This denotes final developement status. Reader is functional and implements all
