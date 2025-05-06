@@ -22,7 +22,7 @@ import logging
 import xarray as xr
 
 from satpy.composites import GenericCompositor
-from satpy.writers import get_enhanced_image
+from satpy.writers.utils import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 

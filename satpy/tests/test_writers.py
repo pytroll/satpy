@@ -31,7 +31,7 @@ import pytest
 import xarray as xr
 from trollimage.colormap import greys
 
-from satpy.writers import ImageWriter
+from satpy.writers.base_image import ImageWriter
 
 
 class TestWritersModule:
@@ -39,15 +39,15 @@ class TestWritersModule:
 
     def test_to_image_1d(self):
         """Conversion to image."""
-        from satpy.writers import to_image
+        from satpy.writers.utils import to_image
         p = xr.DataArray(np.arange(25), dims=["y"])
         with pytest.raises(ValueError, match="Need at least a 2D array to make an image."):
             to_image(p)
 
-    @mock.patch("satpy.writers.XRImage")
+    @mock.patch("trollimage.xrimage.XRImage")
     def test_to_image_2d(self, mock_geoimage):
         """Conversion to image."""
-        from satpy.writers import to_image
+        from satpy.writers.utils import to_image
 
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
@@ -59,10 +59,10 @@ class TestWritersModule:
             data, mock_geoimage.call_args[0][0].values)
         mock_geoimage.reset_mock()
 
-    @mock.patch("satpy.writers.XRImage")
+    @mock.patch("trollimage.xrimage.XRImage")
     def test_to_image_3d(self, mock_geoimage):
         """Conversion to image."""
-        from satpy.writers import to_image
+        from satpy.writers.utils import to_image
 
         data = np.arange(75).reshape((3, 5, 5))
         p = xr.DataArray(data, dims=["bands", "y", "x"])
@@ -72,10 +72,10 @@ class TestWritersModule:
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
         np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
 
-    @mock.patch("satpy.writers.get_enhanced_image")
+    @mock.patch("satpy.writers.utils.get_enhanced_image")
     def test_show(self, mock_get_image):
         """Check showing."""
-        from satpy.writers import show
+        from satpy.writers.utils import show
 
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, dims=["y", "x"])
@@ -167,7 +167,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "test1",
@@ -191,7 +191,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "my_comp",
@@ -215,7 +215,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name=["I", "am", "invalid"], sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
@@ -271,7 +271,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor="test_empty", mode="L"),
                        dims=["y", "x"])
@@ -286,7 +286,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
@@ -301,7 +301,7 @@ enhancements:
         """Test turning off enhancements."""
         from xarray import DataArray
 
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", sensor="test_sensor", mode="L"),
                        dims=["y", "x"])
@@ -338,7 +338,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", sensor="test_sensor", mode="L"),
                        dims=["y", "x"])
@@ -367,7 +367,7 @@ enhancements:
         from xarray import DataArray
 
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", units="kelvin",
                                   sensor="test_sensor", mode="L"),
@@ -434,7 +434,7 @@ enhancements:
 
     def _get_enhanced_image(self, data_arr, test_configs_path):
         from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         e = Enhancer()
         assert e.enhancement_tree is not None
         img = get_enhanced_image(data_arr, enhance=e)
@@ -490,7 +490,7 @@ class TestYAMLFiles:
         IgnoreLoader.add_multi_constructor("", IgnoreLoader._ignore_all_tags)
 
         from satpy._config import glob_config
-        from satpy.writers import read_writer_config
+        from satpy.writers.utils import read_writer_config
         for writer_config in glob_config("writers/*.yaml"):
             writer_fn = os.path.basename(writer_config)
             writer_fn_name = os.path.splitext(writer_fn)[0]
@@ -550,12 +550,12 @@ class TestComputeWriterResults:
 
     def test_empty(self):
         """Test empty result list."""
-        from satpy.writers import compute_writer_results
+        from satpy.writers.utils import compute_writer_results
         compute_writer_results([])
 
     def test_simple_image(self):
         """Test writing to PNG file."""
-        from satpy.writers import compute_writer_results
+        from satpy.writers.utils import compute_writer_results
         fname = os.path.join(self.base_dir, "simple_image.png")
         res = self.scn.save_datasets(filename=fname,
                                      datasets=["test"],
@@ -566,7 +566,7 @@ class TestComputeWriterResults:
 
     def test_geotiff(self):
         """Test writing to mitiff file."""
-        from satpy.writers import compute_writer_results
+        from satpy.writers.utils import compute_writer_results
         fname = os.path.join(self.base_dir, "geotiff.tif")
         res = self.scn.save_datasets(filename=fname,
                                      datasets=["test"],
@@ -576,7 +576,7 @@ class TestComputeWriterResults:
 
     def test_multiple_geotiff(self):
         """Test writing to mitiff file."""
-        from satpy.writers import compute_writer_results
+        from satpy.writers.utils import compute_writer_results
         fname1 = os.path.join(self.base_dir, "geotiff1.tif")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -591,7 +591,7 @@ class TestComputeWriterResults:
 
     def test_multiple_simple(self):
         """Test writing to geotiff files."""
-        from satpy.writers import compute_writer_results
+        from satpy.writers.utils import compute_writer_results
         fname1 = os.path.join(self.base_dir, "simple_image1.png")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -606,7 +606,7 @@ class TestComputeWriterResults:
 
     def test_mixed(self):
         """Test writing to multiple mixed-type files."""
-        from satpy.writers import compute_writer_results
+        from satpy.writers.utils import compute_writer_results
         fname1 = os.path.join(self.base_dir, "simple_image3.png")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -764,7 +764,7 @@ class TestOverlays:
         """Test basic add_overlay usage with RGB data."""
         from pycoast import ContourWriterAGG
 
-        from satpy.writers import _burn_overlay, add_overlay
+        from satpy.writers.overlay_utils import _burn_overlay, add_overlay
         coast_dir = "/path/to/coast/data"
         with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
             apply_pil.return_value = self.orig_rgb_img
@@ -811,7 +811,7 @@ class TestOverlays:
 
     def test_add_overlay_basic_l(self):
         """Test basic add_overlay usage with L data."""
-        from satpy.writers import add_overlay
+        from satpy.writers.overlay_utils import add_overlay
         new_img = add_overlay(self.orig_l_img, self.area_def, "", fill_value=0)
         assert "RGB" == new_img.mode
         new_img = add_overlay(self.orig_l_img, self.area_def, "")
@@ -819,13 +819,13 @@ class TestOverlays:
 
     def test_add_decorate_basic_rgb(self):
         """Test basic add_decorate usage with RGB data."""
-        from satpy.writers import add_decorate
+        from satpy.writers.overlay_utils import add_decorate
         new_img = add_decorate(self.orig_rgb_img, **self.decorate)
         assert "RGBA" == new_img.mode
 
     def test_add_decorate_basic_l(self):
         """Test basic add_decorate usage with L data."""
-        from satpy.writers import add_decorate
+        from satpy.writers.overlay_utils import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
         assert "RGBA" == new_img.mode
 
@@ -841,7 +841,7 @@ def test_group_results_by_output_file(tmp_path):
     from pyresample import create_area_def
 
     from satpy.tests.utils import make_fake_scene
-    from satpy.writers import group_results_by_output_file
+    from satpy.writers.utils import group_results_by_output_file
     x = 10
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(

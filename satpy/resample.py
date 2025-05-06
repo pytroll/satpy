@@ -171,7 +171,6 @@ from weakref import WeakValueDictionary
 import dask.array as da
 import numpy as np
 import xarray as xr
-import zarr
 from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
 from pyresample.geometry import SwathDefinition
 from pyresample.gradient import create_gradient_search_resampler
@@ -463,6 +462,8 @@ class KDTreeResampler(PRBaseResampler):
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
+                import zarr
+
                 try:
                     filename = self._create_cache_filename(
                         cache_dir, prefix="nn_lut-",

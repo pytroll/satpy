@@ -36,7 +36,6 @@ from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
-from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
 
@@ -1009,7 +1008,7 @@ class Scene:
 
         """
         from satpy.utils import in_ipynb
-        from satpy.writers import get_enhanced_image
+        from satpy.writers.utils import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         if not in_ipynb():
             img.show()
@@ -1227,6 +1226,8 @@ class Scene:
             has this method.
 
         """
+        from satpy.writers.utils import load_writer
+
         if writer is None and filename is None:
             writer = "geotiff"
         elif writer is None:
@@ -1282,6 +1283,7 @@ class Scene:
 
         """
         from satpy._scene_converters import _get_dataarrays_from_identifiers
+        from satpy.writers.utils import load_writer
 
         dataarrays = _get_dataarrays_from_identifiers(self, datasets)
         if not dataarrays:

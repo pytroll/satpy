@@ -233,7 +233,8 @@ from trollsift.parser import Parser, StringFormatter
 from satpy import __version__
 from satpy.decision_tree import DecisionTree
 from satpy.enhancements.enhancer import Enhancer
-from satpy.writers import Writer, get_enhanced_image
+from satpy.writers.base import Writer
+from satpy.writers.utils import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 DEFAULT_OUTPUT_PATTERN = "{source_name}_AII_{platform_name}_{sensor}_" \

@@ -49,7 +49,7 @@ dataset which may have several bands (like `R`, `G` and `B`  bands). However,
 the data isn't stretched, or clipped or gamma filtered until an image
 is generated.  To get an image out of the above composite::
 
-    >>> from satpy.writers import to_image
+    >>> from satpy.writers.utils import to_image
     >>> img = to_image(composite)
     >>> img.invert([False, False, True])
     >>> img.stretch("linear")

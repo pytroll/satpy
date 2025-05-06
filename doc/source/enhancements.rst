@@ -283,7 +283,7 @@ path to match your particular DataArray's metadata:
 
 .. code-block:: python
 
-   from satpy.writers import Enhancer
+   from satpy.enhancements.enhancer import Enhancer
    enh = Enhancer()
    # NOTE: This is not loading sensor-specific enhancement configs
    # You would need `enh.add_sensor_enhancements(["abi"])`
@@ -541,7 +541,7 @@ enhancements applied. The enhanced DataArray can then be access via the
 
 .. code-block:: python
 
-   from satpy.writers import get_enhanced_image
+   from satpy.writers.utils import get_enhanced_image
 
    scn = Scene(...)
    scn.load(["my_dataset"])
@@ -559,7 +559,7 @@ to an :class:`~trollimage.xrimage.XRImage` object using
 
 .. code-block:: python
 
-   from satpy.writers import to_image
+   from satpy.writers.utils import to_image
    img = to_image(composite)
 
 Note this function is different than the ``get_enhanced_image`` function

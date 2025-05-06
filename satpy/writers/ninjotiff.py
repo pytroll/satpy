@@ -84,7 +84,7 @@ import pyninjotiff.ninjotiff as nt
 import xarray as xr
 from trollimage.xrimage import invert_scale_offset
 
-from satpy.writers import ImageWriter
+from satpy.writers.base_image import ImageWriter
 
 logger = logging.getLogger(__name__)
 

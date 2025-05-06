@@ -74,7 +74,7 @@ A plugin package should consist of three main parts:
      use :class:`~satpy.modifiers.ModifierBase`.
    * enhancements: Although not required, consider using
      :func:`satpy.enhancements.apply_enhancement`.
-   * writers: :class:`~satpy.writers.Writer`
+   * writers: :class:`~satpy.writers.base.Writer`
 
    Lastly, this directory should be structured like a standard python package.
    This primarily means a ``mypkg/__init__.py`` file should exist.
