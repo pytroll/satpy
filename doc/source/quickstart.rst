@@ -145,36 +145,6 @@ Visualizing data
 
 To visualize loaded data in a pop-up window:
 
-import satpy.writers.utils    >>> global_scene.show(0.8)
-
-Alternatively if working in a Jupyter notebook the scene can be converted to
-a
-
-import satpy.writers.utils    >>> global_scene.show(0.8)
-
-Alternatively if working in a Jupyter notebook the scene can be converted to
-a
-
-import satpy.writers.utils    >>> global_scene.show(0.8)
-
-Alternatively if working in a Jupyter notebook the scene can be converted to
-a
-
-import satpy.writers.utils    >>> global_scene.show(0.8)
-
-Alternatively if working in a Jupyter notebook the scene can be converted to
-a
-
-import satpy.writers.utils    >>> satpy.writers.utils.show(0.8)
-
-Alternatively if working in a Jupyter notebook the scene can be converted to
-a
-
-import satpy.writers.utils    >>> satpy.writers.utils.show(0.8)
-
-Alternatively if working in a Jupyter notebook the scene can be converted to
-a
-
     >>> global_scene.show(0.8)
 
 Alternatively if working in a Jupyter notebook the scene can be converted to
@@ -196,48 +166,6 @@ Creating new datasets
 =====================
 
 Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
-
-import satpy.writers.utils    >>> global_scene.load(['VIS006', 'VIS008'])
-    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
-    >>> global_scene.show("ndvi")
-
-When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The
-
-import satpy.writers.utils    >>> global_scene.load(['VIS006', 'VIS008'])
-    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
-    >>> global_scene.show("ndvi")
-
-When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The
-
-import satpy.writers.utils    >>> global_scene.load(['VIS006', 'VIS008'])
-    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
-    >>> global_scene.show("ndvi")
-
-When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The
-
-import satpy.writers.utils    >>> global_scene.load(['VIS006', 'VIS008'])
-    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
-    >>> global_scene.show("ndvi")
-
-When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The
-
-import satpy.writers.utils    >>> global_scene.load(['VIS006', 'VIS008'])
-    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
-    >>> satpy.writers.utils.show("ndvi")
-
-When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The
-
-import satpy.writers.utils    >>> global_scene.load(['VIS006', 'VIS008'])
-    >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
-    >>> satpy.writers.utils.show("ndvi")
-
-When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The
 
     >>> global_scene.load(['VIS006', 'VIS008'])
     >>> global_scene["ndvi"] = (global_scene['VIS008'] - global_scene['VIS006']) / (global_scene['VIS008'] + global_scene['VIS006'])
@@ -304,30 +232,6 @@ This creates a copy of the original ``global_scene`` with all loaded datasets
 resampled to the built-in "eurol" area. Any composites that were requested,
 but could not be generated are automatically generated after resampling. The
 new ``local_scene`` can now be used like the original ``global_scene`` for
-working with datasets, saving them to disk or showing them on screen:
-
-import satpy.writers.utils    >>> local_scene.show('overview')
-    >>> local_scene.save_dataset('overview', './local_overview.tif')
-working with datasets, saving them to disk or showing them on screen:
-
-import satpy.writers.utils    >>> local_scene.show('overview')
-    >>> local_scene.save_dataset('overview', './local_overview.tif')
-working with datasets, saving them to disk or showing them on screen:
-
-import satpy.writers.utils    >>> local_scene.show('overview')
-    >>> local_scene.save_dataset('overview', './local_overview.tif')
-working with datasets, saving them to disk or showing them on screen:
-
-import satpy.writers.utils    >>> local_scene.show('overview')
-    >>> local_scene.save_dataset('overview', './local_overview.tif')
-working with datasets, saving them to disk or showing them on screen:
-
-import satpy.writers.utils    >>> satpy.writers.utils.show('overview')
-    >>> local_scene.save_dataset('overview', './local_overview.tif')
-working with datasets, saving them to disk or showing them on screen:
-
-import satpy.writers.utils    >>> satpy.writers.utils.show('overview')
-    >>> local_scene.save_dataset('overview', './local_overview.tif')
 working with datasets, saving them to disk or showing them on screen:
 
     >>> local_scene.show('overview')

@@ -21,8 +21,6 @@ from unittest.mock import patch
 
 from behave import given, then, use_step_matcher, when
 
-import satpy.writers.utils
-
 use_step_matcher("re")
 
 
@@ -51,7 +49,7 @@ def step_impl_scene_show(context):
 
     """
     with patch("trollimage.xrimage.XRImage.show") as mock_show:
-        satpy.writers.utils.show("MyDataset")
+        context.scene.show("MyDataset")
         mock_show.assert_called_once_with()
 
 
