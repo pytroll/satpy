@@ -152,7 +152,7 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path, enhance=False)
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["dtype"] == np.float64
@@ -162,7 +162,7 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path, enhance=False, dtype=np.uint8)
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["dtype"] == np.uint8
@@ -173,7 +173,7 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path)
         w.info["fill_value"] = 128
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["fill_value"] == 128
@@ -184,7 +184,7 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(tags={"test1": 1}, base_dir=tmp_path)
         w.info["fill_value"] = 128
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, tags={"test2": 2}, compute=False)
             called_tags = save_method.call_args[1]["tags"]
@@ -211,7 +211,7 @@ class TestGeoTIFFWriter:
         datasets = input_func()
         w = GeoTIFFWriter(tags={"test1": 1}, base_dir=tmp_path)
         w.info["fill_value"] = 128
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, tags={"test2": 2}, compute=False, **save_kwargs)
         kwarg_name = "include_scale_offset_tags" if "include_scale_offset" in save_kwargs else "scale_offset_tags"
@@ -223,7 +223,7 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path)
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["tiled"]

@@ -14,5 +14,49 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writers subpackage."""
+from __future__ import annotations
 
-# TODO: __getattr__
+import warnings
+from typing import Any
+
+
+def __getattr__(name: str) -> Any:
+    if name == "Writer":
+        from .base import Writer
+
+        new_submod = "base"
+        obj = Writer
+    elif name == "ImageWriter":
+        from .base_image import ImageWriter
+
+        new_submod = "base_image"
+        obj = ImageWriter
+    elif name in ("add_overlay", "add_decorate", "add_scale", "add_logo", "add_text"):
+        from . import overlay_utils
+
+        new_submod = "overlay_utils"
+        obj = getattr(overlay_utils, name)
+    elif name in (
+        "read_writer_config",
+        "load_writer_configs",
+        "load_writer",
+        "configs_for_writer",
+        "available_writers",
+        "get_enhanced_image",
+        "show",
+        "to_image",
+        "split_results",
+        "group_results_by_output_file",
+        "compute_writer_results",
+    ):
+        from . import utils
+
+        new_submod = "utils"
+        obj = getattr(utils, name)
+    else:
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+    warnings.warn(
+        f"'satpy.writers.{name}' has been moved to 'satpy.writers.{new_submod}.{name}`"
+    )
+    return obj

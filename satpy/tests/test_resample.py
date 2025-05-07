@@ -132,7 +132,7 @@ class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
     @mock.patch("satpy.resample.xr.Dataset")
-    @mock.patch("satpy.resample.zarr.open")
+    @mock.patch("zarr.open")
     @mock.patch("satpy.resample.KDTreeResampler._create_cache_filename")
     @mock.patch("pyresample.kd_tree.XArrayResamplerNN")
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
