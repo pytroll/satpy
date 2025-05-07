@@ -57,6 +57,8 @@ def __getattr__(name: str) -> Any:
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
     warnings.warn(
-        f"'satpy.writers.{name}' has been moved to 'satpy.writers.{new_submod}.{name}`"
+        f"'satpy.writers.{name}' has been moved to 'satpy.writers.{new_submod}.{name}'. "
+        f"Import from the new location instead (ex. 'from satpy.writers.{new_submod} import {name}').",
+        stacklevel=2,
     )
     return obj
