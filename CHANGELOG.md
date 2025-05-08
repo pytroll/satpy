@@ -1,3 +1,176 @@
+## Version 0.56.0 (2025/04/24)
+
+### Issues Closed
+
+* [Issue 3108](https://github.com/pytroll/satpy/issues/3108) - Custom composite for reader 'generic_image'
+* [Issue 3105](https://github.com/pytroll/satpy/issues/3105) - gradient_search and native resampling not working with GOES-18
+* [Issue 3104](https://github.com/pytroll/satpy/issues/3104) - Replace all blue colors with transparent color
+* [Issue 3103](https://github.com/pytroll/satpy/issues/3103) - GeoTIFF. Reader 'generic_image'. No supported files found
+* [Issue 3098](https://github.com/pytroll/satpy/issues/3098) - SEVIRI. Where is built-in composite group_radiance_alpha defined?
+* [Issue 3095](https://github.com/pytroll/satpy/issues/3095) - Unable to run operations of MTG xarray.Dataset
+* [Issue 3092](https://github.com/pytroll/satpy/issues/3092) - maskingcompositor assumes the mask to be 2d array ([PR 3093](https://github.com/pytroll/satpy/pull/3093) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 3067](https://github.com/pytroll/satpy/issues/3067) - ``fci_l1c_nc`` reader drops channel attribute ``radiance_unit_conversion_coefficient`` when more than one file is loaded ([PR 3111](https://github.com/pytroll/satpy/pull/3111) by [@ClementLaplace](https://github.com/ClementLaplace))
+* [Issue 3015](https://github.com/pytroll/satpy/issues/3015) - extrapolation of satellite relative azimuiths? ([PR 3017](https://github.com/pytroll/satpy/pull/3017) by [@simonrp84](https://github.com/simonrp84))
+
+In this release 9 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3115](https://github.com/pytroll/satpy/pull/3115) - Fix padding for FCI xx coverage
+* [PR 3113](https://github.com/pytroll/satpy/pull/3113) - Fix angles tests computing xarray DataArrays instead of dask arrays
+* [PR 3111](https://github.com/pytroll/satpy/pull/3111) - Fix unit radiance attrs ([3067](https://github.com/pytroll/satpy/issues/3067))
+* [PR 3110](https://github.com/pytroll/satpy/pull/3110) - Improve handling of category products in VIIRS EDR reader
+* [PR 3093](https://github.com/pytroll/satpy/pull/3093) - Fix 3D masks with size 1 dimension in MaskingCompositor ([3092](https://github.com/pytroll/satpy/issues/3092))
+* [PR 3088](https://github.com/pytroll/satpy/pull/3088) - Deprecate "cira_day_convection" in favor of "convection"
+* [PR 3017](https://github.com/pytroll/satpy/pull/3017) - Fix SLSTR angle interpolation. ([3015](https://github.com/pytroll/satpy/issues/3015))
+* [PR 3016](https://github.com/pytroll/satpy/pull/3016) - Update scale factor and offset [viirs_l1b]
+
+#### Features added
+
+* [PR 3115](https://github.com/pytroll/satpy/pull/3115) - Fix padding for FCI xx coverage
+* [PR 3112](https://github.com/pytroll/satpy/pull/3112) - Fci l1c handle other coverage
+* [PR 3097](https://github.com/pytroll/satpy/pull/3097) - Add SWIR composite to Sentinel-2/MSI.
+* [PR 3091](https://github.com/pytroll/satpy/pull/3091) - Fix `RatioCompositor` `standard_name` handling
+* [PR 3090](https://github.com/pytroll/satpy/pull/3090) - Add enhancement trace logging and print function
+* [PR 3089](https://github.com/pytroll/satpy/pull/3089) - Add ABI Day Cloud Type ("cloud_type") RGB
+* [PR 3087](https://github.com/pytroll/satpy/pull/3087) - Add ABI Blowing Snow RGB
+* [PR 3080](https://github.com/pytroll/satpy/pull/3080) - Add reader for EarthCARE MSI L1 data
+* [PR 3040](https://github.com/pytroll/satpy/pull/3040) - Unpin dask
+* [PR 2891](https://github.com/pytroll/satpy/pull/2891) - Update VIIRS L1b reader to use additional netcdf attributes
+
+#### Backward incompatible changes
+
+* [PR 3088](https://github.com/pytroll/satpy/pull/3088) - Deprecate "cira_day_convection" in favor of "convection"
+
+In this release 19 pull requests were closed.
+
+
+## Version 0.55.0 (2025/03/21)
+
+### Issues Closed
+
+* [Issue 3079](https://github.com/pytroll/satpy/issues/3079) - FCI - Creating corrected single channel imagery to be used for composite creation OUTSIDE of compositors
+* [Issue 3075](https://github.com/pytroll/satpy/issues/3075) - SAA & SZA for FCI Level 1NC
+* [Issue 3066](https://github.com/pytroll/satpy/issues/3066) - NetCDF4FileHandler faults when using obj.__dict__ called when object is a compound variable. ([PR 3069](https://github.com/pytroll/satpy/pull/3069) by [@mataeui](https://github.com/mataeui))
+* [Issue 3062](https://github.com/pytroll/satpy/issues/3062) - abi_l2_nc reader does not support GOES-18 Cloud & Moisture Imagery Multiband mesoscale products from NOAA AWS
+* [Issue 3053](https://github.com/pytroll/satpy/issues/3053) - No conversion matrix found for platform GOES-19 ([PR 3054](https://github.com/pytroll/satpy/pull/3054) by [@simonrp84](https://github.com/simonrp84))
+* [Issue 3052](https://github.com/pytroll/satpy/issues/3052) - Reader for NWC SAF HRW (high resolution winds) data ([PR 3070](https://github.com/pytroll/satpy/pull/3070) by [@pnuu](https://github.com/pnuu))
+* [Issue 3043](https://github.com/pytroll/satpy/issues/3043) - RuntimeError: NetCDF: HDF error OR Segmentation fault
+* [Issue 3027](https://github.com/pytroll/satpy/issues/3027) - Cannot generate composites on bigger extents using MTG FCI Level-1c files
+* [Issue 2898](https://github.com/pytroll/satpy/issues/2898) - units attribute is not CF conform for the for AMV datasets in the fci_l2_nc reader ([PR 3031](https://github.com/pytroll/satpy/pull/3031) by [@YouvaEUMex](https://github.com/YouvaEUMex))
+* [Issue 2854](https://github.com/pytroll/satpy/issues/2854) - Unexpected floats when reading LI L2 LFL data ([PR 2998](https://github.com/pytroll/satpy/pull/2998) by [@ClementLaplace](https://github.com/ClementLaplace))
+* [Issue 2773](https://github.com/pytroll/satpy/issues/2773) - Resampling with gradient search results in interlacing image artefacts if corner pixels have no data
+* [Issue 2179](https://github.com/pytroll/satpy/issues/2179) - MergeError in `to_xarray_dataset` for Scenes containing data from seviri_l1b_nc reader ([PR 2827](https://github.com/pytroll/satpy/pull/2827) by [@BENR0](https://github.com/BENR0))
+
+In this release 12 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3085](https://github.com/pytroll/satpy/pull/3085) - Refactor "compute_relative_azimuth" to be more flexible
+* [PR 3082](https://github.com/pytroll/satpy/pull/3082) - Add workaround so dask arrays are optimized in Delayed writing
+* [PR 3074](https://github.com/pytroll/satpy/pull/3074) - Fix plugin tests not completely cleaning up after themselves
+* [PR 3069](https://github.com/pytroll/satpy/pull/3069) - Prevent call to obj.__dict__ when obj is a compound variable. ([3066](https://github.com/pytroll/satpy/issues/3066))
+* [PR 3063](https://github.com/pytroll/satpy/pull/3063) - add capability for M1 and M2 in MCMIP abi_l2_nc reader
+* [PR 3057](https://github.com/pytroll/satpy/pull/3057) - Fix LightningTimeCompositor failing when data outside of the time range is passed
+* [PR 3055](https://github.com/pytroll/satpy/pull/3055) - Update 'oci_l2_bgc' to allow .nc4 and .nc filename extensions
+* [PR 3048](https://github.com/pytroll/satpy/pull/3048) - Change sensor attribute to lowercase in FCI L2 NetCDF reader
+* [PR 3046](https://github.com/pytroll/satpy/pull/3046) - Fix MWR Polarisation
+* [PR 3031](https://github.com/pytroll/satpy/pull/3031) - Fix the handling of AMVs unit to units by applying suggestion in #2898 ([2898](https://github.com/pytroll/satpy/issues/2898))
+* [PR 3028](https://github.com/pytroll/satpy/pull/3028) - add missing dependency for vii_l1b_reader
+* [PR 2998](https://github.com/pytroll/satpy/pull/2998) - Correct Unexpected floats when reading LI L2 LFL ([2854](https://github.com/pytroll/satpy/issues/2854))
+
+#### Features added
+
+* [PR 3070](https://github.com/pytroll/satpy/pull/3070) - Add a reader for NWC SAF GEO HRW data ([3052](https://github.com/pytroll/satpy/issues/3052))
+* [PR 3064](https://github.com/pytroll/satpy/pull/3064) - Add remote reading for hrit seviri
+* [PR 3059](https://github.com/pytroll/satpy/pull/3059) - Add more datasets to IASI L2 reader
+* [PR 3054](https://github.com/pytroll/satpy/pull/3054) - Add GOES-19 RGB2XYZ matrix for `true_color_reproduction` ([3053](https://github.com/pytroll/satpy/issues/3053))
+* [PR 3050](https://github.com/pytroll/satpy/pull/3050) - Add VolcanicAsh product to VIIRS EDR reader
+* [PR 3044](https://github.com/pytroll/satpy/pull/3044) - Add VIIRS EDR datasets
+* [PR 3041](https://github.com/pytroll/satpy/pull/3041) - Fix MVIRI tests with unstable dependencies
+* [PR 3023](https://github.com/pytroll/satpy/pull/3023) - Add reader for CAMEL emissivity datasets.
+* [PR 3022](https://github.com/pytroll/satpy/pull/3022) - Combine low level moisture with a cloud mask
+* [PR 3002](https://github.com/pytroll/satpy/pull/3002) - ISCCP-NG level 1g reader
+* [PR 2998](https://github.com/pytroll/satpy/pull/2998) - Correct Unexpected floats when reading LI L2 LFL ([2854](https://github.com/pytroll/satpy/issues/2854))
+* [PR 2997](https://github.com/pytroll/satpy/pull/2997) - Prepare for channel-specific SEVIRI calibration
+* [PR 2895](https://github.com/pytroll/satpy/pull/2895) - Add flash age compositor for li instruments
+* [PR 2827](https://github.com/pytroll/satpy/pull/2827) - Fix `to_xarray_dataset` merge error with conflicting values in coordinate ([2179](https://github.com/pytroll/satpy/issues/2179))
+* [PR 913](https://github.com/pytroll/satpy/pull/913) - Modis l2 available datasets
+
+#### Documentation changes
+
+* [PR 3068](https://github.com/pytroll/satpy/pull/3068) - Update sphinx to use new sphinx.ext.apidoc extension
+* [PR 3065](https://github.com/pytroll/satpy/pull/3065) - Fix slack invite link in contributing docs
+* [PR 3036](https://github.com/pytroll/satpy/pull/3036) - DOC: Clarify satpy.yaml use with nested dictionaries
+
+#### Clean ups
+
+* [PR 3085](https://github.com/pytroll/satpy/pull/3085) - Refactor "compute_relative_azimuth" to be more flexible
+* [PR 3081](https://github.com/pytroll/satpy/pull/3081) - Refactor MODIS readers to avoid extra dask tasks
+* [PR 3068](https://github.com/pytroll/satpy/pull/3068) - Update sphinx to use new sphinx.ext.apidoc extension
+* [PR 3059](https://github.com/pytroll/satpy/pull/3059) - Add more datasets to IASI L2 reader
+* [PR 2992](https://github.com/pytroll/satpy/pull/2992) - Fix Pylint complaints for GLD360-reader.
+
+In this release 35 pull requests were closed.
+
+
+## Version 0.54.0 (2025/01/20)
+
+### Issues Closed
+
+* [Issue 3020](https://github.com/pytroll/satpy/issues/3020) - Re-implement essl_colorized_low_level_moisture using colorize ([PR 3021](https://github.com/pytroll/satpy/pull/3021) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 3009](https://github.com/pytroll/satpy/issues/3009) - artefacts in FCI RGBs using 3.8 µm ([PR 3013](https://github.com/pytroll/satpy/pull/3013) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2991](https://github.com/pytroll/satpy/issues/2991) - Resampling MTG FCI high res bands fails when the resample includes bands at different spatial resolutions
+* [Issue 2981](https://github.com/pytroll/satpy/issues/2981) - Fix the bug with `satpy` when using `numpy 2.x` which leads to `SEVIRI` resampled files having a double size ([PR 2983](https://github.com/pytroll/satpy/pull/2983) by [@pkhalaj](https://github.com/pkhalaj))
+* [Issue 2979](https://github.com/pytroll/satpy/issues/2979) - Improving resolution when setting extent
+* [Issue 2977](https://github.com/pytroll/satpy/issues/2977) - CRS data is being printed to title of image
+* [Issue 2975](https://github.com/pytroll/satpy/issues/2975) - can't create ABI geo_color composite
+* [Issue 2963](https://github.com/pytroll/satpy/issues/2963) - ahi_hrit reader cannot create a Scene
+* [Issue 2814](https://github.com/pytroll/satpy/issues/2814) - Reading LI L2 point data is not daskified ([PR 2985](https://github.com/pytroll/satpy/pull/2985) by [@ClementLaplace](https://github.com/ClementLaplace))
+* [Issue 2566](https://github.com/pytroll/satpy/issues/2566) - Wrong version numbers at readthedocs
+* [Issue 1997](https://github.com/pytroll/satpy/issues/1997) - Resampling from SwathDefinition to AreaDefinition fails with OSError and AssertionError
+* [Issue 1788](https://github.com/pytroll/satpy/issues/1788) - integration / regression tests that compare images
+* [Issue 1755](https://github.com/pytroll/satpy/issues/1755) - Store project metadata in pyproject.toml
+* [Issue 1240](https://github.com/pytroll/satpy/issues/1240) - iber projection lost in the North Pacific
+
+In this release 14 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3035](https://github.com/pytroll/satpy/pull/3035) - Pin dask to avoid dataframe problem
+* [PR 3030](https://github.com/pytroll/satpy/pull/3030) - Fix sdist tarball including unnecessary files
+* [PR 2995](https://github.com/pytroll/satpy/pull/2995) - Add new ABI L2 "CPS" variable name for Cloud Particle Size
+* [PR 2985](https://github.com/pytroll/satpy/pull/2985) - li2_nc reader daskified ([2814](https://github.com/pytroll/satpy/issues/2814))
+* [PR 2983](https://github.com/pytroll/satpy/pull/2983) - Fix dtype promotion in SEVIRI native reader ([2981](https://github.com/pytroll/satpy/issues/2981))
+* [PR 2976](https://github.com/pytroll/satpy/pull/2976) - Fix dtype promotion in `mersi2_l1b` reader
+* [PR 2969](https://github.com/pytroll/satpy/pull/2969) - Fix geos proj parameters for Insat 3d satellites
+* [PR 2959](https://github.com/pytroll/satpy/pull/2959) - Modified the issue with the calibration coefficient indices for FY-3 satellite data reader
+
+#### Features added
+
+* [PR 3034](https://github.com/pytroll/satpy/pull/3034) - Set issue type in templates
+* [PR 3021](https://github.com/pytroll/satpy/pull/3021) - Change ESSL colorisation approach ([3020](https://github.com/pytroll/satpy/issues/3020))
+* [PR 3013](https://github.com/pytroll/satpy/pull/3013) - Clip negative FCI radiances ([3009](https://github.com/pytroll/satpy/issues/3009))
+* [PR 3007](https://github.com/pytroll/satpy/pull/3007) - Add t865 dataset to olci l2 list ([1767](https://github.com/pytroll/satpy/issues/1767))
+* [PR 2999](https://github.com/pytroll/satpy/pull/2999) - Add Accsos image comparison tests
+* [PR 2941](https://github.com/pytroll/satpy/pull/2941) - Refactor MVIRI dataset access
+* [PR 2565](https://github.com/pytroll/satpy/pull/2565) - Add level-1 readers for the arctic weather satelliter data
+
+#### Clean ups
+
+* [PR 3030](https://github.com/pytroll/satpy/pull/3030) - Fix sdist tarball including unnecessary files
+* [PR 3014](https://github.com/pytroll/satpy/pull/3014) - Remove xarray-datatree dependency from CI
+* [PR 3010](https://github.com/pytroll/satpy/pull/3010) - Remove version limit on pytest in CI
+
+In this release 18 pull requests were closed.
+
+
 ## Version 0.53.0 (2024/11/08)
 
 ### Issues Closed

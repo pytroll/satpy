@@ -57,7 +57,7 @@ datasets:
            central: 50.3
            bandwidth: 0.180
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -72,7 +72,7 @@ datasets:
            central: 52.8
            bandwidth: 0.400
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -87,7 +87,7 @@ datasets:
            central: 53.246
            bandwidth: 0.300
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -102,7 +102,7 @@ datasets:
            central: 53.596
            bandwidth: 0.370
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -117,7 +117,7 @@ datasets:
            central: 54.4
            bandwidth: 0.400
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -132,7 +132,7 @@ datasets:
            central: 54.94
            bandwidth: 0.400
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -147,7 +147,7 @@ datasets:
            central: 55.5
            bandwidth: 0.330
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -162,7 +162,7 @@ datasets:
            central: 57.290344
            bandwidth: 0.330
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 40000
         calibration:
           brightness_temperature:
@@ -190,9 +190,9 @@ datasets:
         name: '10'
         frequency_range:
            central: 165.5
-           bandwidth: 2.700
+           bandwidth: 2.800
            unit: GHz
-        polarization: 'QH'
+        polarization: 'QV'
         resolution: 20000
         calibration:
           brightness_temperature:
@@ -530,7 +530,6 @@ file_types:
         # W_NO-KSAT-Tromso,SAT,AWS1-MWR-1B-RAD_C_OHB__20250110134851_G_O_20250110114708_20250110132329_C_N____.nc
         file_reader: !!python/name:satpy.readers.mwr_l1b.AWS_EPS_Sterna_MWR_L1BFile
         file_patterns: [
-        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc',
-        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_O_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
+        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_{mission_type:1s}_{environment:1s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
         ]
         feed_horn_group_name: n_geo_groups
