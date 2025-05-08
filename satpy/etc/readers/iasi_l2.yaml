@@ -156,6 +156,49 @@ datasets:
     resolution: 12000
     coordinates: [longitude, latitude]
 
+  amsu_instrument_flags:
+    name: amsu_instrument_flags
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  iasi_instrument_flags:
+    name: iasi_instrument_flags
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  mhs_instrument_flags:
+    name: mhs_instrument_flags
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  observation_minus_calculation:
+    name: observation_minus_calculation
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_elevation:
+    name: surface_elevation
+    file_type: iasi_l2_hdf5
+    units: "m"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_elevation_std:
+    name: surface_elevation_std
+    file_type: iasi_l2_hdf5
+    units: "m"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+
 file_types:
   iasi_l2_hdf5:
     file_reader: !!python/name:satpy.readers.iasi_l2.IASIL2HDF5

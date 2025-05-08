@@ -113,6 +113,7 @@ when the satellite zenith angle is small.
 
     >>> from satpy import Scene, MultiScene,  DataQuery
     >>> from functools import partial
+    >>> from satpy.multiscene import stack
     >>> from satpy.resample import get_area_def
     >>> areaid = get_area_def("myarea")
     >>> geo_scene = Scene(filenames=glob('/data/to/nwcsaf/geo/files/*nc'), reader='nwcsaf-geo')
