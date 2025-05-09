@@ -83,7 +83,7 @@ the specified colors.
     >>> import numpy as np
     >>> from satpy.composites import BWCompositor
     >>> from satpy.enhancements import colorize
-    >>> from satpy.writers import to_image
+    >>> from satpy.writers.utils import to_image
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
     >>> np.save("/tmp/binary_colormap.npy", arr)
     >>> compositor = BWCompositor("test", standard_name="colorized_ir_clouds")
@@ -129,7 +129,8 @@ and save them all at once.
 
 ::
 
-    >>> from satpy.writers import compute_writer_results
+
+    >>> from satpy.writers.utils import compute_writer_results
     >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
     ...                          writer="simple_image",
     ...                          compute=False)

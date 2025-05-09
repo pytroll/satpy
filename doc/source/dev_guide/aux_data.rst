@@ -42,7 +42,7 @@ use case.
 
 The :class:`~satpy.aux_download.DataMixIn` class is automatically included
 in the :class:`~satpy.readers.yaml_reader.FileYAMLReader` and
-:class:`~satpy.writers.Writer` base classes. For any other component (like
+:class:`~satpy.writers.base.Writer` base classes. For any other component (like
 a compositor) you should include it as another parent class:
 
 .. code-block:: python

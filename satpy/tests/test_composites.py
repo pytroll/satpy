@@ -1980,7 +1980,7 @@ class TestNaturalEnhCompositor(unittest.TestCase):
 class TestEnhance2Dataset(unittest.TestCase):
     """Test the enhance2dataset utility."""
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.writers.utils.get_enhanced_image")
     def test_enhance_p_to_rgb(self, get_enhanced_image):
         """Test enhancing a paletted dataset in RGB mode."""
         from trollimage.xrimage import XRImage
@@ -1993,7 +1993,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         res = enhance2dataset(dataset, convert_p=True)
         assert res.attrs["mode"] == "RGB"
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.writers.utils.get_enhanced_image")
     def test_enhance_p_to_rgba(self, get_enhanced_image):
         """Test enhancing a paletted dataset in RGBA mode."""
         from trollimage.xrimage import XRImage
@@ -2006,7 +2006,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         res = enhance2dataset(dataset, convert_p=True)
         assert res.attrs["mode"] == "RGBA"
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.writers.utils.get_enhanced_image")
     def test_enhance_p(self, get_enhanced_image):
         """Test enhancing a paletted dataset in P mode."""
         from trollimage.xrimage import XRImage
@@ -2020,7 +2020,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         assert res.attrs["mode"] == "P"
         assert res.max().values == 2
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.writers.utils.get_enhanced_image")
     def test_enhance_l(self, get_enhanced_image):
         """Test enhancing a paletted dataset in P mode."""
         from trollimage.xrimage import XRImage

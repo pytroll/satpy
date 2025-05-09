@@ -102,7 +102,7 @@ def _setup_custom_writer_config(base_dir):
         comp_file.write("""
 writer:
   name: "fake"
-  writer: !!python/name:satpy.writers.Writer
+  writer: !!python/name:satpy.writers.base.Writer
   data_files:
     - url: {}
       known_hash: null
