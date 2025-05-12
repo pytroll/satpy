@@ -131,8 +131,8 @@ class TestHLResample(unittest.TestCase):
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
-    @mock.patch("satpy.resample.xr.Dataset")
-    @mock.patch("satpy.resample.zarr.open")
+    @mock.patch("satpy.resample.kdtree.xr.Dataset")
+    @mock.patch("satpy.resample.kdtree.zarr.open")
     @mock.patch("satpy.resample.KDTreeResampler._create_cache_filename")
     @mock.patch("pyresample.kd_tree.XArrayResamplerNN")
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
@@ -327,7 +327,7 @@ class TestNativeResampler:
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
-    @mock.patch("satpy.resample._move_existing_caches")
+    @mock.patch("satpy.resample.kdtree._move_existing_caches")
     @mock.patch("satpy.resample.BilinearResampler._create_cache_filename")
     @mock.patch("pyresample.bilinear.XArrayBilinearResampler")
     def test_bil_resampling(self, xr_resampler, create_filename,
@@ -413,7 +413,7 @@ class TestBilinearResampler(unittest.TestCase):
             zarr_file = os.path.join(the_dir, "test.zarr")
             with open(zarr_file, "w") as fid:
                 fid.write("42")
-            from satpy.resample import _move_existing_caches
+            from satpy.resample.kdtree import _move_existing_caches
             _move_existing_caches(the_dir, zarr_file)
             assert not os.path.exists(zarr_file)
             assert os.path.exists(os.path.join(the_dir, "moved_by_satpy", "test.zarr"))
