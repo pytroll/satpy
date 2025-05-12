@@ -28,7 +28,7 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 
-from satpy.resample import NativeResampler
+from satpy.resample.native import NativeResampler
 
 
 def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=None,
@@ -109,7 +109,7 @@ class TestHLResample(unittest.TestCase):
         """Check that the type of resampled datasets is preserved."""
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import resample_dataset
+        from satpy.resample.base import resample_dataset
         source_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=["y", "x"]),
                                       xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=["y", "x"]))
         dest_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=["y", "x"]),
@@ -133,12 +133,12 @@ class TestKDTreeResampler(unittest.TestCase):
 
     @mock.patch("satpy.resample.kdtree.xr.Dataset")
     @mock.patch("satpy.resample.kdtree.zarr.open")
-    @mock.patch("satpy.resample.KDTreeResampler._create_cache_filename")
+    @mock.patch("satpy.resample.kdtree.KDTreeResampler._create_cache_filename")
     @mock.patch("pyresample.kd_tree.XArrayResamplerNN")
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
                            xr_dset):
         """Test the kd resampler."""
-        from satpy.resample import KDTreeResampler
+        from satpy.resample.kdtree import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
         mock_dset = mock.MagicMock()
         xr_dset.return_value = mock_dset
@@ -328,12 +328,12 @@ class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
     @mock.patch("satpy.resample.kdtree._move_existing_caches")
-    @mock.patch("satpy.resample.BilinearResampler._create_cache_filename")
+    @mock.patch("satpy.resample.kdtree.BilinearResampler._create_cache_filename")
     @mock.patch("pyresample.bilinear.XArrayBilinearResampler")
     def test_bil_resampling(self, xr_resampler, create_filename,
                             move_existing_caches):
         """Test the bilinear resampler."""
-        from satpy.resample import BilinearResampler
+        from satpy.resample.kdtree import BilinearResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
 
         # Test that bilinear resampling info calculation is called
@@ -432,7 +432,7 @@ class TestCoordinateHelpers(unittest.TestCase):
         """Test coordinates being added with an AreaDefinition."""
         from pyresample.geometry import AreaDefinition
 
-        from satpy.resample import add_crs_xy_coords
+        from satpy.resample.base import add_crs_xy_coords
         area_def = AreaDefinition(
             "test", "test", "test", {"proj": "lcc", "lat_1": 25, "lat_0": 25},
             100, 200, [-100, -100, 100, 100]
@@ -498,7 +498,7 @@ class TestCoordinateHelpers(unittest.TestCase):
         """Test coordinates being added with an SwathDefinition."""
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import add_crs_xy_coords
+        from satpy.resample.base import add_crs_xy_coords
         lons_data = da.random.random((200, 100), chunks=50)
         lats_data = da.random.random((200, 100), chunks=50)
         lons = xr.DataArray(lons_data, attrs={"units": "degrees_east"},
@@ -536,7 +536,7 @@ class TestBucketAvg(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketAvg
+        from satpy.resample.bucket import BucketAvg
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         get_proj_vectors = mock.MagicMock()
@@ -648,7 +648,7 @@ class TestBucketSum(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketSum
+        from satpy.resample.bucket import BucketSum
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
@@ -700,7 +700,7 @@ class TestBucketCount(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketCount
+        from satpy.resample.bucket import BucketCount
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
@@ -740,7 +740,7 @@ class TestBucketFraction(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketFraction
+        from satpy.resample.bucket import BucketFraction
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         get_proj_vectors = mock.MagicMock()
