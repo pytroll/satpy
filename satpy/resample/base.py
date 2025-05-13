@@ -36,7 +36,7 @@ CHUNK_SIZE = get_legacy_chunk_size()
 resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
 
-def hash_dict(the_dict, the_hash=None):
+def _hash_dict(the_dict, the_hash=None):
     """Calculate a hash for a dictionary."""
     if the_hash is None:
         the_hash = hashlib.sha1()  # nosec
@@ -274,7 +274,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 
     key = (resampler_class,
            source_area, destination_area,
-           hash_dict(resample_kwargs).hexdigest())
+           _hash_dict(resample_kwargs).hexdigest())
     try:
         resampler_instance = resamplers_cache[key]
     except KeyError:

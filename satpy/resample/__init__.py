@@ -185,7 +185,6 @@ def __getattr__(name: str) -> Any:
         new_submod = "bucket"
         obj = getattr(bucket, name)
     elif name in (
-            "hash_dict",
             "get_area_file",
             "get_area_def",
             "add_xy_coords",
