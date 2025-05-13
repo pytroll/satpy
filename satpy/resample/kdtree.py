@@ -131,22 +131,27 @@ class KDTreeResampler(PRBaseResampler):
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
-                try:
-                    filename = self._create_cache_filename(
-                        cache_dir, prefix="nn_lut-",
-                        mask=mask_name, **kwargs)
-                    fid = zarr.open(filename, "r")
-                    cache = np.array(fid[idx_name])
-                    if idx_name == "valid_input_index":
-                        # valid input index array needs to be boolean
-                        cache = cache.astype(bool)
-                except ValueError:
-                    raise IOError
+                cache = self._load_neighbour_info_from_cache(
+                    cache_dir, idx_name, mask_name, **kwargs)
                 cache = self._apply_cached_index(cache, idx_name)
                 cached[idx_name] = cache
             else:
                 raise IOError
         self._index_caches[mask_name] = cached
+
+    def _load_neighbour_info_from_cache(self, cache_dir, idx_name, mask_name, **kwargs):
+        try:
+            filename = self._create_cache_filename(
+                cache_dir, prefix="nn_lut-",
+                mask=mask_name, **kwargs)
+            fid = zarr.open(filename, "r")
+            cache = np.array(fid[idx_name])
+            if idx_name == "valid_input_index":
+                # valid input index array needs to be boolean
+                cache = cache.astype(bool)
+        except ValueError:
+            raise IOError
+        return cache
 
     def save_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Cache resampler's index arrays if there is a cache dir."""
