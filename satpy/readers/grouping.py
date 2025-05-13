@@ -430,8 +430,14 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
     if sensor is not None:
         # sensor was specified and a reader supports it
         sensor_supported = True
+
+    loadables = _get_loadables_from_reader(reader_instance, base_dir, fs)
+    return (reader_instance, loadables, sensor_supported)
+
+
+def _get_loadables_from_reader(reader_instance, base_dir, fs):
     loadables = reader_instance.select_files_from_directory(base_dir, fs)
     if loadables:
         loadables = list(
             reader_instance.filter_selected_filenames(loadables))
-    return (reader_instance, loadables, sensor_supported)
+    return loadables
