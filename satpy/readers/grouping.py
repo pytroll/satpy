@@ -363,17 +363,14 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     filter_parameters = filter_parameters or reader_kwargs.get("filter_parameters", {})
     sensor_supported = False
 
-    if start_time or end_time:
-        filter_parameters["start_time"] = start_time
-        filter_parameters["end_time"] = end_time
+    _set_filter_times(filter_parameters, start_time, end_time)
     reader_kwargs["filter_parameters"] = filter_parameters
 
     for reader_configs in configs_for_reader(reader):
         (reader_instance, loadables, this_sensor_supported) = _get_loadables_for_reader_config(
                 base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
         sensor_supported = sensor_supported or this_sensor_supported
-        if loadables:
-            reader_files[reader_instance.name] = list(loadables)
+        _update_reader_files(reader_files, reader_instance, loadables)
 
     if sensor and not sensor_supported:
         raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
@@ -381,6 +378,17 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     if not (reader_files or missing_ok):
         raise ValueError("No supported files found")
     return reader_files
+
+
+def _set_filter_times(filter_parameters, start_time, end_time):
+    if start_time or end_time:
+        filter_parameters["start_time"] = start_time
+        filter_parameters["end_time"] = end_time
+
+
+def _update_reader_files(reader_files, reader_instance, loadables):
+    if loadables:
+        reader_files[reader_instance.name] = list(loadables)
 
 
 def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
