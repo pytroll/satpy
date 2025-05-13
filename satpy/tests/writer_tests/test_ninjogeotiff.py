@@ -29,7 +29,7 @@ import xarray as xr
 from pyresample import create_area_def
 
 from satpy import Scene
-from satpy.writers import get_enhanced_image, to_image
+from satpy.writers.utils import get_enhanced_image, to_image
 
 try:
     from math import prod

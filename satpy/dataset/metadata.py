@@ -26,7 +26,7 @@ from operator import eq, is_
 
 import numpy as np
 
-from satpy.writers.utils import flatten_dict
+from satpy.utils import flatten_dict
 
 
 def combine_metadata(*metadata_objects, average_times=None):
