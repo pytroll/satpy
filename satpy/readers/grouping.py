@@ -163,19 +163,27 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
         file_keys[reader_name] = []
         # make a copy because filename_items_for_filetype will modify inplace
         files_to_sort = set(files_to_sort)
-        for _, filetype_info in reader_instance.sorted_filetype_items():
-            for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
-                group_key = tuple(file_info.get(k) for k in group_keys)
-                if all(g is None for g in group_key):
-                    warnings.warn(
-                        f"Found matching file {f:s} for reader "
-                        "{reader_name:s}, but none of group keys found. "
-                        "Group keys requested: " + ", ".join(group_keys),
-                        UserWarning,
-                        stacklevel=3
-                    )
-                file_keys[reader_name].append((group_key, f))
+        _walk_through_sorted_filetype_items(reader_instance, file_keys, files_to_sort, group_keys, reader_name)
     return file_keys
+
+
+def _walk_through_sorted_filetype_items(reader_instance, file_keys, files_to_sort, group_keys, reader_name):
+    for _, filetype_info in reader_instance.sorted_filetype_items():
+        for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
+            _update_file_keys(file_keys, group_keys, file_info, f, reader_name)
+
+
+def _update_file_keys(file_keys, group_keys, file_info, f, reader_name):
+    group_key = tuple(file_info.get(k) for k in group_keys)
+    if all(g is None for g in group_key):
+        warnings.warn(
+            f"Found matching file {f:s} for reader "
+            f"{reader_name:s}, but none of group keys found. "
+            "Group keys requested: " + ", ".join(group_keys),
+            UserWarning,
+            stacklevel=5
+        )
+    file_keys[reader_name].append((group_key, f))
 
 
 def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
