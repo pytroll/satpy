@@ -50,29 +50,19 @@ class BucketResamplerBase(PRBaseResampler):
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
         data_arr = data.data
-        if data.ndim == 3 and data.dims[0] == "bands":
-            dims = ("bands", "y", "x")
-        # Both one and two dimensional input data results in 2D output
-        elif data.ndim in (1, 2):
-            dims = ("y", "x")
-        else:
-            dims = data.dims
+        dims = _get_dims(data)
         LOG.debug("Resampling %s", str(data.attrs.get("_satpy_id", "unknown")))
         result = self.compute(data_arr, **kwargs)
-        coords = {}
-        if "bands" in data.coords:
-            coords["bands"] = data.coords["bands"]
-        # Fractions are returned in a dict
-        elif isinstance(result, dict):
-            coords["categories"] = sorted(result.keys())
-            dims = ("categories", "y", "x")
-            new_result = []
-            for cat in coords["categories"]:
-                new_result.append(result[cat])
-            result = da.stack(new_result)
-        if result.ndim > len(dims):
-            result = da.squeeze(result)
+        coords, result, dims = _check_coords_results_dims(result, data, dims)
 
+        self._adjust_attrs(attrs)
+
+        result = xr.DataArray(result, dims=dims, coords=coords,
+                              attrs=attrs)
+
+        return update_resampled_coords(data, result, self.target_geo_def)
+
+    def _adjust_attrs(self, attrs):
         # Adjust some attributes
         if "BucketFraction" in str(self):
             attrs["units"] = ""
@@ -83,10 +73,34 @@ class BucketResamplerBase(PRBaseResampler):
             attrs["calibration"] = ""
             attrs["standard_name"] = "number_of_observations"
 
-        result = xr.DataArray(result, dims=dims, coords=coords,
-                              attrs=attrs)
 
-        return update_resampled_coords(data, result, self.target_geo_def)
+def _get_dims(data):
+    if data.ndim == 3 and data.dims[0] == "bands":
+        dims = ("bands", "y", "x")
+    # Both one and two dimensional input data results in 2D output
+    elif data.ndim in (1, 2):
+        dims = ("y", "x")
+    else:
+        dims = data.dims
+    return dims
+
+
+def _check_coords_results_dims(result, data, dims):
+    coords = {}
+    if "bands" in data.coords:
+        coords["bands"] = data.coords["bands"]
+    # Fractions are returned in a dict
+    elif isinstance(result, dict):
+        coords["categories"] = sorted(result.keys())
+        dims = ("categories", "y", "x")
+        new_result = []
+        for cat in coords["categories"]:
+            new_result.append(result[cat])
+        result = da.stack(new_result)
+    if result.ndim > len(dims):
+        result = da.squeeze(result)
+
+    return coords, result, dims
 
 
 class BucketAvg(BucketResamplerBase):
