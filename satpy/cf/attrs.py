@@ -16,9 +16,9 @@
 """CF processing of attributes."""
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
-import datetime as dt
 from collections import OrderedDict
 
 import numpy as np
