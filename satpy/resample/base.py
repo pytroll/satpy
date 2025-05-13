@@ -256,13 +256,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
                          "exists.")
     if isinstance(resampler, str):
         resampler_class = get_all_resampler_classes().get(resampler, None)
-        if resampler_class is None:
-            if resampler == "gradient_search":
-                warnings.warn(
-                    "Gradient search resampler not available. Maybe missing `shapely`?",
-                    stacklevel=2
-                )
-            raise KeyError("Resampler '%s' not available" % resampler)
+        _check_resampler_class(resampler_class, resampler)
     else:
         resampler_class = resampler
 
@@ -275,6 +269,17 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
         resampler_instance = resampler_class(source_area, destination_area)
         resamplers_cache[key] = resampler_instance
     return key, resampler_instance
+
+
+def _check_resampler_class(resampler_class, resampler):
+    if resampler_class is not None:
+        return
+    if resampler == "gradient_search":
+        warnings.warn(
+            "Gradient search resampler not available. Maybe missing `shapely`?",
+            stacklevel=2
+        )
+    raise KeyError("Resampler '%s' not available" % resampler)
 
 
 # TODO: move this to pyresample
