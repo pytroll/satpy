@@ -273,13 +273,17 @@ def _filter_groups(groups, missing="pass"):
     for (i, grp) in enumerate(groups):
         readers_without_files = _get_keys_with_empty_values(grp)
         if readers_without_files:
-            if missing == "raise":
-                raise FileNotFoundError(
-                        f"when grouping files, group at index {i:d} "
-                        "had no files for readers: " +
-                        ", ".join(readers_without_files))
+            _check_raise_missing(missing, i, readers_without_files)
         else:
             yield grp
+
+
+def _check_raise_missing(missing, i, readers_without_files):
+    if missing == "raise":
+        raise FileNotFoundError(
+            f"when grouping files, group at index {i:d} "
+            "had no files for readers: " +
+            ", ".join(readers_without_files))
 
 
 def _get_keys_with_empty_values(grp):
