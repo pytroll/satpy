@@ -39,8 +39,7 @@ class NativeResampler(PRBaseResampler):
     @classmethod
     def _expand_reduce(cls, d_arr, repeats):
         """Expand reduce."""
-        if not isinstance(d_arr, da.Array):
-            d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
+        d_arr = _ensure_dask_array(d_arr)
         if all(x == 1 for x in repeats.values()):
             return d_arr
         if all(x >= 1 for x in repeats.values()):
@@ -69,6 +68,12 @@ class NativeResampler(PRBaseResampler):
         d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
         return update_resampled_coords(data, new_data, target_geo_def)
+
+
+def _ensure_dask_array(d_arr):
+    if not isinstance(d_arr, da.Array):
+        d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
+    return d_arr
 
 
 def _get_repeats(target_geo_def, data):
