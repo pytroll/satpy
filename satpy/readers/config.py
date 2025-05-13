@@ -50,17 +50,7 @@ def configs_for_reader(reader=None):
     Returns: Generator of lists of configuration files
 
     """
-    if reader is not None:
-        if not isinstance(reader, (list, tuple)):
-            reader = [reader]
-
-        reader = get_valid_reader_names(reader)
-        # given a config filename or reader name
-        config_files = [r if r.endswith(".yaml") else r + ".yaml" for r in reader]
-    else:
-        paths = get_entry_points_config_dirs("satpy.readers")
-        reader_configs = glob_config(os.path.join("readers", "*.yaml"), search_dirs=paths)
-        config_files = set(reader_configs)
+    config_files = _get_configs(reader)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
@@ -76,6 +66,20 @@ def configs_for_reader(reader=None):
             raise ValueError("No reader named: {}".format(reader_name))
 
         yield reader_configs
+
+
+def _get_configs(reader):
+    if reader is not None:
+        if not isinstance(reader, (list, tuple)):
+            reader = [reader]
+
+        reader = get_valid_reader_names(reader)
+        # given a config filename or reader name
+        return [r if r.endswith(".yaml") else r + ".yaml" for r in reader]
+
+    paths = get_entry_points_config_dirs("satpy.readers")
+    reader_configs = glob_config(os.path.join("readers", "*.yaml"), search_dirs=paths)
+    return set(reader_configs)
 
 
 def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
