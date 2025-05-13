@@ -215,11 +215,8 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
         if prev_key is None:
             is_new_group = True
             prev_key = gk
-        elif isinstance(gk[0], dt.datetime):
-            # datetimes within threshold difference are "the same time"
-            is_new_group = (gk[0] - prev_key[0]) > threshold
         else:
-            is_new_group = gk[0] != prev_key[0]
+            is_new_group = _get_group_status(gk, prev_key, threshold)
 
         # compare keys for those that are found for both the key and
         # this is a generator and is not computed until the if statement below
@@ -231,11 +228,22 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
             file_groups[gk] = {rn: [f]}
             prev_key = gk
         else:
-            if rn not in file_groups[prev_key]:
-                file_groups[prev_key][rn] = [f]
-            else:
-                file_groups[prev_key][rn].append(f)
+            _update_existing_group(file_groups, rn, prev_key, f)
     return file_groups
+
+
+def _get_group_status(gk, prev_key, threshold):
+    if isinstance(gk[0], dt.datetime):
+        # datetimes within threshold difference are "the same time"
+        return (gk[0] - prev_key[0]) > threshold
+    return gk[0] != prev_key[0]
+
+
+def _update_existing_group(file_groups, rn, prev_key, f):
+    if rn not in file_groups[prev_key]:
+        file_groups[prev_key][rn] = [f]
+    else:
+        file_groups[prev_key][rn].append(f)
 
 
 def _filter_groups(groups, missing="pass"):
