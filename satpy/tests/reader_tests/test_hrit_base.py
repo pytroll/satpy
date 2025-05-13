@@ -194,7 +194,7 @@ class TestHRITFileHandler:
         """Test reading a single band from an FSFile."""
         import fsspec
 
-        from satpy.readers.fsfile import FSFile
+        from satpy.readers.remote import FSFile
 
         filename = stub_hrit_file
 
@@ -215,7 +215,7 @@ class TestHRITFileHandler:
         """Test reading a single band from a gzip stream."""
         import fsspec
 
-        from satpy.readers.fsfile import FSFile
+        from satpy.readers.remote import FSFile
 
         filename = stub_gzipped_hrit_file
 

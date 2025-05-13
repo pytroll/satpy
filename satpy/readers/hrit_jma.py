@@ -88,7 +88,7 @@ Compression
 -----------
 
 Gzip-compressed MTSAT files can be decompressed on the fly using
-:class:`~satpy.readers.fsfile.FSFile`:
+:class:`~satpy.readers.remote.FSFile`:
 
 .. code-block:: python
 

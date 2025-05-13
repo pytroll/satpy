@@ -521,7 +521,7 @@ def test_convert_remote_files_to_fsspec_mixed_sources():
 
     Case with mixed local and remote files.
     """
-    from satpy.readers.fsfile import FSFile
+    from satpy.readers.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
@@ -537,7 +537,7 @@ def test_convert_remote_files_to_fsspec_filename_dict():
 
     Case where filenames is a dictionary mapping readers and filenames.
     """
-    from satpy.readers.fsfile import FSFile
+    from satpy.readers.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = {
@@ -557,7 +557,7 @@ def test_convert_remote_files_to_fsspec_fsfile():
 
     Case where the some of the files are already FSFile objects.
     """
-    from satpy.readers.fsfile import FSFile
+    from satpy.readers.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]

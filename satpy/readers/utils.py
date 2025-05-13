@@ -35,7 +35,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import config
-from satpy.readers.fsfile import FSFile
+from satpy.readers.remote import FSFile
 from satpy.utils import get_legacy_chunk_size
 
 LOGGER = logging.getLogger(__name__)
@@ -368,7 +368,7 @@ def fromfile(filename, dtype, count=1, offset=0):
         This function relies on the :func:`generic_open` context manager to read a file remotely.
 
     Args:
-        filename: Either the name of the file to read or a :class:`satpy.readers.FSFile` object.
+        filename: Either the name of the file to read or a :class:`satpy.readers.remote` object.
         dtype: The data type of the numpy array
         count (Optional, default ``1``): Number of items to read
         offset (Optional, default ``0``): Starting point for reading the buffer from

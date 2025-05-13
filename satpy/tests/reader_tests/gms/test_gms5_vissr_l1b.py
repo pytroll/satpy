@@ -349,7 +349,7 @@ class TestFileHandler:
     @pytest.fixture
     def vissr_file_like(self, vissr_file, with_compression):
         """Get file-like object for VISSR test file."""
-        from satpy.readers.fsfile import FSFile
+        from satpy.readers.remote import FSFile
 
         if with_compression:
             open_file = fsspec.open(vissr_file, compression="gzip")

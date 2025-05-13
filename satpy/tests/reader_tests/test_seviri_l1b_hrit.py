@@ -633,7 +633,7 @@ def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file,
 
 def test_read_real_segment_zipped(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as FSFile."""
-    from satpy.readers.fsfile import FSFile
+    from satpy.readers.remote import FSFile
 
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
@@ -660,7 +660,7 @@ def to_upath(fsfile):
 
 def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as UPath."""
-    from satpy.readers.fsfile import FSFile
+    from satpy.readers.remote import FSFile
 
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
 
