@@ -81,7 +81,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.li_base_nc import LINCFileHandler
-from satpy.resample import get_area_def
+from satpy.resample.base import get_area_def
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
