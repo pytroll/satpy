@@ -110,13 +110,17 @@ def _early_exit(filenames, reader):
     if not filenames and not reader:
         # used for an empty Scene
         return True
-    if reader and filenames is not None and not filenames:
-        # user made a mistake in their glob pattern
-        raise ValueError("'filenames' was provided but is empty.")
+    _check_reader_and_filenames(reader, filenames)
     if not filenames:
         LOG.warning("'filenames' required to create readers and load data")
         return True
     return False
+
+
+def _check_reader_and_filenames(reader, filenames):
+    if reader and filenames is not None and not filenames:
+        # user made a mistake in their glob pattern
+        raise ValueError("'filenames' was provided but is empty.")
 
 
 def _get_reader_and_filenames(reader, filenames):
