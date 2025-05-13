@@ -64,27 +64,38 @@ class NativeResampler(PRBaseResampler):
             target_geo_def = self.target_geo_def
 
         # convert xarray backed with numpy array to dask array
-        if "x" not in data.dims or "y" not in data.dims:
-            if data.ndim not in [2, 3]:
-                raise ValueError("Can only handle 2D or 3D arrays without dimensions.")
-            # assume rows is the second to last axis
-            y_axis = data.ndim - 2
-            x_axis = data.ndim - 1
-        else:
-            y_axis = data.dims.index("y")
-            x_axis = data.dims.index("x")
-
-        out_shape = target_geo_def.shape
-        in_shape = data.shape
-        y_repeats = out_shape[0] / float(in_shape[y_axis])
-        x_repeats = out_shape[1] / float(in_shape[x_axis])
-        repeats = {axis_idx: 1. for axis_idx in range(data.ndim) if axis_idx not in [y_axis, x_axis]}
-        repeats[y_axis] = y_repeats
-        repeats[x_axis] = x_repeats
+        repeats = _get_repeats(target_geo_def, data)
 
         d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
         return update_resampled_coords(data, new_data, target_geo_def)
+
+
+def _get_repeats(target_geo_def, data):
+    y_axis, x_axis = _get_axes(data)
+    out_shape = target_geo_def.shape
+    in_shape = data.shape
+    y_repeats = out_shape[0] / float(in_shape[y_axis])
+    x_repeats = out_shape[1] / float(in_shape[x_axis])
+    repeats = {axis_idx: 1. for axis_idx in range(data.ndim) if axis_idx not in [y_axis, x_axis]}
+    repeats[y_axis] = y_repeats
+    repeats[x_axis] = x_repeats
+
+    return repeats
+
+
+def _get_axes(data):
+    if "x" not in data.dims or "y" not in data.dims:
+        if data.ndim not in [2, 3]:
+            raise ValueError("Can only handle 2D or 3D arrays without dimensions.")
+        # assume rows is the second to last axis
+        y_axis = data.ndim - 2
+        x_axis = data.ndim - 1
+    else:
+        y_axis = data.dims.index("y")
+        x_axis = data.dims.index("x")
+
+    return y_axis, x_axis
 
 
 def _aggregate(d, y_size, x_size):
