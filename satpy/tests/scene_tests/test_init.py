@@ -147,7 +147,7 @@ class TestScene:
     def test_create_multiple_reader_different_kwargs(self, include_test_etc):
         """Test passing different kwargs to different readers."""
         from satpy.readers.loading import load_reader
-        with mock.patch.object(satpy.readers, "load_reader", wraps=load_reader) as lr:
+        with mock.patch.object(satpy.readers.loading, "load_reader", wraps=load_reader) as lr:
             Scene(filenames={"fake1_1ds": ["fake1_1ds_1.txt"],
                              "fake2_1ds": ["fake2_1ds_1.txt"]},
                   reader_kwargs={
