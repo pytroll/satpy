@@ -98,6 +98,15 @@ def add_xy_coords(data_arr, area, crs=None):
     # convert to DataArrays
     y_attrs = {}
     x_attrs = {}
+
+    _check_crs_units(crs, x_attrs, y_attrs)
+
+    y = xr.DataArray(y, dims=("y",), attrs=y_attrs)
+    x = xr.DataArray(x, dims=("x",), attrs=x_attrs)
+    return data_arr.assign_coords(y=y, x=x)
+
+
+def _check_crs_units(crs, x_attrs, y_attrs):
     if crs is not None:
         units = crs.axis_info[0].unit_name
         # fix udunits/CF standard units
@@ -108,9 +117,6 @@ def add_xy_coords(data_arr, area, crs=None):
         else:
             y_attrs["units"] = units
             x_attrs["units"] = units
-    y = xr.DataArray(y, dims=("y",), attrs=y_attrs)
-    x = xr.DataArray(x, dims=("x",), attrs=x_attrs)
-    return data_arr.assign_coords(y=y, x=x)
 
 
 def add_crs_xy_coords(data_arr, area):
