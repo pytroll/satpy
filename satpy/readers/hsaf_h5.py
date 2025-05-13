@@ -27,7 +27,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.resample import get_area_def
+from satpy.resample.base import get_area_def
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)

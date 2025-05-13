@@ -145,7 +145,7 @@ class TestMatchDataArrays:
 
         """
         from satpy.composites import CompositeBase
-        from satpy.resample import add_crs_xy_coords
+        from satpy.resample.base import add_crs_xy_coords
 
         comp = CompositeBase("test_comp")
         data_arr1 = self._get_test_ds(shape=(2, 2))
@@ -1405,7 +1405,7 @@ class TestAddBands(unittest.TestCase):
 class TestStaticImageCompositor(unittest.TestCase):
     """Test case for the static compositor."""
 
-    @mock.patch("satpy.resample.get_area_def")
+    @mock.patch("satpy.resample.base.get_area_def")
     def test_init(self, get_area_def):
         """Test the initializiation of static compositor."""
         from satpy.composites import StaticImageCompositor

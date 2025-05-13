@@ -2,7 +2,7 @@
 
 import datetime
 
-from satpy.resample import get_area_def
+from satpy.resample.base import get_area_def
 
 from .netcdf_utils import NetCDF4FileHandler
 
