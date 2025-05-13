@@ -132,7 +132,7 @@ Output:
         ancillary_variables:      []
 
 The `filenames` argument can either be a list of strings, see the example above, or a list of
-:class:`satpy.readers.FSFile` objects. FSFiles can be used in conjunction with `fsspec`_,
+:class:`satpy.readers.fsfile.FSFile` objects. FSFiles can be used in conjunction with `fsspec`_,
 e.g. to handle in-memory data:
 
 .. code-block:: python
@@ -141,7 +141,7 @@ e.g. to handle in-memory data:
 
     from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
     from satpy import Scene
-    from satpy.readers import FSFile
+    from satpy.readers.fsfile import FSFile
 
     # In this example, we will make use of `MemoryFile`s in a `MemoryFileSystem`.
     memory_fs = MemoryFileSystem()

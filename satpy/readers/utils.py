@@ -35,7 +35,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import config
-from satpy.readers import FSFile
+from satpy.readers.fsfile import FSFile
 from satpy.utils import get_legacy_chunk_size
 
 LOGGER = logging.getLogger(__name__)

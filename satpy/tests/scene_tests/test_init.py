@@ -97,7 +97,7 @@ class TestScene:
 
     def test_init_with_fsfile(self):
         """Test initialisation with FSFile objects."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
 
         # We should not mock _create_reader_instances here, because in
         # https://github.com/pytroll/satpy/issues/1605 satpy fails with

@@ -800,7 +800,7 @@ def _check_file_protocols(filenames, storage_options):
 
 
 def _sort_files_to_local_remote_and_fsfiles(filenames):
-    from satpy.readers import FSFile
+    from satpy.readers.fsfile import FSFile
 
     local_files = []
     remote_files = []
@@ -820,7 +820,7 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
 def _filenames_to_fsfile(filenames, storage_options):
     import fsspec
 
-    from satpy.readers import FSFile
+    from satpy.readers.fsfile import FSFile
 
     if filenames:
         fsspec_files = fsspec.open_files(filenames, **storage_options)

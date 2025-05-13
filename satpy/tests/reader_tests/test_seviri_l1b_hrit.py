@@ -33,7 +33,6 @@ from numpy import testing as npt
 from pyproj import CRS
 
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
-from satpy.readers import FSFile
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
@@ -634,6 +633,8 @@ def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file,
 
 def test_read_real_segment_zipped(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as FSFile."""
+    from satpy.readers.fsfile import FSFile
+
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
     prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
@@ -659,6 +660,8 @@ def to_upath(fsfile):
 
 def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as UPath."""
+    from satpy.readers.fsfile import FSFile
+
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
 
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))

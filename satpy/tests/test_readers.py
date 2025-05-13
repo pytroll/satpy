@@ -36,7 +36,7 @@ from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
-from satpy.readers import FSFile, find_files_and_readers, open_file_or_filename
+from satpy.readers import find_files_and_readers, open_file_or_filename
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -1032,52 +1032,52 @@ class TestFSFile:
 
     def test_regular_filename_is_returned_with_str(self, random_string):
         """Test that str give the filename."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         assert str(FSFile(random_string)) == random_string
 
     def test_fsfile_with_regular_filename_abides_pathlike(self, random_string):
         """Test that FSFile abides PathLike for regular filenames."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         assert os.fspath(FSFile(random_string)) == random_string
 
     def test_fsfile_with_regular_filename_and_fs_spec_abides_pathlike(self, random_string):
         """Test that FSFile abides PathLike for filename+fs instances."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         assert os.fspath(FSFile(random_string, fs=None)) == random_string
 
     def test_fsfile_with_pathlike(self, local_filename):
         """Test FSFile with path-like object."""
         from pathlib import Path
 
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         f = FSFile(Path(local_filename))
         assert str(f) == os.fspath(f) == str(local_filename)
 
     def test_fsfile_with_fs_open_file_abides_pathlike(self, local_file, random_string):
         """Test that FSFile abides PathLike for fsspec OpenFile instances."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         assert os.fspath(FSFile(local_file)).endswith(random_string)
 
     def test_repr_includes_filename(self, local_file, random_string):
         """Test that repr includes the filename."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         assert random_string in repr(FSFile(local_file))
 
     def test_open_regular_file(self, local_filename):
         """Test opening a regular file."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         _assert_is_open_file_and_close(FSFile(local_filename).open())
 
     def test_open_local_fs_file(self, local_file):
         """Test opening a localfs file."""
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         _assert_is_open_file_and_close(FSFile(local_file).open())
 
     def test_open_zip_fs_regular_filename(self, local_filename2, local_zip_file):
         """Test opening a zipfs with a regular filename provided."""
         from fsspec.implementations.zip import ZipFileSystem
 
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         zip_fs = ZipFileSystem(local_zip_file)
         file = FSFile(_posixify_path(local_filename2), zip_fs)
         _assert_is_open_file_and_close(file.open())
@@ -1086,7 +1086,7 @@ class TestFSFile:
         """Test opening a zipfs openfile."""
         import fsspec
 
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         open_file = fsspec.open("zip:/" + _posixify_path(local_filename2) + "::file://" + str(local_zip_file))
         file = FSFile(open_file)
         _assert_is_open_file_and_close(file.open())
@@ -1095,7 +1095,7 @@ class TestFSFile:
         """Test sorting FSFiles."""
         from fsspec.implementations.zip import ZipFileSystem
 
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         zip_fs = ZipFileSystem(local_zip_file)
         file1 = FSFile(local_filename2, zip_fs)
 
@@ -1110,7 +1110,7 @@ class TestFSFile:
         """Test that FSFile compares equal when it should."""
         from fsspec.implementations.zip import ZipFileSystem
 
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
         zip_fs = ZipFileSystem(local_zip_file)
         assert FSFile(local_filename) == FSFile(local_filename)
         assert (FSFile(local_filename, zip_fs) == FSFile(local_filename, zip_fs))
@@ -1123,7 +1123,7 @@ class TestFSFile:
         from fsspec.implementations.local import LocalFileSystem
         from fsspec.implementations.zip import ZipFileSystem
 
-        from satpy.readers import FSFile
+        from satpy.readers.fsfile import FSFile
 
         lfs = LocalFileSystem()
         zfs = ZipFileSystem(local_zip_file)
@@ -1135,12 +1135,16 @@ class TestFSFile:
 
     def test_fs_property_read(self, local_filename):
         """Test reading the fs property of the class."""
+        from satpy.readers.fsfile import FSFile
+
         fsf = FSFile(local_filename)
         fs = fsf.fs
         assert fs is None
 
     def test_fs_property_is_read_only(self, local_filename):
         """Test that the fs property of the class is read-only."""
+        from satpy.readers.fsfile import FSFile
+
         fsf = FSFile(local_filename)
         with pytest.raises(AttributeError):
             fsf.fs = "foo"
@@ -1148,6 +1152,8 @@ class TestFSFile:
 
 def test_open_file_or_filename_uses_mode(tmp_path):
     """Test that open_file_or_filename uses provided mode."""
+    from satpy.readers.fsfile import FSFile
+
     filename = tmp_path / "hej"
     with open(filename, mode="wb") as fd:
         fd.write(b"hej")
@@ -1188,7 +1194,7 @@ def local_netcdf_fsspec(local_netcdf_filename):
 @pytest.fixture(scope="module")
 def local_netcdf_fsfile(local_netcdf_fsspec):
     """Get FSFile object wrapping an fsspec OpenFile pointing to local netcdf file."""
-    from satpy.readers import FSFile
+    from satpy.readers.fsfile import FSFile
 
     return FSFile(local_netcdf_fsspec)
 

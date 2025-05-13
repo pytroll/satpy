@@ -26,7 +26,6 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers import FSFile
 from satpy.readers.hrit_base import HRITFileHandler
 from satpy.tests.utils import RANDOM_GEN
 
@@ -194,6 +193,9 @@ class TestHRITFileHandler:
     def test_read_band_FSFile(self, stub_hrit_file):
         """Test reading a single band from an FSFile."""
         import fsspec
+
+        from satpy.readers.fsfile import FSFile
+
         filename = stub_hrit_file
 
         fs_file = fsspec.open(filename)
@@ -212,6 +214,9 @@ class TestHRITFileHandler:
     def test_read_band_gzip_stream(self, stub_gzipped_hrit_file):
         """Test reading a single band from a gzip stream."""
         import fsspec
+
+        from satpy.readers.fsfile import FSFile
+
         filename = stub_gzipped_hrit_file
 
         fs_file = fsspec.open(filename, compression="gzip")

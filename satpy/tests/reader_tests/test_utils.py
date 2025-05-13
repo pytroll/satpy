@@ -32,7 +32,6 @@ import xarray as xr
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
-from satpy.readers import FSFile
 from satpy.readers import utils as hf
 
 
@@ -325,6 +324,8 @@ class TestHelpers(unittest.TestCase):
 
     def test_generic_open_FSFile_MemoryFileSystem(self):
         """Test the generic_open method with FSFile in MemoryFileSystem."""
+        from satpy.readers.fsfile import FSFile
+
         mem_fs = MemoryFileSystem()
         mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
         mem_file.commit()
@@ -350,6 +351,8 @@ class TestHelpers(unittest.TestCase):
     @mock.patch("bz2.decompress", return_value=b"TEST_DECOMPRESSED")
     def test_unzip_FSFile(self, bz2_mock):
         """Test the FSFile bz2 file unzipping techniques."""
+        from satpy.readers.fsfile import FSFile
+
         mock_bz2_decompress = mock.MagicMock()
         mock_bz2_decompress.return_value = b"TEST_DECOMPRESSED"
 
@@ -416,7 +419,7 @@ class TestHelpers(unittest.TestCase):
         assert offset == -0.0556
 
         # Test that channels not present in dict return 1.0, 0.0
-        with self.assertWarns(UserWarning):
+        with pytest.warns(UserWarning):
             slope, offset = hf.get_user_calibration_factors("IR097", radcor_dict)
         assert slope == 1.0
         assert offset == 0.0
