@@ -16,9 +16,9 @@
 """CF processing of attributes."""
 from __future__ import annotations
 
-import datetime
 import json
 import logging
+import datetime as dt
 from collections import OrderedDict
 
 import numpy as np
@@ -209,7 +209,7 @@ def _format_prerequisites_attrs(data_arr: xr.DataArray) -> None:
 
 def _add_history(attrs):
     """Add 'history' attribute to dictionary."""
-    _history_create = "Created by pytroll/satpy on {}".format(datetime.datetime.utcnow())
+    _history_create = "Created by pytroll/satpy on {}".format(dt.datetime.now(dt.timezone.utc))
     if "history" in attrs:
         if isinstance(attrs["history"], list):
             attrs["history"] = "".join(attrs["history"])
