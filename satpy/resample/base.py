@@ -107,16 +107,17 @@ def add_xy_coords(data_arr, area, crs=None):
 
 
 def _check_crs_units(crs, x_attrs, y_attrs):
-    if crs is not None:
-        units = crs.axis_info[0].unit_name
-        # fix udunits/CF standard units
-        units = units.replace("metre", "meter")
-        if units == "degree":
-            y_attrs["units"] = "degrees_north"
-            x_attrs["units"] = "degrees_east"
-        else:
-            y_attrs["units"] = units
-            x_attrs["units"] = units
+    if crs is None:
+        return
+    units = crs.axis_info[0].unit_name
+    # fix udunits/CF standard units
+    units = units.replace("metre", "meter")
+    if units == "degree":
+        y_attrs["units"] = "degrees_north"
+        x_attrs["units"] = "degrees_east"
+    else:
+        y_attrs["units"] = units
+        x_attrs["units"] = units
 
 
 def add_crs_xy_coords(data_arr, area):
@@ -135,22 +136,7 @@ def add_crs_xy_coords(data_arr, area):
             information from.
 
     """
-    # add CRS object if pyproj 2.0+
-    try:
-        from pyproj import CRS
-    except ImportError:
-        LOG.debug("Could not add 'crs' coordinate with pyproj<2.0")
-        crs = None
-    else:
-        # default lat/lon projection
-        latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
-        # otherwise get it from the area definition
-        if hasattr(area, "crs"):
-            crs = area.crs
-        else:
-            proj_str = getattr(area, "proj_str", latlon_proj)
-            crs = CRS.from_string(proj_str)
-        data_arr = data_arr.assign_coords(crs=crs)
+    crs, data_arr = _add_crs(area, data_arr)
 
     # Add x/y coordinates if possible
     if isinstance(area, SwathDefinition):
@@ -173,6 +159,26 @@ def add_crs_xy_coords(data_arr, area):
         # Gridded data (AreaDefinition/StackedAreaDefinition)
         data_arr = add_xy_coords(data_arr, area, crs=crs)
     return data_arr
+
+
+def _add_crs(area, data_arr):
+    # add CRS object if pyproj 2.0+
+    try:
+        from pyproj import CRS
+    except ImportError:
+        LOG.debug("Could not add 'crs' coordinate with pyproj<2.0")
+        crs = None
+    else:
+        # default lat/lon projection
+        latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
+        # otherwise get it from the area definition
+        if hasattr(area, "crs"):
+            crs = area.crs
+        else:
+            proj_str = getattr(area, "proj_str", latlon_proj)
+            crs = CRS.from_string(proj_str)
+        data_arr = data_arr.assign_coords(crs=crs)
+    return crs, data_arr
 
 
 def update_resampled_coords(old_data, new_data, new_area):
