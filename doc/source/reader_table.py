@@ -20,7 +20,7 @@
 
 from yaml import BaseLoader
 
-from satpy.readers import available_readers
+from satpy.readers.config import available_readers
 
 
 def rst_table_row(columns=None):

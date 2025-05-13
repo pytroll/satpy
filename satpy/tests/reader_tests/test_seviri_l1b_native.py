@@ -1137,7 +1137,7 @@ class TestNativeMSGFilenames:
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
 
         reader_configs = config_search_paths(
             os.path.join("readers", "seviri_l1b_native.yaml"))

@@ -36,7 +36,8 @@ from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
-from satpy.readers import find_files_and_readers, open_file_or_filename
+from satpy.readers.grouping import find_files_and_readers
+from satpy.readers.remote import open_file_or_filename
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -283,26 +284,26 @@ class TestReaderLoader(unittest.TestCase):
 
         This should check the local directory which should have no files.
         """
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         ri = load_readers()
         assert ri == {}
 
     def test_filenames_only(self):
         """Test with filenames specified."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         ri = load_readers(filenames=["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"])
         assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_filenames_and_reader(self):
         """Test with filenames and reader specified."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         ri = load_readers(reader="viirs_sdr",
                           filenames=["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"])
         assert list(ri.keys()) == ["viirs_sdr"]
 
     def test_bad_reader_name_with_filenames(self):
         """Test bad reader name with filenames provided."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         with pytest.raises(ValueError, match="No reader named: i_dont_exist"):
             load_readers(reader="i_dont_exist",
                          filenames=["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"])
@@ -311,7 +312,7 @@ class TestReaderLoader(unittest.TestCase):
         """Test with filenames specified as pathlib.Path."""
         from pathlib import Path
 
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         ri = load_readers(filenames=[
             Path("SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"),
         ])
@@ -319,7 +320,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_filenames_as_dict(self):
         """Test loading readers where filenames are organized by reader."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
         }
@@ -328,7 +329,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_filenames_as_dict_bad_reader(self):
         """Test loading with filenames dict but one of the readers is bad."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
             "__fake__": ["fake.txt"],
@@ -343,7 +344,7 @@ class TestReaderLoader(unittest.TestCase):
         and a base_dir.
 
         """
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
         }
@@ -353,7 +354,7 @@ class TestReaderLoader(unittest.TestCase):
     def test_empty_filenames_as_dict(self):
         """Test passing filenames as a dictionary with an empty list of filenames."""
         # only one reader
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": [],
         }
@@ -376,7 +377,7 @@ class TestReaderLoader(unittest.TestCase):
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
     def test_missing_requirements(self, *mocks):
         """Test warnings and exceptions in case of missing requirements."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
 
         # Filenames from a single scan
         epi_pro_miss = ["H-000-MSG4__-MSG4________-IR_108___-000006___-201809050900-__"]
@@ -407,7 +408,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_all_filtered(self):
         """Test behaviour if no file matches the filter parameters."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
         }
@@ -419,7 +420,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_all_filtered_multiple(self):
         """Test behaviour if no file matches the filter parameters."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
             "abi_l1b": ["OR_ABI-L1b-RadF-M3C01_G16_s20120561730408_e20120561741175_c20172631741218.nc"],
@@ -431,7 +432,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_almost_all_filtered(self):
         """Test behaviour if only one reader has datasets."""
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
         filenames = {
             "viirs_sdr": ["SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"],
             "abi_l1b": ["OR_ABI-L1b-RadF-M3C01_G16_s20172631730408_e20172631741175_c20172631741218.nc"],
@@ -450,7 +451,7 @@ class TestReaderLoader(unittest.TestCase):
         import logging
 
         import satpy
-        from satpy.readers import load_readers
+        from satpy.readers.loading import load_readers
 
         reader_config = "reader:\n"
         reader_config += "  name: nonreader\n"
@@ -542,7 +543,7 @@ class TestFindFilesAndReaders:
 
     def test_no_parameters(self, viirs_file):
         """Test with no limiting parameters."""
-        from satpy.readers import find_files_and_readers
+        from satpy.readers.grouping import find_files_and_readers
 
         ri = find_files_and_readers()
         assert list(ri.keys()) == ["viirs_sdr"]
@@ -550,7 +551,7 @@ class TestFindFilesAndReaders:
 
     def test_no_parameters_both_atms_and_viirs(self, viirs_file, atms_file):
         """Test with no limiting parameters when there area both atms and viirs files in the same directory."""
-        from satpy.readers import find_files_and_readers
+        from satpy.readers.grouping import find_files_and_readers
 
         ri = find_files_and_readers()
 
@@ -584,7 +585,7 @@ class TestFindFilesAndReaders:
         """Test that an exception is raised when a reader can't be loaded."""
         import yaml
 
-        from satpy.readers import find_files_and_readers
+        from satpy.readers.grouping import find_files_and_readers
 
         # touch the file so it exists on disk
         with mock.patch("yaml.load") as load:
@@ -594,7 +595,7 @@ class TestFindFilesAndReaders:
 
     def test_pending_old_reader_name_mapping(self):
         """Test that requesting pending old reader names raises a warning."""
-        from satpy.readers import PENDING_OLD_READER_NAMES, get_valid_reader_names
+        from satpy.readers.config import PENDING_OLD_READER_NAMES, get_valid_reader_names
         if not PENDING_OLD_READER_NAMES:
             return unittest.skip("Skipping pending deprecated reader tests because "
                                  "no pending deprecated readers.")
@@ -605,7 +606,7 @@ class TestFindFilesAndReaders:
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        from satpy.readers import OLD_READER_NAMES, get_valid_reader_names
+        from satpy.readers.config import OLD_READER_NAMES, get_valid_reader_names
         if not OLD_READER_NAMES:
             return pytest.skip("Skipping deprecated reader tests because "
                                "no deprecated readers.")
@@ -627,7 +628,7 @@ class TestYAMLFiles:
         IgnoreLoader.add_multi_constructor("", IgnoreLoader._ignore_all_tags)
 
         from satpy._config import glob_config
-        from satpy.readers import read_reader_config
+        from satpy.readers.config import read_reader_config
         for reader_config in glob_config("readers/*.yaml"):
             reader_fn = os.path.basename(reader_config)
             reader_fn_name = os.path.splitext(reader_fn)[0]
@@ -730,7 +731,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_no_reader(self):
         """Test that reader does not need to be provided."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
 
         # without files it's going to be an empty result
         assert group_files([]) == []
@@ -739,7 +740,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_unknown_files(self):
         """Test that error is raised on unknown files."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         with pytest.raises(ValueError, match="No matching readers found for these files: .*"):
             group_files(self.unknown_files, "abi_l1b")
 
@@ -747,7 +748,7 @@ class TestGroupFiles(unittest.TestCase):
         """Test that reader not existing causes an error."""
         import yaml
 
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
 
         # touch the file so it exists on disk
         with mock.patch("yaml.load") as load:
@@ -757,14 +758,14 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_default_behavior(self):
         """Test the default behavior with the 'abi_l1b' reader."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.g16_files, reader="abi_l1b")
         assert 6 == len(groups)
         assert 2 == len(groups[0]["abi_l1b"])
 
     def test_default_behavior_set(self):
         """Test the default behavior with the 'abi_l1b' reader."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         files = set(self.g16_files)
         num_files = len(files)
         groups = group_files(files, reader="abi_l1b")
@@ -775,14 +776,14 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_non_datetime_group_key(self):
         """Test what happens when the start_time isn't used for grouping."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.g16_files, reader="abi_l1b", group_keys=("platform_shortname",))
         assert 1 == len(groups)
         assert 12 == len(groups[0]["abi_l1b"])
 
     def test_large_time_threshold(self):
         """Test what happens when the time threshold holds multiple files."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.g16_files, reader="abi_l1b", time_threshold=60*8)
         assert 3 == len(groups)
         assert 4 == len(groups[0]["abi_l1b"])
@@ -797,7 +798,7 @@ class TestGroupFiles(unittest.TestCase):
         ('start_time',).
 
         """
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.g16_files + self.g17_files, reader="abi_l1b", group_keys=("start_time",))
         assert 6 == len(groups)
         assert 4 == len(groups[0]["abi_l1b"])
@@ -809,7 +810,7 @@ class TestGroupFiles(unittest.TestCase):
         to use for grouping.
 
         """
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.g16_files + self.g17_files, reader="abi_l1b",
                              group_keys=("start_time", "platform_shortname"))
         assert 12 == len(groups)
@@ -821,7 +822,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_viirs_orbits(self):
         """Test a reader that doesn't use 'start_time' for default grouping."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.noaa20_files + self.npp_files, reader="viirs_sdr")
         assert 2 == len(groups)
         # the noaa-20 files will be first because the orbit number is smaller
@@ -832,7 +833,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_viirs_override_keys(self):
         """Test overriding a group keys to add 'start_time'."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(self.noaa20_files + self.npp_files, reader="viirs_sdr",
                              group_keys=("start_time", "orbit", "platform_shortname"))
         assert 8 == len(groups)
@@ -858,7 +859,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_multi_readers(self):
         """Test passing multiple readers."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(
             self.g16_files + self.noaa20_files,
             reader=("abi_l1b", "viirs_sdr"))
@@ -907,7 +908,7 @@ class TestGroupFiles(unittest.TestCase):
         Make sure it raises an exception, for there will be groups
         containing GLM but not ABI.
         """
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         with pytest.raises(
                 FileNotFoundError, match="when grouping files, group at index 1 "
                 "had no files for readers: abi_l1b"):
@@ -924,7 +925,7 @@ class TestGroupFiles(unittest.TestCase):
         Verify that all groups lacking ABI are skipped, resulting in only
         three groups that are all non-empty for both instruments.
         """
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(
             self._filenames_abi_glm,
             reader=["abi_l1b", "glm_l2"],
@@ -938,7 +939,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_multi_readers_empty_groups_passed(self):
         """Verify that all groups are there, resulting in some that are empty."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         groups = group_files(
             self._filenames_abi_glm,
             reader=["abi_l1b", "glm_l2"],
@@ -951,7 +952,7 @@ class TestGroupFiles(unittest.TestCase):
 
     def test_multi_readers_invalid_parameter(self):
         """Verify that invalid missing parameter raises ValueError."""
-        from satpy.readers import group_files
+        from satpy.readers.grouping import group_files
         with pytest.raises(ValueError, match="Invalid value for ``missing`` argument..*"):
             group_files(
                 self._filenames_abi_glm,
@@ -1271,7 +1272,7 @@ def _open_h5py():
 )
 def test_open_file_or_filename(file_thing, create_read_func):
     """Test various combinations of file-like things and opening them with various libraries."""
-    from satpy.readers import open_file_or_filename
+    from satpy.readers.remote import open_file_or_filename
 
     read_func = create_read_func()
     open_thing = open_file_or_filename(file_thing)

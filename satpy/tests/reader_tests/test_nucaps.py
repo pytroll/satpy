@@ -172,7 +172,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -184,7 +184,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_init_with_kwargs(self):
         """Test basic init with extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs, mask_surface=False)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -196,7 +196,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_nonpressure_based(self):
         """Test loading all channels that aren't based on pressure."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -220,7 +220,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -255,7 +255,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_multiple_files_pressure(self):
         """Test loading Temperature from multiple input files."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -269,7 +269,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -282,7 +282,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_individual_pressure_levels_min_max(self):
         """Test loading individual Temperature with min/max level specified."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -295,7 +295,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_individual_pressure_levels_single(self):
         """Test loading individual Temperature with specific levels."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -308,7 +308,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_pressure_levels_true(self):
         """Test loading Temperature with all pressure levels."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -322,7 +322,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_pressure_levels_min_max(self):
         """Test loading Temperature with min/max level specified."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -336,7 +336,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_pressure_levels_single(self):
         """Test loading a specific Temperature level."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -350,7 +350,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def test_load_pressure_levels_single_and_pressure_levels(self):
         """Test loading a specific Temperature level and pressure levels."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
@@ -386,7 +386,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -398,7 +398,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_nonpressure_based(self):
         """Test loading all channels that aren't based on pressure."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -419,7 +419,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -449,7 +449,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -462,7 +462,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_individual_pressure_levels_min_max(self):
         """Test loading individual Temperature with min/max level specified."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -475,7 +475,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_individual_pressure_levels_single(self):
         """Test loading individual Temperature with specific levels."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -488,7 +488,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_pressure_levels_true(self):
         """Test loading Temperature with all pressure levels."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -502,7 +502,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_pressure_levels_min_max(self):
         """Test loading Temperature with min/max level specified."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -516,7 +516,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_pressure_levels_single(self):
         """Test loading a specific Temperature level."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",
@@ -530,7 +530,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def test_load_pressure_levels_single_and_pressure_levels(self):
         """Test loading a specific Temperature level and pressure levels."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc",

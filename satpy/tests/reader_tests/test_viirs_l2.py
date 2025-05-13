@@ -7,7 +7,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers import load_reader
+from satpy.readers.loading import load_reader
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
@@ -99,7 +99,7 @@ class TestVIIRSL2FileHandler:
     )
     def test_init(self, filename):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
 
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([filename])

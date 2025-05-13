@@ -163,7 +163,7 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def test_fy3b_file(self):
         """Test that FY3B files are recognized."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(["tf2018359214943.FY3B-L_VIRRX_L1B.HDF"])
         assert 1 == len(FY3B_file)
@@ -174,7 +174,7 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def test_fy3c_file(self):
         """Test that FY3C files are recognized."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(["tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF",
                                                               "tf2018359143912.FY3C-L_VIRRX_L1B.HDF"])

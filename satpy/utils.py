@@ -551,7 +551,7 @@ def check_satpy(readers=None, writers=None, packages=None):
         None
 
     """
-    from satpy.readers import configs_for_reader
+    from satpy.readers.config import configs_for_reader
     from satpy.writers import configs_for_writer
 
     print("Readers")  # noqa: T201

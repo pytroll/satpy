@@ -190,7 +190,7 @@ class TestGAASPReader:
     )
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
@@ -221,7 +221,7 @@ class TestGAASPReader:
         ])
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
@@ -280,7 +280,7 @@ class TestGAASPReader:
         ])
     def test_basic_load(self, filenames, loadable_ids):
         """Test that variables are loaded properly."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)

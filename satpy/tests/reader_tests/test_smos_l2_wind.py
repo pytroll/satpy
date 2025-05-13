@@ -96,7 +96,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic initialization of this reader."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc",
@@ -108,7 +108,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
 
     def test_load_wind_speed(self):
         """Load wind_speed dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.smos_l2_wind.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -130,7 +130,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
 
     def test_load_lat(self):
         """Load lat dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.smos_l2_wind.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -147,7 +147,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
 
     def test_load_lon(self):
         """Load lon dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.smos_l2_wind.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([

@@ -138,7 +138,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "clavrx_H08_20180806_1800.level2.hdf",
@@ -152,7 +152,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         """Test exception raised when no donor file is available."""
         import xarray as xr
 
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         fake_fn = "clavrx_H08_20180806_1800.level2.hdf"
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
@@ -167,7 +167,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         """Test loading all test datasets with old donor."""
         import xarray as xr
 
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -212,7 +212,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         """Test loading all test datasets with new donor."""
         import xarray as xr
 
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([

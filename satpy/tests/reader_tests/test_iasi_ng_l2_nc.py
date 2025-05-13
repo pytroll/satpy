@@ -24,8 +24,8 @@ import pytest
 import xarray as xr
 
 from satpy import Scene
-from satpy.readers import load_reader
 from satpy.readers.iasi_ng_l2_nc import IASINGL2NCFileHandler
+from satpy.readers.loading import load_reader
 
 d_lff = ("n_lines", "n_for", "n_fov")
 
