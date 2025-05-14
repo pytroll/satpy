@@ -723,7 +723,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2").astype(np.float32)
 
         for v in (vc, a, b, c1, c2):
-            if v == v.attrs.get("FillValue",
+            if v == v.attrs.get("_FillValue",
                                 default_fillvals.get(v.dtype.str[1:])):
                 logger.error(
                     "{:s} set to fill value, cannot produce "
@@ -747,7 +747,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance").astype(np.float32)
 
         if cesi == cesi.attrs.get(
-                "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
+                "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
