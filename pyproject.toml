@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = [
     "platformdirs",
-    "dask[array]>=0.17.1,<2025.1.0",
+    "dask[array]>=0.17.1",
     "donfig",
     "numpy>=1.21",
     "packaging",
@@ -44,6 +44,7 @@ goci2 = ["netCDF4 >= 1.1.8"]
 generic_image = ["rasterio", "rioxarray"]
 acspo = ["netCDF4 >= 1.1.8"]
 clavrx = ["netCDF4 >= 1.1.8"]
+vii_l1b = ["python-geotiepoints"]
 viirs_l1b = ["netCDF4 >= 1.1.8"]
 viirs_sdr = ["h5py >= 2.7.0"]
 viirs_compact = ["h5py >= 2.7.0"]

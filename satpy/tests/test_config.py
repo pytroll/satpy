@@ -289,8 +289,17 @@ def _create_yamlbased_plugin(
 class TestPluginsConfigs:
     """Test that plugins are working."""
 
-    def setup_method(self):
-        """Set up the test."""
+    @classmethod
+    def setup_class(cls):
+        """Set up the class of tests with a clean environment."""
+        cached_entry_point.cache_clear()
+
+    def teardown_method(self):
+        """Tear down the test.
+
+        Make sure we leave every test the way we started.
+
+        """
         cached_entry_point.cache_clear()
 
     def test_get_plugin_configs(self, fake_composite_plugin_etc_path):
@@ -362,7 +371,7 @@ class TestPluginsConfigs:
         import xarray as xr
         from trollimage.xrimage import XRImage
 
-        from satpy.writers import Enhancer
+        from satpy.enhancements.enhancer import Enhancer
 
         data_arr = xr.DataArray(
             da.zeros((10, 10), dtype=np.float32),

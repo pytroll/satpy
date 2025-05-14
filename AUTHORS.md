@@ -20,6 +20,7 @@ The following people have made contributions to this project:
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
 - [Manuel Carranza (manucarran)](https://github.com/manucarran)
+- [Guido Cioni (guidocioni)](https://github.com/guidocioni)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
 - [Radar, Satellite and Nowcasting Division (meteoswiss-mdr)](https://github.com/meteoswiss-mdr)

@@ -391,6 +391,10 @@ For *polar orbiting* satellites the readers usually provide coordinates and view
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
 
   * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+  * ``start_direction``: The direction of satellite movement (ascending or descending) at the start of the granule.
+  * ``end_direction``: The direction of satellite movement (ascending or descending) at the end of the granule.
+  * ``start_orbit``: The orbit number at the start of the granule.
+  * ``end_orbit``: The orbit number at the end of the granule. Typically, this is the same as `start_orbit`.
 
 .. _data_array_coordinates:
 
