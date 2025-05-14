@@ -150,6 +150,16 @@ enhancements:
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
 
+  airmass_tropical_default:
+    standard_name: airmass_tropical
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-25, -30, 243]
+        max_stretch: [5, 25, 190]
+
   green_snow_default:
     standard_name: green_snow
     operations:
@@ -939,6 +949,24 @@ enhancements:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 10, 293]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 1, 1]
+
+  night_microphysics_tropical_default:
+    standard_name: night_microphysics_tropical
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 273]
+        max_stretch: [2, 5, 300]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 1, 1]
 
   24h_microphysics_default:
     standard_name: 24h_microphysics
@@ -1117,6 +1145,34 @@ enhancements:
       kwargs:
         # MaskingCompositor always adds alpha channel
         gamma: [1.7, 1.7, 2.0, 1.0]
+
+  severe_storm_default:
+    standard_name: severe_storm
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-35, -5, -75]
+        max_stretch: [5, 60, 25]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 0.5, 1]
+  
+  severe_storm_tropical_default:
+    standard_name: severe_storm_tropical
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-35, -5, -75]
+        max_stretch: [5, 75, 25]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 0.33, 1]
 
   true_color_with_night_ir:
     standard_name: true_color_with_night_ir

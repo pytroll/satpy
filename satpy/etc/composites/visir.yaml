@@ -122,6 +122,20 @@ composites:
     - wavelength: 6.2
     standard_name: airmass
 
+  airmass_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+      - wavelength: 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+        - wavelength: 10.8
+    - wavelength: 6.2
+    standard_name: airmass_tropical
+
   ash:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -462,6 +476,20 @@ composites:
     - 10.8
     standard_name: night_microphysics
 
+  night_microphysics_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 3.9
+    - 10.8
+    standard_name: night_microphysics_tropical
+
   24h_microphysics:
     references:
       EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/24MicroRGB.pdf
@@ -669,3 +697,37 @@ composites:
       - wavelength: 3.9
       - wavelength: 6.2
       - wavelength: 1.6
+  
+  severe_storm:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+      - wavelength: 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 3.9
+        - wavelength: 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 1.6
+        - wavelength: 0.6
+    standard_name: severe_storm
+
+  severe_storm_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+      - wavelength: 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 3.9
+        - wavelength: 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 1.6
+        - wavelength: 0.6
+    standard_name: severe_storm_tropical
