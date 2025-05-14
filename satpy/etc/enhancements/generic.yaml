@@ -149,6 +149,10 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 1, 1]
 
   airmass_tropical_default:
     standard_name: airmass_tropical
@@ -159,6 +163,10 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -30, 243]
         max_stretch: [5, 25, 190]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1, 1, 1]
 
   green_snow_default:
     standard_name: green_snow
