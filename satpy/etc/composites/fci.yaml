@@ -516,7 +516,7 @@ composites:
     prerequisites:
       - masked_colorized_low_level_moisture
       - night_ir105
-  
+
   severe_storm:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:

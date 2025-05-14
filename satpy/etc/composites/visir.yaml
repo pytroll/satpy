@@ -697,7 +697,7 @@ composites:
       - wavelength: 3.9
       - wavelength: 6.2
       - wavelength: 1.6
-  
+
   severe_storm:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:

@@ -1167,7 +1167,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.gamma
       kwargs:
         gamma: [1, 0.5, 1]
-  
+
   severe_storm_tropical_default:
     standard_name: severe_storm_tropical
     operations:
