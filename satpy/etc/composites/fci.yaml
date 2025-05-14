@@ -248,6 +248,13 @@ composites:
 
   ### True Color with Fires
   true_color_flames_with_night_ir105:
+    description: >
+      True Color with a simple night layer overlayed with a fire visualisation. Works best with HRFI+FDHSI inputs.
+      Originally inspired by the work of Pierre Markuse
+      on S2 https://custom-scripts.sentinel-hub.com/custom-scripts/sentinel-2/markuse_fire/
+      WARNING: This composite uses an extremely simple fire detector to identify fire pixels, so it is prone
+      to false alarms and missed detection. It is intended solely for PR-like visualisation purposes of large fires,
+      and no other (operational) use.
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: true_color_flames
     prerequisites:
