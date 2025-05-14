@@ -17,7 +17,7 @@
 
 import logging
 
-from satpy.composites import GenericCompositor
+from satpy.composites import CompositeBase, GenericCompositor
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
@@ -198,3 +198,45 @@ class NDVIHybridGreen(SpectralBlender):
             + self.limits[0]
 
         return fraction
+
+
+class SimpleFireMaskCompositor(CompositeBase):
+    """Class for a simple fire detection compositor."""
+
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+        """Compute a simple fire detection to create a boolean mask to be used in "flames" composites.
+
+        Expects 4 channel inputs, calibrated to BT/reflectances, in this order [µm]: 10.x, 3.x, 2.x, 0.6.
+
+        It applies 4 spectral tests, for which the thresholds must be provided in the yaml as "test_thresholds":
+        - Test 0: 10.x > thr0 (clouds filter)
+        - Test 1: 3.x-10.x > thr1 (hotspot)
+        - Test 2: 0.6 > thr2 (clouds, sunglint filter)
+        - Test 3: 3.x+2.x > thr3 (hotspot)
+
+        .. warning::
+            This fire detection algorithm is extremely simple, so it is prone to false alarms and missed detections.
+            It is intended only for PR-like visualisation of large fires, not for any other use.
+            The tests have been designed for MTG-FCI.
+
+        """
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        info["name"] = self.attrs["name"]
+        info.update(self.attrs)
+
+        # fire spectral tests
+
+        # test 0: # window channel should be warm (no clouds)
+        ir_105_temp = projectables[0] > self.attrs["test_thresholds"][0]
+        # test 1: # 3.8-10.5µm should be high (hotspot)
+        temp_diff = projectables[1] - projectables[0] > self.attrs["test_thresholds"][1]
+        # test 2: vis_06 should be low (no clouds, no sunglint)
+        vis_06_bright = projectables[3] < self.attrs["test_thresholds"][2]
+        # test 3: 3.8+2.2µm should be high (hotspot)
+        ir38_plus_nir22 = projectables[1] + projectables[2] >= self.attrs["test_thresholds"][3]
+
+        proj = ir_105_temp & temp_diff & vis_06_bright & ir38_plus_nir22  # combine all tests
+
+        proj.attrs = info
+        return proj
