@@ -1777,7 +1777,7 @@ def create_debug_lettered_tiles(**writer_kwargs):
     sector_info = writer.awips_sectors[sector_id]
     area_def, arr = _create_debug_array(sector_info, save_kwargs["num_subtiles"])
 
-    now = dt.datetime.now(dt.timezone.utc)()
+    now = dt.datetime.now(dt.timezone.utc)
     product = xr.DataArray(da.from_array(arr, chunks="auto"), attrs=dict(
         name="debug_{}".format(sector_id),
         platform_name="DEBUG",
