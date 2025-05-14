@@ -517,24 +517,7 @@ composites:
       - masked_colorized_low_level_moisture
       - night_ir105
 
-  severe_storm:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-      - wv_63
-      - wv_73
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-        - ir_38
-        - ir_105
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-        - nir_16
-        - vis_06
-    standard_name: severe_storm
-
-  severe_storm_tropical:
+  day_severe_storms:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -549,4 +532,21 @@ composites:
       prerequisites:
         - nir_16
         - vis_06
-    standard_name: severe_storm_tropical
+    standard_name: day_severe_storms
+
+  day_severe_storms_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wv_63
+        - wv_73
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - ir_38
+        - ir_105
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - nir_16
+        - vis_06
+    standard_name: day_severe_storms_tropical

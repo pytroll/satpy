@@ -154,8 +154,8 @@ enhancements:
       kwargs:
         gamma: [1, 1, 1]
 
-  airmass_tropical_default:
-    standard_name: airmass_tropical
+  overshooting_tops_default:
+    standard_name: overshooting_tops
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
@@ -1154,8 +1154,8 @@ enhancements:
         # MaskingCompositor always adds alpha channel
         gamma: [1.7, 1.7, 2.0, 1.0]
 
-  severe_storm_default:
-    standard_name: severe_storm
+  day_severe_storms_default:
+    standard_name: day_severe_storms
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
@@ -1168,8 +1168,8 @@ enhancements:
       kwargs:
         gamma: [1, 0.5, 1]
 
-  severe_storm_tropical_default:
-    standard_name: severe_storm_tropical
+  day_severe_storms_tropical_default:
+    standard_name: day_severe_storms_tropical
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch

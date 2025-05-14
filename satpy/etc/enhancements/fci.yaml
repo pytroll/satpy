@@ -61,8 +61,8 @@ enhancements:
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
 
-  severe_storm:
-    standard_name: severe_storm
+  day_severe_storms:
+    standard_name: day_severe_storms
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
@@ -88,6 +88,20 @@ enhancements:
         method: !!python/name:satpy.enhancements.gamma
         kwargs:
           gamma: [1.0, 1.0, 1.0]
+
+  overshooting_tops:
+    standard_name: overshooting_tops
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-23.8, -29.9, 244.5]
+        max_stretch: [6.4, 23.6, 191.4]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.0, 1.0, 1.0]
 
   night_microphysics:
     standard_name: night_microphysics

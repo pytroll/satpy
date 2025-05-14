@@ -670,7 +670,7 @@ composites:
       - group_radiance_alpha
       - HRV
 
-  severe_storm:
+  day_severe_storms:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -685,9 +685,9 @@ composites:
       prerequisites:
         - IR_016
         - VIS006
-    standard_name: severe_storm
+    standard_name: day_severe_storms
 
-  severe_storm_tropical:
+  day_severe_storms_tropical:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -702,4 +702,4 @@ composites:
       prerequisites:
         - IR_016
         - VIS006
-    standard_name: severe_storm_tropical
+    standard_name: day_severe_storms_tropical

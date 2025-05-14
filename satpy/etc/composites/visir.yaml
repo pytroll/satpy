@@ -122,7 +122,7 @@ composites:
     - wavelength: 6.2
     standard_name: airmass
 
-  airmass_tropical:
+  overshooting_tops:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -134,7 +134,7 @@ composites:
         - wavelength: 9.7
         - wavelength: 10.8
     - wavelength: 6.2
-    standard_name: airmass_tropical
+    standard_name: overshooting_tops
 
   ash:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -698,13 +698,13 @@ composites:
       - wavelength: 6.2
       - wavelength: 1.6
 
-  severe_storm:
+  day_severe_storms:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-      - wavelength: 6.2
-      - wavelength: 7.3
+        - wavelength: 6.2
+        - wavelength: 7.3
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
         - wavelength: 3.9
@@ -713,15 +713,15 @@ composites:
       prerequisites:
         - wavelength: 1.6
         - wavelength: 0.6
-    standard_name: severe_storm
+    standard_name: day_severe_storms
 
-  severe_storm_tropical:
+  day_severe_storms_tropical:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-      - wavelength: 6.2
-      - wavelength: 7.3
+        - wavelength: 6.2
+        - wavelength: 7.3
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
         - wavelength: 3.9
@@ -730,4 +730,4 @@ composites:
       prerequisites:
         - wavelength: 1.6
         - wavelength: 0.6
-    standard_name: severe_storm_tropical
+    standard_name: day_severe_storms_tropical
