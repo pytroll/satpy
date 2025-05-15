@@ -172,7 +172,7 @@ Calculations based on loaded datasets/channels can easily be assigned to a new d
     >>> global_scene.show("ndvi")
 
 When doing calculations Xarray, by default, will drop all attributes so attributes need to be
-copied over by hand. The :func:`~satpy.dataset.combine_metadata` function can assist with this task.
+copied over by hand. The :func:`~satpy.dataset.metadata.combine_metadata` function can assist with this task.
 Assigning additional custom metadata is also possible.
 
     >>> from satpy.dataset import combine_metadata
