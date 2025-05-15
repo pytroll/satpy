@@ -126,7 +126,7 @@ def get_surface_parallax_displacement(
     identical to :func:`get_parallax_corrected_lonlats`.
 
     Returns:
-        number or array: parallax displacement in meter
+        (numbers.Number, array): parallax displacement in meters
     """
     (corr_lon, corr_lat) = get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height)
     # Get parallax displacement
