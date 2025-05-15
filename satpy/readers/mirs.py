@@ -436,7 +436,7 @@ class MiRSL2ncHandler(BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
 
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        See :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
         for more information.
 
         """

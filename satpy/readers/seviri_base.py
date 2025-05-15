@@ -443,9 +443,9 @@ def get_cds_time(days, msecs):
     1958-01-01 00:00 is interpreted as fill value and will be replaced by NaT (Not a Time).
 
     Args:
-        days (int, either scalar or numpy.ndarray):
+        days (int, numpy.ndarray):
             Days since 1958-01-01
-        msecs (int, either scalar or numpy.ndarray):
+        msecs (int, numpy.ndarray):
             Milliseconds of the day
 
     Returns:

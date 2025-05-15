@@ -190,10 +190,10 @@ class VIIRSSDRReader(FileYAMLReader):
         """Initialize file reader and adjust geolocation preferences.
 
         Args:
-            config_files (iterable): yaml config files passed to base class
-            use_tc (boolean): If `True` use the terrain corrected
-                              files. If `False`, switch to non-TC files. If
-                              `None` (default), use TC if available, non-TC otherwise.
+            config_files (Iterable): yaml config files passed to base class
+            use_tc (bool): If `True` use the terrain corrected
+                           files. If `False`, switch to non-TC files. If
+                           `None` (default), use TC if available, non-TC otherwise.
 
         """
         super().__init__(config_files, **kwargs)
