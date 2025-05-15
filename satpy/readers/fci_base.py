@@ -48,3 +48,17 @@ def calculate_area_extent(area_dict):
         ur_l = (0 - nlines / 2.) * line_step
 
         return (ll_c, ll_l, ur_c, ur_l)
+
+# Platform names according to the MTG FCI L1 Product User Guide,
+# EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+# MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+# MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+#
+# After launch: translate to METEOSAT-xx instead?  Not sure how the
+# numbering will be considering MTG-S1 and MTG-S2 will be launched
+# in-between.
+platform_name_translate = {
+    "MTI1": "MTG-I1",
+    "MTI2": "MTG-I2",
+    "MTI3": "MTG-I3",
+    "MTI4": "MTG-I4"}

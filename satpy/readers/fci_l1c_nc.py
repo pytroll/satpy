@@ -138,6 +138,7 @@ from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
 from .netcdf_utils import NetCDF4FsspecFileHandler
+from .fci_base import platform_name_translate
 
 logger = logging.getLogger(__name__)
 
@@ -200,20 +201,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
-
-    # Platform names according to the MTG FCI L1 Product User Guide,
-    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
-    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
-    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
-    #
-    # After launch: translate to METEOSAT-xx instead?  Not sure how the
-    # numbering will be considering MTG-S1 and MTG-S2 will be launched
-    # in-between.
-    _platform_name_translate = {
-        "MTI1": "MTG-I1",
-        "MTI2": "MTG-I2",
-        "MTI3": "MTG-I3",
-        "MTI4": "MTG-I4"}
 
     def __init__(self, filename, filename_info, filetype_info,
                  clip_negative_radiances=None, **kwargs):
@@ -415,7 +402,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         res.attrs.update(info)
         res.attrs.update(attrs)
 
-        res.attrs["platform_name"] = self._platform_name_translate.get(
+        res.attrs["platform_name"] = platform_name_translate.get(
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data

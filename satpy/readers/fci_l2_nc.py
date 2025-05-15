@@ -30,6 +30,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.resample import get_area_def
 from satpy.utils import get_legacy_chunk_size
 
+from .fci_base import platform_name_translate
+
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -43,7 +45,8 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs["platform"]
+        return platform_name_translate.get(
+            self.nc.attrs["platform"], self.nc.attrs["platform"])
 
     @property
     def sensor_name(self):
