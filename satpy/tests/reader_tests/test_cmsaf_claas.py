@@ -20,10 +20,10 @@
 import datetime  # noqa: I001
 import os
 
+import netCDF4
 import numpy as np
 import pytest
 import xarray as xr
-import netCDF4
 from pyresample.geometry import AreaDefinition
 
 from satpy.tests.utils import make_dataid
