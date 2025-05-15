@@ -71,7 +71,7 @@ A plugin package should consist of three main parts:
    * composites and modifiers: :class:`~satpy.composites.CompositeBase` for
      any generic compositor and :class:`~satpy.composites.GenericCompositor`
      for any composite that represents an image (RGB, L, etc). For modifiers,
-     use :class:`~satpy.modifiers.ModifierBase`.
+     use :class:`~satpy.modifiers.base.ModifierBase`.
    * enhancements: Although not required, consider using
      :func:`satpy.enhancements.apply_enhancement`.
    * writers: :class:`~satpy.writers.Writer`
