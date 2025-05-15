@@ -26,9 +26,10 @@ import os
 import pathlib
 import platform
 import warnings
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Literal, Mapping, Optional
+from typing import Literal, Optional
 from urllib.parse import urlparse
 
 import dask.utils
@@ -433,7 +434,7 @@ def _get_first_available_item(data_dict, possible_keys):
     raise KeyError("None of the possible keys found: {}".format(", ".join(possible_keys)))
 
 
-def recursive_dict_update(d, u):
+def recursive_dict_update(d: MutableMapping, u: Mapping) -> None:
     """Recursive dictionary update.
 
     Copied from:
@@ -443,11 +444,11 @@ def recursive_dict_update(d, u):
     """
     for k, v in u.items():
         if isinstance(v, Mapping):
-            r = recursive_dict_update(d.get(k, {}), v)
+            r = d.get(k, {})
+            recursive_dict_update(r, v)
             d[k] = r
         else:
             d[k] = u[k]
-    return d
 
 
 def _check_yaml_configs(configs, key):

@@ -182,12 +182,18 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         i = getattr(self[var_path], "attrs", {})
         i.update(ds_info)
         i.update(dataset_id.to_dict())
+        orb_param = {"start_direction": self["/attr/startDirection"],
+                     "end_direction": self["/attr/endDirection"],
+                     "start_orbit": self.start_orbit_number,
+                     "end_orbit": self.end_orbit_number,}
         i.update({
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
+            "day_night": self["/attr/DayNightFlag"],
+            "orbital_parameters": orb_param,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
@@ -235,6 +241,11 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         if factors[0] != 1 or factors[1] != 0:
             data *= factors[0]
             data += factors[1]
+
+        # remove scale_factor and scale_offset
+        data.attrs.pop("scale_factor", None)
+        data.attrs.pop("add_offset", None)
+
         # rename dimensions to correspond to satpy's 'y' and 'x' standard
         if "number_of_lines" in data.dims:
             data = data.rename({"number_of_lines": "y", "number_of_pixels": "x"})

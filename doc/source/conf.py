@@ -82,26 +82,41 @@ with open("reader_table.rst", mode="w") as f:
 
 # -- General configuration -----------------------------------------------------
 
+# sphinxcontrib.apidoc was added to sphinx in 8.2.0 as sphinx.etx.apidoc
+needs_sphinx = "8.2.0"
+
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.todo", "sphinx.ext.coverage",
-              "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "doi_role",
-              "sphinx.ext.viewcode", "sphinxcontrib.apidoc",
+              "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "sphinx.ext.autosectionlabel",
+              "doi_role", "sphinx.ext.viewcode", "sphinx.ext.apidoc",
               "sphinx.ext.mathjax"]
 
+# Autosectionlabel
+# Make sure target is unique
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 3
+
 # API docs
-apidoc_module_dir = "../../satpy"
-apidoc_output_dir = "api"
-apidoc_excluded_paths = [
-    "readers/caliop_l2_cloud.py",
-    "readers/ghrsst_l3c_sst.py",
-    "readers/li_l2.py",
-    "readers/scatsat1_l2b.py",
+apidoc_modules = [
+    {
+        "path": "../../satpy",
+        "destination": "api/",
+        "exclude_patterns": [
+            "../../satpy/readers/caliop_l2_cloud.py",
+            "../../satpy/readers/ghrsst_l3c_sst.py",
+            "../../satpy/readers/scatsat1_l2b.py",
+            # Prefer to not document test modules. Most users will look at
+            # source code if needed and we want to avoid documentation builds
+            # suffering from import-time test data creation. We want to keep
+            # things contributors might be interested in like satpy.tests.utils.
+            "../../satpy/tests/test_*.py",
+            "../../satpy/tests/**/test_*.py",
+        ],
+    },
 ]
 apidoc_separate_modules = True
-apidoc_extra_args = [
-    "--private",
-]
+apidoc_include_private = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -292,7 +307,7 @@ intersphinx_mapping = {
     "scipy": ("https://scipy.github.io/devdocs", None),
     "trollimage": ("https://trollimage.readthedocs.io/en/stable", None),
     "trollsift": ("https://trollsift.readthedocs.io/en/stable", None),
-    "xarray": ("https://xarray.pydata.org/en/stable", None),
+    "xarray": ("https://docs.xarray.dev/en/stable", None),
     "rasterio": ("https://rasterio.readthedocs.io/en/latest", None),
     "donfig": ("https://donfig.readthedocs.io/en/latest", None),
     "pooch": ("https://www.fatiando.org/pooch/latest/", None),

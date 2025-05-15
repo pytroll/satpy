@@ -25,22 +25,28 @@ on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1
 launched on the 13th of December 2022.
 For more information about FCI, see `EUMETSAT`_.
 
-For simulated test data to be used with this reader, see `test data releases`_.
+To download data to be used with this reader, see `MTG data store guide`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
-    This reader supports data from both IDPF-I and IQT-I processing facilities.
+
     This reader currently supports Full Disk High Spectral Resolution Imagery
     (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
-    In addition it also supports the L1C format for the African dissemination ("AF"), where each file
+    In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
     contains the masked full-dic of a single channel see `AF PUG`_.
+    Experimental support for special scans, e.g. with coverage "xx", is also given.
+
+    This reader supports data from both IDPF-I and IQT-I processing facilities.
+
+
+.. note::
+
     If the user provides a list of both FDHSI and HRFI files from the same repeat cycle to the Satpy ``Scene``,
     Satpy will automatically read the channels from the source with the finest resolution,
     i.e. from the HRFI files for the vis_06, nir_22, ir_38, and ir_105 channels.
     If needed, the desired resolution can be explicitly requested using e.g.:
     ``scn.load(['vis_06'], resolution=1000)``.
 
-    Note that RSS data is not supported yet.
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -108,10 +114,10 @@ All auxiliary data can be obtained by prepending the channel name such as
     If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
     at the top of your script.
 
-.. _AF PUG: https://www-cdn.eumetsat.int/files/2022-07/MTG%20EUMETCast%20Africa%20Product%20User%20Guide%20%5BAfricaPUG%5D_v2E.pdf
-.. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
+.. _AF PUG: https://user.eumetsat.int/resources/user-guides/mtg-africa-data-service-guide  # noqa: E501
+.. _PUG: https://user.eumetsat.int/resources/user-guides/mtg-fci-level-1c-data-guide  # noqa: E501
 .. _EUMETSAT: https://user.eumetsat.int/resources/user-guides/mtg-fci-level-1c-data-guide  # noqa: E501
-.. _test data releases: https://www.eumetsat.int/mtg-test-data
+.. _MTG data store guide: https://user.eumetsat.int/resources/user-guides/data-store-mtg-data-access-guide  # noqa: E501
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -216,6 +222,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             # chunk is expected), as the African dissemination products come in one file per full disk.
             self.filename_info["count_in_repeat_cycle"] = 1
 
+        if self.filename_info["coverage"] == "xx":
+            # add one to the chunk numbering to activate the padding mechanism for special scans (expected to have less
+            # than 40 chunks, but still starting with 1)
+            self.filename_info["count_in_repeat_cycle"] += 1
+
         if self.filename_info["facility_or_tool"] == "IQTI":
             self.is_iqt = True
         else:
@@ -234,20 +245,28 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         elif self.filename_info["coverage"] in ["FD", "AF"]:
             return 10
         else:
-            raise NotImplementedError(f"coverage for {self.filename_info['coverage']}"
-                                      " not supported by this reader")
+            logger.debug(f"Coverage \"{self.filename_info['coverage']}\" not recognised. "
+                         f"Using observation times for nominal times.")
+            return None
+
 
     @property
     def nominal_start_time(self):
         """Get nominal start time."""
-        rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        return rc_date + dt.timedelta(
-            minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
+        if self.rc_period_min is None:
+            return self.filename_info["start_time"]
+        else:
+            rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            return rc_date + dt.timedelta(
+                minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
 
     @property
     def nominal_end_time(self):
         """Get nominal end time."""
-        return self.nominal_start_time + dt.timedelta(minutes=self.rc_period_min)
+        if self.rc_period_min is None:
+            return self.filename_info["end_time"]
+        else:
+            return self.nominal_start_time + dt.timedelta(minutes=self.rc_period_min)
 
     @property
     def observation_start_time(self):

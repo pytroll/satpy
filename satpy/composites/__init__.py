@@ -299,7 +299,7 @@ class RatioCompositor(CompositeBase):
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
-        info["name"] = self.attrs["name"]
+        info.update(self.attrs)
 
         proj = projectables[0] / projectables[1]
         proj.attrs = info
@@ -1907,6 +1907,9 @@ class MaskingCompositor(GenericCompositor):
         projectables = self.match_data_arrays(projectables)
         data_in = projectables[0]
         mask_in = projectables[1]
+
+        # remove "bands" dimension for single band masks (ex. "L")
+        mask_in = mask_in.squeeze(drop=True)
 
         alpha_attrs = data_in.attrs.copy()
         data = self._select_data_bands(data_in)

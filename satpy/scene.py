@@ -1079,12 +1079,16 @@ class Scene:
 
 
 
-    def to_xarray_dataset(self, datasets=None):
+    def to_xarray_dataset(self, datasets=None, compat="minimal"):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
 
         Parameters:
             datasets (list):
                 List of products to include in the :class:`xarray.Dataset`
+            compat (str):
+                How to compare variables with the same name for conflicts.
+                See :func:`xarray.merge` for possible options. Defaults to
+                "minimal" which drops conflicting variables.
 
         Returns: :class:`xarray.Dataset`
 
@@ -1100,7 +1104,7 @@ class Scene:
         mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
         if mdata.get("area") is None or not isinstance(mdata["area"], SwathDefinition):
             # either don't know what the area is or we have an AreaDefinition
-            ds = xr.merge(ds_dict.values())
+            ds = xr.merge(ds_dict.values(), compat=compat)
         else:
             # we have a swath definition and should use lon/lat values
             lons, lats = mdata["area"].get_lonlats()
