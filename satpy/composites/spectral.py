@@ -236,7 +236,7 @@ class SimpleFireMaskCompositor(CompositeBase):
         # test 3: 3.8+2.2µm should be high (hotspot)
         ir38_plus_nir22 = projectables[1] + projectables[2] >= self.attrs["test_thresholds"][3]
 
-        proj = ir_105_temp & temp_diff & vis_06_bright & ir38_plus_nir22  # combine all tests
+        res = ir_105_temp & temp_diff & vis_06_bright & ir38_plus_nir22  # combine all tests
 
-        proj.attrs = info
-        return proj
+        res.attrs = info
+        return res
