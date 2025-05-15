@@ -137,8 +137,8 @@ import satpy
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
-from .netcdf_utils import NetCDF4FsspecFileHandler
 from .fci_base import platform_name_translate
+from .netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
