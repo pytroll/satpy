@@ -516,3 +516,19 @@ composites:
     prerequisites:
       - masked_colorized_low_level_moisture
       - night_ir105
+
+  volcanic_emissions:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wv_63
+      - wv_73
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - ir_105
+      - ir_87
+    - ir_105
+    standard_name: volcanic_emissions
+
+

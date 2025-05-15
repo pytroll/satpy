@@ -60,3 +60,14 @@ enhancements:
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
+
+  volcanic_emissions:
+    standard_name: volcanic_emissions
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-4, -4.0, 243.0]
+          max_stretch: [2.0, 5.0, 303.0]
+
