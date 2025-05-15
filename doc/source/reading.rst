@@ -216,6 +216,9 @@ load the datasets using e.g.::
     :meth:`scn.missing_datasets <satpy.scene.Scene.missing_datasets>`
     property for any ``DataID`` that could not be loaded.
 
+Available datasets
+------------------
+
 To find out what datasets are available from a reader from the files that were
 provided to the ``Scene`` use
 :meth:`~satpy.scene.Scene.available_dataset_ids`::
@@ -297,6 +300,9 @@ time etc. The following attributes are standardized across all readers:
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
+* ``sensor``: The name of the sensor that recorded the data. For full support through Satpy this
+  should be all lowercase. If the dataset is the result of observations from multiple sensors a
+  ``set`` object can be used to specify more than one sensor name.
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
   See the :ref:`orbital_parameters` section below for more information.
@@ -385,6 +391,10 @@ For *polar orbiting* satellites the readers usually provide coordinates and view
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
 
   * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+  * ``start_direction``: The direction of satellite movement (ascending or descending) at the start of the granule.
+  * ``end_direction``: The direction of satellite movement (ascending or descending) at the end of the granule.
+  * ``start_orbit``: The orbit number at the start of the granule.
+  * ``end_orbit``: The orbit number at the end of the granule. Typically, this is the same as `start_orbit`.
 
 .. _data_array_coordinates:
 

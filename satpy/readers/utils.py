@@ -355,10 +355,10 @@ def generic_open(filename, *args, **kwargs):
             fp = filename.open(*args, **kwargs)
         except AttributeError:
             fp = open(filename, *args, **kwargs)
-
-    yield fp
-
-    fp.close()
+    try:
+        yield fp
+    finally:
+        fp.close()
 
 
 def fromfile(filename, dtype, count=1, offset=0):
@@ -593,7 +593,7 @@ class CalibrationCoefficientPicker:
 
         calib_wishlist = {
             "ch1": "meirink",
-            ("ch2", "ch3"): "gsics"
+            ("ch2", "ch3"): "gsics",
             "ch4": {"mygain": 123},
         }
         # Also possible: Same mode for all channels via

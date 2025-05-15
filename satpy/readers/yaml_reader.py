@@ -116,7 +116,7 @@ def load_yaml_configs(*config_files, loader=Loader):
     logger.debug("Reading %s", str(config_files))
     for config_file in config_files:
         with open(config_file, "r", encoding="utf-8") as fd:
-            config = recursive_dict_update(config, yaml.load(fd, Loader=loader))
+            recursive_dict_update(config, yaml.load(fd, Loader=loader))
     _verify_reader_info_assign_config_files(config, config_files)
     return config
 
@@ -636,8 +636,9 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
                     self.file_handlers.get(filetype, []) + filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
-        # load any additional dataset IDs determined dynamically from the file
-        # and update any missing metadata that only the file knows
+        # Update dataset IDs with IDs determined dynamically from the file
+        # and/or update any missing metadata that only the file knows.
+        # Check if the dataset ID is loadable from that file.
         self.update_ds_ids_from_file_handlers()
         return created_fhs
 
@@ -1381,8 +1382,10 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
         # if current empty segment is too tall, slice the DataArray
         return empty_segment[:new_height, :]
     if empty_segment.shape[0] < new_height:
-        # if current empty segment is too short, concatenate a slice of the DataArray
-        return xr.concat([empty_segment, empty_segment[:new_height - empty_segment.shape[0], :]], dim=dim)
+        # if current empty segment is too short, pad to the new size using the empty segment values
+        return empty_segment.pad(pad_width={dim : (new_height - empty_segment.shape[0], 0)},
+                                 mode="constant",
+                                 constant_values=empty_segment[0, 0])
     return empty_segment
 
 

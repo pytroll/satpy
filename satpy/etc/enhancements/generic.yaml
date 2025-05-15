@@ -1230,7 +1230,7 @@ enhancements:
           max_stretch: [50, 50, 100]
 
   essl_low_level_moisture:
-    name: essl_low_level_moisture
+    standard_name: essl_low_level_moisture
     operations:
       - name: linear_stretch
         method: !!python/name:satpy.enhancements.stretch
@@ -1241,14 +1241,120 @@ enhancements:
     operations: []
 
   essl_colorized_low_level_moisture:
-    name: essl_colorized_low_level_moisture
-    operations:
-      - name: essl_moisture
-        method: !!python/name:satpy.enhancements.atmosphere.essl_moisture
+    standard_name: essl_colorized_low_level_moisture
+    operations: &masked_llm
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+          - min_value: 0.625
+            max_value: 0.91
+            values:
+              - 0.6250
+              - 0.6290
+              - 0.6331
+              - 0.6372
+              - 0.6414
+              - 0.6456
+              - 0.6499
+              - 0.6542
+              - 0.6586
+              - 0.6631
+              - 0.6676
+              - 0.6722
+              - 0.6768
+              - 0.6815
+              - 0.6863
+              - 0.6911
+              - 0.6960
+              - 0.7010
+              - 0.7061
+              - 0.7112
+              - 0.7164
+              - 0.7216
+              - 0.7270
+              - 0.7324
+              - 0.7380
+              - 0.7436
+              - 0.7492
+              - 0.7550
+              - 0.7609
+              - 0.7668
+              - 0.7729
+              - 0.7790
+              - 0.7853
+              - 0.7916
+              - 0.7980
+              - 0.8046
+              - 0.8113
+              - 0.8180
+              - 0.8249
+              - 0.8319
+              - 0.8390
+              - 0.8463
+              - 0.8537
+              - 0.8612
+              - 0.8688
+              - 0.8766
+              - 0.8845
+              - 0.8925
+              - 0.9007
+              - 0.9091
+            colors:
+              - [63, 0, 47]
+              - [58, 0, 50]
+              - [53, 0, 52]
+              - [48, 0, 54]
+              - [42, 0, 56]
+              - [37, 0, 58]
+              - [32, 0, 59]
+              - [27, 5, 60]
+              - [22, 11, 61]
+              - [16, 17, 62]
+              - [11, 23, 63]
+              - [6, 28, 63]
+              - [1, 34, 63]
+              - [0, 40, 63]
+              - [0, 46, 63]
+              - [0, 52, 62]
+              - [0, 58, 62]
+              - [0, 64, 61]
+              - [0, 70, 60]
+              - [0, 76, 58]
+              - [0, 82, 57]
+              - [0, 88, 55]
+              - [0, 94, 53]
+              - [0, 100, 51]
+              - [3, 106, 49]
+              - [17, 112, 46]
+              - [31, 118, 43]
+              - [44, 124, 40]
+              - [58, 130, 37]
+              - [72, 136, 35]
+              - [86, 141, 42]
+              - [100, 147, 50]
+              - [114, 153, 58]
+              - [128, 159, 66]
+              - [142, 165, 74]
+              - [156, 171, 81]
+              - [169, 177, 89]
+              - [183, 183, 97]
+              - [197, 189, 105]
+              - [211, 195, 113]
+              - [225, 201, 120]
+              - [239, 207, 128]
+              - [253, 213, 136]
+              - [255, 219, 144]
+              - [255, 225, 152]
+              - [255, 231, 160]
+              - [255, 237, 167]
+              - [255, 243, 175]
+              - [255, 249, 183]
+              - [255, 255, 191]
 
-  day_essl_colorized_low_level_moisture:
-    standard_name: day_essl_colorized_low_level_moisture
-    operations: []
+  masked_essl_colorized_low_level_moisture:
+    standard_name: masked_essl_colorized_low_level_moisture
+    operations: *masked_llm
 
   rocket_plume:
     standard_name: rocket_plume
@@ -1289,3 +1395,18 @@ enhancements:
   image_ready:
     standard_name: image_ready
     operations: []
+
+  mw183_humidity:
+    # matches EPS-Sterna and AWS MWR, and ATMS and MHS
+    standard_name: mw183_humidity
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [290, 290, 290]
+        max_stretch: [190, 190, 190]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.5, 1.2, 1.2]

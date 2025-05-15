@@ -1,0 +1,533 @@
+reader:
+  name: eps_sterna_mwr_l1b_nc
+  short_name: EPS-Sterna MWR L1B
+  long_name: EPS-Sterna MWR L1B Radiance (NetCDF4)
+  description: Reader for the EUMETSAT EPS-Sterna radiometer level-1b files in netCDF4.
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [mwr,]
+  status: Beta
+  supports_fsspec: false
+
+  data_identification_keys:
+    name:
+      required: true
+    frequency_double_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
+    frequency_range:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
+    resolution:
+    polarization:
+      enum:
+        - QH
+        - QV
+    horn:
+      enum:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+    calibration:
+      enum:
+        - brightness_temperature
+      transitive: true
+    modifiers:
+      required: true
+      default: []
+      type: !!python/name:satpy.dataset.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    resolution:
+    polarization:
+      enum:
+        - QH
+        - QV
+    horn:
+      enum:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+
+datasets:
+    '1':
+        name: '1'
+        frequency_range:
+           central: 50.3
+           bandwidth: 0.180
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '2':
+        name: '2'
+        frequency_range:
+           central: 52.8
+           bandwidth: 0.400
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '3':
+        name: '3'
+        frequency_range:
+           central: 53.246
+           bandwidth: 0.300
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '4':
+        name: '4'
+        frequency_range:
+           central: 53.596
+           bandwidth: 0.370
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '5':
+        name: '5'
+        frequency_range:
+           central: 54.4
+           bandwidth: 0.400
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '6':
+        name: '6'
+        frequency_range:
+           central: 54.94
+           bandwidth: 0.400
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '7':
+        name: '7'
+        frequency_range:
+           central: 55.5
+           bandwidth: 0.330
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '8':
+        name: '8'
+        frequency_range:
+           central: 57.290344
+           bandwidth: 0.330
+           unit: GHz
+        polarization: 'QV'
+        resolution: 40000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "1"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '9':
+        name: '9'
+        frequency_range:
+           central: 89.0
+           bandwidth: 4.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "2"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '10':
+        name: '10'
+        frequency_range:
+           central: 165.5
+           bandwidth: 2.800
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "3"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '11':
+        name: '11'
+        frequency_range:
+           central: 176.311
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "3"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '12':
+        name: '12'
+        frequency_range:
+           central: 178.811
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "3"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '13':
+        name: '13'
+        frequency_range:
+           central: 180.311
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "3"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '14':
+        name: '14'
+        frequency_range:
+           central: 181.511
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "3"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '15':
+        name: '15'
+        frequency_range:
+           central: 182.311
+           bandwidth: 0.5
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "3"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '16':
+        name: '16'
+        frequency_double_sideband:
+           central: 325.15
+           side: 1.2
+           bandwidth: 0.8
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "4"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '17':
+        name: '17'
+        frequency_double_sideband:
+           central: 325.15
+           side: 2.4
+           bandwidth: 1.2
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "4"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '18':
+        name: '18'
+        frequency_double_sideband:
+           central: 325.15
+           side: 4.1
+           bandwidth: 1.8
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "4"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+    '19':
+        name: '19'
+        frequency_double_sideband:
+           central: 325.15
+           side: 6.6
+           bandwidth: 2.8
+           unit: GHz
+        polarization: 'QV'
+        resolution: 10000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        horn: "4"
+        coordinates: [longitude, latitude]
+        file_type: eps_sterna_l1b_nc
+        file_key: data/calibration/toa_brightness_temperature
+
+# --- Coordinates ---
+
+    longitude:
+        name: longitude
+        file_type: eps_sterna_l1b_nc
+        standard_name: longitude
+        units: degrees_east
+        horn: ["1", "2", "3", "4"]
+        file_key: data/navigation/longitude
+
+
+    latitude:
+        name: latitude
+        file_type: eps_sterna_l1b_nc
+        standard_name: latitude
+        units: degrees_north
+        horn: ["1", "2", "3", "4"]
+        file_key: data/navigation/latitude
+
+
+# --- Navigation data ---
+
+    solar_azimuth_horn1:
+        name: solar_azimuth_horn1
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_azimuth_horn2:
+        name: solar_azimuth_horn2
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_azimuth_horn3:
+        name: solar_azimuth_horn3
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_azimuth_horn4:
+        name: solar_azimuth_horn4
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_zenith_horn1:
+        name: solar_zenith_horn1
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_zenith_angle
+        standard_name: solar_zenith_angle
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_zenith_horn2:
+        name: solar_zenith_horn2
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_zenith_angle
+        standard_name: solar_zenith_angle
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_zenith_horn3:
+        name: solar_zenith_horn3
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_zenith_angle
+        standard_name: solar_zenith_angle
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    solar_zenith_horn4:
+        name: solar_zenith_horn4
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/solar_zenith_angle
+        standard_name: solar_zenith_angle
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_zenith_horn1:
+        name: satellite_zenith_horn1
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_zenith_horn2:
+        name: satellite_zenith_horn2
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_zenith_horn3:
+        name: satellite_zenith_horn3
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_zenith_horn4:
+        name: satellite_zenith_horn4
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_zenith_angle
+        standard_name: satellite_zenith_angle
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_azimuth_horn1:
+        name: satellite_azimuth_horn1
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_azimuth_horn2:
+        name: satellite_azimuth_horn2
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_azimuth_horn3:
+        name: satellite_azimuth_horn3
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    satellite_azimuth_horn4:
+        name: satellite_azimuth_horn4
+        file_type: eps_sterna_l1b_nc
+        file_key: data/navigation/satellite_azimuth_angle
+        standard_name: satellite_azimuth_angle
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+file_types:
+    eps_sterna_l1b_nc:
+        # W_XX-EUMETSAT-Darmstadt,SAT,AWS1-MWR-1B-RAD_C_EUMT_20241121085911_G_D_20241109234502_20241110004559_T_N____.nc
+        file_reader: !!python/name:satpy.readers.mwr_l1b.AWS_EPS_Sterna_MWR_L1BFile
+        file_patterns: [
+        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
+        ]
+        feed_horn_group_name: n_feedhorns
