@@ -46,6 +46,7 @@ The following people have made contributions to this project:
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Jactry Zeng](https://github.com/jactry)
+- [Zoé Jequier](https://github.com/jequierz)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Pouria Khalaj](https://github.com/pkhalaj)
