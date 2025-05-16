@@ -240,7 +240,7 @@ For example:
 .. code-block:: python
 
     >>> from satpy import Scene
-    >>> from satpy.readers import FSFile
+    >>> from satpy.readers.remote import FSFile
     >>> import fsspec
 
     >>> filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
@@ -263,7 +263,7 @@ Search for local/remote files
 =============================
 
 Satpy provides a utility
-:func:`~satpy.readers.find_files_and_readers` for searching for files in
+:func:`~satpy.readers.grouping.find_files_and_readers` for searching for files in
 a base directory matching various search parameters. This function discovers
 files based on filename patterns. It returns a dictionary mapping reader name
 to a list of filenames supported. This dictionary can be passed directly to

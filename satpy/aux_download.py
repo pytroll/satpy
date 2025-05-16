@@ -215,7 +215,8 @@ def _find_registerable_files_readers(readers=None):
     """Load all readers so that files are registered."""
     import yaml
 
-    from satpy.readers import configs_for_reader, load_reader
+    from satpy.readers.config import configs_for_reader
+    from satpy.readers.loading import load_reader
     for reader_configs in configs_for_reader(reader=readers):
         try:
             load_reader(reader_configs)

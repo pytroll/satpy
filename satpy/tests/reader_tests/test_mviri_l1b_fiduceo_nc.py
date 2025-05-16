@@ -382,7 +382,7 @@ def fixture_file_handler(fake_file, request, projection_longitude):
 def fixture_reader():
     """Return MVIRI FIDUCEO FCDR reader."""
     from satpy._config import config_search_paths
-    from satpy.readers import load_reader
+    from satpy.readers.loading import load_reader
 
     reader_configs = config_search_paths(
         os.path.join("readers", "mviri_l1b_fiduceo_nc.yaml"))

@@ -31,7 +31,7 @@ import xarray as xr
 
 from satpy._config import config_search_paths
 from satpy.dataset import DataID
-from satpy.readers import load_reader
+from satpy.readers.loading import load_reader
 from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.tests.utils import RANDOM_GEN
 

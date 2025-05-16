@@ -22,7 +22,7 @@ import xarray as xr
 from pyresample.geometry import SwathDefinition
 
 from satpy.dataset import combine_metadata
-from satpy.readers import open_file_or_filename
+from satpy.readers.remote import open_file_or_filename
 
 
 def open_dataset(filename, *args, **kwargs):  # noqa: D417

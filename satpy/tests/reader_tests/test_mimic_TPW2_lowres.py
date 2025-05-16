@@ -127,7 +127,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
 
     def test_init(self):
         """Test basic initialization of this reader."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "comp20190619.130000.nc",
@@ -139,7 +139,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
 
     def test_load_mimic_float(self):
         """Load TPW mimic float data."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -157,7 +157,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
 
     def test_load_mimic_timedelta(self):
         """Load TPW mimic timedelta data (data latency variables)."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -176,7 +176,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
 
     def test_load_mimic_ubyte(self):
         """Load TPW mimic sensor grids."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([

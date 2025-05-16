@@ -24,7 +24,7 @@ import dask.array as da
 import numpy as np
 import pytest
 
-from satpy.readers import load_reader
+from satpy.readers.loading import load_reader
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16

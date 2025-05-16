@@ -222,7 +222,7 @@ class TestGRIBReader:
         sys.modules["pygrib"] = self.orig_pygrib
 
     def _get_test_datasets(self, dataids, fake_pygrib=None):
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         if fake_pygrib is None:
             fake_pygrib = FakeGRIB()
 
@@ -261,7 +261,7 @@ class TestGRIBReader:
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         with mock.patch("satpy.readers.grib.pygrib") as pg:
             pg.open.return_value = FakeGRIB()
             r = load_reader(self.reader_configs)
@@ -275,7 +275,7 @@ class TestGRIBReader:
 
     def test_file_pattern(self):
         """Test matching of file patterns."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
 
         filenames = [
                 "quinoa.grb",

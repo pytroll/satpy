@@ -127,7 +127,7 @@ class TestACSPOReader:
     )
     def test_init(self, filename):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([filename])
         assert len(loadables) == 1
@@ -137,7 +137,7 @@ class TestACSPOReader:
 
     def test_load_every_dataset(self):
         """Test loading all datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc",
