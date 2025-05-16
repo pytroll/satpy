@@ -112,11 +112,13 @@ apidoc_modules = [
             # things contributors might be interested in like satpy.tests.utils.
             "../../satpy/tests/test_*.py",
             "../../satpy/tests/**/test_*.py",
+            "../../satpy/tests/*_tests/*",
         ],
     },
 ]
 apidoc_separate_modules = True
 apidoc_include_private = True
+apidoc_automodule_options = {"members", "show-inheritance", "undoc-members", "special-members"}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

@@ -546,9 +546,9 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         We assume here requirements are available.
 
         Raises:
-            KeyError, if no handler for the given requirements is available.
-            RuntimeError, if there is a handler for the given requirements,
-            but it doesn't match the filename info.
+            (Exception) `KeyError`: if no handler for the given requirements is available.
+            (Exception) `RuntimeError`: if there is a handler for the given requirements,
+                                        but it doesn't match the filename info.
 
         """
         req_fh = []
@@ -912,14 +912,14 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
                 provided key. Loadable datasets are always searched first,
                 but if ``available_only=False`` (default) then all known
                 datasets will be searched.
-            kwargs: See :func:`satpy.readers.get_key` for more information about
+            kwargs: See :func:`satpy.dataset.data_dict.get_key` for more information about
                 kwargs.
 
         Returns:
             Best matching DataID to the provided ``key``.
 
         Raises:
-            KeyError: if no key match is found.
+            (Exception) KeyError: if no key match is found.
 
         """
         try:
@@ -1157,7 +1157,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     This reader pads the data to full geostationary disk if necessary.
 
     This reader uses an optional ``pad_data`` keyword argument that can be
-    passed to :meth:`Scene.load` to control if padding is done (True by
+    passed to :meth:`satpy.scene.Scene.load` to control if padding is done (True by
     default). Passing `pad_data=False` will return data unpadded.
 
     When using this class in a reader's YAML configuration, segmented file

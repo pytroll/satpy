@@ -27,7 +27,7 @@ providing the scene objects,
     >>> mscn = MultiScene(scenes)
     >>> mscn.load(['I04'])
 
-or by using the :meth:`MultiScene.from_files <satpy.multiscene.MultiScene.from_files>`
+or by using the :meth:`MultiScene.from_files <satpy.multiscene._multiscene.MultiScene.from_files>`
 class method to create a ``MultiScene`` from a series of files. This uses the
 :func:`~satpy.readers.group_files` utility function to group files by start
 time or other filenames parameters.
@@ -65,9 +65,9 @@ Scenes contained in a MultiScene can be combined in different ways.
 Stacking scenes
 ***************
 
-The code below uses the :meth:`~satpy.multiscene.MultiScene.blend` method of
+The code below uses the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method of
 the ``MultiScene`` object to stack two separate orbits from a VIIRS sensor. By
-default the ``blend`` method will use the :func:`~satpy.multiscene.stack`
+default the ``blend`` method will use the :func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>`
 function which uses the first dataset as the base of the image and then
 iteratively overlays the remaining datasets on top.
 
@@ -101,8 +101,8 @@ frequent.
 This weighted blending can be accomplished via the use of the builtin
 :func:`~functools.partial` function (see `Partial
 <https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
-default :func:`~satpy.multiscene.stack` function. The
-:func:`~satpy.multiscene.stack` function can take the optional argument
+default :func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>` function. The
+:func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>` function can take the optional argument
 `weights` (`None` on default) which should be a sequence (of length equal to
 the number of scenes being blended) of arrays with pixel weights.
 
@@ -135,7 +135,7 @@ Grouping Similar Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, ``MultiScene`` only operates on datasets shared by all scenes.
-Use the :meth:`~satpy.multiscene.MultiScene.group` method to specify groups
+Use the :meth:`MultiScene.group <satpy.multiscene._multiscene.MultiScene.group>` method to specify groups
 of datasets that shall be treated equally by ``MultiScene``, even if their
 names or wavelengths are different.
 
@@ -174,8 +174,8 @@ You can access the results via ``blended['IR_group']``.
 Timeseries
 **********
 
-Using the :meth:`~satpy.multiscene.MultiScene.blend` method with the
-:func:`~satpy.multiscene.timeseries` function will combine
+Using the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method with the
+:func:`satpy.multiscene.timeseries <satpy.multiscene._blend_funcs.timeseries>` function will combine
 multiple scenes from different time slots by time. A single `Scene` with each
 dataset/channel extended by the time dimension will be returned. If used
 together with the :meth:`~satpy.scene.Scene.to_geoviews` method, creation of
@@ -263,7 +263,7 @@ Saving multiple scenes
 ----------------------
 
 The ``MultiScene`` object includes a
-:meth:`~satpy.multiscene.MultiScene.save_datasets` method for saving the
+:meth:`MultiScene.save_datasets <satpy.multiscene._multiscene.MultiScene.save_datasets>` method for saving the
 data from multiple Scenes to disk. By default this will operate on one Scene
 at a time, but similar to the ``save_animation`` method above this method can
 accept a dask distributed ``Client`` object via the ``client`` keyword
@@ -283,7 +283,7 @@ Combining multiple readers
 
 .. versionadded:: 0.23
 
-The :meth:`~satpy.multiscene.MultiScene.from_files` constructor allows to
+The :meth:`MultiScene.from_files <satpy.multiscene._multiscene.MultiScene.from_files>` constructor allows to
 automatically combine multiple readers into a single MultiScene.  It is no
 longer necessary for the user to create the :class:`~satpy.scene.Scene`
 objects themselves.  For example, you can combine Advanced Baseline
@@ -313,7 +313,7 @@ both readers:
     >>> ms.save_animation("/path/for/output/{name:s}_{start_time:%Y%m%d_%H%M}.mp4")
 
 In this example, we pass to
-:meth:`~satpy.multiscene.MultiScene.from_files` the additional parameters
+:meth:`MultiScene.from_files <satpy.multiscene._multiscene.MultiScene.from_files>` the additional parameters
 ``ensure_all_readers=True, group_keys=["start_time"], time_threshold=30``
 so we only get scenes at times that both ABI and GLM have a file starting
 within 30 seconds from each other, and ignore all other differences for

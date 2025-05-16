@@ -234,7 +234,7 @@ class GeoTIFFWriter(ImageWriter):
                 GeoTIFF. See GDAL documentation for more information.
             tiled (bool): For performance this defaults to ``True``.
                 Pass ``False`` to created striped TIFF files.
-            include_scale_offset (deprecated, bool): Deprecated.
+            include_scale_offset (bool): Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
 
