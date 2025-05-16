@@ -44,7 +44,8 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs["platform"]
+        return platform_name_translate.get(
+            self.nc.attrs["platform"], self.nc.attrs["platform"])
 
     @property
     def sensor_name(self):
