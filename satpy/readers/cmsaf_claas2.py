@@ -104,7 +104,7 @@ class CLAAS2(NetCDF4FileHandler):
         """
         full_disk = self._get_full_disk()
         offset = int((full_disk.width - self.grid_size) // 2)
-        if offset>0:
+        if offset > 0:
             return full_disk[offset:-offset, offset:-offset]
         return full_disk
 
