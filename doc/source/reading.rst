@@ -45,7 +45,7 @@ Reader Table
     Alpha
         This denotes early development status. Reader is functional and implements some
         or all of the nominal features. There might be bugs. Exactness of results is
-        not be guaranteed. Use at your own risk.
+        not guaranteed. Use at your own risk.
 
     Beta
         This denotes final developement status. Reader is functional and implements all
@@ -168,7 +168,7 @@ to them. By default Satpy will provide the version of the dataset with the
 highest resolution and the highest level of calibration (brightness
 temperature or reflectance over radiance). It is also possible to request one
 of these exact versions of a dataset by using the
-:class:`~satpy.dataset.DataQuery` class::
+:class:`~satpy.dataset.dataid.DataQuery` class::
 
     >>> from satpy import DataQuery
     >>> my_channel_id = DataQuery(name='IR_016', calibration='radiance')

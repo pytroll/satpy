@@ -18,6 +18,19 @@
 """Common functionality for FCI data readers."""
 from __future__ import annotations
 
+# Platform names according to the MTG FCI L1 Product User Guide,
+# EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+# MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+# MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+#
+# Not sure how the numbering will be considering MTG-S1 and MTG-S2 will be launched
+# in-between.
+platform_name_translate = {
+    "MTI1": "Meteosat-12",
+    "MTI2": "MTG-I2",
+    "MTI3": "MTG-I3",
+    "MTI4": "MTG-I4"}
+
 
 def calculate_area_extent(area_dict):
         """Calculate the area extent seen by MTG FCI instrument.

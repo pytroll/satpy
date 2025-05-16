@@ -45,13 +45,13 @@ def make_ext(ll_x, ur_x, ll_y, ur_y, h):
     """Create the area extent from computed ll and ur.
 
     Args:
-        ll_x: The lower left x coordinate (m)
-        ur_x: The upper right x coordinate (m)
-        ll_y: The lower left y coordinate (m)
-        ur_y: The upper right y coordinate (m)
-        h: The satellite altitude above the Earth's surface
+        ll_x (numbers.Number): The lower left x coordinate (m)
+        ur_x (numbers.Number): The upper right x coordinate (m)
+        ll_y (numbers.Number): The lower left y coordinate (m)
+        ur_y (numbers.Number): The upper right y coordinate (m)
+        h (numbers.Number): The satellite altitude above the Earth's surface
     Returns:
-        aex: An area extent for the scene
+        (tuple[numbers.Number]): An area extent for the scene
 
     """
     aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
@@ -64,18 +64,18 @@ def get_area_extent(pdict):
     """Get the area extent seen by a geostationary satellite.
 
     Args:
-        pdict: A dictionary containing common parameters:
-            nlines: Number of lines in image
-            ncols: Number of columns in image
-            cfac: Column scaling factor
-            lfac: Line scaling factor
-            coff: Column offset factor
-            loff: Line offset factor
-            scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
-            h: Altitude of satellite above the Earth's surface (m)
+        pdict (dict): A dictionary containing common parameters:
+            nlines (numbers.Number): Number of lines in image
+            ncols (numbers.Number): Number of columns in image
+            cfac (numbers.Number): Column scaling factor
+            lfac (numbers.Number): Line scaling factor
+            coff (numbers.Number): Column offset factor
+            loff (numbers.Number): Line offset factor
+            scandir(str): 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
+            h (numbers.Number): Altitude of satellite above the Earth's surface (m)
 
     Returns:
-        aex: An area extent for the scene
+        (tuple[numbers.Number]): An area extent for the scene
 
     """
     # count starts at 1

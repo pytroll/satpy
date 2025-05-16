@@ -207,11 +207,11 @@ def unzip_file(filename: str | FSFile, prefix=None):
 
     Args:
         filename: The local/remote file to unzip.
-        prefix (str, optional): If file is one of many segments of data, prefix random filename
-        for correct sorting. This is normally the segment number.
+        prefix (str, Optional): If file is one of many segments of data, prefix random filename
+                                for correct sorting. This is normally the segment number.
 
     Returns:
-        Temporary filename path for decompressed file or None.
+        (pathlib.Path, None) Temporary filename path for decompressed file if available.
 
     """
     if isinstance(filename, str):
@@ -225,11 +225,11 @@ def _unzip_local_file(filename: str, prefix=None):
 
     Args:
         filename: The file to unzip.
-        prefix (str, optional): If file is one of many segments of data, prefix random filename
-        for correct sorting. This is normally the segment number.
+        prefix (str, Optional): If file is one of many segments of data, prefix random filename
+                                for correct sorting. This is normally the segment number.
 
     Returns:
-        Temporary filename path for decompressed file or None.
+        (pathlib.Path, None) Temporary filename path for decompressed file if available.
 
     """
     if not os.fspath(filename).endswith("bz2"):
@@ -306,11 +306,11 @@ def _unzip_FSFile(filename: FSFile, prefix=None):
 
     Args:
         filename: The FSFile to unzip.
-        prefix (str, optional): If file is one of many segments of data, prefix random filename
-        for correct sorting. This is normally the segment number.
+        prefix (str, Optional): If file is one of many segments of data, prefix random filename
+                                for correct sorting. This is normally the segment number.
 
     Returns:
-        Temporary filename path for decompressed file or None.
+        (os.Pathlike, None) Temporary filename path for decompressed file if available.
 
     """
     fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
@@ -370,8 +370,9 @@ def fromfile(filename, dtype, count=1, offset=0):
     Args:
         filename: Either the name of the file to read or a :class:`satpy.readers.FSFile` object.
         dtype: The data type of the numpy array
-        count (Optional, default ``1``): Number of items to read
-        offset (Optional, default ``0``): Starting point for reading the buffer from
+        count (Optional): Number of items to read. Default ``1``
+        offset (Optional): Starting point for reading the buffer from.
+                           Default ``0``
 
     Returns:
         The content of the filename as a numpy array with the given data type.

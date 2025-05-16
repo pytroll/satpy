@@ -27,6 +27,7 @@ from satpy._compat import cached_property
 from satpy.area_utils import get_area_def
 from satpy.readers._geos_area import get_geos_area_naming, make_ext
 from satpy.readers.eum_base import get_service_mode
+from satpy.readers.fci_base import platform_name_translate
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -43,7 +44,8 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs["platform"]
+        return platform_name_translate.get(
+            self.nc.attrs["platform"], self.nc.attrs["platform"])
 
     @property
     def sensor_name(self):
@@ -77,10 +79,10 @@ class FciL2CommonFunctions(object):
         """
         attributes = {
             "filename": self.filename,
-            "spacecraft_name": self.spacecraft_name,
-            "sensor": self.sensor_name,
-            "platform_name": self.spacecraft_name,
+            "spacecraft_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name),
             "ssp_lon": self.ssp_lon,
+            "sensor": self.sensor_name,
+            "platform_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name)
         }
 
         if product_type=="amv":

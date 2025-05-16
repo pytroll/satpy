@@ -557,14 +557,14 @@ def group_results_by_output_file(sources, targets):
 
     Args:
         sources: List of sources (typically dask.array) as returned by
-            :meth:`Scene.save_datasets`.
+            :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.
         targets: List of targets (should be ``RIODataset`` or ``RIOTag``) as
-            returned by :meth:`Scene.save_datasets`.
+            returned by :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.
 
     Returns:
         List of ``Tuple(List[sources], List[targets])`` with a length equal to
         the number of output files planned to be written by
-        :meth:`Scene.save_datasets`.
+        :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.
     """
     ofs = {}
     for (src, targ) in zip(sources, targets):
@@ -580,7 +580,7 @@ def compute_writer_results(results):
     """Compute all the given dask graphs `results` so that the files are saved.
 
     Args:
-        results (iterable): Iterable of dask graphs resulting from calls to
+        results (Iterable): Iterable of dask graphs resulting from calls to
                             `scn.save_datasets(..., compute=False)`
     """
     if not results:
@@ -733,7 +733,7 @@ class Writer(Plugin, DataDownloadMixin):
         this simply calls `save_dataset` for each dataset provided.
 
         Args:
-            datasets (iterable): Iterable of `xarray.DataArray` objects to
+            datasets (Iterable): Iterable of `xarray.DataArray` objects to
                                  save using this writer.
             compute (bool): If `True` (default), compute all the saves to
                             disk. If `False` then the return value is either
@@ -845,7 +845,7 @@ class ImageWriter(Writer):
                 if further custom enhancement is needed.
 
             kwargs (dict): Additional keyword arguments to pass to the
-                :class:`~satpy.writer.Writer` base class.
+                :class:`~satpy.writers.Writer` base class.
 
         .. versionchanged:: 0.10
 

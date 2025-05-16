@@ -29,12 +29,11 @@ FULL_DISK_WITH_OFFSET = _adjust_area_to_match_shifted_data(FULL_DISK)
 class CLAAS2(NetCDF4FileHandler):
     """Handle CMSAF CLAAS-2 files."""
 
-    grid_size = 3636
-
     def __init__(self, *args, **kwargs):
         """Initialise class."""
         super().__init__(*args, **kwargs, cache_handle=False,
                          auto_maskandscale=True)
+        self.grid_size = self.file_content["/dimension/y"]
 
     @property
     def start_time(self):
@@ -100,12 +99,14 @@ class CLAAS2(NetCDF4FileHandler):
     def _get_subset_of_full_disk(self):
         """Get subset of the full disk.
 
-        CLAAS products are provided on a grid that is slightly smaller
+        CLAAS2 products are provided on a grid that is slightly smaller
         than the full disk (excludes most of the space pixels).
         """
         full_disk = self._get_full_disk()
         offset = int((full_disk.width - self.grid_size) // 2)
-        return full_disk[offset:-offset, offset:-offset]
+        if offset > 0:
+            return full_disk[offset:-offset, offset:-offset]
+        return full_disk
 
     def _get_full_disk(self):
         if _is_georef_offset_present(self.start_time.date()):

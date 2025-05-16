@@ -46,7 +46,7 @@ class TestPillowWriter(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": dt.datetime.utcnow()}
+                   "start_time": dt.datetime.now(dt.timezone.utc)}
         )
         return [ds1]
 

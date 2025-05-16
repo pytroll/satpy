@@ -145,7 +145,8 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
         if ds_info.get("cloud_clear", False):
             # clear-sky if bit 15-16 are 00
-            clear_sky_mask = (self["l2p_flags"][0] & 0b1100000000000000) != 0
+            l2p_flags = self._get_unsigned_l2p_flags()
+            clear_sky_mask = (l2p_flags & 0b1100000000000000) != 0
             clear_sky_mask = clear_sky_mask.rename({"ni": "x", "nj": "y"})
             data = data.where(~clear_sky_mask)
 
@@ -155,3 +156,9 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         data.attrs.pop("valid_max", None)
         data.attrs.pop("valid_min", None)
         return data
+
+    def _get_unsigned_l2p_flags(self):
+        l2p_flags = self["l2p_flags"][0]
+        # l2p_flags is usually signed 16-bit (int16) but we need (uint16) for binary operations
+        unsigned_type = l2p_flags.dtype.str.replace("i", "u")
+        return l2p_flags.astype(unsigned_type, copy=False)

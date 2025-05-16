@@ -75,7 +75,7 @@ class MWSL1BFile(NetCDF4FileHandler):
 
     This class implements the European Polar System Second Generation (EPS-SG)
     Microwave Sounder (MWS) Level-1b NetCDF reader.  It is designed to be used
-    through the :class:`~satpy.Scene` class using the :mod:`~satpy.Scene.load`
+    through the :class:`Scene <satpy.scene.Scene>` class using the :mod:`Scene.load <satpy.scene.Scene.load>`
     method with the reader ``"mws_l1b_nc"``.
 
     """

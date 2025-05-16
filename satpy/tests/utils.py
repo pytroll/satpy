@@ -87,9 +87,9 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 
     Args:
         file_content (dict): Dictionary of string file keys to fake file data.
-        attrs (iterable): Series of attributes to copy to DataArray object from
+        attrs (Iterable): Series of attributes to copy to DataArray object from
             file content dictionary. Defaults to no attributes.
-        dims (iterable): Dimension names to use for resulting DataArrays.
+        dims (Iterable): Dimension names to use for resulting DataArrays.
             The second to last dimension is used for 1D arrays, so for
             dims of ``('z', 'y', 'x')`` this would use ``'y'``. Otherwise, the
             dimensions are used starting with the last, so 2D arrays are

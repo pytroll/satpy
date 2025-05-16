@@ -120,7 +120,7 @@ class Scene:
 
 
         Args:
-            filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
+            filenames (Iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
                                           should map reader names to a list of filenames for that reader.
             reader (str or list): The name of the reader to use for loading the data or a list of names.
             filter_parameters (dict): Specify loaded file filtering parameters.
@@ -251,13 +251,13 @@ class Scene:
         """Compare areas for the provided datasets.
 
         Args:
-            datasets (iterable): Datasets whose areas will be compared. Can
+            datasets (Iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
                                  This can also be a series of area objects,
                                  typically AreaDefinitions.
-            compare_func (callable): `min` or `max` or other function used to
+            compare_func (Callable): `min` or `max` or other function used to
                                      compare the dataset's areas.
 
         """
@@ -327,7 +327,7 @@ class Scene:
         """Get highest resolution area for the provided datasets.
 
         Args:
-            datasets (iterable): Datasets whose areas will be compared. Can
+            datasets (Iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
@@ -341,7 +341,7 @@ class Scene:
         Deprecated.  Use :meth:`finest_area` instead.
 
         Args:
-            datasets (iterable): Datasets whose areas will be compared. Can
+            datasets (Iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
@@ -358,7 +358,7 @@ class Scene:
         """Get lowest resolution area for the provided datasets.
 
         Args:
-            datasets (iterable): Datasets whose areas will be compared. Can
+            datasets (Iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
@@ -372,7 +372,7 @@ class Scene:
         Deprecated.  Use :meth:`coarsest_area` instead.
 
         Args:
-            datasets (iterable): Datasets whose areas will be compared. Can
+            datasets (Iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
@@ -401,10 +401,10 @@ class Scene:
         composite dataset IDs, pass ``composites=True``.
 
         Args:
-            reader_name (str, optional): Name of reader for which to return
+            reader_name (str, Optional): Name of reader for which to return
                 dataset IDs.  If not passed, return dataset IDs for all
                 readers.
-            composites (bool, optional): If True, return dataset IDs including
+            composites (bool, Optional): If True, return dataset IDs including
                 composites.  If False (default), return only non-composite
                 dataset IDs.
 
@@ -434,10 +434,10 @@ class Scene:
         argument ``composites=True`` is passed.
 
         Args:
-            reader_name (str, optional): Name of reader for which to return
+            reader_name (str, Optional): Name of reader for which to return
                 dataset IDs.  If not passed, return dataset names for all
                 readers.
-            composites (bool, optional): If True, return dataset IDs including
+            composites (bool, Optional): If True, return dataset IDs including
                 composites.  If False (default), return only non-composite
                 dataset names.
 
@@ -452,10 +452,10 @@ class Scene:
         Excludes composites unless ``composites=True`` is passed.
 
         Args:
-            reader_name (str, optional): Name of reader for which to return
+            reader_name (str, Optional): Name of reader for which to return
                 dataset IDs.  If not passed, return dataset IDs for all
                 readers.
-            composites (bool, optional): If True, return dataset IDs including
+            composites (bool, Optional): If True, return dataset IDs including
                 composites.  If False (default), return only non-composite
                 dataset IDs.
 
@@ -489,10 +489,10 @@ class Scene:
         Excludes composites unless ``composites=True`` is passed.
 
         Args:
-            reader_name (str, optional): Name of reader for which to return
+            reader_name (str, Optional): Name of reader for which to return
                 dataset IDs.  If not passed, return dataset names for all
                 readers.
-            composites (bool, optional): If True, return dataset IDs including
+            composites (bool, Optional): If True, return dataset IDs including
                 composites.  If False (default), return only non-composite
                 dataset names.
 
@@ -701,7 +701,7 @@ class Scene:
                                    longitude and Y is latitude.
             xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
                                    projection units.
-            dataset_ids (iterable): DataIDs to include in the returned
+            dataset_ids (Iterable): DataIDs to include in the returned
                                  `Scene`. Defaults to all datasets.
 
         This method will attempt to intelligently slice the data to preserve
@@ -776,9 +776,9 @@ class Scene:
         """Create an aggregated version of the Scene.
 
         Args:
-            dataset_ids (iterable): DataIDs to include in the returned
+            dataset_ids (Iterable): DataIDs to include in the returned
                                     `Scene`. Defaults to all datasets.
-            func (string, callable): Function to apply on each aggregation window. One of
+            func (str, Callable): Function to apply on each aggregation window. One of
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
                            'argmax', 'prod', 'std', 'var' strings or a custom
                            function. 'mean' is the default.
@@ -997,7 +997,7 @@ class Scene:
             dataset_id (DataID, DataQuery or str):
                 Either a DataID, a DataQuery or a string, that refers to a data
                 array that has been previously loaded using Scene.load.
-            overlay (dict, optional):
+            overlay (dict, Optional):
                 Add an overlay before showing the image.  The keys/values for
                 this dictionary are as the arguments for
                 :meth:`~satpy.writers.add_overlay`.  The dictionary should
@@ -1021,7 +1021,7 @@ class Scene:
         """Convert satpy Scene to geoviews.
 
         Args:
-            scn (satpy.Scene): Satpy Scene.
+            scn (satpy.scene.Scene): Satpy Scene.
             gvtype (gv plot type):
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
                 Default to :class:`geoviews.Image`.
@@ -1029,10 +1029,10 @@ class Scene:
             datasets (list): Limit included products to these datasets
             kdims (list of str):
                 Key dimensions. See geoviews documentation for more information.
-            vdims (list of str, optional):
+            vdims (list of str, Optional):
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic (bool, optional): Load and compute data on-the-fly during
+            dynamic (bool, Optional): Load and compute data on-the-fly during
                 visualization. Default is ``False``. See
                 https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
                 for more information. Has no effect when data to be visualized
@@ -1055,7 +1055,7 @@ class Scene:
         """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
 
         Args:
-            scn (satpy.Scene): Satpy Scene.
+            scn (satpy.scene.Scene): Satpy Scene.
             datasets (list): Limit included products to these datasets.
             args: Arguments coming from hvplot
             kwargs: hvplot options dictionary.
@@ -1136,31 +1136,31 @@ class Scene:
 
         Parameters
         ----------
-        datasets (iterable):
+        datasets (Iterable, Optional):
             List of Satpy Scene datasets to include in the output xr.Dataset.
             Elements can be string name, a wavelength as a number, a DataID,
             or DataQuery object.
             If None (the default), it include all loaded Scene datasets.
-        header_attrs:
+        header_attrs (dict, Optional):
             Global attributes of the output xr.Dataset.
-        epoch (str):
+        epoch (str, Optional):
             Reference time for encoding the time coordinates (if available).
             Example format: "seconds since 1970-01-01 00:00:00".
             If None, the default reference time is defined using "from satpy.cf.coords import EPOCH"
-        flatten_attrs (bool):
+        flatten_attrs (bool, Optional):
             If True, flatten dict-type attributes.
-        exclude_attrs (list):
+        exclude_attrs (Iterable, Optional):
             List of xr.DataArray attribute names to be excluded.
-        include_lonlats (bool):
+        include_lonlats (bool, Optional):
             If True, it includes 'latitude' and 'longitude' coordinates.
             If the 'area' attribute is a SwathDefinition, it always includes
             latitude and longitude coordinates.
-        pretty (bool):
+        pretty (bool, Optional):
             Don't modify coordinate names, if possible. Makes the file prettier,
             but possibly less consistent.
-        include_orig_name (bool).
+        include_orig_name (bool, Optional).
             Include the original dataset name as a variable attribute in the xr.Dataset.
-        numeric_name_prefix (str):
+        numeric_name_prefix (str, Optional):
             Prefix to add the each variable with name starting with a digit.
             Use '' or None to leave this out.
 
@@ -1194,7 +1194,7 @@ class Scene:
         """Save the ``dataset_id`` to file using ``writer``.
 
         Args:
-            dataset_id (str or Number or DataID or DataQuery): Identifier for
+            dataset_id (str or numbers.Number or DataID or DataQuery): Identifier for
                 the dataset to save to disk.
             filename (str): Optionally specify the filename to save this
                             dataset to. It may include string formatting
@@ -1259,7 +1259,7 @@ class Scene:
                             dataset to. It may include string formatting
                             patterns that will be filled in by dataset
                             attributes.
-            datasets (iterable): Limit written products to these datasets.
+            datasets (Iterable): Limit written products to these datasets.
                 Elements can be string name, a wavelength as a number, a
                 DataID, or DataQuery object.
             compute (bool): If `True` (default), compute all of the saves to
@@ -1391,7 +1391,7 @@ class Scene:
         generate composites that have yet to be generated.
 
         Args:
-            keepables (iterable): DataIDs to keep whether they are needed
+            keepables (Iterable): DataIDs to keep whether they are needed
                                   or not.
 
         """
@@ -1417,7 +1417,7 @@ class Scene:
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
-            wishlist (iterable): List of names (str), wavelengths (float),
+            wishlist (Iterable): List of names (str), wavelengths (float),
                 DataQuery objects or DataID of the requested datasets to load.
                 See `available_dataset_ids()` for what datasets are available.
             calibration (list | str): Calibration levels to limit available
@@ -1634,7 +1634,7 @@ class Scene:
         Args:
             comp_id (DataID): DataID for the composite whose
                                  prerequisites are being collected.
-            prereq_nodes (sequence of Nodes): Prerequisites to collect
+            prereq_nodes (Sequence[Node]): Prerequisites to collect
             keepables (set): `set` to update if any prerequisites can't
                              be loaded at this time (see
                              `_generate_composite`).

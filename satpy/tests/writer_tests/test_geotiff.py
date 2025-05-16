@@ -42,7 +42,7 @@ def _get_test_datasets_2d():
         da.zeros((100, 200), chunks=50),
         dims=("y", "x"),
         attrs={"name": "test",
-               "start_time": dt.datetime.utcnow(),
+               "start_time": dt.datetime.now(dt.timezone.utc),
                "units": "K",
                "area": adef}
     )
@@ -72,7 +72,7 @@ def _get_test_datasets_3d():
         dims=("bands", "y", "x"),
         coords={"bands": ["R", "G", "B"]},
         attrs={"name": "test",
-               "start_time": dt.datetime.utcnow(),
+               "start_time": dt.datetime.now(dt.timezone.utc),
                "area": adef}
     )
     return [ds1]
