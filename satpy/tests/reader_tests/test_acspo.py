@@ -93,7 +93,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
         file_content["l2p_flags"] = np.zeros(
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
-            dtype=np.uint16)
+            dtype=np.int16)
 
         convert_file_content_to_data_array(file_content, dims=("time", "nj", "ni"))
         return file_content
