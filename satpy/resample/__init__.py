@@ -185,8 +185,6 @@ def __getattr__(name: str) -> Any:
         new_mod = "satpy.resample.bucket"
         obj = getattr(bucket, name)
     elif name in (
-            "add_xy_coords",
-            "add_crs_xy_coords",
             "resample",
             "prepare_resampler",
             "resample_dataset"
@@ -201,6 +199,13 @@ def __getattr__(name: str) -> Any:
         from satpy import area_utils
         new_mod = "satpy.area_utils"
         obj = getattr(area_utils, name)
+    elif name in (
+            "add_xy_coords",
+            "add_crs_xy_coords",
+    ):
+        from satpy import coords_utils
+        new_mod = "satpy.coords_utils"
+        obj = getattr(coords_utils, name)
     else:
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
