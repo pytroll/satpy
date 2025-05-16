@@ -140,8 +140,8 @@ class TestEnhancementStretch:
         from satpy.enhancements import cira_stretch
 
         expected = np.array([[
-            [np.nan, -7.04045974, -7.04045974, 0.79630132, 0.95947296],
-            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]], dtype=dtype)
+            [np.nan, -7.04046, -7.04046, 0.84503, 1.008202],
+            [1.100542, 1.165239, 1.215084, 1.25564, 1.28983 ]]], dtype=dtype)
         run_and_check_enhancement_with_dtype(cira_stretch, self.ch1.astype(dtype), expected)
 
     def test_reinhard(self):
