@@ -8,7 +8,7 @@ import numpy as np
 import xarray as xr
 from pyresample.resampler import BaseResampler as PRBaseResampler
 
-from satpy.resample.base import update_resampled_coords
+from satpy.resample.base import _update_resampled_coords
 from satpy.utils import PerformanceWarning, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -67,7 +67,7 @@ class NativeResampler(PRBaseResampler):
 
         d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
-        return update_resampled_coords(data, new_data, target_geo_def)
+        return _update_resampled_coords(data, new_data, target_geo_def)
 
 
 def _ensure_dask_array(d_arr):

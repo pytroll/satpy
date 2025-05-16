@@ -10,7 +10,7 @@ import xarray as xr
 import zarr
 from pyresample.resampler import BaseResampler as PRBaseResampler
 
-from satpy.resample.base import update_resampled_coords
+from satpy.resample.base import _update_resampled_coords
 from satpy.utils import get_legacy_chunk_size
 
 LOG = getLogger(__name__)
@@ -187,7 +187,7 @@ class KDTreeResampler(PRBaseResampler):
         del kwargs
         LOG.debug("Resampling %s", str(data.name))
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
-        return update_resampled_coords(data, res, self.target_geo_def)
+        return _update_resampled_coords(data, res, self.target_geo_def)
 
 
 class BilinearResampler(PRBaseResampler):
@@ -290,7 +290,7 @@ class BilinearResampler(PRBaseResampler):
                                                       fill_value=fill_value,
                                                       output_shape=target_shape)
 
-        return update_resampled_coords(data, res, self.target_geo_def)
+        return _update_resampled_coords(data, res, self.target_geo_def)
 
 
 def _move_existing_caches(cache_dir, filename):

@@ -181,7 +181,7 @@ def _add_crs(area, data_arr):
     return crs, data_arr
 
 
-def update_resampled_coords(old_data, new_data, new_area):
+def _update_resampled_coords(old_data, new_data, new_area):
     """Add coordinate information to newly resampled DataArray.
 
     Args:
@@ -314,7 +314,7 @@ def resample(source_area, data, destination_area,
     return res
 
 
-def get_fill_value(dataset):
+def _get_fill_value(dataset):
     """Get the fill value of the *dataset*, defaulting to np.nan."""
     if np.issubdtype(dataset.dtype, np.integer):
         return dataset.attrs.get("_FillValue", np.nan)
@@ -345,7 +345,7 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
         return dataset
 
-    fill_value = kwargs.pop("fill_value", get_fill_value(dataset))
+    fill_value = kwargs.pop("fill_value", _get_fill_value(dataset))
     new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()

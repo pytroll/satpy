@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 from pyresample.resampler import BaseResampler as PRBaseResampler
 
-from satpy.resample.base import update_resampled_coords
+from satpy.resample.base import _update_resampled_coords
 from satpy.utils import get_legacy_chunk_size
 
 LOG = getLogger(__name__)
@@ -60,7 +60,7 @@ class BucketResamplerBase(PRBaseResampler):
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
-        return update_resampled_coords(data, result, self.target_geo_def)
+        return _update_resampled_coords(data, result, self.target_geo_def)
 
     def _adjust_attrs(self, attrs):
         # Adjust some attributes

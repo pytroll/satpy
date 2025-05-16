@@ -30,8 +30,6 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 
-from satpy.resample import update_resampled_coords
-
 START_TIME = dt.datetime(2018, 1, 1, 12, 0, 0)
 END_TIME = START_TIME + dt.timedelta(minutes=20)
 
@@ -137,6 +135,8 @@ def _get_test_data(shape=(200, 100), chunks=50):
 
 
 def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
+    from satpy.resample import _update_resampled_coords
+
     attrs = dict(
         name="test_ds",
         platform_name="PLAT",
@@ -154,7 +154,7 @@ def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
         dims=("y", "x") if dask_arr.ndim == 2 else ("bands", "y", "x"),
         attrs=attrs,
     )
-    return update_resampled_coords(ds, ds, area_def)
+    return _update_resampled_coords(ds, ds, area_def)
 
 
 class TestAWIPSTiledWriter:

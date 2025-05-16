@@ -189,10 +189,8 @@ def __getattr__(name: str) -> Any:
             "get_area_def",
             "add_xy_coords",
             "add_crs_xy_coords",
-            "update_resampled_coords",
             "resample",
             "prepare_resampler",
-            "get_fill_value",
             "resample_dataset"
     ):
             from . import base
