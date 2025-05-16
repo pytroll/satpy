@@ -135,7 +135,7 @@ def _get_test_data(shape=(200, 100), chunks=50):
 
 
 def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
-    from satpy.resample import _update_resampled_coords
+    from satpy.resample.base import _update_resampled_coords
 
     attrs = dict(
         name="test_ds",
