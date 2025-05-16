@@ -252,8 +252,8 @@ possible to improve performance so `compute` should only be used when needed.
              1247.37586051,  1656.50487092,   978.28184726]])
 
 Dask also provides `cos`, `log` and other mathematical function, that you
-can use with :func:`da.cos <dask.array.cos>` and
-:func:`da.log <dask.array.log>`. However, since satpy uses xarrays as
+can use with `da.cos <dask.array.cos>` and
+`da.log <dask.array.log>`. However, since satpy uses xarrays as
 standard data structure, prefer the xarray functions when possible (they call
 in turn the dask counterparts when possible).
 
@@ -291,7 +291,7 @@ Map dask blocks to non-dask friendly functions
 
 If the complicated operation you need to perform can be vectorized and does
 not need the entire data array to do its operations you can use
-:func:`da.map_blocks <dask.array.core.map_blocks>` to get better performance
+:func:`da.map_blocks <dask.array.map_blocks>` to get better performance
 than creating a delayed function. Similar to delayed functions the inputs to
 the function are fully computed DataArrays or numpy arrays, but only the
 individual chunks of the dask array at a time. Note that ``map_blocks`` must
@@ -307,11 +307,11 @@ may be unserializable and can cause issues in some environments.
 Helpful functions
 *****************
 
-- :func:`~dask.array.core.map_blocks`
+- :func:`~dask.array.map_blocks`
 - :func:`~dask.array.map_overlap`
-- :func:`~dask.array.core.atop`
+- :func:`~dask.array.blockwise`
 - :func:`~dask.array.store`
-- :func:`~dask.array.tokenize`
+- ``dask.tokenize.tokenize``
 - :func:`~dask.compute`
 - :doc:`dask:delayed`
 - :func:`~dask.array.rechunk`

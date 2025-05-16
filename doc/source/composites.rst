@@ -534,7 +534,7 @@ enhancement functions in Satpy.
 
 .. warning::
    If you define a composite with no matching enhancement, Satpy will by
-   default apply the :func:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
+   default apply the :meth:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
    cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
    are enhancing a composite based on :class:`DayNightCompositor` where
    the components have their own enhancements defined), you can use the `image_ready` standard name.

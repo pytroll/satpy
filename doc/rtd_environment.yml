@@ -27,6 +27,7 @@ dependencies:
   - setuptools_scm
   - sphinx>=8.2.0
   - sphinx_rtd_theme
+  - sphinx-autodoc-typehints
   - trollsift
   - xarray
   - zarr

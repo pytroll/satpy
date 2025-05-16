@@ -426,19 +426,29 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents, sector_crs,  # noqa: D417
-                 cell_size=(2000000, 2000000),
-                 num_subtiles=None, use_sector_reference=False):
+    def __init__(
+            self,
+            area_definition: AreaDefinition,
+            extents: tuple[float, float, float, float],
+            sector_crs: CRS,
+            cell_size: tuple[int, int] = (2000000, 2000000),
+            num_subtiles: tuple[int, int] | None = None,
+            use_sector_reference: bool = False):
         """Initialize tile information for later generation.
 
         Args:
-            area_definition (AreaDefinition): Area of the data being saved.
-            extents (tuple): Four element tuple of the configured lettered
-                 area.
-            sector_crs (pyproj.CRS): CRS of the configured lettered sector
-                area.
-            cell_size (tuple): Two element tuple of resolution of each tile
+            area_definition: Area of the data being saved.
+            extents: Four element tuple of the configured lettered area.
+            sector_crs: CRS of the configured lettered sector area.
+            cell_size: Two element tuple of resolution of each tile
                 in sector projection units (y, x).
+            num_subtiles: Two element tuple of number of sub-tiles to create
+                for each larger lettered tile. Defaults to (2, 2).
+            use_sector_reference: If False (default), the data's geolocation
+                is used to determine where pixels should align. If True, the
+                data's geolocation is shifted by up to half a pixel to align
+                with the extents of the lettered grid/area.
+
         """
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)

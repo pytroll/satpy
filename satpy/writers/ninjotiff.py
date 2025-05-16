@@ -102,7 +102,7 @@ def convert_units(dataset, in_unit, out_unit):
     returns the input dataset.
 
     Args:
-        dataset (xarray DataArray):
+        dataset (xarray.DataArray):
             Dataarray for which to convert the units.
         in_unit (str):
             Unit for input data.

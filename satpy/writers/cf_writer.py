@@ -321,7 +321,7 @@ class CFWriter(Writer):
         """Convert the dataarray to something cf-compatible.
 
         Args:
-            dataarray (xr.DataArray):
+            dataarray (xarray.DataArray):
                 The data array to be converted.
             epoch (str):
                 Reference time for encoding of time coordinates.

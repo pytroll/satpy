@@ -436,7 +436,7 @@ class MultiScene(object):
                 will attempt to process all scenes at once. This option should
                 be used with care to avoid memory issues when trying to
                 improve performance.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
@@ -677,7 +677,7 @@ class MultiScene(object):
                 ``(batch_size / 2)`` frames for the second dataset.
             ignore_missing (bool): Don't include a black frame when a dataset
                                    is missing from a child scene.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
