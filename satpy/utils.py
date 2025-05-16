@@ -38,7 +38,7 @@ import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
 
-from satpy._compat import DTypeLike
+from satpy._compat import ArrayLike, DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -178,15 +178,18 @@ def in_ipynb():
 # Spherical conversions
 
 
-def lonlat2xyz(lon, lat):
+def lonlat2xyz(
+        lon: ArrayLike,
+        lat: ArrayLike,
+) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
     """Convert lon lat to cartesian.
 
     For a sphere with unit radius, convert the spherical coordinates
     longitude and latitude to cartesian coordinates.
 
     Args:
-        lon (numbers.Number or ArrayLike[numbers.Number]): Longitude in °.
-        lat (numbers.Number or ArrayLike[numbers.Number]): Latitude in °.
+        lon: Longitude in °.
+        lat: Latitude in °.
 
     Returns:
         (x, y, z) Cartesian coordinates [1]
@@ -199,21 +202,26 @@ def lonlat2xyz(lon, lat):
     return x, y, z
 
 
-def xyz2lonlat(x, y, z, asin=False):
+def xyz2lonlat(
+        x: ArrayLike,
+        y: ArrayLike,
+        z: ArrayLike,
+        asin: bool = False,
+) -> tuple[ArrayLike, ArrayLike]:
     """Convert cartesian to lon lat.
 
     For a sphere with unit radius, convert cartesian coordinates to spherical
     coordinates longitude and latitude.
 
     Args:
-        x (numbers.Number or ArrayLike[numbers.Number]): x-coordinate, unitless
-        y (numbers.Number or ArrayLike[numbers.Number]): y-coordinate, unitless
-        z (numbers.Number or ArrayLike[numbers.Number]): z-coordinate, unitless
-        asin (bool, Optional): If true, use arcsin for calculations.
+        x: x-coordinate, unitless
+        y: y-coordinate, unitless
+        z: z-coordinate, unitless
+        asin: If true, use arcsin for calculations.
             If false, use arctan2 for calculations.
 
     Returns:
-        (tuple): Longitude and latitude in °.
+        Longitude and latitude in °.
     """
     lon = np.rad2deg(np.arctan2(y, x))
     if asin:
@@ -573,7 +581,7 @@ def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
     This is mostly used in :class:`satpy.composites.CompositeBase` to safe
-    guard against running :func:`dask.array.core.map_blocks` with arrays of
+    guard against running :func:`dask.array.map_blocks` with arrays of
     different chunk sizes. Doing so can cause unexpected results or errors.
     However, xarray's ``unify_chunks`` will raise an exception if dimensions
     of the provided DataArrays are different sizes. This is a common case for
@@ -887,15 +895,15 @@ def find_in_ancillary(data, dataset):
     return matches[0]
 
 
-def datetime64_to_pydatetime(dt64):
+def datetime64_to_pydatetime(dt64: np.datetime64) -> datetime.datetime:
     """Convert numpy.datetime64 timestamp to Python datetime.
 
     Discards nanosecond precision, because Python datetime only has microsecond
     precision.
 
     Args:
-        dt64 (np.datetime64): Timestamp to be converted
-    Returns (dt.datetime):
+        dt64: Timestamp to be converted
+    Returns:
         Converted timestamp
     """
     return dt64.astype("datetime64[us]").astype(datetime.datetime)

@@ -74,6 +74,10 @@ autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mip
                         "pygac", "pygrib", "pyhdf", "pyninjotiff",
                         "pyorbital", "pyspectral", "rasterio", "trollimage",
                         "zarr"]
+autodoc_type_aliases = {
+    "ArrayLike": "numpy.typing.ArrayLike",
+    "DTypeLike": "numpy.typing.DTypeLike",
+}
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
 
 # auto generate reader table from reader config files
@@ -90,7 +94,7 @@ needs_sphinx = "8.2.0"
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.todo", "sphinx.ext.coverage",
               "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "sphinx.ext.autosectionlabel",
               "doi_role", "sphinx.ext.viewcode", "sphinx.ext.apidoc",
-              "sphinx.ext.mathjax"]
+              "sphinx.ext.mathjax", "sphinx_autodoc_typehints"]
 
 # Autosectionlabel
 # Make sure target is unique
@@ -314,4 +318,5 @@ intersphinx_mapping = {
     "donfig": ("https://donfig.readthedocs.io/en/latest", None),
     "pooch": ("https://www.fatiando.org/pooch/latest/", None),
     "fsspec": ("https://filesystem-spec.readthedocs.io/en/latest/", None),
+    "asv": ("https://asv.readthedocs.io/en/latest", None),
 }
