@@ -60,3 +60,20 @@ enhancements:
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
+
+  fci_flames_colorised:
+    standard_name: fci_flames_colorised
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - { colors: ylorrd, min_value: 330, max_value: 430 , reverse: true}
+
+  fci_fire_temperature_sum:
+    standard_name: fci_fire_temperature_sum
+    operations: []
+
+  true_color_flames:
+    standard_name: true_color_flames
+    operations: []
