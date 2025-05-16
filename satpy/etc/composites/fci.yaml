@@ -366,7 +366,7 @@ composites:
       - name: nir_22
         modifiers: [ effective_solar_pathlength_corrected ]
       - name: vis_06
-        modifiers: [ effective_solar_pathlength_corrected, rayleigh_corrected ]
+        modifiers: [ effective_solar_pathlength_corrected ]
     standard_name: cloud_phase
 
   cloud_phase_with_night_ir105:
