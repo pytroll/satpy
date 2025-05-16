@@ -427,15 +427,9 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
         fs (FileSystem): as for `find_files_and_readers`
     """
     sensor_supported = False
-    try:
-        reader_instance = load_reader(reader_configs, **reader_kwargs)
-    except (KeyError, IOError, yaml.YAMLError) as err:
-        LOG.info("Cannot use %s", str(reader_configs))
-        LOG.debug(str(err))
-        if reader and (isinstance(reader, str) or len(reader) == 1):
-            # if it is a single reader then give a more usable error
-            raise
-        return (None, [], False)
+    reader_instance = _get_reader_instance(reader, reader_configs, **reader_kwargs)
+    if isinstance(reader_instance, tuple):
+        return reader_instance
 
     if not reader_instance.supports_sensor(sensor):
         return (reader_instance, [], False)
@@ -445,6 +439,22 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
 
     loadables = _get_loadables_from_reader(reader_instance, base_dir, fs)
     return (reader_instance, loadables, sensor_supported)
+
+
+def _get_reader_instance(reader, reader_configs, **reader_kwargs):
+    try:
+        return load_reader(reader_configs, **reader_kwargs)
+    except (KeyError, IOError, yaml.YAMLError) as err:
+        LOG.info("Cannot use %s", str(reader_configs))
+        LOG.debug(str(err))
+        if _is_single_reader(reader):
+            # if it is a single reader then give a more usable error
+            raise
+        return (None, [], False)
+
+
+def _is_single_reader(reader):
+    return reader and (isinstance(reader, str) or len(reader) == 1)
 
 
 def _get_loadables_from_reader(reader_instance, base_dir, fs):
