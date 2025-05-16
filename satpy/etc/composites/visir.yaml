@@ -17,7 +17,7 @@ modifiers:
       - solar_zenith_angle
     # max_sza None means no reduction beyond correction_limit, see https://github.com/pytroll/satpy/issues/3096
     max_sza: !!null
-    correction_limit: 90 # optimise for more information near terminator
+    correction_limit: 150 # use "raw" Li/Shibata without correction
 
   sunz_reduced:
     modifier: !!python/name:satpy.modifiers.SunZenithReducer
