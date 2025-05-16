@@ -718,7 +718,7 @@ composites:
       - name: simple_fci_fire_mask
 
   simple_fci_fire_mask:
-    compositor: !!python/name:satpy.composites.spectral.SimpleFireMaskCompositor
+    compositor: !!python/name:satpy.composites.SimpleFireMaskCompositor
     standard_name: simple_fci_fire_mask
     prerequisites:
       - I05
