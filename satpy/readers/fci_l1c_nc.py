@@ -136,6 +136,7 @@ from pyresample import geometry
 import satpy
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
+from satpy.readers.fci_base import platform_name_translate
 
 from .fci_base import platform_name_translate
 from .netcdf_utils import NetCDF4FsspecFileHandler
@@ -201,7 +202,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
-
     def __init__(self, filename, filename_info, filetype_info,
                  clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
