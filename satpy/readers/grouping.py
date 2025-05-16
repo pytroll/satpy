@@ -40,7 +40,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     ``filenames``, a series `Scene` objects can be easily created.
 
     Args:
-        files_to_sort (iterable): File paths to sort in to group
+        files_to_sort (Iterable): File paths to sort in to group
         reader (str or Collection[str]): Reader or readers whose file patterns
             should be used to sort files.  If not given, try all readers (slow,
             adding a list of readers is strongly recommended).
@@ -194,8 +194,8 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
     listed in each list item are considered to be grouped within the same time.
 
     Args:
-        all_file_keys, as returned by _get_file_keys_for_reader_files
-        time_threshold: temporal threshold
+        all_file_keys (Iterable): as returned by _get_file_keys_for_reader_files
+        time_threshold (numbers.Number): temporal threshold in seconds
 
     Returns:
         List[Mapping[Tuple, Mapping[str, List[str]]]], as described
@@ -348,8 +348,8 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     {'abi_l1b': [...]}
 
     Args:
-        start_time (datetime): Limit used files by starting time.
-        end_time (datetime): Limit used files by ending time.
+        start_time (datetime.datetime): Limit used files by starting time.
+        end_time (datetime.datetime): Limit used files by ending time.
         base_dir (str): The directory to search for files containing the
                         data to load. Defaults to the current directory.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
@@ -410,12 +410,12 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
     Helper for find_files_and_readers.
 
     Args:
-        base_dir: as for `find_files_and_readers`
-        reader: as for `find_files_and_readers`
-        sensor: as for `find_files_and_readers`
-        reader_configs: reader metadata such as returned by
+        base_dir (str): as for `find_files_and_readers`
+        reader (str): as for `find_files_and_readers`
+        sensor (str): as for `find_files_and_readers`
+        reader_configs (dict): reader metadata such as returned by
             `configs_for_reader`.
-        reader_kwargs: Keyword arguments to be passed to reader.
+        reader_kwargs (dict): Keyword arguments to be passed to reader.
         fs (FileSystem): as for `find_files_and_readers`
     """
     sensor_supported = False

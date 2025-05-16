@@ -26,7 +26,7 @@ from functools import total_ordering
 class FSFile(os.PathLike):
     """Implementation of a PathLike file object, that can be opened.
 
-    Giving the filenames to :class:`Scene` with valid transfer protocols will automatically
+    Giving the filenames to :class:`Scene <satpy.scene.Scene>` with valid transfer protocols will automatically
     use this class so manual usage of this class is needed mainly for fine-grained control.
 
     This class is made to be used in conjuction with fsspec or s3fs. For example::
@@ -50,12 +50,12 @@ class FSFile(os.PathLike):
         """Initialise the FSFile instance.
 
         Args:
-            file (str, Pathlike, or OpenFile):
+            file (str, os.Pathlike, or OpenFile):
                 String, object implementing the `os.PathLike` protocol, or
                 an `fsspec.OpenFile` instance.  If passed an instance of
                 `fsspec.OpenFile`, the following argument ``fs`` has no
                 effect.
-            fs (fsspec filesystem, optional)
+            fs (fsspec filesystem, Optional)
                 Object implementing the fsspec filesystem protocol.
         """
         self._fs_open_kwargs = _get_fs_open_kwargs(file)

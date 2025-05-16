@@ -29,7 +29,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     """Create specified readers and assign files to them.
 
     Args:
-        filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
+        filenames (Iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
