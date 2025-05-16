@@ -206,13 +206,14 @@ class TestCLAAS2SingleFile:
         assert file_handler.end_time == datetime.datetime(2085, 8, 13, 13, 15)
 
 class TestAreaDef:
-    """Test the area of both CLAAS2 and CLAAS3 products"""
+    """Test the area of both CLAAS2 and CLAAS3 products."""
     @pytest.fixture(params=[3636, 3712])
     def grid_size(self, request):
+        """Return the grid size."""
         return request.param
 
     @pytest.fixture
-    def fake_file(self, tmp_path, start_time, grid_size):
+    def fake_file(self, tmp_path, start_time_str, grid_size):
         """Write a fake dataset to file.
 
         Only add y dimension, so that the file is small but we can still check the
@@ -221,7 +222,7 @@ class TestAreaDef:
         filename = tmp_path / "CPPin20140101001500305SVMSG01MD.nc"
         ds = netCDF4.Dataset(filename, mode="w")
         ds.createDimension("y", grid_size)
-        ds.setncattr("time_coverage_start", start_time.strftime("%Y%m%dT%H%MZ"))
+        ds.setncattr("time_coverage_start", start_time_str)
         ds.close()
         return filename
 
