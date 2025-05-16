@@ -111,10 +111,10 @@ class BucketAvg(BucketResamplerBase):
 
     Parameters
     ----------
-    fill_value : float (default: np.nan)
+    fill_value : (float) default: `np.nan`
         Fill value to mark missing/invalid values in the input data,
         as well as in the binned and averaged output data.
-    skipna : boolean (default: True)
+    skipna : (bool) default: `True`
         If True, skips missing values (as marked by NaN or `fill_value`) for the average calculation
         (similarly to Numpy's `nanmean`). Buckets containing only missing values are set to fill_value.
         If False, sets the bucket to fill_value if one or more missing values are present in the bucket
@@ -129,7 +129,7 @@ class BucketAvg(BucketResamplerBase):
         Args:
             data (numpy.Array, dask.Array): Data to be resampled
             fill_value (numpy.nan, int): fill_value. Defaults to numpy.nan
-            skipna (boolean): Skip NA's. Default `True`
+            skipna (bool): Skip NA's. Default `True`
 
         Returns:
             dask.Array
@@ -158,9 +158,9 @@ class BucketSum(BucketResamplerBase):
 
     Parameters
     ----------
-    fill_value : float (default: np.nan)
+    fill_value : (float) default: `np.nan`
         Fill value for missing data
-    skipna : boolean (default: True)
+    skipna : (bool) default: `True`
         If True, skips NaN values for the sum calculation
         (similarly to Numpy's `nansum`). Buckets containing only NaN are set to zero.
         If False, sets the bucket to NaN if one or more NaN values are present in the bucket
