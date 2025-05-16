@@ -112,6 +112,7 @@ apidoc_modules = [
             # things contributors might be interested in like satpy.tests.utils.
             "../../satpy/tests/test_*.py",
             "../../satpy/tests/**/test_*.py",
+            "../../satpy/tests/*_tests/*",
         ],
     },
 ]
