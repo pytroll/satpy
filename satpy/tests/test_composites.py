@@ -1405,7 +1405,7 @@ class TestAddBands(unittest.TestCase):
 class TestStaticImageCompositor(unittest.TestCase):
     """Test case for the static compositor."""
 
-    @mock.patch("satpy.resample.base.get_area_def")
+    @mock.patch("satpy.area_utils.get_area_def")
     def test_init(self, get_area_def):
         """Test the initializiation of static compositor."""
         from satpy.composites import StaticImageCompositor
