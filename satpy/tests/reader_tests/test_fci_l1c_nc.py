@@ -1089,7 +1089,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         """
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         res = reader.load(["vis_06"], pad_data=False)
-        assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
+        assert res["vis_06"].attrs["platform_name"] == "Meteosat-12"
 
     @pytest.mark.parametrize(("fh_param", "compare_tuples"),
                              [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), (67, 10,
