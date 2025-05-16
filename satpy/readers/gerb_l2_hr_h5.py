@@ -25,8 +25,8 @@ Budget instrument aboard the Meteosat Second Generation satellites.
 import datetime as dt
 import logging
 
+from satpy.area_utils import get_area_def
 from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.resample.base import get_area_def
 
 LOG = logging.getLogger(__name__)
 

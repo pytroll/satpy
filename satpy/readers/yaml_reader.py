@@ -42,10 +42,11 @@ except ImportError:
 
 from satpy import DatasetDict
 from satpy._compat import cache
+from satpy.area_utils import get_area_def
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
 from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
-from satpy.resample.base import add_crs_xy_coords, get_area_def
+from satpy.resample.base import add_crs_xy_coords
 from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)

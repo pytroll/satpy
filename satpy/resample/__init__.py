@@ -142,10 +142,10 @@ and loaded using pyresample's utility methods
     >>> from pyresample import load_area
     >>> my_area = load_area('my_areas.yaml', 'my_area')
 
-Or using :func:`satpy.resample.base.get_area_def`, which will search through all
+Or using :func:`satpy.area_utils.get_area_def`, which will search through all
 ``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
 
-    >>> from satpy.base.resample import get_area_def
+    >>> from satpy.area_utils import get_area_def
     >>> area_eurol = get_area_def("eurol")
 
 For examples of area definitions, see the file ``etc/areas.yaml`` that is
@@ -168,11 +168,11 @@ def __getattr__(name: str) -> Any:
     if name in ("KDTreeResampler", "BilinearResampler"):
         from . import kdtree
 
-        new_submod = "kdtree"
+        new_mod = "satpy.resample.kdtree"
         obj = getattr(kdtree, name)
     elif name == "NativeResampler":
         from .native import NativeResampler
-        new_submod = "native"
+        new_mod = "satpy.resample.native"
         obj = NativeResampler
     elif name in (
             "BucketResamplerBase",
@@ -182,11 +182,9 @@ def __getattr__(name: str) -> Any:
             "BucketFraction"
     ):
         from . import bucket
-        new_submod = "bucket"
+        new_mod = "satpy.resample.bucket"
         obj = getattr(bucket, name)
     elif name in (
-            "get_area_file",
-            "get_area_def",
             "add_xy_coords",
             "add_crs_xy_coords",
             "resample",
@@ -194,14 +192,21 @@ def __getattr__(name: str) -> Any:
             "resample_dataset"
     ):
             from . import base
-            new_submod = "base"
+            new_mod = "satpy.resample.base"
             obj = getattr(base, name)
+    elif name in (
+            "get_area_file",
+            "get_area_def",
+    ):
+        from satpy import area_utils
+        new_mod = "satpy.area_utils"
+        obj = getattr(area_utils, name)
     else:
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
     warnings.warn(
-        f"'satpy.resample.{name}' has been moved to 'satpy.resample.{new_submod}.{name}'. "
-        f"Import from the new location instead (ex. 'from satpy.resample.{new_submod} import {name}').",
+        f"'satpy.resample.{name}' has been moved to '{new_mod}.{name}'. "
+        f"Import from the new location instead (ex. '{new_mod} import {name}').",
         stacklevel=2,
     )
     return obj
