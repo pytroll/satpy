@@ -196,8 +196,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     This class implements the Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) Level-1c NetCDF reader.
-    It is designed to be used through the :class:`~satpy.Scene`
-    class using the :mod:`~satpy.Scene.load` method with the reader
+    It is designed to be used through the :class:`satpy.Scene <satpy.scene.Scene>`
+    class using the :mod:`Scene.load <satpy.scene.Scene.load>` method with the reader
     ``"fci_l1c_nc"``.
 
     """

@@ -50,7 +50,7 @@ def _group_datasets_in_scenes(scenes, groups):
     """Group different datasets in multiple scenes by adding aliases.
 
     Args:
-        scenes (iterable): Scenes to be processed.
+        scenes (Iterable): Scenes to be processed.
         groups (dict): Groups of datasets that shall be treated equally by
             MultiScene. Keys specify the groups, values specify the dataset
             names to be grouped. For example::
@@ -163,7 +163,7 @@ class MultiScene(object):
         """Initialize MultiScene and validate sub-scenes.
 
         Args:
-            scenes (iterable):
+            scenes (Iterable):
                 `Scene` objects to operate on (optional)
 
         .. note::
@@ -209,7 +209,7 @@ class MultiScene(object):
                 readers have at least one file.  If False (default), include
                 all scenes where at least one reader has at least one file.
             scene_kwargs: additional arguments to pass on to
-                :func:`Scene.__init__` for each created scene.
+                :func:`satpy.scene.Scene.__init__` for each created scene.
 
         This uses the :func:`satpy.readers.grouping.group_files` function to group
         files. See this function for more details on additional possible
@@ -337,8 +337,9 @@ class MultiScene(object):
         dataset (:class:`xarray.DataArray` object).  The blend method
         then assigns those datasets to the blended scene.
 
-        Blending functions provided in this module are :func:`stack`
-        (the default), :func:`timeseries`, and :func:`temporal_rgb`, but the Python built-in
+        Blending functions provided in this module are :func:`satpy.multiscene._blend_funcs.stack`
+        (the default), :func:`satpy.multiscene._blend_funcs.timeseries`, and
+        :func:`satpy.multiscene._blend_funcs.temporal_rgb`, but the Python built-in
         function :func:`sum` also works and may be appropriate for
         some types of data.
 

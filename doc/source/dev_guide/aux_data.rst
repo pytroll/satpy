@@ -40,7 +40,7 @@ component like readers, writers, and compositors. The lower-level
 :func:`~satpy.aux_download.register_file` function can be used for any other
 use case.
 
-The :class:`~satpy.aux_download.DataMixIn` class is automatically included
+The :class:`~satpy.aux_download.DataDownloadMixin` class is automatically included
 in the :class:`~satpy.readers.yaml_reader.FileYAMLReader` and
 :class:`~satpy.writers.Writer` base classes. For any other component (like
 a compositor) you should include it as another parent class:

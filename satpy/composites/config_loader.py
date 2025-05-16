@@ -255,7 +255,7 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
             config files.
 
     Returns:
-        (comps, mods, data_id_keys): Where `comps` is a dictionary:
+        tuple: (comps, mods, data_id_keys), Where `comps` is a dictionary:
 
                 composite ID -> compositor object
 
@@ -285,11 +285,11 @@ def load_compositor_configs_for_sensors(sensor_names: Iterable[str]) -> tuple[di
     """Load compositor and modifier configuration files for the specified sensors.
 
     Args:
-        sensor_names (list of strings): Sensor names that have matching
+        sensor_names: Sensor names that have matching
             ``sensor_name.yaml`` config files.
 
     Returns:
-        (comps, mods): Where `comps` is a dictionary:
+        tuple: (comps, mods), Where `comps` is a dictionary:
 
                 sensor_name -> composite ID -> compositor object
 

@@ -33,7 +33,7 @@ class DecisionTree:
     additional keys that could be useful when matched. This class will
     search these decisions and return the one with the most matching
     parameters to the attributes passed to the
-    :meth:`~satpy.writers.DecisionTree.find_match` method.
+    :meth:`~DecisionTree.find_match` method.
 
     Note that decision sections are provided as a dict instead of a list
     so that they can be overwritten or updated by doing the equivalent

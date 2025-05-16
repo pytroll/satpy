@@ -185,8 +185,8 @@ def lonlat2xyz(lon, lat):
     longitude and latitude to cartesian coordinates.
 
     Args:
-        lon (number or array of numbers): Longitude in °.
-        lat (number or array of numbers): Latitude in °.
+        lon (numbers.Number or ArrayLike[numbers.Number]): Longitude in °.
+        lat (numbers.Number or ArrayLike[numbers.Number]): Latitude in °.
 
     Returns:
         (x, y, z) Cartesian coordinates [1]
@@ -206,14 +206,14 @@ def xyz2lonlat(x, y, z, asin=False):
     coordinates longitude and latitude.
 
     Args:
-        x (number or array of numbers): x-coordinate, unitless
-        y (number or array of numbers): y-coordinate, unitless
-        z (number or array of numbers): z-coordinate, unitless
-        asin (optional, bool): If true, use arcsin for calculations.
+        x (numbers.Number or ArrayLike[numbers.Number]): x-coordinate, unitless
+        y (numbers.Number or ArrayLike[numbers.Number]): y-coordinate, unitless
+        z (numbers.Number or ArrayLike[numbers.Number]): z-coordinate, unitless
+        asin (bool, Optional): If true, use arcsin for calculations.
             If false, use arctan2 for calculations.
 
     Returns:
-        (lon, lat): Longitude and latitude in °.
+        (tuple): Longitude and latitude in °.
     """
     lon = np.rad2deg(np.arctan2(y, x))
     if asin:

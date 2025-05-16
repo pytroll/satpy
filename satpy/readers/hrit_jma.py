@@ -318,7 +318,7 @@ class HRITJMAFileHandler(HRITFileHandler):
             sensor (str) : Sensor name from YAML dataset definition
 
         Raises:
-            ValueError if they don't match
+            (Exception) ValueError: if they don't match
 
         """
         ref_sensor = SENSORS.get(self.platform, None)

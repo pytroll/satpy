@@ -42,18 +42,18 @@ def to_geoviews(scn, gvtype=None, datasets=None,
         """Convert satpy Scene to geoviews.
 
         Args:
-            scn (satpy.Scene): Satpy Scene.
+            scn (satpy.scene.Scene): Satpy Scene.
             gvtype (gv plot type):
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to :class:`geoviews.Image`.
+                Default to :class:`geoviews.element.geo.Image`.
                 See Geoviews documentation for details.
             datasets (list): Limit included products to these datasets
             kdims (list of str):
                 Key dimensions. See geoviews documentation for more information.
-            vdims (list of str, optional):
+            vdims (list of str, Optional):
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic (bool, optional): Load and compute data on-the-fly during
+            dynamic (bool, Optional): Load and compute data on-the-fly during
                 visualization. Default is ``False``. See
                 https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
                 for more information. Has no effect when data to be visualized
@@ -99,7 +99,7 @@ def to_hvplot(scn, datasets=None, *args, **kwargs):
         """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
 
         Args:
-            scn (satpy.Scene): Satpy Scene.
+            scn (satpy.scene.Scene): Satpy Scene.
             datasets (list): Limit included products to these datasets.
             args: Arguments coming from hvplot
             kwargs: hvplot options dictionary.
@@ -190,31 +190,31 @@ def to_xarray(scn,
     in future we might return a DataTree object, grouped by area.
 
     Args:
-        scn (satpy.Scene): Satpy Scene.
-        datasets (iterable, optional): List of Satpy Scene datasets to include in
+        scn (satpy.scene.Scene): Satpy Scene.
+        datasets (Iterable, Optional): List of Satpy Scene datasets to include in
             the output xr.Dataset. Elements can be string name, a wavelength as a
             number, a DataID, or DataQuery object. If None (the default), it
             includes all loaded Scene datasets.
         header_attrs: Global attributes of the output xr.Dataset.
-        epoch (str, optional): Reference time for encoding the time coordinates
+        epoch (str, Optional): Reference time for encoding the time coordinates
             (if available). Format example: "seconds since 1970-01-01 00:00:00".
             If None, the default reference time is retrieved using
             "from satpy.cf_writer import EPOCH".
-        flatten_attrs (bool, optional): If True, flatten dict-type attributes.
-        exclude_attrs (list, optional): List of xr.DataArray attribute names to
+        flatten_attrs (bool, Optional): If True, flatten dict-type attributes.
+        exclude_attrs (list, Optional): List of xr.DataArray attribute names to
             be excluded.
-        include_lonlats (bool, optional): If True, includes 'latitude' and
+        include_lonlats (bool, Optional): If True, includes 'latitude' and
             'longitude' coordinates. If the 'area' attribute is a SwathDefinition,
             it always includes latitude and longitude coordinates.
-        pretty (bool, optional): Don't modify coordinate names, if possible. Makes
+        pretty (bool, Optional): Don't modify coordinate names, if possible. Makes
             the file prettier, but possibly less consistent.
-        include_orig_name (bool, optional): Include the original dataset name as a
+        include_orig_name (bool, Optional): Include the original dataset name as a
             variable attribute in the xr.Dataset.
-        numeric_name_prefix (str, optional): Prefix to add to each variable with
+        numeric_name_prefix (str, Optional): Prefix to add to each variable with
             name starting with a digit. Use '' or None to leave this out.
 
     Returns:
-        xr.Dataset: A CF-compliant xr.Dataset
+        xarray.Dataset: A CF-compliant xr.Dataset
 
     """
     from satpy.cf.datasets import collect_cf_datasets

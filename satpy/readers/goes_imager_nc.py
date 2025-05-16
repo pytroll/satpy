@@ -1352,7 +1352,7 @@ def test_coefs(ir_url, vis_url):
         vis_url: Path or URL to HTML page with VIS coefficients
 
     Raises:
-        ValueError if coefficients don't match the reference
+        (Exception) ValueError: if coefficients don't match the reference
     """
     reader = GOESCoefficientReader(ir_url=ir_url, vis_url=vis_url)
 
