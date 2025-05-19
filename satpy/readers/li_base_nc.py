@@ -734,10 +734,10 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         return data_array
 
     def add_orbital_parameters(self, data_array):
-        """Hard code the nominal position of the satellite in the orbital parameters attribute"""
-        data_array.attrs['orbital_parameters'] = {'satellite_nominal_longitude': 0.0,
-                                                  'satellite_nominal_latitude': 0.0,
-                                                  'satellite_nominal_altitude': 35786400.0
+        """Hard code the nominal position of the satellite in the orbital parameters attribute."""
+        data_array.attrs["orbital_parameters"] = {"satellite_nominal_longitude": 0.0,
+                                                  "satellite_nominal_latitude": 0.0,
+                                                  "satellite_nominal_altitude": 35786400.0
                                                 }
         return data_array
 
