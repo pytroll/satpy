@@ -78,6 +78,9 @@ autodoc_type_aliases = {
     "ArrayLike": "numpy.typing.ArrayLike",
     "DTypeLike": "numpy.typing.DTypeLike",
 }
+autodoc_default_options = {
+    "special-members": "__init__, __reduce_ex__",
+}
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
 
 # auto generate reader table from reader config files
@@ -95,6 +98,8 @@ extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.todo",
               "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "sphinx.ext.autosectionlabel",
               "doi_role", "sphinx.ext.viewcode", "sphinx.ext.apidoc",
               "sphinx.ext.mathjax", "sphinx_autodoc_typehints"]
+
+linkcheck_allowed_redirects: dict[str, str] = {}
 
 # Autosectionlabel
 # Make sure target is unique
@@ -122,7 +127,6 @@ apidoc_modules = [
 ]
 apidoc_separate_modules = True
 apidoc_include_private = True
-apidoc_automodule_options = {"members", "show-inheritance", "undoc-members", "special-members"}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
