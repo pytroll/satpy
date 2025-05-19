@@ -202,6 +202,7 @@ from __future__ import annotations
 import datetime as dt
 import warnings
 from collections import namedtuple
+from collections.abc import Iterable, Sequence
 
 import dask.array as da
 import numpy as np
@@ -705,13 +706,13 @@ class SEVIRICalibrationHandler:
         return wishlist | ext_coefs
 
 
-def chebyshev(coefs, time, domain):
+def chebyshev(coefs: Sequence | np.ndarray, time: int | float, domain: Iterable):
     """Evaluate a Chebyshev Polynomial.
 
     Args:
-        coefs (list, np.array): Coefficients defining the polynomial
-        time (int, float): Time where to evaluate the polynomial
-        domain (list, tuple): Domain (or time interval) for which the polynomial is defined: [left, right]
+        coefs: Coefficients defining the polynomial
+        time: Time where to evaluate the polynomial
+        domain: Domain (or time interval) for which the polynomial is defined: [left, right]
     Reference: Appendix A in the MSG Level 1.5 Image Data Format Description.
 
     """

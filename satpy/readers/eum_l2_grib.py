@@ -271,7 +271,7 @@ class EUML2GribFileHandler(BaseFileHandler):
             gid: The ID of the GRIB message.
 
         Returns:
-            DataArray: The array containing the retrieved values.
+            The DataArray containing the retrieved values.
         """
         # Data from GRIB message are read into an Xarray...
         xarr = xr.DataArray(da.from_array(ec.codes_get_values(
