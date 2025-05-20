@@ -127,7 +127,7 @@ def get_area_definition(pdict, a_ext):
         a_ext: A four element tuple containing the area extent (scan angle)
                for the scene in radians
     Returns:
-        a_def: An area definition for the scene
+        An area definition for the scene
 
     .. note::
 

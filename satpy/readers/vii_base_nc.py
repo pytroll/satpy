@@ -22,6 +22,7 @@
 import datetime as dt
 import logging
 
+import xarray as xr
 from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
@@ -113,15 +114,15 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         return variable
 
     @staticmethod
-    def _perform_interpolation(variable):
+    def _perform_interpolation(variable) -> xr.DataArray:
         """Perform the interpolation from tie points to pixel points.
 
         Args:
             variable: xarray DataArray containing the dataset to interpolate.
 
         Returns:
-            DataArray: array containing the interpolate values, all the original metadata
-                       and the updated dimension names.
+            array containing the interpolate values, all the original metadata
+            and the updated dimension names.
 
         """
         interpolated_values = tie_points_interpolation(

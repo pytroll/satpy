@@ -63,32 +63,37 @@ SEVIRI L1.5 data readers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.seviri_base
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 SEVIRI HRIT format reader
 """""""""""""""""""""""""
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 SEVIRI Native format reader
 """""""""""""""""""""""""""
 
 .. automodule:: satpy.readers.seviri_l1b_native
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 SEVIRI netCDF format reader
 """""""""""""""""""""""""""
 
 .. automodule:: satpy.readers.seviri_l1b_nc
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 
 Other xRIT-based readers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.hrit_base
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 
 JMA HRIT format reader
@@ -96,49 +101,58 @@ JMA HRIT format reader
 
 
 .. automodule:: satpy.readers.hrit_jma
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 GOES HRIT format reader
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.goes_imager_hrit
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 Electro-L HRIT format reader
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.electrol_hrit
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 hdf-eos based readers
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.modis_l1b
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 .. automodule:: satpy.readers.modis_l2
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 satpy cf nc readers
 ^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.satpy_cf_nc
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 hdf5 based readers
 ^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.agri_l1
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 .. automodule:: satpy.readers.ghi_l1
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 Arctica-M N1 HDF5 format reader
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.msu_gsa_l1b
-    :noindex:
+   :noindex:
+   :no-special-members:
 
 
 Filter loaded files

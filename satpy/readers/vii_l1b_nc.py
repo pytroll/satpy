@@ -29,6 +29,7 @@ This version is applicable for the vii test data V2 to be released in Jan 2022.
 import logging
 
 import numpy as np
+import xarray as xr
 
 from satpy.readers.vii_base_nc import ViiNCBaseFileHandler
 from satpy.readers.vii_utils import C1, C2, MEAN_EARTH_RADIUS
@@ -56,7 +57,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         solar_zenith_angle_on_pixels_radians = np.radians(solar_zenith_angle_on_pixels)
         self.angle_factor = 1.0 / (np.cos(solar_zenith_angle_on_pixels_radians))
 
-    def _perform_calibration(self, variable, dataset_info):
+    def _perform_calibration(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
 
         Args:
@@ -64,7 +65,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             dataset_info: dictionary of information about the dataset.
 
         Returns:
-            DataArray: array containing the calibrated values and all the original metadata.
+            array containing the calibrated values and all the original metadata.
 
         """
         calibration_name = dataset_info["calibration"]
@@ -91,7 +92,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
 
         return calibrated_variable
 
-    def _perform_orthorectification(self, variable, orthorect_data_name):
+    def _perform_orthorectification(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
         """Perform the orthorectification.
 
         Args:
@@ -99,7 +100,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             orthorect_data_name: name of the orthorectification correction data in the product.
 
         Returns:
-            DataArray: array containing the corrected values and all the original metadata.
+            array containing the corrected values and all the original metadata.
 
         """
         try:
@@ -112,7 +113,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         return variable
 
     @staticmethod
-    def _calibrate_bt(radiance, cw, a, b):
+    def _calibrate_bt(radiance: np.ndarray, cw: float, a: float, b: float) -> np.ndarray:
         """Perform the calibration to brightness temperature.
 
         Args:
@@ -122,7 +123,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             b: temperature coefficient [K].
 
         Returns:
-            numpy ndarray: array containing the calibrated brightness temperature values.
+            array containing the calibrated brightness temperature values.
 
         """
         log_expr = np.log(1.0 + C1 / ((cw ** 5) * radiance))
@@ -130,7 +131,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         return bt_values
 
     @staticmethod
-    def _calibrate_refl(radiance, angle_factor, isi):
+    def _calibrate_refl(radiance: np.ndarray, angle_factor: np.ndarray, isi: float) -> np.ndarray:
         """Perform the calibration to reflectance.
 
         Args:
@@ -139,7 +140,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             isi: integrated solar irradiance [W/(m2 * μm)].
 
         Returns:
-            numpy ndarray: array containing the calibrated reflectance values.
+            array containing the calibrated reflectance values.
 
         """
         refl_values = (np.pi / isi) * angle_factor * radiance * 100.0
