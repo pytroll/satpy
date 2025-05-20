@@ -63,7 +63,7 @@ class ValueList(IntEnum):
     def _unpickle(cls, enum_name, enum_members, enum_member):
         """Create dynamic class that was previously pickled.
 
-        See :meth:`__reduce_ex__` for implementation details.
+        See :meth:`ValueList.__reduce_ex__` for implementation details.
 
         """
         enum_cls = cls(enum_name, enum_members)
@@ -102,11 +102,11 @@ class WavelengthRange(wlklass):
     that two ranges are comparable.
     """
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Return if two wavelengths are equal.
 
         Args:
-            other (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+            other: (min wl, nominal wl, max wl) or scalar wl
 
         Return:
             True if other is a scalar and min <= other <= max, or if other is

@@ -525,7 +525,7 @@ class DependencyTree(Tree):
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths),
+            prereqs (Sequence): Strings (names), floats (wavelengths),
                                 DataQuerys or Nodes to analyze.
 
         """
@@ -539,7 +539,7 @@ class DependencyTree(Tree):
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths), or
+            prereqs (Sequence): Strings (names), floats (wavelengths), or
                                 DataQuerys to analyze.
 
         """
@@ -557,7 +557,7 @@ class DependencyTree(Tree):
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths),
+            prereqs (Sequence): Strings (names), floats (wavelengths),
                                 DataQuerys or Nodes to analyze.
 
         """

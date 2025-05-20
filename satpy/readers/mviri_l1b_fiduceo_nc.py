@@ -245,7 +245,7 @@ class VISCalibrator:
         Args:
             coefs:
                 Calibration coefficients.
-            solar_zenith_angle (optional):
+            solar_zenith_angle (numbers.Number, Optional):
                 Solar zenith angle. Only required for calibration to
                 reflectance.
         """
