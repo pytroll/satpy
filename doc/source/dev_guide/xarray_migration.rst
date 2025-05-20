@@ -252,8 +252,8 @@ possible to improve performance so `compute` should only be used when needed.
              1247.37586051,  1656.50487092,   978.28184726]])
 
 Dask also provides `cos`, `log` and other mathematical function, that you
-can use with `da.cos <dask.array.cos>` and
-`da.log <dask.array.log>`. However, since satpy uses xarrays as
+can use with :data:`da.cos <dask.array.cos>` and
+:data:`da.log <dask.array.log>`. However, since satpy uses xarrays as
 standard data structure, prefer the xarray functions when possible (they call
 in turn the dask counterparts when possible).
 
