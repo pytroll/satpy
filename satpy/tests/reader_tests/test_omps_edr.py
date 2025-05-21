@@ -255,7 +255,7 @@ class TestOMPSEDRReader(unittest.TestCase):
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
 
-    @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
+    @mock.patch("satpy.readers.core.hdf5.HDF5FileHandler._get_reference")
     @mock.patch("h5py.File")
     def test_load_so2_DIMENSION_LIST(self, mock_h5py_file, mock_hdf5_utils_get_reference):
         """Test load of so2 datasets with DIMENSION_LIST."""

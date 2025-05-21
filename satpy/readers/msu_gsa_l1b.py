@@ -30,7 +30,7 @@ import datetime as dt
 
 import numpy as np
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 
 class MSUGSAFileHandler(HDF5FileHandler):

@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for AMSR2 L1B files in HDF5 format."""
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 
 class AMSR2L1BFileHandler(HDF5FileHandler):

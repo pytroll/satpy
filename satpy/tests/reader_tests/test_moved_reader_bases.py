@@ -65,3 +65,15 @@ def test_hdf4_utils_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import hdf4_utils
         getattr(hdf4_utils, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["from_h5_array",
+                          "HDF5FileHandler",
+                         ]
+                         )
+def test_hdf5_utils_warns(name):
+    """Test that there's a warning when importing from hdf5 utils from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import hdf5_utils
+        getattr(hdf5_utils, name)

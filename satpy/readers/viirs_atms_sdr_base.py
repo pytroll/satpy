@@ -25,7 +25,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 NO_DATE = dt.datetime(1958, 1, 1)
 EPSILON_TIME = dt.timedelta(days=2)
