@@ -737,6 +737,15 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
 
         return data_array
 
+    def add_orbital_parameters(self, data_array):
+        """Hard code the nominal position of the satellite in the orbital parameters attribute."""
+        logger.debug("Assuming nominal satellite position for LI L2. The exact position is available from FCI L1.")
+        data_array.attrs["orbital_parameters"] = {"satellite_nominal_longitude": 0.0,
+                                                  "satellite_nominal_latitude": 0.0,
+                                                  "satellite_nominal_altitude": 35786400.0
+                                                }
+        return data_array
+
     def get_dataset(self, dataset_id, ds_info=None):
         """Get a dataset."""
         # Retrieve default infos if missing:
@@ -769,6 +778,9 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
 
         # Update the attributes in the final array:
         data_array = self.update_array_attributes(data_array, ds_info)
+
+        # Add the nominal sat position in attrs orbital parameters
+        data_array = self.add_orbital_parameters(data_array)
 
         # Return the resulting array:
         return data_array
