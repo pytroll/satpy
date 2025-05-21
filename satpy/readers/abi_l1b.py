@@ -27,7 +27,7 @@ import logging
 import numpy as np
 
 import satpy
-from satpy.readers.abi_base import NC_ABI_BASE
+from satpy.readers.core.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
 

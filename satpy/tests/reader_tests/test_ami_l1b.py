@@ -256,7 +256,7 @@ class TestAMIL1bNetCDF:
         with raises(ValueError, match="_bad_ invalid value for .*"):
             _ = make_dataid(name="VI006", calibration="_bad_")
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi_base.geometry.AreaDefinition")
     def test_get_area_def(self, adef, fake_vis_reader):
         """Test the area generation."""
         fake_vis_reader.get_area_def(None)

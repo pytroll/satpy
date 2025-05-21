@@ -15,24 +15,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
+"""Tests for reader base and utility modules that were moved to core sub-package raise warnings."""
 
-from __future__ import annotations
-
-import warnings
-from typing import Any
+import pytest
 
 
-def __getattr__(name: str) -> Any:
-    from .core import abi_base
-
-    new_submod = "core.abi_base"
-    obj = getattr(abi_base, name)
-
-    warnings.warn(
-        f"'satpy.resample.utils.{name}' has been moved to 'satpy.resample.{new_submod}.{name}'. "
-        f"Import from the new location instead (ex. 'from satpy.resample.{new_submod} import {name}').",
-        stacklevel=2,
-    )
-
-    return obj
+def test_abi_base_warns():
+    """Test that there's a warning when import ABI base class from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import abi_base
+        getattr(abi_base, "NC_ABI_BASE")
