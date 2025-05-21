@@ -30,8 +30,8 @@ def __getattr__(name: str) -> Any:
     obj = getattr(fci_base, name)
 
     warnings.warn(
-        f"'satpy.resample.fci_base.{name}' has been moved to 'satpy.resample.{new_submod}.{name}'. "
-        f"Import from the new location instead (ex. 'from satpy.resample.{new_submod} import {name}').",
+        f"'satpy.readers.fci_base.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
+        f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}').",
         stacklevel=2,
     )
 

@@ -65,8 +65,8 @@ def __getattr__(name: str) -> Any:
 
     if warn:
         warnings.warn(
-            f"'satpy.resample.{name}' has been moved to 'satpy.resample.{new_submod}.{name}'. "
-            f"Import from the new location instead (ex. 'from satpy.resample.{new_submod} import {name}').",
+            f"'satpy.readers.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
+            f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}').",
             stacklevel=2,
         )
     return obj
