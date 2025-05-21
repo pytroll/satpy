@@ -499,7 +499,7 @@ class TestParallaxCorrectionModifier:
         res = modif([fake_bt, cth_clear], optional_datasets=[])
         np.testing.assert_allclose(res, fake_bt)
         with unittest.mock.patch("satpy.modifiers.parallax.resample_dataset") as smp:
-            smp.side_effect = satpy.resample.resample_dataset
+            smp.side_effect = satpy.resample.base.resample_dataset
             modif([fake_bt, cth_clear], optional_datasets=[])
             assert smp.call_args_list[0].kwargs["radius_of_influence"] == 48_000
             assert smp.call_args_list[1].kwargs["radius_of_influence"] == 49_000
