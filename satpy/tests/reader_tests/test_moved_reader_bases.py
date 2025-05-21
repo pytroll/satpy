@@ -221,3 +221,21 @@ def test_yaml_reader_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import yaml_reader
         getattr(yaml_reader, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["process_delimiter",
+                          "process_field",
+                          "process_array",
+                          "to_dtype",
+                          "to_scaled_dtype",
+                          "to_scales",
+                          "parse_format",
+                          "XMLFormat",
+                         ]
+                         )
+def test_xmlformat_warns(name):
+    """Test that there's a warning when importing from xmlformat from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import xmlformat
+        getattr(xmlformat, name)
