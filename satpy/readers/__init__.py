@@ -54,7 +54,6 @@ def __getattr__(name: str) -> Any:
     elif name in (
             "load_readers",
             "load_reader",
-            "get_valid_reader_names",
     ):
         from . import loading
         new_submod = "loading"
