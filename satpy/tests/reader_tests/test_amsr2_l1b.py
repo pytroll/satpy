@@ -119,7 +119,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
@@ -131,7 +131,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
     def test_load_basic(self):
         """Test loading of basic channels."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
@@ -165,7 +165,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
     def test_load_89ghz(self):
         """Test loading of 89GHz channels."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",

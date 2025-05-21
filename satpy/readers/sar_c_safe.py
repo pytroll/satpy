@@ -56,8 +56,8 @@ from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
 from satpy.dataset.dataid import DataID
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.remote import open_file_or_filename
 from satpy.readers.yaml_reader import GenericYAMLReader
 from satpy.utils import get_legacy_chunk_size
 

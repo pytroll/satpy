@@ -23,8 +23,7 @@ import yaml
 from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
-
-from .yaml_reader import load_yaml_configs as load_yaml_reader_configs
+from satpy.readers.yaml_reader import load_yaml_configs as load_yaml_reader_configs
 
 LOG = logging.getLogger(__name__)
 

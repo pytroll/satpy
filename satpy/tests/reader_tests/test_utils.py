@@ -324,7 +324,7 @@ class TestHelpers(unittest.TestCase):
 
     def test_generic_open_FSFile_MemoryFileSystem(self):
         """Test the generic_open method with FSFile in MemoryFileSystem."""
-        from satpy.readers.remote import FSFile
+        from satpy.readers.core.remote import FSFile
 
         mem_fs = MemoryFileSystem()
         mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
@@ -351,7 +351,7 @@ class TestHelpers(unittest.TestCase):
     @mock.patch("bz2.decompress", return_value=b"TEST_DECOMPRESSED")
     def test_unzip_FSFile(self, bz2_mock):
         """Test the FSFile bz2 file unzipping techniques."""
-        from satpy.readers.remote import FSFile
+        from satpy.readers.core.remote import FSFile
 
         mock_bz2_decompress = mock.MagicMock()
         mock_bz2_decompress.return_value = b"TEST_DECOMPRESSED"

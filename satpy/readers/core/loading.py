@@ -19,8 +19,9 @@ import logging
 
 import yaml
 
+from satpy.readers.yaml_reader import AbstractYAMLReader
+
 from .config import configs_for_reader
-from .yaml_reader import AbstractYAMLReader
 
 LOG = logging.getLogger(__name__)
 

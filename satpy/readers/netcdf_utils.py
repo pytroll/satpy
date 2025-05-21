@@ -24,8 +24,8 @@ import netCDF4
 import numpy as np
 import xarray as xr
 
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.remote import open_file_or_filename
 from satpy.readers.utils import np2str
 from satpy.utils import get_legacy_chunk_size
 

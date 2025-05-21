@@ -431,7 +431,7 @@ def _assert_bands_mda_as_exp(res, band_list, exp_result):
 
 def _test_find_files_and_readers(reader_config, filenames):
     """Test file and reader search."""
-    from satpy.readers.loading import load_reader
+    from satpy.readers.core.loading import load_reader
     reader = load_reader(reader_config)
     files = reader.select_files_from_pathnames(filenames)
     # Make sure we have some files
@@ -670,7 +670,7 @@ class TestMERSIRML1B(MERSIL1BTester):
 
     def test_500m_resolution(self):
         """Test loading data when all resolutions are available."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = self.filenames_500m
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -693,7 +693,7 @@ class TestMERSIRML1B(MERSIL1BTester):
 
     def test_rad_calib(self):
         """Test loading data at radiance calibration."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dataid
         filenames = self.filenames_500m
         reader = load_reader(self.reader_configs)

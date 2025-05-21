@@ -141,7 +141,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
@@ -153,7 +153,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
     def test_available_datasets(self):
         """Test available_datasets with fake variables from YAML."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
@@ -221,7 +221,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         """Test availability of aliased dataset."""
         import xarray as xr
 
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -238,7 +238,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         """Test loading all test datasets."""
         import xarray as xr
 
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([

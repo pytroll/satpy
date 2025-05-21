@@ -38,7 +38,7 @@ class FSFile(os.PathLike):
 
         the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
 
-        from satpy.readers.remote import FSFile
+        from satpy.readers.core.remote import FSFile
         fs_files = [FSFile(open_file) for open_file in the_files]
 
         scn = Scene(filenames=fs_files, reader='abi_l1b')

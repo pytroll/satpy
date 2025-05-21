@@ -27,7 +27,7 @@ import pytest
 
 from satpy._config import config_search_paths
 from satpy.readers.atms_sdr_hdf5 import ATMS_CHANNEL_NAMES
-from satpy.readers.loading import load_reader
+from satpy.readers.core.loading import load_reader
 from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
@@ -274,7 +274,7 @@ class TestATMS_SDR_Reader:
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "/path/to/atms/sdr/data/SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",
@@ -308,7 +308,7 @@ class TestATMS_SDR_Reader:
                              )
     def test_load_all_bands(self, files, expected):
         """Load brightness temperatures for all 22 ATMS channels, with/without geolocation."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames(files)
         r.create_filehandlers(loadables)

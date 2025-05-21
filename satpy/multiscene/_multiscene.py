@@ -211,7 +211,7 @@ class MultiScene(object):
             scene_kwargs: additional arguments to pass on to
                 :func:`satpy.scene.Scene.__init__` for each created scene.
 
-        This uses the :func:`satpy.readers.grouping.group_files` function to group
+        This uses the :func:`satpy.readers.core.grouping.group_files` function to group
         files. See this function for more details on additional possible
         keyword arguments.  In particular, it is strongly recommended to pass
         `"group_keys"` when using multiple instruments.
@@ -219,7 +219,7 @@ class MultiScene(object):
         .. versionadded:: 0.12
 
         """
-        from satpy.readers.grouping import group_files
+        from satpy.readers.core.grouping import group_files
         if scene_kwargs is None:
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)

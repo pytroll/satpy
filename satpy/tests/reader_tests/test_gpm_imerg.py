@@ -107,7 +107,7 @@ class TestHdf5IMERG(unittest.TestCase):
         """Test loading data."""
         from pyproj import CRS
 
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
 
         # Filename to test, needed for start and end times
         filenames = [

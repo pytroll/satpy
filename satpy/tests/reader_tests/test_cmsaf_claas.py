@@ -114,7 +114,7 @@ def fake_files(fake_dataset, encoding, tmp_path):
 def reader():
     """Return reader for CMSAF CLAAS-2."""
     from satpy._config import config_search_paths
-    from satpy.readers.loading import load_reader
+    from satpy.readers.core.loading import load_reader
 
     reader_configs = config_search_paths(
         os.path.join("readers", "cmsaf-claas2_l2_nc.yaml"))

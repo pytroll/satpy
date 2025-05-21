@@ -29,8 +29,8 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.remote import open_file_or_filename
 from satpy.utils import get_dask_chunk_size_in_bytes
 
 logger = logging.getLogger(__name__)

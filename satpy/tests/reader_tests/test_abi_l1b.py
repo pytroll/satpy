@@ -241,7 +241,7 @@ def _create_reader_for_data(
             "Rad": {"chunksizes": [226, 226]},
         },
     )
-    from satpy.readers.loading import load_readers
+    from satpy.readers.core.loading import load_readers
     return load_readers([str(data_path)], "abi_l1b", reader_kwargs=reader_kwargs)["abi_l1b"]
 
 
@@ -319,8 +319,8 @@ def _check_dims_and_coords(data_arr: xr.DataArray) -> None:
 )
 def test_file_patterns_match(channel, suffix):
     """Test that the configured file patterns work."""
-    from satpy.readers.config import configs_for_reader
-    from satpy.readers.loading import load_reader
+    from satpy.readers.core.config import configs_for_reader
+    from satpy.readers.core.loading import load_reader
 
     reader_configs = list(configs_for_reader("abi_l1b"))[0]
     reader = load_reader(reader_configs)

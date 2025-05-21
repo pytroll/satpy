@@ -333,7 +333,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -345,7 +345,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_start_time_is_nodate(self):
         """Test basic init with start_time being set to the no-date 1/1-1958."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with pytest.raises(ValueError, match="Datetime invalid 1958-01-01 00:00:00"):
             _ = r.create_filehandlers([
@@ -356,7 +356,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         """Test basic init with start_time after the provided files."""
         import datetime as dt
 
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             "start_time": dt.datetime(2012, 2, 26)
@@ -370,7 +370,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         """Test basic init with end_time before the provided files."""
         import datetime as dt
 
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             "end_time": dt.datetime(2012, 2, 24)
@@ -384,7 +384,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         """Test basic init with end_time before the provided files."""
         import datetime as dt
 
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
 
         r = load_reader(self.reader_configs,
                         filter_parameters={
@@ -401,7 +401,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_reflectances_no_geo(self):
         """Load all M band reflectances with no geo files provided."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -435,7 +435,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_reflectances_find_geo(self):
         """Load all M band reflectances with geo files not specified but existing."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -471,7 +471,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_reflectances_provided_geo(self):
         """Load all M band reflectances with geo files provided."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -511,7 +511,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_reflectances_use_nontc(self):
         """Load all M band reflectances but use non-TC geolocation."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs, use_tc=False)
         loadables = r.select_files_from_pathnames([
             "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -552,7 +552,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_reflectances_use_nontc2(self):
         """Load all M band reflectances but use non-TC geolocation because TC isn't available."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs, use_tc=None)
         loadables = r.select_files_from_pathnames([
             "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -592,7 +592,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_bts(self):
         """Load all M band brightness temperatures."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVM12_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -620,7 +620,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         it that way.
 
         """
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -642,7 +642,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_m_radiances(self):
         """Load all M band radiances."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dsq
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -694,7 +694,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_dnb(self):
         """Load DNB dataset."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -717,7 +717,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_dnb_no_factors(self):
         """Load DNB dataset with no provided scale factors."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -740,7 +740,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_i_no_files(self):
         """Load I01 when only DNB files are provided."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -753,7 +753,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_i_reflectances_provided_geo(self):
         """Load all I band reflectances with geo files provided."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -776,7 +776,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_i_bts(self):
         """Load all I band brightness temperatures."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVI04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -793,7 +793,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_load_all_i_radiances(self):
         """Load all I band radiances."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dsq
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -850,7 +850,7 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
 
     def test_bounding_box(self):
         """Test bounding box."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
@@ -900,7 +900,7 @@ class TestShortAggrVIIRSSDRReader(unittest.TestCase):
 
     def test_load_truncated_band(self):
         """Test loading a single truncated band."""
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",

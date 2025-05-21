@@ -30,15 +30,15 @@ def __getattr__(name: str) -> Any:
             "FSFile",
             "open_file_or_filename"
             ):
-        from . import remote
-        new_submod = "remote"
+        from .core import remote
+        new_submod = "core.remote"
         obj = getattr(remote, name)
     elif name in (
             "group_files",
             "find_files_and_readers",
             ):
-        from . import grouping
-        new_submod = "grouping"
+        from .core import grouping
+        new_submod = "core.grouping"
         obj = getattr(grouping, name)
     elif name in (
             "read_reader_config",
@@ -48,15 +48,15 @@ def __getattr__(name: str) -> Any:
             "OLD_READER_NAMES",
             "PENDING_OLD_READER_NAMES",
     ):
-        from . import config
-        new_submod = "config"
+        from .core import config
+        new_submod = "core.config"
         obj = getattr(config, name)
     elif name in (
             "load_readers",
             "load_reader",
     ):
-        from . import loading
-        new_submod = "loading"
+        from .core import loading
+        new_submod = "core.loading"
         obj = getattr(loading, name)
     else:
         obj = import_module("."+name, package="satpy.readers")  # type: ignore

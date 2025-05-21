@@ -204,7 +204,7 @@ class TestAMIL1bNetCDF:
 
     def test_filename_grouping(self):
         """Test that filenames are grouped properly."""
-        from satpy.readers.grouping import group_files
+        from satpy.readers.core.grouping import group_files
         filenames = [
             "gk2a_ami_le1b_ir087_fd020ge_201909300300.nc",
             "gk2a_ami_le1b_ir096_fd020ge_201909300300.nc",

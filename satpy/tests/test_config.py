@@ -324,13 +324,13 @@ class TestPluginsConfigs:
     @pytest.mark.parametrize("specified_reader", [None, "fake_reader"])
     def test_plugin_reader_configs(self, fake_reader_plugin_etc_path, specified_reader):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.readers.config import configs_for_reader
+        from satpy.readers.core.config import configs_for_reader
         reader_yaml_path = fake_reader_plugin_etc_path / "readers" / "fake_reader.yaml"
         self._get_and_check_reader_writer_configs(specified_reader, configs_for_reader, reader_yaml_path)
 
     def test_plugin_reader_available_readers(self, fake_reader_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.readers.config import available_readers
+        from satpy.readers.core.config import available_readers
         self._check_available_component(available_readers, "fake_reader")
 
     @pytest.mark.parametrize("specified_writer", [None, "fake_writer"])

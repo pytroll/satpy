@@ -318,7 +318,7 @@ class Test_HDF_GHI_L1_cal:
         assert res[band_name].dtype == np.float32
 
     def _create_reader_for_resolutions(self, *resolutions):
-        from satpy.readers.loading import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = _create_filenames_from_resolutions(*resolutions)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
