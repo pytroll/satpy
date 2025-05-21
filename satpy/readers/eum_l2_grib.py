@@ -29,7 +29,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.fci_base import calculate_area_extent as fci_calculate_area_extent
 from satpy.readers.file_handlers import BaseFileHandler

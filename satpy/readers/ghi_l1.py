@@ -26,7 +26,7 @@ import logging
 
 from pyproj import Proj
 
-from satpy.readers._geos_area import get_area_definition
+from satpy.readers.core._geos_area import get_area_definition
 from satpy.readers.fy4_base import FY4Base
 
 logger = logging.getLogger(__name__)

@@ -158,7 +158,7 @@ import numba
 import numpy as np
 import xarray as xr
 
-import satpy.readers._geos_area as geos_area
+import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms5_vissr_navigation as nav
 from satpy.readers.core.utils import generic_open

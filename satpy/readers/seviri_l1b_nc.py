@@ -23,7 +23,7 @@ import logging
 import numpy as np
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 from satpy.readers.seviri_base import (

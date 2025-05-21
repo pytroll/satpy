@@ -69,7 +69,7 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.core.utils import (
     apply_rad_correction,
     get_earth_radius,

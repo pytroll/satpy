@@ -33,7 +33,7 @@ import numpy.typing as npt
 import xarray as xr
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)

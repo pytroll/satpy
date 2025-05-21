@@ -75,7 +75,7 @@ import datetime as dt
 
 import numpy as np
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.hdf4_utils import HDF4FileHandler
 
 

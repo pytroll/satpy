@@ -134,7 +134,7 @@ from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
 import satpy
-from satpy.readers._geos_area import get_geos_area_naming
+from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 from satpy.readers.fci_base import platform_name_translate
 
