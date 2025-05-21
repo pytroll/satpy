@@ -25,7 +25,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS
+from satpy.readers.core.viirs_atms_sdr import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -320,7 +320,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
+        from satpy.readers.core.viirs_atms_sdr import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(JPSS_SDR_FileHandler, "__bases__", (FakeHDF5FileHandler2,))
@@ -887,7 +887,7 @@ class TestShortAggrVIIRSSDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
+        from satpy.readers.core.viirs_atms_sdr import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(JPSS_SDR_FileHandler, "__bases__", (FakeShortHDF5FileHandlerAggr,))

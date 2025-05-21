@@ -28,7 +28,7 @@ import pytest
 from satpy._config import config_search_paths
 from satpy.readers.atms_sdr_hdf5 import ATMS_CHANNEL_NAMES
 from satpy.readers.core.loading import load_reader
-from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS
+from satpy.readers.core.viirs_atms_sdr import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -260,7 +260,7 @@ class TestATMS_SDR_Reader:
 
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
+        from satpy.readers.core.viirs_atms_sdr import JPSS_SDR_FileHandler
 
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

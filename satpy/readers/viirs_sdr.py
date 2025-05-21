@@ -37,7 +37,7 @@ from glob import glob
 
 import numpy as np
 
-from satpy.readers.viirs_atms_sdr_base import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
+from satpy.readers.core.viirs_atms_sdr import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
 NO_DATE = dt.datetime(1958, 1, 1)

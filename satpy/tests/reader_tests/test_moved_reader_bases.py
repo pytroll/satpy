@@ -173,3 +173,17 @@ def test_vii_base_nc_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import vii_base_nc
         getattr(vii_base_nc, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["JPSS_SDR_FileHandler",
+                          "DATASET_KEYS",
+                          "ATMS_DATASET_KEYS",
+                          "VIIRS_DATASET_KEYS",
+                         ]
+                         )
+def test_viirs_atms_sdr_warns(name):
+    """Test that there's a warning when importing from VIIRS ATMS SRD base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import viirs_atms_sdr_base
+        getattr(viirs_atms_sdr_base, name)
