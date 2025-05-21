@@ -1277,3 +1277,25 @@ def test_open_file_or_filename(file_thing, create_read_func):
     read_func = create_read_func()
     open_thing = open_file_or_filename(file_thing)
     read_func(open_thing)
+
+
+@pytest.mark.parametrize("name",
+                         ["FSFile",
+                          "open_file_or_filename",
+                          "group_files",
+                          "find_files_and_readers",
+                          "read_reader_config",
+                          "available_readers",
+                          "get_valid_reader_names",
+                          "OLD_READER_NAMES",
+                          "PENDING_OLD_READER_NAMES",
+                          "load_readers",
+                          "load_reader",
+                          ]
+                         )
+def test_init_import_warns(name):
+    """Test that importing non-reader functions from __init__.py issue a warning."""
+    from satpy import readers
+
+    with pytest.warns(UserWarning):
+        _ = getattr(readers, name)
