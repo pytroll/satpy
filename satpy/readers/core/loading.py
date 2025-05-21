@@ -19,7 +19,7 @@ import logging
 
 import yaml
 
-from satpy.readers.yaml_reader import AbstractYAMLReader
+from satpy.readers.core.yaml_reader import AbstractYAMLReader
 
 from .config import configs_for_reader
 

@@ -35,7 +35,7 @@ from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import DataQuery
 from satpy.readers.abi_l1b import NC_ABI_L1B
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.core.yaml_reader import FileYAMLReader
 from satpy.utils import ignore_pyproj_proj_warnings
 
 RAD_SHAPE = {

@@ -11,7 +11,7 @@ reader:
   supports_fsspec: false
   sensors: [ghi]
   default_channels:
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
     ghi_l1_0250m:

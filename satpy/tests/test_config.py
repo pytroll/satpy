@@ -200,7 +200,7 @@ def _write_fake_reader_yaml(yaml_filename: str) -> None:
 reader:
     name: {reader_name}
     sensors: [fake_sensor]
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 datasets: {{}}
 """)
 

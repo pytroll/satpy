@@ -254,7 +254,7 @@ class DataDownloadMixin:
 
     The below code is shown as an example::
 
-        from satpy.readers.yaml_reader import AbstractYAMLReader
+        from satpy.readers.core.yaml_reader import AbstractYAMLReader
         from satpy.aux_download import DataDownloadMixin
 
         class MyReader(AbstractYAMLReader, DataDownloadMixin):

@@ -137,7 +137,7 @@ The parameters to provide in this section are:
       description: >
         NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
       sensors: [seviri]
-      reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+      reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 Optionally, if you need to customize the ``DataID`` for this reader, you can provide the
 relevant keys with a ``data_identification_keys`` item here. See the :doc:`satpy_internals`

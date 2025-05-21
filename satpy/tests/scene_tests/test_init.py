@@ -124,13 +124,13 @@ class TestScene:
 
     def test_create_reader_instances_with_reader_kwargs(self):
         """Test creating a reader instance with reader kwargs."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         reader_kwargs = {"calibration_type": "gsics"}
         filter_parameters = {"area": "euron1"}
         reader_kwargs2 = {"calibration_type": "gsics", "filter_parameters": filter_parameters}
 
         rinit = spy_decorator(FileYAMLReader.create_filehandlers)
-        with mock.patch("satpy.readers.yaml_reader.FileYAMLReader.create_filehandlers", rinit):
+        with mock.patch("satpy.readers.core.yaml_reader.FileYAMLReader.create_filehandlers", rinit):
             scene = Scene(filenames=["fake1_1.txt"],
                           reader="fake1",
                           filter_parameters={"area": "euron1"},

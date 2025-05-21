@@ -202,3 +202,22 @@ def test_vii_utils_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import vii_utils
         getattr(vii_utils, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["listify_string",
+                          "load_yaml_configs",
+                          "split_integer_in_most_equal_parts",
+                          "AbstractYAMLReader",
+                          "GenericYAMLReader",
+                          "FileYAMLReader",
+                          "GEOFlippableFileYAMLReader",
+                          "GEOSegmentYAMLReader",
+                          "GEOVariableSegmentYAMLReader",
+                         ]
+                         )
+def test_yaml_reader_warns(name):
+    """Test that there's a warning when importing from YAML reader from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import yaml_reader
+        getattr(yaml_reader, name)
