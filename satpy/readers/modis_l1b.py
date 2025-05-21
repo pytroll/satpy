@@ -77,7 +77,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core.hdf4 import from_sds
-from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
+from satpy.readers.core.hdfeos import HDFEOSBaseFileReader, HDFEOSGeoReader
 
 logger = logging.getLogger(__name__)
 

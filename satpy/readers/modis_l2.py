@@ -55,7 +55,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core.hdf4 import from_sds
-from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.readers.core.hdfeos import HDFEOSGeoReader
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

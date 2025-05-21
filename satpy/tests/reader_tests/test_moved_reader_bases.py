@@ -77,3 +77,16 @@ def test_hdf5_utils_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import hdf5_utils
         getattr(hdf5_utils, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["interpolate",
+                          "HDFEOSBaseFileReader",
+                          "HDFEOSGeoReader",
+                         ]
+                         )
+def test_hdfeos_base_warns(name):
+    """Test that there's a warning when importing from hdfeos base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import hdfeos_base
+        getattr(hdfeos_base, name)
