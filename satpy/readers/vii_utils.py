@@ -1,31 +1,37 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# Copyright (c) 2014-2025 Satpy developers
 #
-# Copyright (c) 2020 Satpy developers
+# This file is part of satpy.
 #
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for the management of VII products."""
 
+from __future__ import annotations
 
-# PLANCK COEFFICIENTS FOR CALIBRATION AS DEFINED BY EUMETSAT
-C1 = 1.191062e+8   # [W/m2·sr-1·µm4]
-C2 = 1.4387863e+4  # [K·µm]
+import warnings
+from typing import Any
 
-# CONSTANTS DEFINING THE TIE POINTS
-TIE_POINTS_FACTOR = 8    # Sub-sampling factor of tie points wrt pixel points
-SCAN_ALT_TIE_POINTS = 4  # Number of tie points along the satellite track for each scan
 
-# MEAN EARTH RADIUS AS DEFINED BY IUGG
-MEAN_EARTH_RADIUS = 6371008.7714  # [m]
+def __getattr__(name: str) -> Any:
+    from .core import vii
+
+    new_submod = "core.vii"
+    obj = getattr(vii, name)
+
+    warnings.warn(
+        f"'satpy.readers.vii.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
+        f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}').",
+        stacklevel=2,
+    )
+
+    return obj

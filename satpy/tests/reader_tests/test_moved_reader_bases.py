@@ -187,3 +187,18 @@ def test_viirs_atms_sdr_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import viirs_atms_sdr_base
         getattr(viirs_atms_sdr_base, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["C1",
+                          "C2",
+                          "TIE_POINTS_FACTOR",
+                          "SCAN_ALT_TIE_POINTS",
+                          "MEAN_EARTH_RADIUS",
+                         ]
+                         )
+def test_vii_utils_warns(name):
+    """Test that there's a warning when importing from VII utils from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import vii_utils
+        getattr(vii_utils, name)
