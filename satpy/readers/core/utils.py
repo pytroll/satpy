@@ -624,7 +624,7 @@ class CalibrationCoefficientPicker:
 
     .. code-block:: python
 
-        >>> from satpy.readers.utils import CalibrationCoefficientPicker
+        >>> from satpy.readers.core.utils import CalibrationCoefficientPicker
         >>> picker = CalibrationCoefficientPicker(coefs, calib_wishlist)
         >>> picker.get_coefs("ch1")
         {"coefs": 1.0, "mode": "meirink"}

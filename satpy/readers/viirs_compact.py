@@ -38,8 +38,8 @@ import h5py
 import numpy as np
 import xarray as xr
 
+from satpy.readers.core.utils import np2str
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import np2str
 from satpy.utils import angle2xyz, get_legacy_chunk_size, lonlat2xyz, xyz2angle, xyz2lonlat
 
 CHUNK_SIZE = get_legacy_chunk_size()

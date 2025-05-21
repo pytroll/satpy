@@ -233,9 +233,9 @@ import numpy as np
 import pyresample.geometry
 import xarray as xr
 
+from satpy.readers.core.utils import bbox, get_geostationary_angle_extent
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
-from satpy.readers.utils import bbox, get_geostationary_angle_extent
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

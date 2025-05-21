@@ -121,7 +121,7 @@ the EUMETSAT document
 `Conversion from radiances to reflectances for SEVIRI warm channels`_.
 In the unlikely situation that this correction is not required, it can be
 removed on a per-channel basis using
-:func:`satpy.readers.utils.remove_earthsun_distance_correction`.
+:func:`satpy.readers.core.utils.remove_earthsun_distance_correction`.
 
 
 Masking of bad quality scan lines
@@ -208,7 +208,7 @@ import numpy as np
 import pyproj
 from numpy.polynomial.chebyshev import Chebyshev
 
-import satpy.readers.utils as utils
+import satpy.readers.core.utils as utils
 from satpy.readers.eum_base import issue_revision, time_cds_short
 from satpy.utils import get_legacy_chunk_size
 

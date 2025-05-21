@@ -29,8 +29,8 @@ from dask.array.core import normalize_chunks
 from dask.base import tokenize
 
 from satpy.readers.core.remote import open_file_or_filename
+from satpy.readers.core.utils import np2str
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import np2str
 
 LOG = logging.getLogger(__name__)
 

@@ -35,7 +35,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-import satpy.readers.utils as utils
+import satpy.readers.core.utils as utils
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216

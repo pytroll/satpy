@@ -70,8 +70,7 @@ import xarray as xr
 
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import (
+from satpy.readers.core.utils import (
     apply_rad_correction,
     get_earth_radius,
     get_geostationary_mask,
@@ -79,6 +78,7 @@ from satpy.readers.utils import (
     np2str,
     unzip_file,
 )
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import normalize_low_res_chunks
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",

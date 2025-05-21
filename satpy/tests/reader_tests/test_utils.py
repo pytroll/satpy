@@ -181,7 +181,7 @@ class TestHelpers(unittest.TestCase):
         assert np.all(mask[range(68 - 1, 33 - 1, -1), range(33, 68)] == 1)
         assert np.all(mask[range(33 - 1, -1, -1), range(68, 101)] == 0)
 
-    @mock.patch("satpy.readers.utils.AreaDefinition")
+    @mock.patch("satpy.readers.core.utils.AreaDefinition")
     def test_sub_area(self, adef):
         """Sub area slicing."""
         area = mock.MagicMock()
@@ -267,8 +267,8 @@ class TestHelpers(unittest.TestCase):
         assert "c" in mda["d"]
         assert "c" in mda["d"]["d"]
 
-    @mock.patch("satpy.readers.utils.bz2.BZ2File")
-    @mock.patch("satpy.readers.utils.Popen")
+    @mock.patch("satpy.readers.core.utils.bz2.BZ2File")
+    @mock.patch("satpy.readers.core.utils.Popen")
     def test_unzip_file(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
@@ -282,7 +282,7 @@ class TestHelpers(unittest.TestCase):
         mock_bz2.return_value = bz2_mock
 
         filename = "tester.DAT.bz2"
-        whichstr = "satpy.readers.utils.which"
+        whichstr = "satpy.readers.core.utils.which"
         segment = 3
         segmentstr = str(segment).zfill(2)
         # no pbzip2 installed with prefix
@@ -334,7 +334,7 @@ class TestHelpers(unittest.TestCase):
             data = file_object.read()
             assert data == b"TEST"
 
-    @mock.patch("satpy.readers.utils.open")
+    @mock.patch("satpy.readers.core.utils.open")
     def test_generic_open_filename(self, open_mock):
         """Test the generic_open method with filename (str)."""
         mock_fn_open = mock.MagicMock()
@@ -388,7 +388,7 @@ class TestHelpers(unittest.TestCase):
             os.remove(new_fname)
 
     @mock.patch("os.remove")
-    @mock.patch("satpy.readers.utils.unzip_file", return_value="dummy.txt")
+    @mock.patch("satpy.readers.core.utils.unzip_file", return_value="dummy.txt")
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
         """Test the bz2 file unzipping context manager."""
         filename = "dummy.txt.bz2"

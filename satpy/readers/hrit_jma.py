@@ -116,6 +116,7 @@ import xarray as xr
 
 import satpy.utils
 from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.utils import get_geostationary_mask
 from satpy.readers.hrit_base import (
     HRITFileHandler,
     ancillary_text,
@@ -123,7 +124,6 @@ from satpy.readers.hrit_base import (
     base_hdr_map,
     image_data_function,
 )
-from satpy.readers.utils import get_geostationary_mask
 
 logger = logging.getLogger("hrit_jma")
 
