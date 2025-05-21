@@ -162,3 +162,14 @@ def test_seviri_base_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import seviri_base
         getattr(seviri_base, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["ViiNCBaseFileHandler",
+                         ]
+                         )
+def test_vii_base_nc_warns(name):
+    """Test that there's a warning when importing from VII NetCDF4 base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import vii_base_nc
+        getattr(vii_base_nc, name)

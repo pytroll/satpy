@@ -31,7 +31,7 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers.vii_base_nc import ViiNCBaseFileHandler
+from satpy.readers.core.vii_nc import ViiNCBaseFileHandler
 from satpy.readers.vii_utils import C1, C2, MEAN_EARTH_RADIUS
 
 logger = logging.getLogger(__name__)
