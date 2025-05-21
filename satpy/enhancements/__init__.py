@@ -223,7 +223,7 @@ def _cira_stretch(band_data):
     dtype = band_data.dtype
     log_root = np.log10(0.0223, dtype=dtype)
     denom = (1.0 - log_root) * 0.75
-    band_data *= 0.01
+    band_data *= 0.01 / 0.8
     band_data = band_data.clip(np.finfo(float).eps)
     band_data = np.log10(band_data, dtype=dtype)
     band_data -= log_root
