@@ -21,14 +21,27 @@ import pytest
 
 
 def test_abi_base_warns():
-    """Test that there's a warning when import ABI base class from the old location."""
+    """Test that there's a warning when importing from ABI base from the old location."""
     with pytest.warns(UserWarning):
         from satpy.readers import abi_base
         getattr(abi_base, "NC_ABI_BASE")
 
 
 def test_fci_base_warns():
-    """Test that there's a warning when import FCI base class from the old location."""
+    """Test that there's a warning when importing from FCI base from the old location."""
     with pytest.warns(UserWarning):
         from satpy.readers import fci_base
         getattr(fci_base, "calculate_area_extent")
+
+
+@pytest.mark.parametrize("name",
+                         ["timecds2datetime",
+                          "recarray2dict",
+                          "get_service_mode",
+                         ]
+                         )
+def test_eum_base_warns(name):
+    """Test that there's a warning when importing from EUM base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import eum_base
+        getattr(eum_base, name)

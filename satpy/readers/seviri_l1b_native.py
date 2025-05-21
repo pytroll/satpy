@@ -109,8 +109,8 @@ from pyresample import geometry
 
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core.eum_base import get_service_mode, recarray2dict, time_cds_short
 from satpy.readers.core.utils import fromfile, generic_open, reduce_mda
-from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (
     CHANNEL_NAMES,

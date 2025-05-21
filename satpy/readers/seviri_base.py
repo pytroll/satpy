@@ -210,7 +210,7 @@ import pyproj
 from numpy.polynomial.chebyshev import Chebyshev
 
 import satpy.readers.core.utils as utils
-from satpy.readers.eum_base import issue_revision, time_cds_short
+from satpy.readers.core.eum_base import issue_revision, time_cds_short
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
