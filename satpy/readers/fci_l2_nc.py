@@ -25,8 +25,8 @@ from pyresample import geometry
 
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
+from satpy.readers.core.fci_base import platform_name_translate
 from satpy.readers.eum_base import get_service_mode
-from satpy.readers.fci_base import platform_name_translate
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.resample import get_area_def
 from satpy.utils import get_legacy_chunk_size

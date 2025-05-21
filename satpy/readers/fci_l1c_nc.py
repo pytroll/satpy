@@ -135,8 +135,8 @@ from pyresample import geometry
 
 import satpy
 from satpy.readers.core._geos_area import get_geos_area_naming
+from satpy.readers.core.fci_base import platform_name_translate
 from satpy.readers.eum_base import get_service_mode
-from satpy.readers.fci_base import platform_name_translate
 
 from .netcdf_utils import NetCDF4FsspecFileHandler
 

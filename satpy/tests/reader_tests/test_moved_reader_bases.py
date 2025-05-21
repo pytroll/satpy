@@ -25,3 +25,10 @@ def test_abi_base_warns():
     with pytest.warns(UserWarning):
         from satpy.readers import abi_base
         getattr(abi_base, "NC_ABI_BASE")
+
+
+def test_fci_base_warns():
+    """Test that there's a warning when import FCI base class from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import fci_base
+        getattr(fci_base, "calculate_area_extent")
