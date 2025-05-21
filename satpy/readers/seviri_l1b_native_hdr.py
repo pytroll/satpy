@@ -20,7 +20,7 @@
 import numpy as np
 
 from satpy.readers.core.eum_base import time_cds, time_cds_expanded, time_cds_short
-from satpy.readers.seviri_base import HRV_NUM_COLUMNS, HRV_NUM_LINES, VISIR_NUM_COLUMNS, VISIR_NUM_LINES
+from satpy.readers.core.seviri import HRV_NUM_COLUMNS, HRV_NUM_LINES, VISIR_NUM_COLUMNS, VISIR_NUM_LINES
 
 
 class GSDTRecords(object):

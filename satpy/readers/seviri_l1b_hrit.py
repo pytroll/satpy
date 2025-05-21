@@ -233,7 +233,7 @@ from satpy.readers.core.hrit import (
     base_hdr_map,
     image_data_function,
 )
-from satpy.readers.seviri_base import (
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     REPEAT_CYCLE_DURATION,
@@ -440,7 +440,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
 
     **Padding of the HRV channel**
@@ -455,7 +455,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 

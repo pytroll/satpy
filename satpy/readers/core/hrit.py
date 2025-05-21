@@ -37,8 +37,8 @@ from pyresample import geometry
 
 import satpy.readers.core.utils as utils
 from satpy.readers.core.eum_base import time_cds_short
+from satpy.readers.core.seviri import dec10216
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import dec10216
 
 logger = logging.getLogger("hrit_base")
 

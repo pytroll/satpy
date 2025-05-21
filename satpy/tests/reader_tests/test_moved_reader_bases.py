@@ -130,3 +130,35 @@ def test_netcdf_utils_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import netcdf_utils
         getattr(netcdf_utils, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["get_cds_time",
+                          "add_scanline_acq_time",
+                          "dec10216",
+                          "chebyshev",
+                          "chebyshev_3d",
+                          "get_satpos",
+                          "calculate_area_extent",
+                          "create_coef_dict",
+                          "get_padding_area",
+                          "pad_data_horizontally",
+                          "pad_data_vertically",
+                          "mask_bad_quality",
+                          "round_nom_time",
+                          "MpefProductHeader",
+                          "SEVIRICalibrationAlgorithm",
+                          "SEVIRICalibrationHandler",
+                          "NoValidOrbitParams",
+                          "OrbitPolynomial",
+                          "OrbitPolynomialFinder",
+                          "NominalCoefficients",
+                          "GsicsCoefficients",
+                          "MeirinkCoefficients",
+                         ]
+                         )
+def test_seviri_base_warns(name):
+    """Test that there's a warning when importing from SEVIRI base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import seviri_base
+        getattr(seviri_base, name)

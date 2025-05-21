@@ -62,7 +62,7 @@ Documentation for specific readers
 SEVIRI L1.5 data readers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: satpy.readers.seviri_base
+.. automodule:: satpy.readers.core.seviri
    :noindex:
    :no-special-members:
 

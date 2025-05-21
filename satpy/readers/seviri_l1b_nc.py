@@ -25,8 +25,7 @@ import numpy as np
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.core.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler, open_dataset
-from satpy.readers.seviri_base import (
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     SATNUM,
     CalibParams,
@@ -42,6 +41,7 @@ from satpy.readers.seviri_base import (
     mask_bad_quality,
     round_nom_time,
 )
+from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("nc_msg")
@@ -53,13 +53,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`. Note that there is only one set of
+    See :mod:`satpy.readers.core.seviri`. Note that there is only one set of
     calibration coefficients available in the netCDF files and therefore there
     is no `calib_mode` argument.
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 
