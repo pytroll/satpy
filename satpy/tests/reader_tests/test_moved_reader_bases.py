@@ -52,3 +52,16 @@ def test_fy4_base_warns():
     with pytest.warns(UserWarning):
         from satpy.readers import fy4_base
         getattr(fy4_base, "FY4Base")
+
+
+@pytest.mark.parametrize("name",
+                         ["from_sds",
+                          "HDF4FileHandler",
+                          "SDS",
+                         ]
+                         )
+def test_hdf4_utils_warns(name):
+    """Test that there's a warning when importing from hdf4 utils from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import hdf4_utils
+        getattr(hdf4_utils, name)

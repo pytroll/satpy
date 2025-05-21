@@ -29,8 +29,8 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+from satpy.readers.core.hdf4 import SDS, HDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hdf4_utils import SDS, HDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
