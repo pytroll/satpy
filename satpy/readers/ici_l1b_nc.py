@@ -292,13 +292,13 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             b: temperature coefficient [K].
 
         Returns:
-            DataArray: array containing the calibrated brightness
+            array containing the calibrated brightness
                 temperature values.
 
         """
         return b + (a * C2 * cw / np.log(1 + C1 * cw ** 3 / radiance))
 
-    def _calibrate(self, variable, dataset_info):
+    def _calibrate(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
 
         Args:
@@ -306,7 +306,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             dataset_info: dictionary of information about the dataset.
 
         Returns:
-            DataArray: array containing the calibrated values and all the
+            array containing the calibrated values and all the
                 original metadata.
 
         """
@@ -325,7 +325,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
         return calibrated_variable
 
-    def _orthorectify(self, variable, orthorect_data_name):
+    def _orthorectify(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
         """Perform the orthorectification.
 
         Args:
@@ -335,7 +335,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 in the product.
 
         Returns:
-            DataArray: array containing the corrected values and all the
+            array containing the corrected values and all the
                 original metadata.
 
         """

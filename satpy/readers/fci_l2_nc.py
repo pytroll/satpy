@@ -250,7 +250,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Compute the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_extent = self._get_area_extent()
@@ -402,7 +402,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Construct the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         res = dataset_id["resolution"]

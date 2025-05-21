@@ -290,7 +290,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_naming_input_dict = {"platform_name": self.platform_name[:3].lower(),

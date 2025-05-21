@@ -126,6 +126,22 @@ enhancements:
         min_stretch: [-6.7, -3.1, 243.55]
         max_stretch: [ 2.6,  5.2, 292.65]
 
+  night_microphysics_tropical_abi:
+    ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
+    standard_name: night_microphysics_tropical
+    sensor: abi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-7.1, -2.9, 273]
+        max_stretch: [ 2.4,  1.1, 300]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.0, 1.0, 1.0]
+
   land_cloud_fire:
     ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
     standard_name: land_cloud_fire
