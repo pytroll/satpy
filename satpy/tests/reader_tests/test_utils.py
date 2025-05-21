@@ -634,3 +634,31 @@ class TestCalibrationCoefficientPicker:
         """Test handling of invalid wishlist type."""
         with pytest.raises(TypeError, match="Unsupported wishlist type"):
             hf.CalibrationCoefficientPicker({"nominal": 123}, 123)
+
+
+@pytest.mark.parametrize("name",
+                         ["np2str",
+                          "get_geostationary_angle_extent",
+                          "get_geostationary_mask",
+                          "get_geostationary_bounding_box",
+                          "get_sub_area",
+                          "unzip_file",
+                          "unzip_context",
+                          "generic_open",
+                          "fromfile",
+                          "bbox",
+                          "get_earth_radius",
+                          "reduce_mda",
+                          "get_user_calibration_factors",
+                          "apply_rad_correction",
+                          "get_array_date",
+                          "apply_earthsun_distance_correction",
+                          "remove_earthsun_distance_correction",
+                          ]
+                         )
+def test_init_import_warns(name):
+    """Test that importing non-reader functions from __init__.py issue a warning."""
+    from satpy.readers import utils
+
+    with pytest.warns(UserWarning):
+        _ = getattr(utils, name)
