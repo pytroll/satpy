@@ -45,3 +45,10 @@ def test_eum_base_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import eum_base
         getattr(eum_base, name)
+
+
+def test_fy4_base_warns():
+    """Test that there's a warning when importing from FY4 base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import fy4_base
+        getattr(fy4_base, "FY4Base")
