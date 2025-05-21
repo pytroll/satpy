@@ -65,7 +65,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         })
         self.reader.fill_hrv = True
 
-    @mock.patch("satpy.readers.hrit_base.np.memmap")
+    @mock.patch("satpy.readers.core.hrit.np.memmap")
     def test_read_hrv_band(self, memmap):
         """Test reading the hrv band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
@@ -182,7 +182,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
         assert area.area_id == "msg_seviri_rss_3km"
 
-    @mock.patch("satpy.readers.hrit_base.np.memmap")
+    @mock.patch("satpy.readers.core.hrit.np.memmap")
     def test_read_band(self, memmap):
         """Test reading a band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
@@ -304,7 +304,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         self.reader = fh.prologue_
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the prologue file handler accepts extra keyword arguments."""
 
@@ -337,7 +337,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     """Test the HRIT epilogue file handler."""
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def setUp(self, init, *mocks):
         """Set up the test case."""
 
@@ -352,7 +352,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
                                                  calib_mode="nominal")
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the epilogue file handler accepts extra keyword arguments."""
 

@@ -90,3 +90,19 @@ def test_hdfeos_base_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import hdfeos_base
         getattr(hdfeos_base, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["decompress_file",
+                          "decompress_buffer",
+                          "get_header_id",
+                          "get_header_content",
+                          "HRITFileHandler",
+                          "HRITSegment",
+                         ]
+                         )
+def test_hrit_base_warns(name):
+    """Test that there's a warning when importing from HRIT base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import hrit_base
+        getattr(hrit_base, name)

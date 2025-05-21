@@ -26,7 +26,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers.hrit_base import HRITFileHandler
+from satpy.readers.core.hrit import HRITFileHandler
 from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
@@ -246,7 +246,7 @@ class TestHRITFileHandlerCompressed:
         """Test reading a single band from a filepath."""
         filename = stub_compressed_hrit_file
 
-        with mock.patch("satpy.readers.hrit_base.decompress_buffer", side_effect=fake_decompress) as mock_decompress:
+        with mock.patch("satpy.readers.core.hrit.decompress_buffer", side_effect=fake_decompress) as mock_decompress:
             with mock.patch.object(HRITFileHandler, "_get_hd", side_effect=new_get_hd, autospec=True) as get_hd:
                 self.reader = HRITFileHandler(filename,
                                               {"platform_shortname": "MSG3",

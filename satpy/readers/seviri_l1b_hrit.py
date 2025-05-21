@@ -56,7 +56,7 @@ Compression
 -----------
 
 This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT readers, see
-:class:`satpy.readers.hrit_base.HRITFileHandler`.
+:class:`satpy.readers.core.hrit.HRITFileHandler`.
 
 This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
 epilogue, and segment files.
@@ -226,7 +226,7 @@ import satpy.readers.core.utils as utils
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
 from satpy.readers.core.eum_base import get_service_mode, recarray2dict, time_cds_short
-from satpy.readers.hrit_base import (
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,
@@ -683,7 +683,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         res = self.calibrate(res, key["calibration"])
 
         is_calibration = key["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
-        if is_calibration and self.mask_bad_quality_scan_lines:  # noqa: E129
+        if is_calibration and self.mask_bad_quality_scan_lines:
             res = self._mask_bad_quality(res)
 
         if key["name"] == "HRV" and self.fill_hrv:

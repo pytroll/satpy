@@ -369,7 +369,7 @@ class TestReaderLoader(unittest.TestCase):
         ri = load_readers(filenames)
         assert list(ri.keys()) == ["viirs_sdr"]
 
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler._get_hd")
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler._get_hd")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.start_time")
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.end_time")
