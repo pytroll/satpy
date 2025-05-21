@@ -30,9 +30,9 @@ def __getattr__(name: str) -> Any:
             "FSFile",
             "open_file_or_filename"
             ):
-        from . import fsfile
-        new_submod = "fsfile"
-        obj = getattr(fsfile, name)
+        from . import remote
+        new_submod = "remote"
+        obj = getattr(remote, name)
     elif name in (
             "group_files",
             "find_files_and_readers",
