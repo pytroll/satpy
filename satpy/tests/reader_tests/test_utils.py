@@ -32,7 +32,7 @@ import xarray as xr
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
-from satpy.readers import utils as hf
+from satpy.readers.core import utils as hf
 
 
 class TestHelpers(unittest.TestCase):
@@ -654,6 +654,7 @@ class TestCalibrationCoefficientPicker:
                           "get_array_date",
                           "apply_earthsun_distance_correction",
                           "remove_earthsun_distance_correction",
+                          "CalibrationCoefficientPicker",
                           ]
                          )
 def test_init_import_warns(name):
