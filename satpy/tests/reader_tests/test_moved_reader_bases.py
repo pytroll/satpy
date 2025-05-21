@@ -106,3 +106,14 @@ def test_hrit_base_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import hrit_base
         getattr(hrit_base, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["LINCFileHandler",
+                         ]
+                         )
+def test_li_base_nc_warns(name):
+    """Test that there's a warning when importing from LI netCDF4 base from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import li_base_nc
+        getattr(li_base_nc, name)

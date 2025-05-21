@@ -26,7 +26,7 @@ import xarray as xr
 from pyproj import Proj
 
 from satpy._config import config_search_paths
-from satpy.readers.li_base_nc import LINCFileHandler
+from satpy.readers.core.li_nc import LINCFileHandler
 from satpy.readers.li_l2_nc import LI_GRID_SHAPE, LIL2NCFileHandler
 from satpy.readers.yaml_reader import load_yaml_configs
 from satpy.tests.reader_tests._li_test_utils import (
