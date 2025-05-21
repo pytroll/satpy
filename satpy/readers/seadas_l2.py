@@ -31,7 +31,8 @@ warned about the quality of the result.
 
 import datetime as dt
 
-from .hdf4_utils import HDF4FileHandler
+from satpy.readers.core.hdf4 import HDF4FileHandler
+
 from .netcdf_utils import NetCDF4FileHandler
 
 
