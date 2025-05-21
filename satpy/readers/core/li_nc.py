@@ -192,7 +192,7 @@ import xarray as xr
 from pyproj import Proj
 
 from satpy.readers.core.fci_base import platform_name_translate
-from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
+from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 

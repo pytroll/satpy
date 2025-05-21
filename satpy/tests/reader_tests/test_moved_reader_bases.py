@@ -117,3 +117,16 @@ def test_li_base_nc_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import li_base_nc
         getattr(li_base_nc, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["get_data_as_xarray",
+                          "NetCDF4FileHandler",
+                          "NetCDF4FsspecFileHandler",
+                         ]
+                         )
+def test_netcdf_utils_warns(name):
+    """Test that there's a warning when importing from netCDF4 utils from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import netcdf_utils
+        getattr(netcdf_utils, name)

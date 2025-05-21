@@ -37,7 +37,7 @@ import numpy as np
 from pyproj import Proj
 from pyresample import geometry
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
 
 LOG = logging.getLogger(__name__)
 

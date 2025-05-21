@@ -40,7 +40,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
 LOG = logging.getLogger(__name__)

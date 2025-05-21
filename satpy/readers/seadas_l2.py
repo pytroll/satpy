@@ -32,8 +32,7 @@ warned about the quality of the result.
 import datetime as dt
 
 from satpy.readers.core.hdf4 import HDF4FileHandler
-
-from .netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 
 class _SEADASL2Base:

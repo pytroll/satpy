@@ -36,7 +36,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

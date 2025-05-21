@@ -532,7 +532,7 @@ If you are writing a file handler for more common formats like HDF4, HDF5, or
 NetCDF4 you may want to consider using the utility base classes for each:
 :class:`satpy.readers.core.hdf4.HDF4FileHandler`,
 :class:`satpy.readers.core.hdf5.HDF5FileHandler`, and
-:class:`satpy.readers.netcdf_utils.NetCDF4FileHandler`. These were added as
+:class:`satpy.readers.core.netcdf.NetCDF4FileHandler`. These were added as
 a convenience and are not required to read these formats. In many cases using
 the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
