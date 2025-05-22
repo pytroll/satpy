@@ -234,7 +234,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
         Args:
             directory (Optional[str]): Path to search.
-            fs (Optional[FileSystem]): fsspec FileSystem implementation to use.
+            fs (Optional[fsspec.spec.AbstractFileSystem]): fsspec FileSystem implementation to use.
                                        Defaults to None, using local file
                                        system.
 

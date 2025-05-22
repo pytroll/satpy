@@ -15,12 +15,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader configuration."""
+from __future__ import annotations
+
 import logging
 import os
 import warnings
 
 import yaml
-from yaml import UnsafeLoader
+from yaml.loader import BaseLoader, FullLoader, UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.readers.core.yaml_reader import load_yaml_configs as load_yaml_reader_configs
@@ -81,17 +83,20 @@ def _get_configs(reader):
     return set(reader_configs)
 
 
-def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
+def available_readers(
+        as_dict: bool = False,
+        yaml_loader: type[BaseLoader] | type[FullLoader] | type[UnsafeLoader] = yaml.loader.UnsafeLoader,
+) -> list[str] | list[dict]:
     """Available readers based on current configuration.
 
     Args:
-        as_dict (bool): Optionally return reader information as a dictionary.
+        as_dict: Optionally return reader information as a dictionary.
                         Default: False.
-        yaml_loader (Optional[Union[yaml.BaseLoader, yaml.FullLoader, yaml.UnsafeLoader]]):
-            The yaml loader type. Default: ``yaml.UnsafeLoader``.
+        yaml_loader:
+            The yaml loader type. Default: ``yaml.loader.UnsafeLoader``.
 
     Returns:
-        Union[list[str], list[dict]]: List of available reader names. If `as_dict` is `True` then
+        List of available reader names. If `as_dict` is `True` then
         a list of dictionaries including additionally reader information is returned.
 
     """

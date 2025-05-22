@@ -21,6 +21,8 @@ import pathlib
 import pickle  # nosec B403
 from functools import total_ordering
 
+import fsspec
+
 
 @total_ordering
 class FSFile(os.PathLike):
@@ -46,23 +48,27 @@ class FSFile(os.PathLike):
 
     """
 
-    def __init__(self, file, fs=None):  # noqa: D417
+    def __init__(
+            self,
+            file: os.PathLike | fsspec.core.OpenFile | str,
+            fs: fsspec.spec.AbstractFileSystem | None = None,
+    ):
         """Initialise the FSFile instance.
 
         Args:
-            file (str, os.Pathlike, or OpenFile):
-                String, object implementing the `os.PathLike` protocol, or
-                an `fsspec.OpenFile` instance.  If passed an instance of
-                `fsspec.OpenFile`, the following argument ``fs`` has no
+            file:
+                String, object implementing the :class:`os.PathLike` protocol, or
+                an :class:`~fsspec.core.OpenFile` instance.  If passed an instance of
+                :class:`~fsspec.core.OpenFile`, the following argument ``fs`` has no
                 effect.
-            fs (fsspec filesystem, Optional)
+            fs:
                 Object implementing the fsspec filesystem protocol.
         """
         self._fs_open_kwargs = _get_fs_open_kwargs(file)
-        try:
+        if hasattr(file, "path") and hasattr(file, "fs"):
             self._file = file.path
             self._fs = file.fs
-        except AttributeError:
+        else:
             self._file = file
             self._fs = fs
 

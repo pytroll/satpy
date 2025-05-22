@@ -424,7 +424,7 @@ def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
         reader_configs (dict): reader metadata such as returned by
             `configs_for_reader`.
         reader_kwargs (dict): Keyword arguments to be passed to reader.
-        fs (FileSystem): as for `find_files_and_readers`
+        fs (fsspec.spec.AbstractFileSystem): as for `find_files_and_readers`
     """
     sensor_supported = False
     reader_instance = _get_reader_instance(reader, reader_configs, **reader_kwargs)

@@ -41,11 +41,11 @@ LOGGER = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 
-def np2str(value):
+def np2str(value: np.ndarray) -> str:
     """Convert an `numpy.string_` to str.
 
     Args:
-        value (ndarray): scalar or 1-element numpy array to convert
+        value: scalar or 1-element numpy array to convert
 
     Raises:
         ValueError: if value is array larger than 1-element, or it is not of
