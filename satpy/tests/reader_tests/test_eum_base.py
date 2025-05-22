@@ -23,7 +23,7 @@ import unittest
 
 import numpy as np
 
-from satpy.readers.core.eum_base import (
+from satpy.readers.core.eum import (
     get_service_mode,
     recarray2dict,
     time_cds,

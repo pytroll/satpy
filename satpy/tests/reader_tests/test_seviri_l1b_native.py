@@ -32,7 +32,7 @@ import pytest
 import xarray as xr
 from pytest_lazy_fixtures import lf
 
-from satpy.readers.core.eum_base import recarray2dict, time_cds_short
+from satpy.readers.core.eum import recarray2dict, time_cds_short
 from satpy.readers.seviri_l1b_native import (
     ASCII_STARTSWITH,
     ImageBoundaries,

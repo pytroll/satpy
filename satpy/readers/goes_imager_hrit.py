@@ -34,7 +34,7 @@ import xarray as xr
 
 from satpy._compat import ArrayLike
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
-from satpy.readers.core.eum_base import recarray2dict, time_cds_short
+from satpy.readers.core.eum import recarray2dict, time_cds_short
 from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,

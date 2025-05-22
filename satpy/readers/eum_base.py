@@ -24,10 +24,10 @@ from typing import Any
 
 
 def __getattr__(name: str) -> Any:
-    from .core import eum_base
+    from .core import eum
 
-    new_submod = "core.eum_base"
-    obj = getattr(eum_base, name)
+    new_submod = "core.eum"
+    obj = getattr(eum, name)
 
     warnings.warn(
         f"'satpy.readers.eum_base.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "

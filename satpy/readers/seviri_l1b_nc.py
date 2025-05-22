@@ -24,7 +24,7 @@ import numpy as np
 
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.core.eum_base import get_service_mode
+from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     SATNUM,
