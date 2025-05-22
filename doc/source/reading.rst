@@ -254,7 +254,7 @@ For example:
 .. code-block:: python
 
     >>> from satpy import Scene
-    >>> from satpy.readers.remote import FSFile
+    >>> from satpy.readers.core.remote import FSFile
     >>> import fsspec
 
     >>> filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'

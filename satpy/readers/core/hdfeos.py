@@ -220,7 +220,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
     def load_dataset(self, dataset_name, is_category=False):
         """Load the dataset from HDF EOS file."""
-        from satpy.readers.hdf4_utils import from_sds
+        from satpy.readers.core.hdf4 import from_sds
 
         dataset = self._read_dataset_in_file(dataset_name)
         chunks = self._chunks_for_variable(dataset)
