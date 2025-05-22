@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 from xarray.core.datatree import DataTree
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 LUT_SUFFIXES = {"vis": ("RADIANCE", "ALBEDO"),
                 "swir": ("RADIANCE",),

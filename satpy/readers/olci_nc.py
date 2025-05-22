@@ -47,8 +47,8 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
 # the order of the L1B quality flags are from highest 32nd bit to the lowest 1 bit

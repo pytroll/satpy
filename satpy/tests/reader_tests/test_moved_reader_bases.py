@@ -239,3 +239,15 @@ def test_xmlformat_warns(name):
     with pytest.warns(UserWarning):
         from satpy.readers import xmlformat
         getattr(xmlformat, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["open_dataset",
+                          "BaseFileHandler",
+                         ]
+                         )
+def test_file_handlers_warns(name):
+    """Test that there's a warning when importing from file_handlers from the old location."""
+    with pytest.warns(UserWarning):
+        from satpy.readers import file_handlers
+        getattr(file_handlers, name)

@@ -66,7 +66,7 @@ A plugin package should consist of three main parts:
 
    * readers: :class:`~satpy.readers.core.yaml_reader.FileYAMLReader` for any
      reader subclasses and
-     :class:`~satpy.readers.file_handlers.BaseFileHandler` for any custom file
+     :class:`~satpy.readers.core.file_handlers.BaseFileHandler` for any custom file
      handlers. See :doc:`custom_reader` for more information.
    * composites and modifiers: :class:`~satpy.composites.CompositeBase` for
      any generic compositor and :class:`~satpy.composites.GenericCompositor`

@@ -342,7 +342,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         """Generate dataset info and their availablity.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """

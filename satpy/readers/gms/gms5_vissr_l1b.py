@@ -161,8 +161,8 @@ import xarray as xr
 import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms5_vissr_navigation as nav
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 

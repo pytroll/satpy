@@ -128,7 +128,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
         """Generate dataset info and their availablity.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """

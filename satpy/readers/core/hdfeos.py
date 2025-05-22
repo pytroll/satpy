@@ -34,7 +34,7 @@ from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
 from satpy import DataID
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)

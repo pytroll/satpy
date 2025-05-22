@@ -439,13 +439,13 @@ experience to customize or add new datasets to a reader. However, some file
 formats may have 10s or even 100s of datasets or variations of datasets.
 Writing the metadata and access information for every one of these datasets
 can easily become a problem. To help in these cases the
-:meth:`~satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+:meth:`~satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
 file handler interface can be used.
 
 This method, if needed, should be implemented in your reader's file handler
 classes. The best information for what this method does and how to use it
 is available in the
-:meth:`API documentation <satpy.readers.file_handlers.BaseFileHandler.available_datasets>`.
+:meth:`API documentation <satpy.readers.core.file_handlers.BaseFileHandler.available_datasets>`.
 This method is good when you want to:
 
 1. Define datasets dynamically without needing to define them in the YAML.
@@ -567,7 +567,7 @@ One way of implementing a file handler is shown below:
 .. code:: python
 
     # this is seviri_l1b_nc.py
-    from satpy.readers.file_handlers import BaseFileHandler
+    from satpy.readers.core.file_handlers import BaseFileHandler
     from pyresample.geometry import AreaDefinition
 
     class NCSEVIRIFileHandler(BaseFileHandler):

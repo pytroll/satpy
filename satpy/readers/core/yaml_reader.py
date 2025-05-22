@@ -646,7 +646,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         """Generate a series of available dataset information.
 
         This is done by chaining file handler's
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         together. See that method's documentation for more information.
 
         Returns:
@@ -676,7 +676,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         Each file handler is consulted on whether or not it can load the
         dataset with the provided information dictionary.
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for more information.
 
         """

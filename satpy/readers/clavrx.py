@@ -29,8 +29,8 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.hdf4 import SDS, HDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -491,7 +491,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
 
-        See :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        See :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for more information.
 
         """

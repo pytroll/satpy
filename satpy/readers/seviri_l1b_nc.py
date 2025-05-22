@@ -25,6 +25,7 @@ import numpy as np
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
 from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     SATNUM,
@@ -41,7 +42,6 @@ from satpy.readers.core.seviri import (
     mask_bad_quality,
     round_nom_time,
 )
-from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("nc_msg")

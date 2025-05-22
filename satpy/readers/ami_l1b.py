@@ -29,9 +29,9 @@ from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
 import satpy
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.core.utils import apply_rad_correction, get_user_calibration_factors
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

@@ -23,7 +23,7 @@ in every reader. This could look like:
 .. code-block:: python
 
     from satpy._compat importe cached_property
-    from satpy.readers.file_handlers import BaseFileHandler, open_dataset
+    from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
 
     class Reader(BaseFileHandler):
 

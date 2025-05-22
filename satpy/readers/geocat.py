@@ -168,7 +168,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         information down the chain.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """

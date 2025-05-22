@@ -24,9 +24,9 @@ import netCDF4
 import numpy as np
 import xarray as xr
 
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.core.utils import np2str
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)

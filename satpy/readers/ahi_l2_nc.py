@@ -51,7 +51,7 @@ import xarray as xr
 
 from satpy._compat import cached_property
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

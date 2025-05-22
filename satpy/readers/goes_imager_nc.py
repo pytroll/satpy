@@ -233,8 +233,8 @@ import numpy as np
 import pyresample.geometry
 import xarray as xr
 
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import bbox, get_geostationary_angle_extent
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
 from satpy.utils import get_legacy_chunk_size
 
@@ -976,7 +976,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         information down the chain.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
         """
         res = self.resolution
