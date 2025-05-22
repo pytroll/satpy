@@ -31,7 +31,7 @@ import xarray as xr
 
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
-from satpy.readers.core.fci_base import calculate_area_extent as fci_calculate_area_extent
+from satpy.readers.core.fci import calculate_area_extent as fci_calculate_area_extent
 from satpy.readers.core.seviri import PLATFORM_DICT as SEVIRI_PLATFORM_DICT
 from satpy.readers.core.seviri import REPEAT_CYCLE_DURATION as SEVIRI_REPEAT_CYCLE_DURATION
 from satpy.readers.core.seviri import REPEAT_CYCLE_DURATION_RSS as SEVIRI_REPEAT_CYCLE_DURATION_RSS

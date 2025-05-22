@@ -24,10 +24,10 @@ from typing import Any
 
 
 def __getattr__(name: str) -> Any:
-    from .core import fci_base
+    from .core import fci
 
-    new_submod = "core.fci_base"
-    obj = getattr(fci_base, name)
+    new_submod = "core.fci"
+    obj = getattr(fci, name)
 
     warnings.warn(
         f"'satpy.readers.fci_base.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "

@@ -18,7 +18,7 @@
 
 """FCI base reader tests package."""
 
-from satpy.readers.core.fci_base import calculate_area_extent
+from satpy.readers.core.fci import calculate_area_extent
 from satpy.tests.utils import make_dataid
 
 
