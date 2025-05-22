@@ -277,7 +277,7 @@ Search for local/remote files
 =============================
 
 Satpy provides a utility
-:func:`~satpy.readers.grouping.find_files_and_readers` for searching for files in
+:func:`~satpy.readers.core.grouping.find_files_and_readers` for searching for files in
 a base directory matching various search parameters. This function discovers
 files based on filename patterns. It returns a dictionary mapping reader name
 to a list of filenames supported. This dictionary can be passed directly to
@@ -293,7 +293,7 @@ the :class:`~satpy.scene.Scene` initialization.
     ...                                   end_time=datetime(2017, 5, 1, 18, 30, 0))
     >>> scn = Scene(filenames=my_files)
 
-See the :func:`~satpy.readers.find_files_and_readers` documentation for
+See the :func:`~satpy.readers.core.grouping.find_files_and_readers` documentation for
 more information on the possible parameters as well as for searching on
 remote file systems.
 
