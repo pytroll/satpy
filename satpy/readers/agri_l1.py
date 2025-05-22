@@ -25,7 +25,7 @@ The files read by this reader are described in the official Real Time Data Servi
 
 import logging
 
-from satpy.readers.core.fy4_base import FY4Base
+from satpy.readers.core.fy4 import FY4Base
 
 logger = logging.getLogger(__name__)
 

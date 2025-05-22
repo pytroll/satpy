@@ -30,10 +30,10 @@ from typing import Any
 
 
 def __getattr__(name: str) -> Any:
-    from .core import fy4_base
+    from .core import fy4
 
-    new_submod = "core.fy4_base"
-    obj = getattr(fy4_base, name)
+    new_submod = "core.fy4"
+    obj = getattr(fy4, name)
 
     warnings.warn(
         f"'satpy.readers.fy4_base.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
