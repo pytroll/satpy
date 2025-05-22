@@ -24,13 +24,13 @@ from typing import Any
 
 
 def __getattr__(name: str) -> Any:
-    from .core import abi_base
+    from .core import abi
 
-    new_submod = "core.abi_base"
-    obj = getattr(abi_base, name)
+    new_submod = "core.abi"
+    obj = getattr(abi, name)
 
     warnings.warn(
-        f"'satpy.readers.utils.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
+        f"'satpy.readers.abi_base.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
         f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}').",
         stacklevel=2,
     )

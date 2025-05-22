@@ -469,7 +469,7 @@ def test_raw_calibrate(c01_counts):
     assert res.attrs["long_name"] == "Raw Counts"
 
 
-@mock.patch("satpy.readers.core.abi_base.xr")
+@mock.patch("satpy.readers.core.abi.xr")
 def test_open_dataset(_):  # noqa: PT019
     """Test opening a dataset."""
     openable_thing = mock.MagicMock()

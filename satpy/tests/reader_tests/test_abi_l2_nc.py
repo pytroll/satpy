@@ -164,7 +164,7 @@ class TestMCMIPReading:
             ("C01", {"calibration": "reflectance", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
         ]
     )
-    @mock.patch("satpy.readers.core.abi_base.xr")
+    @mock.patch("satpy.readers.core.abi.xr")
     def test_mcmip_get_dataset(self, xr_, product, exp_metadata):
         """Test getting channel from MCMIP file."""
         import datetime as dt
@@ -215,7 +215,7 @@ class TestMCMIPReading:
 class Test_NC_ABI_L2_area_fixedgrid:
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch("satpy.readers.core.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_fixedgrid(self, adef):
         """Test the area generation."""
         with _create_reader_for_fake_data("RSR", _create_cmip_dataset()) as reader:
@@ -275,7 +275,7 @@ class Test_NC_ABI_L2_area_latlon:
         )
         self.fake_dataset = fake_dataset
 
-    @mock.patch("satpy.readers.core.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_latlon(self, adef):
         """Test the area generation."""
         with _create_reader_for_fake_data("RSR", self.fake_dataset) as reader:
@@ -335,7 +335,7 @@ class Test_NC_ABI_L2_area_AOD:
         )
         self.fake_dataset = fake_dataset
 
-    @mock.patch("satpy.readers.core.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_xy(self, adef):
         """Test the area generation."""
         with _create_reader_for_fake_data("RSR", self.fake_dataset) as reader:
@@ -364,7 +364,7 @@ def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset
         filename_info,
         {"file_type": "info", "observation_type": observation_type},
     )
-    with mock.patch("satpy.readers.core.abi_base.xr") as xr_:
+    with mock.patch("satpy.readers.core.abi.xr") as xr_:
         xr_.open_dataset.return_value = fake_dataset
         reader = NC_ABI_L2(*reader_args)
         yield reader
