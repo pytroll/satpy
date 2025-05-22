@@ -29,7 +29,7 @@ def __getattr__(name: str) -> Any:
     obj = getattr(vii, name)
 
     warnings.warn(
-        f"'satpy.readers.vii.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
+        f"'satpy.readers.vii_utils.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
         f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}').",
         stacklevel=2,
     )
