@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   default_channels: []
   sensors: [merged]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
     occci_allprods_geo:

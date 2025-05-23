@@ -32,7 +32,7 @@ import numpy as np
 import pytest
 
 from satpy.readers.ahi_hsd import AHIHSDFileHandler, _NominalTimeCalculator
-from satpy.readers.utils import get_geostationary_mask
+from satpy.readers.core.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
 InfoDict = Dict[str, Any]

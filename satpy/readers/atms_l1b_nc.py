@@ -25,7 +25,7 @@ The format is explained in the `ATMS L1B Product User Guide`_
 import datetime as dt
 import logging
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 

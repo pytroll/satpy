@@ -38,7 +38,7 @@ import xarray as xr
 from dask.array.core import normalize_chunks
 
 # from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ reader:
   supports_fsspec: false
   sensors: [epic]
   default_channels: [B317, B325, B340, B388, B443, B551, B680, B688, B764, B780]
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
     h5_std:

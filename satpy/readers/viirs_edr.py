@@ -82,7 +82,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import DataID
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 LOG = logging.getLogger(__name__)

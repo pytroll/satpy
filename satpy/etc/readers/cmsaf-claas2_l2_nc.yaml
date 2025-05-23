@@ -13,7 +13,7 @@ reader:
   sensors: [seviri]
   doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
   default_channels: []
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 # CMSAF naming convention:
 #   https://www.cmsaf.eu/EN/Products/NamingConvention/Naming_Convention_node.html

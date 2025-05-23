@@ -2,9 +2,8 @@
 
 import datetime
 
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.resample import get_area_def
-
-from .netcdf_utils import NetCDF4FileHandler
 
 
 def _is_georef_offset_present(date):

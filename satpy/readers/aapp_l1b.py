@@ -35,7 +35,7 @@ import numpy as np
 import xarray as xr
 from dask import delayed
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 CHANNEL_DTYPE = np.float32

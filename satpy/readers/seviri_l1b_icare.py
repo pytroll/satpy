@@ -75,8 +75,8 @@ import datetime as dt
 
 import numpy as np
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hdf4_utils import HDF4FileHandler
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hdf4 import HDF4FileHandler
 
 
 class SEVIRI_ICARE(HDF4FileHandler):

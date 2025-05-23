@@ -39,7 +39,7 @@ import dask.array as da
 import h5py
 import xarray as xr
 
-from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS, JPSS_SDR_FileHandler
+from satpy.readers.core.viirs_atms_sdr import DATASET_KEYS, JPSS_SDR_FileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)

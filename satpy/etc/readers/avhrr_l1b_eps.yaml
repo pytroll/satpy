@@ -5,7 +5,7 @@ reader:
     description: EPS Reader for AVHRR
     status: Nominal
     supports_fsspec: false
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
     sensors: [avhrr-3]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 

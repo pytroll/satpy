@@ -118,7 +118,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
 
     def test_init(self):
         """Test basic initialization of this reader."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc",
@@ -130,7 +130,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
 
     def test_load_no2(self):
         """Load NO2 dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.tropomi_l2.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -151,7 +151,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
 
     def test_load_so2(self):
         """Load SO2 dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.tropomi_l2.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -169,7 +169,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
 
     def test_load_bounds(self):
         """Load bounds dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.tropomi_l2.netCDF4.Variable", xr.DataArray):
             loadables = r.select_files_from_pathnames([

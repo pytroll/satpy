@@ -30,8 +30,8 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hrit_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,

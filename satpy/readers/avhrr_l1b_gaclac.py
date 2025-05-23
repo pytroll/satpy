@@ -42,7 +42,7 @@ from pygac.gac_pod import GACPODReader
 from pygac.lac_klm import LACKLMReader
 from pygac.lac_pod import LACPODReader
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

@@ -57,7 +57,7 @@ example, please provide the actual name for that data: eps_sterna_mwr_l1b_nc.
 
 import xarray as xr
 
-from .netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 MWR_CHANNEL_NAMES = [str(i) for i in range(1, 20)]
 

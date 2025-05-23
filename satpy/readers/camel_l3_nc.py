@@ -30,7 +30,7 @@ import logging
 import xarray as xr
 from pyresample import geometry
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

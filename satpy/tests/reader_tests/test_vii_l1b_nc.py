@@ -33,8 +33,8 @@ import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
+from satpy.readers.core.vii import MEAN_EARTH_RADIUS
 from satpy.readers.vii_l1b_nc import ViiL1bNCFileHandler
-from satpy.readers.vii_utils import MEAN_EARTH_RADIUS
 
 TEST_FILE = "test_file_vii_l1b_nc.nc"
 

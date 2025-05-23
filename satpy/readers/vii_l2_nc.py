@@ -22,7 +22,7 @@ import logging
 
 import xarray as xr
 
-from satpy.readers.vii_base_nc import ViiNCBaseFileHandler
+from satpy.readers.core.vii_nc import ViiNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 

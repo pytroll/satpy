@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.seviri_base import (
+from satpy.readers.core.seviri import (
     MEIRINK_COEFS,
     MEIRINK_EPOCH,
     MeirinkCoefficients,

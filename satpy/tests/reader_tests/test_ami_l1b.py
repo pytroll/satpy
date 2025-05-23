@@ -204,7 +204,7 @@ class TestAMIL1bNetCDF:
 
     def test_filename_grouping(self):
         """Test that filenames are grouped properly."""
-        from satpy.readers import group_files
+        from satpy.readers.core.grouping import group_files
         filenames = [
             "gk2a_ami_le1b_ir087_fd020ge_201909300300.nc",
             "gk2a_ami_le1b_ir096_fd020ge_201909300300.nc",
@@ -256,7 +256,7 @@ class TestAMIL1bNetCDF:
         with raises(ValueError, match="_bad_ invalid value for .*"):
             _ = make_dataid(name="VI006", calibration="_bad_")
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def(self, adef, fake_vis_reader):
         """Test the area generation."""
         fake_vis_reader.get_area_def(None)

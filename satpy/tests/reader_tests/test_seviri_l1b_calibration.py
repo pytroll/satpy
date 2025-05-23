@@ -25,7 +25,7 @@ import pytest
 import xarray as xr
 from pytest_lazy_fixtures.lazy_fixture import lf
 
-import satpy.readers.seviri_base as sev
+import satpy.readers.core.seviri as sev
 
 COUNTS_INPUT = xr.DataArray(
     np.array([[377.,  377.,  377.,  376.,  375.],

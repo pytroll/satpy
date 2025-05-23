@@ -5,7 +5,7 @@ reader:
   description: NOAA Level 2 Product (L2P) ACSPO SST File Reader
   status: Nominal
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [viirs,modis,avhrr]
   default_datasets:
 

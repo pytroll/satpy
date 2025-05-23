@@ -25,8 +25,8 @@ import dask.dataframe as dd
 import xarray as xr
 
 from satpy.dataset.dataid import DataID
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 # map platform attributes to Oscar standard name
 PLATFORM_MAP = {

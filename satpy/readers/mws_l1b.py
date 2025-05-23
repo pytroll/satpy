@@ -25,7 +25,7 @@ import dask.array as da
 import numpy as np
 from netCDF4 import default_fillvals
 
-from .netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 

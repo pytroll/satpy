@@ -34,7 +34,7 @@ from satpy.composites import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 FAKE_FILEHANDLER_START = dt.datetime(2020, 1, 1, 0, 0, 0)
 FAKE_FILEHANDLER_END = dt.datetime(2020, 1, 1, 1, 0, 0)

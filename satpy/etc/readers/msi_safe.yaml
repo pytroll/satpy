@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   sensors: [sen2_msi]
   default_channels: []
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
   l1c_safe_granule:

@@ -32,7 +32,7 @@ import dask.array as da
 import numpy as np
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 N_TOT_IR_CHANS_LL = 6
 PLATFORMS_INSTRUMENTS = {"FY-3A": "mersi-1",

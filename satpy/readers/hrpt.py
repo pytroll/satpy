@@ -43,7 +43,7 @@ from pyorbital.orbital import Orbital
 
 from satpy._compat import cached_property
 from satpy.readers.aapp_l1b import get_avhrr_lac_chunks
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

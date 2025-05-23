@@ -3,7 +3,7 @@ reader:
   short_name: gld360_ualf2
   long_name: Vaisala GLD360 UALF2
   description: Vaisala GLD360 reader for Universal ASCII Lightning Format 2.
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [gld360]
 
 file_types:

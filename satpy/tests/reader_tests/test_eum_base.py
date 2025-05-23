@@ -23,7 +23,7 @@ import unittest
 
 import numpy as np
 
-from satpy.readers.eum_base import (
+from satpy.readers.core.eum import (
     get_service_mode,
     recarray2dict,
     time_cds,
@@ -31,7 +31,7 @@ from satpy.readers.eum_base import (
     time_cds_short,
     timecds2datetime,
 )
-from satpy.readers.seviri_base import mpef_product_header
+from satpy.readers.core.seviri import mpef_product_header
 
 
 class TestMakeTimeCdsDictionary(unittest.TestCase):

@@ -188,7 +188,7 @@ class TestOMPSEDRReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5",
@@ -202,7 +202,7 @@ class TestOMPSEDRReader(unittest.TestCase):
 
     def test_basic_load_so2(self):
         """Test basic load of so2 datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5",
@@ -238,7 +238,7 @@ class TestOMPSEDRReader(unittest.TestCase):
 
     def test_basic_load_to3(self):
         """Test basic load of to3 datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5",
@@ -255,11 +255,11 @@ class TestOMPSEDRReader(unittest.TestCase):
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
 
-    @mock.patch("satpy.readers.hdf5_utils.HDF5FileHandler._get_reference")
+    @mock.patch("satpy.readers.core.hdf5.HDF5FileHandler._get_reference")
     @mock.patch("h5py.File")
     def test_load_so2_DIMENSION_LIST(self, mock_h5py_file, mock_hdf5_utils_get_reference):
         """Test load of so2 datasets with DIMENSION_LIST."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         mock_h5py_file.return_value = mock.MagicMock()
         mock_hdf5_utils_get_reference.return_value = [[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]]
         r = load_reader(self.reader_configs)

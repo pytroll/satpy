@@ -59,8 +59,8 @@ def get_fake_file_handler(observation_start_time, nlines, ncols, projection_long
 
     m = mock.mock_open()
     with mock.patch("satpy.readers.seviri_l1b_hrit.np.fromfile") as fromfile, \
-            mock.patch("satpy.readers.hrit_base.open", m, create=True) as newopen, \
-            mock.patch("satpy.readers.utils.open", m, create=True) as utilopen, \
+            mock.patch("satpy.readers.core.hrit.open", m, create=True) as newopen, \
+            mock.patch("satpy.readers.core.utils.open", m, create=True) as utilopen, \
             mock.patch("satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES"), \
             mock.patch.object(HRITMSGFileHandler, "_get_hd", new=new_get_hd), \
             mock.patch.object(HRITMSGPrologueFileHandler, "read_prologue",

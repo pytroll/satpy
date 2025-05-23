@@ -33,7 +33,6 @@ from numpy import testing as npt
 from pyproj import CRS
 
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
-from satpy.readers import FSFile
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
@@ -66,7 +65,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         })
         self.reader.fill_hrv = True
 
-    @mock.patch("satpy.readers.hrit_base.np.memmap")
+    @mock.patch("satpy.readers.core.hrit.np.memmap")
     def test_read_hrv_band(self, memmap):
         """Test reading the hrv band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
@@ -183,7 +182,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
         assert area.area_id == "msg_seviri_rss_3km"
 
-    @mock.patch("satpy.readers.hrit_base.np.memmap")
+    @mock.patch("satpy.readers.core.hrit.np.memmap")
     def test_read_band(self, memmap):
         """Test reading a band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
@@ -305,7 +304,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         self.reader = fh.prologue_
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the prologue file handler accepts extra keyword arguments."""
 
@@ -338,7 +337,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     """Test the HRIT epilogue file handler."""
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def setUp(self, init, *mocks):
         """Set up the test case."""
 
@@ -353,7 +352,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
                                                  calib_mode="nominal")
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the epilogue file handler accepts extra keyword arguments."""
 
@@ -634,6 +633,8 @@ def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file,
 
 def test_read_real_segment_zipped(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as FSFile."""
+    from satpy.readers.core.remote import FSFile
+
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
     prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
@@ -659,6 +660,8 @@ def to_upath(fsfile):
 
 def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as UPath."""
+    from satpy.readers.core.remote import FSFile
+
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
 
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))

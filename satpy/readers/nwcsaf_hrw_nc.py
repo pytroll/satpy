@@ -108,7 +108,7 @@ import h5py
 import numpy as np
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.nwcsaf_nc import PLATFORM_NAMES, SENSOR, read_nwcsaf_time
 from satpy.utils import get_chunk_size_limit
 

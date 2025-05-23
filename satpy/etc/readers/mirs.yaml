@@ -5,7 +5,7 @@ reader:
   description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
   status: Beta
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [amsu, amsu-mhs, atms, ssmis, gmi]
   data_files:
      - url: "https://zenodo.org/record/10357932/files/limbcoef_atmsland_noaa20.txt"

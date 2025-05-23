@@ -22,7 +22,7 @@ import datetime as dt
 import h5py
 
 from satpy.dataset import Dataset
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 
 class SCATSAT1L2BFileHandler(BaseFileHandler):

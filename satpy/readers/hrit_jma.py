@@ -88,13 +88,13 @@ Compression
 -----------
 
 Gzip-compressed MTSAT files can be decompressed on the fly using
-:class:`~satpy.readers.FSFile`:
+:class:`~satpy.readers.core.remote.FSFile`:
 
 .. code-block:: python
 
     import fsspec
     from satpy import Scene
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     filename = "/data/HRIT_MTSAT1_20090101_0630_DK01IR1.gz"
     open_file = fsspec.open(filename, compression="gzip")
@@ -115,15 +115,15 @@ import numpy as np
 import xarray as xr
 
 import satpy.utils
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hrit_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,
     base_hdr_map,
     image_data_function,
 )
-from satpy.readers.utils import get_geostationary_mask
+from satpy.readers.core.utils import get_geostationary_mask
 
 logger = logging.getLogger("hrit_jma")
 

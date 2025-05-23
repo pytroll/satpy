@@ -5,7 +5,7 @@ reader:
   description: MODIS HDF-EOS MCD12Q1 L3 Reader
   status: Beta
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [modis]
 
 file_types:

@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   sensors: [goes_imager]
   default_channels: [00_7, 03_9, 06_6, 10_7]
-  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
 
 # eg.
 # L-000-MSG3__-GOES13______-06_6_075W-000005___-201703261200-__

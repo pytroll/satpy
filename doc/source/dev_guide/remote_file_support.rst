@@ -6,14 +6,21 @@ Adding remote file support to a reader
     This feature is currently very new and might improve and change
     in the future.
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 As of Satpy version 0.25.1 the possibility to search for files on remote
 file systems (see :ref:`search_for_files`) as well as the possibility
 for supported readers to read from remote filesystems has been added.
 
 To add this feature to a reader the call to :func:`xarray.open_dataset`
-has to be replaced by the function :func:`~satpy.readers.file_handlers.open_dataset`
+has to be replaced by the function :func:`~satpy.readers.core.file_handlers.open_dataset`
 included in Satpy which handles passing on the filename to be opened regardless
-if it is a local file path or a :class:`~satpy.readers.FSFile` object which can wrap
+if it is a local file path or a :class:`~satpy.readers.core.remote.FSFile` object which can wrap
 :func:`fsspec.open` objects.
 
 To be able to cache the ``open_dataset`` call which is favourable for remote files
@@ -23,7 +30,7 @@ in every reader. This could look like:
 .. code-block:: python
 
     from satpy._compat importe cached_property
-    from satpy.readers.file_handlers import BaseFileHandler, open_dataset
+    from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
 
     class Reader(BaseFileHandler):
 
@@ -40,7 +47,7 @@ in every reader. This could look like:
 
 
 Any parameters allowed for :func:`xarray.open_dataset` can be passed as
-keywords to :func:`~satpy.readers.file_handlers.open_dataset` if needed.
+keywords to :func:`~satpy.readers.core.file_handlers.open_dataset` if needed.
 
 .. note::
     It is important to know that for remote files xarray might use a different

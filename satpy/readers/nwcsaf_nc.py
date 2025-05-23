@@ -35,8 +35,8 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import unzip_file
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import unzip_file
 from satpy.utils import get_chunk_size_limit
 
 logger = logging.getLogger(__name__)

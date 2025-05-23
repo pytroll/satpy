@@ -30,11 +30,11 @@ import numpy as np
 import pytest
 import xarray as xr
 
-import satpy.readers.yaml_reader as yr
+import satpy.readers.core.yaml_reader as yr
 from satpy._compat import cache
 from satpy.dataset import DataQuery
 from satpy.dataset.dataid import ModifierTuple
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyRange
 from satpy.tests.utils import make_dataid
 
@@ -386,9 +386,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
             res = self.reader.time_matches(fh.start_time, None)
             assert res == (idx not in [0, 1, 4, 5])
 
-    @patch("satpy.readers.yaml_reader.get_area_def")
-    @patch("satpy.readers.yaml_reader.AreaDefBoundary")
-    @patch("satpy.readers.yaml_reader.Boundary")
+    @patch("satpy.readers.core.yaml_reader.get_area_def")
+    @patch("satpy.readers.core.yaml_reader.AreaDefBoundary")
+    @patch("satpy.readers.core.yaml_reader.Boundary")
     def test_file_covers_area(self, bnd, adb, gad):
         """Test that area coverage is checked properly."""
         file_handler = FakeFH(dt.datetime(1999, 12, 31, 10, 0),
@@ -483,7 +483,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         assert self.reader.supports_sensor("canon")
         assert not self.reader.supports_sensor("nikon")
 
-    @patch("satpy.readers.yaml_reader.StackedAreaDefinition")
+    @patch("satpy.readers.core.yaml_reader.StackedAreaDefinition")
     def test_load_area_def(self, sad):
         """Test loading the area def for the reader."""
         dataid = MagicMock()
@@ -544,7 +544,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         lons = make_dataid(name="lons", modifiers=())
         assert self.reader._get_file_handlers(lons) is None
 
-    @patch("satpy.readers.yaml_reader.xr")
+    @patch("satpy.readers.core.yaml_reader.xr")
     def test_load_entire_dataset(self, xarray):
         """Check loading an entire dataset."""
         file_handlers = [FakeFH(None, None), FakeFH(None, None),
@@ -740,7 +740,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         """Test _load_dataset_with_area() for single area definitions."""
         from pyresample.geometry import AreaDefinition
 
-        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+        from satpy.readers.core.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
 
@@ -847,7 +847,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         """Test _load_dataset_with_area() for stacked area definitions."""
         from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 
-        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+        from satpy.readers.core.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
 
@@ -909,7 +909,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         """Test _load_dataset_with_area() for swath definition data."""
         from pyresample.geometry import SwathDefinition
 
-        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+        from satpy.readers.core.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
 
@@ -939,7 +939,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_data_without_area(self, ldwa):
         """Test _load_dataset_with_area() for data wihtout area information."""
-        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+        from satpy.readers.core.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
 
@@ -1000,7 +1000,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "create_filehandlers")
     def test_get_expected_segments(self, cfh):
         """Test that expected segments can come from the filename."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
         fake_fh = _create_mocked_basic_fh()
@@ -1042,7 +1042,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "create_filehandlers")
     def test_segments_sorting(self, cfh):
         """Test that segment filehandlers are sorted by segment number."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
         # create filehandlers with different segment numbers
@@ -1061,12 +1061,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         assert [fh.filename_info["segment"] for fh in reader.file_handlers["ft1"]] == [1, 2, 3]
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch("satpy.readers.yaml_reader.FileYAMLReader._load_dataset")
-    @patch("satpy.readers.yaml_reader.xr")
-    @patch("satpy.readers.yaml_reader._find_missing_segments")
+    @patch("satpy.readers.core.yaml_reader.FileYAMLReader._load_dataset")
+    @patch("satpy.readers.core.yaml_reader.xr")
+    @patch("satpy.readers.core.yaml_reader._find_missing_segments")
     def test_load_dataset(self, mss, xr, parent_load_dataset):
         """Test _load_dataset()."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
         # Projectable is None
@@ -1154,13 +1154,13 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                                                     file_handlers)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch("satpy.readers.yaml_reader._load_area_def")
-    @patch("satpy.readers.yaml_reader._stack_area_defs")
-    @patch("satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_earlier_segments_area")
-    @patch("satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_later_segments_area")
+    @patch("satpy.readers.core.yaml_reader._load_area_def")
+    @patch("satpy.readers.core.yaml_reader._stack_area_defs")
+    @patch("satpy.readers.core.yaml_reader.GEOSegmentYAMLReader._pad_earlier_segments_area")
+    @patch("satpy.readers.core.yaml_reader.GEOSegmentYAMLReader._pad_later_segments_area")
     def test_load_area_def(self, pesa, plsa, sad, parent_load_area_def):
         """Test _load_area_def()."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
         dataid = MagicMock()
@@ -1175,10 +1175,10 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         parent_load_area_def.assert_called_once_with(dataid, file_handlers)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch("satpy.readers.yaml_reader.AreaDefinition")
+    @patch("satpy.readers.core.yaml_reader.AreaDefinition")
     def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area()."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
         expected_segments = 2
@@ -1196,10 +1196,10 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         AreaDefinition.assert_called_once_with(*expected_call)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch("satpy.readers.yaml_reader.AreaDefinition")
+    @patch("satpy.readers.core.yaml_reader.AreaDefinition")
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
         expected_segments = 2
@@ -1220,7 +1220,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
     def test_find_missing_segments(self):
         """Test _find_missing_segments()."""
-        from satpy.readers.yaml_reader import _find_missing_segments as fms
+        from satpy.readers.core.yaml_reader import _find_missing_segments as fms
 
         # Dataset with only one segment
         filename_info = {"segment": 1}
@@ -1266,7 +1266,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 @patch.object(yr.GEOVariableSegmentYAMLReader, "__init__", lambda x: None)
 def GVSYReader():
     """Get a fixture of the GEOVariableSegmentYAMLReader."""
-    from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
+    from satpy.readers.core.yaml_reader import GEOVariableSegmentYAMLReader
     reader = GEOVariableSegmentYAMLReader()
     reader.segment_infos = dict()
     reader.segment_heights = cache(reader._segment_heights)
@@ -1276,28 +1276,28 @@ def GVSYReader():
 @pytest.fixture
 def fake_geswh():
     """Get a fixture of the patched _get_empty_segment_with_height."""
-    with patch("satpy.readers.yaml_reader._get_empty_segment_with_height") as geswh:
+    with patch("satpy.readers.core.yaml_reader._get_empty_segment_with_height") as geswh:
         yield geswh
 
 
 @pytest.fixture
 def fake_xr():
     """Get a fixture of the patched xarray."""
-    with patch("satpy.readers.yaml_reader.xr") as xr:
+    with patch("satpy.readers.core.yaml_reader.xr") as xr:
         yield xr
 
 
 @pytest.fixture
 def fake_mss():
     """Get a fixture of the patched _find_missing_segments."""
-    with patch("satpy.readers.yaml_reader._find_missing_segments") as mss:
+    with patch("satpy.readers.core.yaml_reader._find_missing_segments") as mss:
         yield mss
 
 
 @pytest.fixture
 def fake_adef():
     """Get a fixture of the patched AreaDefinition."""
-    with patch("satpy.readers.yaml_reader.AreaDefinition") as adef:
+    with patch("satpy.readers.core.yaml_reader.AreaDefinition") as adef:
         yield adef
 
 
@@ -1516,7 +1516,7 @@ class TestGEOVariableSegmentYAMLReader:
     ])
     def test_get_empty_segment_with_height(self, new_height):
         """Test _get_empty_segment_with_height() for different new heights."""
-        from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
+        from satpy.readers.core.yaml_reader import _get_empty_segment_with_height as geswh
 
         empty_segment = xr.DataArray(da.ones((139, 5568)), dims=["y", "x"])
         new_empty_segment = geswh(empty_segment, new_height, "y")

@@ -37,7 +37,7 @@ import numpy as np
 import xarray as xr
 from geotiepoints.geointerpolator import GeoInterpolator
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 

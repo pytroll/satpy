@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [fci]
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
   grib_fci_clm:
