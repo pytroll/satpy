@@ -1,6 +1,13 @@
 Auxiliary Data Download
 =======================
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 Sometimes Satpy components need some extra data files to get their work
 done properly. These include files like Look Up Tables (LUTs), coefficients,
 or Earth model data (ex. elevations). This includes any file that would be too

@@ -7,6 +7,13 @@ Extending Satpy via plugins
     For now, it should not be used for anything else than toy examples and
     should not be relied on.
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 Satpy is able to load additional functionality outside of the builtin features
 in the library. It does this by searching a series of configured paths for
 additional configuration files for:

@@ -6,6 +6,13 @@ Adding remote file support to a reader
     This feature is currently very new and might improve and change
     in the future.
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 As of Satpy version 0.25.1 the possibility to search for files on remote
 file systems (see :ref:`search_for_files`) as well as the possibility
 for supported readers to read from remote filesystems has been added.

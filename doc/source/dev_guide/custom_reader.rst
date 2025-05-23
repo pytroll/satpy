@@ -2,6 +2,13 @@
  Adding a Custom Reader to Satpy
 =================================
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 In order to add a reader to satpy, you will need to create two files:
 
  - a YAML file for describing the files to read and the datasets that are available
