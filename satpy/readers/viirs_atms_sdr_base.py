@@ -30,7 +30,8 @@ def __getattr__(name: str) -> Any:
 
     warnings.warn(
         f"'satpy.readers.viirs_atms_sdr_base.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
-        f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}').",
+        f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}'). "
+        "The old import paths will be removed in Satpy 1.0",
         stacklevel=2,
     )
 
