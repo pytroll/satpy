@@ -81,6 +81,13 @@ autodoc_type_aliases = {
 autodoc_default_options = {
     "special-members": "__init__, __reduce_ex__",
 }
+nitpick_ignore_regex = [
+    ("py:class", r"yaml\.loader\..*Loader"),
+    ("py:class", r"numpy\.float32"),
+    ("py:class", r"numpy\.uint8"),
+    ("py:class", r"numpy\.uint16"),
+    ("py:class", r"numpy\.uint32"),
+]
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
 
 # auto generate reader table from reader config files

@@ -25,7 +25,7 @@ import logging
 
 import numpy as np
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)

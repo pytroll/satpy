@@ -10,7 +10,6 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 import satpy.tests.reader_tests.gms.test_gms5_vissr_data as real_world
-from satpy.readers import FSFile
 from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
 
@@ -350,6 +349,8 @@ class TestFileHandler:
     @pytest.fixture
     def vissr_file_like(self, vissr_file, with_compression):
         """Get file-like object for VISSR test file."""
+        from satpy.readers.core.remote import FSFile
+
         if with_compression:
             open_file = fsspec.open(vissr_file, compression="gzip")
             return FSFile(open_file)

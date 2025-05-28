@@ -215,7 +215,8 @@ def _find_registerable_files_readers(readers=None):
     """Load all readers so that files are registered."""
     import yaml
 
-    from satpy.readers import configs_for_reader, load_reader
+    from satpy.readers.core.config import configs_for_reader
+    from satpy.readers.core.loading import load_reader
     for reader_configs in configs_for_reader(reader=readers):
         try:
             load_reader(reader_configs)
@@ -253,7 +254,7 @@ class DataDownloadMixin:
 
     The below code is shown as an example::
 
-        from satpy.readers.yaml_reader import AbstractYAMLReader
+        from satpy.readers.core.yaml_reader import AbstractYAMLReader
         from satpy.aux_download import DataDownloadMixin
 
         class MyReader(AbstractYAMLReader, DataDownloadMixin):

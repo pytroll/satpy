@@ -160,8 +160,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 CHUNK_SIZE = get_chunk_size_limit()
