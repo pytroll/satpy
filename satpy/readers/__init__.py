@@ -23,51 +23,32 @@ import warnings
 from importlib import import_module
 from typing import Any
 
+IMPORT_PATHS = {
+    "FSFile": "satpy.readers.core.remote",
+    "open_file_or_filename": "satpy.readers.core.remote",
+    "group_files": "satpy.readers.core.grouping",
+    "find_files_and_readers": "satpy.readers.core.grouping",
+    "read_reader_config": "satpy.readers.core.config",
+    "configs_for_reader": "satpy.readers.core.config",
+    "available_readers": "satpy.readers.core.config",
+    "get_valid_reader_names": "satpy.readers.core.config",
+    "OLD_READER_NAMES": "satpy.readers.core.config",
+    "PENDING_OLD_READER_NAMES": "satpy.readers.core.config",
+    "load_readers": "satpy.readers.core.loading",
+    "load_reader": "satpy.readers.core.loading",
+}
 
 def __getattr__(name: str) -> Any:
-    warn = True
-    if name in (
-            "FSFile",
-            "open_file_or_filename"
-            ):
-        from .core import remote
-        new_submod = "core.remote"
-        obj = getattr(remote, name)
-    elif name in (
-            "group_files",
-            "find_files_and_readers",
-            ):
-        from .core import grouping
-        new_submod = "core.grouping"
-        obj = getattr(grouping, name)
-    elif name in (
-            "read_reader_config",
-            "configs_for_reader",
-            "available_readers",
-            "get_valid_reader_names",
-            "OLD_READER_NAMES",
-            "PENDING_OLD_READER_NAMES",
-    ):
-        from .core import config
-        new_submod = "core.config"
-        obj = getattr(config, name)
-    elif name in (
-            "load_readers",
-            "load_reader",
-    ):
-        from .core import loading
-        new_submod = "core.loading"
-        obj = getattr(loading, name)
-    else:
-        obj = import_module("."+name, package="satpy.readers")  # type: ignore
-        new_submod = name
-        warn = False
+    new_module = IMPORT_PATHS.get(name)
 
-    if warn:
-        warnings.warn(
-            f"'satpy.readers.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
-            f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}'). "
-            "The old import paths will be removed in Satpy 1.0",
-            stacklevel=2,
-        )
-    return obj
+    if new_module is None:
+        return import_module("."+name, package="satpy.readers")  # type: ignore
+
+    mod = import_module(new_module)
+    warnings.warn(
+        f"'satpy.readers.{name}' has been moved to '{new_module}.{name}'. "
+        f"Import from the new location instead (ex. 'from {new_module} import {name}'). "
+        "The old import paths will be removed in Satpy 1.0",
+        stacklevel=2,
+    )
+    return getattr(mod, name)
