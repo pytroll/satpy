@@ -118,20 +118,14 @@ def add_crs_xy_coords(data_arr, area):
 
 
 def _add_crs(area, data_arr):
-    # add CRS object if pyproj 2.0+
-    try:
-        from pyproj import CRS
-    except ImportError:
-        LOG.debug("Could not add 'crs' coordinate with pyproj<2.0")
-        crs = None
+    from pyproj import CRS
+
+    if hasattr(area, "crs"):
+        crs = area.crs
     else:
         # default lat/lon projection
         latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
-        # otherwise get it from the area definition
-        if hasattr(area, "crs"):
-            crs = area.crs
-        else:
-            proj_str = getattr(area, "proj_str", latlon_proj)
-            crs = CRS.from_string(proj_str)
-        data_arr = data_arr.assign_coords(crs=crs)
+        proj_str = getattr(area, "proj_str", latlon_proj)
+        crs = CRS.from_string(proj_str)
+    data_arr = data_arr.assign_coords(crs=crs)
     return crs, data_arr
