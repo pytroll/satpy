@@ -127,12 +127,12 @@ class BucketAvg(BucketResamplerBase):
         """Call the resampling.
 
         Args:
-            data (numpy.Array, dask.Array): Data to be resampled
-            fill_value (numpy.nan, int): fill_value. Defaults to numpy.nan
+            data (numpy.ndarray | dask.array.Array): Data to be resampled
+            fill_value (float | int): fill_value. Defaults to numpy.nan
             skipna (bool): Skip NA's. Default `True`
 
         Returns:
-            dask.Array
+            dask.array.Array
         """
         results = []
         if data.ndim == 3:
