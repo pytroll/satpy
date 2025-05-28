@@ -18,21 +18,12 @@
 
 from __future__ import annotations
 
-import warnings
 from typing import Any
+
+from satpy.utils import _import_and_warn_new_location
 
 
 def __getattr__(name: str) -> Any:
-    from .core import file_handlers
+    new_module = "satpy.readers.core.file_handlers"
 
-    new_submod = "core.file_handlers"
-    obj = getattr(file_handlers, name)
-
-    warnings.warn(
-        f"'satpy.readers.file_handlers.{name}' has been moved to 'satpy.readers.{new_submod}.{name}'. "
-        f"Import from the new location instead (ex. 'from satpy.readers.{new_submod} import {name}'). "
-        "The old import paths will be removed in Satpy 1.0",
-        stacklevel=2,
-    )
-
-    return obj
+    return _import_and_warn_new_location(new_module, name)

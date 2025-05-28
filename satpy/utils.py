@@ -907,3 +907,17 @@ def datetime64_to_pydatetime(dt64: np.datetime64) -> datetime.datetime:
         Converted timestamp
     """
     return dt64.astype("datetime64[us]").astype(datetime.datetime)
+
+
+def _import_and_warn_new_location(new_module, name):
+    from importlib import import_module
+
+    warnings.warn(
+        f"'satpy.readers.{name}' has been moved to '{new_module}.{name}'. "
+        f"Import from the new location instead (ex. 'from {new_module} import {name}'). "
+        "The old import paths will be removed in Satpy 1.0",
+        stacklevel=3,
+    )
+
+    mod = import_module(new_module)
+    return getattr(mod, name)

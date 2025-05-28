@@ -19,9 +19,10 @@
 
 from __future__ import annotations
 
-import warnings
 from importlib import import_module
 from typing import Any
+
+from satpy.utils import _import_and_warn_new_location
 
 IMPORT_PATHS = {
     "FSFile": "satpy.readers.core.remote",
@@ -44,11 +45,4 @@ def __getattr__(name: str) -> Any:
     if new_module is None:
         return import_module("."+name, package="satpy.readers")  # type: ignore
 
-    mod = import_module(new_module)
-    warnings.warn(
-        f"'satpy.readers.{name}' has been moved to '{new_module}.{name}'. "
-        f"Import from the new location instead (ex. 'from {new_module} import {name}'). "
-        "The old import paths will be removed in Satpy 1.0",
-        stacklevel=2,
-    )
-    return getattr(mod, name)
+    return _import_and_warn_new_location(new_module, name)
