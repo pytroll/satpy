@@ -26,7 +26,7 @@ import datetime as dt
 import logging
 
 from satpy.area_utils import get_area_def
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 

@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.hdf4_utils module."""
+"""Module for testing the satpy.readers.core.hdf4 module."""
 
 import os
 import unittest
@@ -24,7 +24,7 @@ import numpy as np
 import xarray as xr
 
 try:
-    from satpy.readers.hdf4_utils import HDF4FileHandler
+    from satpy.readers.core.hdf4 import HDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
     HDF4FileHandler = object  # type: ignore
@@ -92,7 +92,7 @@ class TestHDF4FileHandler(unittest.TestCase):
 
     def test_all_basic(self):
         """Test everything about the HDF4 class."""
-        from satpy.readers.hdf4_utils import HDF4FileHandler
+        from satpy.readers.core.hdf4 import HDF4FileHandler
         file_handler = HDF4FileHandler("test.hdf", {}, {})
 
         for ds in ("ds1_f", "ds1_i"):

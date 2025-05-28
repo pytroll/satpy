@@ -558,6 +558,20 @@ composites:
       - name: C13
     standard_name: night_microphysics
 
+  night_microphysics_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C15
+          - name: C13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C13
+          - name: C07
+      - name: C13
+    standard_name: night_microphysics_tropical
+
   night_microphysics_eum:
     description: >
       Nighttime Microphysics RGB following the EUMETSAT recipe
@@ -840,3 +854,20 @@ composites:
       - name: C05
         modifiers: [effective_solar_pathlength_corrected]
     standard_name: day_cloud_type
+
+  day_severe_storms:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C08
+          - name: C10
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C05
+          - name: C02
+    standard_name: day_severe_storms

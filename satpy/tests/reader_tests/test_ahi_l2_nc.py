@@ -110,4 +110,10 @@ def test_load_data(himl2_filename):
     fh = ahil2_filehandler(himl2_filename)
     clmk_id = make_dataid(name="cloudmask")
     clmk = fh.get_dataset(clmk_id, {"file_key": "CloudMask"})
-    assert np.allclose(clmk.data, clmk_data)
+    np.testing.assert_allclose(clmk.data, clmk_data)
+    assert clmk.dtype == np.uint16
+    assert clmk.attrs["sensor"] == "ahi"
+    assert clmk.attrs["platform_name"] == "Himawari-9"
+    assert clmk.attrs["platform_shortname"] == "h09"
+    assert isinstance(clmk.attrs["start_time"], dt.datetime)
+    assert isinstance(clmk.attrs["end_time"], dt.datetime)

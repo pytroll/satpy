@@ -21,11 +21,12 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections.abc import Iterable
 from typing import Callable
 
 import numpy as np
 import xarray as xr
-from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
+from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
 from satpy.area_utils import get_area_def
@@ -34,8 +35,8 @@ from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
-from satpy.readers import load_readers
 from satpy.resample.base import prepare_resampler, resample_dataset
+from satpy.readers.core.loading import load_readers
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
@@ -690,19 +691,23 @@ class Scene:
             new_scn._slice_datasets(dataset_ids, key, new_area)
         return new_scn
 
-    def crop(self, area=None, ll_bbox=None, xy_bbox=None, dataset_ids=None):
+    def crop(
+            self,
+            area: AreaDefinition | None = None,
+            ll_bbox: tuple[float, float, float, float] | None = None,
+            xy_bbox: tuple[float, float, float, float] | None = None,
+            dataset_ids: Iterable | None = None,
+    ) -> Scene:
         """Crop Scene to a specific Area boundary or bounding box.
 
         Args:
-            area (AreaDefinition): Area to crop the current Scene to
-            ll_bbox (tuple, list): 4-element tuple where values are in
-                                   lon/lat degrees. Elements are
-                                   ``(xmin, ymin, xmax, ymax)`` where X is
-                                   longitude and Y is latitude.
-            xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
-                                   projection units.
-            dataset_ids (Iterable): DataIDs to include in the returned
-                                 `Scene`. Defaults to all datasets.
+            area: Area to crop the current Scene to
+            ll_bbox: 4-element tuple where values are in
+                lon/lat degrees. Elements are
+                ``(xmin, ymin, xmax, ymax)`` where X is
+                longitude and Y is latitude.
+            xy_bbox: Same as `ll_bbox` but elements are in projection units.
+            dataset_ids: DataIDs to include in the returned `Scene`. Defaults to all datasets.
 
         This method will attempt to intelligently slice the data to preserve
         relationships between datasets. For example, if we are cropping two
@@ -745,9 +750,9 @@ class Scene:
         new_coarsest_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
             coarsest_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
-        for src_area, dataset_ids in new_scn.iter_by_area():
+        for src_area, ids_on_area in new_scn.iter_by_area():
             if src_area is None:
-                for ds_id in dataset_ids:
+                for ds_id in ids_on_area:
                     new_scn._datasets[ds_id] = self[ds_id]
                 continue
 
@@ -764,7 +769,7 @@ class Scene:
                                 min_x_slice.stop * x_factor)
                 new_area = src_area[y_slice, x_slice]
                 slice_key = {"y": y_slice, "x": x_slice}
-                new_scn._slice_datasets(dataset_ids, slice_key, new_area)
+                new_scn._slice_datasets(ids_on_area, slice_key, new_area)
             else:
                 new_target_areas[src_area] = self._slice_area_from_bbox(
                     src_area, area, ll_bbox, xy_bbox
@@ -946,28 +951,35 @@ class Scene:
             LOG.info("Not reducing data before resampling.")
         return dataset, source_area
 
-    def resample(self, destination=None, datasets=None, generate=True,
-                 unload=True, resampler=None, reduce_data=True,
-                 **resample_kwargs):
+    def resample(
+            self,
+            destination: AreaDefinition | CoordinateDefinition | None = None,
+            datasets: Iterable | None = None,
+            generate: bool = True,
+            unload: bool = True,
+            resampler: str | None = None,
+            reduce_data: bool = True,
+            **resample_kwargs,
+    ) -> Scene:
         """Resample datasets and return a new scene.
 
         Args:
-            destination (AreaDefinition, GridDefinition): area definition to
+            destination: area definition to
                 resample to. If not specified then the area returned by
                 `Scene.finest_area()` will be used.
-            datasets (list): Limit datasets to resample to these specified
+            datasets: Limit datasets to resample to these specified
                 data arrays. By default all currently loaded
                 datasets are resampled.
-            generate (bool): Generate any requested composites that could not
+            generate: Generate any requested composites that could not
                 be previously due to incompatible areas (default: True).
-            unload (bool): Remove any datasets no longer needed after
+            unload: Remove any datasets no longer needed after
                 requested composites have been generated (default: True).
-            resampler (str): Name of resampling method to use. By default,
+            resampler: Name of resampling method to use. By default,
                 this is a nearest neighbor KDTree-based resampling
                 ('nearest'). Other possible values include 'native', 'ewa',
                 etc. See the :mod:`~satpy.resample` documentation for more
                 information.
-            reduce_data (bool): Reduce data by matching the input and output
+            reduce_data: Reduce data by matching the input and output
                 areas and slicing the data arrays (default: True)
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
@@ -1118,55 +1130,54 @@ class Scene:
         ds.attrs = mdata
         return ds
 
-    def to_xarray(self,
-                  datasets=None,  # DataID
-                  header_attrs=None,
-                  exclude_attrs=None,
-                  flatten_attrs=False,
-                  pretty=True,
-                  include_lonlats=True,
-                  epoch=None,
-                  include_orig_name=True,
-                  numeric_name_prefix="CHANNEL_"):
+    def to_xarray(
+            self,
+            datasets: Iterable | None = None,
+            header_attrs: dict | None = None,
+            exclude_attrs: Iterable | None = None,
+            flatten_attrs: bool = False,
+            pretty: bool = True,
+            include_lonlats: bool = True,
+            epoch: str | None = None,
+            include_orig_name: bool = True,
+            numeric_name_prefix: str = "CHANNEL_",
+    ) -> xr.Datasaet:
         """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
 
         If all Scene DataArrays are on the same area, it returns an xr.Dataset.
         If Scene DataArrays are on different areas, currently it fails, although
         in future we might return a DataTree object, grouped by area.
 
-        Parameters
-        ----------
-        datasets (Iterable, Optional):
-            List of Satpy Scene datasets to include in the output xr.Dataset.
-            Elements can be string name, a wavelength as a number, a DataID,
-            or DataQuery object.
-            If None (the default), it include all loaded Scene datasets.
-        header_attrs (dict, Optional):
-            Global attributes of the output xr.Dataset.
-        epoch (str, Optional):
-            Reference time for encoding the time coordinates (if available).
-            Example format: "seconds since 1970-01-01 00:00:00".
-            If None, the default reference time is defined using "from satpy.cf.coords import EPOCH"
-        flatten_attrs (bool, Optional):
-            If True, flatten dict-type attributes.
-        exclude_attrs (Iterable, Optional):
-            List of xr.DataArray attribute names to be excluded.
-        include_lonlats (bool, Optional):
-            If True, it includes 'latitude' and 'longitude' coordinates.
-            If the 'area' attribute is a SwathDefinition, it always includes
-            latitude and longitude coordinates.
-        pretty (bool, Optional):
-            Don't modify coordinate names, if possible. Makes the file prettier,
-            but possibly less consistent.
-        include_orig_name (bool, Optional).
-            Include the original dataset name as a variable attribute in the xr.Dataset.
-        numeric_name_prefix (str, Optional):
-            Prefix to add the each variable with name starting with a digit.
-            Use '' or None to leave this out.
+        Args:
+            datasets:
+                List of Satpy Scene datasets to include in the output xr.Dataset.
+                Elements can be string name, a wavelength as a number, a DataID,
+                or DataQuery object.
+                If None (the default), it include all loaded Scene datasets.
+            header_attrs:
+                Global attributes of the output xr.Dataset.
+            exclude_attrs:
+                List of xr.DataArray attribute names to be excluded.
+            flatten_attrs:
+                If True, flatten dict-type attributes.
+            pretty:
+                Don't modify coordinate names, if possible. Makes the file prettier,
+                but possibly less consistent.
+            include_lonlats:
+                If True, it includes 'latitude' and 'longitude' coordinates.
+                If the 'area' attribute is a SwathDefinition, it always includes
+                latitude and longitude coordinates.
+            epoch:
+                Reference time for encoding the time coordinates (if available).
+                Example format: "seconds since 1970-01-01 00:00:00".
+                If None, the default reference time is defined using "from satpy.cf.coords import EPOCH"
+            include_orig_name:
+                Include the original dataset name as a variable attribute in the xr.Dataset.
+            numeric_name_prefix:
+                Prefix to add the each variable with name starting with a digit.
+                Use '' or None to leave this out.
 
         Returns:
-        -------
-        ds, xr.Dataset
             A CF-compliant xr.Dataset
 
         """

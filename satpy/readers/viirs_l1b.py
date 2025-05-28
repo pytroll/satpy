@@ -22,7 +22,7 @@ import logging
 
 import numpy as np
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -255,7 +255,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         """Generate dataset info and their availablity.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """

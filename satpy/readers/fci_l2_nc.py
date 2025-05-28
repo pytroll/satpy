@@ -25,10 +25,10 @@ from pyresample import geometry
 
 from satpy._compat import cached_property
 from satpy.area_utils import get_area_def
-from satpy.readers._geos_area import get_geos_area_naming, make_ext
-from satpy.readers.eum_base import get_service_mode
-from satpy.readers.fci_base import platform_name_translate
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.fci import platform_name_translate
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -250,7 +250,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Compute the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_extent = self._get_area_extent()
@@ -402,7 +402,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Construct the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         res = dataset_id["resolution"]

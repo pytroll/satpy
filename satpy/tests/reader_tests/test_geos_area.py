@@ -21,7 +21,7 @@ import unittest
 
 import numpy as np
 
-from satpy.readers._geos_area import (
+from satpy.readers.core._geos_area import (
     get_area_definition,
     get_area_extent,
     get_geos_area_naming,

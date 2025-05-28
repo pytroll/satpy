@@ -33,10 +33,10 @@ import numpy as np
 import xarray as xr
 
 from satpy.area_utils import get_area_def
-from satpy.readers._geos_area import get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode, recarray2dict
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import mpef_product_header
+from satpy.readers.core._geos_area import get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode, recarray2dict
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.seviri import mpef_product_header
 from satpy.utils import get_legacy_chunk_size
 
 try:
@@ -290,7 +290,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_naming_input_dict = {"platform_name": self.platform_name[:3].lower(),

@@ -2,6 +2,13 @@
  Adding a Custom Reader to Satpy
 =================================
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 In order to add a reader to satpy, you will need to create two files:
 
  - a YAML file for describing the files to read and the datasets that are available
@@ -137,7 +144,7 @@ The parameters to provide in this section are:
       description: >
         NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
       sensors: [seviri]
-      reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+      reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 Optionally, if you need to customize the ``DataID`` for this reader, you can provide the
 relevant keys with a ``data_identification_keys`` item here. See the :doc:`satpy_internals`
@@ -439,13 +446,13 @@ experience to customize or add new datasets to a reader. However, some file
 formats may have 10s or even 100s of datasets or variations of datasets.
 Writing the metadata and access information for every one of these datasets
 can easily become a problem. To help in these cases the
-:meth:`~satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+:meth:`~satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
 file handler interface can be used.
 
 This method, if needed, should be implemented in your reader's file handler
 classes. The best information for what this method does and how to use it
 is available in the
-:meth:`API documentation <satpy.readers.file_handlers.BaseFileHandler.available_datasets>`.
+:meth:`API documentation <satpy.readers.core.file_handlers.BaseFileHandler.available_datasets>`.
 This method is good when you want to:
 
 1. Define datasets dynamically without needing to define them in the YAML.
@@ -530,9 +537,9 @@ returned by ``get_dataset``, any existing values will be overwritten.
 
 If you are writing a file handler for more common formats like HDF4, HDF5, or
 NetCDF4 you may want to consider using the utility base classes for each:
-:class:`satpy.readers.hdf4_utils.HDF4FileHandler`,
-:class:`satpy.readers.hdf5_utils.HDF5FileHandler`, and
-:class:`satpy.readers.netcdf_utils.NetCDF4FileHandler`. These were added as
+:class:`satpy.readers.core.hdf4.HDF4FileHandler`,
+:class:`satpy.readers.core.hdf5.HDF5FileHandler`, and
+:class:`satpy.readers.core.netcdf.NetCDF4FileHandler`. These were added as
 a convenience and are not required to read these formats. In many cases using
 the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
@@ -551,13 +558,13 @@ better idea.
    please consider carefully what data type you should scale or calibrate your
    data to.
 
-   Single precision floats (`np.float32`) is a good compromise, as it has 23
+   Single precision floats (``np.float32``) is a good compromise, as it has 23
    significant bits (mantissa) and can thus represent 16 bit integers exactly,
    as well as keeping the memory footprint half of a double precision float.
 
    One commonly used method in readers is :meth:`xarray.DataArray.where` (to
-   mask invalid data) which can be coercing the data to `np.float64`. To ensure
-   for example that integer data is coerced to `np.float32` when
+   mask invalid data) which can be coercing the data to ``np.float64``. To ensure
+   for example that integer data is coerced to ``np.float32`` when
    :meth:`xarray.DataArray.where` is used, you can do::
 
      my_float_dataarray = my_int_dataarray.where(some_condition, np.float32(np.nan))
@@ -567,7 +574,7 @@ One way of implementing a file handler is shown below:
 .. code:: python
 
     # this is seviri_l1b_nc.py
-    from satpy.readers.file_handlers import BaseFileHandler
+    from satpy.readers.core.file_handlers import BaseFileHandler
     from pyresample.geometry import AreaDefinition
 
     class NCSEVIRIFileHandler(BaseFileHandler):

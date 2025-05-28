@@ -211,7 +211,7 @@ class MultiScene(object):
             scene_kwargs: additional arguments to pass on to
                 :func:`satpy.scene.Scene.__init__` for each created scene.
 
-        This uses the :func:`satpy.readers.group_files` function to group
+        This uses the :func:`satpy.readers.core.grouping.group_files` function to group
         files. See this function for more details on additional possible
         keyword arguments.  In particular, it is strongly recommended to pass
         `"group_keys"` when using multiple instruments.
@@ -219,7 +219,7 @@ class MultiScene(object):
         .. versionadded:: 0.12
 
         """
-        from satpy.readers import group_files
+        from satpy.readers.core.grouping import group_files
         if scene_kwargs is None:
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
@@ -436,7 +436,7 @@ class MultiScene(object):
                 will attempt to process all scenes at once. This option should
                 be used with care to avoid memory issues when trying to
                 improve performance.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
@@ -677,7 +677,7 @@ class MultiScene(object):
                 ``(batch_size / 2)`` frames for the second dataset.
             ignore_missing (bool): Don't include a black frame when a dataset
                                    is missing from a child scene.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be

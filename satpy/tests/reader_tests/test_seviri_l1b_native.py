@@ -32,7 +32,7 @@ import pytest
 import xarray as xr
 from pytest_lazy_fixtures import lf
 
-from satpy.readers.eum_base import recarray2dict, time_cds_short
+from satpy.readers.core.eum import recarray2dict, time_cds_short
 from satpy.readers.seviri_l1b_native import (
     ASCII_STARTSWITH,
     ImageBoundaries,
@@ -1137,7 +1137,7 @@ class TestNativeMSGFilenames:
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
 
         reader_configs = config_search_paths(
             os.path.join("readers", "seviri_l1b_native.yaml"))

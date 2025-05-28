@@ -122,7 +122,7 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
         from satpy.composites import GenericCompositor
         from satpy.dataset import DatasetDict
         from satpy.modifiers.geometry import SunZenithCorrector
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
 
         config_file = os.path.join(PACKAGE_CONFIG_PATH, "readers", "modis_l1b.yaml")
         self.reader_instance = FileYAMLReader.from_config_files(config_file)

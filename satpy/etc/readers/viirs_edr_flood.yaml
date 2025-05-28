@@ -5,7 +5,7 @@ reader:
     description: VIIRS flood HDF4 reader
     status: Beta
     supports_fsspec: false
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
     sensors: [viirs]
 
 file_types:
