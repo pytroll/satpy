@@ -1,7 +1,8 @@
 """Generate the area definition list restructuredtext document.
 
 This should be run once before generating the sphinx documentation to
-produce the ``area_def_list.rst`` file referenced by ``satpy/resample.py``.
+produce the ``area_def_list.rst`` file referenced by
+``satpy/resample/__init__.py``.
 
 """
 import logging
@@ -19,7 +20,7 @@ from pyresample.area_config import area_repr, load_area
 from pyresample.utils.proj4 import ignore_pyproj_proj_warnings
 from reader_table import rst_table_header, rst_table_row
 
-from satpy.resample import get_area_file
+from satpy.area_utils import get_area_file
 
 logger = logging.getLogger(__name__)
 

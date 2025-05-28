@@ -51,7 +51,7 @@ from pyresample.bucket import BucketResampler
 from pyresample.geometry import SwathDefinition
 
 from satpy.modifiers import ModifierBase
-from satpy.resample import resample_dataset
+from satpy.resample.base import resample_dataset
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
 logger = logging.getLogger(__name__)
