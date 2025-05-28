@@ -160,58 +160,32 @@ Area definitions included in Satpy
 """
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
+from satpy.utils import _import_and_warn_new_location
+
+IMPORT_PATHS = {
+    "KDTreeResampler": "satpy.resample.kdtree",
+    "BilinearResampler": "satpy.resample.kdtree",
+    "NativeResampler": "satpy.resample.native",
+    "BucketResamplerBase": "satpy.resample.bucket",
+    "BucketAvg": "satpy.resample.bucket",
+    "BucketSum": "satpy.resample.bucket",
+    "BucketCount": "satpy.resample.bucket",
+    "BucketFraction": "satpy.resample.bucket",
+    "resample": "satpy.resample.base",
+    "prepare_resampler": "satpy.resample.base",
+    "resample_dataset": "satpy.resample.base",
+    "get_area_file": "satpy.area_utils",
+    "get_area_def": "satpy.area_utils",
+    "add_xy_coords": "satpy.coords_utils",
+    "add_crs_xy_coords": "satpy.coords_utils",
+}
 
 def __getattr__(name: str) -> Any:
-    if name in ("KDTreeResampler", "BilinearResampler"):
-        from . import kdtree
+    new_module = IMPORT_PATHS.get(name)
 
-        new_mod = "satpy.resample.kdtree"
-        obj = getattr(kdtree, name)
-    elif name == "NativeResampler":
-        from .native import NativeResampler
-        new_mod = "satpy.resample.native"
-        obj = NativeResampler
-    elif name in (
-            "BucketResamplerBase",
-            "BucketAvg",
-            "BucketSum",
-            "BucketCount",
-            "BucketFraction"
-    ):
-        from . import bucket
-        new_mod = "satpy.resample.bucket"
-        obj = getattr(bucket, name)
-    elif name in (
-            "resample",
-            "prepare_resampler",
-            "resample_dataset"
-    ):
-            from . import base
-            new_mod = "satpy.resample.base"
-            obj = getattr(base, name)
-    elif name in (
-            "get_area_file",
-            "get_area_def",
-    ):
-        from satpy import area_utils
-        new_mod = "satpy.area_utils"
-        obj = getattr(area_utils, name)
-    elif name in (
-            "add_xy_coords",
-            "add_crs_xy_coords",
-    ):
-        from satpy import coords_utils
-        new_mod = "satpy.coords_utils"
-        obj = getattr(coords_utils, name)
-    else:
+    if new_module is None:
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-    warnings.warn(
-        f"'satpy.resample.{name}' has been moved to '{new_mod}.{name}'. "
-        f"Import from the new location instead (ex. '{new_mod} import {name}').",
-        stacklevel=2,
-    )
-    return obj
+    return _import_and_warn_new_location(new_module, name)

@@ -35,8 +35,8 @@ from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
-from satpy.resample.base import prepare_resampler, resample_dataset
 from satpy.readers.core.loading import load_readers
+from satpy.resample.base import prepare_resampler, resample_dataset
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
