@@ -29,7 +29,7 @@ import warnings
 from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
 import dask.utils
@@ -909,15 +909,20 @@ def datetime64_to_pydatetime(dt64: np.datetime64) -> datetime.datetime:
     return dt64.astype("datetime64[us]").astype(datetime.datetime)
 
 
-def _import_and_warn_new_location(new_module, name):
+def _import_and_warn_new_location(new_module: str, name: str) -> Any:
+    import inspect
     from importlib import import_module
 
+    frame = inspect.stack()[1]
+    old_module_name = inspect.getmodule(frame[0]).__name__  # type: ignore
+
+    mod = import_module(new_module)
+    obj = getattr(mod, name)
+
     warnings.warn(
-        f"'satpy.readers.{name}' has been moved to '{new_module}.{name}'. "
+        f"'{old_module_name}.{name}' has been moved to '{new_module}.{name}'. "
         f"Import from the new location instead (ex. 'from {new_module} import {name}'). "
         "The old import paths will be removed in Satpy 1.0",
         stacklevel=3,
     )
-
-    mod = import_module(new_module)
-    return getattr(mod, name)
+    return obj
