@@ -194,7 +194,7 @@ class TestSceneResampling:
             attrs=attrs,
         )
 
-    @mock.patch("satpy.scene.resample_dataset")
+    @mock.patch("satpy.resample.base.resample_dataset")
     @pytest.mark.parametrize("datasets", [
         None,
         ("comp13", "ds5", "ds2"),
@@ -246,7 +246,7 @@ class TestSceneResampling:
         assert loaded_ids[0] == make_cid(name="comp19")
         assert loaded_ids[1] == make_cid(name="new_ds")
 
-    @mock.patch("satpy.scene.resample_dataset")
+    @mock.patch("satpy.resample.base.resample_dataset")
     def test_resample_scene_preserves_requested_dependencies(self, rs):
         """Test that the Scene is properly copied during resampling.
 
@@ -276,7 +276,7 @@ class TestSceneResampling:
         assert "comp26" in new_scene_2
         assert "ds1" not in new_scene_2  # unloaded
 
-    @mock.patch("satpy.scene.resample_dataset")
+    @mock.patch("satpy.resample.base.resample_dataset")
     def test_resample_reduce_data_toggle(self, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         from pyresample.geometry import AreaDefinition
@@ -402,7 +402,7 @@ class TestSceneResampling:
         assert new_scene2["comp19"].shape == (20, 20, 3)
         assert new_scene3["comp19"].shape == (20, 20, 3)
 
-    @mock.patch("satpy.scene.resample_dataset")
+    @mock.patch("satpy.resample.base.resample_dataset")
     def test_no_generate_comp10(self, rs):
         """Test generating a composite after loading."""
         from pyresample.geometry import AreaDefinition
