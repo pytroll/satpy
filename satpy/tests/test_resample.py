@@ -681,3 +681,28 @@ class TestBucketFraction(unittest.TestCase):
         assert "categories" in res.coords
         assert "categories" in res.dims
         assert np.all(res.coords["categories"] == np.array([0, 1, 2]))
+
+
+@pytest.mark.parametrize("name",
+                         ["KDTreeResampler",
+                          "BilinearResampler",
+                          "NativeResampler",
+                          "BucketResamplerBase",
+                          "BucketAvg",
+                          "BucketSum",
+                          "BucketCount",
+                          "BucketFraction",
+                          "resample",
+                          "prepare_resampler",
+                          "resample_dataset",
+                          "get_area_file",
+                          "get_area_def",
+                          "add_xy_coords",
+                          "add_crs_xy_coords",
+                          ]
+                         )
+def test_moved_import_warns(name):
+    """Test that imports done directly from satpy.resample sub-package issue a warning."""
+    import satpy.resample
+    with pytest.warns(UserWarning):
+        _ = getattr(satpy.resample, name)
