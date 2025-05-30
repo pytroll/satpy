@@ -31,7 +31,7 @@ class TestCoordinateHelpers(unittest.TestCase):
         """Test coordinates being added with an AreaDefinition."""
         from pyresample.geometry import AreaDefinition
 
-        from satpy.coords_utils import add_crs_xy_coords
+        from satpy.coords import add_crs_xy_coords
         area_def = AreaDefinition(
             "test", "test", "test", {"proj": "lcc", "lat_1": 25, "lat_0": 25},
             100, 200, [-100, -100, 100, 100]
@@ -97,7 +97,7 @@ class TestCoordinateHelpers(unittest.TestCase):
         """Test coordinates being added with an SwathDefinition."""
         from pyresample.geometry import SwathDefinition
 
-        from satpy.coords_utils import add_crs_xy_coords
+        from satpy.coords import add_crs_xy_coords
         lons_data = da.random.random((200, 100), chunks=50)
         lats_data = da.random.random((200, 100), chunks=50)
         lons = xr.DataArray(lons_data, attrs={"units": "degrees_east"},

@@ -179,8 +179,8 @@ IMPORT_PATHS = {
     "resample_dataset": "satpy.resample.base",
     "get_area_file": "satpy.area",
     "get_area_def": "satpy.area",
-    "add_xy_coords": "satpy.coords_utils",
-    "add_crs_xy_coords": "satpy.coords_utils",
+    "add_xy_coords": "satpy.coords",
+    "add_crs_xy_coords": "satpy.coords",
 }
 
 def __getattr__(name: str) -> Any:

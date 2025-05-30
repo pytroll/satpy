@@ -145,7 +145,7 @@ class TestMatchDataArrays:
 
         """
         from satpy.composites import CompositeBase
-        from satpy.coords_utils import add_crs_xy_coords
+        from satpy.coords import add_crs_xy_coords
 
         comp = CompositeBase("test_comp")
         data_arr1 = self._get_test_ds(shape=(2, 2))

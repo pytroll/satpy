@@ -52,7 +52,7 @@ def _update_resampled_coords(old_data, new_data, new_area):
             for the newly resampled data.
 
     """
-    from satpy.coords_utils import add_crs_xy_coords
+    from satpy.coords import add_crs_xy_coords
 
     # copy over other non-x/y coordinates
     # this *MUST* happen before we set 'crs' below otherwise any 'crs'

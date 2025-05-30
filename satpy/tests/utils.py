@@ -378,7 +378,7 @@ def _get_fake_scene_area(arr, area):
 
 def _get_did_for_fake_scene(area, arr, extra_attrs, daskify):
     """Add instance to fake scene.  Helper for make_fake_scene."""
-    from satpy.coords_utils import add_crs_xy_coords
+    from satpy.coords import add_crs_xy_coords
     if isinstance(arr, DataArray):
         new = arr.copy()  # don't change attributes of input
         new.attrs.update(extra_attrs)
