@@ -32,15 +32,16 @@ Resampling algorithms
 
     "Resampler", "Description", "Related"
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.kdtree.KDTreeResampler`
-    "ewa", "Elliptical Weighted Averaging", :class:`~pyresample.ewa.DaskEWAResampler`
-    "ewa_legacy", "Elliptical Weighted Averaging (Legacy)", :class:`~pyresample.ewa.LegacyDaskEWAResampler`
+    "ewa", "Elliptical Weighted Averaging", :class:`~pyresample.ewa.dask_ewa.DaskEWAResampler`
+    "ewa_legacy", "Elliptical Weighted Averaging (Legacy)", \
+    :class:`~pyresample.ewa._legacy_dask_ewa.LegacyDaskEWAResampler`
     "native", "Native", :class:`~satpy.resample.native.NativeResampler`
     "bilinear", "Bilinear", :class:`~satpy.resample.kdtree.BilinearResampler`
     "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.bucket.BucketAvg`
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.bucket.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.bucket.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.bucket.BucketFraction`
-    "gradient_search", "Gradient Search Resampling", :meth:`~pyresample.gradient.create_gradient_search_resampler`
+    "gradient_search", "Gradient Search Resampling", :func:`~pyresample.gradient.create_gradient_search_resampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
