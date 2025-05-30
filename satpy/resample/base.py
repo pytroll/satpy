@@ -22,7 +22,6 @@ from logging import getLogger
 from weakref import WeakValueDictionary
 
 import numpy as np
-from pyresample.resampler import BaseResampler as PRBaseResampler
 
 from satpy.utils import get_legacy_chunk_size
 
@@ -121,6 +120,8 @@ def get_all_resampler_classes():
 # TODO: move this to pyresample
 def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
     """Instantiate and return a resampler."""
+    from pyresample.resampler import BaseResampler as PRBaseResampler
+
     if resampler is None:
         LOG.info("Using default KDTree resampler")
         resampler = "kd_tree"
@@ -160,6 +161,8 @@ def _check_resampler_class(resampler_class, resampler):
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
+    from pyresample.resampler import BaseResampler as PRBaseResampler
+
     if not isinstance(resampler, PRBaseResampler):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
