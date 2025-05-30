@@ -33,7 +33,7 @@ from trollsift import parser
 from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
-from satpy.area_utils import get_area_def
+from satpy.area import get_area_def
 from satpy.aux_download import DataDownloadMixin
 from satpy.enhancements.enhancer import Enhancer
 from satpy.plugin_base import Plugin

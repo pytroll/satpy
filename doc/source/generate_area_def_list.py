@@ -20,7 +20,7 @@ from pyresample.area_config import area_repr, load_area
 from pyresample.utils.proj4 import ignore_pyproj_proj_warnings
 from reader_table import rst_table_header, rst_table_row
 
-from satpy.area_utils import get_area_file
+from satpy.area import get_area_file
 
 logger = logging.getLogger(__name__)
 

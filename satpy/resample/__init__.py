@@ -143,10 +143,10 @@ and loaded using pyresample's utility methods
     >>> from pyresample import load_area
     >>> my_area = load_area('my_areas.yaml', 'my_area')
 
-Or using :func:`satpy.area_utils.get_area_def`, which will search through all
+Or using :func:`satpy.area.get_area_def`, which will search through all
 ``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
 
-    >>> from satpy.area_utils import get_area_def
+    >>> from satpy.area import get_area_def
     >>> area_eurol = get_area_def("eurol")
 
 For examples of area definitions, see the file ``etc/areas.yaml`` that is
@@ -177,8 +177,8 @@ IMPORT_PATHS = {
     "resample": "satpy.resample.base",
     "prepare_resampler": "satpy.resample.base",
     "resample_dataset": "satpy.resample.base",
-    "get_area_file": "satpy.area_utils",
-    "get_area_def": "satpy.area_utils",
+    "get_area_file": "satpy.area",
+    "get_area_def": "satpy.area",
     "add_xy_coords": "satpy.coords_utils",
     "add_crs_xy_coords": "satpy.coords_utils",
 }

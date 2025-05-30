@@ -4,7 +4,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import Scene
-from satpy.area_utils import get_area_def
+from satpy.area import get_area_def
 from satpy.testing import fake_satpy_reading
 
 

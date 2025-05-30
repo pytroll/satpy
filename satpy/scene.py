@@ -29,7 +29,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
-from satpy.area_utils import get_area_def
+from satpy.area import get_area_def
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc

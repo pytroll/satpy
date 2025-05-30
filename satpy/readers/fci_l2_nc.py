@@ -24,7 +24,7 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.area_utils import get_area_def
+from satpy.area import get_area_def
 from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate

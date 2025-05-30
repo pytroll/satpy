@@ -42,7 +42,7 @@ except ImportError:
 
 from satpy import DatasetDict
 from satpy._compat import cache
-from satpy.area_utils import get_area_def
+from satpy.area import get_area_def
 from satpy.aux_download import DataDownloadMixin
 from satpy.coords_utils import add_crs_xy_coords
 from satpy.dataset import DataID, DataQuery, get_key
