@@ -18,6 +18,8 @@
 import hashlib
 import json
 import warnings
+from contextlib import suppress
+from importlib import import_module
 from logging import getLogger
 from weakref import WeakValueDictionary
 
@@ -71,48 +73,34 @@ def _update_resampled_coords(old_data, new_data, new_area):
     return new_data
 
 
-# TODO: move this to pyresample.resampler
-#RESAMPLERS = {"kd_tree": KDTreeResampler,
-#              "nearest": KDTreeResampler,
-#              "bilinear": BilinearResampler,
-#              "native": NativeResampler,
-#              "gradient_search": create_gradient_search_resampler,
-#              "bucket_avg": BucketAvg,
-#              "bucket_sum": BucketSum,
-#              "bucket_count": BucketCount,
-#              "bucket_fraction": BucketFraction,
-#              "ewa": DaskEWAResampler,
-#              "ewa_legacy": LegacyDaskEWAResampler,
-#              }
+# TODO: move these to pyresample.resampler
+RESAMPLER_MODULES = [
+    "satpy.resample.native",
+    "satpy.resample.kdtree",
+    "satpy.resample.bucket",
+    "satpy.resample.ewa",
+]
+
+def _get_resampler_classes_from_module(import_path):
+    with suppress(ImportError):
+        mod = import_module(import_path)
+        return mod.get_resampler_classes()
+    return {}
+
 
 def get_all_resampler_classes():
     """Get all available resampler classes."""
     resamplers = {}
-    try:
-        from .native import get_native_resampler_classes
-        resamplers.update(get_native_resampler_classes())
-    except ImportError:
-        pass
-    try:
-        from .kdtree import get_kdtree_resampler_classes
-        resamplers.update(get_kdtree_resampler_classes())
-    except ImportError:
-        pass
-    try:
-        from .bucket import get_bucket_resampler_classes
-        resamplers.update(get_bucket_resampler_classes())
-    except ImportError:
-        pass
-    try:
-        from .ewa import get_ewa_resampler_classes
-        resamplers.update(get_ewa_resampler_classes())
-    except ImportError:
-        pass
-    try:
+    # Collect all available resampler classes
+    for import_path in RESAMPLER_MODULES:
+        res = _get_resampler_classes_from_module(import_path)
+        resamplers.update(res)
+
+    # Add gradient search, which is infact a factory function
+    # TODO: add `get_resampler_classes()` function to pyresample.gradient
+    with suppress(ImportError):
         from pyresample.gradient import create_gradient_search_resampler
         resamplers["gradient_search"] = create_gradient_search_resampler
-    except ImportError:
-        pass
 
     return resamplers
 

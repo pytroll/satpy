@@ -311,7 +311,7 @@ def _move_existing_caches(cache_dir, filename):
     LOG.warning("Old cache file was moved to %s", old_cache_dir)
 
 
-def get_kdtree_resampler_classes():
+def get_resampler_classes():
     """Get resampler classes based on kdtree."""
     return {
         "kd_tree": KDTreeResampler,

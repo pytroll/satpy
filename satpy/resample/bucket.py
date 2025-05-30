@@ -225,7 +225,7 @@ class BucketFraction(BucketResamplerBase):
         return result
 
 
-def get_bucket_resampler_classes():
+def get_resampler_classes():
     """Get bucket resampler classes."""
     return {
         "bucket_avg": BucketAvg,

@@ -188,6 +188,6 @@ def _check_chunking(new_chunks, dask_arr, dim_idx, agg_size):
     return need_rechunk
 
 
-def get_native_resampler_classes():
+def get_resampler_classes():
     """Get classes based on native resampler."""
     return {"native": NativeResampler}

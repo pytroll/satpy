@@ -3,7 +3,7 @@
 from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
 
 
-def get_ewa_resampler_classes():
+def get_resampler_classes():
     """Get bucket resampler classes."""
     return {
         "ewa": DaskEWAResampler,
