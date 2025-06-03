@@ -54,11 +54,15 @@ logger = logging.getLogger(__name__)
 class GenericImageFileHandler(BaseFileHandler):
     """Handle reading of generic image files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, set_fill_value=None, nodata_handling=None):
         """Initialize filehandler."""
         super(GenericImageFileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.finfo = filename_info
+        self.set_fill_value = set_fill_value
+        if self.set_fill_value is not None and not isinstance(self.set_fill_value, (list, tuple)):
+            self.set_fill_value = [self.set_fill_value]
+        self.nodata_handling = nodata_handling
         try:
             self.finfo["end_time"] = self.finfo["start_time"]
         except KeyError:
@@ -82,6 +86,7 @@ class GenericImageFileHandler(BaseFileHandler):
         #   however, error is not explicit enough (see https://github.com/pydata/xarray/issues/7831)
         data = xr.open_dataset(self.finfo["filename"], engine="rasterio",
                                chunks={"band": 1, "y": CHUNK_SIZE, "x": CHUNK_SIZE}, mask_and_scale=False)["band_data"]
+
         if hasattr(dataset, "nodatavals"):
             # The nodata values for the raster bands
             # copied from https://github.com/pydata/xarray/blob/v2023.03.0/xarray/backends/rasterio_.py#L322-L326
@@ -89,6 +94,8 @@ class GenericImageFileHandler(BaseFileHandler):
                 np.nan if nodataval is None else nodataval for nodataval in dataset.nodatavals
             )
             data.attrs["nodatavals"] = nodatavals
+        if self.set_fill_value:
+            data.attrs["nodatavals"] = self.set_fill_value
 
         attrs = data.attrs.copy()
 
@@ -123,10 +130,12 @@ class GenericImageFileHandler(BaseFileHandler):
         ds_name = self.dataset_name if self.dataset_name else key["name"]
         logger.debug("Reading '%s.'", ds_name)
         data = self.file_content[ds_name]
+        if self.nodata_handling is not None:
+            info["nodata_handling"] = self.nodata_handling
 
         # Mask data if necessary
         try:
-            data = _mask_image_data(data, info)
+            data = _mask_image_data(data, info, self.set_fill_value)
         except ValueError as err:
             logger.warning(err)
 
@@ -135,7 +144,7 @@ class GenericImageFileHandler(BaseFileHandler):
         return data
 
 
-def _mask_image_data(data, info):
+def _mask_image_data(data, info, set_fill_value):
     """Mask image data if necessary.
 
     Masking is done if alpha channel is present or
@@ -143,7 +152,7 @@ def _mask_image_data(data, info):
     In the latter case even integer data is converted
     to float32 and masked with np.nan.
     """
-    if data.bands.size in (2, 4):
+    if data.bands.size in (2, 4) and not set_fill_value:
         if not np.issubdtype(data.dtype, np.integer):
             raise ValueError("Only integer datatypes can be used as a mask.")
         mask = data.data[-1, :, :] == np.iinfo(data.dtype).min
@@ -174,4 +183,6 @@ def _handle_nodatavals(data, nodata_handling):
         if np.issubdtype(data.dtype, np.integer):
             fill_value = int(fill_value)
         data.attrs["_FillValue"] = fill_value
+        if "A" in data.bands:
+            data = data.drop_sel(bands="A")
     return data
