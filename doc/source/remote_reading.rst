@@ -97,7 +97,7 @@ for example when testing. The caching can be done by taking advantage of the `fs
     reader_kwargs = {
         'storage_options': {
             's3': {'anon': True},
-            'simple': {
+            'simplecache': {
                 'cache_storage': '/tmp/s3_cache',
             }
         }
