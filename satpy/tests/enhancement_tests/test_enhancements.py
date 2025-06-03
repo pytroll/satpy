@@ -117,8 +117,8 @@ class TestEnhancementStretch:
         ],
     )
     @pytest.mark.parametrize("input_data_name", ["ch1", "ch2", "rgb"])
-    def test_apply_enhancement(self, input_data_name, decorator, exp_call_cls):
-        """Test the 'apply_enhancement' utility function."""
+    def test_enhancement_decorators(self, input_data_name, decorator, exp_call_cls):
+        """Test the utility decorators."""
 
         def _enh_func(img):
             def _calc_func(data):
