@@ -29,13 +29,13 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
+from satpy.area import get_area_def
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers.core.loading import load_readers
-from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
@@ -869,6 +869,8 @@ class Scene:
         If data reduction is enabled, some local caching is perfomed in order to
         avoid recomputation of area intersections.
         """
+        from satpy.resample.base import resample_dataset
+
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
@@ -918,6 +920,8 @@ class Scene:
         return destination_area
 
     def _prepare_resampler(self, source_area, destination_area, resamplers, resample_kwargs):
+        from satpy.resample.base import prepare_resampler
+
         if source_area not in resamplers:
             key, resampler = prepare_resampler(
                 source_area, destination_area, **resample_kwargs)

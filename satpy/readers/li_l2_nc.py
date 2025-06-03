@@ -80,8 +80,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy.area import get_area_def
 from satpy.readers.core.li_nc import LINCFileHandler
-from satpy.resample import get_area_def
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
