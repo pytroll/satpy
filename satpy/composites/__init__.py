@@ -2036,3 +2036,155 @@ class LongitudeMaskingCompositor(SingleBandCompositor):
 
         masked_projectable = projectable.where(lon_min_max)
         return super().__call__([masked_projectable], **info)
+
+def rgb_land_sea():
+
+    # split is the split value between sea/land and clouds
+    split = 130
+    start = 320
+    max_size = 256
+
+    sea_colour_red = np.zeros((max_size), dtype=np.uint8)
+    sea_colour_green = np.zeros((max_size), dtype=np.uint8)
+    sea_colour_blue = np.zeros((max_size), dtype=np.uint8)
+
+    # Sea area, clouds
+    for i in range(0, split):
+        val = (start - i)
+        if (val > (max_size - 1)):
+            val = max_size - 1
+        sea_colour_red[i] = val
+        sea_colour_green[i] = val
+        sea_colour_blue[i] = val
+        # print sea_colour_red[i], sea_colour_green[i],sea_colour_blue[i]
+
+    # Sea area, Sea
+    for i in range(0, (max_size - split)):
+        red = start - split - int(6.7 * float(i))
+        if (red < 0):
+            red = 0
+        green = start - split - int(3.5 * float(i))
+        if (green < 0):
+            green = 0
+        blue = start - split - int(1.5 * float(i))
+        if (blue < 0):
+            blue = 0
+
+        sea_colour_red[i + split] = red
+        sea_colour_green[i + split] = green
+        sea_colour_blue[i + split] = blue
+
+    land_colour_red = np.zeros((max_size), dtype=np.uint8)
+    land_colour_green = np.zeros((max_size), dtype=np.uint8)
+    land_colour_blue = np.zeros((max_size), dtype=np.uint8)
+
+    # land area, cloud
+    for i in range(0, split):
+        val = (start - i)
+        if (val > (max_size - 1)):
+            val = max_size - 1
+        land_colour_red[i] = val
+        land_colour_green[i] = val
+        land_colour_blue[i] = val
+
+    # Palette for Land areas. LAND
+    for i in range(0, max_size - split):
+        red = start - split - int(2.0 * float(i))
+        if (red < 0):
+            red = 0
+        green = start - split - int(1.0 * float(i))
+        if (green < 0):
+            green = 0
+        blue = start - split - int(4.0 * float(i))
+        if (blue < 0):
+            blue = 0
+
+        land_colour_red[i + split] = red
+        land_colour_green[i + split] = green
+        land_colour_blue[i + split] = blue
+
+    return land_colour_red, land_colour_green, land_colour_blue, sea_colour_red, sea_colour_green, sea_colour_blue
+
+class LandSeaFalseColorCompositor(GenericCompositor):
+
+    def __init__(self, name,
+                 ref_lat=45.,
+                 **kwargs):
+        """Init info.
+
+        Collect custom configuration values.
+        """
+        print("Inside init")
+        self.ref_lat = ref_lat
+        super().__init__(name, **kwargs)
+
+    def __call__(self, projectables, **attrs):
+        if len(projectables) != 2:
+            raise ValueError(f"Expected 2 datasets, got {len(projectables)}")
+
+        projectables = self.match_data_arrays(projectables)
+        btd, lsm = projectables
+        lsm = lsm.squeeze(drop=True)
+        lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
+
+        (lr, lg, lb, sr, sg, sb) = rgb_land_sea()
+
+        # Correct data north/south of the latitude
+        # ref_lat = 45
+        _latitude = btd.attrs['area'].get_lonlats()[1]
+
+        # Filter due to various criteria
+        min_low_bt = 130
+        max_low_bt = 173
+        print("Start colourize ... ")
+        # Make low bt. For latitude larger that the ref_lat the low.bt will be lesser the further north or south.
+        # TODO: check if south also is covered here.
+        low_bt = np.where(_latitude > self.ref_lat,
+                          min_low_bt + ((80. - _latitude) / (80. - self.ref_lat) * (max_low_bt - min_low_bt)),
+                          max_low_bt)
+        # Do the last calibration and stretch to 0..255 and filter data larger and less the given values
+        bt = (255. * ((btd - low_bt) / (343. - low_bt))).astype(int)
+        bt = np.where(bt > 255, 255, bt)
+        bt = np.where(bt < 0, 0, bt)
+
+        # Stack the various masks and colors
+        y_size, x_size = lr[bt].shape
+        land_rgb = da.vstack((lr[bt].reshape((1, y_size, x_size)),
+                              lg[bt].reshape((1, y_size, x_size)),
+                              lb[bt].reshape((1, y_size, x_size))))
+
+        sea_rgb = da.vstack((sr[bt].reshape((1, y_size, x_size)),
+                             sg[bt].reshape((1, y_size, x_size)),
+                             sb[bt].reshape((1, y_size, x_size))))
+
+        lsm__ = da.reshape(lsm.data, (1, y_size, x_size))
+        img_rgb = da.vstack((lsm__, lsm__, lsm__))
+
+        # Do the masking on data
+        rgb = np.where(img_rgb > 190, land_rgb, sea_rgb)
+        print("end colourize ... ")
+
+        new_attrs = combine_metadata(*projectables)
+        # remove metadata that shouldn't make sense in a composite
+        new_attrs["wavelength"] = None
+        new_attrs.pop("units", None)
+        new_attrs.pop("calibration", None)
+        new_attrs.pop("modifiers", None)
+
+        new_attrs.update({key: val
+                          for (key, val) in attrs.items()
+                          if val is not None})
+        resolution = new_attrs.get("resolution", None)
+        new_attrs.update(self.attrs)
+        if resolution is not None:
+            new_attrs["resolution"] = resolution
+        new_attrs["sensor"] = self._get_sensors(projectables)
+        new_attrs["mode"] = 'RGB'
+        new_attrs["start_time"] = btd.attrs['start_time']
+
+        res = xr.DataArray(data=rgb,
+                           attrs=new_attrs,
+                           dims=('bands', 'y', 'x'),
+                           coords=btd.coords)
+        res = res.assign_coords(bands=['R', 'G', 'B'])
+        return res
