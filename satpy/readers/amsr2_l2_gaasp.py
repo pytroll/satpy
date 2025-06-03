@@ -47,7 +47,7 @@ from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
 from satpy._compat import cached_property
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -234,7 +234,7 @@ class GAASPFileHandler(BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
 
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        See :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for more information.
 
         """

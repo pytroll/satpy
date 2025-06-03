@@ -239,3 +239,20 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green
     standard_name: true_color
+
+  day_severe_storms:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C09
+          - name: C10
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C05
+          - name: C02
+    standard_name: day_severe_storms

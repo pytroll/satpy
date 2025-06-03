@@ -91,7 +91,7 @@ class TestAMSR2L2Reader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5",
@@ -103,7 +103,7 @@ class TestAMSR2L2Reader(unittest.TestCase):
 
     def test_load_basic(self):
         """Test loading of basic channels."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5",

@@ -390,7 +390,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_geo(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -406,7 +406,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_geo_nsoas(self):
         """Test loading data from nsoas file."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "H2B_OPER_SCA_L2B_OR_20210803T100304_20210803T104601_13905_pwp_250_07_owv.h5", ]
 
@@ -422,7 +422,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_data_selection(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -439,7 +439,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_data_all_ambiguities(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -464,7 +464,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_data_row_times(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -479,7 +479,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_reading_attrs(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -494,7 +494,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_reading_attrs_nsoas(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "H2B_OPER_SCA_L2B_OR_20210803T100304_20210803T104601_13905_pwp_250_07_owv.h5", ]
 
@@ -511,7 +511,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         """Test platform_name."""
         import datetime as dt
 
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 

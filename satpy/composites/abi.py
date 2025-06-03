@@ -47,7 +47,7 @@ class SimulatedGreen(GenericCompositor):
 
         Args:
             name (str): Name of this composite
-            fractions (iterable): Fractions of each input band to include in the result.
+            fractions (Iterable): Fractions of each input band to include in the result.
 
         """
         self.fractions = fractions
