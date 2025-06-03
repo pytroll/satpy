@@ -68,6 +68,7 @@ Documentation
     composites
     resample
     enhancements
+    readers_formats
     writing
     multiscene
     dev_guide/index

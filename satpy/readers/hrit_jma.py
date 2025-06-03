@@ -18,21 +18,8 @@
 
 """HRIT format reader for JMA data.
 
-Introduction
-------------
 The JMA HRIT format is described in the `JMA HRIT - Mission Specific
-Implementation`_. There are three readers for this format in Satpy:
-
-- ``jami_hrit``: For data from the `JAMI` instrument on MTSAT-1R
-- ``mtsat2-imager_hrit``: For data from the `Imager` instrument on MTSAT-2
-- ``ahi_hrit``: For data from the `AHI` instrument on Himawari-8/9
-
-Although the data format is identical, the instruments have different
-characteristics, which is why there is a dedicated reader for each of them.
-Sample data is available here:
-
-- `JAMI/Imager sample data`_
-- `AHI sample data`_
+Implementation`_.
 
 
 Example:
@@ -104,8 +91,6 @@ Gzip-compressed MTSAT files can be decompressed on the fly using
 
 
 .. _JMA HRIT - Mission Specific Implementation: http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
-.. _JAMI/Imager sample data: https://www.data.jma.go.jp/mscweb/en/operation/hrit_sample.html
-.. _AHI sample data: https://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
 """
 
 import datetime as dt
