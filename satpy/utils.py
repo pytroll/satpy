@@ -560,7 +560,7 @@ def check_satpy(readers=None, writers=None, packages=None):
 
     """
     from satpy.readers.core.config import configs_for_reader
-    from satpy.writers.utils import configs_for_writer
+    from satpy.writers.core.config import configs_for_writer
 
     print("Readers")  # noqa: T201
     print("=======")  # noqa: T201

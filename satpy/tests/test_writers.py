@@ -490,7 +490,7 @@ class TestYAMLFiles:
         IgnoreLoader.add_multi_constructor("", IgnoreLoader._ignore_all_tags)
 
         from satpy._config import glob_config
-        from satpy.writers.utils import read_writer_config
+        from satpy.writers.core.config import read_writer_config
         for writer_config in glob_config("writers/*.yaml"):
             writer_fn = os.path.basename(writer_config)
             writer_fn_name = os.path.splitext(writer_fn)[0]

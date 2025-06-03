@@ -37,11 +37,6 @@ def __getattr__(name: str) -> Any:
         new_submod = "overlay_utils"
         obj = getattr(overlay_utils, name)
     elif name in (
-        "read_writer_config",
-        "load_writer_configs",
-        "load_writer",
-        "configs_for_writer",
-        "available_writers",
         "get_enhanced_image",
         "show",
         "to_image",
@@ -53,6 +48,17 @@ def __getattr__(name: str) -> Any:
 
         new_submod = "utils"
         obj = getattr(utils, name)
+    elif name in (
+            "read_writer_config",
+            "load_writer_configs",
+            "load_writer",
+            "configs_for_writer",
+            "available_writers",
+        ):
+        from .core import config
+
+        new_submod = "core.config"
+        obj = getattr(config, name)
     else:
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 

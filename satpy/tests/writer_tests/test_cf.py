@@ -67,7 +67,7 @@ class TestCFWriter:
     def test_init(self):
         """Test initializing the CFWriter class."""
         from satpy.writers.cf_writer import CFWriter
-        from satpy.writers.utils import configs_for_writer
+        from satpy.writers.core.config import configs_for_writer
 
         CFWriter(config_files=list(configs_for_writer("cf"))[0])
 

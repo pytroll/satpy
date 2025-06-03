@@ -1241,7 +1241,7 @@ class Scene:
             has this method.
 
         """
-        from satpy.writers.utils import load_writer
+        from satpy.writers.core.config import load_writer
 
         if writer is None and filename is None:
             writer = "geotiff"
@@ -1298,7 +1298,7 @@ class Scene:
 
         """
         from satpy._scene_converters import _get_dataarrays_from_identifiers
-        from satpy.writers.utils import load_writer
+        from satpy.writers.core.config import load_writer
 
         dataarrays = _get_dataarrays_from_identifiers(self, datasets)
         if not dataarrays:

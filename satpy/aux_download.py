@@ -228,7 +228,7 @@ def _find_registerable_files_readers(readers=None):
 
 def _find_registerable_files_writers(writers=None):
     """Load all writers so that files are registered."""
-    from satpy.writers.utils import configs_for_writer, load_writer_configs
+    from satpy.writers.core.config import configs_for_writer, load_writer_configs
 
     for writer_configs in configs_for_writer(writer=writers):
         try:
