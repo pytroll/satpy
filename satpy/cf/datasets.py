@@ -68,22 +68,22 @@ def _collect_cf_dataset(list_dataarrays,
 
     Args:
         list_dataarrays (list): List of DataArrays to make CF compliant and merge into an xr.Dataset.
-        epoch (str, optional): Reference time for encoding the time coordinates.
+        epoch (str, Optional): Reference time for encoding the time coordinates.
             Example format: "seconds since 1970-01-01 00:00:00".
             If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
-        flatten_attrs (bool, optional): If True, flatten dict-type attributes.
-        exclude_attrs (list, optional): List of xr.DataArray attribute names to be excluded.
-        include_lonlats (bool, optional): If True, includes 'latitude' and 'longitude' coordinates also for a
+        flatten_attrs (bool, Optional): If True, flatten dict-type attributes.
+        exclude_attrs (list, Optional): List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool, Optional): If True, includes 'latitude' and 'longitude' coordinates also for a
             satpy.Scene defined on an AreaDefinition.
             If the 'area' attribute is a SwathDefinition, it always includes latitude and longitude coordinates.
-        pretty (bool, optional): Don't modify coordinate names, if possible.
+        pretty (bool, Optional): Don't modify coordinate names, if possible.
             Makes the file prettier, but possibly less consistent.
-        include_orig_name (bool, optional): Include the original dataset name as a variable attribute in the xr.Dataset.
-        numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+        include_orig_name (bool, Optional): Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str, Optional): Prefix to add to each variable with a name starting with a digit.
             Use '' or None to leave this out.
 
     Returns:
-        xr.Dataset: A partially CF-compliant xr.Dataset.
+        xarray.Dataset: A partially CF-compliant xr.Dataset.
     """
     from satpy.cf.area import area2cf
     from satpy.cf.coords import (
@@ -179,20 +179,20 @@ def collect_cf_datasets(list_dataarrays,
     Args:
         list_dataarrays (list): List of DataArrays to make CF compliant and merge into groups of xr.Datasets.
         header_attrs (dict): Global attributes of the output xr.Dataset.
-        epoch (str, optional): Reference time for encoding the time coordinates.
+        epoch (str, Optional): Reference time for encoding the time coordinates.
             Example format: "seconds since 1970-01-01 00:00:00".
             If None, the default reference time is retrieved using `from satpy.cf.coords import EPOCH`.
-        flatten_attrs (bool, optional): If True, flatten dict-type attributes.
-        exclude_attrs (list, optional): List of xr.DataArray attribute names to be excluded.
-        include_lonlats (bool, optional): If True, includes 'latitude' and 'longitude' coordinates also
+        flatten_attrs (bool, Optional): If True, flatten dict-type attributes.
+        exclude_attrs (list, Optional): List of xr.DataArray attribute names to be excluded.
+        include_lonlats (bool, Optional): If True, includes 'latitude' and 'longitude' coordinates also
             for a satpy.Scene defined on an AreaDefinition.
             If the 'area' attribute is a SwathDefinition, it always includes latitude and longitude coordinates.
-        pretty (bool, optional): Don't modify coordinate names, if possible.
+        pretty (bool, Optional): Don't modify coordinate names, if possible.
             Makes the file prettier, but possibly less consistent.
-        include_orig_name (bool, optional): Include the original dataset name as a variable attribute in the xr.Dataset.
-        numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+        include_orig_name (bool, Optional): Include the original dataset name as a variable attribute in the xr.Dataset.
+        numeric_name_prefix (str, Optional): Prefix to add to each variable with a name starting with a digit.
             Use '' or None to leave this out.
-        groups (dict, optional): Group datasets according to the given assignment:
+        groups (dict, Optional): Group datasets according to the given assignment:
             `{'<group_name>': ['dataset_name1', 'dataset_name2', ...]}`.
             Used to create grouped netCDFs using the CF_Writer. If None, no groups will be created.
 

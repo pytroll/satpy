@@ -167,7 +167,7 @@ class TestLoadingReaderDatasets:
 
     def test_load_no_exist2(self):
         """Test loading a dataset that doesn't exist then another load."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         load_mock = spy_decorator(FileYAMLReader.load)
         with mock.patch.object(FileYAMLReader, "load", load_mock):
             lmock = load_mock.mock
@@ -197,7 +197,7 @@ class TestLoadingReaderDatasets:
 
     def test_load_ds1_load_twice(self):
         """Test loading one dataset with no loaded compositors."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         scene.load(["ds1"])
         loaded_ids = list(scene._datasets.keys())
@@ -497,7 +497,7 @@ class TestLoadingComposites:
 
     def test_load_dataset_after_composite(self):
         """Test load composite followed by other datasets."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         from satpy.tests.utils import FakeCompositor
         load_mock = spy_decorator(FileYAMLReader.load)
         comp_mock = spy_decorator(FakeCompositor.__call__)
@@ -519,7 +519,7 @@ class TestLoadingComposites:
 
     def test_load_dataset_after_composite2(self):
         """Test load complex composite followed by other datasets."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         from satpy.tests.utils import FakeCompositor, FakeModifier
         load_mock = spy_decorator(FileYAMLReader.load)
         comp_mock = spy_decorator(FakeCompositor.__call__)

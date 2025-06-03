@@ -111,7 +111,7 @@ being visualized.
    an image with mode RGB when enhanced.  To produce an image with mode P, use
    the :class:`SingleBandCompositor` with an associated
    :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
-   to :meth:`~satpy.Scene.save_datasets`.  If the colormap is sourced from
+   to :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.  If the colormap is sourced from
    the same dataset as the dataset to be palettized, it must be contained
    in the auxiliary datasets.
 
@@ -119,7 +119,7 @@ being visualized.
    :class:`PaletteCompositor` have been migrated to use
    :class:`SingleBandCompositor` instead.  This has no impact on resulting
    images unless ``keep_palette=True`` is passed to
-   :meth:`~satpy.Scene.save_datasets`, but the loaded composite now has only
+   :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`, but the loaded composite now has only
    one band (previously three).
 
 DayNightCompositor
@@ -534,7 +534,7 @@ enhancement functions in Satpy.
 
 .. warning::
    If you define a composite with no matching enhancement, Satpy will by
-   default apply the :func:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
+   default apply the :meth:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
    cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
    are enhancing a composite based on :class:`DayNightCompositor` where
    the components have their own enhancements defined), you can use the `image_ready` standard name.

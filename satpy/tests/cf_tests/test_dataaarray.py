@@ -50,7 +50,7 @@ def test_make_cf_dataarray_lonlat():
     from pyresample import create_area_def
 
     from satpy.cf.data_array import make_cf_data_array
-    from satpy.resample import add_crs_xy_coords
+    from satpy.coords import add_crs_xy_coords
 
     area = create_area_def("mavas", 4326, shape=(5, 5),
                            center=(0, 0), resolution=(1, 1))

@@ -100,7 +100,7 @@ implementation depends on the following keys:
 6. ``units``
 
 For low-level implementation details see the
-:class:`~satpy.writers.EnhancementDecisionTree` class.
+:class:`~satpy.enhancements.enhancer.EnhancementDecisionTree` class.
 
 The example YAML in the above section specified one of these keys,
 ``standard_name``.
@@ -277,7 +277,7 @@ You should then see log messages like the following::
     TRACE    :             | sensor=abi
     TRACE    :             | standard_name=cloud_type
 
-Additionally, you can directly load the :class:`~satpy.writers.Enhancer`
+Additionally, you can directly load the :class:`~satpy.enhancements.enhancer.Enhancer`
 object used by Satpy and print the entire "tree" and attempt to follow the
 path to match your particular DataArray's metadata:
 
@@ -587,7 +587,7 @@ Or more complex enhancement functions in Satpy (described above):
    object and the DataArray underneath inplace. So although the ``img =``
    is unnecessary it is recommended for future compatibility if this changes.
 
-Finally, the :class:`~trollimage.xrimageXRImage` class supports showing an
+Finally, the :class:`~trollimage.xrimage.XRImage` class supports showing an
 image in your system's image viewer:
 
 .. code-block:: python

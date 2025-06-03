@@ -30,7 +30,7 @@ import logging
 import numpy as np
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
 
 logger = logging.getLogger(__name__)
 

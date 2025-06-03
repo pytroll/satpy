@@ -90,7 +90,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf"
@@ -101,7 +101,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
 
     def test_load_dataset(self):
         """Test loading all datasets from a full swath file."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf"
@@ -114,7 +114,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
 
     def test_load_dataset_aoi(self):
         """Test loading all datasets from an area of interest file."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_001_10_300_01.hdf"

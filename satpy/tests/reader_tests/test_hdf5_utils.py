@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.hdf5_utils module."""
+"""Module for testing the satpy.readers.core.hdf5 module."""
 
 import os
 import unittest
@@ -23,7 +23,7 @@ import unittest
 import numpy as np
 
 try:
-    from satpy.readers.hdf5_utils import HDF5FileHandler
+    from satpy.readers.core.hdf5 import HDF5FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
     HDF5FileHandler = object  # type: ignore
@@ -119,7 +119,7 @@ class TestHDF5FileHandler(unittest.TestCase):
         """Test everything about the HDF5 class."""
         import xarray as xr
 
-        from satpy.readers.hdf5_utils import HDF5FileHandler
+        from satpy.readers.core.hdf5 import HDF5FileHandler
         file_handler = HDF5FileHandler("test.h5", {}, {})
 
         for ds_name in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i"):
@@ -153,7 +153,7 @@ class TestHDF5FileHandler(unittest.TestCase):
 
     def test_array_name_uniqueness(self):
         """Test the dask array generated from an hdf5 dataset stay constant and unique."""
-        from satpy.readers.hdf5_utils import HDF5FileHandler
+        from satpy.readers.core.hdf5 import HDF5FileHandler
         file_handler = HDF5FileHandler("test.h5", {}, {})
 
         dsname = "test_group/ds1_f"

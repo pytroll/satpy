@@ -554,7 +554,7 @@ def reader_configs():
 
 
 def _get_reader_with_filehandlers(filenames, reader_configs, **reader_kwargs):
-    from satpy.readers import load_reader
+    from satpy.readers.core.loading import load_reader
     reader = load_reader(reader_configs)
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
@@ -826,7 +826,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
     @pytest.mark.parametrize("filenames", [TEST_FILENAMES[filename] for filename in TEST_FILENAMES.keys()])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
 
         reader = load_reader(reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -842,7 +842,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                            TEST_FILENAMES["fdhsi_other_coverage"][0].replace("BODY", "TRAIL")])
     def test_file_pattern_for_TRAIL_file(self, reader_configs, filenames):
         """Test file pattern matching for TRAIL files, which should not be picked up."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
 
         reader = load_reader(reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -1089,7 +1089,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         """
         reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
         res = reader.load(["vis_06"], pad_data=False)
-        assert res["vis_06"].attrs["platform_name"] == "MTG-I1"
+        assert res["vis_06"].attrs["platform_name"] == "Meteosat-12"
 
     @pytest.mark.parametrize(("fh_param", "compare_tuples"),
                              [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), (67, 10,

@@ -99,7 +99,7 @@ except ImportError as e:
         """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes.
            Error: """, e)
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("IASIL2SO2BUFR")

@@ -29,8 +29,8 @@ from satpy._config import config  # noqa
 from satpy.dataset import DataID, DataQuery  # noqa
 from satpy.dataset.data_dict import DatasetDict  # noqa
 from satpy.multiscene import MultiScene  # noqa
-from satpy.readers import available_readers  # noqa
-from satpy.readers import find_files_and_readers  # noqa
+from satpy.readers.core.config import available_readers  # noqa
+from satpy.readers.core.grouping import find_files_and_readers  # noqa
 from satpy.scene import Scene  # noqa
 from satpy.utils import get_logger  # noqa
 from satpy.writers.utils import available_writers  # noqa
