@@ -161,7 +161,7 @@ import xarray as xr
 from packaging.version import InvalidVersion, Version
 
 from satpy.cf.coords import EPOCH  # noqa: F401 (for backward compatibility)
-from satpy.writers.base import Writer
+from satpy.writers.core.base import Writer
 
 logger = logging.getLogger(__name__)
 

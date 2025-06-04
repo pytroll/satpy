@@ -222,7 +222,7 @@ def _write_fake_writer_yaml(yaml_filename: str) -> None:
         comps_file.write(f"""
 writer:
     name: {writer_name}
-    writer: !!python/name:satpy.writers.base.Writer
+    writer: !!python/name:satpy.writers.core.base.Writer
 """)
 
 

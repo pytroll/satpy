@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import typing
 
-from satpy.writers.base import Writer
+from satpy.writers.core.base import Writer
 from satpy.writers.utils import get_enhanced_image
 
 if typing.TYPE_CHECKING:

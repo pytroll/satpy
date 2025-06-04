@@ -25,14 +25,14 @@ def __getattr__(name: str) -> Any:
         raise AttributeError("The 'show' function has been removed. Use 'get_enhanced_image(data_arr).show()' instead.")
 
     if name == "Writer":
-        from .base import Writer
+        from satpy.writers.core.base import Writer
 
-        new_submod = "base"
+        new_submod = "core.base"
         obj = Writer
     elif name == "ImageWriter":
-        from .base_image import ImageWriter
+        from satpy.writers.core.image import ImageWriter
 
-        new_submod = "base_image"
+        new_submod = "core.image"
         obj = ImageWriter
     elif name in ("add_overlay", "add_decorate", "add_scale", "add_logo", "add_text"):
         from . import overlay_utils

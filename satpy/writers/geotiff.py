@@ -30,7 +30,7 @@ from numpy.typing import DTypeLike
 from trollimage.colormap import Colormap
 from trollimage.xrimage import XRImage
 
-from satpy.writers.base_image import ImageWriter
+from satpy.writers.core.image import ImageWriter
 
 LOG = logging.getLogger(__name__)
 

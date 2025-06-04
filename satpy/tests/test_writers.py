@@ -31,7 +31,7 @@ import pytest
 import xarray as xr
 from trollimage.colormap import greys
 
-from satpy.writers.base_image import ImageWriter
+from satpy.writers.core.image import ImageWriter
 
 
 class TestWritersModule:
