@@ -9,3 +9,33 @@ enhancements:
           stretch: crude
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
+
+  day_severe_storms:
+    standard_name: day_severe_storms
+    sensor: ahi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-36, -1, -80]
+          max_stretch: [5, 61, 26]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.0, 0.5, 0.95]
+
+  night_microphysics_tropical:
+    standard_name: night_microphysics_tropical
+    sensor: ahi
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-7.1, -2.9, 273]
+          max_stretch: [ 2.4,  1.1, 300]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.0, 1.0, 1.0]

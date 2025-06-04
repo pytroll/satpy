@@ -5,7 +5,7 @@ reader:
     description: VIIRS NOAA Enterprise EDR product reader
     status: Beta
     supports_fsspec: false
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
     sensors: [viirs]
     group_keys: ['platform_shortname']
     default_datasets:

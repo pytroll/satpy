@@ -49,8 +49,8 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
     """Class implementing the AWS L1c Filehandler.
 
     This class implements the ESA Arctic Weather Satellite (AWS) Level-1b
-    NetCDF reader. It is designed to be used through the :class:`~satpy.Scene`
-    class using the :mod:`~satpy.Scene.load` method with the reader
+    NetCDF reader. It is designed to be used through the :class:`Scene <satpy.scene.Scene>`
+    class using the :mod:`Scene.load <satpy.scene.Scene.load>` method with the reader
     ``"aws_l1c_nc"``.
 
     """

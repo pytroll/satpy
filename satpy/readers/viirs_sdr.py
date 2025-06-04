@@ -37,8 +37,8 @@ from glob import glob
 
 import numpy as np
 
-from satpy.readers.viirs_atms_sdr_base import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.core.viirs_atms_sdr import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
+from satpy.readers.core.yaml_reader import FileYAMLReader
 
 NO_DATE = dt.datetime(1958, 1, 1)
 EPSILON_TIME = dt.timedelta(days=2)
@@ -190,10 +190,10 @@ class VIIRSSDRReader(FileYAMLReader):
         """Initialize file reader and adjust geolocation preferences.
 
         Args:
-            config_files (iterable): yaml config files passed to base class
-            use_tc (boolean): If `True` use the terrain corrected
-                              files. If `False`, switch to non-TC files. If
-                              `None` (default), use TC if available, non-TC otherwise.
+            config_files (Iterable): yaml config files passed to base class
+            use_tc (bool): If `True` use the terrain corrected
+                           files. If `False`, switch to non-TC files. If
+                           `None` (default), use TC if available, non-TC otherwise.
 
         """
         super().__init__(config_files, **kwargs)

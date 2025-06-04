@@ -62,7 +62,7 @@ class Node:
         """Flatten tree structure to a one level dictionary.
 
         Args:
-            d (dict, optional): output dictionary to update
+            d (dict, Optional): output dictionary to update
 
         Returns:
             dict: Node.name -> Node. The returned dictionary includes the

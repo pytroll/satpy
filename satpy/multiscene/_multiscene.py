@@ -50,7 +50,7 @@ def _group_datasets_in_scenes(scenes, groups):
     """Group different datasets in multiple scenes by adding aliases.
 
     Args:
-        scenes (iterable): Scenes to be processed.
+        scenes (Iterable): Scenes to be processed.
         groups (dict): Groups of datasets that shall be treated equally by
             MultiScene. Keys specify the groups, values specify the dataset
             names to be grouped. For example::
@@ -163,7 +163,7 @@ class MultiScene(object):
         """Initialize MultiScene and validate sub-scenes.
 
         Args:
-            scenes (iterable):
+            scenes (Iterable):
                 `Scene` objects to operate on (optional)
 
         .. note::
@@ -209,9 +209,9 @@ class MultiScene(object):
                 readers have at least one file.  If False (default), include
                 all scenes where at least one reader has at least one file.
             scene_kwargs: additional arguments to pass on to
-                :func:`Scene.__init__` for each created scene.
+                :func:`satpy.scene.Scene.__init__` for each created scene.
 
-        This uses the :func:`satpy.readers.group_files` function to group
+        This uses the :func:`satpy.readers.core.grouping.group_files` function to group
         files. See this function for more details on additional possible
         keyword arguments.  In particular, it is strongly recommended to pass
         `"group_keys"` when using multiple instruments.
@@ -219,7 +219,7 @@ class MultiScene(object):
         .. versionadded:: 0.12
 
         """
-        from satpy.readers import group_files
+        from satpy.readers.core.grouping import group_files
         if scene_kwargs is None:
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
@@ -337,8 +337,9 @@ class MultiScene(object):
         dataset (:class:`xarray.DataArray` object).  The blend method
         then assigns those datasets to the blended scene.
 
-        Blending functions provided in this module are :func:`stack`
-        (the default), :func:`timeseries`, and :func:`temporal_rgb`, but the Python built-in
+        Blending functions provided in this module are :func:`satpy.multiscene._blend_funcs.stack`
+        (the default), :func:`satpy.multiscene._blend_funcs.timeseries`, and
+        :func:`satpy.multiscene._blend_funcs.temporal_rgb`, but the Python built-in
         function :func:`sum` also works and may be appropriate for
         some types of data.
 
@@ -435,7 +436,7 @@ class MultiScene(object):
                 will attempt to process all scenes at once. This option should
                 be used with care to avoid memory issues when trying to
                 improve performance.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
@@ -676,7 +677,7 @@ class MultiScene(object):
                 ``(batch_size / 2)`` frames for the second dataset.
             ignore_missing (bool): Don't include a black frame when a dataset
                                    is missing from a child scene.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be

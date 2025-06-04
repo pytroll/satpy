@@ -24,7 +24,7 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers import load_reader
+from satpy.readers.core.loading import load_reader
 
 ABI_FILE = "clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc"
 DEFAULT_FILE_DTYPE = np.uint16
@@ -163,7 +163,7 @@ class TestCLAVRXReaderGeo:
     )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
             od.side_effect = fake_test_content
             r = load_reader(self.reader_configs)
