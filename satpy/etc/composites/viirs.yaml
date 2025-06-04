@@ -713,13 +713,13 @@ composites:
         transparency: 100
     prerequisites:
       # Composite
-      - name: fci_fire_channels_sum
+      - name: viirs_fire_channels_sum
       # Data used in masking
-      - name: simple_fci_fire_mask
+      - name: simple_viirs_fire_mask
 
-  simple_fci_fire_mask:
+  simple_viirs_fire_mask:
     compositor: !!python/name:satpy.composites.SimpleFireMaskCompositor
-    standard_name: simple_fci_fire_mask
+    standard_name: simple_viirs_fire_mask
     prerequisites:
       - I05
       - I04
@@ -731,7 +731,7 @@ composites:
       - 15
       - 340
 
-  fci_fire_channels_sum:
+  viirs_fire_channels_sum:
     standard_name: image_ready
     compositor: !!python/name:satpy.composites.SumCompositor
     prerequisites:
