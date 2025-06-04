@@ -72,16 +72,6 @@ class TestWritersModule:
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
         np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
 
-    @mock.patch("satpy.writers.utils.get_enhanced_image")
-    def test_show(self, mock_get_image):
-        """Check showing."""
-        from satpy.writers.utils import show
-
-        data = np.arange(25).reshape((5, 5))
-        p = xr.DataArray(data, dims=["y", "x"])
-        show(p)
-        assert mock_get_image.return_value.show.called
-
 
 class _CustomImageWriter(ImageWriter):
     def __init__(self, **kwargs):
@@ -892,7 +882,6 @@ def test_group_results_by_output_file(tmp_path):
         "add_scale",
         "add_decorate",
         "get_enhanced_image",
-        "show",
         "to_image",
         "split_results",
         "group_results_by_output_file",

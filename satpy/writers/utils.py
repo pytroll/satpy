@@ -84,13 +84,6 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     return img
 
 
-def show(dataset, **kwargs):
-    """Display the dataset as an image."""
-    img = get_enhanced_image(dataset.squeeze(), **kwargs)
-    img.show()
-    return img
-
-
 def to_image(dataset):
     """Convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
 
