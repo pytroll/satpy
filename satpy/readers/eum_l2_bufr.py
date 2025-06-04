@@ -32,11 +32,11 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy.area import get_area_def
 from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode, recarray2dict
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.seviri import mpef_product_header
-from satpy.resample import get_area_def
 from satpy.utils import get_legacy_chunk_size
 
 try:

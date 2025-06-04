@@ -18,25 +18,6 @@
 
 """Common functionality for SEVIRI L1.5 data readers.
 
-Introduction
-------------
-
-*The Spinning Enhanced Visible and InfraRed Imager (SEVIRI) is the primary
-instrument on Meteosat Second Generation (MSG) and has the capacity to observe
-the Earth in 12 spectral channels.*
-
-*Level 1.5 corresponds to image data that has been corrected for all unwanted
-radiometric and geometric effects, has been geolocated using a standardised
-projection, and has been calibrated and radiance-linearised.*
-(From the EUMETSAT documentation)
-
-Satpy provides the following readers for SEVIRI L1.5 data in different formats:
-
-- Native: :mod:`satpy.readers.seviri_l1b_native`
-- HRIT: :mod:`satpy.readers.seviri_l1b_hrit`
-- netCDF: :mod:`satpy.readers.seviri_l1b_nc`
-
-
 Calibration
 -----------
 

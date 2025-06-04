@@ -50,7 +50,7 @@ class TestBuiltinAreas(unittest.TestCase):
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import get_area_file
+        from satpy.area import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -82,7 +82,7 @@ class TestBuiltinAreas(unittest.TestCase):
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import get_area_file
+        from satpy.area import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])

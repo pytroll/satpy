@@ -1597,7 +1597,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         self._known_hash = known_hash
         self.area = None
         if area is not None:
-            from satpy.resample import get_area_def
+            from satpy.area import get_area_def
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
