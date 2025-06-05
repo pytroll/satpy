@@ -526,12 +526,12 @@ class TestComputeWriterResults:
 
     def test_empty(self):
         """Test empty result list."""
-        from satpy.writers.utils import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         compute_writer_results([])
 
     def test_simple_image(self):
         """Test writing to PNG file."""
-        from satpy.writers.utils import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         fname = os.path.join(self.base_dir, "simple_image.png")
         res = self.scn.save_datasets(filename=fname,
                                      datasets=["test"],
@@ -542,7 +542,7 @@ class TestComputeWriterResults:
 
     def test_geotiff(self):
         """Test writing to mitiff file."""
-        from satpy.writers.utils import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         fname = os.path.join(self.base_dir, "geotiff.tif")
         res = self.scn.save_datasets(filename=fname,
                                      datasets=["test"],
@@ -552,7 +552,7 @@ class TestComputeWriterResults:
 
     def test_multiple_geotiff(self):
         """Test writing to mitiff file."""
-        from satpy.writers.utils import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         fname1 = os.path.join(self.base_dir, "geotiff1.tif")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -567,7 +567,7 @@ class TestComputeWriterResults:
 
     def test_multiple_simple(self):
         """Test writing to geotiff files."""
-        from satpy.writers.utils import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         fname1 = os.path.join(self.base_dir, "simple_image1.png")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -582,7 +582,7 @@ class TestComputeWriterResults:
 
     def test_mixed(self):
         """Test writing to multiple mixed-type files."""
-        from satpy.writers.utils import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         fname1 = os.path.join(self.base_dir, "simple_image3.png")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -817,7 +817,7 @@ def test_group_results_by_output_file(tmp_path):
     from pyresample import create_area_def
 
     from satpy.tests.utils import make_fake_scene
-    from satpy.writers.utils import group_results_by_output_file
+    from satpy.writers.core.compute import group_results_by_output_file
     x = 10
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(

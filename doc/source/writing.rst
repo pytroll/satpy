@@ -130,7 +130,16 @@ and save them all at once.
 ::
 
 
-    >>> from satpy.writers.utils import compute_writer_results
+
+    >>> from satpy.writers.core.compute import compute_writer_results
+    >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
+    ...                          writer="simple_image",
+    ...                          compute=False)
+    >>> res2 = scn.save_datasets(filename="/tmp/{name}.tif",
+    ...                          writer="geotiff",
+    ...                          compute=False)
+    >>> results = [res1, res2]
+    >>> compute_writer_results(results)
     >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
     ...                          writer="simple_image",
     ...                          compute=False)

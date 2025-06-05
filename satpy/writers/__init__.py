@@ -42,6 +42,15 @@ def __getattr__(name: str) -> Any:
         new_submod = "overlay_utils"
         obj = getattr(overlay_utils, name)
     elif name in (
+            "split_results",
+            "group_results_by_output_file",
+            "compute_writer_results",
+        ):
+        from .core import compute
+
+        new_submod = "core.compute"
+        obj = getattr(compute, name)
+    elif name in (
         "get_enhanced_image",
         "split_results",
         "group_results_by_output_file",

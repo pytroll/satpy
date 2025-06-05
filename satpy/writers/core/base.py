@@ -22,7 +22,7 @@ import warnings
 
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
-from satpy.writers.utils import compute_writer_results, split_results
+from satpy.writers.core.compute import compute_writer_results, split_results
 
 LOG = logging.getLogger(__name__)
 

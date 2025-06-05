@@ -379,7 +379,7 @@ class MultiScene(object):
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
-        from satpy.writers.utils import split_results
+        from satpy.writers.core.compute import split_results
 
         def load_data(q):
             idx = 0
