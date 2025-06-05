@@ -52,6 +52,8 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
             except if calling ``img.show()`` or providing the image to
             a writer as these will finalize the image.
     """
+    from trollimage.xrimage import XRImage
+
     if enhance is False:
         # no enhancement
         enhancer = None
@@ -65,7 +67,7 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         enhancer = enhance
 
     # Create an image for enhancement
-    img = to_image(dataset)
+    img = XRImage(dataset)
 
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
@@ -82,29 +84,6 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         img = add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
-
-
-def to_image(dataset):
-    """Convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
-
-    Convert the ``dataset`` into an instance of the
-    :class:`~trollimage.xrimage.XRImage` class.  This function makes no other
-    changes.  To get an enhanced image, possibly with overlays and decoration,
-    see :func:`~get_enhanced_image`.
-
-    Args:
-        dataset (xarray.DataArray): Data to be converted to an image.
-
-    Returns:
-        Instance of :class:`~trollimage.xrimage.XRImage`.
-
-    """
-    from trollimage.xrimage import XRImage
-
-    dataset = dataset.squeeze()
-    if dataset.ndim < 2:
-        raise ValueError("Need at least a 2D array to make an image.")
-    return XRImage(dataset)
 
 
 def split_results(results):

@@ -23,6 +23,8 @@ from typing import Any
 def __getattr__(name: str) -> Any:
     if name == "show":
         raise AttributeError("The 'show' function has been removed. Use 'get_enhanced_image(data_arr).show()' instead.")
+    if name == "to_image":
+        raise AttributeError("The 'to_image' function has been removed. Use 'trollimage.xrimage.XRImage' instead.")
 
     if name == "Writer":
         from satpy.writers.core.base import Writer
@@ -41,7 +43,6 @@ def __getattr__(name: str) -> Any:
         obj = getattr(overlay_utils, name)
     elif name in (
         "get_enhanced_image",
-        "to_image",
         "split_results",
         "group_results_by_output_file",
         "compute_writer_results",

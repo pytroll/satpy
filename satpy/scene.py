@@ -1196,12 +1196,6 @@ class Scene:
                          include_orig_name=include_orig_name,
                          numeric_name_prefix=numeric_name_prefix)
 
-    def images(self):
-        """Generate images for all the datasets from the scene."""
-        for ds_id, projectable in self._datasets.items():
-            if ds_id in self._wishlist:
-                yield projectable.to_image()
-
     def save_dataset(self, dataset_id, filename=None, writer=None,
                      overlay=None, decorate=None, compute=True, **kwargs):
         """Save the ``dataset_id`` to file using ``writer``.

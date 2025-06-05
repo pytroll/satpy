@@ -83,12 +83,12 @@ the specified colors.
     >>> import numpy as np
     >>> from satpy.composites import BWCompositor
     >>> from satpy.enhancements import colorize
-    >>> from satpy.writers.utils import to_image
+    >>> from trollimage.xrimage import XRImage
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
     >>> np.save("/tmp/binary_colormap.npy", arr)
     >>> compositor = BWCompositor("test", standard_name="colorized_ir_clouds")
     >>> composite = compositor((local_scene[10.8], ))
-    >>> img = to_image(composite)
+    >>> img = XRImage(composite)
     >>> kwargs = {"palettes": [{"filename": "/tmp/binary_colormap.npy",
     ...           "min_value": 223.15, "max_value": 303.15}]}
     >>> colorize(img, **kwargs)

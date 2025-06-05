@@ -554,17 +554,12 @@ Call Enhancement Functions
 
 To not use the YAML configuration files, you can also run the individual
 enhancement operations manually. First, the DataArray must be converted
-to an :class:`~trollimage.xrimage.XRImage` object using
-:func:`~satpy.writers.to_image`.
+to an :class:`~trollimage.xrimage.XRImage`.
 
 .. code-block:: python
 
-   from satpy.writers.utils import to_image
-   img = to_image(composite)
-
-Note this function is different than the ``get_enhanced_image`` function
-used in the previous section as ``to_image`` does not apply any configured
-enhancements.
+   from trollimage.xrimage import XRImage
+   img = XRImage(composite)
 
 Now it is possible to apply enhancements available in the ``XRImage`` class:
 

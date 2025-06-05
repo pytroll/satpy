@@ -30,47 +30,33 @@ import numpy as np
 import pytest
 import xarray as xr
 from trollimage.colormap import greys
+from trollimage.xrimage import XRImage
 
 from satpy.writers.core.image import ImageWriter
 
 
-class TestWritersModule:
-    """Test the writers module."""
+def test_xrimage_1d():
+    """Conversion to image."""
+    p = xr.DataArray(np.arange(25), dims=["y"])
+    with pytest.raises(ValueError, match="Data must have a 'y' and 'x' dimension"):
+        XRImage(p)
 
-    def test_to_image_1d(self):
-        """Conversion to image."""
-        from satpy.writers.utils import to_image
-        p = xr.DataArray(np.arange(25), dims=["y"])
-        with pytest.raises(ValueError, match="Need at least a 2D array to make an image."):
-            to_image(p)
 
-    @mock.patch("trollimage.xrimage.XRImage")
-    def test_to_image_2d(self, mock_geoimage):
-        """Conversion to image."""
-        from satpy.writers.utils import to_image
+def test_xrimage_2d():
+    """Conversion to image."""
+    data = np.arange(25).reshape((5, 5))
+    p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
+                                      palette=[0, 1, 2, 3, 4, 5]),
+                     dims=["y", "x"])
+    XRImage(p)
 
-        data = np.arange(25).reshape((5, 5))
-        p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
-                                          palette=[0, 1, 2, 3, 4, 5]),
-                         dims=["y", "x"])
-        to_image(p)
 
-        np.testing.assert_array_equal(
-            data, mock_geoimage.call_args[0][0].values)
-        mock_geoimage.reset_mock()
-
-    @mock.patch("trollimage.xrimage.XRImage")
-    def test_to_image_3d(self, mock_geoimage):
-        """Conversion to image."""
-        from satpy.writers.utils import to_image
-
-        data = np.arange(75).reshape((3, 5, 5))
-        p = xr.DataArray(data, dims=["bands", "y", "x"])
-        p["bands"] = ["R", "G", "B"]
-        to_image(p)
-        np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
-        np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
-        np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
+def test_xrimage_3d():
+    """Conversion to image."""
+    data = np.arange(75).reshape((3, 5, 5))
+    p = xr.DataArray(data, dims=["bands", "y", "x"])
+    p["bands"] = ["R", "G", "B"]
+    XRImage(p)
 
 
 class _CustomImageWriter(ImageWriter):
@@ -882,7 +868,6 @@ def test_group_results_by_output_file(tmp_path):
         "add_scale",
         "add_decorate",
         "get_enhanced_image",
-        "to_image",
         "split_results",
         "group_results_by_output_file",
         "compute_writer_results",
