@@ -54,12 +54,12 @@ class ImageWriter(Writer):
                 format being saved to. By default, this will default to using
                 the enhancement configuration files found using the default
                 :class:`~satpy.enhancements.enhancer.Enhancer` class. This can be set to
-                `False` so that no enhancments are performed. This can also
+                `False` so that no enhancements are performed. This can also
                 be an instance of the :class:`~satpy.enhancements.enhancer.Enhancer` class
                 if further custom enhancement is needed.
 
             kwargs (dict): Additional keyword arguments to pass to the
-                :class:`~satpy.writer.Writer` base class.
+                :class:`~satpy.writers.core.base.Writer` base class.
 
         .. versionchanged:: 0.10
 
@@ -96,7 +96,7 @@ class ImageWriter(Writer):
                      overlay=None, decorate=None, compute=True, units=None, **kwargs):
         """Save the ``dataset`` to a given ``filename``.
 
-        This method creates an enhanced image using :func:`get_enhanced_image`.
+        This method creates an enhanced image using :func:`~satpy.enhancements.enhancer.get_enhanced_image`.
         The image is then passed to :meth:`save_image`. See both of these
         functions for more details on the arguments passed to this method.
 

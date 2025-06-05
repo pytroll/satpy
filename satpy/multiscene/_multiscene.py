@@ -690,7 +690,7 @@ class MultiScene(object):
                 is a dask ``Client`` object then it will be used for
                 distributed computation.
             enh_args (Mapping): Optional, arguments passed to
-                :func:`satpy.writers.utils.get_enhanced_image`.  If this includes a
+                :func:`satpy.enhancements.enhancer.get_enhanced_image`.  If this includes a
                 keyword "decorate", in any text added
                 to the image, string formatting will be applied based on
                 dataset attributes.  For example, passing

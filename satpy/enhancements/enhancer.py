@@ -177,10 +177,10 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
             `False` so that no enhancments are performed. This can also
             be an instance of the :class:`~satpy.enhancements.enhancer.Enhancer` class
             if further custom enhancement is needed.
-        overlay (dict): Options for image overlays. See :func:`add_overlay`
+        overlay (dict): Options for image overlays. See :func:`~satpy.enhancements.overlays.add_overlay`
             for available options.
         decorate (dict): Options for decorating the image. See
-            :func:`add_decorate` for available options.
+            :func:`~satpy.enhancements.overlays.add_decorate` for available options.
         fill_value (int or float): Value to use when pixels are masked or
             invalid. Default of `None` means to create an alpha channel.
             See :meth:`~trollimage.xrimage.XRImage.finalize` for more

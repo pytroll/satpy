@@ -1014,7 +1014,7 @@ class Scene:
             overlay (dict, Optional):
                 Add an overlay before showing the image.  The keys/values for
                 this dictionary are as the arguments for
-                :meth:`~satpy.writers.add_overlay`.  The dictionary should
+                :meth:`~satpy.enhancements.overlays.add_overlay`.  The dictionary should
                 contain at least the key ``"coast_dir"``, which should refer
                 to a top-level directory containing shapefiles.  See the
                 pycoast_ package documentation for coastline shapefile
@@ -1211,9 +1211,9 @@ class Scene:
                 Default to ``"geotiff"``. If not provided, but ``filename`` is
                 provided then the filename's extension is used to determine
                 the best writer to use.
-            overlay (dict): See :func:`satpy.writers.add_overlay`. Only valid
+            overlay (dict): See :func:`satpy.enhancements.overlays.add_overlay`. Only valid
                 for "image" writers like `geotiff` or `simple_image`.
-            decorate (dict): See :func:`satpy.writers.add_decorate`. Only valid
+            decorate (dict): See :func:`satpy.enhancements.overlays.add_decorate`. Only valid
                 for "image" writers like `geotiff` or `simple_image`.
             compute (bool): If `True` (default), compute all of the saves to
                 disk. If `False` then the return value is either a

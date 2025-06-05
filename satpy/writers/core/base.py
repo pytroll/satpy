@@ -155,7 +155,7 @@ class Writer(Plugin, DataDownloadMixin):
         this simply calls `save_dataset` for each dataset provided.
 
         Args:
-            datasets (iterable): Iterable of `xarray.DataArray` objects to
+            datasets (Iterable): Iterable of `xarray.DataArray` objects to
                                  save using this writer.
             compute (bool): If `True` (default), compute all the saves to
                             disk. If `False` then the return value is either

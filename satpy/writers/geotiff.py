@@ -169,7 +169,7 @@ class GeoTIFFWriter(ImageWriter):
                 get formatted with data attributes.
             compute: Compute dask arrays and save the image
                 immediately. If ``False`` then the return value can be passed
-                to :func:`~satpy.writers.compute_writer_results` to do the
+                to :func:`~satpy.writers.core.compute.compute_writer_results` to do the
                 computation. This is useful when multiple images may share
                 input calculations where dask can benefit from not repeating
                 them multiple times. Defaults to ``True`` in the writer by
