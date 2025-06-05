@@ -2171,3 +2171,43 @@ class TestRealisticColors:
         np.testing.assert_allclose(arr[0, :, :], expected_red)
         np.testing.assert_allclose(arr[1, :, :], expected_green)
         np.testing.assert_allclose(arr[2, :, :], 3.0)
+
+
+class TestFireMaskCompositor:
+    """Test fire mask compositors."""
+
+    def test_SimpleFireMaskCompositor(self):
+        """Test the SimpleFireMaskCompositor class."""
+        from satpy.composites import SimpleFireMaskCompositor
+        rows = 2
+        cols = 2
+        ir_105 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                              attrs={"name": "ir_105"})
+        ir_105[0, 0] = 300
+        ir_38 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                             attrs={"name": "ir_38"})
+        ir_38[0, 0] = 400
+        nir_22 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                              attrs={"name": "nir_22"})
+        nir_22[0, 0] = 100
+        vis_06 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                              attrs={"name": "vis_06"})
+        vis_06[0, 0] = 5
+
+        projectables = (ir_105, ir_38, nir_22, vis_06)
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = SimpleFireMaskCompositor(
+                "simple_fci_fire_mask",
+                prerequisites=("ir_105", "ir_38", "nir_22", "vis_06"),
+                standard_name="simple_fci_fire_mask",
+                test_thresholds=[293, 20, 15, 340])
+            res = comp(projectables)
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "simple_fci_fire_mask"
+        assert res.data.dtype == bool
+
+        assert np.array_equal(res.data.compute(),
+                              np.array([[True, False], [False, False]]))

@@ -151,7 +151,7 @@ composites:
 
   true_color_with_night_ir:
     description: >
-      True Color during daytime, and a simple IR105 layer during nighttime.
+      True Color during daytime, and the night_ir during nighttime.
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
     lim_low: 78
@@ -162,7 +162,7 @@ composites:
 
   true_color_with_night_ir_hires:
     description: >
-      True Color during daytime, and a simple IR105 layer during nighttime.
+      True Color during daytime, and the night_ir during nighttime.
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: fci_day_night_blend
     lim_low: 78
@@ -245,6 +245,57 @@ composites:
     prerequisites:
       - flash_age
       - true_color_with_night_ir105
+
+  ### True Color with Fires
+  true_color_flames_with_night_ir105:
+    description: >
+      True Color with a simple night layer overlayed with a fire visualisation. Works best with HRFI+FDHSI inputs.
+      Originally inspired by the work of Pierre Markuse
+      on S2 https://custom-scripts.sentinel-hub.com/custom-scripts/sentinel-2/markuse_fire/
+      WARNING: This composite uses an extremely simple fire detector to identify fire pixels, so it is prone
+      to false alarms and missed detection. It is intended solely for PR-like visualisation purposes of large fires,
+      and no other (operational) use.
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: true_color_flames
+    prerequisites:
+      - flames_masked
+      - true_color_with_night_ir105
+
+  flames_masked:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    standard_name: fci_flames_colorised
+    conditions:
+      - method: less
+        value: 0.5
+        transparency: 100
+      - method: isnan
+        transparency: 100
+    prerequisites:
+      # Composite
+      - name: fci_fire_channels_sum
+      # Data used in masking
+      - name: simple_fci_fire_mask
+
+  simple_fci_fire_mask:
+    compositor: !!python/name:satpy.composites.SimpleFireMaskCompositor
+    standard_name: simple_fci_fire_mask
+    prerequisites:
+      - ir_105
+      - ir_38
+      - nir_22
+      - vis_06
+    test_thresholds:
+      - 293
+      - 20
+      - 15
+      - 340
+
+  fci_fire_channels_sum:
+    standard_name: fci_fire_channels_sum
+    compositor: !!python/name:satpy.composites.SumCompositor
+    prerequisites:
+      - name: ir_38
+      - name: nir_22
 
   ### GeoColor
   geo_color:
