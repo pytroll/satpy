@@ -938,7 +938,7 @@ def enhance2dataset(dset, convert_p=False):
 
 
 def _get_data_from_enhanced_image(dset, convert_p):
-    from satpy.writers.utils import get_enhanced_image
+    from satpy.enhancements.enhancer import get_enhanced_image
 
     img = get_enhanced_image(dset)
     if convert_p and img.mode == "P":

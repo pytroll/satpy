@@ -31,8 +31,8 @@ from pyproj import Geod
 from pyresample import create_area_def
 
 import satpy.resample
+from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.tests.utils import xfail_skyfield_unstable_numpy2
-from satpy.writers.utils import get_enhanced_image
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:

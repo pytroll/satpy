@@ -1405,7 +1405,7 @@ class AWIPSTiledWriter(Writer):
                           "that aren't RGBs to AWIPS Tiled format: %s", ds.name)
             else:
                 # this is an RGB
-                from satpy.writers.utils import get_enhanced_image
+                from satpy.enhancements.enhancer import get_enhanced_image
 
                 img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
                 res_data = img.finalize(fill_value=0, dtype=np.float32)[0]

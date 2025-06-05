@@ -638,7 +638,7 @@ _nwcsaf_geo_props = {
 def test_nwcsaf_comps(fake_area, tmp_path, data):
     """Test loading NWCSAF composites."""
     from satpy import Scene
-    from satpy.writers.utils import get_enhanced_image
+    from satpy.enhancements.enhancer import get_enhanced_image
     (flavour, dvname, altname, palettename, statusname, comp, filelabel, dtp) = _nwcsaf_geo_props[data]
     rng = (0, 100) if dtp == "uint8" else (-100, 1000)
     if flavour == "geo":

@@ -30,7 +30,7 @@ from pyresample import create_area_def
 from trollimage.xrimage import XRImage
 
 from satpy import Scene
-from satpy.writers.utils import get_enhanced_image
+from satpy.enhancements.enhancer import get_enhanced_image
 
 try:
     from math import prod

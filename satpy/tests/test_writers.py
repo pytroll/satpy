@@ -142,8 +142,7 @@ enhancements:
         """Test that a DataArray with two sensors works."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "test1",
@@ -166,8 +165,7 @@ enhancements:
         """Test that a DataArray with two sensors can match exactly."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "my_comp",
@@ -190,8 +188,7 @@ enhancements:
         """Test Enhancer doesn't fail when query includes bad values."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name=["I", "am", "invalid"], sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
@@ -246,8 +243,7 @@ enhancements:
         """Test Enhancer doesn't fail with empty enhancement file."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor="test_empty", mode="L"),
                        dims=["y", "x"])
@@ -261,8 +257,7 @@ enhancements:
         """Test enhancing an image that has no configuration sections."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
@@ -277,7 +272,7 @@ enhancements:
         """Test turning off enhancements."""
         from xarray import DataArray
 
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", sensor="test_sensor", mode="L"),
                        dims=["y", "x"])
@@ -313,8 +308,7 @@ enhancements:
         """Test enhancing an image with a configuration section."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", sensor="test_sensor", mode="L"),
                        dims=["y", "x"])
@@ -342,8 +336,7 @@ enhancements:
         """Test enhancing an image with a more detailed configuration section."""
         from xarray import DataArray
 
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", units="kelvin",
                                   sensor="test_sensor", mode="L"),
@@ -409,8 +402,7 @@ enhancements:
         return ds
 
     def _get_enhanced_image(self, data_arr, test_configs_path):
-        from satpy.enhancements.enhancer import Enhancer
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         e = Enhancer()
         assert e.enhancement_tree is not None
         img = get_enhanced_image(data_arr, enhance=e)
@@ -740,7 +732,7 @@ class TestOverlays:
         """Test basic add_overlay usage with RGB data."""
         from pycoast import ContourWriterAGG
 
-        from satpy.writers.overlay_utils import _burn_overlay, add_overlay
+        from satpy.enhancements.overlays import _burn_overlay, add_overlay
         coast_dir = "/path/to/coast/data"
         with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
             apply_pil.return_value = self.orig_rgb_img
@@ -787,7 +779,7 @@ class TestOverlays:
 
     def test_add_overlay_basic_l(self):
         """Test basic add_overlay usage with L data."""
-        from satpy.writers.overlay_utils import add_overlay
+        from satpy.enhancements.overlays import add_overlay
         new_img = add_overlay(self.orig_l_img, self.area_def, "", fill_value=0)
         assert "RGB" == new_img.mode
         new_img = add_overlay(self.orig_l_img, self.area_def, "")
@@ -795,13 +787,13 @@ class TestOverlays:
 
     def test_add_decorate_basic_rgb(self):
         """Test basic add_decorate usage with RGB data."""
-        from satpy.writers.overlay_utils import add_decorate
+        from satpy.enhancements.overlays import add_decorate
         new_img = add_decorate(self.orig_rgb_img, **self.decorate)
         assert "RGBA" == new_img.mode
 
     def test_add_decorate_basic_l(self):
         """Test basic add_decorate usage with L data."""
-        from satpy.writers.overlay_utils import add_decorate
+        from satpy.enhancements.overlays import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
         assert "RGBA" == new_img.mode
 

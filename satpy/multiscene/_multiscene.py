@@ -462,7 +462,7 @@ class MultiScene(object):
 
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import get_enhanced_image
 
         valid_datasets = [ds for ds in all_datasets if ds is not None]
         first_dataset = valid_datasets[0]
@@ -502,7 +502,7 @@ class MultiScene(object):
 
         Yet a single image frame from a dataset.
         """
-        from satpy.writers.utils import get_enhanced_image
+        from satpy.enhancements.enhancer import get_enhanced_image
 
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:

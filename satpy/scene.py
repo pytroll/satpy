@@ -1023,8 +1023,8 @@ class Scene:
         .. _pycoast: https://pycoast.readthedocs.io/
 
         """
+        from satpy.enhancements.enhancer import get_enhanced_image
         from satpy.utils import in_ipynb
-        from satpy.writers.utils import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         if not in_ipynb():
             img.show()

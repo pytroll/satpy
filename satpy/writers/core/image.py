@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import typing
 
+from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.writers.core.base import Writer
-from satpy.writers.utils import get_enhanced_image
 
 if typing.TYPE_CHECKING:
     from trollimage.xrimage import XRImage
