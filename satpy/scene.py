@@ -22,7 +22,7 @@ import logging
 import os
 import warnings
 from collections.abc import Iterable
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 import xarray as xr
@@ -1030,23 +1030,26 @@ class Scene:
             img.show()
         return img
 
-    def to_geoviews(self, gvtype=None, datasets=None,
-                    kdims=None, vdims=None, dynamic=False):
+    def to_geoviews(
+            self,
+            gvtype: Any | None = None,
+            datasets: list | None = None,
+            vdims: list[str] | None = None,
+            dynamic: bool = False,
+    ):
         """Convert satpy Scene to geoviews.
 
         Args:
-            scn (satpy.scene.Scene): Satpy Scene.
-            gvtype (gv plot type):
+            scn: Satpy Scene.
+            gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to :class:`geoviews.Image`.
+                Default to ``geoviews.Image``.
                 See Geoviews documentation for details.
-            datasets (list): Limit included products to these datasets
-            kdims (list of str):
-                Key dimensions. See geoviews documentation for more information.
-            vdims (list of str, Optional):
+            datasets: Limit included products to these datasets
+            vdims:
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic (bool, Optional): Load and compute data on-the-fly during
+            dynamic: Load and compute data on-the-fly during
                 visualization. Default is ``False``. See
                 https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
                 for more information. Has no effect when data to be visualized
@@ -1061,8 +1064,8 @@ class Scene:
 
         """
         from satpy._scene_converters import to_geoviews
-        return to_geoviews(self, gvtype=None, datasets=None,
-                           kdims=None, vdims=None, dynamic=False)
+        return to_geoviews(self, gvtype=gvtype, datasets=datasets,
+                           vdims=vdims, dynamic=dynamic)
 
 
     def to_hvplot(self, datasets=None, *args, **kwargs):
