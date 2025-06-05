@@ -177,3 +177,31 @@ See the
 `GDAL GeoTIFF documentation <https://gdal.org/drivers/raster/gtiff.html#creation-options>`_
 for more information on the creation options available including other
 compression choices.
+
+Why is matplotlib returning the error `Invalid shape (3, Ny, Nx) for image data` when using `pyplot.imshow`?
+------------------------------------------------------------------------------------------------------------
+
+Satpy datasets are stored in memory with the dimensions of bands first, then the vertical
+and horizontal spatial indices, whereas matplotlib expects an array of shape ``(M, N, 3)``
+(RGB) or ``(M, N, 4)`` (RGBA).
+
+Satpy's datasets can 'be converted to a proper range of value by the enhancements, so for
+showing the ``natural_color`` composite, for instance, the following code can be used,
+assuming a scene loaded in the variable ``scn``.
+
+.. code-block:: python
+
+   im = satpy.composites.get_enhanced_image(scn['natural_color'])
+   im.data.plot.imshow(rgb='bands')
+
+Here, the utility :func:`~xarray.plot.imshow` will prepare the data the matplotlib's
+routine. A similar result can be obtained as follows:
+
+.. code-block:: python
+
+    plt.imshow((sub_scn['natural_color'].transpose('y', 'x', 'bands')/100*255).astype('uint8'))
+
+.. note::
+
+    To understand how to exploit image data in your Python programs, see the section on
+    :ref:`enhancements`.
