@@ -541,7 +541,7 @@ enhancements applied. The enhanced DataArray can then be access via the
 
 .. code-block:: python
 
-   from satpy.writers.utils import get_enhanced_image
+   from satpy.enhancements.enhancer import get_enhanced_image
 
    scn = Scene(...)
    scn.load(["my_dataset"])
