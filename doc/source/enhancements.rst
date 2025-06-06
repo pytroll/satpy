@@ -283,7 +283,7 @@ path to match your particular DataArray's metadata:
 
 .. code-block:: python
 
-   from satpy.writers import Enhancer
+   from satpy.enhancements.enhancer import Enhancer
    enh = Enhancer()
    # NOTE: This is not loading sensor-specific enhancement configs
    # You would need `enh.add_sensor_enhancements(["abi"])`
@@ -533,7 +533,7 @@ Get Enhanced Image
 ^^^^^^^^^^^^^^^^^^
 
 If you have a :class:`~satpy.scene.Scene` object named ``scn`` with
-loaded data, you can run the :func:`~satpy.writers.get_enhanced_image`
+loaded data, you can run the :func:`~satpy.enhancements.enhancer.get_enhanced_image`
 function. This function will convert the provided :class:`xarray.DataArray`
 into a :class:`~trollimage.xrimage.XRImage` object with YAML configured
 enhancements applied. The enhanced DataArray can then be access via the
@@ -541,7 +541,7 @@ enhancements applied. The enhanced DataArray can then be access via the
 
 .. code-block:: python
 
-   from satpy.writers import get_enhanced_image
+   from satpy.enhancements.enhancer import get_enhanced_image
 
    scn = Scene(...)
    scn.load(["my_dataset"])
@@ -554,17 +554,12 @@ Call Enhancement Functions
 
 To not use the YAML configuration files, you can also run the individual
 enhancement operations manually. First, the DataArray must be converted
-to an :class:`~trollimage.xrimage.XRImage` object using
-:func:`~satpy.writers.to_image`.
+to an :class:`~trollimage.xrimage.XRImage`.
 
 .. code-block:: python
 
-   from satpy.writers import to_image
-   img = to_image(composite)
-
-Note this function is different than the ``get_enhanced_image`` function
-used in the previous section as ``to_image`` does not apply any configured
-enhancements.
+   from trollimage.xrimage import XRImage
+   img = XRImage(composite)
 
 Now it is possible to apply enhancements available in the ``XRImage`` class:
 

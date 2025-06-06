@@ -97,11 +97,11 @@ def get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height):
         sat_lon (numbers.Number): Satellite longitude in geodetic coordinates [degrees]
         sat_lat (numbers.Number): Satellite latitude in geodetic coordinates [degrees]
         sat_alt (numbers.Number): Satellite altitude above the Earth surface [m]
-        lon (array or numbers.Number): Longitudes of pixel or pixels to be corrected,
+        lon (dask.array.Array or numbers.Number): Longitudes of pixel or pixels to be corrected,
             in geodetic coordinates [degrees]
-        lat (array or numbers.Number): Latitudes of pixel/pixels to be corrected, in
+        lat (dask.array.Array or numbers.Number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [degrees]
-        height (array or numbers.Number): Heights of pixels on which the correction
+        height (dask.array.Array or numbers.Number): Heights of pixels on which the correction
             will be based.  Typically this is the cloud top height. [m]
 
     Returns:
@@ -126,7 +126,7 @@ def get_surface_parallax_displacement(
     identical to :func:`get_parallax_corrected_lonlats`.
 
     Returns:
-        (numbers.Number, array): parallax displacement in meters
+        (numbers.Number, dask.array.Array): parallax displacement in meters
     """
     (corr_lon, corr_lat) = get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height)
     # Get parallax displacement
@@ -145,11 +145,11 @@ def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distan
         sat_lon (numbers.Number): Satellite longitude in geodetic coordinates [degrees]
         sat_lat (numbers.Number): Satellite latitude in geodetic coordinates [degrees]
         sat_alt (numbers.Number): Satellite altitude above the Earth surface [m]
-        lon (array or numbers.Number): Longitudes of pixel or pixels to be corrected,
+        lon (dask.array.Array or numbers.Number): Longitudes of pixel or pixels to be corrected,
             in geodetic coordinates [degrees]
-        lat (array or numbers.Number): Latitudes of pixel/pixels to be corrected, in
+        lat (dask.array.Array or numbers.Number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [degrees]
-        parallax_distance (array or numbers.Number): Cloud to ground distance with parallax
+        parallax_distance (dask.array.Array or numbers.Number): Cloud to ground distance with parallax
             effect [m].
 
     Returns:

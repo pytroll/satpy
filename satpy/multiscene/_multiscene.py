@@ -31,7 +31,6 @@ import xarray as xr
 
 from satpy.dataset import DataID
 from satpy.scene import Scene
-from satpy.writers import get_enhanced_image, split_results
 
 try:
     import imageio
@@ -380,6 +379,8 @@ class MultiScene(object):
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
+        from satpy.writers.core.compute import split_results
+
         def load_data(q):
             idx = 0
             while True:
@@ -461,6 +462,8 @@ class MultiScene(object):
 
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
+        from satpy.enhancements.enhancer import get_enhanced_image
+
         valid_datasets = [ds for ds in all_datasets if ds is not None]
         first_dataset = valid_datasets[0]
         last_dataset = valid_datasets[-1]
@@ -499,6 +502,8 @@ class MultiScene(object):
 
         Yet a single image frame from a dataset.
         """
+        from satpy.enhancements.enhancer import get_enhanced_image
+
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._format_decoration(
@@ -685,7 +690,7 @@ class MultiScene(object):
                 is a dask ``Client`` object then it will be used for
                 distributed computation.
             enh_args (Mapping): Optional, arguments passed to
-                :func:`satpy.writers.get_enhanced_image`.  If this includes a
+                :func:`satpy.enhancements.enhancer.get_enhanced_image`.  If this includes a
                 keyword "decorate", in any text added
                 to the image, string formatting will be applied based on
                 dataset attributes.  For example, passing

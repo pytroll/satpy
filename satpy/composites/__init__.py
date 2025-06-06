@@ -24,14 +24,12 @@ from typing import Optional, Sequence
 import dask.array as da
 import numpy as np
 import xarray as xr
-from trollimage.colormap import Colormap
 
 import satpy
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.utils import unify_chunks
-from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 
@@ -607,6 +605,8 @@ class ColormapCompositor(GenericCompositor):
           will be used as values of the colormap.
 
         """
+        from trollimage.colormap import Colormap
+
         squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         cmap = Colormap.from_array_with_metadata(
                 palette,
@@ -938,6 +938,8 @@ def enhance2dataset(dset, convert_p=False):
 
 
 def _get_data_from_enhanced_image(dset, convert_p):
+    from satpy.enhancements.enhancer import get_enhanced_image
+
     img = get_enhanced_image(dset)
     if convert_p and img.mode == "P":
         img = _apply_palette_to_image(img)

@@ -24,7 +24,7 @@ from collections import OrderedDict
 import numpy as np
 import xarray as xr
 
-from satpy.writers.utils import flatten_dict
+from satpy.utils import flatten_dict
 
 logger = logging.getLogger(__name__)
 

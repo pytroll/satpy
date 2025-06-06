@@ -30,7 +30,7 @@ from unittest import mock
 import pytest
 
 import satpy
-from satpy import DatasetDict
+from satpy import DatasetDict, available_writers
 from satpy._config import cached_entry_point
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
@@ -222,7 +222,7 @@ def _write_fake_writer_yaml(yaml_filename: str) -> None:
         comps_file.write(f"""
 writer:
     name: {writer_name}
-    writer: !!python/name:satpy.writers.Writer
+    writer: !!python/name:satpy.writers.core.base.Writer
 """)
 
 
@@ -336,13 +336,12 @@ class TestPluginsConfigs:
     @pytest.mark.parametrize("specified_writer", [None, "fake_writer"])
     def test_plugin_writer_configs(self, fake_writer_plugin_etc_path, specified_writer):
         """Test that writers can be loaded from plugin entry points."""
-        from satpy.writers import configs_for_writer
+        from satpy.writers.core.config import configs_for_writer
         writer_yaml_path = fake_writer_plugin_etc_path / "writers" / "fake_writer.yaml"
         self._get_and_check_reader_writer_configs(specified_writer, configs_for_writer, writer_yaml_path)
 
     def test_plugin_writer_available_writers(self, fake_writer_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.writers import available_writers
         self._check_available_component(available_writers, "fake_writer")
 
     @staticmethod

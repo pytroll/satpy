@@ -22,7 +22,7 @@ import logging
 import os
 import warnings
 from collections.abc import Iterable
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 import xarray as xr
@@ -37,7 +37,6 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers.core.loading import load_readers
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
-from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
 
@@ -1015,7 +1014,7 @@ class Scene:
             overlay (dict, Optional):
                 Add an overlay before showing the image.  The keys/values for
                 this dictionary are as the arguments for
-                :meth:`~satpy.writers.add_overlay`.  The dictionary should
+                :meth:`~satpy.enhancements.overlays.add_overlay`.  The dictionary should
                 contain at least the key ``"coast_dir"``, which should refer
                 to a top-level directory containing shapefiles.  See the
                 pycoast_ package documentation for coastline shapefile
@@ -1024,30 +1023,33 @@ class Scene:
         .. _pycoast: https://pycoast.readthedocs.io/
 
         """
+        from satpy.enhancements.enhancer import get_enhanced_image
         from satpy.utils import in_ipynb
-        from satpy.writers import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         if not in_ipynb():
             img.show()
         return img
 
-    def to_geoviews(self, gvtype=None, datasets=None,
-                    kdims=None, vdims=None, dynamic=False):
+    def to_geoviews(
+            self,
+            gvtype: Any | None = None,
+            datasets: list | None = None,
+            vdims: list[str] | None = None,
+            dynamic: bool = False,
+    ):
         """Convert satpy Scene to geoviews.
 
         Args:
-            scn (satpy.scene.Scene): Satpy Scene.
-            gvtype (gv plot type):
+            scn: Satpy Scene.
+            gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to :class:`geoviews.Image`.
+                Default to ``geoviews.Image``.
                 See Geoviews documentation for details.
-            datasets (list): Limit included products to these datasets
-            kdims (list of str):
-                Key dimensions. See geoviews documentation for more information.
-            vdims (list of str, Optional):
+            datasets: Limit included products to these datasets
+            vdims:
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic (bool, Optional): Load and compute data on-the-fly during
+            dynamic: Load and compute data on-the-fly during
                 visualization. Default is ``False``. See
                 https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
                 for more information. Has no effect when data to be visualized
@@ -1062,8 +1064,8 @@ class Scene:
 
         """
         from satpy._scene_converters import to_geoviews
-        return to_geoviews(self, gvtype=None, datasets=None,
-                           kdims=None, vdims=None, dynamic=False)
+        return to_geoviews(self, gvtype=gvtype, datasets=datasets,
+                           vdims=vdims, dynamic=dynamic)
 
 
     def to_hvplot(self, datasets=None, *args, **kwargs):
@@ -1197,12 +1199,6 @@ class Scene:
                          include_orig_name=include_orig_name,
                          numeric_name_prefix=numeric_name_prefix)
 
-    def images(self):
-        """Generate images for all the datasets from the scene."""
-        for ds_id, projectable in self._datasets.items():
-            if ds_id in self._wishlist:
-                yield projectable.to_image()
-
     def save_dataset(self, dataset_id, filename=None, writer=None,
                      overlay=None, decorate=None, compute=True, **kwargs):
         """Save the ``dataset_id`` to file using ``writer``.
@@ -1218,9 +1214,9 @@ class Scene:
                 Default to ``"geotiff"``. If not provided, but ``filename`` is
                 provided then the filename's extension is used to determine
                 the best writer to use.
-            overlay (dict): See :func:`satpy.writers.add_overlay`. Only valid
+            overlay (dict): See :func:`satpy.enhancements.overlays.add_overlay`. Only valid
                 for "image" writers like `geotiff` or `simple_image`.
-            decorate (dict): See :func:`satpy.writers.add_decorate`. Only valid
+            decorate (dict): See :func:`satpy.enhancements.overlays.add_decorate`. Only valid
                 for "image" writers like `geotiff` or `simple_image`.
             compute (bool): If `True` (default), compute all of the saves to
                 disk. If `False` then the return value is either a
@@ -1242,6 +1238,8 @@ class Scene:
             has this method.
 
         """
+        from satpy.writers.core.config import load_writer
+
         if writer is None and filename is None:
             writer = "geotiff"
         elif writer is None:
@@ -1297,6 +1295,7 @@ class Scene:
 
         """
         from satpy._scene_converters import _get_dataarrays_from_identifiers
+        from satpy.writers.core.config import load_writer
 
         dataarrays = _get_dataarrays_from_identifiers(self, datasets)
         if not dataarrays:

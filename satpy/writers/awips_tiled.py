@@ -232,8 +232,7 @@ from trollsift.parser import Parser, StringFormatter
 
 from satpy import __version__
 from satpy.decision_tree import DecisionTree
-from satpy.enhancements.enhancer import Enhancer
-from satpy.writers import Writer, get_enhanced_image
+from satpy.writers.core.base import Writer
 
 LOG = logging.getLogger(__name__)
 DEFAULT_OUTPUT_PATTERN = "{source_name}_AII_{platform_name}_{sensor}_" \
@@ -1302,6 +1301,8 @@ class AWIPSTiledWriter(Writer):
     def enhancer(self):
         """Get lazy loaded enhancer object only if needed."""
         if self._enhancer is None:
+            from satpy.enhancements.enhancer import Enhancer
+
             self._enhancer = Enhancer()
         return self._enhancer
 
@@ -1404,6 +1405,8 @@ class AWIPSTiledWriter(Writer):
                           "that aren't RGBs to AWIPS Tiled format: %s", ds.name)
             else:
                 # this is an RGB
+                from satpy.enhancements.enhancer import get_enhanced_image
+
                 img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
                 res_data = img.finalize(fill_value=0, dtype=np.float32)[0]
                 new_datasets.extend(self._split_rgbs(res_data))

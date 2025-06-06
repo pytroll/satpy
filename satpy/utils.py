@@ -560,7 +560,7 @@ def check_satpy(readers=None, writers=None, packages=None):
 
     """
     from satpy.readers.core.config import configs_for_reader
-    from satpy.writers import configs_for_writer
+    from satpy.writers.core.config import configs_for_writer
 
     print("Readers")  # noqa: T201
     print("=======")  # noqa: T201
@@ -926,3 +926,18 @@ def _import_and_warn_new_location(new_module: str, name: str) -> Any:
         stacklevel=3,
     )
     return obj
+
+
+def flatten_dict(d, parent_key="", sep="_"):
+    """Flatten a nested dictionary.
+
+    Based on https://stackoverflow.com/a/6027615/5703449
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, parent_key=new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)

@@ -25,7 +25,8 @@ import numpy as np
 from PIL import Image, ImagePalette
 
 from satpy.dataset import DataID, DataQuery
-from satpy.writers import ImageWriter, get_enhanced_image
+from satpy.enhancements.enhancer import get_enhanced_image
+from satpy.writers.core.image import ImageWriter
 
 IMAGEDESCRIPTION = 270
 
