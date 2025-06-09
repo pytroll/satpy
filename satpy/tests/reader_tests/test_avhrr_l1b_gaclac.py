@@ -26,6 +26,14 @@ import numpy as np
 import pytest
 import xarray as xr
 
+
+def test_available_readers():
+    """Test execution order failures of this module."""
+    from satpy.readers.core.config import available_readers
+
+    available_readers()
+
+
 GAC_PATTERN = '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
 EOSIP_PATTERN = '{platform_id:3s}_RPRO_AVH_L1B_1P_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit_number:06d}/image.l1b'  # noqa
 
