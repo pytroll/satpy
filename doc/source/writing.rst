@@ -140,14 +140,6 @@ and save them all at once.
     ...                          compute=False)
     >>> results = [res1, res2]
     >>> compute_writer_results(results)
-    >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
-    ...                          writer="simple_image",
-    ...                          compute=False)
-    >>> res2 = scn.save_datasets(filename="/tmp/{name}.tif",
-    ...                          writer="geotiff",
-    ...                          compute=False)
-    >>> results = [res1, res2]
-    >>> compute_writer_results(results)
 
 
 Adding text to images
