@@ -271,7 +271,7 @@ datasets:
   B04:
     name: B04
     sensor: ahi
-    wavelength: [0.84, 0.86, 0.88]
+    wavelength: [0.85, 0.86, 0.87]
     resolution: 4000
     calibration:
       reflectance:
