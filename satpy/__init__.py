@@ -33,6 +33,6 @@ from satpy.readers.core.config import available_readers  # noqa
 from satpy.readers.core.grouping import find_files_and_readers  # noqa
 from satpy.scene import Scene  # noqa
 from satpy.utils import get_logger  # noqa
-from satpy.writers import available_writers  # noqa
+from satpy.writers.core.config import available_writers  # noqa
 
 log = get_logger("satpy")

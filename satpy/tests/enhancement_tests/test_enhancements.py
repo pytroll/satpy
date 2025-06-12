@@ -117,8 +117,8 @@ class TestEnhancementStretch:
         ],
     )
     @pytest.mark.parametrize("input_data_name", ["ch1", "ch2", "rgb"])
-    def test_apply_enhancement(self, input_data_name, decorator, exp_call_cls):
-        """Test the 'apply_enhancement' utility function."""
+    def test_enhancement_decorators(self, input_data_name, decorator, exp_call_cls):
+        """Test the utility decorators."""
 
         def _enh_func(img):
             def _calc_func(data):
@@ -638,7 +638,7 @@ _nwcsaf_geo_props = {
 def test_nwcsaf_comps(fake_area, tmp_path, data):
     """Test loading NWCSAF composites."""
     from satpy import Scene
-    from satpy.writers import get_enhanced_image
+    from satpy.enhancements.enhancer import get_enhanced_image
     (flavour, dvname, altname, palettename, statusname, comp, filelabel, dtp) = _nwcsaf_geo_props[data]
     rng = (0, 100) if dtp == "uint8" else (-100, 1000)
     if flavour == "geo":

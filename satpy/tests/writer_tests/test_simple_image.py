@@ -66,7 +66,7 @@ class TestPillowWriter(unittest.TestCase):
         """Test writing datasets with delayed computation."""
         from dask.delayed import Delayed
 
-        from satpy.writers import compute_writer_results
+        from satpy.writers.core.compute import compute_writer_results
         from satpy.writers.simple_image import PillowWriter
         datasets = self._get_test_datasets()
         w = PillowWriter(base_dir=self.base_dir)

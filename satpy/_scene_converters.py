@@ -15,11 +15,17 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helper functions for converting the Scene object to some other object."""
 
+from __future__ import annotations
+
+import typing
+
 import xarray as xr
 
 from satpy.composites import enhance2dataset
 from satpy.dataset import DataID
 
+if typing.TYPE_CHECKING:
+    from satpy.scene import Scene
 
 def _get_dataarrays_from_identifiers(scn, identifiers):
     """Return a list of DataArray based on a single or list of identifiers.
@@ -37,23 +43,26 @@ def _get_dataarrays_from_identifiers(scn, identifiers):
     return dataarrays
 
 
-def to_geoviews(scn, gvtype=None, datasets=None,
-                kdims=None, vdims=None, dynamic=False):
+def to_geoviews(
+        scn: Scene,
+        gvtype: typing.Any | None = None,
+        datasets: list | None = None,
+        vdims: list[str] | None = None,
+        dynamic: bool = False,
+):
         """Convert satpy Scene to geoviews.
 
         Args:
-            scn (satpy.scene.Scene): Satpy Scene.
-            gvtype (gv plot type):
+            scn: Satpy Scene.
+            gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to :class:`geoviews.element.geo.Image`.
+                Default to ``geoviews.Image``.
                 See Geoviews documentation for details.
-            datasets (list): Limit included products to these datasets
-            kdims (list of str):
-                Key dimensions. See geoviews documentation for more information.
-            vdims (list of str, Optional):
+            datasets: Limit included products to these datasets
+            vdims:
                 Value dimensions. See geoviews documentation for more information.
                 If not given defaults to first data variable
-            dynamic (bool, Optional): Load and compute data on-the-fly during
+            dynamic: Load and compute data on-the-fly during
                 visualization. Default is ``False``. See
                 https://holoviews.org/user_guide/Gridded_Datasets.html#working-with-xarray-data-types
                 for more information. Has no effect when data to be visualized
