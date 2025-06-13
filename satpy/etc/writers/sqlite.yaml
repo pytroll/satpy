@@ -1,5 +1,0 @@
-writer:
-  name: sqlite
-  description: Write features to sqlite db
-  writer: !!python/name:satpy.writers.feature.sqlite
-  filename: '{name}.sqlite'

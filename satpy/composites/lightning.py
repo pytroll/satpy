@@ -21,6 +21,7 @@ import logging
 
 import numpy as np
 import xarray as xr
+import pyproj as pro
 
 from satpy.composites import CompositeBase
 
@@ -162,16 +163,18 @@ class FlashGeometry(CompositeBase):
         new_attrs["name"] = "acc_flash_geometry"
         return GeometryContainer(data=res, attrs=new_attrs)
 
-def CreateFlashGeometry(x, y, flashtime, group_time):
+def CreateFlashGeometry(x, y, flashtime, group_time, distance_threshold):
     """Create flash geometry based on group centroids
 
     Based on code [1] from Pieter Groenemeijer from ESSL create flash geometries.
 
     Args:
-        x (list): lons
-        y (list): lats
+        x (list): lons of flash groups
+        y (list): lats of flash groups
         flashtime (list): flashtime from li dataset
         group_time (list): group time from li dataset
+        distance_threshold (int): Threshold value below which connections between groups are made.
+                                  This filters some unplausible long connections between groups.
 
     Returns:
         pandas.DataFrame
@@ -182,22 +185,22 @@ def CreateFlashGeometry(x, y, flashtime, group_time):
     n = len(x)
 
     x1 = np.array(x)
-    x1 = x1[:,np.newaxis]
+    x1 = x1[:, np.newaxis]
 
     x2 = np.array(x)
-    x2 = x2[:,np.newaxis].T
+    x2 = x2[:, np.newaxis].T
 
     y1 = np.array(y)
-    y1 = y1[:,np.newaxis]
+    y1 = y1[:, np.newaxis]
 
     y2 = np.array(y)
-    y2 = y2[:,np.newaxis].T
+    y2 = y2[:, np.newaxis].T
 
     distances = np.sqrt((x2 - x1)**2 + 1.4 * (y2 - y1)**2)
     ind = list(range(0, n))
     distances[ind, ind] = np.nan
 
-    connected = np.arange(0,n) * 0
+    connected = np.arange(0, n) * 0
 
     start = 0
     counter = 0
@@ -218,12 +221,31 @@ def CreateFlashGeometry(x, y, flashtime, group_time):
         except: # I.e. an array of NaNs results
             break
 
-        start = connection//searchdistances.shape[1]
-        end = connection%searchdistances.shape[1]
+        start = connection // searchdistances.shape[1]
+        end = connection % searchdistances.shape[1]
 
-        geoms.append(shapely.LineString([[x[start], y[start]], [x[end], y[end]]]))
+        group_distance = dist(x[start], y[start], x[end], y[end])
 
-        connected[end] = connected[end] + 1
-        connections.append(connection)
+        if group_distance <= distance_threshold:
+            geoms.append(shapely.LineString([[x[start], y[start]], [x[end], y[end]]]))
+            connected[end] = connected[end] + 1
+            connections.append(connection)
+        else:
+            continue
 
     return pd.DataFrame({"geometry": geoms, "group_end_time": group_time, "normalized_group_time": flashtime})
+
+
+def distance(lon1, lat1, lon2, lat2):
+    """Calculate distance between two points using pyproj.
+
+    Args:
+        lat1, lon1, lat2, lon2 (float): Coordinates in degrees.
+
+    Returns:
+        Distance in meters.
+    """
+
+    geod = pro.Geod(ellps="WGS84")
+    _, _, distance = geod.inv(lon1, lat1, lon2, lat2)
+    return distance
