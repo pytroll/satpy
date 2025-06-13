@@ -1,3 +1,73 @@
+## Version 0.57.0 (2025/06/13)
+
+### Issues Closed
+
+* [Issue 3138](https://github.com/pytroll/satpy/issues/3138) - Possible typo with "Remote Reading" documentation using simplecache configuration ([PR 3145](https://github.com/pytroll/satpy/pull/3145) by [@djhoese](https://github.com/djhoese))
+* [Issue 3131](https://github.com/pytroll/satpy/issues/3131) - Tests fail locally if run with python3.13
+* [Issue 3117](https://github.com/pytroll/satpy/issues/3117) - Can't compare areas with different projections.
+* [Issue 3094](https://github.com/pytroll/satpy/issues/3094) - cmsaf_claas2 reader needs an update for claas3 data
+* [Issue 3073](https://github.com/pytroll/satpy/issues/3073) - missing term to compute reflectance for viirs_compact ?
+* [Issue 3038](https://github.com/pytroll/satpy/issues/3038) - Support variations of AWS MWR L1C filename ([PR 3039](https://github.com/pytroll/satpy/pull/3039) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 3026](https://github.com/pytroll/satpy/issues/3026) - FCI platform name inconsistent between L1 and L2 ([PR 3132](https://github.com/pytroll/satpy/pull/3132) by [@TAlonglong](https://github.com/TAlonglong))
+* [Issue 2935](https://github.com/pytroll/satpy/issues/2935) - hrv_clouds analogue for FCI?
+* [Issue 2906](https://github.com/pytroll/satpy/issues/2906) - Resample HRV channel of Eumetsat image
+* [Issue 2810](https://github.com/pytroll/satpy/issues/2810) - Issues about fog composites
+* [Issue 2809](https://github.com/pytroll/satpy/issues/2809) - Read the EUMETSAT Test Data for MTG Using Satpy
+* [Issue 2756](https://github.com/pytroll/satpy/issues/2756) - Extensive NaN Pixels and Ringed Artifacts After Geostationary Satellite Image Projection
+* [Issue 2752](https://github.com/pytroll/satpy/issues/2752) - Replacement of deprecated `datetime.datetime.utcnow()` ([PR 3126](https://github.com/pytroll/satpy/pull/3126) by [@pjuda](https://github.com/pjuda))
+* [Issue 2670](https://github.com/pytroll/satpy/issues/2670) - Add missing EUMeTrain RGBs for SEVIRI and FCI
+* [Issue 2659](https://github.com/pytroll/satpy/issues/2659) - Tropomi l2 reader ValueError: No supported files found
+* [Issue 1337](https://github.com/pytroll/satpy/issues/1337) - I'm getting this error when i fire pip install satpy
+* [Issue 304](https://github.com/pytroll/satpy/issues/304) - Finalize Sentinel-2 MSI reader
+
+In this release 17 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3149](https://github.com/pytroll/satpy/pull/3149) - Fix incorrect wavelength for AHI B04
+* [PR 3140](https://github.com/pytroll/satpy/pull/3140) - Fix satpy.readers import warnings and exception types
+* [PR 3139](https://github.com/pytroll/satpy/pull/3139) - Add missing metadata to 'ahi_l2_nc' reader
+* [PR 3135](https://github.com/pytroll/satpy/pull/3135) - Fix more invalid sphinx object references
+* [PR 3125](https://github.com/pytroll/satpy/pull/3125) - Fix ACSPO reader using binary operations on signed integers
+* [PR 3120](https://github.com/pytroll/satpy/pull/3120) - Fix invalid documentation references to python objects
+* [PR 2993](https://github.com/pytroll/satpy/pull/2993) - fix: li missing platform name
+
+#### Features added
+
+* [PR 3134](https://github.com/pytroll/satpy/pull/3134) - Add volcanic_emissions in composites and enhancements fci.yaml
+* [PR 3129](https://github.com/pytroll/satpy/pull/3129) - Implement FCI "Flames" fire visualisation
+* [PR 3127](https://github.com/pytroll/satpy/pull/3127) - Refactor reader imports
+* [PR 3126](https://github.com/pytroll/satpy/pull/3126) - Replace deprecated utcnow ([2752](https://github.com/pytroll/satpy/issues/2752))
+* [PR 3122](https://github.com/pytroll/satpy/pull/3122) - Refactor satpy.writers to separate modules
+* [PR 3084](https://github.com/pytroll/satpy/pull/3084) - Updated the grid size to read claas3 data
+* [PR 3039](https://github.com/pytroll/satpy/pull/3039) - Add filename variations to AWS MWR L1C ([3038](https://github.com/pytroll/satpy/issues/3038))
+* [PR 2879](https://github.com/pytroll/satpy/pull/2879) - Initial implementation of EUMETSAT IASI-NG reader
+
+#### Documentation changes
+
+* [PR 3145](https://github.com/pytroll/satpy/pull/3145) - Fix typo in simplecache usage ([3138](https://github.com/pytroll/satpy/issues/3138))
+* [PR 3143](https://github.com/pytroll/satpy/pull/3143) - Add page for specific reader documentation
+* [PR 3135](https://github.com/pytroll/satpy/pull/3135) - Fix more invalid sphinx object references
+* [PR 3120](https://github.com/pytroll/satpy/pull/3120) - Fix invalid documentation references to python objects
+* [PR 3119](https://github.com/pytroll/satpy/pull/3119) - Small Update to MultiScene documentation
+
+#### Backward incompatible changes
+
+* [PR 3127](https://github.com/pytroll/satpy/pull/3127) - Refactor reader imports
+* [PR 3122](https://github.com/pytroll/satpy/pull/3122) - Refactor satpy.writers to separate modules
+
+#### Clean ups
+
+* [PR 3135](https://github.com/pytroll/satpy/pull/3135) - Fix more invalid sphinx object references
+* [PR 3132](https://github.com/pytroll/satpy/pull/3132) - Move fci platform name translate to fci base ([3026](https://github.com/pytroll/satpy/issues/3026))
+* [PR 3127](https://github.com/pytroll/satpy/pull/3127) - Refactor reader imports
+* [PR 3124](https://github.com/pytroll/satpy/pull/3124) - Refactor resampler module to submodules
+
+In this release 26 pull requests were closed.
+
+
 ## Version 0.56.0 (2025/04/24)
 
 ### Issues Closed
