@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   sensors: []
   default_channels:
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 # Typical filenames from Unidata THREDDS server:
 # Server: http://thredds-test.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/CONUS/Channel02/current/catalog.xml

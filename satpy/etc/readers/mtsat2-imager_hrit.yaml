@@ -15,7 +15,7 @@ reader:
   supports_fsspec: false
   sensors: [mtsat2_imager]
   default_channels: []
-  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
 
 file_types:
     hrit_vis:

@@ -521,7 +521,7 @@ def test_convert_remote_files_to_fsspec_mixed_sources():
 
     Case with mixed local and remote files.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
@@ -537,7 +537,7 @@ def test_convert_remote_files_to_fsspec_filename_dict():
 
     Case where filenames is a dictionary mapping readers and filenames.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = {
@@ -557,7 +557,7 @@ def test_convert_remote_files_to_fsspec_fsfile():
 
     Case where the some of the files are already FSFile objects.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
@@ -653,3 +653,14 @@ def test_find_in_ancillary():
 def test_datetime64_to_pydatetime(dt64, expected):
     """Test conversion from datetime64 to Python datetime."""
     assert datetime64_to_pydatetime(dt64) == expected
+
+
+def test_flatten_dict():
+    """Test dictionary flattening."""
+    from satpy.utils import flatten_dict
+    d = {"a": 1, "b": {"c": 1, "d": {"e": 1, "f": {"g": [1, 2]}}}}
+    expected = {"a": 1,
+                "b_c": 1,
+                "b_d_e": 1,
+                "b_d_f_g": [1, 2]}
+    assert flatten_dict(d) == expected

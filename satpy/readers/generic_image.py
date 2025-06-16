@@ -35,7 +35,7 @@ import rioxarray  # noqa: F401  # need by xarray with the engine rasterio
 import xarray as xr
 from pyresample import utils
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()

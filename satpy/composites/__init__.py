@@ -24,14 +24,12 @@ from typing import Optional, Sequence
 import dask.array as da
 import numpy as np
 import xarray as xr
-from trollimage.colormap import Colormap
 
 import satpy
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.utils import unify_chunks
-from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 
@@ -98,7 +96,7 @@ class CompositeBase:
     represents something different than the inputs that went into the
     operation.
 
-    See the :class:`~satpy.composites.ModifierBase` class for information
+    See the :class:`~satpy.modifiers.base.ModifierBase` class for information
     on the similar concept of "modifiers".
 
     """
@@ -171,11 +169,10 @@ class CompositeBase:
         :func:`satpy.utils.unify_chunks`).
 
         Args:
-            data_arrays (List[arrays]): Arrays to be checked
+            data_arrays: Arrays to be checked
 
         Returns:
-            data_arrays (List[arrays]):
-                Arrays with negligible non-dimensional coordinates removed.
+            Arrays with negligible non-dimensional coordinates removed.
 
         Raises:
             :class:`IncompatibleAreas`:
@@ -239,7 +236,7 @@ class CompositeBase:
         :attr:`NEGLIGIBLE_COORDS` module attribute.
 
         Args:
-            data_arrays (List[arrays]): Arrays to be checked
+            data_arrays: Arrays to be checked
         """
         new_arrays = []
         for ds in data_arrays:
@@ -608,6 +605,8 @@ class ColormapCompositor(GenericCompositor):
           will be used as values of the colormap.
 
         """
+        from trollimage.colormap import Colormap
+
         squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         cmap = Colormap.from_array_with_metadata(
                 palette,
@@ -707,7 +706,7 @@ class DayNightCompositor(GenericCompositor):
                              blending of the given channels
             lim_high (float): upper limit of Sun zenith angle for the
                              blending of the given channels
-            day_night (string): "day_night" means both day and night portions will be kept
+            day_night (str): "day_night" means both day and night portions will be kept
                                 "day_only" means only day portion will be kept
                                 "night_only" means only night portion will be kept
             include_alpha (bool): This only affects the "day only" or "night only" result.
@@ -939,6 +938,8 @@ def enhance2dataset(dset, convert_p=False):
 
 
 def _get_data_from_enhanced_image(dset, convert_p):
+    from satpy.enhancements.enhancer import get_enhanced_image
+
     img = get_enhanced_image(dset)
     if convert_p and img.mode == "P":
         img = _apply_palette_to_image(img)
@@ -1598,7 +1599,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         self._known_hash = known_hash
         self.area = None
         if area is not None:
-            from satpy.resample import get_area_def
+            from satpy.area import get_area_def
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
@@ -2037,3 +2038,45 @@ class LongitudeMaskingCompositor(SingleBandCompositor):
 
         masked_projectable = projectable.where(lon_min_max)
         return super().__call__([masked_projectable], **info)
+
+
+class SimpleFireMaskCompositor(CompositeBase):
+    """Class for a simple fire detection compositor."""
+
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+        """Compute a simple fire detection to create a boolean mask to be used in "flames" composites.
+
+        Expects 4 channel inputs, calibrated to BT/reflectances, in this order [µm]: 10.x, 3.x, 2.x, 0.6.
+
+        It applies 4 spectral tests, for which the thresholds must be provided in the yaml as "test_thresholds":
+        - Test 0: 10.x > thr0 (clouds filter)
+        - Test 1: 3.x-10.x > thr1 (hotspot)
+        - Test 2: 0.6 > thr2 (clouds, sunglint filter)
+        - Test 3: 3.x+2.x > thr3 (hotspot)
+
+        .. warning::
+            This fire detection algorithm is extremely simple, so it is prone to false alarms and missed detections.
+            It is intended only for PR-like visualisation of large fires, not for any other use.
+            The tests have been designed for MTG-FCI.
+
+        """
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        info["name"] = self.attrs["name"]
+        info.update(self.attrs)
+
+        # fire spectral tests
+
+        # test 0: # window channel should be warm (no clouds)
+        ir_105_temp = projectables[0] > self.attrs["test_thresholds"][0]
+        # test 1: # 3.8-10.5µm should be high (hotspot)
+        temp_diff = projectables[1] - projectables[0] > self.attrs["test_thresholds"][1]
+        # test 2: vis_06 should be low (no clouds, no sunglint)
+        vis_06_bright = projectables[3] < self.attrs["test_thresholds"][2]
+        # test 3: 3.8+2.2µm should be high (hotspot)
+        ir38_plus_nir22 = projectables[1] + projectables[2] >= self.attrs["test_thresholds"][3]
+
+        res = ir_105_temp & temp_diff & vis_06_bright & ir38_plus_nir22  # combine all tests
+
+        res.attrs = info
+        return res

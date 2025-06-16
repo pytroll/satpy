@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,21 +13,4 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for writer utilities."""
-
-import unittest
-
-import satpy.writers.utils as wutils
-
-
-class WriterUtilsTest(unittest.TestCase):
-    """Test various writer utilities."""
-
-    def test_flatten_dict(self):
-        """Test dictionary flattening."""
-        d = {"a": 1, "b": {"c": 1, "d": {"e": 1, "f": {"g": [1, 2]}}}}
-        expected = {"a": 1,
-                    "b_c": 1,
-                    "b_d_e": 1,
-                    "b_d_f_g": [1, 2]}
-        assert wutils.flatten_dict(d) == expected
+"""Tests for core writer modules."""

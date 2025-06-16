@@ -84,7 +84,7 @@ import pyninjotiff.ninjotiff as nt
 import xarray as xr
 from trollimage.xrimage import invert_scale_offset
 
-from satpy.writers import ImageWriter
+from satpy.writers.core.image import ImageWriter
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ def convert_units(dataset, in_unit, out_unit):
     returns the input dataset.
 
     Args:
-        dataset (xarray DataArray):
+        dataset (xarray.DataArray):
             Dataarray for which to convert the units.
         in_unit (str):
             Unit for input data.

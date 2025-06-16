@@ -51,7 +51,7 @@ from pyresample.bucket import BucketResampler
 from pyresample.geometry import SwathDefinition
 
 from satpy.modifiers import ModifierBase
-from satpy.resample import resample_dataset
+from satpy.resample.base import resample_dataset
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
 logger = logging.getLogger(__name__)
@@ -94,14 +94,14 @@ def get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height):
         The Earth radius from pyresample is reported in km.
 
     Args:
-        sat_lon (number): Satellite longitude in geodetic coordinates [degrees]
-        sat_lat (number): Satellite latitude in geodetic coordinates [degrees]
-        sat_alt (number): Satellite altitude above the Earth surface [m]
-        lon (array or number): Longitudes of pixel or pixels to be corrected,
+        sat_lon (numbers.Number): Satellite longitude in geodetic coordinates [degrees]
+        sat_lat (numbers.Number): Satellite latitude in geodetic coordinates [degrees]
+        sat_alt (numbers.Number): Satellite altitude above the Earth surface [m]
+        lon (dask.array.Array or numbers.Number): Longitudes of pixel or pixels to be corrected,
             in geodetic coordinates [degrees]
-        lat (array or number): Latitudes of pixel/pixels to be corrected, in
+        lat (dask.array.Array or numbers.Number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [degrees]
-        height (array or number): Heights of pixels on which the correction
+        height (dask.array.Array or numbers.Number): Heights of pixels on which the correction
             will be based.  Typically this is the cloud top height. [m]
 
     Returns:
@@ -126,7 +126,7 @@ def get_surface_parallax_displacement(
     identical to :func:`get_parallax_corrected_lonlats`.
 
     Returns:
-        number or array: parallax displacement in meter
+        (numbers.Number, dask.array.Array): parallax displacement in meters
     """
     (corr_lon, corr_lat) = get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height)
     # Get parallax displacement
@@ -142,14 +142,14 @@ def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distan
     cartesian coordinates:
 
     Args:
-        sat_lon (number): Satellite longitude in geodetic coordinates [degrees]
-        sat_lat (number): Satellite latitude in geodetic coordinates [degrees]
-        sat_alt (number): Satellite altitude above the Earth surface [m]
-        lon (array or number): Longitudes of pixel or pixels to be corrected,
+        sat_lon (numbers.Number): Satellite longitude in geodetic coordinates [degrees]
+        sat_lat (numbers.Number): Satellite latitude in geodetic coordinates [degrees]
+        sat_alt (numbers.Number): Satellite altitude above the Earth surface [m]
+        lon (dask.array.Array or numbers.Number): Longitudes of pixel or pixels to be corrected,
             in geodetic coordinates [degrees]
-        lat (array or number): Latitudes of pixel/pixels to be corrected, in
+        lat (dask.array.Array or numbers.Number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [degrees]
-        parallax_distance (array or number): Cloud to ground distance with parallax
+        parallax_distance (dask.array.Array or numbers.Number): Cloud to ground distance with parallax
             effect [m].
 
     Returns:
@@ -255,7 +255,7 @@ class ParallaxCorrection:
         """Initialise parallax correction class.
 
         Args:
-            base_area (:class:`~pyresample.AreaDefinition`): Area for which calculated
+            base_area (pyresample.geometry.AreaDefinition): Area for which calculated
                 geolocation will be calculated.
             debug_mode (bool): Store diagnostic information in
                 self.diagnostics.  This attribute always apply to the most
@@ -294,18 +294,18 @@ class ParallaxCorrection:
         but get geolocation NaN.
 
         Args:
-            cth_dataset (:class:`~xarray.DataArray`): Cloud top height in
+            cth_dataset (xarray.DataArray): Cloud top height in
                 meters.  The variable attributes must contain an ``area``
                 attribute describing the geolocation in a pyresample-aware way,
                 and they must contain satellite orbital parameters.  The
                 dimensions must be ``(y, x)``.  For best performance, this
                 should be a dask-based :class:`~xarray.DataArray`.
-            cth_resampler (string, optional): Resampler to use when resampling the
+            cth_resampler (str, Optional): Resampler to use when resampling the
                 (cloud top) height to the base area.  Defaults to "nearest".
-            cth_radius_of_influence (number, optional): Radius of influence to use when
+            cth_radius_of_influence (numbers.Number, Optional): Radius of influence to use when
                 resampling the (cloud top) height to the base area.  Defaults
                 to 50000.
-            lonlat_chunks (int, optional): Chunking to use when calculating lon/lats.
+            lonlat_chunks (int, Optional): Chunking to use when calculating lon/lats.
                 Probably the default (1024) should be fine.
 
         Returns:

@@ -145,7 +145,7 @@ class TestMatchDataArrays:
 
         """
         from satpy.composites import CompositeBase
-        from satpy.resample import add_crs_xy_coords
+        from satpy.coords import add_crs_xy_coords
 
         comp = CompositeBase("test_comp")
         data_arr1 = self._get_test_ds(shape=(2, 2))
@@ -1405,7 +1405,7 @@ class TestAddBands(unittest.TestCase):
 class TestStaticImageCompositor(unittest.TestCase):
     """Test case for the static compositor."""
 
-    @mock.patch("satpy.resample.get_area_def")
+    @mock.patch("satpy.area.get_area_def")
     def test_init(self, get_area_def):
         """Test the initializiation of static compositor."""
         from satpy.composites import StaticImageCompositor
@@ -1980,7 +1980,7 @@ class TestNaturalEnhCompositor(unittest.TestCase):
 class TestEnhance2Dataset(unittest.TestCase):
     """Test the enhance2dataset utility."""
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image")
     def test_enhance_p_to_rgb(self, get_enhanced_image):
         """Test enhancing a paletted dataset in RGB mode."""
         from trollimage.xrimage import XRImage
@@ -1993,7 +1993,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         res = enhance2dataset(dataset, convert_p=True)
         assert res.attrs["mode"] == "RGB"
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image")
     def test_enhance_p_to_rgba(self, get_enhanced_image):
         """Test enhancing a paletted dataset in RGBA mode."""
         from trollimage.xrimage import XRImage
@@ -2006,7 +2006,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         res = enhance2dataset(dataset, convert_p=True)
         assert res.attrs["mode"] == "RGBA"
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image")
     def test_enhance_p(self, get_enhanced_image):
         """Test enhancing a paletted dataset in P mode."""
         from trollimage.xrimage import XRImage
@@ -2020,7 +2020,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         assert res.attrs["mode"] == "P"
         assert res.max().values == 2
 
-    @mock.patch("satpy.composites.get_enhanced_image")
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image")
     def test_enhance_l(self, get_enhanced_image):
         """Test enhancing a paletted dataset in P mode."""
         from trollimage.xrimage import XRImage
@@ -2171,3 +2171,43 @@ class TestRealisticColors:
         np.testing.assert_allclose(arr[0, :, :], expected_red)
         np.testing.assert_allclose(arr[1, :, :], expected_green)
         np.testing.assert_allclose(arr[2, :, :], 3.0)
+
+
+class TestFireMaskCompositor:
+    """Test fire mask compositors."""
+
+    def test_SimpleFireMaskCompositor(self):
+        """Test the SimpleFireMaskCompositor class."""
+        from satpy.composites import SimpleFireMaskCompositor
+        rows = 2
+        cols = 2
+        ir_105 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                              attrs={"name": "ir_105"})
+        ir_105[0, 0] = 300
+        ir_38 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                             attrs={"name": "ir_38"})
+        ir_38[0, 0] = 400
+        nir_22 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                              attrs={"name": "nir_22"})
+        nir_22[0, 0] = 100
+        vis_06 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),
+                              attrs={"name": "vis_06"})
+        vis_06[0, 0] = 5
+
+        projectables = (ir_105, ir_38, nir_22, vis_06)
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = SimpleFireMaskCompositor(
+                "simple_fci_fire_mask",
+                prerequisites=("ir_105", "ir_38", "nir_22", "vis_06"),
+                standard_name="simple_fci_fire_mask",
+                test_thresholds=[293, 20, 15, 340])
+            res = comp(projectables)
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "simple_fci_fire_mask"
+        assert res.data.dtype == bool
+
+        assert np.array_equal(res.data.compute(),
+                              np.array([[True, False], [False, False]]))

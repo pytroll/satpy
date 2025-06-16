@@ -84,7 +84,7 @@ def _setup_custom_reader_config(base_dir):
         comp_file.write("""
 reader:
   name: "fake"
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   data_files:
     - url: {}
       known_hash: null
@@ -102,7 +102,7 @@ def _setup_custom_writer_config(base_dir):
         comp_file.write("""
 writer:
   name: "fake"
-  writer: !!python/name:satpy.writers.Writer
+  writer: !!python/name:satpy.writers.core.base.Writer
   data_files:
     - url: {}
       known_hash: null

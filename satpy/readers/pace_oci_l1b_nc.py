@@ -45,8 +45,8 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
-from satpy.readers import open_file_or_filename
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()

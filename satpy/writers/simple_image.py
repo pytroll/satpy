@@ -19,7 +19,7 @@
 
 import logging
 
-from satpy.writers import ImageWriter
+from satpy.writers.core.image import ImageWriter
 
 LOG = logging.getLogger(__name__)
 

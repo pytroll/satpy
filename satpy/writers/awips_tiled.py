@@ -232,8 +232,7 @@ from trollsift.parser import Parser, StringFormatter
 
 from satpy import __version__
 from satpy.decision_tree import DecisionTree
-from satpy.enhancements.enhancer import Enhancer
-from satpy.writers import Writer, get_enhanced_image
+from satpy.writers.core.base import Writer
 
 LOG = logging.getLogger(__name__)
 DEFAULT_OUTPUT_PATTERN = "{source_name}_AII_{platform_name}_{sensor}_" \
@@ -426,19 +425,29 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents, sector_crs,  # noqa: D417
-                 cell_size=(2000000, 2000000),
-                 num_subtiles=None, use_sector_reference=False):
+    def __init__(
+            self,
+            area_definition: AreaDefinition,
+            extents: tuple[float, float, float, float],
+            sector_crs: CRS,
+            cell_size: tuple[int, int] = (2000000, 2000000),
+            num_subtiles: tuple[int, int] | None = None,
+            use_sector_reference: bool = False):
         """Initialize tile information for later generation.
 
         Args:
-            area_definition (AreaDefinition): Area of the data being saved.
-            extents (tuple): Four element tuple of the configured lettered
-                 area.
-            sector_crs (pyproj.CRS): CRS of the configured lettered sector
-                area.
-            cell_size (tuple): Two element tuple of resolution of each tile
+            area_definition: Area of the data being saved.
+            extents: Four element tuple of the configured lettered area.
+            sector_crs: CRS of the configured lettered sector area.
+            cell_size: Two element tuple of resolution of each tile
                 in sector projection units (y, x).
+            num_subtiles: Two element tuple of number of sub-tiles to create
+                for each larger lettered tile. Defaults to (2, 2).
+            use_sector_reference: If False (default), the data's geolocation
+                is used to determine where pixels should align. If True, the
+                data's geolocation is shifted by up to half a pixel to align
+                with the extents of the lettered grid/area.
+
         """
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)
@@ -779,8 +788,9 @@ class NetCDFTemplate:
                 `value` and `raw_key` are both ``None`` and `attr_name`
                 is ``"my_attr"``, then the method ``self._my_attr`` will be
                 called as ``return self._my_attr(input_metadata)``.
-                See :meth:`NetCDFTemplate.render_global_attributes` for
-                additional information (prefix is ``"_global_"``).
+                See :meth:`NetCDFTemplate.render_global_attributes
+                <satpy.writers.awips_tiled.NetCDFTemplate._render_global_attributes>`
+                for additional information (prefix is ``"_global_"``).
 
         """
         if raw_value is not None:
@@ -1291,6 +1301,8 @@ class AWIPSTiledWriter(Writer):
     def enhancer(self):
         """Get lazy loaded enhancer object only if needed."""
         if self._enhancer is None:
+            from satpy.enhancements.enhancer import Enhancer
+
             self._enhancer = Enhancer()
         return self._enhancer
 
@@ -1393,6 +1405,8 @@ class AWIPSTiledWriter(Writer):
                           "that aren't RGBs to AWIPS Tiled format: %s", ds.name)
             else:
                 # this is an RGB
+                from satpy.enhancements.enhancer import get_enhanced_image
+
                 img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
                 res_data = img.finalize(fill_value=0, dtype=np.float32)[0]
                 new_datasets.extend(self._split_rgbs(res_data))
@@ -1520,10 +1534,10 @@ class AWIPSTiledWriter(Writer):
         """Write a series of DataArray objects to multiple NetCDF4 Tile files.
 
         Args:
-            datasets (iterable): Series of gridded :class:`~xarray.DataArray`
+            datasets (Iterable): Series of gridded :class:`~xarray.DataArray`
                 objects with the necessary metadata to be converted to a valid
                 tile product file.
-            sector_id (str): Name of the region or sector that the provided
+            sector_id (str, Optional): Name of the region or sector that the provided
                 data is on. This name will be written to the NetCDF file and
                 will be used as the sector in the AWIPS client for the 'polar'
                 template. For lettered
@@ -1531,53 +1545,53 @@ class AWIPSTiledWriter(Writer):
                 YAML. This is required for some templates (ex. default 'polar'
                 template) but is defined as a keyword argument
                 for better error handling in Satpy.
-            source_name (str): Name of producer of these files (ex. "SSEC").
+            source_name (str, Optional): Name of producer of these files (ex. "SSEC").
                 This name is used to create the output filename for some
                 templates.
-            environment_prefix (str): Prefix of filenames for some templates.
+            environment_prefix (str, Optional): Prefix of filenames for some templates.
                 For operational real-time data this is usually "OR", "OT" for
                 test data, "IR" for test system real-time data, and "IT" for
                 test system test data. This defaults to "DR" for "Developer
                 Real-time" to avoid anyone accidentally producing files that
                 could be mistaken for the operational system.
-            tile_count (tuple): For numbered tiles only, how many tile rows
+            tile_count (tuple, Optional): For numbered tiles only, how many tile rows
                 and tile columns to produce. Default to ``(1, 1)``, a single
                 giant tile. Either ``tile_count``, ``tile_size``, or
                 ``lettered_grid`` should be specified.
-            tile_size (tuple): For numbered tiles only, how many pixels each
+            tile_size (tuple, Optional): For numbered tiles only, how many pixels each
                 tile should be. This takes precedence over ``tile_count`` if
                 specified. Either ``tile_count``, ``tile_size``, or
                 ``lettered_grid`` should be specified.
-            lettered_grid (bool): Whether to use a preconfigured grid and
+            lettered_grid (bool, Optional): Whether to use a preconfigured grid and
                 label tiles with letters and numbers instead of only numbers.
                 For example, tiles will be named "A01", "A02", "B01", and so
                 on in the first row of data and continue on to "A03", "A04",
                 and "B03" in the default case where ``num_subtiles`` is (2, 2).
                 Letters start in the upper-left corner and will go from A up to
                 Z, if necessary.
-            num_subtiles (tuple): For lettered tiles only, how many rows and
+            num_subtiles (tuple, Optional): For lettered tiles only, how many rows and
                 columns to split each lettered tile in to. By default 2 rows
                 and 2 columns will be created. For example, the tile for
                 letter "A" will have "A01" and "A02" in the top row and "A03"
                 and "A04" in the second row.
-            use_end_time (bool): Instead of using the ``start_time`` for the
+            use_end_time (bool, Optional): Instead of using the ``start_time`` for the
                 product filename and time written to the file, use the
                 ``end_time``. This is useful for multi-day composites where
                 the ``end_time`` is a better representation of what data is
                 in the file.
-            use_sector_reference (bool): For lettered tiles only, whether to
+            use_sector_reference (bool, Optional): For lettered tiles only, whether to
                 shift the data locations to align with the preconfigured
                 grid's pixels. By default this is False meaning that the
                 grid's tiles will be shifted to align with the data locations.
                 If True, the data is shifted. At most the data will be shifted
                 by 0.5 pixels. See :mod:`satpy.writers.awips_tiled` for more
                 information.
-            template (str or dict): Name of the template configured in the
+            template (str or dict, Optional): Name of the template configured in the
                 writer YAML file. This can also be a dictionary with a full
                 template configuration. See the :mod:`satpy.writers.awips_tiled`
                 documentation for more information on templates. Defaults to
                 the 'polar' builtin template.
-            check_categories (bool): Whether category and flag products should
+            check_categories (bool, Optional): Whether category and flag products should
                 be included in the checks for empty or not empty tiles. In
                 some cases (ex. data quality flags) category products may look
                 like all valid data (a non-empty tile) but shouldn't be used
@@ -1585,11 +1599,11 @@ class AWIPSTiledWriter(Writer):
                 versus non-existent). Default is True. Set to False to ignore
                 category (integer dtype or "flag_meanings" defined) when
                 checking for valid data.
-            extra_global_attrs (dict): Additional global attributes to be
+            extra_global_attrs (dict, Optional): Additional global attributes to be
                 added to every produced file. These attributes are applied
                 at the end of template rendering and will therefore overwrite
                 template generated values with the same global attribute name.
-            compute (bool): Compute and write the output immediately using
+            compute (bool, Optional): Compute and write the output immediately using
                 dask. Default to ``False``.
 
         """
@@ -1777,7 +1791,7 @@ def create_debug_lettered_tiles(**writer_kwargs):
     sector_info = writer.awips_sectors[sector_id]
     area_def, arr = _create_debug_array(sector_info, save_kwargs["num_subtiles"])
 
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.timezone.utc)
     product = xr.DataArray(da.from_array(arr, chunks="auto"), attrs=dict(
         name="debug_{}".format(sector_id),
         platform_name="DEBUG",

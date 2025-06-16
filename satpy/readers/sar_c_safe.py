@@ -56,9 +56,9 @@ from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
 from satpy.dataset.dataid import DataID
-from satpy.readers import open_file_or_filename
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.yaml_reader import GenericYAMLReader
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
+from satpy.readers.core.yaml_reader import GenericYAMLReader
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -622,11 +622,8 @@ class SAFEGRD(BaseFileHandler):
     def _get_lonlatalts_uncached(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
-        Args:
-           band (gdal band): Measurement band which comes with GCP's
-           array_shape (tuple) : The size of the data array
         Returns:
-           coordinates (tuple): A tuple with longitude and latitude arrays
+           (tuple): A tuple with longitude and latitude arrays
         """
         shape = self._data.shape
 
@@ -657,13 +654,10 @@ class SAFEGRD(BaseFileHandler):
     def get_gcps(self):
         """Read GCP from the GDAL band.
 
-        Args:
-           band (gdal band): Measurement band which comes with GCP's
-           coordinates (tuple): A tuple with longitude and latitude arrays
-
         Returns:
-           points (tuple): Pixel and Line indices 1d arrays
-           gcp_coords (tuple): longitude and latitude 1d arrays
+           (tuple) Pixel and Line indices 1d arrays
+           (tuple) longitude and latitude 1d arrays
+           (tuple) ground control points and crs
 
         """
         gcps = get_gcps_from_array(self._data)

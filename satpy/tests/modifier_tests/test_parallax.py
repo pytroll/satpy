@@ -31,8 +31,8 @@ from pyproj import Geod
 from pyresample import create_area_def
 
 import satpy.resample
+from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.tests.utils import xfail_skyfield_unstable_numpy2
-from satpy.writers import get_enhanced_image
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -499,7 +499,7 @@ class TestParallaxCorrectionModifier:
         res = modif([fake_bt, cth_clear], optional_datasets=[])
         np.testing.assert_allclose(res, fake_bt)
         with unittest.mock.patch("satpy.modifiers.parallax.resample_dataset") as smp:
-            smp.side_effect = satpy.resample.resample_dataset
+            smp.side_effect = satpy.resample.base.resample_dataset
             modif([fake_bt, cth_clear], optional_datasets=[])
             assert smp.call_args_list[0].kwargs["radius_of_influence"] == 48_000
             assert smp.call_args_list[1].kwargs["radius_of_influence"] == 49_000
