@@ -18,11 +18,16 @@
 """Composite classes for the LI instrument."""
 
 import logging
+from typing import Optional, Sequence
 
+import geopandas as gpd
 import numpy as np
-import xarray as xr
+import pandas as pd
 import pyproj as pro
+import shapely
+import xarray as xr
 
+from satpy import config
 from satpy.composites import CompositeBase
 
 LOG = logging.getLogger(__name__)
@@ -106,26 +111,24 @@ class LightningTimeCompositor(CompositeBase):
           new_attrs = self._redefine_metadata(new_attrs)
           return self._normalize_time(data, new_attrs)
 
-from typing import Optional, Sequence
-
-import geopandas as gpd
-import pandas as pd
-import shapely
 
 
 class GeometryContainer:
     """Container for geometries stored in geopandas Geodataframes."""
     def __init__(self, data: gpd.GeoDataFrame, attrs=None):
+        """Create Container for geodataframe."""
         if not isinstance(data, gpd.GeoDataFrame):
             raise TypeError("Data must be a GeoDataFrame")
         self.data = data
         self.attrs = attrs if attrs is not None else {}
 
     def __getitem__(self, key):
+        """Get column by name."""
         # Basic slicing or column access
         return self.data[key]
 
     def __repr__(self):
+        """Print geodataframe."""
         return f"<GeoDataFrame>\nData:\n{self.data}\n\nAttributes:\n{self.attrs}"
 
 class FlashGeometry(CompositeBase):
@@ -143,6 +146,8 @@ class FlashGeometry(CompositeBase):
             **attrs
             ) -> gpd.GeoDataFrame:
         """Generate Flash Geometries."""
+        distance_threshold = config.get("composites.flash_geom_distance_treshold", 10)
+
         ds = xr.Dataset(dict(zip(["flash_id", "group_time", "longitude", "latitude"], datasets))).compute()
         mintime = np.min(ds["group_time"])
         maxtime = np.max(ds["group_time"])
@@ -151,7 +156,8 @@ class FlashGeometry(CompositeBase):
 
         tdf = ds.to_dataframe()
         gb = tdf.groupby("flash_id")
-        geom_df = gb.apply(lambda x: CreateFlashGeometry(x["longitude"].values, x["latitude"].values, x["normalized_group_time"].values[-1], mintime.values)) # x["group_time"].values[-1]))
+        geom_df = gb.apply(lambda x: CreateFlashGeometry(x["longitude"].values, x["latitude"].values,
+            x["normalized_group_time"].values[-1], mintime.values, distance_threshold))
 
         res = gpd.GeoDataFrame(geom_df, geometry="geometry").reset_index().drop(columns=["level_1"])
         res = res.set_crs(str(ds.crs.values))
@@ -164,7 +170,7 @@ class FlashGeometry(CompositeBase):
         return GeometryContainer(data=res, attrs=new_attrs)
 
 def CreateFlashGeometry(x, y, flashtime, group_time, distance_threshold):
-    """Create flash geometry based on group centroids
+    """Create flash geometry based on group centroids.
 
     Based on code [1] from Pieter Groenemeijer from ESSL create flash geometries.
 
@@ -173,8 +179,8 @@ def CreateFlashGeometry(x, y, flashtime, group_time, distance_threshold):
         y (list): lats of flash groups
         flashtime (list): flashtime from li dataset
         group_time (list): group time from li dataset
-        distance_threshold (int): Threshold value below which connections between groups are made.
-                                  This filters some unplausible long connections between groups.
+        distance_threshold (int): Threshold value km below which connections between groups are made.
+                                  This filters some unplausible long connections between groups. Defaults to 10km.
 
     Returns:
         pandas.DataFrame
@@ -218,7 +224,7 @@ def CreateFlashGeometry(x, y, flashtime, group_time, distance_threshold):
 
         try:
             connection = np.nanargmin(searchdistances)
-        except: # I.e. an array of NaNs results
+        except: # I.e. an array of NaNs results  # noqa E722
             break
 
         start = connection // searchdistances.shape[1]
@@ -236,16 +242,15 @@ def CreateFlashGeometry(x, y, flashtime, group_time, distance_threshold):
     return pd.DataFrame({"geometry": geoms, "group_end_time": group_time, "normalized_group_time": flashtime})
 
 
-def distance(lon1, lat1, lon2, lat2):
+def dist(lon1, lat1, lon2, lat2):  # noqa D417
     """Calculate distance between two points using pyproj.
 
     Args:
-        lat1, lon1, lat2, lon2 (float): Coordinates in degrees.
+        lon1, lat1, lon2, lat2 (float): Coordinates in degrees.
 
     Returns:
-        Distance in meters.
+        Distance in in km.
     """
-
     geod = pro.Geod(ellps="WGS84")
     _, _, distance = geod.inv(lon1, lat1, lon2, lat2)
-    return distance
+    return distance / 1000
