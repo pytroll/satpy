@@ -1,4 +1,4 @@
-"""Module for writers for feature datasets."""
+"""Module for writing of feature datasets."""
 from pathlib import Path
 
 from satpy.writers import Writer
