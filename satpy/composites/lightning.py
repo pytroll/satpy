@@ -146,7 +146,7 @@ class FlashGeometry(CompositeBase):
             **attrs
             ) -> gpd.GeoDataFrame:
         """Generate Flash Geometries."""
-        distance_threshold = config.get("composites.flash_geom_distance_treshold", 10)
+        distance_threshold = config.get("composites.flash_geom_distance_threshold", 10)
 
         ds = xr.Dataset(dict(zip(["flash_id", "group_time", "longitude", "latitude"], datasets))).compute()
         mintime = np.min(ds["group_time"])
