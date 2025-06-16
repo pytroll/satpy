@@ -1,6 +1,8 @@
 """Module for writers for feature datasets."""
-from satpy.writers import Writer
 from pathlib import Path
+
+from satpy.writers import Writer
+
 
 class feature(Writer):
     """Write features in geodataframe with to_file method."""
@@ -18,5 +20,7 @@ class feature(Writer):
 
         if extension == ".sqlite":
             kwargs = {"driver": "SQLite", "spatialite": True, "layer": layer_name}
+        elif extension == ".json":
+            kwargs = {"driver": "GeoJSON"}
 
         dataset.data.to_file(filename, **kwargs)
