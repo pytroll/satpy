@@ -192,6 +192,10 @@ datasets:
         standard_name: longitude
         units: degrees_east
 
+    gcps:
+        name: gcps
+        file_type: gac_lac_l1b
+        standard_name: gcps
 
 file_types:
     gac_lac_l1b:

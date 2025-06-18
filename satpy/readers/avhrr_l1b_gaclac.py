@@ -174,6 +174,10 @@ class GACLACFile(BaseFileHandler):
             data = self.cal_ds[ds_name].values
             xdim = "x"
             xcoords = None
+        elif ds_name in ["gcps"]:
+            res = self.cal_ds[ds_name]
+            self._update_attrs(res)
+            return res
         elif ds_name in ANGLES:
             data = self._get_angle(dataset_id)
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
