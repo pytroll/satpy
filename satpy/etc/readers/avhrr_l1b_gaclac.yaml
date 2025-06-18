@@ -178,6 +178,21 @@ datasets:
         standard_name: longitude
         units: degrees_east
 
+    tc_latitude:
+        name: tc_latitude
+        resolution: 1050
+        file_type: gac_lac_l1b
+        standard_name: latitude
+        units: degrees_north
+
+    tc_longitude:
+        name: tc_longitude
+        resolution: 1050
+        file_type: gac_lac_l1b
+        standard_name: longitude
+        units: degrees_east
+
+
 file_types:
     gac_lac_l1b:
         file_reader: !!python/name:satpy.readers.avhrr_l1b_gaclac.GACLACFile

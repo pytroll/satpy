@@ -160,22 +160,25 @@ class GACLACFile(BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset."""
-        if dataset_id["name"] in ["latitude", "longitude"]:
+        ds_name = dataset_id["name"]
+        if ds_name in ["latitude", "longitude"]:
             # Lats/lons are buffered by the reader
-            if dataset_id["name"] == "latitude":
-                data = self.cal_ds["latitude"].values
-            else:
-                data = self.cal_ds["longitude"].values
+            data = self.cal_ds[ds_name].values
 
             # If coordinate interpolation is disabled, only every eighth
             # pixel has a lat/lon coordinate
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
-        elif dataset_id["name"] in ANGLES:
+        elif ds_name in ["tc_latitude", "tc_longitude"]:
+            # Terrain corrected lons and lats
+            data = self.cal_ds[ds_name].values
+            xdim = "x"
+            xcoords = None
+        elif ds_name in ANGLES:
             data = self._get_angle(dataset_id)
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
-        elif dataset_id["name"] == "qual_flags":
+        elif ds_name == "qual_flags":
             data = self.reader.get_qual_flags()
             xdim = "num_flags"
             xcoords = ["Scan line number",
