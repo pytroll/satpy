@@ -31,7 +31,9 @@ formats as well as calibration and navigation methods.
 """
 
 import datetime as dt
+import functools
 import logging
+from contextlib import suppress
 
 import dask.array as da
 import numpy as np
@@ -77,7 +79,7 @@ class GACLACFile(BaseFileHandler):
                 See the pygac documentation for available options.
 
         """
-        super(GACLACFile, self).__init__(
+        super().__init__(
             filename, filename_info, filetype_info)
 
         self.start_line = start_line
@@ -86,7 +88,6 @@ class GACLACFile(BaseFileHandler):
         self.interpolate_coords = interpolate_coords
         self.reader_kwargs = reader_kwargs
         self.creation_site = filename_info.get("creation_site")
-        self.reader = None
         self.calib_channels = None
         self.counts = None
         self.angles = None
@@ -94,10 +95,14 @@ class GACLACFile(BaseFileHandler):
         self.first_valid_lat = None
         self.last_valid_lat = None
         self._start_time = filename_info["start_time"]
-        self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
-                                             filename_info["end_time"].time())
-        if self._end_time < self._start_time:
-            self._end_time += dt.timedelta(days=1)
+        self._end_time = None
+
+        with suppress(KeyError):
+            self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
+                                                 filename_info["end_time"].time())
+            if self._end_time < self._start_time:
+                self._end_time += dt.timedelta(days=1)
+
         self.platform_id = filename_info["platform_id"]
 
         if len(self.platform_id) == 3:
@@ -136,36 +141,54 @@ class GACLACFile(BaseFileHandler):
                                     "M1", "M2", "M3",
                                     "MOB", "MOA", "MOC"]
 
-    def read_raw_data(self):
-        """Create a pygac reader and read raw data from the file."""
-        if self.reader is None:
-            self.reader = self.reader_class(
-                interpolate_coords=self.interpolate_coords,
-                creation_site=self.creation_site,
-                **self.reader_kwargs)
-            self.reader.read(self.filename)
-            if np.all(self.reader.mask):
-                raise ValueError("All data is masked out")
+    @functools.cached_property
+    def reader(self):
+        """Get the reader."""
+        reader = self.reader_class(
+            interpolate_coords=self.interpolate_coords,
+            creation_site=self.creation_site,
+            **self.reader_kwargs)
+        reader.read(self.filename)
+        if np.all(reader.mask):
+            raise ValueError("All data is masked out")
+        return reader
 
-    def get_dataset(self, key, info):
+    @functools.cached_property
+    def cal_ds(self):
+        """Get the calibrated dataset."""
+        ds = self.reader.calibrated_dataset
+        # ds = ds.chunk(dict(scan_line_index="auto", channel_name=1, columns=-1, ir_channel_name=1))
+        renames = dict(scan_line_index="y",
+                       columns="x")
+        if "subsampled_columns" in ds.dims:
+            renames["subsampled_columns"] = "x_every_eighth"
+        return ds.rename_dims(renames)
+
+    def get_dataset(self, dataset_id, ds_info):
         """Get the dataset."""
-        self.read_raw_data()
-        if key["name"] in ["latitude", "longitude"]:
+        ds_name = dataset_id["name"]
+        if ds_name in ["latitude", "longitude"]:
             # Lats/lons are buffered by the reader
-            if key["name"] == "latitude":
-                _, data = self.reader.get_lonlat()
-            else:
-                data, _ = self.reader.get_lonlat()
+            data = self.cal_ds[ds_name].values
 
             # If coordinate interpolation is disabled, only every eighth
             # pixel has a lat/lon coordinate
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
-        elif key["name"] in ANGLES:
-            data = self._get_angle(key)
+        elif ds_name in ["tc_latitude", "tc_longitude"]:
+            # Terrain corrected lons and lats
+            data = self.cal_ds[ds_name].values
+            xdim = "x"
+            xcoords = None
+        elif ds_name in ["gcps"]:
+            res = self.cal_ds[ds_name]
+            self._update_attrs(res)
+            return res
+        elif ds_name in ANGLES:
+            data = self._get_angle(dataset_id)
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
-        elif key["name"] == "qual_flags":
+        elif ds_name == "qual_flags":
             data = self.reader.get_qual_flags()
             xdim = "num_flags"
             xcoords = ["Scan line number",
@@ -175,13 +198,13 @@ class GACLACFile(BaseFileHandler):
                        "Solar contamination of blackbody in channels 3",
                        "Solar contamination of blackbody in channels 4",
                        "Solar contamination of blackbody in channels 5"]
-        elif key["name"].upper() in self.chn_dict:
+        elif dataset_id["name"].upper() in self.chn_dict:
             # Read and calibrate channel data
-            data = self._get_channel(key)
+            data = self._get_channel(dataset_id)
             xdim = "x"
             xcoords = None
         else:
-            raise ValueError("Unknown dataset: {}".format(key["name"]))
+            raise ValueError("Unknown dataset: {}".format(dataset_id["name"]))
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
@@ -197,7 +220,7 @@ class GACLACFile(BaseFileHandler):
         chunk_cols = data.shape[1]
         chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
         res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
-                           dims=["y", xdim], attrs=info)
+                           dims=["y", xdim], attrs=ds_info)
         if xcoords:
             res[xdim] = xcoords
 
@@ -207,6 +230,9 @@ class GACLACFile(BaseFileHandler):
         # Add scanline acquisition times
         res["acq_time"] = ("y", times)
         res["acq_time"].attrs["long_name"] = "Mean scanline acquisition time"
+
+        with suppress(KeyError):
+            res.attrs["median_gcp_distance"] = self.cal_ds.attrs["median_gcp_distance"]
 
         return res
 
