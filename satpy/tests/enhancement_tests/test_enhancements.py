@@ -234,15 +234,15 @@ class TestEnhancementStretch:
         """Test merging colormaps."""
         from trollimage.colormap import Colormap
 
-        from satpy.enhancements import _merge_colormaps as mcp
-        from satpy.enhancements import create_colormap
+        from satpy.enhancements.lookups import _merge_colormaps as mcp
+        from satpy.enhancements.lookups import create_colormap
         ret_map = mock.MagicMock()
 
         create_colormap_mock = mock.Mock(wraps=create_colormap)
         cmap1 = Colormap((1, (1., 1., 1.)))
         kwargs = {"palettes": cmap1}
 
-        with mock.patch("satpy.enhancements.create_colormap", create_colormap_mock):
+        with mock.patch("satpy.enhancements.lookups.create_colormap", create_colormap_mock):
             res = mcp(kwargs)
         assert res is cmap1
         create_colormap_mock.assert_not_called()
@@ -252,7 +252,7 @@ class TestEnhancementStretch:
         cmap1 = {"colors": "blues", "min_value": 0,
                  "max_value": 1}
         kwargs = {"palettes": [cmap1]}
-        with mock.patch("satpy.enhancements.create_colormap", create_colormap_mock), \
+        with mock.patch("satpy.enhancements.lookups.create_colormap", create_colormap_mock), \
                 mock.patch("trollimage.colormap.blues", ret_map):
             _ = mcp(kwargs)
         create_colormap_mock.assert_called_once()
