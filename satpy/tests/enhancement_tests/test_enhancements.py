@@ -25,7 +25,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands, using_map_blocks
+from satpy.enhancements.color_mapping import create_colormap
+from satpy.enhancements.wrappers import on_dask_array, on_separate_bands, using_map_blocks
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -137,7 +138,7 @@ class TestEnhancementStretch:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_cira_stretch(self, dtype):
         """Test applying the cira_stretch."""
-        from satpy.enhancements import cira_stretch
+        from satpy.enhancements.stretching import cira_stretch
 
         expected = np.array([[
             [np.nan, -7.04045974, -7.04045974, 0.79630132, 0.95947296],
@@ -146,7 +147,7 @@ class TestEnhancementStretch:
 
     def test_reinhard(self):
         """Test the reinhard algorithm."""
-        from satpy.enhancements import reinhard_to_srgb
+        from satpy.enhancements.stretching import reinhard_to_srgb
         expected = np.array([[[np.nan, 0., 0., 0.93333793, 1.29432402],
                               [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
 
@@ -159,7 +160,7 @@ class TestEnhancementStretch:
 
     def test_lookup(self):
         """Test the lookup enhancement function."""
-        from satpy.enhancements import lookup
+        from satpy.enhancements.color_mapping import lookup
         expected = np.array([[
             [0., 0., 0., 0.333333, 0.705882],
             [1., 1., 1., 1., 1.]]])
@@ -180,7 +181,7 @@ class TestEnhancementStretch:
         """Test the colorize enhancement function."""
         from trollimage.colormap import brbg
 
-        from satpy.enhancements import colorize
+        from satpy.enhancements.color_mapping import colorize
         expected = np.array([
             [[np.nan, 3.29411723e-01, 3.29411723e-01, 3.21825881e-08, 3.21825881e-08],
              [3.21825881e-08, 3.21825881e-08, 3.21825881e-08, 3.21825881e-08, 3.21825881e-08]],
@@ -194,13 +195,13 @@ class TestEnhancementStretch:
         """Test the palettize enhancement function."""
         from trollimage.colormap import brbg
 
-        from satpy.enhancements import palettize
+        from satpy.enhancements.color_mapping import palettize
         expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         run_and_check_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
     def test_three_d_effect(self):
         """Test the three_d_effect enhancement function."""
-        from satpy.enhancements import three_d_effect
+        from satpy.enhancements.convolution import three_d_effect
         expected = np.array([[
             [np.nan, np.nan, -389.5, -294.5, 826.5],
             [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
@@ -208,7 +209,7 @@ class TestEnhancementStretch:
 
     def test_piecewise_linear_stretch(self):
         """Test the piecewise_linear_stretch enhancement function."""
-        from satpy.enhancements import piecewise_linear_stretch
+        from satpy.enhancements.stretching import piecewise_linear_stretch
         expected = np.array([[
             [np.nan, 0., 0., 0.44378, 0.631734],
             [0.737562, 0.825041, 0.912521, 1., 1.]]])
@@ -222,7 +223,7 @@ class TestEnhancementStretch:
 
     def test_btemp_threshold(self):
         """Test applying the cira_stretch."""
-        from satpy.enhancements import btemp_threshold
+        from satpy.enhancements.stretching import btemp_threshold
 
         expected = np.array([[
             [np.nan, 0.946207, 0.892695, 0.839184, 0.785672],
@@ -435,7 +436,7 @@ class TestColormapLoading:
 
     def test_cmap_from_file_bad_shape(self):
         """Test that unknown array shape causes an error."""
-        from satpy.enhancements import create_colormap
+        from satpy.enhancements.color_mapping import create_colormap
 
         # create the colormap file on disk
         with closed_named_temp_file(suffix=".npy") as cmap_filename:
@@ -452,7 +453,7 @@ class TestColormapLoading:
     def test_cmap_from_config_path(self, tmp_path):
         """Test loading a colormap relative to a config path."""
         import satpy
-        from satpy.enhancements import create_colormap
+        from satpy.enhancements.color_mapping import create_colormap
 
         cmap_dir = tmp_path / "colormaps"
         cmap_dir.mkdir()
@@ -472,7 +473,7 @@ class TestColormapLoading:
 
     def test_cmap_from_trollimage(self):
         """Test that colormaps in trollimage can be loaded."""
-        from satpy.enhancements import create_colormap
+        from satpy.enhancements.color_mapping import create_colormap
         cmap = create_colormap({"colors": "pubu"})
         from trollimage.colormap import pubu
         np.testing.assert_equal(cmap.colors, pubu.colors)
@@ -480,13 +481,13 @@ class TestColormapLoading:
 
     def test_cmap_no_colormap(self):
         """Test that being unable to create a colormap raises an error."""
-        from satpy.enhancements import create_colormap
+        from satpy.enhancements.color_mapping import create_colormap
         with pytest.raises(ValueError, match="Unknown colormap format: .*"):
             create_colormap({})
 
     def test_cmap_list(self):
         """Test that colors can be a list/tuple."""
-        from satpy.enhancements import create_colormap
+        from satpy.enhancements.color_mapping import create_colormap
         colors = [
             [0., 0., 1.],
             [1., 0., 1.],
@@ -718,7 +719,7 @@ class TestTCREnhancement:
         """Test the jma_true_color_reproduction enhancement."""
         from trollimage.xrimage import XRImage
 
-        from satpy.enhancements import jma_true_color_reproduction
+        from satpy.enhancements.stretching import jma_true_color_reproduction
 
         expected = [[[-109.93, 10.993, 131.916, 252.839, 373.762],
                      [494.685, 615.608, 736.531, 857.454, 978.377]],

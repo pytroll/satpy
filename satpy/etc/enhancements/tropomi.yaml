@@ -4,7 +4,7 @@ enhancements:
     standard_name: no2_tropospheric_clean
     operations:
       - name: colorize_no2_tropospheric_clean
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.color_mapping.colorize
         kwargs:
           palettes:
               # 0 to 50 10e-6 mol/m2
@@ -16,7 +16,7 @@ enhancements:
     standard_name: no2_tropospheric_polluted
     operations:
       - name: colorize_no2_tropospheric_poulluted
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.color_mapping.colorize
         kwargs:
           palettes:
                # 0 to 120 10e-6 mol/m2

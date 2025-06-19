@@ -85,10 +85,10 @@ def piecewise_linear_stretch(  # noqa: D417
                 standard_name: true_color
                 operations:
                 - name: reflectance_range
-                  method: !!python/name:satpy.enhancements.stretch
+                  method: !!python/name:satpy.enhancements.stretching.stretch
                   kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
                 - name: Linear interpolation
-                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  method: !!python/name:satpy.enhancements.stretching.piecewise_linear_stretch
                   kwargs:
                    xp: [0., 25., 55., 100., 255.]
                    fp: [0., 90., 140., 175., 255.]
@@ -105,7 +105,7 @@ def piecewise_linear_stretch(  # noqa: D417
                 standard_name: C02
                 operations:
                 - name: Linear interpolation
-                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  method: !!python/name:satpy.enhancements.stretching.piecewise_linear_stretch
                   kwargs:
                    xp: [0., 9.8039, 21.5686, 39.2157, 100.]
                    fp: [0., 0.3529, 0.5490, 0.6863, 1.0]
