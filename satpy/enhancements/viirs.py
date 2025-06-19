@@ -18,7 +18,7 @@
 import numpy as np
 from trollimage.colormap import Colormap
 
-from satpy.enhancements import exclude_alpha, using_map_blocks
+from satpy.enhancements.wrappers import exclude_alpha, using_map_blocks
 
 
 def water_detection(img, **kwargs):
