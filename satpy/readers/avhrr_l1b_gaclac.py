@@ -231,6 +231,9 @@ class GACLACFile(BaseFileHandler):
         res["acq_time"] = ("y", times)
         res["acq_time"].attrs["long_name"] = "Mean scanline acquisition time"
 
+        with suppress(KeyError):
+            res.attrs["median_gcp_distance"] = self.cal_ds.attrs["median_gcp_distance"]
+
         return res
 
     def slice(self, data, times):  # noqa: A003
