@@ -221,20 +221,31 @@ def create_colormap(palette, img=None):  # noqa: D417
     color_scale = palette.get("color_scale", 255)
     cmap = _get_cmap_from_palette_info(palette, img, color_scale)
 
+    _reverse_cmap(cmap, palette)
+    _set_cmap_range(cmap, palette)
+    _set_cmap_alpha_range(cmap, palette, color_scale)
+
+    return cmap
+
+
+def _reverse_cmap(cmap, palette):
     if palette.get("reverse", False):
         cmap.reverse()
+
+
+def _set_cmap_range(cmap, palette):
     if "min_value" in palette and "max_value" in palette:
         cmap.set_range(palette["min_value"], palette["max_value"])
     elif "min_value" in palette or "max_value" in palette:
         raise ValueError("Both 'min_value' and 'max_value' must be specified (or neither).")
 
+
+def _set_cmap_alpha_range(cmap, palette, color_scale):
     if "min_alpha" in palette and "max_alpha" in palette:
         cmap.set_alpha_range(palette["min_alpha"] / color_scale,
                              palette["max_alpha"] / color_scale)
     elif "min_alpha" in palette or "max_alpha" in palette:
         raise ValueError("Both 'min_alpha' and 'max_alpha' must be specified (or neither).")
-
-    return cmap
 
 
 def _get_cmap_from_palette_info(palette, img, color_scale):
