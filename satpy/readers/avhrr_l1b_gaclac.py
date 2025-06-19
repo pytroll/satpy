@@ -156,7 +156,13 @@ class GACLACFile(BaseFileHandler):
     @functools.cached_property
     def cal_ds(self):
         """Get the calibrated dataset."""
-        return self.reader.get_calibrated_dataset()
+        ds = self.reader.calibrated_dataset
+        # ds = ds.chunk(dict(scan_line_index="auto", channel_name=1, columns=-1, ir_channel_name=1))
+        renames = dict(scan_line_index="y",
+                       columns="x")
+        if "subsampled_columns" in ds.dims:
+            renames["subsampled_columns"] = "x_every_eighth"
+        return ds.rename_dims(renames)
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset."""
