@@ -1434,7 +1434,7 @@ enhancements:
     standard_name: true_color_reproduction_color_stretch
     operations:
       - name: color
-        method: !!python/name:satpy.enhancements.stretching.jma_true_color_reproduction
+        method: !!python/name:satpy.enhancements.ahi.jma_true_color_reproduction
       - name: stretch
         method: !!python/name:satpy.enhancements.stretching.stretch
         kwargs:

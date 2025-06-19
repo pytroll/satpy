@@ -30,7 +30,7 @@ IMPORT_PATHS = {
     "cira_stretch": "satpy.enhancements.stretching",
     "reinhard_to_srgb": "satpy.enhancements.stretching",
     "btemp_threshold": "satpy.enhancements.stretching",
-    "jma_true_color_reproduction": "satpy.enhancements.stretching",
+    "jma_true_color_reproduction": "satpy.enhancements.ahi",
     "three_d_effect": "satpy.enhancements.convolution",
     "exclude_alpha": "satpy.enhancements.wrappers",
     "on_separate_bands": "satpy.enhancements.wrappers",
