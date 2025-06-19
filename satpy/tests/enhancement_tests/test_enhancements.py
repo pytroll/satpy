@@ -175,3 +175,59 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
                 ((fake_alti - rng[0]) * (255 / np.ptp(rng))).round())
         else:
             np.testing.assert_allclose(im.data.sel(bands="P"), fake_alti)
+
+
+@pytest.mark.parametrize("name",
+                         ["stretch",
+                          "gamma",
+                          "invert",
+                          "piecewise_linear_stretch",
+                          "cira_stretch",
+                          "reinhard_to_srgb",
+                          "btemp_threshold",
+                         ]
+                         )
+def test_stretching_warns(name):
+    """Test that there's a warning when importing stretching functions from old location."""
+    with pytest.warns(UserWarning):
+        from satpy import enhancements
+        getattr(enhancements, name)
+
+
+def test_jma_true_color_repropdution_warns():
+    """Test that there's a warning when importing jma_true_color_reproduction from old location."""
+    with pytest.warns(UserWarning):
+        from satpy.enhancements import jma_true_color_reproduction  # noqa
+
+
+def test_convolution_warns():
+    """Test that there's a warning when importing three_d_effect from old location."""
+    with pytest.warns(UserWarning):
+        from satpy.enhancements import three_d_effect  # noqa
+
+
+@pytest.mark.parametrize("name",
+                         ["exclude_alpha",
+                          "on_separate_bands",
+                          "using_map_blocks",
+                         ]
+                         )
+def test_wrappers_warns(name):
+    """Test that there's a warning when importing wrapper functions from old location."""
+    with pytest.warns(UserWarning):
+        from satpy import enhancements
+        getattr(enhancements, name)
+
+
+@pytest.mark.parametrize("name",
+                         ["lookup",
+                          "colorize",
+                          "palettize",
+                          "create_colormap",
+                         ]
+                         )
+def test_color_mappung_warns(name):
+    """Test that there's a warning when importing color mapping functions from old location."""
+    with pytest.warns(UserWarning):
+        from satpy import enhancements
+        getattr(enhancements, name)
