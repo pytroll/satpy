@@ -110,7 +110,7 @@ being visualized.
    Composites produced with :class:`PaletteCompositor` will result in
    an image with mode RGB when enhanced.  To produce an image with mode P, use
    the :class:`SingleBandCompositor` with an associated
-   :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
+   :func:`~satpy.enhancements.color_mapping.palettize` enhancement and pass ``keep_palette=True``
    to :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.  If the colormap is sourced from
    the same dataset as the dataset to be palettized, it must be contained
    in the auxiliary datasets.
@@ -489,7 +489,7 @@ image) for both of the static images::
       standard_name: static_day
       operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.stretching.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
