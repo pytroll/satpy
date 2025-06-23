@@ -7,9 +7,75 @@ enhancements:
         kwargs:
           palettes:
             - {colors: ylorrd, min_value: 0, max_value: 20}
-  # Requires C14 from ABI
-  c14_flash_extent_density:
-    standard_name: c14_flash_extent_density
+  event_flash_fraction:
+    name: event_flash_fraction
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylorrd, min_value: 0, max_value: 0.1}
+  total_energy:
+    name: total_energy
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: purples, min_value: 0, max_value: 0.00001, reverse: True} # nJ
+  minimum_event_energy:
+    name: minimum_event_energy
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: purples, min_value: 0, max_value: 0.00001, reverse: True} # nJ
+  minimum_flash_area:
+    name: minimum_flash_area
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylgnbu, min_value: 60, max_value: 2000} # km^2
+# Windowed versions of each channel - 5x as large, for a 5 min vs. 1 min window.
+  flash_extent_density_window:
+    name: flash_extent_density_window
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylorrd, min_value: 0, max_value: 100}
+  event_flash_fraction_window:
+    name: event_flash_fraction_window
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylorrd, min_value: 0, max_value: 0.5}
+  total_energy_window:
+    name: total_energy_window
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: purples, min_value: 0, max_value: 0.00005, reverse: True} # nJ
+  minimum_flash_area_window:
+    name: minimum_flash_area_window
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylgnbu, min_value: 60, max_value: 2000} # km^2
+  # Generic stretch for composites to ensure GLM and ABI data are scaled the
+  # same regardless of the range of observed values in the image.
+  glm_abi_overlay:
+    standard_name: glm_abi_overlay
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
