@@ -272,8 +272,20 @@ def add_bands(data, bands):
     """Add bands so that they match *bands*."""
     # Add R, G and B bands, remove L band
     bands = bands.compute()
+    data = _check_mode_p(data, bands)
+    data = _check_mode_l(data, bands)
+    # Add alpha band
+    data = _check_alpha_band(data, bands)
+    return data
+
+
+def _check_mode_p(data, bands):
     if "P" in data["bands"].data or "P" in bands.data:
         raise NotImplementedError("Cannot mix datasets of mode P with other datasets at the moment.")
+    return data
+
+
+def _check_mode_l(data, bands):
     if "L" in data["bands"].data and "R" in bands.data:
         lum = data.sel(bands="L")
         # Keep 'A' if it was present
@@ -289,7 +301,10 @@ def add_bands(data, bands):
         data = xr.concat(new_data, dim="bands", coords={"bands": new_bands})
         data["bands"] = new_bands
         data.attrs["mode"] = mode
-    # Add alpha band
+    return data
+
+
+def _check_alpha_band(data, bands):
     if "A" not in data["bands"].data and "A" in bands.data:
         new_data = [data.sel(bands=band) for band in data["bands"].data]
         # Create alpha band based on a copy of the first "real" band
