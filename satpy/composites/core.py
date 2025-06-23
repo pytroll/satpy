@@ -164,18 +164,24 @@ class CompositeBase:
         if len(data_arrays) == 1:
             return
 
-        if "x" in data_arrays[0].dims and \
-                not all(x.sizes["x"] == data_arrays[0].sizes["x"]
-                        for x in data_arrays[1:]):
-            raise IncompatibleAreas("X dimension has different sizes")
-        if "y" in data_arrays[0].dims and \
-                not all(x.sizes["y"] == data_arrays[0].sizes["y"]
-                        for x in data_arrays[1:]):
-            raise IncompatibleAreas("Y dimension has different sizes")
+        self._check_dimension_size(data_arrays, "x")
+        self._check_dimension_size(data_arrays, "y")
 
         areas = [ds.attrs.get("area") for ds in data_arrays]
         if all(a is None for a in areas):
             return
+
+        self._check_areas_are_valid(areas)
+
+    @staticmethod
+    def _check_dimension_size(data_arrays, coordinate):
+        if coordinate in data_arrays[0].dims and \
+           not all(x.sizes[coordinate] == data_arrays[0].sizes[coordinate]
+                   for x in data_arrays[1:]):
+            coordinate = coordinate.upper()
+            raise IncompatibleAreas(f"{coordinate} dimension has different sizes")
+
+    def _check_areas_are_valid(self, areas):
         if any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
