@@ -402,28 +402,42 @@ class GenericCompositor(CompositeBase):
                 stacklevel=2
             )
             self.attrs.pop("deprecation_warning", None)
-        num = len(datasets)
+
+        mode = self._get_mode(attrs, len(datasets))
+
+        if len(datasets) > 1:
+            datasets, data = self._check_datasets_and_data(datasets, mode)
+        else:
+            data = datasets[0]
+
+        new_attrs = self._get_updated_attrs(datasets, attrs, mode)
+
+        return xr.DataArray(data=data.data, attrs=new_attrs,
+                            dims=data.dims, coords=data.coords)
+
+    def _get_mode(self, attrs, num):
         mode = attrs.get("mode")
         if mode is None:
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
-        if len(datasets) > 1:
-            datasets = self.match_data_arrays(datasets)
-            data = self._concat_datasets(datasets, mode)
-            # Skip masking if user wants it or a specific alpha channel is given.
-            if self.common_channel_mask and mode[-1] != "A":
-                data = data.where(data.notnull().all(dim="bands"))
-        else:
-            data = datasets[0]
+        return mode
 
+    def _check_datasets_and_data(self, datasets, mode):
+        datasets = self.match_data_arrays(datasets)
+        data = self._concat_datasets(datasets, mode)
+        # Skip masking if user wants it or a specific alpha channel is given.
+        if self.common_channel_mask and mode[-1] != "A":
+            data = data.where(data.notnull().all(dim="bands"))
         # if inputs have a time coordinate that may differ slightly between
         # themselves then find the mid time and use that as the single
         # time coordinate value
-        if len(datasets) > 1:
-            time = check_times(datasets)
-            if time is not None and "time" in data.dims:
-                data["time"] = [time]
+        time = check_times(datasets)
+        if time is not None and "time" in data.dims:
+            data["time"] = [time]
 
+        return datasets, data
+
+    def _get_updated_attrs(self, datasets, attrs, mode):
         new_attrs = combine_metadata(*datasets)
         # remove metadata that shouldn't make sense in a composite
         new_attrs["wavelength"] = None
@@ -441,8 +455,7 @@ class GenericCompositor(CompositeBase):
         new_attrs["sensor"] = self._get_sensors(datasets)
         new_attrs["mode"] = mode
 
-        return xr.DataArray(data=data.data, attrs=new_attrs,
-                            dims=data.dims, coords=data.coords)
+        return new_attrs
 
 
 def check_times(projectables):
