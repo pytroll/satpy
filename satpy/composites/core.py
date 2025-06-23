@@ -35,6 +35,8 @@ LOG = logging.getLogger(__name__)
 NEGLIGIBLE_COORDS = ["time"]
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
+TIME_COMPATIBILITY_TOLERANCE = np.timedelta64(1, "s")
+
 
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
@@ -487,26 +489,35 @@ def check_times(projectables):
     """Check that *projectables* have compatible times."""
     times = []
     for proj in projectables:
-        try:
-            if proj["time"].size and proj["time"][0] != 0:
-                times.append(proj["time"][0].values)
-            else:
-                break  # right?
-        except KeyError:
-            # the datasets don't have times
+        status = _collect_time_from_proj(times, proj)
+        if not status:
             break
-        except IndexError:
-            # time is a scalar
-            if proj["time"].values != 0:
-                times.append(proj["time"].values)
-            else:
-                break
     else:
-        # Is there a more gracious way to handle this ?
-        if np.max(times) - np.min(times) > np.timedelta64(1, "s"):
-            raise IncompatibleTimes
-        mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
-        return mid_time
+        return _get_average_time(times)
+
+
+def _collect_time_from_proj(times, proj):
+    status = False
+    try:
+        if proj["time"].size and proj["time"][0] != 0:
+            times.append(proj["time"][0].values)
+            status = True
+    except KeyError:
+        # the datasets don't have times
+        pass
+    except IndexError:
+        # time is a scalar
+        if proj["time"].values != 0:
+            times.append(proj["time"].values)
+            status = True
+    return status
+
+
+def _get_average_time(times):
+    # Is there a more gracious way to handle this ?
+    if np.max(times) - np.min(times) > TIME_COMPATIBILITY_TOLERANCE:
+        raise IncompatibleTimes
+    return (np.max(times) - np.min(times)) / 2 + np.min(times)
 
 
 class RGBCompositor(GenericCompositor):
