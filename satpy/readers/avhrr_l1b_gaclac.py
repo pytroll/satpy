@@ -56,16 +56,29 @@ spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
 AVHRR3_CHANNEL_NAMES = {"1": 0, "2": 1, "3A": 2, "3B": 3, "4": 4, "5": 5}
 AVHRR2_CHANNEL_NAMES = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
 AVHRR_CHANNEL_NAMES = {"1": 0, "2": 1, "3": 2, "4": 3}
-ANGLES = ("sensor_zenith_angle", "sensor_azimuth_angle", "solar_zenith_angle",
-          "solar_azimuth_angle", "sun_sensor_azimuth_difference_angle")
+ANGLES = (
+    "sensor_zenith_angle",
+    "sensor_azimuth_angle",
+    "solar_zenith_angle",
+    "solar_azimuth_angle",
+    "sun_sensor_azimuth_difference_angle",
+)
 
 
 class GACLACFile(BaseFileHandler):
     """Reader for GAC and LAC data."""
 
-    def __init__(self, filename, filename_info, filetype_info,  # noqa: D417
-                 start_line=None, end_line=None, strip_invalid_coords=True,
-                 interpolate_coords=True, **reader_kwargs):
+    def __init__(
+        self,
+        filename,
+        filename_info,
+        filetype_info,  # noqa: D417
+        start_line=None,
+        end_line=None,
+        strip_invalid_coords=True,
+        interpolate_coords=True,
+        **reader_kwargs,
+    ):
         """Init the file handler.
 
         Args:
@@ -79,8 +92,7 @@ class GACLACFile(BaseFileHandler):
                 See the pygac documentation for available options.
 
         """
-        super().__init__(
-            filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self.start_line = start_line
         self.end_line = end_line
@@ -98,8 +110,7 @@ class GACLACFile(BaseFileHandler):
         self._end_time = None
 
         with suppress(KeyError):
-            self._end_time = dt.datetime.combine(filename_info["start_time"].date(),
-                                                 filename_info["end_time"].time())
+            self._end_time = dt.datetime.combine(filename_info["start_time"].date(), filename_info["end_time"].time())
             if self._end_time < self._start_time:
                 self._end_time += dt.timedelta(days=1)
 
@@ -132,22 +143,49 @@ class GACLACFile(BaseFileHandler):
         self.filename_info = filename_info
 
     def _is_avhrr2(self):
-        return self.platform_id in ["NC", "NE", "NF", "NG", "NH", "ND", "NJ",
-                                    "N07", "N08", "N09", "N10", "N11", "N12", "N14"]
+        return self.platform_id in [
+            "NC",
+            "NE",
+            "NF",
+            "NG",
+            "NH",
+            "ND",
+            "NJ",
+            "N07",
+            "N08",
+            "N09",
+            "N10",
+            "N11",
+            "N12",
+            "N14",
+        ]
 
     def _is_avhrr3(self):
-        return self.platform_id in ["NK", "NL", "NM", "NN", "NP",
-                                    "N15", "N16", "N17", "N18", "N19",
-                                    "M1", "M2", "M3",
-                                    "MOB", "MOA", "MOC"]
+        return self.platform_id in [
+            "NK",
+            "NL",
+            "NM",
+            "NN",
+            "NP",
+            "N15",
+            "N16",
+            "N17",
+            "N18",
+            "N19",
+            "M1",
+            "M2",
+            "M3",
+            "MOB",
+            "MOA",
+            "MOC",
+        ]
 
     @functools.cached_property
     def reader(self):
         """Get the reader."""
         reader = self.reader_class(
-            interpolate_coords=self.interpolate_coords,
-            creation_site=self.creation_site,
-            **self.reader_kwargs)
+            interpolate_coords=self.interpolate_coords, creation_site=self.creation_site, **self.reader_kwargs
+        )
         reader.read(self.filename)
         if np.all(reader.mask):
             raise ValueError("All data is masked out")
@@ -158,8 +196,7 @@ class GACLACFile(BaseFileHandler):
         """Get the calibrated dataset."""
         ds = self.reader.calibrated_dataset
         # ds = ds.chunk(dict(scan_line_index="auto", channel_name=1, columns=-1, ir_channel_name=1))
-        renames = dict(scan_line_index="y",
-                       columns="x")
+        renames = dict(scan_line_index="y", columns="x")
         if "subsampled_columns" in ds.dims:
             renames["subsampled_columns"] = "x_every_eighth"
         return ds.rename_dims(renames)
@@ -180,7 +217,16 @@ class GACLACFile(BaseFileHandler):
             data = self.cal_ds[ds_name].values
             xdim = "x"
             xcoords = None
-        elif ds_name in ["gcps"]:
+        elif ds_name in [
+            "gcp_x",
+            "gcp_y",
+            "gcp_longitude",
+            "gcp_latitude",
+            "gcp_x_corrected",
+            "gcp_y_corrected",
+            "gcp_x_displacement",
+            "gcp_y_displacement",
+        ]:
             res = self.cal_ds[ds_name]
             self._update_attrs(res)
             return res
@@ -191,13 +237,15 @@ class GACLACFile(BaseFileHandler):
         elif ds_name == "qual_flags":
             data = self.reader.get_qual_flags()
             xdim = "num_flags"
-            xcoords = ["Scan line number",
-                       "Fatal error flag",
-                       "Insufficient data for calibration",
-                       "Insufficient data for calibration",
-                       "Solar contamination of blackbody in channels 3",
-                       "Solar contamination of blackbody in channels 4",
-                       "Solar contamination of blackbody in channels 5"]
+            xcoords = [
+                "Scan line number",
+                "Fatal error flag",
+                "Insufficient data for calibration",
+                "Insufficient data for calibration",
+                "Solar contamination of blackbody in channels 3",
+                "Solar contamination of blackbody in channels 4",
+                "Solar contamination of blackbody in channels 5",
+            ]
         elif dataset_id["name"].upper() in self.chn_dict:
             # Read and calibrate channel data
             data = self._get_channel(dataset_id)
@@ -212,15 +260,13 @@ class GACLACFile(BaseFileHandler):
         self._end_time = datetime64_to_pydatetime(times[-1])
 
         # Select user-defined scanlines and/or strip invalid coordinates
-        if (self.start_line is not None or self.end_line is not None
-                or self.strip_invalid_coords):
+        if self.start_line is not None or self.end_line is not None or self.strip_invalid_coords:
             data, times = self.slice(data=data, times=times)
 
         # Create data array
         chunk_cols = data.shape[1]
-        chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
-        res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
-                           dims=["y", xdim], attrs=ds_info)
+        chunk_lines = int((CHUNK_SIZE**2) / chunk_cols)
+        res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)), dims=["y", xdim], attrs=ds_info)
         if xcoords:
             res[xdim] = xcoords
 
@@ -276,15 +322,17 @@ class GACLACFile(BaseFileHandler):
             end_line=end_line,
             first_valid_lat=first_valid_lat,
             last_valid_lat=last_valid_lat,
-            along_track=data.shape[0]
+            along_track=data.shape[0],
         )
 
         # Slice data
-        sliced = pygac.utils.slice_channel(data,
-                                           start_line=start_line,
-                                           end_line=end_line,
-                                           first_valid_lat=first_valid_lat,
-                                           last_valid_lat=last_valid_lat)
+        sliced = pygac.utils.slice_channel(
+            data,
+            start_line=start_line,
+            end_line=end_line,
+            first_valid_lat=first_valid_lat,
+            last_valid_lat=last_valid_lat,
+        )
         if isinstance(sliced, tuple):
             # pygac < 1.4.0
             sliced = sliced[0]
@@ -318,11 +366,13 @@ class GACLACFile(BaseFileHandler):
         """Get angles and buffer results."""
         if self.angles is None:
             sat_azi, sat_zenith, sun_azi, sun_zenith, rel_azi = self.reader.get_angles()
-            self.angles = {"sensor_zenith_angle": sat_zenith,
-                           "sensor_azimuth_angle": sat_azi,
-                           "solar_zenith_angle": sun_zenith,
-                           "solar_azimuth_angle": sun_azi,
-                           "sun_sensor_azimuth_difference_angle": rel_azi}
+            self.angles = {
+                "sensor_zenith_angle": sat_zenith,
+                "sensor_azimuth_angle": sat_azi,
+                "solar_zenith_angle": sun_zenith,
+                "solar_azimuth_angle": sun_azi,
+                "sun_sensor_azimuth_difference_angle": rel_azi,
+            }
         return self.angles[key["name"]]
 
     def _strip_invalid_lat(self):
