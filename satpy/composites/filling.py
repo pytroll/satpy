@@ -228,9 +228,17 @@ class DayNightCompositor(GenericCompositor):
             weights: xr.DataArray,
             attrs: dict,
     ) -> list[xr.DataArray]:
+        weights = self._fill_weights(weights)
+        data = self._merge_bands_with_weights(day_data, night_data, weights, attrs)
+        return data
+
+    def _fill_weights(self, weights):
         if not self.include_alpha:
             fill = 1 if self.day_night == "night_only" else 0
             weights = weights.where(~np.isnan(weights), fill)
+        return weights
+
+    def _merge_bands_with_weights(self, day_data, night_data, weights, attrs):
         data = []
         for b in _get_band_names(day_data, night_data):
             day_band = _get_single_band_data(day_data, b)
