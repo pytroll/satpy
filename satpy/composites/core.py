@@ -96,21 +96,31 @@ class CompositeBase:
 
     def apply_modifier_info(self, origin, destination):
         """Apply the modifier info from *origin* to *destination*."""
-        o = getattr(origin, "attrs", origin)
-        d = getattr(destination, "attrs", destination)
-
         try:
             dataset_keys = self.attrs["_satpy_id"].id_keys.keys()
         except KeyError:
             dataset_keys = ["name", "modifiers"]
+
+        self._collect_modifier_info(origin, destination, dataset_keys)
+
+    def _collect_modifier_info(self, origin, destination, dataset_keys):
+        o = getattr(origin, "attrs", origin)
+        d = getattr(destination, "attrs", destination)
+
         for k in dataset_keys:
-            if k == "modifiers" and k in self.attrs:
+            if self._is_existing_modifier(k):
                 d[k] = self.attrs[k]
             elif d.get(k) is None:
-                if self.attrs.get(k) is not None:
-                    d[k] = self.attrs[k]
-                elif o.get(k) is not None:
-                    d[k] = o[k]
+                self._add_missing_modifier(k, d, o)
+
+    def _is_existing_modifier(self, k):
+        return (k == "modifiers") and (k in self.attrs)
+
+    def _add_missing_modifier(self, key, destination, origin):
+        if self.attrs.get(key) is not None:
+            destination[key] = self.attrs[key]
+        elif origin.get(key) is not None:
+            destination[key] = origin[key]
 
     def match_data_arrays(self, data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
         """Match data arrays so that they can be used together in a composite.
