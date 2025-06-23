@@ -237,13 +237,16 @@ class DayNightCompositor(GenericCompositor):
             night_band = _get_single_band_data(night_data, b)
             # For day-only and night-only products only the alpha channel is weighted
             # If there's no alpha band, weight the actual data
-            if b == "A" or "only" not in self.day_night or not self.include_alpha:
+            if self._is_weightable(b):
                 day_band = day_band * weights
                 night_band = night_band * (1 - weights)
             band = day_band + night_band
             band.attrs = attrs
             data.append(band)
         return data
+
+    def _is_weightable(self, band):
+        return (band == "A") or ("only" not in self.day_night) or not self.include_alpha
 
 
 def _get_band_names(day_data, night_data):
