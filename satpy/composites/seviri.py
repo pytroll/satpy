@@ -39,7 +39,7 @@ class RealisticColors(GenericCompositor):
             ch3 = 3.0 * hrv - vis06 - vis08
             ch3.attrs = hrv.attrs
         except ValueError:
-            raise IncompatibleAreas
+            raise IncompatibleAreas("Areas do not match")
 
         ndvi = (vis08 - vis06) / (vis08 + vis06)
         ndvi = ndvi.where(ndvi >= 0.0, 0.0)

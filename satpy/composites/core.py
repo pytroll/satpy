@@ -396,7 +396,7 @@ class GenericCompositor(CompositeBase):
             data["bands"] = list(mode)
         except ValueError as e:
             LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
-            raise IncompatibleAreas
+            raise IncompatibleAreas("Areas do not match.")
 
         return data
 
@@ -516,7 +516,7 @@ def _collect_time_from_proj(times, proj):
 def _get_average_time(times):
     # Is there a more gracious way to handle this ?
     if np.max(times) - np.min(times) > TIME_COMPATIBILITY_TOLERANCE:
-        raise IncompatibleTimes
+        raise IncompatibleTimes("Times do not match.")
     return (np.max(times) - np.min(times)) / 2 + np.min(times)
 
 
