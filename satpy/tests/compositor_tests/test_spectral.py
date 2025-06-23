@@ -15,6 +15,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for spectral correction compositors."""
 
+import unittest
+from unittest import mock
+
 import dask
 import dask.array as da
 import numpy as np
@@ -138,3 +141,42 @@ class TestNdviHybridGreenCompositor:
         c02_bad_shape.coords["y"] = [1.1, 2.]
         res = comp((self.c01, c02_bad_shape, self.c03))
         assert res.shape == (2, 2)
+
+
+class TestNaturalEnhCompositor(unittest.TestCase):
+    """Test NaturalEnh compositor."""
+
+    def setUp(self):
+        """Create channel data and set channel weights."""
+        self.ch1 = xr.DataArray([1.0])
+        self.ch2 = xr.DataArray([2.0])
+        self.ch3 = xr.DataArray([3.0])
+        self.ch16_w = 2.0
+        self.ch08_w = 3.0
+        self.ch06_w = 4.0
+
+    @mock.patch("satpy.composites.spectral.NaturalEnh.__repr__")
+    @mock.patch("satpy.composites.spectral.NaturalEnh.match_data_arrays")
+    def test_natural_enh(self, match_data_arrays, repr_):
+        """Test NaturalEnh compositor."""
+        from satpy.composites import NaturalEnh
+        repr_.return_value = ""
+        projectables = [self.ch1, self.ch2, self.ch3]
+
+        def temp_func(*args):
+            return args[0]
+
+        match_data_arrays.side_effect = temp_func
+        comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
+                          ch06_w=self.ch06_w)
+        assert comp.ch16_w == self.ch16_w
+        assert comp.ch08_w == self.ch08_w
+        assert comp.ch06_w == self.ch06_w
+        res = comp(projectables)
+        assert mock.call(projectables) in match_data_arrays.mock_calls
+        correct = (self.ch16_w * projectables[0] +
+                   self.ch08_w * projectables[1] +
+                   self.ch06_w * projectables[2])
+        assert res[0] == correct
+        assert res[1] == projectables[1]
+        assert res[2] == projectables[2]
