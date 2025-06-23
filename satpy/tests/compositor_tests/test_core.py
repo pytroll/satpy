@@ -362,10 +362,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B"]
-        assert res.attrs["mode"] == "".join(res_bands)
-        np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords["bands"], res_bands)
-        assert res.dtype == np.float32
+        _check_add_band_results(res, res_bands, np.float32)
 
     def test_add_bands_l_rgba(self):
         """Test adding bands."""
@@ -378,10 +375,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B", "A"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B", "A"]
-        assert res.attrs["mode"] == "".join(res_bands)
-        np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords["bands"], res_bands)
-        assert res.dtype == np.float32
+        _check_add_band_results(res, res_bands, np.float32)
 
     def test_add_bands_la_rgb(self):
         """Test adding bands."""
@@ -394,10 +388,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B", "A"]
-        assert res.attrs["mode"] == "".join(res_bands)
-        np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords["bands"], res_bands)
-        assert res.dtype == np.float32
+        _check_add_band_results(res, res_bands, np.float32)
 
     def test_add_bands_rgb_rbga(self):
         """Test adding bands."""
@@ -411,10 +402,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["R", "G", "B", "A"]})
         res = add_bands(data, new_bands)
         res_bands = ["R", "G", "B", "A"]
-        assert res.attrs["mode"] == "".join(res_bands)
-        np.testing.assert_array_equal(res.bands, res_bands)
-        np.testing.assert_array_equal(res.coords["bands"], res_bands)
-        assert res.dtype == np.float32
+        _check_add_band_results(res, res_bands, np.float32)
 
     def test_add_bands_p_l(self):
         """Test adding bands."""
@@ -428,6 +416,13 @@ class TestAddBands(unittest.TestCase):
                                  coords={"bands": ["L"]})
         with pytest.raises(NotImplementedError):
             add_bands(data, new_bands)
+
+
+def _check_add_band_results(res, res_bands, dtype):
+    assert res.attrs["mode"] == "".join(res_bands)
+    np.testing.assert_array_equal(res.bands, res_bands)
+    np.testing.assert_array_equal(res.coords["bands"], res_bands)
+    assert res.dtype == dtype
 
 
 class TestEnhance2Dataset(unittest.TestCase):
