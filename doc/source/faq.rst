@@ -179,7 +179,7 @@ for more information on the creation options available including other
 compression choices.
 
 Why is matplotlib returning the error ``Invalid shape (3, Ny, Nx) for image data`` when using ``pyplot.imshow``?
-------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
 
 Satpy datasets are stored in memory with the dimensions of bands first, then the vertical
 and horizontal spatial indices, whereas matplotlib expects an array of shape ``(M, N, 3)``
