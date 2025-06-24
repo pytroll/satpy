@@ -4,14 +4,14 @@ enhancements:
     standard_name: mw_humidity_surface
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.stretching.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args:
       - [true, true, true]
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretching.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear}
     - name: gamma
-      method: !!python/name:satpy.enhancements.stretching.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 1.2}
 
   tbs_colors:

@@ -22,7 +22,7 @@ from .utils import create_ch1, create_ch2, create_rgb, run_and_check_enhancement
 
 
 class TestEnhancementsStretching:
-    """Class for testing enhancements in satpy.enhancements.stretching module."""
+    """Class for testing enhancements in satpy.enhancements.contrast module."""
 
     def setup_method(self):
         """Create test data used by every test."""
@@ -33,7 +33,7 @@ class TestEnhancementsStretching:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_cira_stretch(self, dtype):
         """Test applying the cira_stretch."""
-        from satpy.enhancements.stretching import cira_stretch
+        from satpy.enhancements.contrast import cira_stretch
 
         expected = np.array([[
             [np.nan, -7.04045974, -7.04045974, 0.79630132, 0.95947296],
@@ -42,7 +42,7 @@ class TestEnhancementsStretching:
 
     def test_reinhard(self):
         """Test the reinhard algorithm."""
-        from satpy.enhancements.stretching import reinhard_to_srgb
+        from satpy.enhancements.contrast import reinhard_to_srgb
         expected = np.array([[[np.nan, 0., 0., 0.93333793, 1.29432402],
                               [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
 
@@ -55,7 +55,7 @@ class TestEnhancementsStretching:
 
     def test_piecewise_linear_stretch(self):
         """Test the piecewise_linear_stretch enhancement function."""
-        from satpy.enhancements.stretching import piecewise_linear_stretch
+        from satpy.enhancements.contrast import piecewise_linear_stretch
         expected = np.array([[
             [np.nan, 0., 0., 0.44378, 0.631734],
             [0.737562, 0.825041, 0.912521, 1., 1.]]])
@@ -69,7 +69,7 @@ class TestEnhancementsStretching:
 
     def test_btemp_threshold(self):
         """Test applying the cira_stretch."""
-        from satpy.enhancements.stretching import btemp_threshold
+        from satpy.enhancements.contrast import btemp_threshold
 
         expected = np.array([[
             [np.nan, 0.946207, 0.892695, 0.839184, 0.785672],

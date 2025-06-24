@@ -23,13 +23,13 @@ from typing import Any
 from satpy.utils import _import_and_warn_new_location
 
 IMPORT_PATHS = {
-    "stretch": "satpy.enhancements.stretching",
-    "gamma": "satpy.enhancements.stretching",
-    "invert": "satpy.enhancements.stretching",
-    "piecewise_linear_stretch": "satpy.enhancements.stretching",
-    "cira_stretch": "satpy.enhancements.stretching",
-    "reinhard_to_srgb": "satpy.enhancements.stretching",
-    "btemp_threshold": "satpy.enhancements.stretching",
+    "stretch": "satpy.enhancements.contrast",
+    "gamma": "satpy.enhancements.contrast",
+    "invert": "satpy.enhancements.contrast",
+    "piecewise_linear_stretch": "satpy.enhancements.contrast",
+    "cira_stretch": "satpy.enhancements.contrast",
+    "reinhard_to_srgb": "satpy.enhancements.contrast",
+    "btemp_threshold": "satpy.enhancements.contrast",
     "jma_true_color_reproduction": "satpy.enhancements.ahi",
     "three_d_effect": "satpy.enhancements.convolution",
     "exclude_alpha": "satpy.enhancements.wrappers",

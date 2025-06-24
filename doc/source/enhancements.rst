@@ -36,29 +36,29 @@ a series of enhancement "sections". An example file might look like:
      default:
        operations:
        - name: stretch
-         method: !!python/name:satpy.enhancements.stretching.stretch
+         method: !!python/name:satpy.enhancements.contrast.stretch
          kwargs: {stretch: linear}
      reflectance_default:
        standard_name: toa_bidirectional_reflectance
        operations:
        - name: linear_stretch
-         method: !!python/name:satpy.enhancements.stretching.stretch
+         method: !!python/name:satpy.enhancements.contrast.stretch
          kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
        - name: gamma
-         method: !!python/name:satpy.enhancements.gamma
+         method: !!python/name:satpy.enhancements.contrast.gamma
          kwargs: {gamma: 1.5}
      overview:
        standard_name: overview
        operations:
          - name: inverse
-           method: !!python/name:satpy.enhancements.stretching.invert
+           method: !!python/name:satpy.enhancements.contrast.invert
            args: [False, False, True]
          - name: stretch
-           method: !!python/name:satpy.enhancements.stretching.stretch
+           method: !!python/name:satpy.enhancements.contrast.stretch
            kwargs:
              stretch: linear
          - name: gamma
-           method: !!python/name:satpy.enhancements.stretching.gamma
+           method: !!python/name:satpy.enhancements.contrast.gamma
            kwargs:
              gamma: [1.7, 1.7, 1.7]
 
@@ -345,7 +345,7 @@ on both ends of the scale, but these can be overridden with
 ``cutoffs=(0.005, 0.005)`` argument::
 
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretching.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
         cutoffs: [0.003, 0.005]
@@ -363,7 +363,7 @@ range by clipping the data. This is followed by a linear stretch with
 no cutoffs specified (see above). Example::
 
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretching.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -385,7 +385,7 @@ piecewise_linear_stretch
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use :func:`numpy.interp` to linearly interpolate data to a new range. See
-:func:`satpy.enhancements.stretching.piecewise_linear_stretch` for more information and examples.
+:func:`satpy.enhancements.contrast.piecewise_linear_stretch` for more information and examples.
 
 cira_stretch
 ^^^^^^^^^^^^

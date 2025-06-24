@@ -249,7 +249,7 @@ enhancements:
         name: fake_name
         operations:
         - name: stretch
-          method: !!python/name:satpy.enhancements.stretching.stretch
+          method: !!python/name:satpy.enhancements.contrast.stretch
           kwargs:
             stretch: crude
             min_stretch: -100.0
@@ -263,7 +263,7 @@ enhancements:
     default:
         operations:
         - name: stretch
-          method: !!python/name:satpy.enhancements.stretching.stretch
+          method: !!python/name:satpy.enhancements.contrast.stretch
           kwargs:
             stretch: crude
             min_stretch: -1.0

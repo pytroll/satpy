@@ -6,7 +6,7 @@ enhancements:
     name: dynamic_dnb
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretching.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 1.0}
   water_detection:
     name: WaterDetection

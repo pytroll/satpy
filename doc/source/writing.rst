@@ -82,7 +82,7 @@ the specified colors.
 
     >>> import numpy as np
     >>> from satpy.composites import BWCompositor
-    >>> from satpy.enhancements.color_mapping import colorize
+    >>> from satpy.enhancements.colormap import colorize
     >>> from trollimage.xrimage import XRImage
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
     >>> np.save("/tmp/binary_colormap.npy", arr)
@@ -109,7 +109,7 @@ The above example can be used in enhancements YAML config like this:
     standard_name: hot_or_cold
     operations:
       - name: colorize
-        method: &colorizefun !!python/name:satpy.enhancements.color_mapping.colorize ''
+        method: &colorizefun !!python/name:satpy.enhancements.colormap.colorize ''
         kwargs:
           palettes:
             - {filename: /tmp/binary_colormap.npy, min_value: 223.15, max_value: 303.15}
