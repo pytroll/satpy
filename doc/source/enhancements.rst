@@ -1,3 +1,5 @@
+.. _enhancements:
+
 Enhancements
 ============
 
