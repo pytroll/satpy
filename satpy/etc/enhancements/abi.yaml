@@ -193,7 +193,7 @@ enhancements:
     name: BCM
     operations:
       - name: palettize
-        method: !!python/name:satpy.enhancements.color_mapping.palettize
+        method: !!python/name:satpy.enhancements.colormap.palettize
         kwargs:
           palettes:
             - {'values': [  0, # Clear
@@ -211,7 +211,7 @@ enhancements:
     name: ACM
     operations:
       - name: palettize
-        method: !!python/name:satpy.enhancements.color_mapping.palettize
+        method: !!python/name:satpy.enhancements.colormap.palettize
         kwargs:
           palettes:
             - {'values': [  0, # Clear
@@ -233,7 +233,7 @@ enhancements:
     name: Cloud_Probabilities
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
              - {colors: 'spectral',

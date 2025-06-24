@@ -415,7 +415,7 @@ to colors. One or several `standard Trollimage color maps`_ may be used as in
 the example here::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
           palettes:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
@@ -425,7 +425,7 @@ In addition, it is also possible to add a linear alpha channel to the colormap, 
 following example::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - {colors: ylorrd, min_alpha: 100, max_alpha: 255}
@@ -437,7 +437,7 @@ Sea Surface Temperature (SST) imagery, as in this example with the EUMETSAT
 Ocean and Sea Ice SAF (OSISAF) GHRSST product::
 
     - name: osisaf_sst
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
           palettes:
             - colors: [
@@ -478,7 +478,7 @@ as such by the reader.  To apply such a palette directly, pass the ``dataset``
 keyword.  For example::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -492,7 +492,7 @@ keyword.  For example::
 
 The above examples are just three different ways to apply colors to images with
 Satpy. There is a wealth of other options for how to declare a colormap, please
-see :func:`~satpy.enhancements.color_mapping.create_colormap` for more inspiration.
+see :func:`~satpy.enhancements.colormap.create_colormap` for more inspiration.
 
 .. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
 

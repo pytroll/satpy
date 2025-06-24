@@ -24,7 +24,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.enhancements.color_mapping import create_colormap
+from satpy.enhancements.colormap import create_colormap
 
 from .utils import create_ch1, create_ch2, create_rgb, run_and_check_enhancement
 
@@ -40,7 +40,7 @@ class TestEnhancementsConvolution:
 
     def test_lookup(self):
         """Test the lookup enhancement function."""
-        from satpy.enhancements.color_mapping import lookup
+        from satpy.enhancements.colormap import lookup
         expected = np.array([[
             [0., 0., 0., 0.333333, 0.705882],
             [1., 1., 1., 1., 1.]]])
@@ -61,7 +61,7 @@ class TestEnhancementsConvolution:
         """Test the colorize enhancement function."""
         from trollimage.colormap import brbg
 
-        from satpy.enhancements.color_mapping import colorize
+        from satpy.enhancements.colormap import colorize
         expected = np.array([
             [[np.nan, 3.29411723e-01, 3.29411723e-01, 3.21825881e-08, 3.21825881e-08],
              [3.21825881e-08, 3.21825881e-08, 3.21825881e-08, 3.21825881e-08, 3.21825881e-08]],
@@ -75,7 +75,7 @@ class TestEnhancementsConvolution:
         """Test the palettize enhancement function."""
         from trollimage.colormap import brbg
 
-        from satpy.enhancements.color_mapping import palettize
+        from satpy.enhancements.colormap import palettize
         expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         run_and_check_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
@@ -83,15 +83,15 @@ class TestEnhancementsConvolution:
         """Test merging colormaps."""
         from trollimage.colormap import Colormap
 
-        from satpy.enhancements.color_mapping import _merge_colormaps as mcp
-        from satpy.enhancements.color_mapping import create_colormap
+        from satpy.enhancements.colormap import _merge_colormaps as mcp
+        from satpy.enhancements.colormap import create_colormap
         ret_map = mock.MagicMock()
 
         create_colormap_mock = mock.Mock(wraps=create_colormap)
         cmap1 = Colormap((1, (1., 1., 1.)))
         kwargs = {"palettes": cmap1}
 
-        with mock.patch("satpy.enhancements.color_mapping.create_colormap", create_colormap_mock):
+        with mock.patch("satpy.enhancements.colormap.create_colormap", create_colormap_mock):
             res = mcp(kwargs)
         assert res is cmap1
         create_colormap_mock.assert_not_called()
@@ -101,7 +101,7 @@ class TestEnhancementsConvolution:
         cmap1 = {"colors": "blues", "min_value": 0,
                  "max_value": 1}
         kwargs = {"palettes": [cmap1]}
-        with mock.patch("satpy.enhancements.color_mapping.create_colormap", create_colormap_mock), \
+        with mock.patch("satpy.enhancements.colormap.create_colormap", create_colormap_mock), \
                 mock.patch("trollimage.colormap.blues", ret_map):
             _ = mcp(kwargs)
         create_colormap_mock.assert_called_once()
@@ -284,7 +284,7 @@ class TestColormapLoading:
 
     def test_cmap_from_file_bad_shape(self):
         """Test that unknown array shape causes an error."""
-        from satpy.enhancements.color_mapping import create_colormap
+        from satpy.enhancements.colormap import create_colormap
 
         # create the colormap file on disk
         with closed_named_temp_file(suffix=".npy") as cmap_filename:
@@ -301,7 +301,7 @@ class TestColormapLoading:
     def test_cmap_from_config_path(self, tmp_path):
         """Test loading a colormap relative to a config path."""
         import satpy
-        from satpy.enhancements.color_mapping import create_colormap
+        from satpy.enhancements.colormap import create_colormap
 
         cmap_dir = tmp_path / "colormaps"
         cmap_dir.mkdir()
@@ -321,7 +321,7 @@ class TestColormapLoading:
 
     def test_cmap_from_trollimage(self):
         """Test that colormaps in trollimage can be loaded."""
-        from satpy.enhancements.color_mapping import create_colormap
+        from satpy.enhancements.colormap import create_colormap
         cmap = create_colormap({"colors": "pubu"})
         from trollimage.colormap import pubu
         np.testing.assert_equal(cmap.colors, pubu.colors)
@@ -329,13 +329,13 @@ class TestColormapLoading:
 
     def test_cmap_no_colormap(self):
         """Test that being unable to create a colormap raises an error."""
-        from satpy.enhancements.color_mapping import create_colormap
+        from satpy.enhancements.colormap import create_colormap
         with pytest.raises(ValueError, match="Unknown colormap format: .*"):
             create_colormap({})
 
     def test_cmap_list(self):
         """Test that colors can be a list/tuple."""
-        from satpy.enhancements.color_mapping import create_colormap
+        from satpy.enhancements.colormap import create_colormap
         colors = [
             [0., 0., 1.],
             [1., 0., 1.],

@@ -564,8 +564,8 @@ class ColormapCompositor(GenericCompositor):
 
     This compositor is deprecated.  To apply a colormap, use a
     :class:`SingleBandCompositor` composite with a
-    :func:`~satpy.enhancements.color_mapping.colorize` or
-    :func:`~satpy.enhancements.color_mapping.palettize` enhancement instead.
+    :func:`~satpy.enhancements.colormap.colorize` or
+    :func:`~satpy.enhancements.colormap.palettize` enhancement instead.
     For example, to make a ``cloud_top_height`` composite based on a dataset
     ``ctth_alti`` palettized by ``ctth_alti_pal``, the composite would be::
 

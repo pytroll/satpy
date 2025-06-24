@@ -294,7 +294,7 @@ enhancements:
     reader: clavrx
     operations:
       - name: palettize
-        method: !!python/name:satpy.enhancements.color_mapping.palettize
+        method: !!python/name:satpy.enhancements.colormap.palettize
         kwargs:
           palettes:
             - {'values': [-127,# Fill Value
@@ -417,7 +417,7 @@ enhancements:
     standard_name: cloudtype
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ct_pal
@@ -429,7 +429,7 @@ enhancements:
     standard_name: cloudmask
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cma_pal
@@ -439,7 +439,7 @@ enhancements:
     standard_name: pps_cma
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cma_pal
@@ -449,7 +449,7 @@ enhancements:
     standard_name: pps_ct
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ct_pal
@@ -459,7 +459,7 @@ enhancements:
     standard_name: pps_phase
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_phase_pal
@@ -469,7 +469,7 @@ enhancements:
     standard_name: pps_ctth
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -478,7 +478,7 @@ enhancements:
     standard_name: pps_cmaprob
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmaprob_pal
@@ -487,7 +487,7 @@ enhancements:
     standard_name: pps_cot
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
@@ -497,7 +497,7 @@ enhancements:
     standard_name: pps_cwp
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cwp_pal
@@ -507,7 +507,7 @@ enhancements:
     standard_name: pps_iwp
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_iwp_pal
@@ -516,7 +516,7 @@ enhancements:
     standard_name: pps_lwp
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_lwp_pal
@@ -525,7 +525,7 @@ enhancements:
     standard_name: pps_cre
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cre_pal
@@ -534,7 +534,7 @@ enhancements:
     standard_name: cloudmask_extended
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cma_extended_pal
@@ -544,7 +544,7 @@ enhancements:
     standard_name: cloudmask_probability
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmaprob_pal
@@ -554,7 +554,7 @@ enhancements:
     standard_name: cloud_top_height_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -564,7 +564,7 @@ enhancements:
     standard_name: cloud_top_height_pps
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -573,7 +573,7 @@ enhancements:
     standard_name: cloud_top_height_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -583,7 +583,7 @@ enhancements:
     standard_name: cloud_top_pressure
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_pres_pal
@@ -593,7 +593,7 @@ enhancements:
     standard_name: cloud_top_temperature
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_tempe_pal
@@ -603,7 +603,7 @@ enhancements:
     standard_name: cloud_top_phase
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_phase_pal
@@ -613,7 +613,7 @@ enhancements:
     standard_name: cloud_drop_effective_radius_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_reff_pal
@@ -623,7 +623,7 @@ enhancements:
     standard_name: cloud_drop_effective_radius_pps
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cre_pal
@@ -633,7 +633,7 @@ enhancements:
     standard_name: cloud_optical_thickness_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
@@ -643,7 +643,7 @@ enhancements:
     standard_name: cloud_optical_thickness_pps
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
@@ -653,7 +653,7 @@ enhancements:
     standard_name: cloud_liquid_water_path
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_lwp_pal
@@ -663,7 +663,7 @@ enhancements:
     standard_name: cloud_ice_water_path
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_iwp_pal
@@ -673,7 +673,7 @@ enhancements:
     standard_name: precipitation_probability
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: pc_pal
@@ -683,7 +683,7 @@ enhancements:
     standard_name: convective_rain_rate
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: crr_pal
@@ -693,7 +693,7 @@ enhancements:
     standard_name: convective_precipitation_hourly_accumulation
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: crr_pal
@@ -703,7 +703,7 @@ enhancements:
     standard_name: total_precipitable_water
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ishai_tpw_pal
@@ -713,7 +713,7 @@ enhancements:
     standard_name: showalter_index
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ishai_shw_pal
@@ -723,7 +723,7 @@ enhancements:
     standard_name: lifted_index
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ishai_li_pal
@@ -733,7 +733,7 @@ enhancements:
     standard_name: convection_initiation_prob30
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ci_pal
@@ -743,7 +743,7 @@ enhancements:
     standard_name: convection_initiation_prob60
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ci_pal
@@ -753,7 +753,7 @@ enhancements:
     standard_name: convection_initiation_prob90
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ci_pal
@@ -763,7 +763,7 @@ enhancements:
     standard_name: rdt_cell_type
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: MapCellCatType_pal
@@ -773,7 +773,7 @@ enhancements:
     standard_name: asii_prob
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.color_mapping.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: asii_turb_prob_pal
@@ -849,7 +849,7 @@ enhancements:
     standard_name: snow_age
     operations:
     - name: snow_age
-      method: !!python/name:satpy.enhancements.color_mapping.lookup
+      method: !!python/name:satpy.enhancements.colormap.lookup
       kwargs:
        luts: [[0, 0, 0], [1, 2, 2], [3, 8, 5], [4, 12, 8], [6, 15, 10], [8, 18, 13], [9, 21, 16],
                          [11, 24, 19], [13, 26, 21], [14, 28, 24], [
@@ -1049,7 +1049,7 @@ enhancements:
         kwargs:
           stretch: crude
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - {colors: [[140.25, 191.25, 249.9]]}
@@ -1068,7 +1068,7 @@ enhancements:
     standard_name: colorized_ir_clouds
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
@@ -1308,7 +1308,7 @@ enhancements:
     standard_name: essl_colorized_low_level_moisture
     operations: &masked_llm
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
           - min_value: 0.625

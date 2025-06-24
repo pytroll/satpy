@@ -36,10 +36,10 @@ IMPORT_PATHS = {
     "on_separate_bands": "satpy.enhancements.wrappers",
     "on_dask_array": "satpy.enhancements.wrappers",
     "using_map_blocks": "satpy.enhancements.wrappers",
-    "lookup": "satpy.enhancements.color_mapping",
-    "colorize": "satpy.enhancements.color_mapping",
-    "palettize": "satpy.enhancements.color_mapping",
-    "create_colormap": "satpy.enhancements.color_mapping",
+    "lookup": "satpy.enhancements.colormap",
+    "colorize": "satpy.enhancements.colormap",
+    "palettize": "satpy.enhancements.colormap",
+    "create_colormap": "satpy.enhancements.colormap",
 }
 
 

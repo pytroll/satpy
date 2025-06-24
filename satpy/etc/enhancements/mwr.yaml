@@ -18,7 +18,7 @@ enhancements:
     standard_name: tbs_colors
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.color_mapping.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - {colors: spectral, min_value: 280, max_value: 180}

@@ -13,7 +13,7 @@ enhancements:
     standard_name: night_ir105
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - { colors: greys, min_value: 190, max_value: 295 }
@@ -65,7 +65,7 @@ enhancements:
     standard_name: fci_flames_colorised
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - { colors: ylorrd, min_value: 330, max_value: 430 , reverse: true}

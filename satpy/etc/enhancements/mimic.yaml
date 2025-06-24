@@ -26,7 +26,7 @@ enhancements:
       name: timeAwayGridPrior
       operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.color_mapping.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
            palettes:
               - {colors: spectral, min_value: 0, max_value: 480, reverse: True}
@@ -36,7 +36,7 @@ enhancements:
      name: timeAwayGridSubseq
      operations:
        - name: colorize
-         method: !!python/name:satpy.enhancements.color_mapping.colorize
+         method: !!python/name:satpy.enhancements.colormap.colorize
          kwargs:
            palettes:
              - { colors: spectral, min_value: 0, max_value: 480, reverse: True }
@@ -46,7 +46,7 @@ enhancements:
      name: footGridPrior
      operations:
        - name: colorize
-         method: !!python/name:satpy.enhancements.color_mapping.colorize
+         method: !!python/name:satpy.enhancements.colormap.colorize
          kwargs:
            palettes:
              - { colors: rainbow, min_value: 9, max_value: 45 }
@@ -55,7 +55,7 @@ enhancements:
      name: footGridSubseq
      operations:
        - name: colorize
-         method: !!python/name:satpy.enhancements.color_mapping.colorize
+         method: !!python/name:satpy.enhancements.colormap.colorize
          kwargs:
            palettes:
              - { colors: rainbow, min_value: 9, max_value: 45 }
