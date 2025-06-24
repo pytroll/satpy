@@ -259,10 +259,10 @@ class TestSandwichCompositor:
             ((4, 2, 2), ["R", "G", "B", "A"])
         ]
     )
-    @mock.patch("satpy.composites.sharpening.enhance2dataset")
+    @mock.patch("satpy.composites.resolution.enhance2dataset")
     def test_compositor(self, e2d, input_shape, bands):
         """Test luminance sharpening compositor."""
-        from satpy.composites.sharpening import SandwichCompositor
+        from satpy.composites.resolution import SandwichCompositor
 
         rgb_arr = da.from_array(RANDOM_GEN.random(input_shape), chunks=2)
         rgb = xr.DataArray(rgb_arr, dims=["bands", "y", "x"],

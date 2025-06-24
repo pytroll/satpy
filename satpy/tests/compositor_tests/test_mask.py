@@ -260,7 +260,7 @@ class TestMaskingCompositor:
 
     def test_get_flag_value(self):
         """Test reading flag value from attributes based on a name."""
-        from satpy.composites.masks import _get_flag_value
+        from satpy.composites.mask import _get_flag_value
 
         flag_values = da.array([1, 2])
         mask = da.array([[1, 2, 2],

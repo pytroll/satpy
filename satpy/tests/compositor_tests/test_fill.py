@@ -286,7 +286,7 @@ class TestBackgroundCompositor:
         }
         cls.foreground_data = foreground_data
 
-    @mock.patch("satpy.composites.filling.enhance2dataset", _enhance2dataset)
+    @mock.patch("satpy.composites.fill.enhance2dataset", _enhance2dataset)
     @pytest.mark.parametrize(
         ("foreground_bands", "background_bands", "exp_bands", "exp_result"),
         [
@@ -329,7 +329,7 @@ class TestBackgroundCompositor:
     )
     def test_call(self, foreground_bands, background_bands, exp_bands, exp_result):
         """Test the background compositing."""
-        from satpy.composites.filling import BackgroundCompositor
+        from satpy.composites.fill import BackgroundCompositor
         comp = BackgroundCompositor("name")
 
         # L mode images
@@ -351,10 +351,10 @@ class TestBackgroundCompositor:
         np.testing.assert_allclose(res, exp_result)
         assert res.attrs["mode"] == exp_bands
 
-    @mock.patch("satpy.composites.filling.enhance2dataset", _enhance2dataset)
+    @mock.patch("satpy.composites.fill.enhance2dataset", _enhance2dataset)
     def test_multiple_sensors(self):
         """Test the background compositing from multiple sensor data."""
-        from satpy.composites.filling import BackgroundCompositor
+        from satpy.composites.fill import BackgroundCompositor
         comp = BackgroundCompositor("name")
 
         # L mode images
