@@ -204,4 +204,4 @@ routine. A similar result can be obtained as follows:
 .. note::
 
     To understand how to exploit image data in your Python programs, see the section on
-    :ref:`enhancements`.
+    :doc:`enhancements`.
