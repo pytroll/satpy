@@ -191,7 +191,9 @@ assuming a scene loaded in the variable ``scn``.
 
 .. code-block:: python
 
-   im = satpy.composites.get_enhanced_image(scn['natural_color'])
+   from satpy.writers import get_enhanced_image
+
+   im = get_enhanced_image(scn['natural_color'])
    im.data.plot.imshow(rgb='bands')
 
 Here, the utility :func:`~xarray.plot.imshow` will prepare the data the matplotlib's
