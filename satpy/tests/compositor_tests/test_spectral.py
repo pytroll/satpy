@@ -159,7 +159,7 @@ class TestNaturalEnhCompositor(unittest.TestCase):
     @mock.patch("satpy.composites.spectral.NaturalEnh.match_data_arrays")
     def test_natural_enh(self, match_data_arrays, repr_):
         """Test NaturalEnh compositor."""
-        from satpy.composites import NaturalEnh
+        from satpy.composites.spectral import NaturalEnh
         repr_.return_value = ""
         projectables = [self.ch1, self.ch2, self.ch3]
 

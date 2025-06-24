@@ -30,7 +30,7 @@ class TestRealisticColors:
 
     def test_realistic_colors(self):
         """Test the compositor."""
-        from satpy.composites import RealisticColors
+        from satpy.composites.seviri import RealisticColors
 
         vis06 = xr.DataArray(da.arange(0, 15, dtype=np.float32).reshape(3, 5), dims=("y", "x"),
                              attrs={"foo": "foo"})

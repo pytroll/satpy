@@ -46,7 +46,7 @@ class TestHighCloudCompositor:
 
     def test_high_cloud_compositor(self):
         """Test general default functionality of compositor."""
-        from satpy.composites import HighCloudCompositor
+        from satpy.composites.mask import HighCloudCompositor
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = HighCloudCompositor(name="test")
             res = comp([self.data])
@@ -58,7 +58,7 @@ class TestHighCloudCompositor:
 
     def test_high_cloud_compositor_multiple_calls(self):
         """Test that the modified init variables are reset properly when calling the compositor multiple times."""
-        from satpy.composites import HighCloudCompositor
+        from satpy.composites.mask import HighCloudCompositor
         comp = HighCloudCompositor(name="test")
         res = comp([self.data])
         res2 = comp([self.data])
@@ -66,14 +66,14 @@ class TestHighCloudCompositor:
 
     def test_high_cloud_compositor_dtype(self):
         """Test that the datatype is not altered by the compositor."""
-        from satpy.composites import HighCloudCompositor
+        from satpy.composites.mask import HighCloudCompositor
         comp = HighCloudCompositor(name="test")
         res = comp([self.data])
         assert res.data.dtype == self.dtype
 
     def test_high_cloud_compositor_validity_checks(self):
         """Test that errors are raised for invalid input data and settings."""
-        from satpy.composites import HighCloudCompositor
+        from satpy.composites.mask import HighCloudCompositor
 
         with pytest.raises(ValueError, match="Expected 2 `transition_min_limits` values, got 1"):
             _ = HighCloudCompositor("test", transition_min_limits=(210., ))
@@ -111,7 +111,7 @@ class TestLowCloudCompositor:
 
     def test_low_cloud_compositor(self):
         """Test general default functionality of compositor."""
-        from satpy.composites import LowCloudCompositor
+        from satpy.composites.mask import LowCloudCompositor
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = LowCloudCompositor(name="test")
             res = comp([self.btd, self.bt_win, self.lsm])
@@ -123,14 +123,14 @@ class TestLowCloudCompositor:
 
     def test_low_cloud_compositor_dtype(self):
         """Test that the datatype is not altered by the compositor."""
-        from satpy.composites import LowCloudCompositor
+        from satpy.composites.mask import LowCloudCompositor
         comp = LowCloudCompositor(name="test")
         res = comp([self.btd, self.bt_win, self.lsm])
         assert res.data.dtype == self.dtype
 
     def test_low_cloud_compositor_validity_checks(self):
         """Test that errors are raised for invalid input data and settings."""
-        from satpy.composites import LowCloudCompositor
+        from satpy.composites.mask import LowCloudCompositor
 
         with pytest.raises(ValueError, match="Expected 2 `range_land` values, got 1"):
             _ = LowCloudCompositor("test", range_land=(2.0, ))
@@ -239,7 +239,7 @@ class TestMaskingCompositor:
 
     def test_init(self):
         """Test the initializiation of compositor."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
 
         # No transparency or conditions given raises ValueError
         with pytest.raises(ValueError, match="Masking conditions not defined."):
@@ -287,7 +287,7 @@ class TestMaskingCompositor:
 
         Use parameterisation to test different image modes.
         """
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         # Test with numerical transparency data
@@ -307,7 +307,7 @@ class TestMaskingCompositor:
 
         Use parameterisation to test different image modes.
         """
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
 
         reference_data_v3 = test_data.where(value_3d_data[0] > 0)
         reference_alpha_v3 = xr.DataArray([[1., 0., 0.],
@@ -330,7 +330,7 @@ class TestMaskingCompositor:
 
         Use parameterisation to test different image modes.
         """
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
 
         # Test with numerical transparency data using 3d test mask data which can not be squeezed
         comp = MaskingCompositor("name", conditions=conditions_v3,
@@ -341,7 +341,7 @@ class TestMaskingCompositor:
     def test_call_named_fields(self, conditions_v2, test_data, test_ct_data,
                                reference_data, reference_alpha):
         """Test with named fields."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
@@ -355,7 +355,7 @@ class TestMaskingCompositor:
             self, conditions_v2, test_data, test_ct_data, reference_data,
             reference_alpha):
         """Test with named fields which are as a string in the mask attributes."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         flag_meanings_str = "Cloud-free_land Cloud-free_sea"
@@ -370,7 +370,7 @@ class TestMaskingCompositor:
     def test_method_isnan(self, test_data,
                           test_ct_data, test_ct_data_v3):
         """Test "isnan" as method."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         conditions_v3 = [{"method": "isnan", "transparency": 100}]
@@ -390,7 +390,7 @@ class TestMaskingCompositor:
 
     def test_method_absolute_import(self, test_data, test_ct_data_v3):
         """Test "absolute_import" as method."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         conditions_v4 = [{"method": "absolute_import", "transparency": "satpy.resample"}]
@@ -402,7 +402,7 @@ class TestMaskingCompositor:
 
     def test_rgb_dataset(self, conditions_v1, test_ct_data, reference_alpha):
         """Test RGB dataset."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         # 3D data array
@@ -426,7 +426,7 @@ class TestMaskingCompositor:
 
     def test_rgba_dataset(self, conditions_v2, test_ct_data, reference_alpha):
         """Test RGBA dataset."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
         data = xr.DataArray(da.random.random((4, 3, 3)),
                             dims=["bands", "y", "x"],
@@ -449,7 +449,7 @@ class TestMaskingCompositor:
 
     def test_incorrect_method(self, test_data, test_ct_data):
         """Test incorrect method."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
         conditions = [{"method": "foo", "value": 0, "transparency": 100}]
         comp = MaskingCompositor("name", conditions=conditions)
         with pytest.raises(AttributeError):
@@ -460,7 +460,7 @@ class TestMaskingCompositor:
 
     def test_incorrect_mode(self, conditions_v1):
         """Test initiating with unsupported mode."""
-        from satpy.composites import MaskingCompositor
+        from satpy.composites.mask import MaskingCompositor
 
         # Incorrect mode raises ValueError
         with pytest.raises(ValueError, match="Invalid mode YCbCrA.  Supported modes: .*"):
@@ -473,7 +473,7 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
 
     def test_masking(self):
         """Test longitude masking."""
-        from satpy.composites import LongitudeMaskingCompositor
+        from satpy.composites.mask import LongitudeMaskingCompositor
 
         area = mock.MagicMock()
         lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
@@ -509,7 +509,7 @@ class TestFireMaskCompositor:
 
     def test_SimpleFireMaskCompositor(self):
         """Test the SimpleFireMaskCompositor class."""
-        from satpy.composites import SimpleFireMaskCompositor
+        from satpy.composites.mask import SimpleFireMaskCompositor
         rows = 2
         cols = 2
         ir_105 = xr.DataArray(da.zeros((rows, cols), dtype=np.float32), dims=("y", "x"),

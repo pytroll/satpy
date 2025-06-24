@@ -95,27 +95,27 @@ class TestRatioSharpenedCompositors:
     )
     def test_bad_colors(self, init_kwargs):
         """Test that only valid band colors can be provided."""
-        from satpy.composites import RatioSharpenedRGB
+        from satpy.composites.resolution import RatioSharpenedRGB
         with pytest.raises(ValueError, match="RatioSharpenedRGB..*_band must be one of .*"):
             RatioSharpenedRGB(name="true_color", **init_kwargs)
 
     def test_match_data_arrays(self):
         """Test that all areas have to be the same resolution."""
-        from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
+        from satpy.composites.resolution import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color")
         with pytest.raises(IncompatibleAreas):
             comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
 
     def test_more_than_three_datasets(self):
         """Test that only 3 datasets can be passed."""
-        from satpy.composites import RatioSharpenedRGB
+        from satpy.composites.resolution import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color")
         with pytest.raises(ValueError, match="Expected 3 datasets, got 4"):
             comp((self.ds1, self.ds2, self.ds3, self.ds1), optional_datasets=(self.ds4_big,))
 
     def test_self_sharpened_no_high_res(self):
         """Test for exception when no high_res band is specified."""
-        from satpy.composites import SelfSharpenedRGB
+        from satpy.composites.resolution import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name="true_color", high_resolution_band=None)
         with pytest.raises(ValueError, match="SelfSharpenedRGB requires at least one high resolution band, not 'None'"):
             comp((self.ds1, self.ds2, self.ds3))
@@ -123,7 +123,7 @@ class TestRatioSharpenedCompositors:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_basic_no_high_res(self, dtype):
         """Test that three datasets can be passed without optional high res."""
-        from satpy.composites import RatioSharpenedRGB
+        from satpy.composites.resolution import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color")
         res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
         assert res.shape == (3, 2, 2)
@@ -133,7 +133,7 @@ class TestRatioSharpenedCompositors:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_basic_no_sharpen(self, dtype):
         """Test that color None does no sharpening."""
-        from satpy.composites import RatioSharpenedRGB
+        from satpy.composites.resolution import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color", high_resolution_band=None)
         res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)),
                    optional_datasets=(self.ds4.astype(dtype),))
@@ -173,7 +173,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_ratio_sharpening(self, high_resolution_band, neutral_resolution_band, exp_r, exp_g, exp_b, dtype):
         """Test RatioSharpenedRGB by different groups of high_resolution_band and neutral_resolution_band."""
-        from satpy.composites import RatioSharpenedRGB
+        from satpy.composites.resolution import RatioSharpenedRGB
         comp = RatioSharpenedRGB(name="true_color", high_resolution_band=high_resolution_band,
                                  neutral_resolution_band=neutral_resolution_band)
         res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)),
@@ -202,7 +202,7 @@ class TestRatioSharpenedCompositors:
     )
     def test_self_sharpened_basic(self, exp_shape, exp_r, exp_g, exp_b, dtype):
         """Test that three datasets can be passed without optional high res."""
-        from satpy.composites import SelfSharpenedRGB
+        from satpy.composites.resolution import SelfSharpenedRGB
         comp = SelfSharpenedRGB(name="true_color")
         res = comp((self.ds1.astype(dtype), self.ds2.astype(dtype), self.ds3.astype(dtype)))
         assert res.dtype == dtype
@@ -220,7 +220,7 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
 
     def test_compositor(self):
         """Test luminance sharpening compositor."""
-        from satpy.composites import LuminanceSharpeningCompositor
+        from satpy.composites.resolution import LuminanceSharpeningCompositor
         comp = LuminanceSharpeningCompositor(name="test")
         # Three shades of grey
         rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])

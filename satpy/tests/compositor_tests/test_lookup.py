@@ -29,7 +29,7 @@ class TestColormapCompositor(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.composites import ColormapCompositor
+        from satpy.composites.lookup import ColormapCompositor
         self.colormap_compositor = ColormapCompositor("test_cmap_compositor")
 
     def test_build_colormap_with_int_data_and_without_meanings(self):
@@ -54,7 +54,7 @@ class TestPaletteCompositor(unittest.TestCase):
 
     def test_call(self):
         """Test palette compositing."""
-        from satpy.composites import PaletteCompositor
+        from satpy.composites.lookup import PaletteCompositor
         cmap_comp = PaletteCompositor("test_cmap_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=["value", "band"])
@@ -76,7 +76,7 @@ class TestColorizeCompositor(unittest.TestCase):
 
     def test_colorize_no_fill(self):
         """Test colorizing."""
-        from satpy.composites import ColorizeCompositor
+        from satpy.composites.lookup import ColorizeCompositor
         colormap_composite = ColorizeCompositor("test_color_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=["value", "band"])
@@ -97,7 +97,7 @@ class TestColorizeCompositor(unittest.TestCase):
 
     def test_colorize_with_interpolation(self):
         """Test colorizing with interpolation."""
-        from satpy.composites import ColorizeCompositor
+        from satpy.composites.lookup import ColorizeCompositor
         colormap_composite = ColorizeCompositor("test_color_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=["value", "band"])
@@ -130,7 +130,7 @@ class TestCategoricalDataCompositor(unittest.TestCase):
 
     def test_basic_recategorization(self):
         """Test general functionality of compositor incl. attributes."""
-        from satpy.composites import CategoricalDataCompositor
+        from satpy.composites.lookup import CategoricalDataCompositor
         lut = [np.nan, 0, 1, 1]
         name = "bar"
         comp = CategoricalDataCompositor(name=name, lut=lut)
@@ -143,7 +143,7 @@ class TestCategoricalDataCompositor(unittest.TestCase):
 
     def test_too_many_datasets(self):
         """Test that ValueError is raised if more than one dataset is provided."""
-        from satpy.composites import CategoricalDataCompositor
+        from satpy.composites.lookup import CategoricalDataCompositor
         lut = [np.nan, 0, 1, 1]
         comp = CategoricalDataCompositor(name="foo", lut=lut)
         np.testing.assert_raises(ValueError, comp, [self.data, self.data])

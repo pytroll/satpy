@@ -43,7 +43,7 @@ def test_bad_sensor_yaml_configs(tmp_path):
 def _create_fake_composite_config(yaml_filename: str):
     import yaml
 
-    from satpy.composites import StaticImageCompositor
+    from satpy.composites.aux_data import StaticImageCompositor
 
     with open(yaml_filename, "w") as comp_file:
         yaml.dump({

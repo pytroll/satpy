@@ -75,7 +75,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_daynight_sza(self):
         """Test compositor with both day and night portions when SZA data is included."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
@@ -87,7 +87,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_daynight_area(self):
         """Test compositor both day and night portions when SZA data is not provided."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
@@ -100,7 +100,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_night_only_sza_with_alpha(self):
         """Test compositor with night portion with alpha band when SZA data is included."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
@@ -114,7 +114,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_night_only_sza_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is included."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
@@ -127,7 +127,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_night_only_area_with_alpha(self):
         """Test compositor with night portion with alpha band when SZA data is not provided."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
@@ -141,7 +141,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_night_only_area_without_alpha(self):
         """Test compositor with night portion without alpha band when SZA data is not provided."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
@@ -154,7 +154,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_day_only_sza_with_alpha(self):
         """Test compositor with day portion with alpha band when SZA data is included."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
@@ -168,7 +168,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_day_only_sza_without_alpha(self):
         """Test compositor with day portion without alpha band when SZA data is included."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
@@ -182,7 +182,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_day_only_area_with_alpha(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
@@ -196,7 +196,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_day_only_area_with_alpha_and_missing_data(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided and there is missing data."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
@@ -210,7 +210,7 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_day_only_area_without_alpha(self):
         """Test compositor with day portion without alpha_band when SZA data is not provided."""
-        from satpy.composites import DayNightCompositor
+        from satpy.composites.fill import DayNightCompositor
 
         # with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
         comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
@@ -228,7 +228,7 @@ class TestFillingCompositor(unittest.TestCase):
 
     def test_fill(self):
         """Test filling."""
-        from satpy.composites import FillingCompositor
+        from satpy.composites.fill import FillingCompositor
         comp = FillingCompositor(name="fill_test")
         filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
         red = xr.DataArray(np.array([1, 2, 3, np.nan, 3, 2, 1]))
@@ -245,7 +245,7 @@ class TestMultiFiller(unittest.TestCase):
 
     def test_fill(self):
         """Test filling."""
-        from satpy.composites import MultiFiller
+        from satpy.composites.fill import MultiFiller
         comp = MultiFiller(name="fill_test")
         attrs = {"units": "K"}
         a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]), attrs=attrs.copy())

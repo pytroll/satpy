@@ -32,7 +32,7 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch("satpy.area.get_area_def")
     def test_init(self, get_area_def):
         """Test the initializiation of static compositor."""
-        from satpy.composites import StaticImageCompositor
+        from satpy.composites.aux_data import StaticImageCompositor
 
         # No filename given raises ValueError
         with pytest.raises(ValueError, match="StaticImageCompositor needs a .*"):
@@ -55,7 +55,7 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch("satpy.Scene")
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
-        from satpy.composites import StaticImageCompositor
+        from satpy.composites.aux_data import StaticImageCompositor
 
         satpy.config.set(data_dir=os.path.join(os.path.sep, "path", "to", "image"))
         remote_tif = "http://example.com/foo.tif"

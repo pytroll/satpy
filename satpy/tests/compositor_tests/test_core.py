@@ -44,7 +44,7 @@ class TestMatchDataArrays:
 
     def test_single_ds(self):
         """Test a single dataset is returned unharmed."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         ds1 = self._get_test_ds()
         comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays((ds1,))
@@ -52,7 +52,7 @@ class TestMatchDataArrays:
 
     def test_mult_ds_area(self):
         """Test multiple datasets successfully pass."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
         comp = CompositeBase("test_comp")
@@ -62,7 +62,7 @@ class TestMatchDataArrays:
 
     def test_mult_ds_no_area(self):
         """Test that all datasets must have an area attribute."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
         del ds2.attrs["area"]
@@ -72,7 +72,7 @@ class TestMatchDataArrays:
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""
-        from satpy.composites import CompositeBase, IncompatibleAreas
+        from satpy.composites.core import CompositeBase, IncompatibleAreas
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
         ds2.attrs["area"] = AreaDefinition(
@@ -87,7 +87,7 @@ class TestMatchDataArrays:
 
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
 
         # x is still 50, y is still 100, even though they are in
         # different order
@@ -100,7 +100,7 @@ class TestMatchDataArrays:
 
     def test_mult_ds_diff_size(self):
         """Test that datasets with different sizes fail."""
-        from satpy.composites import CompositeBase, IncompatibleAreas
+        from satpy.composites.core import CompositeBase, IncompatibleAreas
 
         # x is 50 in this one, 100 in ds2
         # y is 100 in this one, 50 in ds2
@@ -112,7 +112,7 @@ class TestMatchDataArrays:
 
     def test_nondimensional_coords(self):
         """Test the removal of non-dimensional coordinates when compositing."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         ds = self._get_test_ds(shape=(2, 2))
         ds["acq_time"] = ("y", [0, 1])
         comp = CompositeBase("test_comp")
@@ -130,7 +130,7 @@ class TestMatchDataArrays:
         can still generate composites from DataArrays with these coordinates.
 
         """
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         from satpy.coords import add_crs_xy_coords
 
         comp = CompositeBase("test_comp")
@@ -187,7 +187,7 @@ class TestSingleBandCompositor(unittest.TestCase):
 
     def setUp(self):
         """Create test data."""
-        from satpy.composites import SingleBandCompositor
+        from satpy.composites.core import SingleBandCompositor
         self.comp = SingleBandCompositor(name="test")
 
         all_valid = np.ones((2, 2))
@@ -224,7 +224,7 @@ class TestGenericCompositor(unittest.TestCase):
 
     def setUp(self):
         """Create test data."""
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         self.comp = GenericCompositor(name="test")
         self.comp2 = GenericCompositor(name="test2", common_channel_mask=False)
 
@@ -257,7 +257,7 @@ class TestGenericCompositor(unittest.TestCase):
 
     def test_concat_datasets(self):
         """Test concatenation of datasets."""
-        from satpy.composites import IncompatibleAreas
+        from satpy.composites.core import IncompatibleAreas
         res = self.comp._concat_datasets([self.all_valid], "L")
         num_bands = len(res.bands)
         assert num_bands == 1
@@ -294,7 +294,7 @@ class TestGenericCompositor(unittest.TestCase):
     @mock.patch("satpy.composites.core.GenericCompositor.match_data_arrays")
     def test_call_with_mock(self, match_data_arrays, check_times, combine_metadata, get_sensors):
         """Test calling generic compositor."""
-        from satpy.composites import IncompatibleAreas
+        from satpy.composites.core import IncompatibleAreas
         combine_metadata.return_value = dict()
         get_sensors.return_value = "foo"
         # One dataset, no mode given
@@ -353,7 +353,7 @@ class TestAddBands(unittest.TestCase):
 
     def test_add_bands_l_rgb(self):
         """Test adding bands."""
-        from satpy.composites import add_bands
+        from satpy.composites.core import add_bands
 
         # L + RGB -> RGB
         data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
@@ -366,7 +366,7 @@ class TestAddBands(unittest.TestCase):
 
     def test_add_bands_l_rgba(self):
         """Test adding bands."""
-        from satpy.composites import add_bands
+        from satpy.composites.core import add_bands
 
         # L + RGBA -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
@@ -379,7 +379,7 @@ class TestAddBands(unittest.TestCase):
 
     def test_add_bands_la_rgb(self):
         """Test adding bands."""
-        from satpy.composites import add_bands
+        from satpy.composites.core import add_bands
 
         # LA + RGB -> RGBA
         data = xr.DataArray(da.ones((2, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
@@ -392,7 +392,7 @@ class TestAddBands(unittest.TestCase):
 
     def test_add_bands_rgb_rbga(self):
         """Test adding bands."""
-        from satpy.composites import add_bands
+        from satpy.composites.core import add_bands
 
         # RGB + RGBA -> RGBA
         data = xr.DataArray(da.ones((3, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
@@ -406,7 +406,7 @@ class TestAddBands(unittest.TestCase):
 
     def test_add_bands_p_l(self):
         """Test adding bands."""
-        from satpy.composites import add_bands
+        from satpy.composites.core import add_bands
 
         # P(RGBA) + L -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
@@ -436,7 +436,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         img.palette = ((0, 0, 0), (4, 4, 4), (8, 8, 8))
         get_enhanced_image.return_value = img
 
-        from satpy.composites import enhance2dataset
+        from satpy.composites.core import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset, convert_p=True)
         assert res.attrs["mode"] == "RGB"
@@ -449,7 +449,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
         get_enhanced_image.return_value = img
 
-        from satpy.composites import enhance2dataset
+        from satpy.composites.core import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset, convert_p=True)
         assert res.attrs["mode"] == "RGBA"
@@ -462,7 +462,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
         get_enhanced_image.return_value = img
 
-        from satpy.composites import enhance2dataset
+        from satpy.composites.core import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset)
         assert res.attrs["mode"] == "P"
@@ -475,7 +475,7 @@ class TestEnhance2Dataset(unittest.TestCase):
         img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=("bands", "y", "x"), coords={"bands": ["L"]}))
         get_enhanced_image.return_value = img
 
-        from satpy.composites import enhance2dataset
+        from satpy.composites.core import enhance2dataset
         dataset = xr.DataArray(np.ones((1, 20, 20)))
         res = enhance2dataset(dataset)
         assert res.attrs["mode"] == "L"
@@ -487,7 +487,7 @@ class TestInferMode(unittest.TestCase):
 
     def test_bands_coords_is_used(self):
         """Test that the `bands` coord is used."""
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         arr = xr.DataArray(np.ones((1, 5, 5)), dims=("bands", "x", "y"), coords={"bands": ["P"]})
         assert GenericCompositor.infer_mode(arr) == "P"
 
@@ -496,18 +496,18 @@ class TestInferMode(unittest.TestCase):
 
     def test_mode_is_used(self):
         """Test that the `mode` attribute is used."""
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         arr = xr.DataArray(np.ones((1, 5, 5)), dims=("bands", "x", "y"), attrs={"mode": "P"})
         assert GenericCompositor.infer_mode(arr) == "P"
 
     def test_band_size_is_used(self):
         """Test that the band size is used."""
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         arr = xr.DataArray(np.ones((2, 5, 5)), dims=("bands", "x", "y"))
         assert GenericCompositor.infer_mode(arr) == "LA"
 
     def test_no_bands_is_l(self):
         """Test that default (no band) is L."""
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         arr = xr.DataArray(np.ones((5, 5)), dims=("x", "y"))
         assert GenericCompositor.infer_mode(arr) == "L"

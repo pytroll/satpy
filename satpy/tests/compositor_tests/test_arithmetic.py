@@ -64,7 +64,7 @@ class TestDifferenceCompositor(unittest.TestCase):
 
     def test_basic_diff(self):
         """Test that a basic difference composite works."""
-        from satpy.composites import DifferenceCompositor
+        from satpy.composites.arithmetic import DifferenceCompositor
         comp = DifferenceCompositor(name="diff", standard_name="temperature_difference")
         res = comp((self.ds1, self.ds2))
         np.testing.assert_allclose(res.values, -2)
@@ -72,7 +72,8 @@ class TestDifferenceCompositor(unittest.TestCase):
 
     def test_bad_areas_diff(self):
         """Test that a difference where resolutions are different fails."""
-        from satpy.composites import DifferenceCompositor, IncompatibleAreas
+        from satpy.composites.arithmetic import DifferenceCompositor
+        from satpy.composites.core import IncompatibleAreas
         comp = DifferenceCompositor(name="diff")
         # too many arguments
         with pytest.raises(ValueError, match="Expected 2 datasets, got 3"):
@@ -102,7 +103,7 @@ def fake_dataset_pair(fake_area):
 @pytest.mark.parametrize("kwargs", [{}, {"standard_name": "channel_ratio", "foo": "bar"}])
 def test_ratio_compositor(fake_dataset_pair, kwargs):
     """Test the ratio compositor."""
-    from satpy.composites import RatioCompositor
+    from satpy.composites.arithmetic import RatioCompositor
     comp = RatioCompositor("ratio", **kwargs)
     res = comp(fake_dataset_pair)
     np.testing.assert_allclose(res.values, 2)
@@ -119,7 +120,7 @@ def test_ratio_compositor(fake_dataset_pair, kwargs):
 
 def test_sum_compositor(fake_dataset_pair):
     """Test the sum compositor."""
-    from satpy.composites import SumCompositor
+    from satpy.composites.arithmetic import SumCompositor
     comp = SumCompositor(name="sum", standard_name="channel_sum")
     res = comp(fake_dataset_pair)
     np.testing.assert_allclose(res.values, 12)
