@@ -24,7 +24,7 @@ modifiers:
 
 composites:
   true_color_uncorrected:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'vii_668'
         modifiers: [ sunz_corrected ]
@@ -35,7 +35,7 @@ composites:
     standard_name: true_color
 
   true_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'vii_668'
         modifiers: [ sunz_corrected, rayleigh_corrected ]
@@ -46,7 +46,7 @@ composites:
     standard_name: true_color
 
   natural_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'vii_1630'
         modifiers: [ sunz_corrected ]
@@ -57,7 +57,7 @@ composites:
     standard_name: natural_color
 
   day_microphysics:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'vii_865'
         modifiers: [ sunz_corrected ]
@@ -67,7 +67,7 @@ composites:
     standard_name: day_microphysics
 
   snow:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'vii_865'
         modifiers: [ sunz_corrected ]
@@ -78,30 +78,30 @@ composites:
     standard_name: snow
 
   convection:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'vii_6725'
           - name: 'vii_7325'
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'vii_3740'
           - name: 'vii_10690'
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'vii_1630'
           - name: 'vii_668'
     standard_name: convection
 
   dust:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'vii_12020'
           - name: 'vii_10690'
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'vii_10690'
           - name: 'vii_8540'

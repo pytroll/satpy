@@ -30,8 +30,8 @@ from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefini
 from xarray import DataArray
 
 from satpy.area import get_area_def
-from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
+from satpy.composites.core import IncompatibleAreas
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
@@ -1146,7 +1146,7 @@ class Scene:
             epoch: str | None = None,
             include_orig_name: bool = True,
             numeric_name_prefix: str = "CHANNEL_",
-    ) -> xr.Datasaet:
+    ) -> xr.Dataset:
         """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
 
         If all Scene DataArrays are on the same area, it returns an xr.Dataset.

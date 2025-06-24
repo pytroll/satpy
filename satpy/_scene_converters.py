@@ -21,7 +21,7 @@ import typing
 
 import xarray as xr
 
-from satpy.composites import enhance2dataset
+from satpy.composites.core import enhance2dataset
 from satpy.dataset import DataID
 
 if typing.TYPE_CHECKING:

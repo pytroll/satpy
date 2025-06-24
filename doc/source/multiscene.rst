@@ -323,5 +323,5 @@ Scenes where there is a GLM file without an ABI file starting within at
 most ±30 seconds are skipped.  The ``group_keys`` and ``time_threshold``
 keyword arguments are processed by the :func:`~satpy.readers.core.grouping.group_files`
 function.  The heavy work of blending the two instruments together is
-performed by the :class:`~satpy.composites.BackgroundCompositor` class
+performed by the :class:`~satpy.composites.fill.BackgroundCompositor` class
 through the `"C14_flash_extent_density"` composite.
