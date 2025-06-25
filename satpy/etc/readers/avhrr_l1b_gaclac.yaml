@@ -192,10 +192,39 @@ datasets:
         standard_name: longitude
         units: degrees_east
 
-    gcps:
-        name: gcps
+    gcp_x:
+        name: gcp_x
         file_type: gac_lac_l1b
-        standard_name: gcps
+        standard_name: gcp_x
+    gcp_y:
+        name: gcp_y
+        file_type: gac_lac_l1b
+        standard_name: gcp_y
+    gcp_longitude:
+        name: gcp_longitude
+        file_type: gac_lac_l1b
+        standard_name: gcp_longitude
+    gcp_latitude:
+        name: gcp_latitude
+        file_type: gac_lac_l1b
+        standard_name: gcp_latitude
+    gcp_x_corrected:
+        name: gcp_x_corrected
+        file_type: gac_lac_l1b
+        standard_name: gcp_x_corrected
+    gcp_y_corrected:
+        name: gcp_y_corrected
+        file_type: gac_lac_l1b
+        standard_name: gcp_y_corrected
+    gcp_x_displacement:
+        name: gcp_x_displacement
+        file_type: gac_lac_l1b
+        standard_name: gcp_x_displacement
+    gcp_y_displacement:
+        name: gcp_y_displacement
+        file_type: gac_lac_l1b
+        standard_name: gcp_y_displacement
+
 
 file_types:
     gac_lac_l1b:
@@ -205,3 +234,4 @@ file_types:
         - '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'
         - '{subscription_prefix:10d}.{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'
         - '{platform_id:3s}_RPRO_AVH_L1B_1P_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit_number:06d}/image.l1b'
+        - '{platform_id:3s}_{start_time:%Y%m%d%H%M}{end_time:%S}.l1b'
