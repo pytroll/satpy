@@ -581,7 +581,7 @@ class ColormapCompositor(GenericCompositor):
         standard_name: cloud_top_height
         operations:
         - name: palettize
-          method: !!python/name:satpy.enhancements.color_mapping.palettize
+          method: !!python/name:satpy.enhancements.colormap.palettize
           kwargs:
             palettes:
               - dataset: ctth_alti_pal
