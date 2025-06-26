@@ -22,7 +22,6 @@ import logging
 import os
 
 import numpy as np
-from trollimage.colormap import Colormap
 
 from satpy._config import get_config_path
 from satpy.utils import find_in_ancillary
@@ -249,6 +248,8 @@ def _set_cmap_alpha_range(cmap, palette, color_scale):
 
 
 def _get_cmap_from_palette_info(palette, img, color_scale):
+    from trollimage.colormap import Colormap
+
     fname = palette.get("filename", None)
     colors = palette.get("colors", None)
     dataset = palette.get("dataset", None)
@@ -270,6 +271,8 @@ def _get_cmap_from_palette_info(palette, img, color_scale):
 
 def _create_colormap_from_dataset(img, dataset, color_scale):
     """Create a colormap from an auxiliary variable in a source file."""
+    from trollimage.colormap import Colormap
+
     match = find_in_ancillary(img.data, dataset)
     return Colormap.from_array_with_metadata(
         match, img.data.dtype, color_scale,
