@@ -1,43 +1,43 @@
-3d_filter: !!python/name:satpy.enhancements.three_d_effect
+3d_filter: !!python/name:satpy.enhancements.convolution.three_d_effect
 
 enhancements:
   default:
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear}
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
     operations:
     - name: linear_stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 1.5}
   surface_reflectance_default:
     standard_name: surface_bidirectional_reflectance
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs: {gamma: 1.5}
   true_color_default:
     standard_name: true_color
     operations:
     - name: cira_stretch
-      method: !!python/name:satpy.enhancements.cira_stretch
+      method: !!python/name:satpy.enhancements.contrast.cira_stretch
   true_color_crefl:
     name: true_color_crefl
     standard_name: true_color
     operations:
       - name: reflectance_range
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
       - name: linear interpolation
-        method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+        method: !!python/name:satpy.enhancements.contrast.piecewise_linear_stretch
         kwargs:
         # Polar2Grid's "Preferred" scaling
          xp: [0., 25., 55., 100., 255.]
@@ -47,44 +47,44 @@ enhancements:
     standard_name: overview
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args:
       - [false, false, true]
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear}
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 1.6}
   ocean_color_default:
     standard_name: ocean_color
     operations:
     - name: cira_stretch
-      method: !!python/name:satpy.enhancements.cira_stretch
+      method: !!python/name:satpy.enhancements.contrast.cira_stretch
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 2.6}
   night_overview_default:
     standard_name: night_overview
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args:
       - [false, false, true]
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear}
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 1.6}
   natural_color_default:
     standard_name: natural_color
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 120}
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 1.8}
 
   fire_temperature:
@@ -92,65 +92,65 @@ enhancements:
     name: fire_temperature
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [3.5, 35., 85.]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
   fire_temperature_awips:
     standard_name: fire_temperature
     name: fire_temperature_awips
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [273.0, 0, 0]
         max_stretch: [333.0, 100., 75.]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: [0.4, 1.0, 1.0]}
   fire_temperature_eumetsat:
     standard_name: fire_temperature
     name: fire_temperature_eumetsat
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [273.0, 0, 0]
         max_stretch: [350.0, 60., 60.]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
   fire_temperature_39refl:
     standard_name: fire_temperature
     name: fire_temperature_39refl
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [50., 100., 75.]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
 
   airmass_default:
     standard_name: airmass
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 1, 1]
 
@@ -158,13 +158,13 @@ enhancements:
     standard_name: overshooting_tops
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-25, -30, 243]
         max_stretch: [5, 25, 190]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 1, 1]
 
@@ -172,20 +172,20 @@ enhancements:
     standard_name: green_snow
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args:
       - [false, false, true]
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude}
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: 1.6}
   convection_default:
     standard_name: convection
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-30, 0, -70]
@@ -194,20 +194,20 @@ enhancements:
     standard_name: dust
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, 0, 261]
         max_stretch: [2, 15, 289]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 2.5, 1]
   ash_default:
     standard_name: ash
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, -4, 243]
@@ -216,7 +216,7 @@ enhancements:
     standard_name: fog
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, 0, 243]
@@ -225,13 +225,13 @@ enhancements:
     standard_name: night_fog
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 6, 293]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 2, 1]
 
@@ -239,13 +239,13 @@ enhancements:
     standard_name: snow
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [100, 70, 30]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.7, 1.7, 1.7]
 
@@ -253,13 +253,13 @@ enhancements:
     standard_name: day_microphysics
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 203]
         max_stretch: [100, 60, 323]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 2.5, 1]
 
@@ -267,13 +267,13 @@ enhancements:
     standard_name: day_microphysics_winter
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 203]
         max_stretch: [100, 25, 323]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 1.5, 1]
 
@@ -281,10 +281,10 @@ enhancements:
     standard_name: cloudtop
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args: [true]
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
         cutoffs: [0.005, 0.005]
@@ -294,7 +294,7 @@ enhancements:
     reader: clavrx
     operations:
       - name: palettize
-        method: !!python/name:satpy.enhancements.palettize
+        method: !!python/name:satpy.enhancements.colormap.palettize
         kwargs:
           palettes:
             - {'values': [-127,# Fill Value
@@ -316,14 +316,14 @@ enhancements:
     standard_name: sar-ice
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [0.10, 1.37, 0.32 ]
 
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [2, 3, 2]
 
@@ -331,14 +331,14 @@ enhancements:
     standard_name: sar-ice-log
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-38, -32, -40]
         max_stretch: [-10, 0, 0 ]
 
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.2, 0.42, 0.75]
 
@@ -346,12 +346,12 @@ enhancements:
     standard_name: sar-ice-legacy
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
         cutoffs: [0.2, 0.02]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 1.2, 1]
 
@@ -359,13 +359,13 @@ enhancements:
     standard_name: sar-land
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0.01, 1. , 0.15 ]
         max_stretch: [0.765, 50., 1.4]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.5, 2.25, 1.5]
 
@@ -373,11 +373,11 @@ enhancements:
     standard_name: sar-rgb
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args:
       - [true, true, true]
 
@@ -385,7 +385,7 @@ enhancements:
     standard_name: green-sar
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         # R -- VH: 0.00109 to 0.0594
@@ -398,7 +398,7 @@ enhancements:
     standard_name: sar-quick
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
         cutoffs: [0.2, 0.02]
@@ -407,7 +407,7 @@ enhancements:
     standard_name: natural_with_night_fog
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -417,7 +417,7 @@ enhancements:
     standard_name: cloudtype
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ct_pal
@@ -429,7 +429,7 @@ enhancements:
     standard_name: cloudmask
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cma_pal
@@ -439,7 +439,7 @@ enhancements:
     standard_name: pps_cma
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cma_pal
@@ -449,7 +449,7 @@ enhancements:
     standard_name: pps_ct
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ct_pal
@@ -459,7 +459,7 @@ enhancements:
     standard_name: pps_phase
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_phase_pal
@@ -469,7 +469,7 @@ enhancements:
     standard_name: pps_ctth
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -478,7 +478,7 @@ enhancements:
     standard_name: pps_cmaprob
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmaprob_pal
@@ -487,7 +487,7 @@ enhancements:
     standard_name: pps_cot
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
@@ -497,7 +497,7 @@ enhancements:
     standard_name: pps_cwp
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cwp_pal
@@ -507,7 +507,7 @@ enhancements:
     standard_name: pps_iwp
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_iwp_pal
@@ -516,7 +516,7 @@ enhancements:
     standard_name: pps_lwp
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_lwp_pal
@@ -525,7 +525,7 @@ enhancements:
     standard_name: pps_cre
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cre_pal
@@ -534,7 +534,7 @@ enhancements:
     standard_name: cloudmask_extended
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cma_extended_pal
@@ -544,7 +544,7 @@ enhancements:
     standard_name: cloudmask_probability
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmaprob_pal
@@ -554,7 +554,7 @@ enhancements:
     standard_name: cloud_top_height_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -564,7 +564,7 @@ enhancements:
     standard_name: cloud_top_height_pps
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -573,7 +573,7 @@ enhancements:
     standard_name: cloud_top_height_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -583,7 +583,7 @@ enhancements:
     standard_name: cloud_top_pressure
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_pres_pal
@@ -593,7 +593,7 @@ enhancements:
     standard_name: cloud_top_temperature
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ctth_tempe_pal
@@ -603,7 +603,7 @@ enhancements:
     standard_name: cloud_top_phase
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_phase_pal
@@ -613,7 +613,7 @@ enhancements:
     standard_name: cloud_drop_effective_radius_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_reff_pal
@@ -623,7 +623,7 @@ enhancements:
     standard_name: cloud_drop_effective_radius_pps
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cre_pal
@@ -633,7 +633,7 @@ enhancements:
     standard_name: cloud_optical_thickness_geo
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
@@ -643,7 +643,7 @@ enhancements:
     standard_name: cloud_optical_thickness_pps
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: cmic_cot_pal
@@ -653,7 +653,7 @@ enhancements:
     standard_name: cloud_liquid_water_path
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_lwp_pal
@@ -663,7 +663,7 @@ enhancements:
     standard_name: cloud_ice_water_path
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: cmic_iwp_pal
@@ -673,7 +673,7 @@ enhancements:
     standard_name: precipitation_probability
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: pc_pal
@@ -683,7 +683,7 @@ enhancements:
     standard_name: convective_rain_rate
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: crr_pal
@@ -693,7 +693,7 @@ enhancements:
     standard_name: convective_precipitation_hourly_accumulation
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: crr_pal
@@ -703,7 +703,7 @@ enhancements:
     standard_name: total_precipitable_water
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ishai_tpw_pal
@@ -713,7 +713,7 @@ enhancements:
     standard_name: showalter_index
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ishai_shw_pal
@@ -723,7 +723,7 @@ enhancements:
     standard_name: lifted_index
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ishai_li_pal
@@ -733,7 +733,7 @@ enhancements:
     standard_name: convection_initiation_prob30
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ci_pal
@@ -743,7 +743,7 @@ enhancements:
     standard_name: convection_initiation_prob60
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ci_pal
@@ -753,7 +753,7 @@ enhancements:
     standard_name: convection_initiation_prob90
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: ci_pal
@@ -763,7 +763,7 @@ enhancements:
     standard_name: rdt_cell_type
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: MapCellCatType_pal
@@ -773,7 +773,7 @@ enhancements:
     standard_name: asii_prob
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
           - dataset: asii_turb_prob_pal
@@ -783,7 +783,7 @@ enhancements:
     standard_name: day_microphysics_ahi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 203]
@@ -792,7 +792,7 @@ enhancements:
     standard_name: cloud_phase_distinction
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [280.67, 0, 1]
@@ -801,33 +801,33 @@ enhancements:
     standard_name: water_vapors1
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [278.96, 242.67, 261.03]
         max_stretch: [202.29, 214.66, 245.12]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [10, 5.5, 5.5]
   water_vapors2_default:
     standard_name: water_vapors2
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [30, 278.15, 243.9]
         max_stretch: [-3, 213.15, 208.5]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [3.5, 2.5, 2.5]
   ncc_default:
     standard_name: ncc_radiance
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0]
@@ -836,20 +836,20 @@ enhancements:
     standard_name: realistic_colors
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
           max_stretch: [110, 110, 110]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.4, 1.4, 1.2]
   snow_age_default:
     standard_name: snow_age
     operations:
     - name: snow_age
-      method: !!python/name:satpy.enhancements.lookup
+      method: !!python/name:satpy.enhancements.colormap.lookup
       kwargs:
        luts: [[0, 0, 0], [1, 2, 2], [3, 8, 5], [4, 12, 8], [6, 15, 10], [8, 18, 13], [9, 21, 16],
                          [11, 24, 19], [13, 26, 21], [14, 28, 24], [
@@ -952,13 +952,13 @@ enhancements:
     standard_name: night_microphysics
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 10, 293]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 1, 1]
 
@@ -966,13 +966,13 @@ enhancements:
     standard_name: night_microphysics_tropical
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, 0, 273]
         max_stretch: [2, 5, 300]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 1, 1]
 
@@ -980,13 +980,13 @@ enhancements:
     standard_name: 24h_microphysics
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, 0, 248]
         max_stretch: [2, 6, 303]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [ 1, 1.2, 1 ]
 
@@ -994,10 +994,10 @@ enhancements:
     standard_name: ir_overview
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args: [true]
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: histogram
 
@@ -1005,27 +1005,27 @@ enhancements:
     standard_name: ir108_3d
     operations:
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args: [true]
     - name: 3d_filter
-      method: !!python/name:satpy.enhancements.three_d_effect
+      method: !!python/name:satpy.enhancements.convolution.three_d_effect
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear}
 
   ir_cloud_day:
     standard_name: ir_cloud_day
     operations:
       - name: inverse
-        method: !!python/name:satpy.enhancements.invert
+        method: !!python/name:satpy.enhancements.contrast.invert
         args:
           - [True, false]
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: linear
       - name: 3d
-        method: !!python/name:satpy.enhancements.three_d_effect
+        method: !!python/name:satpy.enhancements.convolution.three_d_effect
         kwargs:
           weight: 1.0
 
@@ -1033,11 +1033,11 @@ enhancements:
     standard_name: geo_color_high_clouds
     operations:
       - name: inverse
-        method: !!python/name:satpy.enhancements.invert
+        method: !!python/name:satpy.enhancements.contrast.invert
         args:
           - [True, false]
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
 
@@ -1045,11 +1045,11 @@ enhancements:
     standard_name: geo_color_low_clouds
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - {colors: [[140.25, 191.25, 249.9]]}
@@ -1058,7 +1058,7 @@ enhancements:
     standard_name: geo_color_day_night_blend
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [ 0,0,0 ]
@@ -1068,7 +1068,7 @@ enhancements:
     standard_name: colorized_ir_clouds
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
@@ -1078,7 +1078,7 @@ enhancements:
     standard_name: vis_sharpened_ir
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
@@ -1088,7 +1088,7 @@ enhancements:
     standard_name: ir_sandwich
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
@@ -1098,7 +1098,7 @@ enhancements:
    standard_name: natural_enh
    operations:
      - name: stretch
-       method: !!python/name:satpy.enhancements.stretch
+       method: !!python/name:satpy.enhancements.contrast.stretch
        kwargs:
          stretch: crude
          min_stretch: [0, 0, 0]
@@ -1107,7 +1107,7 @@ enhancements:
   hrv_clouds:
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 323]
@@ -1117,7 +1117,7 @@ enhancements:
   hrv_fog:
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
@@ -1128,13 +1128,13 @@ enhancements:
     standard_name: hrv_severe_storms
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [70, 70, -60]
         max_stretch: [100, 100, -40]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.7, 1.7, 2.0]
 
@@ -1142,14 +1142,14 @@ enhancements:
     standard_name: hrv_severe_storms_masked
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         # MaskingCompositor always adds alpha channel
         min_stretch: [70, 70, -60, 0]
         max_stretch: [100, 100, -40, 1]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         # MaskingCompositor always adds alpha channel
         gamma: [1.7, 1.7, 2.0, 1.0]
@@ -1158,13 +1158,13 @@ enhancements:
     standard_name: day_severe_storms
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-35, -5, -75]
         max_stretch: [5, 60, 25]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 0.5, 1]
 
@@ -1172,13 +1172,13 @@ enhancements:
     standard_name: day_severe_storms_tropical
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-35, -5, -75]
         max_stretch: [5, 75, 25]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 0.33, 1]
 
@@ -1186,7 +1186,7 @@ enhancements:
     standard_name: true_color_with_night_ir
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -1196,7 +1196,7 @@ enhancements:
     standard_name: night_background
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -1206,10 +1206,10 @@ enhancements:
     standard_name: night_ir_alpha
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear, cutoffs: [[0.02, 0.02], [0.02, 0.02], [0.02, 0.02], [0.02, 0.02]]}
     - name: inverse
-      method: !!python/name:satpy.enhancements.invert
+      method: !!python/name:satpy.enhancements.contrast.invert
       args:
       - [true, true, true, true]
 
@@ -1217,7 +1217,7 @@ enhancements:
     standard_name: night_ir_with_background
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -1228,7 +1228,7 @@ enhancements:
     standard_name: so2
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-4, -4, 243.05]
@@ -1238,7 +1238,7 @@ enhancements:
     standard_name: tropical_airmass
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [26.2,  27.4, 243.9]
@@ -1249,7 +1249,7 @@ enhancements:
     reader: seadas_l2
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: log
           base: "10"
@@ -1261,7 +1261,7 @@ enhancements:
     reader: oci_l2_bgc
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: log
           base: "10"
@@ -1273,13 +1273,13 @@ enhancements:
     standard_name: cimss_cloud_type
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0.0, 0.0, 0.0]
           max_stretch: [10.0, 80.0, 80.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.5, 0.75, 1.0]
 
@@ -1287,7 +1287,7 @@ enhancements:
     standard_name: cloud_phase
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [ 0,  0,   0]
@@ -1297,7 +1297,7 @@ enhancements:
     standard_name: essl_low_level_moisture
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.35, max_stretch: 0.85}
 
   day_essl_low_level_moisture:
@@ -1308,7 +1308,7 @@ enhancements:
     standard_name: essl_colorized_low_level_moisture
     operations: &masked_llm
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
           - min_value: 0.625
@@ -1424,7 +1424,7 @@ enhancements:
     standard_name: rocket_plume
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [273, 233, 0.]
@@ -1434,9 +1434,9 @@ enhancements:
     standard_name: true_color_reproduction_color_stretch
     operations:
       - name: color
-        method: !!python/name:satpy.enhancements.jma_true_color_reproduction
+        method: !!python/name:satpy.enhancements.ahi.jma_true_color_reproduction
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
          stretch: log
          min_stretch: [3.,3.,3.] # tweak min/max values for desired contrast
@@ -1446,7 +1446,7 @@ enhancements:
     standard_name: true_color_reproduction
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
          stretch: crude
          min_stretch: [0,0,0]
@@ -1465,12 +1465,12 @@ enhancements:
     standard_name: mw183_humidity
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [290, 290, 290]
         max_stretch: [190, 190, 190]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.5, 1.2, 1.2]
