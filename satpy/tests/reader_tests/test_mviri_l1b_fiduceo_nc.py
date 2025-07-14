@@ -571,7 +571,7 @@ class TestFiduceoMviriFileHandlers:
         file_handler.nc.ds["quality_pixel_bitmask"] = 2
         vis = make_dataid(name="VIS", resolution=2250,
                           calibration="reflectance")
-        with pytest.warns(UserWarning):
+        with pytest.warns(UserWarning, match=".*All pixels of the VIS.*"):
             file_handler.get_dataset(vis, {})
 
     def test_file_pattern(self, reader):

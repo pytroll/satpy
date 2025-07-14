@@ -332,7 +332,7 @@ def test_debug_on(caplog):
     assert "But now it's just got SILLY." in caplog.text
     debug_on(True)
     # test that logging on and deprecation warnings on
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(DeprecationWarning, match="Stop that! It's SILLY."):
         depwarn()
     assert warnings.filters != filts_before
     debug_off()  # other tests assume debugging is off
