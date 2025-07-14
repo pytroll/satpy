@@ -244,7 +244,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         sed = self.root.find(".//U")
         if sed.text is not None:
             return float(sed.text)
-        raise ValueError("Colar correction factor, U, in metadata is missing.")
+        raise ValueError("Solar correction factor, U, in metadata is missing.")
 
     @cached_property
     def special_values(self):
