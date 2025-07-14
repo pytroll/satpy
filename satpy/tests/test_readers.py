@@ -600,7 +600,7 @@ class TestFindFilesAndReaders:
             return unittest.skip("Skipping pending deprecated reader tests because "
                                  "no pending deprecated readers.")
         test_reader = sorted(PENDING_OLD_READER_NAMES.keys())[0]
-        with pytest.warns(FutureWarning):
+        with pytest.warns(FutureWarning, match=".*will be removed.*"):
             valid_reader_names = get_valid_reader_names([test_reader])
         assert valid_reader_names[0] == PENDING_OLD_READER_NAMES[test_reader]
 
@@ -874,8 +874,8 @@ class TestGroupFiles(unittest.TestCase):
         assert len(groups) == 1
         # test that a warning is raised when a string is passed (meaning no
         # group keys found in common)
-        with pytest.warns(UserWarning):
-            groups = group_files(
+        with pytest.warns(UserWarning, match=".*none of group keys found.*"):
+            group_files(
                 self.g16_files + self.noaa20_files,
                 reader=("abi_l1b", "viirs_sdr"),
                 group_keys=("start_time"),
@@ -1297,5 +1297,5 @@ def test_init_import_warns(name):
     """Test that importing non-reader functions from __init__.py issue a warning."""
     from satpy import readers
 
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(readers, name)
