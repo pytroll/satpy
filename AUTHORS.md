@@ -27,6 +27,7 @@ The following people have made contributions to this project:
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
+- [Sven-Erik Enno (seenno)](https://github.com/seenno)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Florian Fichtner (fwfichtner)](https://github.com/fwfichtner)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
@@ -104,10 +105,5 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
-- [Sven-Erik Enno (seenno)](https://github.com/seenno)
-- [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
-- [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
-- [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
-- [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
