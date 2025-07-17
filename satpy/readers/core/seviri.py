@@ -456,6 +456,11 @@ def add_scanline_acq_time(dataset, acq_time):
         "long_name"] = "Mean scanline acquisition time"
 
 
+def add_pixel_acq_time(dataset):
+    """Estimate pixel acquisition time for the given dataset."""
+    raise NotImplementedError()
+
+
 def dec10216(inbuf):
     """Decode 10 bits data into 16 bits words.
 

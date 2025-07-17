@@ -246,6 +246,7 @@ from satpy.readers.core.seviri import (
     OrbitPolynomialFinder,
     ScanParams,
     SEVIRICalibrationHandler,
+    add_pixel_acq_time,
     add_scanline_acq_time,
     create_coef_dict,
     get_cds_time,
@@ -692,6 +693,8 @@ class HRITMSGFileHandler(HRITFileHandler):
             res = self.pad_hrv_data(res)
         self._update_attrs(res, info)
         self._add_scanline_acq_time(res)
+        if self.track_time:
+            self._add_pixel_acq_time(res)
         return res
 
     def pad_hrv_data(self, res):
@@ -770,6 +773,10 @@ class HRITMSGFileHandler(HRITFileHandler):
         tline = self.mda["image_segment_line_quality"]["line_mean_acquisition"]
         acq_time = get_cds_time(days=tline["days"], msecs=tline["milliseconds"])
         add_scanline_acq_time(dataset, acq_time)
+
+    def _add_pixel_acq_time(self, dataset):
+        """Estimate pixel acquisition time to the given dataset."""
+        add_pixel_acq_time(dataset)
 
     def _update_attrs(self, res, info):
         """Update dataset attributes."""
