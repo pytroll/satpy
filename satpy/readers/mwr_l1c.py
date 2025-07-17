@@ -44,6 +44,14 @@ Here is an example how to read the data in satpy:
 
 from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_BaseFileHandler, mask_and_scale
 
+NAVIGATION_DATASET_NAMES = ["satellite_zenith",
+                            "solar_azimuth",
+                            "solar_zenith",
+                            "satellite_azimuth",
+                            "surface_type",
+                            "terrain_elevation",
+                            "longitude",
+                            "latitude"]
 
 class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
     """Class implementing the AWS L1c Filehandler.
@@ -70,9 +78,8 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         """Get the data."""
         if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
-        elif (dataset_id["name"] in ["longitude", "latitude",
-                                     "solar_azimuth_angle", "solar_zenith_angle",
-                                     "satellite_zenith_angle", "satellite_azimuth_angle"]):
+
+        elif dataset_id["name"] in NAVIGATION_DATASET_NAMES:
             data_array = self._get_navigation_data(dataset_id, dataset_info)
         else:
             raise NotImplementedError(f"Dataset {dataset_id['name']} not available or not supported yet!")
