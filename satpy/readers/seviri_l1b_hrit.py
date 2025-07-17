@@ -71,7 +71,7 @@ Nominal start/end time
 ``nominal_start_time`` and ``nominal_end_time`` are also available directly
 via ``start_time`` and ``end_time`` respectively.
 
-Here is an exmaple of the content of the start/end time and ``time_parameters`` attibutes
+Here is an example of the content of the start/end time and ``time_parameters`` attibutes
 
 .. code-block:: python
 
@@ -463,7 +463,8 @@ class HRITMSGFileHandler(HRITFileHandler):
                  prologue, epilogue, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=100, fill_hrv=True,
-                 mask_bad_quality_scan_lines=True):
+                 mask_bad_quality_scan_lines=True,
+                 track_time=False):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -483,6 +484,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self._get_header()
+        self.track_time = track_time
 
     def _get_header(self):
         """Read the header info, and fill the metadata dictionary."""

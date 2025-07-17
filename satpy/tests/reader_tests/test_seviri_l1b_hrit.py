@@ -680,3 +680,20 @@ def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
                                   dict(units="", wavelength=0.8, standard_name="counts"))
     res.compute()
+
+
+def test_track_time(prologue_file, segment_file, epilogue_file):
+    """Check tracking time with a virtual aux dataset."""
+    info = dict(start_time=dt.datetime(2222, 2, 22, 22, 0), service="")
+    prologue_fh = HRITMSGPrologueFileHandler(prologue_file, info, dict())
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue_file, info, dict())
+#    with warnings.catch_warnings():
+#        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
+    filehandler = HRITMSGFileHandler(segment_file, info, dict(),
+                                     prologue_fh, epilogue_fh,
+                                     track_time=True)
+    res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                  dict(units="", wavelength=0.8, standard_name="counts"))
+    ancdict = {x.name: x for x in res.attrs.get("ancillary_variables", {})}
+    assert "time" in ancdict.keys()
+    assert res.dims == ancdict["time"].dims
