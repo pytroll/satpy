@@ -281,19 +281,70 @@ def _get_coordinates_list(data_arr: xr.DataArray) -> list[str]:
 
 def add_time_bounds_dimension(ds: xr.Dataset, time: str = "time") -> xr.Dataset:
     """Add time bound dimension to xr.Dataset."""
-    start_times = []
-    end_times = []
-    for _var_name, data_array in ds.items():
-        start_times.append(data_array.attrs.get("start_time", None))
-        end_times.append(data_array.attrs.get("end_time", None))
-
-    start_time = min(start_time for start_time in start_times
-                     if start_time is not None)
-    end_time = min(end_time for end_time in end_times
-                   if end_time is not None)
-    ds["time_bnds"] = xr.DataArray([[np.datetime64(start_time, "ns"),
-                                     np.datetime64(end_time, "ns")]],
-                                   dims=["time", "bnds_1d"])
+    time_bounds = _TimeBoundsCalculator().get_time_bounds(ds, time)
+    ds["time_bnds"] = time_bounds
     ds[time].attrs["bounds"] = "time_bnds"
     ds[time].attrs["standard_name"] = "time"
     return ds
+
+
+class _TimeBoundsCalculator:
+    def get_time_bounds(self, ds: xr.Dataset, time_dim: str) -> xr.DataArray:
+        """Get time bounds for the given dataset."""
+        if ds[time_dim].size > 1:
+            bounds = self._get_bounds_multiple_timesteps(ds, time_dim)
+        else:
+            bounds = self._get_bounds_single_timestep(ds)
+        return xr.DataArray(bounds, dims=[time_dim, "bnds_1d"])
+
+    def _get_bounds_multiple_timesteps(self, ds, time_dim):
+        """Get time bounds for a dataset with multiple timesteps.
+
+        Computes bounds based on time coordinates and for the last
+        timestep uses the "end_time" attribute. Example for 3
+        timesteps::
+
+            bounds = [
+                (t[0], t[1]),
+                (t[1], t[2]),
+                (t[2], min_end_time_from_attrs)
+            ]
+
+        """
+        bounds = self._get_bounds_for_all_but_last_timestep(ds, time_dim)
+        bounds.append(self._get_bounds_for_last_timestep(ds, time_dim))
+        return bounds
+
+    def _get_bounds_for_all_but_last_timestep(self, ds, time_dim):
+        times = ds[time_dim].values
+        return [
+            [times[i], times[i + 1]]
+            for i in range(len(times) - 1)
+        ]
+
+    def _get_bounds_for_last_timestep(self, ds, time_dim):
+        return [
+            ds[time_dim].values[-1],
+            self._get_min_time_from_attrs(ds, "end_time")
+        ]
+
+    def _get_min_time_from_attrs(self, ds, time_attr):
+        times = [
+            data_array.attrs.get(time_attr, None)
+            for data_array in ds.data_vars.values()
+        ]
+        min_time = min(
+            t for t in times if t is not None
+        )
+        return np.datetime64(min_time, "ns")
+
+    def _get_bounds_single_timestep(self, ds):
+        """Get time bounds for a dataset with a single timestep.
+
+        Computes time bounds entirely from dataset attributes
+        start_time and end_time.
+        """
+        return [
+            [self._get_min_time_from_attrs(ds, "start_time"),
+             self._get_min_time_from_attrs(ds, "end_time")]
+        ]
