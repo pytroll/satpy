@@ -409,14 +409,15 @@ def mda_file(l1_files_path):
 def all_files(b4_file, b11_file, mda_file, sza_file):
     """Return all the files."""
     return b4_file, b11_file, mda_file, sza_file
-    
-    
+
+
 @pytest.fixture(scope="session")
 def all_fsspec_files(b4_file, b11_file, mda_file, sza_file):
     """Return all the files as FSFile objects."""
     from fsspec.implementations.local import LocalFileSystem
+
     from satpy.readers.core.remote import FSFile
-    
+
     fs = LocalFileSystem()
     b4_file, b11_file, mda_file, sza_file = (
         FSFile(os.path.abspath(file), fs=fs)
@@ -617,7 +618,7 @@ class TestOLITIRSL1:
 
         assert standard_area.area_extent == (619485.0, 2440485.0, 850515.0, 2675715.0)
         assert pan_area.area_extent == (619492.5, 2440492.5, 850507.5, 2675707.5)
-    
+
     def test_basicload_remote(self, l1_area, all_fsspec_files):
         """Test loading a Landsat Scene from a fsspec filesystem."""
         scn = Scene(reader="oli_tirs_l1_tif", filenames=all_fsspec_files)
