@@ -461,7 +461,7 @@ def add_pixel_acq_time(dataset):
 
     For simplicity, take scanline time as measurement time for entire scanline.
 
-    Modifies dataset in place, adding a time variablre to ancillary_variables
+    Modifies dataset in place, adding a time variable
 
     Args:
         dataset (xarray.DataArray): dataset with acq_time coordinate
@@ -474,6 +474,7 @@ def add_pixel_acq_time(dataset):
             {"x": dataset.sizes["x"]}).rename(
             "time").transpose(
             "y", "x"))
+    dataset.attrs["time"] = dataset.attrs["ancillary_variables"][0]
 
 
 def dec10216(inbuf):

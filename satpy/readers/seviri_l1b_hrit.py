@@ -337,7 +337,8 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
+                 mda_max_array_size=None, fill_hrv=None,
+                 mask_bad_quality_scan_lines=None, track_time=False):
         """Initialize the reader."""
         super().__init__(filename, filename_info,
                          filetype_info,
@@ -408,7 +409,8 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
+                 mda_max_array_size=None, fill_hrv=None,
+                 mask_bad_quality_scan_lines=None, track_time=False):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
