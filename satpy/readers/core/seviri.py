@@ -457,8 +457,23 @@ def add_scanline_acq_time(dataset, acq_time):
 
 
 def add_pixel_acq_time(dataset):
-    """Estimate pixel acquisition time for the given dataset."""
-    raise NotImplementedError()
+    """Add estimated pixel acquisition time for the given dataset.
+
+    For simplicity, take scanline time as measurement time for entire scanline.
+
+    Modifies dataset in place, adding a time variablre to ancillary_variables
+
+    Args:
+        dataset (xarray.DataArray): dataset with acq_time coordinate
+    """
+    if "ancillary_variables" not in dataset.attrs:
+        dataset.attrs["ancillary_variables"] = []
+    dataset.attrs["ancillary_variables"].append(
+            dataset["acq_time"].chunk(
+            {"y": dataset.sizes["y"]}).expand_dims(
+            {"x": dataset.sizes["x"]}).rename(
+            "time").transpose(
+            "y", "x"))
 
 
 def dec10216(inbuf):
