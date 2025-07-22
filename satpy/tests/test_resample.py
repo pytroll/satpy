@@ -737,6 +737,8 @@ def test_resample_time_coordinate(scene_with_time_coords):
     ls = scene_with_time_coords.resample(ar2, resampler="nearest", resample_coords=True)
     assert "time" in ls["ir"].coords
     assert ls["ir"].coords["time"].sizes == ls["ir"].sizes
+    assert ls["ir"].coords["time"].dtype == scene_with_time_coords["ir"].coords["time"].dtype
+    ls["ir"].coords["time"].compute()
 
 
 def test_slice_scene_time_coordinate(scene_with_time_coords):

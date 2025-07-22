@@ -892,7 +892,8 @@ class Scene:
                     replace_anc(dataset, pres)
                 continue
             LOG.debug("Resampling %s", ds_id)
-            res = self._reduce_and_resample(dataset,
+            source_area = dataset.attrs["area"]
+            res = self._reduce_and_resample(dataset, source_area,
                                             destination_area, reduce_data,
                                             resamplers, reductions, resample_kwargs)
             new_datasets[ds_id] = res
@@ -905,11 +906,10 @@ class Scene:
                                       destination_area, reduce_data,
                                       resamplers, reductions, resample_kwargs)
 
-    def _reduce_and_resample(self, dataset, destination_area, reduce_data,
+    def _reduce_and_resample(self, dataset, source_area, destination_area, reduce_data,
                              resamplers, reductions, resample_kwargs):
         from satpy.resample.base import resample_dataset
 
-        source_area = dataset.attrs["area"]
         dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
                                                  reduce_data, reductions, resample_kwargs)
         self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
@@ -924,7 +924,8 @@ class Scene:
         for cv in orig_dataset.coords:
             if orig_dataset.coords[cv].dims == orig_dataset.dims:
                 LOG.debug(f"resampling coordinate {cv:s}")
-                res = self._reduce_and_resample(dataset,
+                res = self._reduce_and_resample(orig_dataset.coords[cv],
+                                                orig_dataset.attrs["area"],
                                                 destination_area, reduce_data,
                                                 resamplers, reductions, resample_kwargs)
                 dataset.coords[cv] = res
