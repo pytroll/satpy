@@ -723,8 +723,8 @@ def scene_with_time_coords():
     sc["ir"].coords["time"] = (
             ("y", "x"),
             np.linspace(0, 900, 25, dtype="uint16").reshape(5, 5))
+    sc["ir"].coords["time"].attrs["units"] = "seconds since 2222-02-22T22:22:22"
     return sc
-
 
 def test_resample_time_coordinate(scene_with_time_coords):
     """Test that resampling retains the time coordinate."""
