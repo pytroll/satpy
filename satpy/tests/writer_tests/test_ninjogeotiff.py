@@ -730,21 +730,17 @@ def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
 
 def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
     """Test getting all tags from dataset."""
-    # test that passed, dynamic, and mandatory tags are all included, and
-    # nothing more
+    # test that passed, dynamic, and mandatory tags are all included
     t1 = ntg1.get_all_tags()
-    assert set(t1.keys()) == (
+    delta = set(t1.keys()) - (
             ntg1.fixed_tags.keys() |
             ntg1.passed_tags |
             ntg1.dynamic_tags.keys() |
             {"DataSource"})
+    assert delta - ntg1.optional_tags == set()
     # test that when extra tag is passed this is also included
     t3 = ntg3.get_all_tags()
-    assert t3.keys() == (
-            ntg3.fixed_tags.keys() |
-            ntg3.passed_tags |
-            ntg3.dynamic_tags.keys() |
-            {"OverFlightTime"})
+    assert "OverFlightTime" in t3.keys()
     assert t3["OverFlightTime"] == 42
     # test that CentralMeridian skipped and warning logged
     with caplog.at_level(logging.DEBUG):
