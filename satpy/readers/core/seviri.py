@@ -468,13 +468,13 @@ def add_pixel_acq_time(dataset):
     """
     if "ancillary_variables" not in dataset.attrs:
         dataset.attrs["ancillary_variables"] = []
-    dataset.attrs["ancillary_variables"].append(
+    dataset.coords["time"] = (("y", "x"),
             dataset["acq_time"].chunk(
             {"y": dataset.sizes["y"]}).expand_dims(
             {"x": dataset.sizes["x"]}).rename(
             "time").transpose(
-            "y", "x"))
-    dataset.attrs["time"] = dataset.attrs["ancillary_variables"][0]
+            "y", "x").data)
+    dataset.coords["time"].attrs["long_name"] = "Approximate pixel acquisition time"
 
 
 def dec10216(inbuf):

@@ -701,6 +701,5 @@ def test_track_time(prologue_file, segment_file, epilogue_file):
         srsg.return_value = fake_acq_time
         res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
                                       dict(units="", wavelength=0.8, standard_name="counts"))
-    ancdict = {x.name: x for x in res.attrs.get("ancillary_variables", {})}
-    assert "time" in ancdict.keys()
-    assert res.dims == ancdict["time"].dims
+    assert "time" in res.coords
+    assert res.dims == res.coords["time"].dims

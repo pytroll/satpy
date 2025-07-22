@@ -706,3 +706,26 @@ def test_moved_import_warns(name):
     import satpy.resample
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(satpy.resample, name)
+
+
+def test_resample_time_coordinate():
+    """Test that resampling retains the time coordinate."""
+    from pyresample import create_area_def
+
+    from satpy.tests.utils import make_fake_scene
+
+    ar1 = create_area_def("test", 4087, shape=(5, 5), resolution=1000, center=(0, 0))
+    ar2 = create_area_def("test", 4087, shape=(4, 4), resolution=1200, center=(100, 100))
+
+    sc = make_fake_scene(
+            {"ir": np.arange(25, dtype="f4").reshape(5, 5)},
+            area=ar1)
+    sc["ir"].coords["time"] = (("y", "x"), np.arange(
+            2_000_000_000, 2_000_000_025).astype("M8[s]").reshape(5, 5))
+    ls = sc.resample(ar2, resampler="nearest")
+    assert "time" not in ls["ir"].coords  # drop by default
+    ls = sc.resample(ar2, resampler="nearest", resample_coords=False)
+    assert "time" not in ls["ir"].coords
+    ls = sc.resample(ar2, resampler="nearest", resample_coords=True)
+    assert "time" in ls["ir"].coords
+    assert ls["ir"].coords["time"].attrs["area"] == ls["ir"].attrs["area"]
