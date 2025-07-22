@@ -862,14 +862,13 @@ class Scene:
         return dataset
 
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
+                         resample_coords=False,
                          **resample_kwargs):
         """Resample `datasets` to the `destination` area.
 
-        If data reduction is enabled, some local caching is perfomed in order to
+        If data reduction is enabled, some local caching is performed in order to
         avoid recomputation of area intersections.
         """
-        from satpy.resample.base import resample_dataset
-
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
@@ -893,18 +892,43 @@ class Scene:
                     replace_anc(dataset, pres)
                 continue
             LOG.debug("Resampling %s", ds_id)
-            source_area = dataset.attrs["area"]
-            dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
-                                                     reduce_data, reductions, resample_kwargs)
-            self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
-            kwargs = resample_kwargs.copy()
-            kwargs["resampler"] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area, **kwargs)
+            res = self._reduce_and_resample(dataset,
+                                            destination_area, reduce_data,
+                                            resamplers, reductions, resample_kwargs)
             new_datasets[ds_id] = res
             if ds_id in new_scn._datasets:
                 new_scn._datasets[ds_id] = res
             if parent_dataset is not None:
                 replace_anc(res, pres)
+            if resample_coords:
+                self._resample_coords(dataset, res,
+                                      destination_area, reduce_data,
+                                      resamplers, reductions, resample_kwargs)
+
+    def _reduce_and_resample(self, dataset, destination_area, reduce_data,
+                             resamplers, reductions, resample_kwargs):
+        from satpy.resample.base import resample_dataset
+
+        source_area = dataset.attrs["area"]
+        dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
+                                                 reduce_data, reductions, resample_kwargs)
+        self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
+        kwargs = resample_kwargs.copy()
+        kwargs["resampler"] = resamplers[source_area]
+        return resample_dataset(dataset, destination_area, **kwargs)
+
+    def _resample_coords(self, orig_dataset, dataset,
+                         destination_area, reduce_data, resamplers, reductions,
+                         resample_kwargs):
+        """Resample matching coordinates on dataset."""
+        for cv in orig_dataset.coords:
+            if orig_dataset.coords[cv].dims == orig_dataset.dims:
+                LOG.debug(f"resampling coordinate {cv:s}")
+                res = self._reduce_and_resample(dataset,
+                                                destination_area, reduce_data,
+                                                resamplers, reductions, resample_kwargs)
+                dataset.coords[cv] = res
+
 
     def _get_finalized_destination_area(self, destination_area, new_scn):
         if isinstance(destination_area, str):
@@ -961,6 +985,7 @@ class Scene:
             unload: bool = True,
             resampler: str | None = None,
             reduce_data: bool = True,
+            resample_coords: bool = False,
             **resample_kwargs,
     ) -> Scene:
         """Resample datasets and return a new scene.
@@ -983,6 +1008,8 @@ class Scene:
                 information.
             reduce_data: Reduce data by matching the input and output
                 areas and slicing the data arrays (default: True)
+            resample_coords: If true, resample coordinates with (y, x)
+                dimensions.  If false (default), drop those coordinates.
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
                 documentation :mod:`here <satpy.resample>` for available
@@ -993,7 +1020,8 @@ class Scene:
             destination = self.finest_area(datasets)
         new_scn = self.copy(datasets=datasets)
         self._resampled_scene(new_scn, destination, resampler=resampler,
-                              reduce_data=reduce_data, **resample_kwargs)
+                              reduce_data=reduce_data,
+                              resample_coords=resample_coords, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
