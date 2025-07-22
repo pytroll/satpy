@@ -720,8 +720,9 @@ def scene_with_time_coords():
     sc = make_fake_scene(
             {"ir": np.arange(25, dtype="f4").reshape(5, 5)},
             area=ar1)
-    sc["ir"].coords["time"] = (("y", "x"), np.arange(
-            2_000_000_000, 2_000_000_025).astype("M8[s]").reshape(5, 5))
+    sc["ir"].coords["time"] = (
+            ("y", "x"),
+            np.linspace(0, 900, 25, dtype="uint16").reshape(5, 5))
     return sc
 
 
@@ -738,7 +739,7 @@ def test_resample_time_coordinate(scene_with_time_coords):
     assert "time" in ls["ir"].coords
     assert ls["ir"].coords["time"].sizes == ls["ir"].sizes
     assert ls["ir"].coords["time"].dtype == scene_with_time_coords["ir"].coords["time"].dtype
-    ls["ir"].coords["time"].compute()
+    np.testing.assert_allclose(ls["ir"].coords["time"].mean(), 449.75)
 
 
 def test_slice_scene_time_coordinate(scene_with_time_coords):

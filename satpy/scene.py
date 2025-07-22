@@ -1010,7 +1010,10 @@ class Scene:
             reduce_data: Reduce data by matching the input and output
                 areas and slicing the data arrays (default: True)
             resample_coords: If true, resample coordinates with (y, x)
-                dimensions.  If false (default), drop those coordinates.
+                dimensions.  If false (default), drop those coordinates.  Such
+                coordinates might be time coordinates if a scene was created
+                while passing ``track_time=True`` to the readers and those
+                readers support doing so.
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
                 documentation :mod:`here <satpy.resample>` for available

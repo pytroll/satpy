@@ -456,6 +456,18 @@ class HRITMSGFileHandler(HRITFileHandler):
                             reader='seviri_l1b_hrit',
                             reader_kwargs={'fill_hrv': False})
 
+    **Time tracking**
+
+    The reader supports adding per-pixel time estimates as coordinates to
+    loaded variables::
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'track_time': True})
+
+    Those coordinates are kept in resampling iff passing the argument
+    ``resample_coords=True`` to :class:`~satpy.Scene.resample`.
+
     **Metadata**
 
     See :mod:`satpy.readers.core.seviri`.
