@@ -24,26 +24,15 @@ Based on the test for geotiff writer
 import datetime as dt
 import os
 
+import dask.array as da
 import numpy as np
+import xarray as xr
 from PIL import Image
 
 
 def _get_test_datasets():
     """Create a datasets list."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
-
+    area_def = _get_stere_test_area()
     ds1 = xr.DataArray(
         da.zeros((100, 200), chunks=50),
         dims=("y", "x"),
@@ -95,19 +84,7 @@ def _get_test_datasets():
 
 def _get_test_datasets_sensor_set():
     """Create a datasets list."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
+    area_def = _get_stere_test_area()
 
     ds1 = xr.DataArray(
         da.zeros((100, 200), chunks=50),
@@ -160,21 +137,7 @@ def _get_test_datasets_sensor_set():
 
 def _get_test_dataset(bands=3):
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
-
+    area_def = _get_stere_test_area()
     ds1 = xr.DataArray(
         da.zeros((bands, 100, 200), chunks=50),
         dims=("bands", "y", "x"),
@@ -193,21 +156,7 @@ def _get_test_dataset(bands=3):
 
 def _get_test_one_dataset():
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=geos +datum=WGS84 +ellps=WGS84 +lon_0=0. h=36000. +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
-
+    area_def = _get_geo_test_area()
     ds1 = xr.DataArray(
         da.zeros((100, 200), chunks=50),
         dims=("y", "x"),
@@ -223,21 +172,7 @@ def _get_test_one_dataset():
 
 def _get_test_one_dataset_sensor_set():
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=geos +datum=WGS84 +ellps=WGS84 +lon_0=0. h=36000. +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
-
+    area_def = _get_geo_test_area()
     ds1 = xr.DataArray(
         da.zeros((100, 200), chunks=50),
         dims=("y", "x"),
@@ -253,19 +188,7 @@ def _get_test_one_dataset_sensor_set():
 
 def _get_test_dataset_with_bad_values(bands=3):
     """Create a single test dataset."""
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
+    area_def = _get_stere_test_area()
 
     data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
     data /= 5.605
@@ -288,22 +211,10 @@ def _get_test_dataset_with_bad_values(bands=3):
 
 def _get_test_dataset_calibration(bands=6):
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
     from satpy.scene import Scene
     from satpy.tests.utils import make_dsq
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
+
+    area_def = _get_stere_test_area()
 
     prereqs = [
         make_dsq(name="1", calibration="reflectance"),
@@ -391,22 +302,9 @@ def _get_test_dataset_calibration(bands=6):
 
 def _get_test_dataset_calibration_one_dataset(bands=1):
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
     from satpy.scene import Scene
     from satpy.tests.utils import make_dsq
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
+    area_def = _get_stere_test_area()
 
     prereqs = [make_dsq(name="4", calibration="brightness_temperature")]
     scene = Scene()
@@ -444,21 +342,8 @@ def _get_test_dataset_calibration_one_dataset(bands=1):
 
 def _get_test_dataset_three_bands_two_prereq(bands=3):
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
     from satpy.tests.utils import make_dsq
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
+    area_def = _get_stere_test_area()
 
     data = np.arange(bands * 100 * 200).reshape((bands, 100, 200))
     data_dask = da.from_array(data, chunks=50)
@@ -479,22 +364,9 @@ def _get_test_dataset_three_bands_two_prereq(bands=3):
 
 def _get_test_dataset_three_bands_prereq(bands=3):
     """Create a single test dataset."""
-    import dask.array as da
-    import xarray as xr
-    from pyproj import CRS
-    from pyresample.geometry import AreaDefinition
-
     from satpy.tests.utils import make_dsq
-    area_def = AreaDefinition(
-        "test",
-        "test",
-        "test",
-        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
-        100,
-        200,
-        (-1000., -1500., 1000., 1500.),
-    )
 
+    area_def = _get_stere_test_area()
     ds1 = xr.DataArray(
         da.zeros((bands, 100, 200), chunks=50),
         coords=[["R", "G", "B"], list(range(100)), list(range(200))],
@@ -508,6 +380,36 @@ def _get_test_dataset_three_bands_prereq(bands=3):
                                  make_dsq(wavelength=0.8, modifiers=("sunz_corrected",)),
                                  10.8]})
     return ds1
+
+
+def _get_stere_test_area():
+    from pyproj import CRS
+    from pyresample.geometry import AreaDefinition
+
+    return AreaDefinition(
+        "test",
+        "test",
+        "test",
+        CRS("+proj=stere +datum=WGS84 +ellps=WGS84 +lon_0=0. +lat_0=90 +lat_ts=60 +units=km"),
+        100,
+        200,
+        (-1000., -1500., 1000., 1500.),
+    )
+
+
+def _get_geo_test_area():
+    from pyproj import CRS
+    from pyresample.geometry import AreaDefinition
+
+    return AreaDefinition(
+        "test",
+        "test",
+        "test",
+        CRS("+proj=geos +datum=WGS84 +ellps=WGS84 +lon_0=0. h=36000. +units=km"),
+        100,
+        200,
+        (-1000., -1500., 1000., 1500.),
+    )
 
 
 def _read_back_mitiff_and_check(filename, expected, test_shape=(100, 200)):
