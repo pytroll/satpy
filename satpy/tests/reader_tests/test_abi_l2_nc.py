@@ -104,25 +104,45 @@ def _create_aod_dataset():
     return ds1
 
 
+def _create_sst_dataset():
+    ds1 = _create_cmip_dataset("SST")
+    ds1["SST"].attrs["units"] = "K"
+    dqf_data = np.zeros_like(ds1["SST"], dtype=np.uint8)
+    dqf_data[-1, -1] = 1
+    dqf = xr.DataArray(dqf_data,
+                       dims=ds1["SST"].dims,
+                       attrs={
+                           "_FillValue": np.uint8(255),
+                           "units": "1",
+                       })
+    ds1["DQF"] = dqf
+    return ds1
+
+
 class Test_NC_ABI_L2_get_dataset:
     """Test get dataset function of the NC_ABI_L2 reader."""
 
     @pytest.mark.parametrize(
-        ("obs_type", "ds_func", "var_name", "var_attrs"),
+        ("obs_type", "ds_func", "var_name", "var_attrs", "fh_kwargs"),
         [
-            ("ACHA", _create_cmip_dataset, "HT", {"units": "m"}),
-            ("AOD", _create_aod_dataset, "AOD", {"units": "1"}),
+            ("ACHA", _create_cmip_dataset, "HT", {"units": "m"}, {}),
+            ("AOD", _create_aod_dataset, "AOD", {"units": "1"}, {}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {"filter_sst": True}),
         ]
     )
-    def test_get_dataset(self, obs_type, ds_func, var_name, var_attrs):
+    def test_get_dataset(self, obs_type, ds_func, var_name, var_attrs, fh_kwargs):
         """Test basic L2 load."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name=var_name)
-        with _create_reader_for_fake_data(obs_type, ds_func()) as reader:
+        check_dqf = any("filter" in key for key in fh_kwargs.keys())
+        with _create_reader_for_fake_data(obs_type, ds_func(), fh_kwargs=fh_kwargs) as reader:
             res = reader.get_dataset(key, {"file_key": var_name})
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])
+        if check_dqf:
+            exp_data[-1, -1] = np.nan
 
         exp_attrs = {"instrument_ID": None,
                      "modifiers": (),
@@ -351,20 +371,28 @@ class Test_NC_ABI_L2_area_AOD:
 
 
 @contextlib.contextmanager
-def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset, filename_info: Optional[dict] = None):
-    from satpy.readers.abi_l2_nc import NC_ABI_L2
+def _create_reader_for_fake_data(
+        observation_type: str,
+        fake_dataset: xr.Dataset,
+        filename_info: Optional[dict] = None,
+        fh_kwargs: dict | None = None,
+):
+    from satpy.readers.abi_l2_nc import ABISST, NC_ABI_L2
 
     if filename_info is None:
         filename_info = {
             "platform_shortname": "G16",
             "scene_abbr": "C", "scan_mode": "M3"
         }
-    reader_args = (
+    fh_args = (
         "filename",
         filename_info,
         {"file_type": "info", "observation_type": observation_type},
     )
+    if fh_kwargs is None:
+        fh_kwargs = {}
+    fh_cls = NC_ABI_L2 if "SST" not in fake_dataset else ABISST
     with mock.patch("satpy.readers.core.abi.xr") as xr_:
         xr_.open_dataset.return_value = fake_dataset
-        reader = NC_ABI_L2(*reader_args)
-        yield reader
+        file_handler = fh_cls(*fh_args, **fh_kwargs)
+        yield file_handler

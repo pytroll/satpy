@@ -48,7 +48,7 @@ PLATFORM_NAMES = {
 class NC_ABI_BASE(BaseFileHandler):
     """Base reader for ABI L1B  L2+ NetCDF4 files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
 
