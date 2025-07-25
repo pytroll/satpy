@@ -17,6 +17,15 @@
 The files read by this reader are described in the official PUG document:
     https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf
 
+Data Quality Filtering
+^^^^^^^^^^^^^^^^^^^^^^
+
+Some variables can be filtered based on Data Quality Flags (DQF) in the
+data files. At the time of writing this is only possible for the SST
+product by specifying the file handler keyword argument
+``filter_sst=True``. When enabled SST pixels will only be valid where
+the ``DQF`` variable is 0 (high quality).
+
 """
 
 import logging
@@ -109,3 +118,20 @@ class NC_ABI_L2(NC_ABI_BASE):
                 # we don't know what to do with this
                 # see if another future file handler does
                 yield is_avail, ds_info
+
+
+class ABISST(NC_ABI_L2):
+    """Custom file handler for filtering SST by DQF."""
+
+    def __init__(self, filename, filename_info, filetype_info, filter_sst: bool = False, **kwargs):
+        """Initialize file handler and store filter_sst state."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        self._filter_sst = filter_sst
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        variable = super().get_dataset(key, info)
+        if key["name"] == "SST" and self._filter_sst:
+            dqf = self["DQF"]
+            variable = variable.where(dqf == 0)
+        return variable
