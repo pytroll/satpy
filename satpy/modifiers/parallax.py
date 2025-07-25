@@ -466,7 +466,7 @@ class ParallaxCorrectionModifier(ModifierBase):
         composites:
 
           parallax_corrected_VIS006:
-            compositor: !!python/name:satpy.composites.SingleBandCompositor
+            compositor: !!python/name:satpy.composites.core.SingleBandCompositor
             prerequisites:
               - name: VIS006
                 modifiers: [parallax_corrected]

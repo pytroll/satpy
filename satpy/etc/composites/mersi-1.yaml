@@ -29,13 +29,13 @@ modifiers:
 
 composites:
   colorized_ir:
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
       - name: '5'
     standard_name: colorized_ir_clouds
 
   true_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '3'
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -46,7 +46,7 @@ composites:
     standard_name: true_color
 
   true_color_uncorr:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '3'
         modifiers: [sunz_corrected]
@@ -57,7 +57,7 @@ composites:
     standard_name: true_color
 
   natural_color:
-    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
       - name: '6'
         modifiers: [sunz_corrected]
@@ -73,7 +73,7 @@ composites:
     standard_name: natural_color
 
   overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '3'
         modifiers: [sunz_corrected]

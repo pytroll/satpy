@@ -21,7 +21,7 @@ import logging
 
 import numpy as np
 
-from satpy.composites import GenericCompositor
+from satpy.composites.core import GenericCompositor
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)

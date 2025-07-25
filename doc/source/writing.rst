@@ -81,12 +81,12 @@ the defined temperature ranges.  Beyond those limits the image clipped to
 the specified colors.
 
     >>> import numpy as np
-    >>> from satpy.composites import BWCompositor
+    >>> from satpy.composites.core import SingleBandCompositor
     >>> from satpy.enhancements import colorize
     >>> from trollimage.xrimage import XRImage
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
     >>> np.save("/tmp/binary_colormap.npy", arr)
-    >>> compositor = BWCompositor("test", standard_name="colorized_ir_clouds")
+    >>> compositor = SingleBandCompositor("test", standard_name="colorized_ir_clouds")
     >>> composite = compositor((local_scene[10.8], ))
     >>> img = XRImage(composite)
     >>> kwargs = {"palettes": [{"filename": "/tmp/binary_colormap.npy",

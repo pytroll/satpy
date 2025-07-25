@@ -55,7 +55,7 @@ a compositor) you should include it as another parent class:
 .. code-block:: python
 
     from satpy.aux_download import DataDownloadMixin
-    from satpy.composites import GenericCompositor
+    from satpy.composites.core import GenericCompositor
 
     class MyCompositor(GenericCompositor, DataDownloadMixin):
         """Compositor that uses downloaded files."""
