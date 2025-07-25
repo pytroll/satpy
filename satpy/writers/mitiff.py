@@ -679,6 +679,9 @@ class MITIFFWriter(ImageWriter):
             data = chn.values.clip(0, 1) * 254. + 1
             data = data.clip(0, 255)
             mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode="L"))
+            # data_u8 = data.astype(np.uint8)
+            # band_img = Image.fromarray(data_u8, mode="L")
+            # mitiff_frames.append(band_img)
         mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
                               compression="raw", compress_level=9, tiffinfo=tiffinfo)
 

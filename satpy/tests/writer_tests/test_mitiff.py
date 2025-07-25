@@ -201,7 +201,10 @@ class TestMITIFFWriter(unittest.TestCase):
                    "platform_name": "TEST_PLATFORM_NAME",
                    "sensor": "TEST_SENSOR_NAME",
                    "area": area_def,
-                   "prerequisites": ["1", "2", "3"]}
+                   "prerequisites": ["1", "2", "3"]},
+            coords={
+                "bands": ["L"] if bands == 1 else ["R", "G", "B"],
+            },
         )
         return ds1
 
@@ -292,7 +295,9 @@ class TestMITIFFWriter(unittest.TestCase):
                                   "platform_name": "TEST_PLATFORM_NAME",
                                   "sensor": "TEST_SENSOR_NAME",
                                   "area": area_def,
-                                  "prerequisites": ["1", "2", "3"]})
+                                  "prerequisites": ["1", "2", "3"]},
+                           coords={"bands": ["R", "G", "B"]},
+                           )
         return ds1
 
     def _get_test_dataset_calibration(self, bands=6):
@@ -467,8 +472,10 @@ class TestMITIFFWriter(unittest.TestCase):
             (-1000., -1500., 1000., 1500.),
         )
 
+        data = np.arange(bands * 100 * 200).reshape((bands, 100, 200))
+        data_dask = da.from_array(data, chunks=50)
         ds1 = xr.DataArray(
-            da.zeros((bands, 100, 200), chunks=50),
+            data_dask,
             coords=[["R", "G", "B"], list(range(100)), list(range(200))],
             dims=("bands", "y", "x"),
             attrs={"name": "test",
