@@ -88,15 +88,11 @@ import datetime
 import logging
 
 import numpy as np
-from xarray.coding.times import decode_cf_datetime
 
+from .core.utils import get_valid_time
 from .geotiff import GeoTIFFWriter
 
 logger = logging.getLogger(__name__)
-
-
-class Unavailable(Exception):
-    """Raised when an optional dynamic tag cannot be calculated."""
 
 
 class NinJoGeoTIFFWriter(GeoTIFFWriter):
@@ -363,7 +359,7 @@ class NinJoTagGenerator:
         for tag in self.tag_names:
             try:
                 tags[tag] = self.get_tag(tag)
-            except (AttributeError, KeyError, Unavailable) as e:
+            except (AttributeError, KeyError, ValueError) as e:
                 if tag in self.mandatory_tags:
                     raise
                 logger.debug(
@@ -436,17 +432,9 @@ class NinJoTagGenerator:
         That's seconds since UNIX Epoch for a representative time for the
         image.
         """
-        if "time" in self.dataset.coords:
-            tm = self.dataset.coords["time"].mean()
-            dt = decode_cf_datetime(
-                tm, self.dataset.coords["time"].attrs["units"])
-            delta = dt.astype("M8[ms]").item().replace(tzinfo=datetime.timezone.utc) - self._epoch
-            return int(delta.total_seconds())
-        raise Unavailable(
-                "Dataset {self.dataset.attrs['name']:s} has no time coordinate. "
-                "No ValidTime tag will be written.  To include ValidTime, "
-                "pass `reader_kwargs = {'track_time': True}` to `Scene.__init__` "
-                "for a supported reader.")
+        dt = get_valid_time(self.dataset)
+        delta = dt.astype("M8[ms]").item().replace(tzinfo=datetime.timezone.utc) - self._epoch
+        return int(delta.total_seconds())
 
     def get_earth_radius_large(self):
         """Return the Earth semi-major axis in metre."""
