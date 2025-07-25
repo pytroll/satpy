@@ -88,7 +88,7 @@ file_types:
     # QA Variables
     granule_qa:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
-        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA.TIF']
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA.TIF', '{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_QA_PIXEL.TIF']
         requires: [l1_metadata]
     granule_qa_radsat:
         file_reader: !!python/name:satpy.readers.oli_tirs_l1_tif.OLITIRSCHReader
