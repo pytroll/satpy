@@ -89,6 +89,7 @@ import logging
 
 import numpy as np
 
+from .core.utils import get_valid_time
 from .geotiff import GeoTIFFWriter
 
 logger = logging.getLogger(__name__)
@@ -293,6 +294,7 @@ class NinJoTagGenerator:
         "ColorDepth": "color_depth",
         "CreationDateID": "creation_date_id",
         "DateID": "date_id",
+        "ValidDateID": "valid_date_id",
         "EarthRadiusLarge": "earth_radius_large",
         "EarthRadiusSmall": "earth_radius_small",
         "FileName": "filename",
@@ -323,7 +325,7 @@ class NinJoTagGenerator:
                      "OverFlightTime", "IsBlackLinesCorrection",
                      "IsAtmosphereCorrected", "IsCalibrated", "IsNormalized",
                      "OriginalHeader", "IsValueTableAvailable",
-                     "ValueTableFloatField"}
+                     "ValueTableFloatField", "ValidDateID"}
 
     # tags that are added later in other ways
     postponed_tags = {"AxisIntercept", "Gradient"}
@@ -357,7 +359,7 @@ class NinJoTagGenerator:
         for tag in self.tag_names:
             try:
                 tags[tag] = self.get_tag(tag)
-            except (AttributeError, KeyError) as e:
+            except (AttributeError, KeyError, ValueError) as e:
                 if tag in self.mandatory_tags:
                     raise
                 logger.debug(
@@ -418,10 +420,20 @@ class NinJoTagGenerator:
         """Calculate the date ID.
 
         That's seconds since UNIX Epoch for the time corresponding to the
-        satellite image start of measurement time.
+        satellite image reference time or start of measurement time.
         """
         tm = self.dataset.attrs["start_time"]
         delta = tm.replace(tzinfo=datetime.timezone.utc) - self._epoch
+        return int(delta.total_seconds())
+
+    def get_valid_date_id(self):
+        """Calculate the valid date ID.
+
+        That's seconds since UNIX Epoch for a representative time for the
+        image.
+        """
+        dt = get_valid_time(self.dataset)
+        delta = dt.astype("M8[ms]").item().replace(tzinfo=datetime.timezone.utc) - self._epoch
         return int(delta.total_seconds())
 
     def get_earth_radius_large(self):
