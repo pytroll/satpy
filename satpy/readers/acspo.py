@@ -22,6 +22,19 @@ See the following page for more information:
 
 https://podaac.jpl.nasa.gov/dataset/VIIRS_NPP-OSPO-L2P-v2.3
 
+Cloud clearing and data filtering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Cloud clearing can be enabled for supported variables (ex. "sst") by passing
+the file handler keyword argument ``cloud_clear=True``::
+
+   scn = Scene(reader="ascpo", filenames=[...],
+               reader_kwargs={"cloud_clear": "True"})
+
+.. versionchanged: 0.58.0
+
+   The cloud clearing is no longer enabled by default.
+
 """
 
 import datetime as dt
@@ -43,6 +56,12 @@ ROWS_PER_SCAN = {
 
 class ACSPOFileHandler(NetCDF4FileHandler):
     """ACSPO L2P SST File Reader."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 cloud_clear: bool = False, **kwargs):
+        """Initialize file handler and store cloud clear flag."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        self.cloud_clear = cloud_clear
 
     @property
     def platform_name(self):
@@ -143,7 +162,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         if scale_factor is not None:
             data = data * scale_factor + add_offset
 
-        if ds_info.get("cloud_clear", False):
+        if self.cloud_clear and ds_info.get("cloud_clear", False):
             # clear-sky if bit 15-16 are 00
             l2p_flags = self._get_unsigned_l2p_flags()
             clear_sky_mask = (l2p_flags & 0b1100000000000000) != 0
