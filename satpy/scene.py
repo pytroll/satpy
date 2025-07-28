@@ -952,30 +952,36 @@ class Scene:
 
     def _reduce_data(self, dataset, destination_area, reduce_data, reductions, resample_kwargs):
         source_area = dataset.attrs["area"]
+        if not reduce_data:
+            LOG.debug("Data reduction disabled by the user")
+            return dataset, source_area
+
         try:
-            if reduce_data:
-                key = source_area
-                try:
-                    (slice_x, slice_y), source_area = reductions[key]
-                except KeyError:
-                    if resample_kwargs.get("resampler") == "gradient_search":
-                        factor = resample_kwargs.get("shape_divisible_by", 2)
-                    else:
-                        factor = None
-                    try:
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area, shape_divisible_by=factor)
-                    except TypeError:
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area)
-                    source_area = source_area[slice_y, slice_x]
-                    reductions[key] = (slice_x, slice_y), source_area
-                dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
-            else:
-                LOG.debug("Data reduction disabled by the user")
+            slice_x, slice_y = self._get_source_dest_slices(source_area, destination_area, reductions, resample_kwargs)
+            source_area = source_area[slice_y, slice_x]
+            reductions[source_area] = (slice_x, slice_y), source_area
+            dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
         except NotImplementedError:
             LOG.info("Not reducing data before resampling.")
+
         return dataset, source_area
+
+    @classmethod
+    def _get_source_dest_slices(self, source_area, destination_area, reductions, resample_kwargs):
+        try:
+            (slice_x, slice_y), source_area = reductions[source_area]
+        except KeyError:
+            if resample_kwargs.get("resampler") == "gradient_search":
+                factor = resample_kwargs.get("shape_divisible_by", 2)
+            else:
+                factor = None
+            try:
+                slice_x, slice_y = source_area.get_area_slices(
+                    destination_area, shape_divisible_by=factor)
+            except TypeError:
+                slice_x, slice_y = source_area.get_area_slices(
+                    destination_area)
+        return slice_x, slice_y
 
     def resample(
             self,
