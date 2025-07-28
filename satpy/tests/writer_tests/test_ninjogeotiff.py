@@ -998,11 +998,10 @@ def test_write_valid_time(test_image_with_time_coords, tmp_path):
     import rasterio
 
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
-    fn = os.fspath(tmp_path / "test.tif")
-    ngtw = NinJoGeoTIFFWriter()
+    fn = os.fspath(tmp_path / "test-{valid_time:%Y%m%d%H%M%S}.tif")
+    ngtw = NinJoGeoTIFFWriter(filename=fn)
     ngtw.save_dataset(
         test_image_with_time_coords.data,
-        filename=fn,
         blockxsize=128,
         blockysize=128,
         compress="lzw",
@@ -1013,7 +1012,8 @@ def test_write_valid_time(test_image_with_time_coords, tmp_path):
         ChannelID="trollchannel",
         DataType="GORN",
         DataSource="dowsing rod")
-    src = rasterio.open(fn)
+    src = rasterio.open(fn.replace("{valid_time:%Y%m%d%H%M%S}",
+                                   "19850813150001"))
     tgs = src.tags()
     assert tgs["ninjo_DateID"] == "492786000"
     assert tgs["ninjo_ValidDateID"] == "492786001"
