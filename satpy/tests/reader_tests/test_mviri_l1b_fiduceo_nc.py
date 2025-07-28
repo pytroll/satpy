@@ -36,6 +36,7 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
     Interpolator,
+    ignore_dup_dim_warning,
     preprocess_dataset,
 )
 from satpy.tests.utils import make_dataid
@@ -289,50 +290,51 @@ def fixture_fake_dataset(time_fake_dataset):
 
     cov = da.from_array([[1, 2], [3, 4]])
 
-    ds = xr.Dataset(
-        data_vars={
-            "count_vis": (("y", "x"), count_vis),
-            "count_wv": (("y_ir_wv", "x_ir_wv"), count_wv),
-            "count_ir": (("y_ir_wv", "x_ir_wv"), count_ir),
-            "toa_bidirectional_reflectance_vis": vis_refl_exp / 100,
-            "u_independent_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
-            "u_structured_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
-            "quality_pixel_bitmask": (("y", "x"), mask),
-            "solar_zenith_angle": (("y_tie", "x_tie"), sza),
-            "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time_fake_dataset),
-            "a_ir": -5.0,
-            "b_ir": 1.0,
-            "bt_a_ir": 10.0,
-            "bt_b_ir": -1000.0,
-            "a_wv": -0.5,
-            "b_wv": 0.05,
-            "bt_a_wv": 10.0,
-            "bt_b_wv": -2000.0,
-            "years_since_launch": 20.0,
-            "a0_vis": 1.0,
-            "a1_vis": 0.01,
-            "a2_vis": -0.0001,
-            "mean_count_space_vis": 1.0,
-            "distance_sun_earth": 1.0,
-            "solar_irradiance_vis": 650.0,
-            "sub_satellite_longitude_start": 57.1,
-            "sub_satellite_longitude_end": np.nan,
-            "sub_satellite_latitude_start": np.nan,
-            "sub_satellite_latitude_end": 0.1,
-            "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), cov),
-            "channel_correlation_matrix_independent": (("channel", "channel"), cov),
-            "channel_correlation_matrix_structured": (("channel", "channel"), cov)
-        },
-        coords={
-            "y": [1, 2, 3, 4],
-            "x": [1, 2, 3, 4],
-            "y_ir_wv": [1, 2],
-            "x_ir_wv": [1, 2],
-            "y_tie": [1, 2],
-            "x_tie": [1, 2],
-        },
-        attrs={"foo": "bar"}
-    )
+    with ignore_dup_dim_warning():
+        ds = xr.Dataset(
+            data_vars={
+                "count_vis": (("y", "x"), count_vis),
+                "count_wv": (("y_ir_wv", "x_ir_wv"), count_wv),
+                "count_ir": (("y_ir_wv", "x_ir_wv"), count_ir),
+                "toa_bidirectional_reflectance_vis": vis_refl_exp / 100,
+                "u_independent_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
+                "u_structured_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
+                "quality_pixel_bitmask": (("y", "x"), mask),
+                "solar_zenith_angle": (("y_tie", "x_tie"), sza),
+                "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time_fake_dataset),
+                "a_ir": -5.0,
+                "b_ir": 1.0,
+                "bt_a_ir": 10.0,
+                "bt_b_ir": -1000.0,
+                "a_wv": -0.5,
+                "b_wv": 0.05,
+                "bt_a_wv": 10.0,
+                "bt_b_wv": -2000.0,
+                "years_since_launch": 20.0,
+                "a0_vis": 1.0,
+                "a1_vis": 0.01,
+                "a2_vis": -0.0001,
+                "mean_count_space_vis": 1.0,
+                "distance_sun_earth": 1.0,
+                "solar_irradiance_vis": 650.0,
+                "sub_satellite_longitude_start": 57.1,
+                "sub_satellite_longitude_end": np.nan,
+                "sub_satellite_latitude_start": np.nan,
+                "sub_satellite_latitude_end": 0.1,
+                "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), cov),
+                "channel_correlation_matrix_independent": (("channel", "channel"), cov),
+                "channel_correlation_matrix_structured": (("channel", "channel"), cov)
+            },
+            coords={
+                "y": [1, 2, 3, 4],
+                "x": [1, 2, 3, 4],
+                "y_ir_wv": [1, 2],
+                "x_ir_wv": [1, 2],
+                "y_tie": [1, 2],
+                "x_tie": [1, 2],
+            },
+            attrs={"foo": "bar"}
+        )
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
     ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
@@ -352,7 +354,8 @@ def fixture_projection_longitude(request):
 def fixture_fake_file(fake_dataset, tmp_path):
     """Create test file."""
     filename = tmp_path / "test_mviri_fiduceo.nc"
-    fake_dataset.to_netcdf(filename)
+    with ignore_dup_dim_warning():
+        fake_dataset.to_netcdf(filename)
     return filename
 
 
@@ -602,15 +605,17 @@ class TestDatasetPreprocessor:
         - x/y coordinates not assigned
         """
         time = 60*60
-        return xr.Dataset(
-            data_vars={
-                "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
-                "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
-                "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
-                "time_ir_wv": (("y", "x"), [[time, fill_val], [time, time]],
-                               {"_FillValue": fill_val, "add_offset": 0})
-            }
-        )
+        with ignore_dup_dim_warning():
+            ds = xr.Dataset(
+                data_vars={
+                    "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
+                    "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
+                    "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
+                    "time_ir_wv": (("y", "x"), [[time, fill_val], [time, time]],
+                                   {"_FillValue": fill_val, "add_offset": 0})
+                }
+            )
+        return ds
 
     @pytest.fixture(name="dataset_exp")
     def fixture_dataset_exp(self):
@@ -637,7 +642,8 @@ class TestDatasetPreprocessor:
 
     def test_preprocess(self, dataset, dataset_exp):
         """Test dataset preprocessing."""
-        preprocessed = preprocess_dataset(dataset)
+        with ignore_dup_dim_warning():
+            preprocessed = preprocess_dataset(dataset)
         xr.testing.assert_allclose(preprocessed, dataset_exp)
 
 
