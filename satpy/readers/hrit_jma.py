@@ -18,21 +18,8 @@
 
 """HRIT format reader for JMA data.
 
-Introduction
-------------
 The JMA HRIT format is described in the `JMA HRIT - Mission Specific
-Implementation`_. There are three readers for this format in Satpy:
-
-- ``jami_hrit``: For data from the `JAMI` instrument on MTSAT-1R
-- ``mtsat2-imager_hrit``: For data from the `Imager` instrument on MTSAT-2
-- ``ahi_hrit``: For data from the `AHI` instrument on Himawari-8/9
-
-Although the data format is identical, the instruments have different
-characteristics, which is why there is a dedicated reader for each of them.
-Sample data is available here:
-
-- `JAMI/Imager sample data`_
-- `AHI sample data`_
+Implementation`_.
 
 
 Example:
@@ -88,13 +75,13 @@ Compression
 -----------
 
 Gzip-compressed MTSAT files can be decompressed on the fly using
-:class:`~satpy.readers.FSFile`:
+:class:`~satpy.readers.core.remote.FSFile`:
 
 .. code-block:: python
 
     import fsspec
     from satpy import Scene
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     filename = "/data/HRIT_MTSAT1_20090101_0630_DK01IR1.gz"
     open_file = fsspec.open(filename, compression="gzip")
@@ -104,8 +91,6 @@ Gzip-compressed MTSAT files can be decompressed on the fly using
 
 
 .. _JMA HRIT - Mission Specific Implementation: http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
-.. _JAMI/Imager sample data: https://www.data.jma.go.jp/mscweb/en/operation/hrit_sample.html
-.. _AHI sample data: https://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
 """
 
 import datetime as dt
@@ -115,15 +100,15 @@ import numpy as np
 import xarray as xr
 
 import satpy.utils
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hrit_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,
     base_hdr_map,
     image_data_function,
 )
-from satpy.readers.utils import get_geostationary_mask
+from satpy.readers.core.utils import get_geostationary_mask
 
 logger = logging.getLogger("hrit_jma")
 
@@ -318,7 +303,7 @@ class HRITJMAFileHandler(HRITFileHandler):
             sensor (str) : Sensor name from YAML dataset definition
 
         Raises:
-            ValueError if they don't match
+            (Exception) ValueError: if they don't match
 
         """
         ref_sensor = SENSORS.get(self.platform, None)
@@ -345,8 +330,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         if self.is_segmented:
             # loff in the file specifies the offset of the full disk image
             # centre (1375/2750 for VIS/IR)
-            segment_number = self.mda["segment_sequence_number"] - 1
-            loff -= (self.mda["total_no_image_segm"] - segment_number - 1) * nlines
+            segment_number = int(self.mda["segment_sequence_number"]) - 1
+            loff -= (int(self.mda["total_no_image_segm"]) - segment_number - 1) * nlines
         elif self.area_id in (NORTH_HEMIS, SOUTH_HEMIS):
             # loff in the file specifies the start line of the half disk image
             # in the full disk image

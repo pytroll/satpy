@@ -18,6 +18,7 @@
 
 import datetime as dt
 import os
+from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
 from unittest import mock
@@ -33,7 +34,7 @@ from satpy.composites import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 FAKE_FILEHANDLER_START = dt.datetime(2020, 1, 1, 0, 0, 0)
 FAKE_FILEHANDLER_END = dt.datetime(2020, 1, 1, 1, 0, 0)
@@ -87,9 +88,9 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 
     Args:
         file_content (dict): Dictionary of string file keys to fake file data.
-        attrs (iterable): Series of attributes to copy to DataArray object from
+        attrs (Iterable): Series of attributes to copy to DataArray object from
             file content dictionary. Defaults to no attributes.
-        dims (iterable): Dimension names to use for resulting DataArrays.
+        dims (Iterable): Dimension names to use for resulting DataArrays.
             The second to last dimension is used for 1D arrays, so for
             dims of ``('z', 'y', 'x')`` this would use ``'y'``. Otherwise, the
             dimensions are used starting with the last, so 2D arrays are
@@ -302,8 +303,12 @@ def assert_maximum_dask_computes(max_computes=1):
         yield new_config
 
 
-def make_fake_scene(content_dict, daskify=False, area=True,
-                    common_attrs=None):
+def make_fake_scene(
+        content_dict: Mapping,
+        daskify: bool = False,
+        area: bool | BaseDefinition = True,
+        common_attrs: dict | None = None,
+) -> Scene:
     """Create a fake Scene.
 
     Create a fake Scene object from fake data.  Data are provided in
@@ -324,14 +329,14 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     objects then this flag has no effect.
 
     Args:
-        content_dict (Mapping): Mapping where keys correspond to objects
+        content_dict: Mapping where keys correspond to objects
             accepted by ``Scene.__setitem__``, i.e. strings or DataID,
             and values may be either ``numpy.ndarray`` or
             ``xarray.DataArray``.
-        daskify (bool): optional, to use dask when converting
+        daskify: optional, to use dask when converting
             ``numpy.ndarray`` to ``xarray.DataArray``.  No effect when the
             values in ``content_dict`` are already ``xarray.DataArray``.
-        area (bool or BaseDefinition): Can be ``True``, ``False``, or an
+        area: Can be ``True``, ``False``, or an
             instance of ``pyresample.geometry.BaseDefinition`` such as
             ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
             the default, automatically generate areas with the name "test-area".
@@ -339,7 +344,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
             of ``pyresample.geometry.BaseDefinition``, those instances will be
             used for all generated fake datasets.  Warning: Passing an area as
             a string (``area="germ"``) is not supported.
-        common_attrs (Mapping): optional, additional attributes that will
+        common_attrs: optional, additional attributes that will
             be added to every dataset in the scene.
 
     Returns:
@@ -373,7 +378,7 @@ def _get_fake_scene_area(arr, area):
 
 def _get_did_for_fake_scene(area, arr, extra_attrs, daskify):
     """Add instance to fake scene.  Helper for make_fake_scene."""
-    from satpy.resample import add_crs_xy_coords
+    from satpy.coords import add_crs_xy_coords
     if isinstance(arr, DataArray):
         new = arr.copy()  # don't change attributes of input
         new.attrs.update(extra_attrs)

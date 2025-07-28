@@ -66,8 +66,8 @@ class TestCFWriter:
 
     def test_init(self):
         """Test initializing the CFWriter class."""
-        from satpy.writers import configs_for_writer
         from satpy.writers.cf_writer import CFWriter
+        from satpy.writers.core.config import configs_for_writer
 
         CFWriter(config_files=list(configs_for_writer("cf"))[0])
 
@@ -460,7 +460,7 @@ class TestCFWriter:
 class TestNetcdfEncodingKwargs:
     """Test netCDF compression encodings."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene(self):
         """Create a fake scene."""
         scn = Scene()
@@ -476,7 +476,7 @@ class TestNetcdfEncodingKwargs:
         """Get compression options."""
         return request.param
 
-    @pytest.fixture()
+    @pytest.fixture
     def encoding(self, compression_on):
         """Get encoding."""
         enc = {
@@ -492,19 +492,19 @@ class TestNetcdfEncodingKwargs:
             enc["test-array"].update(comp_params)
         return enc
 
-    @pytest.fixture()
+    @pytest.fixture
     def filename(self, tmp_path):
         """Get output filename."""
         return str(tmp_path / "test.nc")
 
-    @pytest.fixture()
+    @pytest.fixture
     def complevel_exp(self, compression_on):
         """Get expected compression level."""
         if compression_on:
             return 7
         return 0
 
-    @pytest.fixture()
+    @pytest.fixture
     def expected(self, complevel_exp):
         """Get expectated file contents."""
         return {
@@ -528,12 +528,19 @@ class TestNetcdfEncodingKwargs:
             assert f["test-array"].dtype == expected["dtype"]
             assert f["test-array"].encoding["complevel"] == expected["complevel"]
 
-    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch):
+    @pytest.mark.parametrize(
+        "versions",
+        [
+            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development"},
+            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version"}
+        ]
+    )
+    def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch, versions):
         """Test warning if backends don't match."""
         import netCDF4
         with monkeypatch.context() as m:
-            m.setattr(netCDF4, "__version__", "1.5.0")
-            m.setattr(netCDF4, "__netcdf4libversion__", "4.9.1")
+            m.setattr(netCDF4, "__version__", versions["netCDF4"])
+            m.setattr(netCDF4, "__netcdf4libversion__", versions["libnetcdf"])
             with pytest.warns(UserWarning, match=r"Backend version mismatch"):
                 scene.save_datasets(filename=filename, writer="cf")
 
@@ -552,7 +559,7 @@ class TestNetcdfEncodingKwargs:
 class TestEncodingAttribute(TestNetcdfEncodingKwargs):
     """Test CF writer with 'encoding' dataset attribute."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def scene_with_encoding(self, scene, encoding):
         """Create scene with a dataset providing the 'encoding' attribute."""
         scene["test-array"].encoding = encoding["test-array"]

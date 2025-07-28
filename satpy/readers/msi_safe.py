@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE MSI L1C reader.
+"""SAFE MSI L1C/L2A reader.
 
 The MSI data has a special value for saturated pixels. By default, these
 pixels are set to np.inf, but for some applications it might be desirable
@@ -32,6 +32,10 @@ L1C/L2A format description for the files read here:
 
   https://sentinels.copernicus.eu/documents/247904/685211/S2-PDGS-TAS-DI-PSD-V14.9.pdf/3d3b6c9c-4334-dcc4-3aa7-f7c0deffbaf7?t=1643013091529
 
+NOTE: At present, L1B data is not supported. If the user needs radiance data instead of counts or reflectances, these
+are retrieved by first calculating the reflectance and then working back to the radiance. L1B radiance data support
+will be added once the data is published onto the Copernicus data ecosystem.
+
 """
 
 import logging
@@ -44,7 +48,7 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -59,13 +63,16 @@ PLATFORMS = {"S2A": "Sentinel-2A",
 class SAFEMSIL1C(BaseFileHandler):
     """File handler for SAFE MSI files (jp2)."""
 
-    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=True):
+    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda,
+                 mask_saturated=True):
         """Initialize the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
         del mask_saturated
         self._channel = filename_info["band_name"]
         self.process_level = filename_info["process_level"]
+        if self.process_level not in ["L1C", "L2A"]:
+            raise ValueError(f"Unsupported process level: {self.process_level}")
         self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
@@ -83,7 +90,6 @@ class SAFEMSIL1C(BaseFileHandler):
         if proj is None:
             return
         proj.attrs = info.copy()
-        proj.attrs["units"] = "%"
         proj.attrs["platform_name"] = self.platform_name
         return proj
 
@@ -93,7 +99,21 @@ class SAFEMSIL1C(BaseFileHandler):
         if key["calibration"] == "reflectance":
             return self._mda.calibrate_to_reflectances(proj, self._channel)
         if key["calibration"] == "radiance":
-            return self._mda.calibrate_to_radiances(proj, self._channel)
+            # The calibration procedure differs for L1B and L1C/L2A data!
+            if self.process_level in ["L1C", "L2A"]:
+                # For higher level data, radiances must be computed from the reflectance.
+                # By default, we use the mean solar angles so that the user does not need to resample,
+                # but the user can also choose to use the solar angles from the tile metadata.
+                # This is on a coarse grid so for most bands must be resampled before use.
+                dq = dict(name="solar_zenith_angle", resolution=key["resolution"])
+                zen = self._tile_mda.get_dataset(dq, dict(xml_tag="Sun_Angles_Grid/Zenith"))
+                tmp_refl = self._mda.calibrate_to_reflectances(proj, self._channel)
+                return self._mda.calibrate_to_radiances(tmp_refl, zen, self._channel)
+            else:
+                # For L1B the radiances can be directly computed from the digital counts.
+                return self._mda.calibrate_to_radiances_l1b(proj, self._channel)
+
+
         if key["calibration"] == "counts":
             return self._mda._sanitize_data(proj)
         if key["calibration"] in ["aerosol_thickness", "water_vapor"]:
@@ -149,7 +169,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
 
     def calibrate_to_reflectances(self, data, band_name):
         """Calibrate *data* using the radiometric information for the metadata."""
-        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text) if self.process_level == "L1C" else \
+        quantification = int(self.root.find(".//QUANTIFICATION_VALUE").text) if self.process_level[:2] == "L1" else \
             int(self.root.find(".//BOA_QUANTIFICATION_VALUE").text)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / quantification * 100
@@ -157,7 +177,7 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     def calibrate_to_atmospheric(self, data, band_name):
         """Calibrate L2A AOT/WVP product."""
         atmospheric_bands = ["AOT", "WVP"]
-        if self.process_level == "L1C":
+        if self.process_level == "L1C" or self.process_level == "L1B":
             return
         elif self.process_level == "L2A" and band_name not in atmospheric_bands:
             return
@@ -194,13 +214,37 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def band_offsets(self):
         """Get the band offsets from the metadata."""
-        offsets = self.root.find(".//Radiometric_Offset_List") if self.process_level == "L1C" else \
+        offsets = self.root.find(".//Radiometric_Offset_List") if self.process_level[:2] == "L1" else \
             self.root.find(".//BOA_ADD_OFFSET_VALUES_LIST")
         if offsets is not None:
             band_offsets = {int(off.attrib["band_id"]): float(off.text) for off in offsets}
         else:
             band_offsets = {}
         return band_offsets
+
+    def solar_irradiance(self, band_name):
+        """Get the solar irradiance for a given *band_name*."""
+        band_index = self._band_index(band_name)
+        return self.solar_irradiances[band_index]
+
+    @cached_property
+    def solar_irradiances(self):
+        """Get the TOA solar irradiance values from the metadata."""
+        irrads = self.root.find(".//Solar_Irradiance_List")
+
+        if irrads is not None:
+            solar_irrad = {int(irr.attrib["bandId"]): float(irr.text) for irr in irrads}
+        if len(solar_irrad) > 0:
+            return solar_irrad
+        raise ValueError("No solar irradiance values were found in the metadata.")
+
+    @cached_property
+    def solar_correction_factor(self):
+        """Get the solar correction factor from the metadata."""
+        sed = self.root.find(".//U")
+        if sed.text is not None:
+            return float(sed.text)
+        raise ValueError("Solar correction factor, U, in metadata is missing.")
 
     @cached_property
     def special_values(self):
@@ -219,11 +263,24 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         """Get the saturated value from the metadata."""
         return self.special_values["SATURATED"]
 
-    def calibrate_to_radiances(self, data, band_name):
+    def calibrate_to_radiances_l1b(self, data, band_name):
         """Calibrate *data* to radiance using the radiometric information for the metadata."""
         physical_gain = self.physical_gain(band_name)
         data = self._sanitize_data(data)
         return (data + self.band_offset(band_name)) / physical_gain
+
+    def calibrate_to_radiances(self, data, solar_zenith, band_name):
+        """Calibrate *data* to radiance using the radiometric information for the metadata.
+
+        This follows the principle set out in the user guide:
+        https://sentiwiki.copernicus.eu/web/s2-products#S2Products-Level-1CProductsS2-Products-L1Ctrue
+        """
+        ucor = self.solar_correction_factor
+        solar_irrad_band = self.solar_irradiance(band_name)
+
+        solar_zenith = np.deg2rad(solar_zenith)
+
+        return (data / 100.) * solar_irrad_band * np.cos(solar_zenith) * ucor / np.pi
 
     def physical_gain(self, band_name):
         """Get the physical gain for a given *band_name*."""

@@ -32,7 +32,7 @@ import pytest
 import xarray as xr
 from pytest_lazy_fixtures import lf
 
-from satpy.readers.eum_base import recarray2dict, time_cds_short
+from satpy.readers.core.eum import recarray2dict, time_cds_short
 from satpy.readers.seviri_l1b_native import (
     ASCII_STARTSWITH,
     ImageBoundaries,
@@ -892,7 +892,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
 class TestNativeMSGDataset:
     """Tests for getting the dataset."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def file_handler(self):
         """Create a file handler for testing."""
         trailer = {
@@ -1133,11 +1133,11 @@ class TestNativeMSGPadder(unittest.TestCase):
 class TestNativeMSGFilenames:
     """Test identification of Native format filenames."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def reader(self):
         """Return reader for SEVIRI Native format."""
         from satpy._config import config_search_paths
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
 
         reader_configs = config_search_paths(
             os.path.join("readers", "seviri_l1b_native.yaml"))
@@ -1272,12 +1272,6 @@ def test_read_header():
 
 
 @pytest.fixture(scope="session")
-def session_tmp_path(tmp_path_factory):
-    """Generate a single temp path to use for the entire session."""
-    return tmp_path_factory.mktemp("data")
-
-
-@pytest.fixture(scope="session")
 def tmp_seviri_nat_filename(session_tmp_path):
     """Create a fully-qualified filename for a seviri native format file."""
     full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
@@ -1286,8 +1280,8 @@ def tmp_seviri_nat_filename(session_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
-    """Compress the given seviri native file into a zip file."""
+def compressed_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
+    """Return the fsspec path to the given seviri native file inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_native.zip"
     with zipfile.ZipFile(zip_full_path, mode="w") as archive:
         archive.write(tmp_seviri_nat_filename, os.path.basename(tmp_seviri_nat_filename))
@@ -1296,7 +1290,7 @@ def compress_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
 
 @pytest.mark.parametrize(("full_path"), [
     lf("tmp_seviri_nat_filename"),
-    lf("compress_seviri_native_file")
+    lf("compressed_seviri_native_file")
 ])
 def test_read_physical_seviri_nat_file(full_path):
     """Test that the physical seviri native file can be read successfully, in case of both a plain and a zip file.
@@ -1312,8 +1306,10 @@ def test_read_physical_seviri_nat_file(full_path):
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning)
+        warnings.filterwarnings("ignore", category=UserWarning, message="No orbit polynomial valid")
         scene.load(["VIS006"])
+        assert scene["VIS006"].dtype == np.float32
+        assert scene["VIS006"].values.dtype == np.float32
         assert scene["VIS006"].shape == (3712, 3712)
         assert isinstance(scene["VIS006"], xr.core.dataarray.DataArray)
 

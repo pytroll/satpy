@@ -158,10 +158,10 @@ import warnings
 
 import numpy as np
 import xarray as xr
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 from satpy.cf.coords import EPOCH  # noqa: F401 (for backward compatibility)
-from satpy.writers import Writer
+from satpy.writers.core.base import Writer
 
 logger = logging.getLogger(__name__)
 
@@ -245,19 +245,19 @@ class CFWriter(Writer):
                 The group name `None` corresponds to the root of the file, i.e., no group will be created.
                 Warning: The results will not be fully CF compliant!
             header_attrs: Global attributes to be included.
-            engine (str, optional): Module to be used for writing netCDF files. Follows xarray's
+            engine (str, Optional): Module to be used for writing netCDF files. Follows xarray's
                 :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
-            epoch (str, optional): Reference time for encoding of time coordinates.
+            epoch (str, Optional): Reference time for encoding of time coordinates.
                 If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
-            flatten_attrs (bool, optional): If True, flatten dict-type attributes.
-            exclude_attrs (list, optional): List of dataset attributes to be excluded.
-            include_lonlats (bool, optional): Always include latitude and longitude coordinates,
+            flatten_attrs (bool, Optional): If True, flatten dict-type attributes.
+            exclude_attrs (list, Optional): List of dataset attributes to be excluded.
+            include_lonlats (bool, Optional): Always include latitude and longitude coordinates,
                 even for datasets with area definition.
-            pretty (bool, optional): Don't modify coordinate names, if possible.
+            pretty (bool, Optional): Don't modify coordinate names, if possible.
                 Makes the file prettier, but possibly less consistent.
-            include_orig_name (bool, optional): Include the original dataset name as a variable
+            include_orig_name (bool, Optional): Include the original dataset name as a variable
                 attribute in the final netCDF.
-            numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+            numeric_name_prefix (str, Optional): Prefix to add to each variable with a name starting with a digit.
                 Use '' or None to leave this out.
         """
         from satpy.cf.datasets import collect_cf_datasets
@@ -321,7 +321,7 @@ class CFWriter(Writer):
         """Convert the dataarray to something cf-compatible.
 
         Args:
-            dataarray (xr.DataArray):
+            dataarray (xarray.DataArray):
                 The data array to be converted.
             epoch (str):
                 Reference time for encoding of time coordinates.
@@ -390,8 +390,26 @@ def _backend_versions_match():
 
 def _get_backend_versions():
     import netCDF4
+    libnetcdf_version = _parse_libnetcdf_version(
+        netCDF4.__netcdf4libversion__
+    )
     return {
         "netCDF4": Version(netCDF4.__version__),
-        "libnetcdf": Version(netCDF4.__netcdf4libversion__),
+        "libnetcdf": libnetcdf_version,
         "xarray": Version(xr.__version__)
     }
+
+
+def _parse_libnetcdf_version(version_str):
+    # Make libnetcdf development version compatible with PEP440
+    version_str = version_str.replace("development", "dev")
+    try:
+        return Version(version_str)
+    except InvalidVersion:
+        warnings.warn(
+            f"Unable to parse netcdf-c version {version_str}, "
+            f"using 0.0.0 as fallback",
+            UserWarning,
+            stacklevel=3
+        )
+        return Version("0.0.0")

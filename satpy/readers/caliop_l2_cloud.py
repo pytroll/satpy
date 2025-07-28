@@ -27,7 +27,7 @@ import re
 from pyhdf.SD import SD, SDC
 
 from satpy.dataset import Dataset
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

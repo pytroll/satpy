@@ -35,7 +35,7 @@ from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import DataQuery
 from satpy.readers.abi_l1b import NC_ABI_L1B
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.core.yaml_reader import FileYAMLReader
 from satpy.utils import ignore_pyproj_proj_warnings
 
 RAD_SHAPE = {
@@ -137,7 +137,7 @@ def generate_l1b_filename(chan_name: str) -> str:
     return f"OR_ABI-L1b-RadC-M4{chan_name}_G16_s20161811540362_e20161811545170_c20161811545230_suffix.nc"
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_refl(tmp_path) -> xr.DataArray:
     """Load c01 reflectances."""
     with _apply_dask_chunk_size():
@@ -145,7 +145,7 @@ def c01_refl(tmp_path) -> xr.DataArray:
         return reader.load(["C01"])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_rad(tmp_path) -> xr.DataArray:
     """Load c01 radiances."""
     with _apply_dask_chunk_size():
@@ -153,7 +153,7 @@ def c01_rad(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
     """Load c01 radiances through h5netcdf."""
     shape = RAD_SHAPE[1000]
@@ -176,7 +176,7 @@ def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="radiance")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c01_counts(tmp_path) -> xr.DataArray:
     """Load c01 counts."""
     with _apply_dask_chunk_size():
@@ -184,7 +184,7 @@ def c01_counts(tmp_path) -> xr.DataArray:
         return reader.load([DataQuery(name="C01", calibration="counts")])["C01"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def c07_bt_creator(tmp_path) -> Callable:
     """Create a loader for c07 brightness temperatures."""
     def _load_data_array(
@@ -241,7 +241,7 @@ def _create_reader_for_data(
             "Rad": {"chunksizes": [226, 226]},
         },
     )
-    from satpy.readers import load_readers
+    from satpy.readers.core.loading import load_readers
     return load_readers([str(data_path)], "abi_l1b", reader_kwargs=reader_kwargs)["abi_l1b"]
 
 
@@ -319,7 +319,8 @@ def _check_dims_and_coords(data_arr: xr.DataArray) -> None:
 )
 def test_file_patterns_match(channel, suffix):
     """Test that the configured file patterns work."""
-    from satpy.readers import configs_for_reader, load_reader
+    from satpy.readers.core.config import configs_for_reader
+    from satpy.readers.core.loading import load_reader
 
     reader_configs = list(configs_for_reader("abi_l1b"))[0]
     reader = load_reader(reader_configs)
@@ -468,7 +469,7 @@ def test_raw_calibrate(c01_counts):
     assert res.attrs["long_name"] == "Raw Counts"
 
 
-@mock.patch("satpy.readers.abi_base.xr")
+@mock.patch("satpy.readers.core.abi.xr")
 def test_open_dataset(_):  # noqa: PT019
     """Test opening a dataset."""
     openable_thing = mock.MagicMock()

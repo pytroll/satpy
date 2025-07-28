@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   # could this be a python hook ?
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [amsr2]
   default_channels: []
 

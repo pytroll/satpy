@@ -43,9 +43,10 @@ dependencies:
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - pytest<8.0.0
+  - pytest
   - pytest-cov
   - fsspec
+  - universal_pathlib
   - botocore>=1.33
   - s3fs
   - python-geotiepoints
@@ -53,7 +54,6 @@ dependencies:
   - pip
   - skyfield
   - astropy
-  - xarray-datatree
   - pint-xarray
   - ephem
   - bokeh
@@ -64,3 +64,4 @@ dependencies:
     - trollimage>=1.24
     - pyspectral
     - pyorbital
+    - pyPublicDecompWT

@@ -28,7 +28,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -273,6 +273,30 @@ class NCSLSTRAngles(BaseFileHandler):
         self.carti = self._loadcart(carti_file)
         self.cartx = self._loadcart(cartx_file)
 
+    @staticmethod
+    def _interp_data(indata, full_grid, tie_grid, ds_name):
+        """Interpolate data from tie point grid to full image grid."""
+        from scipy.interpolate import RectBivariateSpline
+
+        # Check if we are interpolating angles
+        if "angle" in ds_name:
+            # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
+            # interpolation artifacts such as values <0 or >360.
+            indat = indata[:, ::-1]
+            sin_angles = np.sin(np.radians(indat))
+            cos_angles = np.cos(np.radians(indat))
+            sin_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], sin_angles)
+            cos_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], cos_angles)
+            values_sin = sin_interp.ev(full_grid[1], full_grid[0])
+            values_cos = cos_interp.ev(full_grid[1], full_grid[0])
+            values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
+        else:
+            # Otherwise, interpolate as normal.
+            spl = RectBivariateSpline(tie_grid[1], tie_grid[0], indata[:, ::-1])
+            values = spl.ev(full_grid[1], full_grid[0])
+        return values
+
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if not key["view"].name.startswith(self.view[0]):
@@ -305,11 +329,11 @@ class NCSLSTRAngles(BaseFileHandler):
             variable = variable.fillna(0)
             variable.attrs["resolution"] = key.get("resolution", 1000)
 
-            from scipy.interpolate import RectBivariateSpline
-            spl = RectBivariateSpline(
-                tie_y, tie_x, variable.data[:, ::-1])
-
-            values = spl.ev(full_y, full_x)
+            # Interpolate the data to the full image grid
+            values = self._interp_data(variable.data,
+                                       [full_x, full_y],
+                                       [tie_x, tie_y],
+                                       key["name"])
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                                     dims=["y", "x"], attrs=variable.attrs)

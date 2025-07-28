@@ -45,7 +45,7 @@ Reader Table
     Alpha
         This denotes early development status. Reader is functional and implements some
         or all of the nominal features. There might be bugs. Exactness of results is
-        not be guaranteed. Use at your own risk.
+        not guaranteed. Use at your own risk.
 
     Beta
         This denotes final developement status. Reader is functional and implements all
@@ -59,87 +59,7 @@ Reader Table
 Documentation for specific readers
 ----------------------------------
 
-SEVIRI L1.5 data readers
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.seviri_base
-    :noindex:
-
-SEVIRI HRIT format reader
-"""""""""""""""""""""""""
-
-.. automodule:: satpy.readers.seviri_l1b_hrit
-    :noindex:
-
-SEVIRI Native format reader
-"""""""""""""""""""""""""""
-
-.. automodule:: satpy.readers.seviri_l1b_native
-    :noindex:
-
-SEVIRI netCDF format reader
-"""""""""""""""""""""""""""
-
-.. automodule:: satpy.readers.seviri_l1b_nc
-    :noindex:
-
-
-Other xRIT-based readers
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.hrit_base
-    :noindex:
-
-
-JMA HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^
-
-
-.. automodule:: satpy.readers.hrit_jma
-    :noindex:
-
-GOES HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.goes_imager_hrit
-    :noindex:
-
-Electro-L HRIT format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.electrol_hrit
-    :noindex:
-
-hdf-eos based readers
-^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.modis_l1b
-    :noindex:
-
-.. automodule:: satpy.readers.modis_l2
-    :noindex:
-
-satpy cf nc readers
-^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.satpy_cf_nc
-    :noindex:
-
-hdf5 based readers
-^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.agri_l1
-    :noindex:
-
-.. automodule:: satpy.readers.ghi_l1
-    :noindex:
-
-Arctica-M N1 HDF5 format reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: satpy.readers.msu_gsa_l1b
-    :noindex:
-
+For reader-specific documentation see :ref:`specific-readers-and-formats`
 
 Filter loaded files
 ===================
@@ -168,7 +88,7 @@ to them. By default Satpy will provide the version of the dataset with the
 highest resolution and the highest level of calibration (brightness
 temperature or reflectance over radiance). It is also possible to request one
 of these exact versions of a dataset by using the
-:class:`~satpy.dataset.DataQuery` class::
+:class:`~satpy.dataset.dataid.DataQuery` class::
 
     >>> from satpy import DataQuery
     >>> my_channel_id = DataQuery(name='IR_016', calibration='radiance')
@@ -216,6 +136,9 @@ load the datasets using e.g.::
     :meth:`scn.missing_datasets <satpy.scene.Scene.missing_datasets>`
     property for any ``DataID`` that could not be loaded.
 
+Available datasets
+------------------
+
 To find out what datasets are available from a reader from the files that were
 provided to the ``Scene`` use
 :meth:`~satpy.scene.Scene.available_dataset_ids`::
@@ -237,7 +160,7 @@ For example:
 .. code-block:: python
 
     >>> from satpy import Scene
-    >>> from satpy.readers import FSFile
+    >>> from satpy.readers.core.remote import FSFile
     >>> import fsspec
 
     >>> filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
@@ -260,7 +183,7 @@ Search for local/remote files
 =============================
 
 Satpy provides a utility
-:func:`~satpy.readers.find_files_and_readers` for searching for files in
+:func:`~satpy.readers.core.grouping.find_files_and_readers` for searching for files in
 a base directory matching various search parameters. This function discovers
 files based on filename patterns. It returns a dictionary mapping reader name
 to a list of filenames supported. This dictionary can be passed directly to
@@ -276,7 +199,7 @@ the :class:`~satpy.scene.Scene` initialization.
     ...                                   end_time=datetime(2017, 5, 1, 18, 30, 0))
     >>> scn = Scene(filenames=my_files)
 
-See the :func:`~satpy.readers.find_files_and_readers` documentation for
+See the :func:`~satpy.readers.core.grouping.find_files_and_readers` documentation for
 more information on the possible parameters as well as for searching on
 remote file systems.
 
@@ -297,6 +220,9 @@ time etc. The following attributes are standardized across all readers:
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
+* ``sensor``: The name of the sensor that recorded the data. For full support through Satpy this
+  should be all lowercase. If the dataset is the result of observations from multiple sensors a
+  ``set`` object can be used to specify more than one sensor name.
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
   See the :ref:`orbital_parameters` section below for more information.
@@ -305,6 +231,13 @@ time etc. The following attributes are standardized across all readers:
   should happen and when they actually do. See :ref:`time_metadata` below for
   details.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
+* ``rows_per_scan``: Optional integer indicating how many rows of data
+  represent a single scan of the instrument. This is primarily used by
+  some resampling algorithms (ex. EWA) to produce better results and only
+  makes sense for swath-based (usually polar-orbiting) instruments. For
+  example, MODIS 1km data has 10 rows of data per scan. If an instrument
+  does not have multiple rows per scan this should usually be set to 0 rather
+  than 1 to indicate that the entire swath should be treated as a whole.
 
 Note that the above attributes are not necessarily available for each dataset.
 
@@ -378,6 +311,10 @@ For *polar orbiting* satellites the readers usually provide coordinates and view
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
 
   * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+  * ``start_direction``: The direction of satellite movement (ascending or descending) at the start of the granule.
+  * ``end_direction``: The direction of satellite movement (ascending or descending) at the end of the granule.
+  * ``start_orbit``: The orbit number at the start of the granule.
+  * ``end_orbit``: The orbit number at the end of the granule. Typically, this is the same as `start_orbit`.
 
 .. _data_array_coordinates:
 

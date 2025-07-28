@@ -108,10 +108,10 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode, recarray2dict, time_cds_short
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     HRV_NUM_LINES,
@@ -119,8 +119,13 @@ from satpy.readers.seviri_base import (
     SATNUM,
     VISIR_NUM_COLUMNS,
     VISIR_NUM_LINES,
+    CalibParams,
+    GsicsCoefficients,
+    MeirinkCoefficients,
+    NominalCoefficients,
     NoValidOrbitParams,
     OrbitPolynomialFinder,
+    ScanParams,
     SEVIRICalibrationHandler,
     add_scanline_acq_time,
     calculate_area_extent,
@@ -132,13 +137,13 @@ from satpy.readers.seviri_base import (
     pad_data_vertically,
     round_nom_time,
 )
+from satpy.readers.core.utils import fromfile, generic_open, reduce_mda
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
     GSDTRecords,
     get_native_header,
     native_trailer,
 )
-from satpy.readers.utils import fromfile, generic_open, reduce_mda
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("native_msg")
@@ -151,7 +156,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     **Padding channel data to full disk**
 
@@ -166,7 +171,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 
@@ -618,43 +623,56 @@ class NativeMSGFileHandler(BaseFileHandler):
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
         tic = dt.datetime.now()
-        channel_name = dataset_id["name"]
-        calib = SEVIRICalibrationHandler(
-            platform_id=self.platform_id,
-            channel_name=channel_name,
-            coefs=self._get_calib_coefs(channel_name),
-            calib_mode=self.calib_mode,
-            scan_time=self.observation_start_time
-        )
+        calib = self._get_calibration_handler(dataset_id)
         res = calib.calibrate(data, dataset_id["calibration"])
         logger.debug("Calibration time " + str(dt.datetime.now() - tic))
         return res
 
+    def _get_calibration_handler(self, dataset_id):
+        channel_name = dataset_id["name"]
+        calib_params = CalibParams(
+            mode=self.calib_mode.upper(),
+            internal_coefs=self._get_calib_coefs(channel_name),
+            external_coefs=self.ext_calib_coefs,
+            radiance_type=self._get_radiance_type(channel_name)
+        )
+        scan_params = ScanParams(self.platform_id, channel_name,
+                                 self.observation_start_time)
+        return SEVIRICalibrationHandler(calib_params, scan_params)
+
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""
-        # even though all the channels may not be present in the file,
-        # the header does have calibration coefficients for all the channels
-        # hence, this channel index needs to refer to full channel list
-        band_idx = list(CHANNEL_NAMES.values()).index(channel_name)
-
+        band_idx = self._get_band_index(channel_name)
         coefs_nominal = self.header["15_DATA_HEADER"][
             "RadiometricProcessing"]["Level15ImageCalibration"]
         coefs_gsics = self.header["15_DATA_HEADER"][
             "RadiometricProcessing"]["MPEFCalFeedback"]
+        nominal_coefs = NominalCoefficients(
+            channel_name, coefs_nominal["CalSlope"][band_idx], coefs_nominal["CalOffset"][band_idx]
+        )
+        gsics_coefs = GsicsCoefficients(
+            channel_name, coefs_gsics["GSICSCalCoeff"][band_idx], coefs_gsics["GSICSOffsetCount"][band_idx]
+        )
+        meirink_coefs = MeirinkCoefficients(
+            self.platform_id, channel_name, self.observation_start_time
+        )
+        return create_coef_dict(
+            nominal_coefs,
+            gsics_coefs,
+            meirink_coefs
+        )
+
+    def _get_band_index(self, channel_name):
+        # even though all the channels may not be present in the file,
+        # the header does have calibration coefficients for all the channels
+        # hence, this channel index needs to refer to full channel list
+        return list(CHANNEL_NAMES.values()).index(channel_name)
+
+    def _get_radiance_type(self, channel_name):
+        band_idx = self._get_band_index(channel_name)
         radiance_types = self.header["15_DATA_HEADER"]["ImageDescription"][
             "Level15ImageProduction"]["PlannedChanProcessing"]
-        return create_coef_dict(
-            coefs_nominal=(
-                coefs_nominal["CalSlope"][band_idx],
-                coefs_nominal["CalOffset"][band_idx]
-            ),
-            coefs_gsics=(
-                coefs_gsics["GSICSCalCoeff"][band_idx],
-                coefs_gsics["GSICSOffsetCount"][band_idx]
-            ),
-            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
-            radiance_type=radiance_types[band_idx]
-        )
+        return radiance_types[band_idx]
 
     def _add_scanline_acq_time(self, dataset, dataset_id):
         """Add scanline acquisition time to the given dataset."""

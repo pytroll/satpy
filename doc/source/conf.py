@@ -24,15 +24,9 @@ import sys
 sys.path.append(os.path.abspath("../../"))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from pyresample.area_config import (  # noqa: E402
-    _create_area_def_from_dict,
-    _read_yaml_area_file_content,
-    generate_area_def_rst_list,
-)
-from reader_table import generate_reader_table, rst_table_header, rst_table_row  # noqa: E402
+from reader_table import generate_reader_table  # noqa: E402
 
 import satpy  # noqa: E402
-from satpy.resample import get_area_file  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -80,54 +74,66 @@ autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mip
                         "pygac", "pygrib", "pyhdf", "pyninjotiff",
                         "pyorbital", "pyspectral", "rasterio", "trollimage",
                         "zarr"]
+autodoc_type_aliases = {
+    "ArrayLike": "numpy.typing.ArrayLike",
+    "DTypeLike": "numpy.typing.DTypeLike",
+}
+autodoc_default_options = {
+    "special-members": "__init__, __reduce_ex__",
+}
+nitpick_ignore_regex = [
+    ("py:class", r"yaml\.loader\..*Loader"),
+    ("py:class", r"numpy\.float32"),
+    ("py:class", r"numpy\.uint8"),
+    ("py:class", r"numpy\.uint16"),
+    ("py:class", r"numpy\.uint32"),
+]
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
 
 # auto generate reader table from reader config files
 with open("reader_table.rst", mode="w") as f:
     f.write(generate_reader_table())
 
-# create table from area definition yaml file
-area_file = get_area_file()[0]
-
-area_dict = _read_yaml_area_file_content(area_file)
-area_table = [rst_table_header("Area Definitions", header=["Name", "Description", "Projection"],
-                               widths="auto", class_name="area-table")]
-
-for aname, params in area_dict.items():
-    area = _create_area_def_from_dict(aname, params)
-    if not hasattr(area, "_repr_html_"):
-        continue
-
-    area_table.append(rst_table_row([f"`{aname}`_", area.description,
-                                     area.proj_dict.get("proj")]))
-
-with open("area_def_list.rst", mode="w") as f:
-    f.write("".join(area_table))
-    f.write("\n\n")
-    f.write(generate_area_def_rst_list(area_file))
-
 # -- General configuration -----------------------------------------------------
+
+# sphinxcontrib.apidoc was added to sphinx in 8.2.0 as sphinx.etx.apidoc
+needs_sphinx = "8.2.0"
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.todo", "sphinx.ext.coverage",
-              "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "doi_role",
-              "sphinx.ext.viewcode", "sphinxcontrib.apidoc",
-              "sphinx.ext.mathjax"]
+              "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "sphinx.ext.autosectionlabel",
+              "doi_role", "sphinx.ext.viewcode", "sphinx.ext.apidoc",
+              "sphinx.ext.mathjax", "sphinx_autodoc_typehints"]
+
+linkcheck_allowed_redirects: dict[str, str] = {}
+
+# Autosectionlabel
+# Make sure target is unique
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 3
 
 # API docs
-apidoc_module_dir = "../../satpy"
-apidoc_output_dir = "api"
-apidoc_excluded_paths = [
-    "readers/caliop_l2_cloud.py",
-    "readers/ghrsst_l3c_sst.py",
-    "readers/li_l2.py",
-    "readers/scatsat1_l2b.py",
+apidoc_modules = [
+    {
+        "path": "../../satpy",
+        "destination": "api/",
+        "exclude_patterns": [
+            "../../satpy/readers/caliop_l2_cloud.py",
+            "../../satpy/readers/ghrsst_l3c_sst.py",
+            "../../satpy/readers/scatsat1_l2b.py",
+            # Prefer to not document test modules. Most users will look at
+            # source code if needed and we want to avoid documentation builds
+            # suffering from import-time test data creation. We want to keep
+            # things contributors might be interested in like satpy.tests.utils.
+            "../../satpy/tests/test_*.py",
+            "../../satpy/tests/**/test_*.py",
+            "../../satpy/tests/*_tests/*",
+        ],
+    },
 ]
 apidoc_separate_modules = True
-apidoc_extra_args = [
-    "--private",
-]
+apidoc_include_private = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -143,7 +149,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Satpy"
-copyright = u"2009-{}, The PyTroll Team".format(dt.datetime.utcnow().strftime("%Y"))  # noqa: A001
+copyright = u"2009-{}, The PyTroll Team".format(dt.datetime.now(dt.timezone.utc).strftime("%Y"))  # noqa: A001
 
 # The language for content autogenerated by Sphinx. Refer to documentation
 # for a list of supported languages.
@@ -318,9 +324,10 @@ intersphinx_mapping = {
     "scipy": ("https://scipy.github.io/devdocs", None),
     "trollimage": ("https://trollimage.readthedocs.io/en/stable", None),
     "trollsift": ("https://trollsift.readthedocs.io/en/stable", None),
-    "xarray": ("https://xarray.pydata.org/en/stable", None),
+    "xarray": ("https://docs.xarray.dev/en/stable", None),
     "rasterio": ("https://rasterio.readthedocs.io/en/latest", None),
     "donfig": ("https://donfig.readthedocs.io/en/latest", None),
     "pooch": ("https://www.fatiando.org/pooch/latest/", None),
     "fsspec": ("https://filesystem-spec.readthedocs.io/en/latest/", None),
+    "asv": ("https://asv.readthedocs.io/en/latest", None),
 }

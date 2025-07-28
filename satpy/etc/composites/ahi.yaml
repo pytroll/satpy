@@ -148,6 +148,20 @@ composites:
       - name: B13
     standard_name: night_microphysics
 
+  night_microphysics_tropical:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B13
+          - name: B07
+      - name: B13
+    standard_name: night_microphysics_tropical
+
   fire_temperature:
     # CIRA: Original VIIRS
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -214,11 +228,11 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - wavelength: 1.63
-      modifiers: [sunz_corrected] #, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     - wavelength: 0.85
-      modifiers: [sunz_corrected] #, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     - wavelength: 0.635
-      modifiers: [sunz_corrected] #, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     high_resolution_band: blue
     standard_name: natural_color
 
@@ -302,34 +316,6 @@ composites:
       - name: reproduced_green_uncorr
       - name: B01
     standard_name: true_color_reproduction_color_stretch
-
-#  true_color_reducedsize_land:
-#    compositor: !!python/name:satpy.composites.GenericCompositor
-#    prerequisites:
-#    - wavelength: 0.65
-#      modifiers: [reducer4, effective_solar_pathlength_corrected,
-#                  rayleigh_corrected_reducedsize_land]
-#    - wavelength: 0.51
-#      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
-#                  rayleigh_corrected_reducedsize_land]
-#    - wavelength: 0.46
-#      modifiers: [reducer2, effective_solar_pathlength_corrected,
-#                  rayleigh_corrected_reducedsize_land]
-#    standard_name: true_color
-#
-#  true_color_reducedsize_marine_tropical:
-#    compositor: !!python/name:satpy.composites.GenericCompositor
-#    prerequisites:
-#    - wavelength: 0.65
-#      modifiers: [reducer4, effective_solar_pathlength_corrected,
-#                  rayleigh_corrected_reducedsize_marine_tropical]
-#    - wavelength: 0.51
-#      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
-#                  rayleigh_corrected_reducedsize_marine_tropical]
-#    - wavelength: 0.46
-#      modifiers: [reducer2, effective_solar_pathlength_corrected,
-#                  rayleigh_corrected_reducedsize_marine_tropical]
-#    standard_name: true_color
 
   day_microphysics_eum:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -515,3 +501,20 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
+
+  day_severe_storms:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B08
+          - name: B10
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B07
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B05
+          - name: B03
+    standard_name: day_severe_storms

@@ -32,7 +32,7 @@ import numpy as np
 import pytest
 
 from satpy.readers.ahi_hsd import AHIHSDFileHandler, _NominalTimeCalculator
-from satpy.readers.utils import get_geostationary_mask
+from satpy.readers.core.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
 InfoDict = Dict[str, Any]
@@ -194,7 +194,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
                                                               5500000.035542117, -2200000.0142168473))
 
 
-@pytest.fixture()
+@pytest.fixture
 def hsd_file_jp01(tmp_path):
     """Create a jp01 hsd file."""
     from satpy.readers.ahi_hsd import (  # _IRCAL_INFO_TYPE,

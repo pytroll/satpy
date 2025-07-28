@@ -76,8 +76,8 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf4_utils import from_sds
-from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
+from satpy.readers.core.hdf4 import from_sds
+from satpy.readers.core.hdfeos import HDFEOSBaseFileReader, HDFEOSGeoReader
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         var_attrs = subdata.attributes()
         uncertainty = self.sd.select(var_name + "_Uncert_Indexes")
         chunks = self._chunks_for_variable(subdata)
-        array = xr.DataArray(from_sds(subdata, chunks=chunks)[band_index, :, :],
+        array = xr.DataArray(from_sds(subdata, self.filename, chunks=chunks)[band_index, :, :],
                              dims=["y", "x"]).astype(np.float32)
         valid_range = var_attrs["valid_range"]
         valid_min = np.float32(valid_range[0])
@@ -214,7 +214,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         if not self._mask_saturated:
             return array
         uncertainty_chunks = self._chunks_for_variable(uncertainty)
-        band_uncertainty = from_sds(uncertainty, chunks=uncertainty_chunks)[band_index, :, :]
+        band_uncertainty = from_sds(uncertainty, self.filename, chunks=uncertainty_chunks)[band_index, :, :]
         array = array.where(band_uncertainty < 15)
         return array
 
@@ -280,7 +280,8 @@ def calibrate_refl(array, attributes, index):
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
     # convert to reflectance and convert from 1 to %
-    array = (array - offset) * scale * 100
+    array = (array - offset)
+    array = array * (scale * 100)  # avoid extra dask tasks by combining scalars
     return array
 
 

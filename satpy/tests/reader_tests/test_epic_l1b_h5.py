@@ -36,7 +36,7 @@ lat_data = RANDOM_GEN.uniform(low=-180, high=180, size=(100, 100))
 mas_data = RANDOM_GEN.choice([0, 1], size=(100, 100))
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_hdf5_file(tmp_path):
     """Create temp hdf5 files."""
     fn = tmp_path / "epic_1b_20150613120251_03.h5"
@@ -69,7 +69,7 @@ class TestEPICL1bReader:
 
     def _setup_h5(self, setup_hdf5_file):
         """Initialise reader for the tests."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         test_reader = load_reader(self.reader_configs)
         loadables = test_reader.select_files_from_pathnames([setup_hdf5_file])
         test_reader.create_filehandlers(loadables)

@@ -274,17 +274,44 @@ class TestCheckSatpy:
         from satpy.utils import check_satpy
         check_satpy()
 
-    def test_specific_check_satpy(self):
+    def test_specific_check_satpy(self, capsys):
         """Test 'check_satpy' with specific features provided."""
         from satpy.utils import check_satpy
-        with mock.patch("satpy.utils.print") as print_mock:
-            check_satpy(readers=["viirs_sdr"], extras=("cartopy", "__fake"))
-            checked_fake = False
-            for call in print_mock.mock_calls:
-                if len(call[1]) > 0 and "__fake" in call[1][0]:
-                    assert "ok" not in call[1][1]
-                    checked_fake = True
-            assert checked_fake, "Did not find __fake module mentioned in checks"
+        check_satpy(readers=["viirs_sdr"], packages=("cartopy", "__fake"))
+        out, _ = capsys.readouterr()
+        checked_fake = "__fake: not installed" in out
+        checked_viirs_sdr = "Readers\n=======\nviirs_sdr" in out
+        assert checked_fake, "Did not find __fake package mentioned in checks"
+        assert checked_viirs_sdr, "Did not find viirs_sdr in readers mentioned in checks"
+
+
+class TestShowVersions:
+    """Test the 'show_versions' function."""
+
+    def test_basic_show_versions(self):
+        """Test 'check_satpy' basic functionality."""
+        from satpy.utils import show_versions
+        show_versions()
+
+    def test_show_specific_version(self, capsys):
+        """Test 'show_version' works with installed package."""
+        from satpy.utils import show_versions
+        show_versions(packages=["pytest"])
+        out, _ = capsys.readouterr()
+
+        pytest_mentioned = "pytest:" in out
+        pytest_installed = "pytest: not installed" not in out
+        check_pytest = pytest_mentioned and pytest_installed
+        assert check_pytest, "pytest with package version not in print output"
+
+    def test_show_missing_specific_version(self, capsys):
+        """Test 'show_version' works with missing package."""
+        from satpy.utils import show_versions
+        show_versions(packages=["__fake"])
+        out, _ = capsys.readouterr()
+
+        check_fake = "__fake: not installed" in out
+        assert check_fake, "Did not find '__fake: not installed' in print output"
 
 
 def test_debug_on(caplog):
@@ -294,12 +321,7 @@ def test_debug_on(caplog):
     def depwarn():
         logger = logging.getLogger("satpy.silly")
         logger.debug("But now it's just got SILLY.")
-        warnings.warn(
-            "Stop that! It's SILLY.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-
+        warnings.warn("Stop that! It's SILLY.", DeprecationWarning, stacklevel=2)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     debug_on(False)
     filts_before = warnings.filters.copy()
@@ -310,7 +332,7 @@ def test_debug_on(caplog):
     assert "But now it's just got SILLY." in caplog.text
     debug_on(True)
     # test that logging on and deprecation warnings on
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(DeprecationWarning, match="Stop that! It's SILLY."):
         depwarn()
     assert warnings.filters != filts_before
     debug_off()  # other tests assume debugging is off
@@ -499,7 +521,7 @@ def test_convert_remote_files_to_fsspec_mixed_sources():
 
     Case with mixed local and remote files.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
@@ -515,7 +537,7 @@ def test_convert_remote_files_to_fsspec_filename_dict():
 
     Case where filenames is a dictionary mapping readers and filenames.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = {
@@ -535,7 +557,7 @@ def test_convert_remote_files_to_fsspec_fsfile():
 
     Case where the some of the files are already FSFile objects.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
@@ -631,3 +653,14 @@ def test_find_in_ancillary():
 def test_datetime64_to_pydatetime(dt64, expected):
     """Test conversion from datetime64 to Python datetime."""
     assert datetime64_to_pydatetime(dt64) == expected
+
+
+def test_flatten_dict():
+    """Test dictionary flattening."""
+    from satpy.utils import flatten_dict
+    d = {"a": 1, "b": {"c": 1, "d": {"e": 1, "f": {"g": [1, 2]}}}}
+    expected = {"a": 1,
+                "b_c": 1,
+                "b_d_e": 1,
+                "b_d_f_g": [1, 2]}
+    assert flatten_dict(d) == expected

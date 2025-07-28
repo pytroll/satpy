@@ -32,7 +32,7 @@ from pyresample.geometry import AreaDefinition
 # - tmp_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_dataset():
     """Create a CLAAS-like test dataset."""
     adg = xr.DataArray(
@@ -95,7 +95,7 @@ ds_list_iop = ["adg_490", "water_class10", "seawifs_nobs_sum", "atot_665"]
 ds_list_kd = ["kd_490", "water_class10", "seawifs_nobs_sum"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_file_dict(fake_dataset, tmp_path):
     """Write a fake dataset to file."""
     fdict = {}
@@ -141,7 +141,7 @@ class TestOCCCIReader:
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     def _create_reader_for_resolutions(self, filename):
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filename)
         assert len(filename) == len(files)
@@ -150,7 +150,7 @@ class TestOCCCIReader:
         assert reader.file_handlers
         return reader
 
-    @pytest.fixture()
+    @pytest.fixture
     def area_exp(self):
         """Get expected area definition."""
         proj_dict = {"datum": "WGS84", "no_defs": "None", "proj": "longlat", "type": "crs"}

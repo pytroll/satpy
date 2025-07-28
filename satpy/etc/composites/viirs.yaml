@@ -232,7 +232,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I02
-      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     standard_name: false_color
     high_resolution_band: green
 
@@ -405,7 +405,7 @@ composites:
     - name: M07
       modifiers: [sunz_corrected]
     - name: M12
-      modifiers: [nir_reflectance]
+      modifiers: [nir_reflectance_lowres]
     - M15
     standard_name: day_microphysics
 
@@ -685,3 +685,74 @@ composites:
       - name: I01
       - name: I03
     standard_name: cimss_cloud_type
+
+
+  ### True Color with Fires
+  true_color_flames_with_night_ir105:
+    description: >
+      True Color with a simple night layer overlayed with a fire visualisation. Works best with HRFI+FDHSI inputs.
+      Originally inspired by the work of Pierre Markuse
+      on S2 https://custom-scripts.sentinel-hub.com/custom-scripts/sentinel-2/markuse_fire/
+      WARNING: This composite uses an extremely simple fire detector to identify fire pixels, so it is prone
+      to false alarms and missed detection. It is intended solely for PR-like visualisation purposes of large fires,
+      and no other (operational) use.
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: image_ready
+    prerequisites:
+      - flames_masked
+      - true_color_with_night_ir105
+
+  flames_masked:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    standard_name: viirs_flames_colorised
+    conditions:
+      - method: less
+        value: 0.5
+        transparency: 100
+      - method: isnan
+        transparency: 100
+    prerequisites:
+      # Composite
+      - name: viirs_fire_channels_sum
+      # Data used in masking
+      - name: simple_viirs_fire_mask
+
+  simple_viirs_fire_mask:
+    compositor: !!python/name:satpy.composites.SimpleFireMaskCompositor
+    standard_name: simple_viirs_fire_mask
+    prerequisites:
+      - I05
+      - I04
+      - M11
+      - I01
+    test_thresholds:
+      - 293
+      - 20
+      - 15
+      - 340
+
+  viirs_fire_channels_sum:
+    standard_name: image_ready
+    compositor: !!python/name:satpy.composites.SumCompositor
+    prerequisites:
+      - name: I04
+      - name: M11
+
+
+  true_color_with_night_ir105:
+    description: >
+      True Color during daytime, and a simple IR105 layer during nighttime.
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: image_ready
+    lim_low: 78
+    lim_high: 88
+    prerequisites:
+      - true_color
+      - night_ir105
+
+
+  night_ir105:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: I05
+    standard_name: night_ir105

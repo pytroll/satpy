@@ -6,7 +6,7 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [fci]
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
   nc_fci_clm:
@@ -1129,7 +1129,7 @@ datasets:
     nc_key: cloud_mask_test_result
     extract_byte: 0
     flag_values: [0,1]
-    flag_meanings: ['No snow/ice detected',' Snow/ice detected']
+    flag_meanings: ['No snow/ice detected','Snow/ice detected']
 
   cloud_test_cmt1:
     name: cloud_test_cmt1

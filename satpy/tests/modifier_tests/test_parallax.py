@@ -18,6 +18,7 @@ import logging
 import math
 import os
 import unittest.mock
+import warnings
 
 import dask.array as da
 import dask.config
@@ -30,8 +31,8 @@ from pyproj import Geod
 from pyresample import create_area_def
 
 import satpy.resample
+from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.tests.utils import xfail_skyfield_unstable_numpy2
-from satpy.writers import get_enhanced_image
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -40,7 +41,7 @@ from satpy.writers import get_enhanced_image
 # - request
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_tle():
     """Produce fake Two Line Element (TLE) object from pyorbital."""
     return pyorbital.tlefile.Tle(
@@ -368,13 +369,13 @@ class TestParallaxCorrectionClass:
             resolution=res2,
             area_extent=[-1, -1, 1, 1])
 
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             sc = make_fake_scene(
                     {"CTH_clear": np.full(area1.shape, np.nan)},
                     daskify=False,
                     area=area1,
                     common_attrs=_get_attrs(0, 0, 35_000))
-        assert len(record) == 0
 
         corrector = ParallaxCorrection(area2)
         new_area = corrector(sc["CTH_clear"])
@@ -498,7 +499,7 @@ class TestParallaxCorrectionModifier:
         res = modif([fake_bt, cth_clear], optional_datasets=[])
         np.testing.assert_allclose(res, fake_bt)
         with unittest.mock.patch("satpy.modifiers.parallax.resample_dataset") as smp:
-            smp.side_effect = satpy.resample.resample_dataset
+            smp.side_effect = satpy.resample.base.resample_dataset
             modif([fake_bt, cth_clear], optional_datasets=[])
             assert smp.call_args_list[0].kwargs["radius_of_influence"] == 48_000
             assert smp.call_args_list[1].kwargs["radius_of_influence"] == 49_000
@@ -566,7 +567,7 @@ class TestParallaxCorrectionModifier:
         # do so after parallax correction
         assert not (res.diff("x") < 0).any()
 
-    @pytest.fixture()
+    @pytest.fixture
     def test_area(self, request):
         """Produce test area for parallax correction unit tests.
 
@@ -713,12 +714,12 @@ composites:
 class TestParallaxCorrectionSceneLoad:
     """Test that scene load interface works as expected."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def yaml_code(self):
         """Return YAML code for parallax_corrected_VIS006."""
         return _test_yaml_code
 
-    @pytest.fixture()
+    @pytest.fixture
     def conf_file(self, yaml_code, tmp_path):
         """Produce a fake configuration file."""
         conf_file = tmp_path / "test.yaml"
@@ -726,7 +727,7 @@ class TestParallaxCorrectionSceneLoad:
             fp.write(yaml_code)
         return conf_file
 
-    @pytest.fixture()
+    @pytest.fixture
     def fake_scene(self, yaml_code):
         """Produce fake scene and prepare fake composite config."""
         from satpy import Scene

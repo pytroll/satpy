@@ -38,7 +38,7 @@ import xarray as xr
 from dask.array.core import normalize_chunks
 
 # from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +175,7 @@ class HDF5SGLI(BaseFileHandler):
 
     def interpolate_spherical(self, azimuthal_angle, polar_angle, resampling_interval):
         """Interpolate spherical coordinates."""
-        from geotiepoints.geointerpolator import GeoGridInterpolator
+        from geotiepoints.geointerpolator import GeoSplineInterpolator
 
         full_shape = (self.h5file["Image_data"].attrs["Number_of_lines"],
                       self.h5file["Image_data"].attrs["Number_of_pixels"])
@@ -183,7 +183,7 @@ class HDF5SGLI(BaseFileHandler):
         tie_lines = np.arange(0, polar_angle.shape[0] * resampling_interval, resampling_interval)
         tie_cols = np.arange(0, polar_angle.shape[1] * resampling_interval, resampling_interval)
 
-        interpolator = GeoGridInterpolator((tie_lines, tie_cols), azimuthal_angle, polar_angle, method="slinear")
+        interpolator = GeoSplineInterpolator((tie_lines, tie_cols), azimuthal_angle, polar_angle, kx=2, ky=2)
         new_azi, new_pol = interpolator.interpolate_to_shape(full_shape, chunks="auto")
         return new_azi, new_pol
 

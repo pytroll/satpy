@@ -227,7 +227,7 @@ class Test_HDF_AGRI_L1_cal:
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.agri_l1 import HDF_AGRI_L1
-        from satpy.readers.fy4_base import FY4Base
+        from satpy.readers.core.fy4 import FY4Base
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.fy4 = mock.patch.object(FY4Base, "__bases__", (FakeHDF5FileHandler2,))
@@ -350,7 +350,7 @@ class Test_HDF_AGRI_L1_cal:
         assert res[band_name].dtype == np.float32
 
     def _create_reader_for_resolutions(self, *resolutions):
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = _create_filenames_from_resolutions(self.satname, *resolutions)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)

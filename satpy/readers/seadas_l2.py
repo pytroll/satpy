@@ -31,8 +31,8 @@ warned about the quality of the result.
 
 import datetime as dt
 
-from .hdf4_utils import HDF4FileHandler
-from .netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.hdf4 import HDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 
 class _SEADASL2Base:
@@ -54,6 +54,8 @@ class _SEADASL2Base:
             return 10
         if "viirs" in self.sensor_names:
             return 16
+        if "oci" in self.sensor_names:
+            return 0
         raise ValueError(f"Don't know how to read data for sensors: {self.sensor_names}")
 
     def _platform_name(self):
@@ -82,7 +84,10 @@ class _SEADASL2Base:
         sensor_name = self[self.sensor_attr_name].lower()
         if sensor_name.startswith("modis"):
             return {"modis"}
-        return {"viirs"}
+        if sensor_name.startswith("viirs"):
+            return {"viirs"}
+        # Example: OCI
+        return {sensor_name}
 
     def get_dataset(self, data_id, dataset_info):
         """Get DataArray for the specified DataID."""

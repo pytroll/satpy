@@ -24,10 +24,11 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_geos_area_naming, make_ext
-from satpy.readers.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.resample import get_area_def
+from satpy.area import get_area_def
+from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.fci import platform_name_translate
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -43,12 +44,13 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs["platform"]
+        return platform_name_translate.get(
+            self.nc.attrs["platform"], self.nc.attrs["platform"])
 
     @property
     def sensor_name(self):
         """Return instrument name."""
-        return self.nc.attrs["data_source"]
+        return self.nc.attrs["data_source"].lower()
 
     @property
     def ssp_lon(self):
@@ -60,7 +62,7 @@ class FciL2CommonFunctions(object):
                            f"of {SSP_DEFAULT} degrees east instead")
             return SSP_DEFAULT
 
-    def _get_global_attributes(self):
+    def _get_global_attributes(self, product_type="pixel"):
         """Create a dictionary of global attributes to be added to all datasets.
 
         Returns:
@@ -70,26 +72,36 @@ class FciL2CommonFunctions(object):
                 ssp_lon: longitude of subsatellite point
                 sensor: name of sensor
                 platform_name: name of the platform
+            Only for AMVs product:
+                channel: channel at which the AMVs have been retrieved
+
 
         """
         attributes = {
             "filename": self.filename,
-            "spacecraft_name": self.spacecraft_name,
+            "spacecraft_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name),
             "ssp_lon": self.ssp_lon,
             "sensor": self.sensor_name,
-            "platform_name": self.spacecraft_name,
+            "platform_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name)
         }
+
+        if product_type=="amv":
+            attributes["channel"] = self.filename_info["channel"]
+
         return attributes
 
-    def _set_attributes(self, variable, dataset_info, segmented=False):
+    def _set_attributes(self, variable, dataset_info, product_type="pixel"):
         """Set dataset attributes."""
-        if segmented:
-            xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
-        else:
-            xdim, ydim = "number_of_columns", "number_of_rows"
+        if product_type in ["pixel", "segmented"]:
+            if product_type == "pixel":
+                xdim, ydim = "number_of_columns", "number_of_rows"
+            elif product_type == "segmented":
+                xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
 
-        if dataset_info["nc_key"] not in ["product_quality", "product_completeness", "product_timeliness"]:
-            variable = variable.swap_dims({ydim: "y", xdim: "x"})
+            if dataset_info["nc_key"] not in ["product_quality",
+                                              "product_completeness",
+                                              "product_timeliness"]:
+                variable = variable.swap_dims({ydim: "y", xdim: "x"})
 
         variable.attrs.setdefault("units", None)
         if "unit" in variable.attrs:
@@ -98,7 +110,7 @@ class FciL2CommonFunctions(object):
             del variable.attrs["unit"]
 
         variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+        variable.attrs.update(self._get_global_attributes(product_type=product_type))
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if import_enum_information:
@@ -238,7 +250,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Compute the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_extent = self._get_area_extent()
@@ -382,7 +394,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if "fill_value" in dataset_info:
             variable = self._mask_data(variable, dataset_info["fill_value"])
 
-        variable = self._set_attributes(variable, dataset_info, segmented=True)
+        variable = self._set_attributes(variable, dataset_info, product_type="segmented")
 
         return variable
 
@@ -390,7 +402,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Construct the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         res = dataset_id["resolution"]
@@ -457,26 +469,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             }
         )
 
-    def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets.
-
-        Returns:
-            dict: A dictionary of global attributes.
-                filename: name of the product file
-                spacecraft_name: name of the spacecraft
-                sensor: name of sensor
-                platform_name: name of the platform
-
-        """
-        attributes = {
-            "filename": self.filename,
-            "spacecraft_name": self.spacecraft_name,
-            "sensor": self.sensor_name,
-            "platform_name": self.spacecraft_name,
-            "channel": self.filename_info["channel"]
-        }
-        return attributes
-
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the nc_key in dataset_info."""
         var_key = dataset_info["nc_key"]
@@ -489,7 +481,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             return None
 
         # Manage the attributes of the dataset
-        variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+        variable = self._set_attributes(variable, dataset_info, product_type="amv")
 
         return variable

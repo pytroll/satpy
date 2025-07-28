@@ -91,8 +91,8 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
     ''AVHRR-GAC_FDR_1C_{platform}_{start_time:%Y%m%dT%H%M%SZ}_{end_time:%Y%m%dT%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc'
 
 
-Example:
---------
+**Example**:
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -184,7 +184,7 @@ from pyresample import AreaDefinition
 
 import satpy.cf.decoding
 from satpy.dataset.dataid import WavelengthRange
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

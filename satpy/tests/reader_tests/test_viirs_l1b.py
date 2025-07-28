@@ -65,6 +65,9 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
             "/attr/orbit_number": 26384,
             "/attr/instrument": "VIIRS",
             "/attr/platform": "Suomi-NPP",
+            "/attr/DayNightFlag": "Day",
+            "/attr/startDirection": "Descending",
+            "/attr/endDirection": "Ascending",
         }
         self._fill_contents_with_default_data(file_content, file_type)
         self._set_dataset_specific_metadata(file_content)
@@ -161,7 +164,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -173,7 +176,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_available_datasets_m_bands(self):
         """Test available datasets for M band files."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -187,7 +190,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_load_every_m_band_bt(self):
         """Test loading all M band brightness temperatures."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -207,10 +210,12 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -236,10 +241,12 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dataid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -271,10 +278,17 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["day_night"] == "Day"
+            assert v.attrs["orbital_parameters"]["start_direction"] == "Descending"
+            assert v.attrs["orbital_parameters"]["end_direction"] == "Ascending"
+            assert v.attrs["orbital_parameters"]["start_orbit"] == 26384
+            assert v.attrs["orbital_parameters"]["end_orbit"] == 26384
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_i_band_angles(self):
         """Test loading all M bands as radiances."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dataid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -294,10 +308,12 @@ class TestVIIRSL1BReaderDay:
         for v in datasets.values():
             assert v.attrs["resolution"] == 371
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BD_snpp_d20161130_t012400_c20161130054822.nc",
@@ -313,10 +329,12 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
     def test_load_dnb_angles(self):
         """Test loading all DNB angle datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BD_snpp_d20161130_t012400_c20161130054822.nc",
@@ -337,6 +355,8 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
 
 
 class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):

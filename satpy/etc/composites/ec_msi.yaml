@@ -1,0 +1,39 @@
+sensor_name: visir/ec_msi
+
+
+modifiers:
+  sunz_corrected:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: VIS
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+composites:
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - SWIR1
+    - NIR
+    - VIS
+    standard_name: natural_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: SWIR1
+      modifiers: [sunz_corrected]
+    - name: NIR
+      modifiers: [sunz_corrected]
+    - name: VIS
+      modifiers: [sunz_corrected]
+    standard_name: natural_color

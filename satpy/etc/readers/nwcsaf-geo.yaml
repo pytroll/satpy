@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   sensors: [seviri, abi, ahi]
   default_channels: []
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
     nc_nwcsaf_cma:
@@ -67,6 +67,10 @@ file_types:
     nc_nwcsaf_asii_gw:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
         file_patterns: ['S_NWC_ASII-GW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
+    nc_nwcsaf_geo_hrw:
+        file_reader: !!python/name:satpy.readers.nwcsaf_hrw_nc.NWCSAFGEOHRWFileHandler
+        file_patterns: ['S_NWC_HRW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
 datasets:
 

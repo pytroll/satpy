@@ -24,7 +24,6 @@ import datetime as dt
 import logging
 import math
 
-import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
@@ -63,17 +62,23 @@ class HistogramDNB(CompositeBase):
     def __call__(self, datasets, **info):
         """Create the composite by scaling the DNB data using a histogram equalization method.
 
-        :param datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
-        :param **info: Miscellaneous metadata for the newly produced composite
+        Args:
+            datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
+            info: Miscellaneous metadata for the newly produced composite
         """
         if len(datasets) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(datasets), ))
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
-        delayed = dask.delayed(self._run_dnb_normalization)(dnb_data.data, sza_data.data)
+        output_data = da.map_blocks(
+            self._run_dnb_normalization,
+            dnb_data.data.rechunk(dnb_data.shape),
+            sza_data.data.rechunk(sza_data.shape),
+            dtype=dnb_data.dtype,
+            meta=np.ndarray((), dtype=dnb_data.dtype),
+        )
         output_dataset = dnb_data.copy()
-        output_data = da.from_delayed(delayed, dnb_data.shape, dnb_data.dtype)
         output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
 
         info = dnb_data.attrs.copy()
@@ -83,12 +88,12 @@ class HistogramDNB(CompositeBase):
         output_dataset.attrs = info
         return output_dataset
 
-    def _run_dnb_normalization(self, dnb_data, sza_data):
+    def _run_dnb_normalization(self, dnb_data: np.ndarray, sza_data: np.ndarray) -> np.ndarray:
         """Scale the DNB data using a histogram equalization method.
 
         Args:
-            dnb_data (ndarray): Day/Night Band data array
-            sza_data (ndarray): Solar Zenith Angle data array
+            dnb_data: Day/Night Band data array
+            sza_data: Solar Zenith Angle data array
 
         """
         # convert dask arrays to DataArray objects
@@ -296,9 +301,16 @@ class ERFDNB(CompositeBase):
         # Update from Curtis Seaman, increase max radiance curve until less
         # than 0.5% is saturated
         if self.saturation_correction:
-            delayed = dask.delayed(self._saturation_correction)(output_dataset.data, unit_factor, min_val, max_val)
-            output_dataset.data = da.from_delayed(delayed, output_dataset.shape, output_dataset.dtype)
-            output_dataset.data = output_dataset.data.rechunk(dnb_data.data.chunks)
+            output_data = da.map_blocks(
+                self._saturation_correction,
+                output_dataset.data.rechunk(output_dataset.shape),
+                unit_factor,
+                min_val,
+                max_val,
+                dtype=output_dataset.dtype,
+                meta=np.ndarray((), dtype=output_dataset.dtype),
+            )
+            output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt

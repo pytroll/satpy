@@ -7,7 +7,7 @@ reader:
   status: Beta, HRV channel not supported
   supports_fsspec: true
   sensors: [seviri]
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
   group_keys: ["start_time", "satid"]
 
 file_types:

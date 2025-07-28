@@ -49,8 +49,8 @@ dataset which may have several bands (like `R`, `G` and `B`  bands). However,
 the data isn't stretched, or clipped or gamma filtered until an image
 is generated.  To get an image out of the above composite::
 
-    >>> from satpy.writers import to_image
-    >>> img = to_image(composite)
+    >>> from trollimage.xrimage import XRImage
+    >>> img = XRImage(composite)
     >>> img.invert([False, False, True])
     >>> img.stretch("linear")
     >>> img.gamma(1.7)
@@ -111,7 +111,7 @@ being visualized.
    an image with mode RGB when enhanced.  To produce an image with mode P, use
    the :class:`SingleBandCompositor` with an associated
    :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
-   to :meth:`~satpy.Scene.save_datasets`.  If the colormap is sourced from
+   to :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.  If the colormap is sourced from
    the same dataset as the dataset to be palettized, it must be contained
    in the auxiliary datasets.
 
@@ -119,7 +119,7 @@ being visualized.
    :class:`PaletteCompositor` have been migrated to use
    :class:`SingleBandCompositor` instead.  This has no impact on resulting
    images unless ``keep_palette=True`` is passed to
-   :meth:`~satpy.Scene.save_datasets`, but the loaded composite now has only
+   :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`, but the loaded composite now has only
    one band (previously three).
 
 DayNightCompositor
@@ -523,64 +523,23 @@ Enhancing the images
     - three_d_effect
     - btemp_threshold
 
-.. todo::
-
-    Should this be in another file/page?
-
 After the composite is defined and created, it needs to be converted
 to an image.  To do this, it is necessary to describe how the data
 values are mapped to values stored in the image format.  This
-procedure is called ``stretching``, and in Satpy it is implemented by
-``enhancements``.
+procedure is called ``stretching`` and in Satpy it is implemented by
+``enhancements``. See :doc:`enhancements` for more information on
+how enhancements work, how they can be customized, and the built-in
+enhancement functions in Satpy.
 
-The first step is to convert the composite to an
-:class:`~trollimage.xrimage.XRImage` object::
-
-    >>> from satpy.writers import to_image
-    >>> img = to_image(composite)
-
-Now it is possible to apply enhancements available in the class::
-
-    >>> img.invert([False, False, True])
-    >>> img.stretch("linear")
-    >>> img.gamma(1.7)
-
-And finally either show or save the image::
-
-    >>> img.show()
-    >>> img.save('image.tif')
-
-As pointed out in the composite section, it is better to define
-frequently used enhancements in configuration files under
-``$SATPY_CONFIG_PATH/enhancements/``.  The enhancements can either be in
-``generic.yaml`` or instrument-specific file (e.g., ``seviri.yaml``).
-
-The above enhancement can be written (with the headers necessary for
-the file) as::
-
-  enhancements:
-    overview:
-      standard_name: overview
-      operations:
-        - name: inverse
-          method: !!python/name:satpy.enhancements.invert
-          args: [False, False, True]
-        - name: stretch
-          method: !!python/name:satpy.enhancements.stretch
-          kwargs:
-            stretch: linear
-        - name: gamma
-          method: !!python/name:satpy.enhancements.gamma
-          kwargs:
-            gamma: [1.7, 1.7, 1.7]
 
 .. warning::
    If you define a composite with no matching enhancement, Satpy will by
-   default apply the :func:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
+   default apply the :meth:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
    cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
    are enhancing a composite based on :class:`DayNightCompositor` where
-   the components have their own enhancements defined), you need to define
-   an enhancement that does nothing::
+   the components have their own enhancements defined), you can use the `image_ready` standard name.
+   If this is not a suitable standard name, you can also define
+   an enhancement that does nothing:
 
       enhancements:
         day_x:
@@ -590,11 +549,5 @@ the file) as::
    It is recommended to define an enhancement even if you intend to use
    the default, in case the default should change in future versions of
    Satpy.
-
-More examples can be found in Satpy source code directory
-``satpy/etc/enhancements/generic.yaml``.
-
-See the :doc:`enhancements` documentation for more information on
-available built-in enhancements.
 
 .. include:: modifiers.rst

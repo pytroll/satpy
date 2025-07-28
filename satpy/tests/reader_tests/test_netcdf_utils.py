@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.netcdf_utils module."""
+"""Module for testing the satpy.readers.core.netcdf module."""
 
 import os
 import unittest
@@ -24,7 +24,7 @@ import numpy as np
 import pytest
 
 try:
-    from satpy.readers.netcdf_utils import NetCDF4FileHandler
+    from satpy.readers.core.netcdf import NetCDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
     NetCDF4FileHandler = object  # type: ignore
@@ -125,7 +125,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """Test everything about the NetCDF4 class."""
         import xarray as xr
 
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
         file_handler = NetCDF4FileHandler("test.nc", {}, {})
 
         assert file_handler["/dimension/rows"] == 10
@@ -167,7 +167,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_listed_variables(self):
         """Test that only listed variables/attributes area collected."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
 
         filetype_info = {
             "required_netcdf_variables": [
@@ -182,7 +182,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_listed_variables_with_composing(self):
         """Test that composing for listed variables is performed."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
 
         filetype_info = {
             "required_netcdf_variables": [
@@ -210,7 +210,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_caching(self):
         """Test that caching works as intended."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
         h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
                                cache_handle=True)
         assert h.file_handle is not None
@@ -231,7 +231,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_filenotfound(self):
         """Test that error is raised when file not found."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
 
         # NOTE: Some versions of NetCDF C report unknown file format on Windows
         with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
@@ -241,7 +241,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
         import xarray as xr
 
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
         file_handler = NetCDF4FileHandler("test.nc", {}, {}, cache_handle=True)
 
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
@@ -249,7 +249,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_get_and_cache_npxr_data_is_cached(self):
         """Test that the data are cached when get_and_cache_npxr() is called."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
 
         file_handler = NetCDF4FileHandler("test.nc", {}, {}, cache_handle=True)
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
@@ -270,7 +270,7 @@ class TestNetCDF4FsspecFileHandler:
 
         import h5py
 
-        from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
+        from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create an empty HDF5
@@ -288,8 +288,8 @@ class TestNetCDF4FsspecFileHandler:
         fname = "s3://bucket/object.nc"
 
         with patch("h5netcdf.File") as h5_file:
-            with patch("satpy.readers.netcdf_utils.open_file_or_filename"):
-                from satpy.readers.netcdf_utils import NetCDF4FsspecFileHandler
+            with patch("satpy.readers.core.netcdf.open_file_or_filename"):
+                from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
                 h5_file.assert_called_once()
@@ -305,7 +305,7 @@ def test_get_data_as_xarray_netcdf4(tmp_path):
     """Test getting xr.DataArray from netcdf4 variable."""
     import numpy as np
 
-    from satpy.readers.netcdf_utils import get_data_as_xarray
+    from satpy.readers.core.netcdf import get_data_as_xarray
 
     data = np.array([1, 2, 3])
     fname = tmp_path / "test.nc"
@@ -320,7 +320,7 @@ def test_get_data_as_xarray_scalar_netcdf4(tmp_path):
     """Test getting scalar xr.DataArray from netcdf4 variable."""
     import numpy as np
 
-    from satpy.readers.netcdf_utils import get_data_as_xarray
+    from satpy.readers.core.netcdf import get_data_as_xarray
 
     data = 1
     fname = tmp_path / "test.nc"
@@ -353,7 +353,7 @@ def test_get_data_as_xarray_h5netcdf(tmp_path):
     """Test getting xr.DataArray from h5netcdf variable."""
     import numpy as np
 
-    from satpy.readers.netcdf_utils import get_data_as_xarray
+    from satpy.readers.core.netcdf import get_data_as_xarray
 
     data = np.array([1, 2, 3])
     fname = tmp_path / "test.nc"
@@ -384,7 +384,7 @@ def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
     """Test getting xr.DataArray from h5netcdf variable."""
     import numpy as np
 
-    from satpy.readers.netcdf_utils import get_data_as_xarray
+    from satpy.readers.core.netcdf import get_data_as_xarray
 
     data = 1
     fname = tmp_path / "test.nc"

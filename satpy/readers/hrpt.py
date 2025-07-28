@@ -43,7 +43,7 @@ from pyorbital.orbital import Orbital
 
 from satpy._compat import cached_property
 from satpy.readers.aapp_l1b import get_avhrr_lac_chunks
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class HRPTFile(BaseFileHandler):
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: "counts" for i in AVHRR_CHANNEL_NAMES}
 
-        self.year = filename_info.get("start_time", dt.datetime.utcnow()).year
+        self.year = filename_info.get("start_time", dt.datetime.now(dt.timezone.utc)).year
 
     @cached_property
     def times(self):

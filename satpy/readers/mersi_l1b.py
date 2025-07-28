@@ -32,7 +32,7 @@ import dask.array as da
 import numpy as np
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 N_TOT_IR_CHANS_LL = 6
 PLATFORMS_INSTRUMENTS = {"FY-3A": "mersi-1",
@@ -182,7 +182,7 @@ class MERSIL1B(HDF5FileHandler):
             attrs["_FillValue"] = fill_value
             new_fill = data.dtype.type(fill_value)
         else:
-            new_fill = np.nan
+            new_fill = np.float32(np.nan)
         try:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.

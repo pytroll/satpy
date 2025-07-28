@@ -93,7 +93,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
         file_content["l2p_flags"] = np.zeros(
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
-            dtype=np.uint16)
+            dtype=np.int16)
 
         convert_file_content_to_data_array(file_content, dims=("time", "nj", "ni"))
         return file_content
@@ -127,7 +127,7 @@ class TestACSPOReader:
     )
     def test_init(self, filename):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([filename])
         assert len(loadables) == 1
@@ -137,7 +137,7 @@ class TestACSPOReader:
 
     def test_load_every_dataset(self):
         """Test loading all datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc",

@@ -19,17 +19,19 @@ import datetime as dt
 import os
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 from pyproj import Proj
 
 from satpy._config import config_search_paths
-from satpy.readers.li_base_nc import LINCFileHandler
+from satpy.readers.core.li_nc import LINCFileHandler
+from satpy.readers.core.yaml_reader import load_yaml_configs
 from satpy.readers.li_l2_nc import LI_GRID_SHAPE, LIL2NCFileHandler
-from satpy.readers.yaml_reader import load_yaml_configs
 from satpy.tests.reader_tests._li_test_utils import (
     FakeLIFileHandlerBase,
+    expected_product_dtype,
     extract_filetype_info,
     get_product_schema,
     products_dict,
@@ -94,7 +96,6 @@ class TestLIL2():
         """Check the loading of the non in sector variables."""
         assert "variables" in ds_desc
         all_vars = ds_desc["variables"]
-
         variables = settings.get("variables")
         for vname, desc in variables.items():
             # variable should be in list of dataset:
@@ -125,9 +126,13 @@ class TestLIL2():
     def _test_dataset_variable(self, var_params, sname=""):
         """Test the validity of a given (sector) variable."""
         dataset_info, desc, dname, handler, shape, var_path = var_params
+        product_type = handler.ds_desc["product_type"]
         res = self.get_variable_dataset(dataset_info, dname, handler)
+        resd = self.get_variable_dataset(None,dataset_info["name"], handler)
+        assert resd.dtype == expected_product_dtype[product_type][dname]
         assert res.shape == shape
         assert res.dims[0] == "y"
+        assert isinstance(res.data,da.Array)
         # Should retrieve content with fullname key:
         full_name = self.create_fullname_key(desc, var_path, dname, sname=sname)
         # Note: 'content' is not recognized as a valid member of the class below
@@ -173,11 +178,12 @@ class TestLIL2():
             ftype = pinfo["ftype"]
             filename_info = {
                 "start_time": "0000",
-                "end_time": "1000"
+                "end_time": "1000",
+                "mission_prefix": "MT",
+                "spacecraft_id": "1"
             }
-
             handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, ftype),
-                                        with_area_definition=False)
+                                       with_area_definition=False)
             ds_desc = handler.ds_desc
 
             # retrieve the schema that what used to generate the content for that product:
@@ -193,9 +199,15 @@ class TestLIL2():
 
     def test_unregistered_dataset_loading(self, filetype_infos):
         """Test loading of an unregistered dataset."""
+        filename_info = {
+            "start_time": "0000",
+            "end_time": "1000",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
         # Iterate on all the available product types:
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
 
         dataset_id = make_dataid(name="test_dataset")
         with pytest.raises(KeyError):
@@ -203,11 +215,17 @@ class TestLIL2():
 
     def test_dataset_not_in_provided_dataset(self, filetype_infos):
         """Test loading of a dataset that is not provided."""
+        filename_info = {
+            "start_time": "0000",
+            "end_time": "1000",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
         # Iterate on all the available product types:
 
         dataset_dict = {"name": "test_dataset"}
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
 
         dataset_id = make_dataid(name="test_dataset")
 
@@ -217,7 +235,10 @@ class TestLIL2():
         """Test settings retrieved from filename."""
         filename_info = {
             "start_time": "20101112131415",
-            "end_time": "20101112131416"
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+
         }
 
         handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
@@ -244,11 +265,29 @@ class TestLIL2():
         # check product type:
         assert handler.product_type == "2-AF"
 
+    def test_platform_name_and_sensor(self, filetype_infos):
+        """Test that plaform name and sensor attributes are set."""
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+
+        }
+
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
+        dsid = make_dataid(name="flash_duration")
+        dset = handler.get_dataset(dsid)
+        assert dset.attrs["platform_name"] == "Meteosat-12"
+        assert dset.attrs["sensor"] == "li"
+
     def test_var_path_exists(self, filetype_infos):
         """Test variable_path_exists from li reader."""
         filename_info = {
             "start_time": "20101112131415",
             "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
         }
 
         handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
@@ -270,15 +309,17 @@ class TestLIL2():
         filename_info = {
             "start_time": "20101112131415",
             "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
         }
 
         handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         # Check variable paths:
-        var1 = handler.get_first_valid_variable(["dummy/path", "data/north/event_id"])
-        var2 = handler.get_first_valid_variable(["dummy/path", "data/east/event_id"])
-        var3 = handler.get_first_valid_variable(["dummy/path", "data/south/group_id"])
-        var4 = handler.get_first_valid_variable(["dummy/path", "data/west/group_id"])
+        var1 = handler.get_first_valid_variable(["dummy/path", "data/north/detector_column"])
+        var2 = handler.get_first_valid_variable(["dummy/path", "data/east/detector_column"])
+        var3 = handler.get_first_valid_variable(["dummy/path", "data/south/detector_row"])
+        var4 = handler.get_first_valid_variable(["dummy/path", "data/west/detector_row"])
 
         assert isinstance(var1, xr.DataArray)
         assert isinstance(var2, xr.DataArray)
@@ -290,15 +331,15 @@ class TestLIL2():
         assert id(var3) != id(var4)
 
         mix1 = handler.get_first_valid_variable(["dummy/path",
-                                                 "data/north/event_id",
-                                                 "data/east/event_id",
-                                                 "data/south/group_id"])
+                                                 "data/north/detector_column",
+                                                 "data/east/detector_column",
+                                                 "data/south/detector_row"])
 
         mix2 = handler.get_first_valid_variable(["dummy/path",
-                                                 "data/west/group_id",
-                                                 "data/north/event_id",
-                                                 "data/east/event_id",
-                                                 "data/south/group_id"])
+                                                 "data/west/detector_row",
+                                                 "data/north/detector_column",
+                                                 "data/east/detector_column",
+                                                 "data/south/detector_row"])
 
         # first mix should give us var1 and the second one var4:
         assert id(mix1) == id(var1)
@@ -307,8 +348,8 @@ class TestLIL2():
         # get the measured variables now:
         # Note that we must specify fill_value==None below otherwise
         # a new array is generated filling the invalid values:
-        meas1 = handler.get_measured_variable("east/event_id", fill_value=None)
-        meas2 = handler.get_measured_variable("south/group_id", fill_value=None)
+        meas1 = handler.get_measured_variable("east/detector_column", fill_value=None)
+        meas2 = handler.get_measured_variable("south/detector_row", fill_value=None)
 
         assert id(meas1) == id(var2)
         assert id(meas2) == id(var3)
@@ -322,6 +363,8 @@ class TestLIL2():
         filename_info = {
             "start_time": "20101112131415",
             "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
         }
 
         handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
@@ -331,7 +374,13 @@ class TestLIL2():
 
     def test_available_datasets(self, filetype_infos):
         """Test available_datasets from li reader."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lef_nc"))
 
         # get current ds_infos. These should all be returned by the available_datasets
         ds_infos_to_compare = handler.dataset_infos.copy()
@@ -347,7 +396,9 @@ class TestLIL2():
         """Test automatic rescaling with offset and scale attributes."""
         filename_info = {
             "start_time": "20101112131415",
-            "end_time": "20101112131416"
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
         }
 
         handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
@@ -377,7 +428,13 @@ class TestLIL2():
 
     def test_swath_coordinates(self, filetype_infos):
         """Test that swath coordinates are used correctly to assign coordinates to some datasets."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
 
         # Check latitude:
         dsid = make_dataid(name="latitude")
@@ -400,7 +457,13 @@ class TestLIL2():
 
     def test_report_datetimes(self, filetype_infos):
         """Should report time variables as numpy datetime64 type and time durations as timedelta64."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
 
         # Check epoch_time:
         dsid = make_dataid(name="epoch_time_north_sector")
@@ -430,7 +493,13 @@ class TestLIL2():
 
     def test_milliseconds_to_timedelta(self, filetype_infos):
         """Should covert milliseconds to timedelta."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lfl_nc"))
 
         # Check flash_duration:
         dsid = make_dataid(name="flash_duration")
@@ -445,7 +514,13 @@ class TestLIL2():
 
     def test_apply_accumulate_index_offset(self, filetype_infos):
         """Should accumulate index offsets."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
 
         # Check time offset:
         dsid = make_dataid(name="l1b_chunk_offsets_north_sector")
@@ -465,7 +540,13 @@ class TestLIL2():
 
     def test_combine_info(self, filetype_infos):
         """Test overridden combine_info."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_le_nc"))
 
         # get a dataset including the index_offset in the ds_info
         dsid = make_dataid(name="l1b_chunk_offsets_north_sector")
@@ -483,7 +564,13 @@ class TestLIL2():
 
     def test_coordinates_projection(self, filetype_infos):
         """Should automatically generate lat/lon coords from projection data."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
                                     with_area_definition=False)
 
         dsid = make_dataid(name="flash_accumulation")
@@ -496,7 +583,7 @@ class TestLIL2():
         with pytest.raises(NotImplementedError):
             handler.get_area_def(dsid)
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afr_nc"),
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_afr_nc"),
                                     with_area_definition=False)
 
         dsid = make_dataid(name="flash_radiance")
@@ -506,7 +593,7 @@ class TestLIL2():
         assert dset.attrs["coordinates"][0] == "longitude"
         assert dset.attrs["coordinates"][1] == "latitude"
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_afa_nc"),
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_afa_nc"),
                                     with_area_definition=False)
 
         dsid = make_dataid(name="accumulated_flash_area")
@@ -520,10 +607,17 @@ class TestLIL2():
         """Test daskified generation of coords."""
         accumulated_products = ["li_l2_af_nc", "li_l2_afr_nc", "li_l2_afa_nc"]
         coordinate_datasets = ["longitude", "latitude"]
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
 
         for accum_prod in accumulated_products:
             for ds_name in coordinate_datasets:
-                handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, accum_prod))
+                handler = LIL2NCFileHandler("filename", filename_info,
+                                            extract_filetype_info(filetype_infos, accum_prod))
                 dsid = make_dataid(name=ds_name)
                 dset = handler.get_dataset(dsid)
                 # Check dataset type
@@ -535,10 +629,17 @@ class TestLIL2():
         """Test getting lon/lat dataset on accumulated product."""
         accumulated_products = ["li_l2_af_nc", "li_l2_afr_nc", "li_l2_afa_nc"]
         coordinate_datasets = ["longitude", "latitude"]
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
 
         for accum_prod in accumulated_products:
             for ds_name in coordinate_datasets:
-                handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, accum_prod))
+                handler = LIL2NCFileHandler("filename", filename_info,
+                                            extract_filetype_info(filetype_infos, accum_prod))
                 dsid = make_dataid(name=ds_name)
                 handler.generate_coords_from_scan_angles = mock.MagicMock(
                     side_effect=handler.generate_coords_from_scan_angles)
@@ -549,10 +650,17 @@ class TestLIL2():
         """Test inverse_projection execution delayed until .values is called on the dataset."""
         accumulated_products = ["li_l2_af_nc", "li_l2_afr_nc", "li_l2_afa_nc"]
         coordinate_datasets = ["longitude", "latitude"]
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
 
         for accum_prod in accumulated_products:
             for ds_name in coordinate_datasets:
-                handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, accum_prod))
+                handler = LIL2NCFileHandler("filename", filename_info,
+                                            extract_filetype_info(filetype_infos, accum_prod))
                 dsid = make_dataid(name=ds_name)
                 handler.inverse_projection = mock.MagicMock(side_effect=handler.inverse_projection)
                 dset = handler.get_dataset(dsid)
@@ -573,7 +681,13 @@ class TestLIL2():
 
     def generate_coords(self, filetype_infos, file_type_name, variable_name):
         """Generate file handler and mimic coordinate generator call."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, file_type_name))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, file_type_name))
         dsid = make_dataid(name=variable_name)
         handler.generate_coords_from_scan_angles = mock.MagicMock(
             side_effect=handler.generate_coords_from_scan_angles)
@@ -582,7 +696,13 @@ class TestLIL2():
 
     def test_generate_coords_called_once(Self, filetype_infos):
         """Test that the method is called only once."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"))
         # check internal variable is empty
         assert len(handler.internal_variables) == 0
         coordinate_datasets = ["longitude", "latitude"]
@@ -602,8 +722,14 @@ class TestLIL2():
                     "li_l2_afr_nc",
                     "li_l2_afa_nc"]
 
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
         for prod in products:
-            handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, prod))
+            handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, prod))
 
             # Get azimuth/elevation arrays from handler
             azimuth = handler.get_measured_variable(handler.swath_coordinates["azimuth"])
@@ -611,7 +737,6 @@ class TestLIL2():
 
             elevation = handler.get_measured_variable(handler.swath_coordinates["elevation"])
             elevation = handler.apply_use_rescaling(elevation)
-
             # Initialize proj_dict
             proj_var = handler.swath_coordinates["projection"]
             geos_proj = handler.get_measured_variable(proj_var, fill_value=None)
@@ -634,7 +759,8 @@ class TestLIL2():
             elevation_vals = elevation.values * point_height
             azimuth_vals *= -1
             lon_ref, lat_ref = projection(azimuth_vals, elevation_vals, inverse=True)
-            # Convert to float32:
+
+            # Convert lon_ref, lat_ref to a np.float32
             lon_ref = lon_ref.astype(np.float32)
             lat_ref = lat_ref.astype(np.float32)
 
@@ -648,7 +774,13 @@ class TestLIL2():
 
     def test_coords_and_grid_consistency(self, filetype_infos):
         """Compare computed latlon coords for 1-d version with latlon from areadef as for the gridded version."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
                                     with_area_definition=True)
 
         # Get cols/rows arrays from handler
@@ -672,7 +804,13 @@ class TestLIL2():
 
     def test_get_area_def_acc_products(self, filetype_infos):
         """Test retrieval of area def for accumulated products."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
                                     with_area_definition=True)
 
         dsid = make_dataid(name="flash_accumulation")
@@ -686,7 +824,13 @@ class TestLIL2():
 
     def test_get_area_def_non_acc_products(self, filetype_infos):
         """Test retrieval of area def for non-accumulated products."""
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_lgr_nc"),
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_lgr_nc"),
                                     with_area_definition=True)
         # Should throw for non-accum products:
         with pytest.raises(NotImplementedError):
@@ -711,8 +855,14 @@ class TestLIL2():
     def test_without_area_def(self, filetype_infos):
         """Test accumulated products data array without area definition."""
         # without area definition
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
         handler_without_area_def = LIL2NCFileHandler(
-            "filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"), with_area_definition=False)
+            "filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"), with_area_definition=False)
 
         dsid = make_dataid(name="flash_accumulation")
 
@@ -761,19 +911,31 @@ class TestLIL2():
 
     def handler_with_area(self, filetype_infos, product_name):
         """Create handler with area definition."""
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
         # Note: we need a test param provider here to ensure we write the same values for both handlers below:
         FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
         # with area definition
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, product_name),
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, product_name),
                                     with_area_definition=True)
         return handler
 
     def test_with_area_def_pixel_placement(self, filetype_infos):
         """Test the placements of pixel value with area definition."""
+        filename_info = {
+            "start_time": "20101112131415",
+            "end_time": "20101112131416",
+            "mission_prefix": "MT",
+            "spacecraft_id": "1"
+        }
         # with area definition
         FakeLIFileHandlerBase.schema_parameters = TestLIL2.param_provider
 
-        handler = LIL2NCFileHandler("filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
+        handler = LIL2NCFileHandler("filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"),
                                     with_area_definition=True)
         dsid = make_dataid(name="flash_accumulation")
 
@@ -785,7 +947,7 @@ class TestLIL2():
         yarr = handler.get_measured_variable("y").values.astype(int)
 
         handler_without_area_def = LIL2NCFileHandler(
-            "filename", {}, extract_filetype_info(filetype_infos, "li_l2_af_nc"), with_area_definition=False)
+            "filename", filename_info, extract_filetype_info(filetype_infos, "li_l2_af_nc"), with_area_definition=False)
 
         FakeLIFileHandlerBase.schema_parameters = None
 

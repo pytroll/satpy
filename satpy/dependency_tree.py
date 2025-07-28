@@ -26,7 +26,10 @@ import numpy as np
 from satpy import DataID, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
+from satpy.node import EMPTY_LEAF_NAME, CompositorNode, MissingDependencies, Node, ReaderNode
+from satpy.utils import get_logger
+
+LOG = get_logger(__name__)
 
 
 class Tree:
@@ -522,7 +525,7 @@ class DependencyTree(Tree):
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths),
+            prereqs (Sequence): Strings (names), floats (wavelengths),
                                 DataQuerys or Nodes to analyze.
 
         """
@@ -536,7 +539,7 @@ class DependencyTree(Tree):
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths), or
+            prereqs (Sequence): Strings (names), floats (wavelengths), or
                                 DataQuerys to analyze.
 
         """
@@ -554,7 +557,7 @@ class DependencyTree(Tree):
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths),
+            prereqs (Sequence): Strings (names), floats (wavelengths),
                                 DataQuerys or Nodes to analyze.
 
         """

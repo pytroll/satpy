@@ -30,7 +30,7 @@ from unittest import mock
 import pytest
 
 import satpy
-from satpy import DatasetDict
+from satpy import DatasetDict, available_writers
 from satpy._config import cached_entry_point
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
@@ -50,7 +50,7 @@ class TestBuiltinAreas(unittest.TestCase):
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import get_area_file
+        from satpy.area import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -82,7 +82,7 @@ class TestBuiltinAreas(unittest.TestCase):
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import get_area_file
+        from satpy.area import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -154,7 +154,7 @@ def _create_fake_importlib_files(module_paths: dict[str, Path]) -> Callable[[str
     return _fake_importlib_files
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_composite_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake compositor YAML configuration file."""
     yield from _create_yamlbased_plugin(
@@ -182,7 +182,7 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
     """)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_reader_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake reader YAML configuration file."""
     yield from _create_yamlbased_plugin(
@@ -200,12 +200,12 @@ def _write_fake_reader_yaml(yaml_filename: str) -> None:
 reader:
     name: {reader_name}
     sensors: [fake_sensor]
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 datasets: {{}}
 """)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_writer_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake writer YAML configuration file."""
     yield from _create_yamlbased_plugin(
@@ -222,11 +222,11 @@ def _write_fake_writer_yaml(yaml_filename: str) -> None:
         comps_file.write(f"""
 writer:
     name: {writer_name}
-    writer: !!python/name:satpy.writers.Writer
+    writer: !!python/name:satpy.writers.core.base.Writer
 """)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_enh_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake enhancement YAML configure files.
 
@@ -289,8 +289,17 @@ def _create_yamlbased_plugin(
 class TestPluginsConfigs:
     """Test that plugins are working."""
 
-    def setup_method(self):
-        """Set up the test."""
+    @classmethod
+    def setup_class(cls):
+        """Set up the class of tests with a clean environment."""
+        cached_entry_point.cache_clear()
+
+    def teardown_method(self):
+        """Tear down the test.
+
+        Make sure we leave every test the way we started.
+
+        """
         cached_entry_point.cache_clear()
 
     def test_get_plugin_configs(self, fake_composite_plugin_etc_path):
@@ -315,25 +324,24 @@ class TestPluginsConfigs:
     @pytest.mark.parametrize("specified_reader", [None, "fake_reader"])
     def test_plugin_reader_configs(self, fake_reader_plugin_etc_path, specified_reader):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.readers import configs_for_reader
+        from satpy.readers.core.config import configs_for_reader
         reader_yaml_path = fake_reader_plugin_etc_path / "readers" / "fake_reader.yaml"
         self._get_and_check_reader_writer_configs(specified_reader, configs_for_reader, reader_yaml_path)
 
     def test_plugin_reader_available_readers(self, fake_reader_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.readers import available_readers
+        from satpy.readers.core.config import available_readers
         self._check_available_component(available_readers, "fake_reader")
 
     @pytest.mark.parametrize("specified_writer", [None, "fake_writer"])
     def test_plugin_writer_configs(self, fake_writer_plugin_etc_path, specified_writer):
         """Test that writers can be loaded from plugin entry points."""
-        from satpy.writers import configs_for_writer
+        from satpy.writers.core.config import configs_for_writer
         writer_yaml_path = fake_writer_plugin_etc_path / "writers" / "fake_writer.yaml"
         self._get_and_check_reader_writer_configs(specified_writer, configs_for_writer, writer_yaml_path)
 
     def test_plugin_writer_available_writers(self, fake_writer_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.writers import available_writers
         self._check_available_component(available_writers, "fake_writer")
 
     @staticmethod
@@ -362,7 +370,7 @@ class TestPluginsConfigs:
         import xarray as xr
         from trollimage.xrimage import XRImage
 
-        from satpy.writers import Enhancer
+        from satpy.enhancements.enhancer import Enhancer
 
         data_arr = xr.DataArray(
             da.zeros((10, 10), dtype=np.float32),

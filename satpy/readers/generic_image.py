@@ -35,7 +35,7 @@ import rioxarray  # noqa: F401  # need by xarray with the engine rasterio
 import xarray as xr
 from pyresample import utils
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -147,7 +147,7 @@ def _mask_image_data(data, info):
         if not np.issubdtype(data.dtype, np.integer):
             raise ValueError("Only integer datatypes can be used as a mask.")
         mask = data.data[-1, :, :] == np.iinfo(data.dtype).min
-        data = data.astype(np.float64)
+        data = data.astype(np.float32)
         masked_data = da.stack([da.where(mask, np.nan, data.data[i, :, :])
                                 for i in range(data.shape[0])])
         data.data = masked_data

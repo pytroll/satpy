@@ -33,15 +33,18 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE,
     EQUATOR_RADIUS,
     POLE_RADIUS,
-    DatasetWrapper,
     FiduceoMviriEasyFcdrFileHandler,
     FiduceoMviriFullFcdrFileHandler,
+    Interpolator,
+    preprocess_dataset,
 )
 from satpy.tests.utils import make_dataid
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - request
+
+fill_val = np.uint32(429496729) # FillValue lower than in dataset to be windows-compatible
 
 attrs_exp: dict = {
     "platform": "MET7",
@@ -61,8 +64,8 @@ attrs_refl_exp.update(
     {"sun_earth_distance_correction_applied": True,
      "sun_earth_distance_correction_factor": 1.}
 )
-acq_time_vis_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
-                    np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+acq_time_vis_exp = [np.datetime64("NaT").astype("datetime64[ns]"),
+                    np.datetime64("NaT").astype("datetime64[ns]"),
                     np.datetime64("1970-01-01 02:30").astype("datetime64[ns]"),
                     np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 vis_counts_exp = xr.DataArray(
@@ -79,6 +82,7 @@ vis_counts_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
+
 vis_rad_exp = xr.DataArray(
     np.array(
         [[np.nan, 18.56, 38.28, 58.],
@@ -124,7 +128,10 @@ u_vis_refl_exp = xr.DataArray(
     },
     attrs=attrs_exp
 )
-acq_time_ir_wv_exp = [np.datetime64("1970-01-01 00:30").astype("datetime64[ns]"),
+
+u_struct_refl_exp = u_vis_refl_exp.copy()
+
+acq_time_ir_wv_exp = [np.datetime64("NaT"),
                       np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
 wv_counts_exp = xr.DataArray(
     np.array(
@@ -250,30 +257,38 @@ area_ir_wv_exp = area_vis_exp.copy(
 )
 
 
+@pytest.fixture(name="time_fake_dataset")
+def fixture_time_fake_dataset():
+    """Create time for fake dataset."""
+    time = np.arange(4) * 60 * 60
+    time[0] = fill_val
+    time[1] = fill_val
+    time = time.reshape(2, 2)
+
+    return time
+
+
 @pytest.fixture(name="fake_dataset")
-def fixture_fake_dataset():
+def fixture_fake_dataset(time_fake_dataset):
     """Create fake dataset."""
     count_ir = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
     count_wv = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
     count_vis = da.linspace(0, 255, 16, dtype=np.uint8).reshape(4, 4)
     sza = da.from_array(
         np.array(
-            [[45, 90],
-             [0, 45]],
+            [[45, 90], [0, 45]],
             dtype=np.float32
         )
     )
     mask = da.from_array(
         np.array(
-            [[0, 0, 0, 0],
-             [0, 0, 0, 0],
-             [0, 0, 1, 0],  # 1 = "invalid"
-             [0, 0, 0, 0]],
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]], # 1 = "invalid"
             dtype=np.uint8
         )
     )
-    time = np.arange(4) * 60 * 60 * 1e9
-    time = time.astype("datetime64[ns]").reshape(2, 2)
+
+    cov = da.from_array([[1, 2], [3, 4]])
+
     ds = xr.Dataset(
         data_vars={
             "count_vis": (("y", "x"), count_vis),
@@ -281,9 +296,10 @@ def fixture_fake_dataset():
             "count_ir": (("y_ir_wv", "x_ir_wv"), count_ir),
             "toa_bidirectional_reflectance_vis": vis_refl_exp / 100,
             "u_independent_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
+            "u_structured_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
             "quality_pixel_bitmask": (("y", "x"), mask),
             "solar_zenith_angle": (("y_tie", "x_tie"), sza),
-            "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time),
+            "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time_fake_dataset),
             "a_ir": -5.0,
             "b_ir": 1.0,
             "bt_a_ir": 10.0,
@@ -303,6 +319,9 @@ def fixture_fake_dataset():
             "sub_satellite_longitude_end": np.nan,
             "sub_satellite_latitude_start": np.nan,
             "sub_satellite_latitude_end": 0.1,
+            "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), cov),
+            "channel_correlation_matrix_independent": (("channel", "channel"), cov),
+            "channel_correlation_matrix_structured": (("channel", "channel"), cov)
         },
         coords={
             "y": [1, 2, 3, 4],
@@ -310,14 +329,31 @@ def fixture_fake_dataset():
             "y_ir_wv": [1, 2],
             "x_ir_wv": [1, 2],
             "y_tie": [1, 2],
-            "x_tie": [1, 2]
-
+            "x_tie": [1, 2],
         },
         attrs={"foo": "bar"}
     )
     ds["count_ir"].attrs["ancillary_variables"] = "a_ir b_ir"
     ds["count_wv"].attrs["ancillary_variables"] = "a_wv b_wv"
+    ds["quality_pixel_bitmask"].encoding["chunksizes"] = (2, 2)
+    ds["time_ir_wv"].attrs["_FillValue"] = fill_val
+    ds["time_ir_wv"].attrs["add_offset"] = 0
+
     return ds
+
+
+@pytest.fixture(name="projection_longitude", params=["57.0"])
+def fixture_projection_longitude(request):
+    """Get projection longitude as string."""
+    return request.param
+
+
+@pytest.fixture(name="fake_file")
+def fixture_fake_file(fake_dataset, tmp_path):
+    """Create test file."""
+    filename = tmp_path / "test_mviri_fiduceo.nc"
+    fake_dataset.to_netcdf(filename)
+    return filename
 
 
 @pytest.fixture(
@@ -325,30 +361,28 @@ def fixture_fake_dataset():
     params=[FiduceoMviriEasyFcdrFileHandler,
             FiduceoMviriFullFcdrFileHandler]
 )
-def fixture_file_handler(fake_dataset, request):
+def fixture_file_handler(fake_file, request, projection_longitude):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
     if marker:
         mask_bad_quality = marker.kwargs["mask_bad_quality"]
     fh_class = request.param
-    with mock.patch("satpy.readers.mviri_l1b_fiduceo_nc.xr.open_dataset") as open_dataset:
-        open_dataset.return_value = fake_dataset
-        return fh_class(
-            filename="filename",
-            filename_info={"platform": "MET7",
-                           "sensor": "MVIRI",
-                           "projection_longitude": "57.0"},
-            filetype_info={"foo": "bar"},
-            mask_bad_quality=mask_bad_quality
-        )
+    return fh_class(
+        filename=fake_file,
+        filename_info={"platform": "MET7",
+                       "sensor": "MVIRI",
+                       "projection_longitude": projection_longitude},
+        filetype_info={"foo": "bar"},
+        mask_bad_quality=mask_bad_quality
+    )
 
 
 @pytest.fixture(name="reader")
 def fixture_reader():
     """Return MVIRI FIDUCEO FCDR reader."""
     from satpy._config import config_search_paths
-    from satpy.readers import load_reader
+    from satpy.readers.core.loading import load_reader
 
     reader_configs = config_search_paths(
         os.path.join("readers", "mviri_l1b_fiduceo_nc.yaml"))
@@ -359,7 +393,8 @@ def fixture_reader():
 class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
 
-    def test_init(self, file_handler):
+    @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
+    def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
         assert file_handler.projection_longitude == 57.0
         assert file_handler.mask_bad_quality is True
@@ -379,7 +414,8 @@ class TestFiduceoMviriFileHandlers:
             ("quality_pixel_bitmask", None, 2250, quality_pixel_bitmask_exp),
             ("solar_zenith_angle", None, 2250, sza_vis_exp),
             ("solar_zenith_angle", None, 4500, sza_ir_wv_exp),
-            ("u_independent_toa_bidirectional_reflectance", None, 4500, u_vis_refl_exp)
+            ("u_independent_toa_bidirectional_reflectance", None, 4500, u_vis_refl_exp),
+            ("u_structured_toa_bidirectional_reflectance", None, 4500, u_struct_refl_exp)
         ]
     )
     def test_get_dataset(self, file_handler, name, calibration, resolution,
@@ -406,11 +442,8 @@ class TestFiduceoMviriFileHandlers:
 
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
-        # Time may have different names and satellite position might be missing
-        file_handler.nc.nc = file_handler.nc.nc.rename(
-            {"time_ir_wv": "time"}
-        )
-        file_handler.nc.nc = file_handler.nc.nc.drop_vars(
+        # Satellite position might be missing
+        file_handler.nc.ds = file_handler.nc.ds.drop_vars(
             ["sub_satellite_longitude_start"]
         )
 
@@ -535,10 +568,10 @@ class TestFiduceoMviriFileHandlers:
     @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):
         """Test warning about bad VIS quality."""
-        file_handler.nc.nc["quality_pixel_bitmask"] = 2
+        file_handler.nc.ds["quality_pixel_bitmask"] = 2
         vis = make_dataid(name="VIS", resolution=2250,
                           calibration="reflectance")
-        with pytest.warns(UserWarning):
+        with pytest.warns(UserWarning, match=".*All pixels of the VIS.*"):
             file_handler.get_dataset(vis, {})
 
     def test_file_pattern(self, reader):
@@ -547,47 +580,119 @@ class TestFiduceoMviriFileHandlers:
             "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc",
             "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
             "FIDUCEO_FCDR_L15_MVIRI_MET7-00.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+            "MVIRI_FCDR-EASY_L15_MET7-E0000_200607060600_200607060630_0200.nc",
+            "MVIRI_FCDR-EASY_L15_MET7-E5700_200607060600_200607060630_0200.nc",
+            "MVIRI_FCDR-FULL_L15_MET7-E0000_200607060600_200607060630_0200.nc",
             "abcde",
         ]
 
         files = reader.select_files_from_pathnames(filenames)
-        # only 3 out of 4 above should match
-        assert len(files) == 3
+        assert len(files) == 6
 
 
-class TestDatasetWrapper:
-    """Unit tests for DatasetWrapper class."""
+class TestDatasetPreprocessor:
+    """Test dataset preprocessing."""
 
-    def test_reassign_coords(self):
-        """Test reassigning of coordinates.
+    @pytest.fixture(name="dataset")
+    def fixture_dataset(self):
+        """Get dataset before preprocessing.
 
-        For some reason xarray does not always assign (y, x) coordinates to
-        the high resolution datasets, although they have dimensions (y, x) and
-        coordinates y and x exist. A dataset with these properties seems
-        impossible to create (neither dropping, resetting or deleting
-        coordinates seems to work). Instead use mock as a workaround.
+        - Encoded timestamps including fill values
+        - Duplicate dimension names
+        - x/y coordinates not assigned
         """
-        nc = mock.MagicMock(
-            coords={
-                "y": [.1, .2],
-                "x": [.3, .4]
-            },
-            dims=("y", "x")
-        )
-        nc.__getitem__.return_value = xr.DataArray(
-            [[1, 2],
-             [3, 4]],
-            dims=("y", "x")
-        )
-        foo_exp = xr.DataArray(
-            [[1, 2],
-             [3, 4]],
-            dims=("y", "x"),
-            coords={
-                "y": [.1, .2],
-                "x": [.3, .4]
+        time = 60*60
+        return xr.Dataset(
+            data_vars={
+                "covariance_spectral_response_function_vis": (("srf_size", "srf_size"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_independent": (("channel", "channel"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_structured": (("channel", "channel"), [[1, 2], [3, 4]]),
+                "time_ir_wv": (("y", "x"), [[time, fill_val], [time, time]],
+                               {"_FillValue": fill_val, "add_offset": 0})
             }
         )
-        ds = DatasetWrapper(nc)
-        foo = ds["foo"]
-        xr.testing.assert_equal(foo, foo_exp)
+
+    @pytest.fixture(name="dataset_exp")
+    def fixture_dataset_exp(self):
+        """Get expected dataset after preprocessing.
+
+        - Timestamps should have been converted to datetime64
+        - Time dimension should have been renamed
+        - Duplicate dimensions should have been removed
+        - x/y coordinates should have been assigned
+        """
+        time_exp = np.datetime64("1970-01-01 01:00").astype("datetime64[ns]")
+        return xr.Dataset(
+            data_vars={
+                "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
+                "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
+                "time": (("y", "x"), [[time_exp, np.datetime64("NaT")], [time_exp, time_exp]])
+            },
+            coords={
+                "y": [0, 1],
+                "x": [0, 1]
+            }
+        )
+
+    def test_preprocess(self, dataset, dataset_exp):
+        """Test dataset preprocessing."""
+        preprocessed = preprocess_dataset(dataset)
+        xr.testing.assert_allclose(preprocessed, dataset_exp)
+
+
+class TestInterpolator:
+    """Unit tests for Interpolator class."""
+    @pytest.fixture(name="time_ir_wv")
+    def fixture_time_ir_wv(self):
+        """Returns time_ir_wv."""
+        time_ir_wv = xr.DataArray(
+            [
+              [np.datetime64("1970-01-01 01:00"), np.datetime64("1970-01-01 02:00")],
+              [np.datetime64("1970-01-01 03:00"), np.datetime64("1970-01-01 04:00")],
+              [np.datetime64("NaT"), np.datetime64("1970-01-01 06:00")],
+              [np.datetime64("NaT"), np.datetime64("NaT")],
+            ],
+            dims=("y", "x"),
+            coords={"y": [1, 3, 5, 7]}
+        )
+        return time_ir_wv.astype("datetime64[ns]")
+
+    @pytest.fixture(name="acq_time_exp")
+    def fixture_acq_time_exp(self):
+        """Returns acq_time_vis_exp."""
+        vis = xr.DataArray(
+            [
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("NaT"),
+                np.datetime64("NaT")
+            ],
+            dims="y",
+            coords={"y": [1, 2, 3, 4, 5, 6, 7, 8]}
+        )
+
+        ir = xr.DataArray(
+            [
+                np.datetime64("1970-01-01 01:30"),
+                np.datetime64("1970-01-01 03:30"),
+                np.datetime64("1970-01-01 06:00"),
+                np.datetime64("NaT"),
+            ],
+            dims="y",
+            coords={"y": [1, 3, 5, 7]}
+        )
+
+        return vis, ir
+
+    def test_interp_acq_time(self, time_ir_wv, acq_time_exp):
+        """Tests time interpolation."""
+        res_vis = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp[0].coords["y"])
+        res_ir = Interpolator.interp_acq_time(time_ir_wv, target_y=acq_time_exp[1].coords["y"])
+
+        xr.testing.assert_allclose(res_vis, acq_time_exp[0])
+        xr.testing.assert_allclose(res_ir, acq_time_exp[1])
