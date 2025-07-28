@@ -173,7 +173,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
         # filename not passed on to writer by Scene.save_dataset, but I need
         # it!
-        filename = filename or self.get_filename(**dataset.attrs)
+        filename = filename or self.get_filename(**dataset.attrs,
+                                                 **self._get_dynamic_attrs(dataset))
 
         gdal_opts = {}
         ntg_opts = {}
@@ -433,7 +434,7 @@ class NinJoTagGenerator:
         image.
         """
         dt = get_valid_time(self.dataset)
-        delta = dt.astype("M8[ms]").item().replace(tzinfo=datetime.timezone.utc) - self._epoch
+        delta = dt.replace(tzinfo=datetime.timezone.utc) - self._epoch
         return int(delta.total_seconds())
 
     def get_earth_radius_large(self):

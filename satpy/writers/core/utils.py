@@ -39,4 +39,5 @@ def get_valid_time(dataset):
             "to `Scene.resample`.")
 
     tm = dataset.coords["time"].mean()
-    return decode_cf_datetime(tm, dataset.coords["time"].attrs["units"])
+    tm_decoded = decode_cf_datetime(tm, dataset.coords["time"].attrs["units"])
+    return tm_decoded.astype("M8[us]").item()

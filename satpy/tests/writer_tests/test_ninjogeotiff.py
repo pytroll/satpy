@@ -1013,7 +1013,7 @@ def test_write_valid_time(test_image_with_time_coords, tmp_path):
         DataType="GORN",
         DataSource="dowsing rod")
     src = rasterio.open(fn.replace("{valid_time:%Y%m%d%H%M%S}",
-                                   "19850813150001"))
+                                   "19850813130001"))
     tgs = src.tags()
     assert tgs["ninjo_DateID"] == "492786000"
     assert tgs["ninjo_ValidDateID"] == "492786001"

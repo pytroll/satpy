@@ -21,12 +21,16 @@ import typing
 from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.writers.core.base import Writer
 
+from . import utils
+
 if typing.TYPE_CHECKING:
     from trollimage.xrimage import XRImage
 
 
 class ImageWriter(Writer):
     """Base writer for image file formats."""
+
+    dynamic_fields = {"valid_time"}
 
     def __init__(self, name=None, filename=None, base_dir=None, enhance=None, **kwargs):
         """Initialize image writer object.
@@ -40,8 +44,10 @@ class ImageWriter(Writer):
                 should specify certain python string formatting fields to
                 differentiate between data written to the files. Any
                 attributes provided by the ``.attrs`` of a DataArray object
-                may be included. Format and conversion specifiers provided by
-                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                may be included. In addition, dynamically calculated fields
+                may be included. Supported dynamic fields are listed in the
+                writer attribute ``dynamic_fields``. Format and conversion
+                specifiers provided by the :class:`trollsift <trollsift.parser.StringFormatter>`
                 package may also be used. Any directories in the provided
                 pattern will be created if they do not exist. Example::
 
@@ -142,3 +148,18 @@ class ImageWriter(Writer):
 
         """
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
+
+    def _get_dynamic_attrs(self, dataset):
+        """Report dynamic attributes.
+
+        Apart from attributes stored in the dataset, we can retrieve attributes
+        derived from the data.  This may be useful in case we want to include
+        such information in the filename.
+        """
+        return {
+            field: getattr(self, f"get_{field}")(dataset)
+            for field in self.dynamic_fields}
+
+    def get_valid_time(self, dataset):
+        """Get valid time for dataset."""
+        return utils.get_valid_time(dataset)
