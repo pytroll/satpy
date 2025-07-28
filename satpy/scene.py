@@ -882,8 +882,7 @@ class Scene:
             if self._update_area(dataset, parent_dataset, new_scn, ds_id, pres):
                 continue
 
-            source_area = dataset.attrs["area"]
-            dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
+            dataset, source_area = self._reduce_data(dataset, destination_area,
                                                      reduce_data, reductions, resample_kwargs)
 
             LOG.debug("Resampling %s", ds_id)
@@ -951,7 +950,8 @@ class Scene:
             resamplers[source_area] = resampler
             self._resamplers[key] = resampler
 
-    def _reduce_data(self, dataset, source_area, destination_area, reduce_data, reductions, resample_kwargs):
+    def _reduce_data(self, dataset, destination_area, reduce_data, reductions, resample_kwargs):
+        source_area = dataset.attrs["area"]
         try:
             if reduce_data:
                 key = source_area
