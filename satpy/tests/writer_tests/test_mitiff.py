@@ -22,6 +22,7 @@ Based on the test for geotiff writer
 """
 
 import datetime as dt
+import math
 import os
 
 import dask.array as da
@@ -139,7 +140,7 @@ def _get_test_dataset(bands=3):
     """Create a single test dataset."""
     area_def = _get_stere_test_area()
     ds1 = xr.DataArray(
-        da.zeros((bands, 100, 200), chunks=50),
+        _get_arange_test_data(bands=bands),
         dims=("bands", "y", "x"),
         attrs={"name": "test",
                "start_time": dt.datetime.now(dt.timezone.utc),
@@ -158,7 +159,7 @@ def _get_test_one_dataset():
     """Create a single test dataset."""
     area_def = _get_geo_test_area()
     ds1 = xr.DataArray(
-        da.zeros((100, 200), chunks=50),
+        _get_arange_test_data(),
         dims=("y", "x"),
         attrs={"name": "test",
                "start_time": dt.datetime.now(dt.timezone.utc),
@@ -174,7 +175,7 @@ def _get_test_one_dataset_sensor_set():
     """Create a single test dataset."""
     area_def = _get_geo_test_area()
     ds1 = xr.DataArray(
-        da.zeros((100, 200), chunks=50),
+        _get_arange_test_data(),
         dims=("y", "x"),
         attrs={"name": "test",
                "start_time": dt.datetime.now(dt.timezone.utc),
@@ -345,10 +346,8 @@ def _get_test_dataset_three_bands_two_prereq(bands=3):
     from satpy.tests.utils import make_dsq
     area_def = _get_stere_test_area()
 
-    data = np.arange(bands * 100 * 200).reshape((bands, 100, 200))
-    data_dask = da.from_array(data, chunks=50)
     ds1 = xr.DataArray(
-        data_dask,
+        _get_arange_test_data(bands),
         coords=[["R", "G", "B"], list(range(100)), list(range(200))],
         dims=("bands", "y", "x"),
         attrs={"name": "test",
@@ -368,7 +367,7 @@ def _get_test_dataset_three_bands_prereq(bands=3):
 
     area_def = _get_stere_test_area()
     ds1 = xr.DataArray(
-        da.zeros((bands, 100, 200), chunks=50),
+        _get_arange_test_data(bands),
         coords=[["R", "G", "B"], list(range(100)), list(range(200))],
         dims=("bands", "y", "x"),
         attrs={"name": "test",
@@ -380,6 +379,15 @@ def _get_test_dataset_three_bands_prereq(bands=3):
                                  make_dsq(wavelength=0.8, modifiers=("sunz_corrected",)),
                                  10.8]})
     return ds1
+
+
+def _get_arange_test_data(bands: int = 0) -> da.Array:
+    shape: tuple[int, ...] = (bands, 100, 200)
+    if bands == 0:
+        shape = shape[1:]
+
+    data = np.arange(math.prod(shape)).reshape(shape)
+    return da.from_array(data, chunks=50)
 
 
 def _get_stere_test_area():
@@ -811,7 +819,7 @@ def test_save_dataset_palette(tmp_path):
     """Test writer operation as palette."""
     from satpy.writers.mitiff import MITIFFWriter
 
-    expected = [np.full((100, 200), 0)]
+    expected = [np.arange(100 * 200).reshape((100, 200)).astype(np.uint8)]
 
     exp_c = [0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
