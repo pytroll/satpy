@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import os
+from functools import partial
 from unittest import mock
 
 import dask.array as da
@@ -366,18 +367,15 @@ def fixture_fake_file(fake_dataset, tmp_path):
 )
 def fixture_file_handler(fake_file, request, projection_longitude):
     """Create mocked file handler."""
-    marker = request.node.get_closest_marker("file_handler_data")
-    mask_bad_quality = True
-    if marker:
-        mask_bad_quality = marker.kwargs["mask_bad_quality"]
     fh_class = request.param
-    return fh_class(
+    return partial(
+        fh_class,
         filename=fake_file,
         filename_info={"platform": "MET7",
                        "sensor": "MVIRI",
                        "projection_longitude": projection_longitude},
         filetype_info={"foo": "bar"},
-        mask_bad_quality=mask_bad_quality
+        mask_bad_quality=True,
     )
 
 
@@ -399,8 +397,9 @@ class TestFiduceoMviriFileHandlers:
     @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
     def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
-        assert file_handler.projection_longitude == 57.0
-        assert file_handler.mask_bad_quality is True
+        fh = file_handler()
+        assert fh.projection_longitude == 57.0
+        assert fh.mask_bad_quality is True
 
     @pytest.mark.parametrize(
         ("name", "calibration", "resolution", "expected"),
@@ -424,29 +423,31 @@ class TestFiduceoMviriFileHandlers:
     def test_get_dataset(self, file_handler, name, calibration, resolution,
                          expected):
         """Test getting datasets."""
+        fh = file_handler()
         id_keys = {"name": name, "resolution": resolution}
         if calibration:
             id_keys["calibration"] = calibration
         dataset_id = make_dataid(**id_keys)
         dataset_info = {"platform": "MET7"}
 
-        is_easy = isinstance(file_handler, FiduceoMviriEasyFcdrFileHandler)
+        is_easy = isinstance(fh, FiduceoMviriEasyFcdrFileHandler)
         is_vis = name == "VIS"
         is_refl = calibration == "reflectance"
         if is_easy and is_vis and not is_refl:
             # VIS counts/radiance not available in easy FCDR
             with pytest.raises(ValueError, match="Cannot calibrate to .*. Easy FCDR provides reflectance only."):
-                file_handler.get_dataset(dataset_id, dataset_info)
+                fh.get_dataset(dataset_id, dataset_info)
         else:
-            ds = file_handler.get_dataset(dataset_id, dataset_info)
+            ds = fh.get_dataset(dataset_id, dataset_info)
             xr.testing.assert_allclose(ds, expected)
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
 
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
+        fh = file_handler()
         # Satellite position might be missing
-        file_handler.nc.ds = file_handler.nc.ds.drop_vars(
+        fh.nc.ds = fh.nc.ds.drop_vars(
             ["sub_satellite_longitude_start"]
         )
 
@@ -455,7 +456,7 @@ class TestFiduceoMviriFileHandlers:
             calibration="reflectance",
             resolution=2250
         )
-        ds = file_handler.get_dataset(dataset_id, {"platform": "MET7"})
+        ds = fh.get_dataset(dataset_id, {"platform": "MET7"})
         assert "actual_satellite_longitude" not in ds.attrs["orbital_parameters"]
         assert "actual_satellite_latitude" not in ds.attrs["orbital_parameters"]
         xr.testing.assert_allclose(ds, vis_refl_exp)
@@ -465,6 +466,7 @@ class TestFiduceoMviriFileHandlers:
     )
     def test_time_cache(self, interp_acq_time, file_handler):
         """Test caching of acquisition times."""
+        fh = file_handler()
         dataset_id = make_dataid(
             name="VIS",
             resolution=2250,
@@ -474,12 +476,12 @@ class TestFiduceoMviriFileHandlers:
         interp_acq_time.return_value = xr.DataArray([1, 2, 3, 4], dims="y")
 
         # Cache init
-        file_handler.get_dataset(dataset_id, info)
+        fh.get_dataset(dataset_id, info)
         interp_acq_time.assert_called()
 
         # Cache hit
         interp_acq_time.reset_mock()
-        file_handler.get_dataset(dataset_id, info)
+        fh.get_dataset(dataset_id, info)
         interp_acq_time.assert_not_called()
 
         # Cache miss
@@ -490,7 +492,7 @@ class TestFiduceoMviriFileHandlers:
             calibration="brightness_temperature"
         )
         interp_acq_time.reset_mock()
-        file_handler.get_dataset(another_id, info)
+        fh.get_dataset(another_id, info)
         interp_acq_time.assert_called()
 
     @mock.patch(
@@ -498,24 +500,25 @@ class TestFiduceoMviriFileHandlers:
     )
     def test_angle_cache(self, interp_tiepoints, file_handler):
         """Test caching of angle datasets."""
+        fh = file_handler()
         dataset_id = make_dataid(name="solar_zenith_angle",
                                  resolution=2250)
         info = {}
 
         # Cache init
-        file_handler.get_dataset(dataset_id, info)
+        fh.get_dataset(dataset_id, info)
         interp_tiepoints.assert_called()
 
         # Cache hit
         interp_tiepoints.reset_mock()
-        file_handler.get_dataset(dataset_id, info)
+        fh.get_dataset(dataset_id, info)
         interp_tiepoints.assert_not_called()
 
         # Cache miss
         another_id = make_dataid(name="solar_zenith_angle",
                                  resolution=4500)
         interp_tiepoints.reset_mock()
-        file_handler.get_dataset(another_id, info)
+        fh.get_dataset(another_id, info)
         interp_tiepoints.assert_called()
 
     @pytest.mark.parametrize(
@@ -532,21 +535,23 @@ class TestFiduceoMviriFileHandlers:
     def test_get_area_definition(self, file_handler, name, resolution,
                                  area_exp):
         """Test getting area definitions."""
+        fh = file_handler()
         dataset_id = make_dataid(name=name, resolution=resolution)
-        area = file_handler.get_area_def(dataset_id)
+        area = fh.get_area_def(dataset_id)
 
         assert area.crs == area_exp.crs
         np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
 
     def test_calib_exceptions(self, file_handler):
         """Test calibration exceptions."""
+        fh = file_handler()
         with pytest.raises(KeyError):
-            file_handler.get_dataset(
+            fh.get_dataset(
                 make_dataid(name="solar_zenith_angle", calibration="counts"),
                 {}
             )
         with pytest.raises(KeyError):
-            file_handler.get_dataset(
+            fh.get_dataset(
                 make_dataid(
                     name="VIS",
                     resolution=2250,
@@ -554,28 +559,28 @@ class TestFiduceoMviriFileHandlers:
                 {}
             )
         with pytest.raises(KeyError):
-            file_handler.get_dataset(
+            fh.get_dataset(
                 make_dataid(
                     name="IR",
                     resolution=4500,
                     calibration="reflectance"),
                 {}
             )
-        if isinstance(file_handler, FiduceoMviriEasyFcdrFileHandler):
+        if isinstance(fh, FiduceoMviriEasyFcdrFileHandler):
             with pytest.raises(KeyError):
-                file_handler.get_dataset(
+                fh.get_dataset(
                     {"name": "VIS", "calibration": "counts"},
                     {}
                 )  # not available in easy FCDR
 
-    @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):
         """Test warning about bad VIS quality."""
-        file_handler.nc.ds["quality_pixel_bitmask"] = 2
+        fh = file_handler(mask_bad_quality=False)
+        fh.nc.ds["quality_pixel_bitmask"] = 2
         vis = make_dataid(name="VIS", resolution=2250,
                           calibration="reflectance")
         with pytest.warns(UserWarning, match=".*All pixels of the VIS.*"):
-            file_handler.get_dataset(vis, {})
+            fh.get_dataset(vis, {})
 
     def test_file_pattern(self, reader):
         """Test file pattern matching."""
