@@ -32,7 +32,7 @@ def get_valid_time(dataset):
     """
     if "time" not in dataset.coords:
         raise ValueError(
-            "Dataset {dataset.attrs['name']:s} has no time coordinate. "
+            f"Dataset {dataset.attrs['name']:s} has no time coordinate. "
             "No valid time can be calculated.  To track valid time, "
             "pass `reader_kwargs = {'track_time': True}` to `Scene.__init__` "
             "for a supported reader and, if applicable, `resample_coords=True` "

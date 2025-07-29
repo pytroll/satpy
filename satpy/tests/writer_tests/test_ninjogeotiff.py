@@ -1006,6 +1006,7 @@ def test_write_valid_time(test_image_with_time_coords, tmp_path):
         blockysize=128,
         compress="lzw",
         predictor=2,
+        dynamic_fields={"valid_time"},
         PhysicUnit="N/A",
         PhysicValue="N/A",
         SatelliteNameID="trollsat",

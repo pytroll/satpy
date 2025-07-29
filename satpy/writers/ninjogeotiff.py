@@ -111,6 +111,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             compute=True, keep_palette=False, cmap=None, overviews=None,
             overviews_minsize=256, overviews_resampling=None,
             tags=None, config_files=None,
+            dynamic_fields=set(),
             *, ChannelID, DataType, PhysicUnit, PhysicValue,
             SatelliteNameID, **kwargs):
         """Save image along with NinJo tags.
@@ -138,6 +139,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overviews_minsize (int):
                 As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             overviews_resampling (str):
+                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
+            dynamic_fields (set[str]):
                 As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             tags (dict): Extra (not NinJo) tags to add to GDAL MetaData
             config_files (Any): Not directly used by this writer, supported
@@ -174,7 +177,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         # filename not passed on to writer by Scene.save_dataset, but I need
         # it!
         filename = filename or self.get_filename(**dataset.attrs,
-                                                 **self._get_dynamic_attrs(dataset))
+                                                 **self._get_dynamic_fields(dataset, dynamic_fields))
 
         gdal_opts = {}
         ntg_opts = {}

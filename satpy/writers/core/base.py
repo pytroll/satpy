@@ -24,6 +24,8 @@ from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.writers.core.compute import compute_writer_results, split_results
 
+from . import utils
+
 LOG = logging.getLogger(__name__)
 
 
@@ -231,3 +233,19 @@ class Writer(Plugin, DataDownloadMixin):
         """
         raise NotImplementedError(
             "Writer '%s' has not implemented dataset saving" % (self.name, ))
+
+
+    def _get_dynamic_fields(self, dataset, dynamic_fields):
+        """Report dynamic fields.
+
+        Apart from attributes stored in the dataset, we can retrieve attributes
+        derived from the data.  This may be useful in case we want to include
+        such information in the filename.
+        """
+        return {
+            field: getattr(self, f"get_{field}")(dataset)
+            for field in dynamic_fields}
+
+    def get_valid_time(self, dataset):
+        """Get valid time for dataset."""
+        return utils.get_valid_time(dataset)
