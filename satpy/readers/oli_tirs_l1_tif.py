@@ -813,4 +813,3 @@ class MSSMDReader(BaseLandsatMDL1Reader):
                 bdict[f"B{i:01d}"] = self._get_band_viscal(i)
 
         return bdict
-
