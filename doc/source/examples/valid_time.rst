@@ -40,4 +40,5 @@ to :meth:`~satpy.scene.Scene.save_datasets`:
        filename="{platform_name}-{sensor}-{name}-{area.area_id}-{start_time:%Y%m%d%H%M}-{valid_time:%Y%m%d%H%M%S}.tif",
        dynamic_fields={"valid_time"})
 
-For supported writers, valid time may also be written to the headers.
+For supported writers, valid time may also be written to the headers.  Consult
+the documentation of your writer for details.

@@ -171,6 +171,9 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             PhysicValue (str)
                 NinJo label for quantity (example: "temperature")
 
+        The tag ``ValidDateID`` is included if the dataset has a ``time``
+        coordinate.  See the :doc:`example on storing valid time <valid_time>`
+        for details.  All other tags are filled automatically without user action.
         """
         dataset = image.data
 
@@ -268,13 +271,16 @@ class NinJoTagGenerator:
     Tags are gathered from three sources:
 
     - Fixed tags, contained in the attribute ``fixed_tags``.  The value of
-      those tags is hardcoded and never changes.
+      those tags is hardcoded and does not change unless there is a major
+      change in the fileformat definition.
     - Tags passed by the user, contained in the attribute ``passed_tags``.
       Those tags must be passed by the user as arguments to the writer, which
       will pass them on when instantiating this class.
     - Tags calculated from data and metadata.  Those tags are defined in the
       attribute ``dynamic_tags``.  They are either calculated from image data,
       from image metadata, or from arguments passed by the user to the writer.
+      Some dynamic tags, such as ``ValidDateID``, are only calculated if
+      necessary metadata are available in the input data.
 
     Some tags are mandatory (defined in ``mandatory_tags``).  All tags that are
     not mandatory are optional.  By default, optional tags are generated if and
