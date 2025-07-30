@@ -315,9 +315,9 @@ date = datetime(2024, 5, 12, tzinfo=timezone.utc)
 
 
 @pytest.fixture(scope="session")
-def l1_area():
+def area():
     """Get the landsat 1 area def."""
-    pcs_id = "WGS 84 / UTM zone 40N"
+    pcs_id = "WGS84 / UTM zone 40N"
     proj4_dict = {"proj": "utm", "zone": 40, "datum": "WGS84", "units": "m", "no_defs": None, "type": "crs"}
     area_extent = (619485., 2440485., 850515., 2675715.)
     return AreaDefinition("geotiff_area", pcs_id, pcs_id,
@@ -338,7 +338,7 @@ def b11_data():
     """Get the data for the b11 channel."""
     return da.random.randint(8000, 14000,
                              size=(y_size, x_size),
-                              chunks=(50, 50)).astype(np.uint16)
+                             chunks=(50, 50)).astype(np.uint16)
 
 
 @pytest.fixture(scope="session")
@@ -363,43 +363,43 @@ def create_tif_file(data, name, area, filename):
 
 
 @pytest.fixture(scope="session")
-def l1_files_path(tmp_path_factory):
+def files_path(tmp_path_factory):
     """Create the path for l1 files."""
-    return tmp_path_factory.mktemp("l1_files")
+    return tmp_path_factory.mktemp("oli_tirs_l1_files")
 
 
 @pytest.fixture(scope="session")
-def b4_file(l1_files_path, b4_data, l1_area):
+def b4_file(files_path, b4_data, area):
     """Create the file for the b4 channel."""
     data = b4_data
-    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B4.TIF"
+    filename = files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B4.TIF"
     name = "B4"
-    create_tif_file(data, name, l1_area, filename)
+    create_tif_file(data, name, area, filename)
     return os.fspath(filename)
 
 @pytest.fixture(scope="session")
-def b11_file(l1_files_path, b11_data, l1_area):
+def b11_file(files_path, b11_data, area):
     """Create the file for the b11 channel."""
     data = b11_data
-    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B11.TIF"
+    filename = files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_B11.TIF"
     name = "B11"
-    create_tif_file(data, name, l1_area, filename)
+    create_tif_file(data, name, area, filename)
     return os.fspath(filename)
 
 @pytest.fixture(scope="session")
-def sza_file(l1_files_path, sza_data, l1_area):
+def sza_file(files_path, sza_data, area):
     """Create the file for the sza."""
     data = sza_data
-    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_SZA.TIF"
+    filename = files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_SZA.TIF"
     name = "sza"
-    create_tif_file(data, name, l1_area, filename)
+    create_tif_file(data, name, area, filename)
     return os.fspath(filename)
 
 
 @pytest.fixture(scope="session")
-def mda_file(l1_files_path):
+def mda_file(files_path):
     """Create the metadata xml file."""
-    filename = l1_files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_MTL.xml"
+    filename = files_path / "LC08_L1GT_026200_20240502_20240513_02_T2_MTL.xml"
     with open(filename, "wb") as f:
         f.write(metadata_text)
     return os.fspath(filename)
@@ -412,7 +412,7 @@ def all_files(b4_file, b11_file, mda_file, sza_file):
 
 
 @pytest.fixture(scope="session")
-def all_fsspec_files(b4_file, b11_file, mda_file, sza_file):
+def all_fs_files(b4_file, b11_file, mda_file, sza_file):
     """Return all the files as FSFile objects."""
     from fsspec.implementations.local import LocalFileSystem
 
@@ -435,10 +435,11 @@ class TestOLITIRSL1:
                                   platform_type="L",
                                   process_level_correction="L1TP",
                                   spacecraft_id="08",
-                                  data_type="C")
+                                  data_type="C",
+                                  collection_id="02")
         self.ftype_info = {"file_type": "granule_B4"}
 
-    def test_basicload(self, l1_area, b4_file, b11_file, mda_file):
+    def test_basicload(self, area, b4_file, b11_file, mda_file):
         """Test loading a Landsat Scene."""
         scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file,
                                                          b11_file,
@@ -447,16 +448,18 @@ class TestOLITIRSL1:
 
         # Check dataset is loaded correctly
         assert scn["B4"].shape == (100, 100)
-        assert scn["B4"].attrs["area"] == l1_area
+        assert scn["B4"].attrs["area"] == area
         assert scn["B4"].attrs["saturated"]
         assert scn["B11"].shape == (100, 100)
-        assert scn["B11"].attrs["area"] == l1_area
+        assert scn["B11"].attrs["area"] == area
         with pytest.raises(KeyError, match="saturated"):
             assert not scn["B11"].attrs["saturated"]
 
     def test_ch_startend(self, b4_file, sza_file, mda_file):
         """Test correct retrieval of start/end times."""
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file, sza_file, mda_file])
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=[b4_file,
+                                                         sza_file,
+                                                         mda_file])
         bnds = scn.available_dataset_names()
         assert bnds == ["B4", "solar_zenith_angle"]
 
@@ -619,16 +622,16 @@ class TestOLITIRSL1:
         assert standard_area.area_extent == (619485.0, 2440485.0, 850515.0, 2675715.0)
         assert pan_area.area_extent == (619492.5, 2440492.5, 850507.5, 2675707.5)
 
-    def test_basicload_remote(self, l1_area, all_fsspec_files):
+    def test_basicload_remote(self, area, all_fs_files):
         """Test loading a Landsat Scene from a fsspec filesystem."""
-        scn = Scene(reader="oli_tirs_l1_tif", filenames=all_fsspec_files)
+        scn = Scene(reader="oli_tirs_l1_tif", filenames=all_fs_files)
         scn.load(["B4", "B11"])
 
         # Check dataset is loaded correctly
         assert scn["B4"].shape == (100, 100)
-        assert scn["B4"].attrs["area"] == l1_area
+        assert scn["B4"].attrs["area"] == area
         assert scn["B4"].attrs["saturated"]
         assert scn["B11"].shape == (100, 100)
-        assert scn["B11"].attrs["area"] == l1_area
+        assert scn["B11"].attrs["area"] == area
         with pytest.raises(KeyError, match="saturated"):
             assert not scn["B11"].attrs["saturated"]

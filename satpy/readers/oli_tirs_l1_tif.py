@@ -15,11 +15,19 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Landsat OLI/TIRS Level 1 reader.
+"""Landsat reader.
 
 Details of the data format can be found here:
-  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/LSDS-1822_Landsat8-9-OLI-TIRS-C2-L1-DFCB-v6.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/media/files/LSDS-1822_Landsat8-9-OLI-TIRS_C2_L1_DataFormatControlBook-v7.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/LSDS-1414_Landsat7ETM-C2-L1-DFCB-v3.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/LSDS-1415_Landsat4-5-TM-C2-L1-DFCB-v3.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/LSDS-1416_LandsatMSS-C2-L1-DFCB-v3.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/media/files/LSDS-1328_Landsat8-9_OLI-TIRS-C2-L2_DFCB-v7.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/media/files/LSDS-1337_Landsat7ETM-C2-L2-DFCB-v6.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/LSDS-1336_Landsat4-5-TM-C2-L2-DFCB-v4.pdf
+  https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/media/files/LSDS-1927_Landsat7-Data-Users-Handbook-v3.pdf
   https://www.usgs.gov/landsat-missions/using-usgs-landsat-level-1-data-product
+  https://www.usgs.gov/landsat-missions/landsat-collection-2-level-2-science-products
 
 NOTE: The scene geometry data (SZA, VZA, SAA, VAA) is retrieved from the L1 TIFF files, which are derived from Band 04.
 The geometry differs between bands, so if you need precise geometry you should calculate this from the metadata instead.
@@ -38,29 +46,36 @@ from satpy.readers.core.remote import open_file_or_filename
 
 logger = logging.getLogger(__name__)
 
-PLATFORMS = {"08": "Landsat-8",
+PLATFORMS = {"01": "Landsat-1",
+             "02": "Landsat-2",
+             "03": "Landsat-3",
+             "04": "Landsat-4",
+             "05": "Landsat-5",
+             "07": "Landsat-7",
+             "08": "Landsat-8",
              "09": "Landsat-9"}
 
-OLI_BANDLIST = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"]
-TIRS_BANDLIST = ["B10", "B11"]
 PAN_BANDLIST = ["B8"]
+
 ANGLIST = ["satellite_azimuth_angle",
            "satellite_zenith_angle",
            "solar_azimuth_angle",
            "solar_zenith_angle"]
 
 ANGLIST_CHAN = ["sza", "saa", "vaa", "vza"]
+QALIST_CHAN = ["qa", "qa_radsat", "qa_aerosol", "qa_atmos_opacity", "qa_cloud", "qa_st"]
 
-BANDLIST = OLI_BANDLIST + TIRS_BANDLIST
 
-
-class OLITIRSCHReader(BaseFileHandler):
-    """File handler for Landsat L1 files (tif)."""
+class BaseLandsatReader(BaseFileHandler):
+    """Basic file handler for Landsat files (tif)."""
 
     @staticmethod
     def get_btype(file_type):
         """Return the band type from the file type."""
-        pos = file_type.rfind("_")
+        if "_B" in file_type:
+            pos = file_type.rfind("_B")
+        else:
+            pos = file_type.rfind("_")
         if pos == -1:
             raise ValueError(f"Invalid file type: {file_type}")
         else:
@@ -75,6 +90,21 @@ class OLITIRSCHReader(BaseFileHandler):
     def end_time(self):
         """Return end time."""
         return self._mda.end_time
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        raise NotImplementedError()
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        raise NotImplementedError()
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        raise NotImplementedError()
 
     def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
         """Initialize the reader."""
@@ -97,15 +127,17 @@ class OLITIRSCHReader(BaseFileHandler):
         self.bsat = self._mda.band_saturation
         self.calinfo = self._mda.band_calibration
         self.platform_name = PLATFORMS[filename_info["spacecraft_id"]]
+        self.collection = filename_info["collection_id"]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key["name"] and self.channel not in ANGLIST_CHAN:
+        if self.channel != key["name"] and self.channel not in ANGLIST_CHAN and key["name"] not in QALIST_CHAN:
             raise ValueError(f"Requested channel {key['name']} does not match the reader channel {self.channel}")
 
-        if key["name"] in OLI_BANDLIST and self.chan_selector not in ["O", "C"]:
+        # OLI-TIRS sensor data sometimes can contain only OLI or only TIRS data
+        if self.sensor == "OLI_TIRS" and key["name"] in self.spectral_bands and self.chan_selector not in ["O", "C"]:
             raise ValueError(f"Requested channel {key['name']} is not available in this granule")
-        if key["name"] in TIRS_BANDLIST and self.chan_selector not in ["T", "C"]:
+        if self.sensor == "OLI_TIRS" and key["name"] in self.thermal_bands and self.chan_selector not in ["T", "C"]:
             raise ValueError(f"Requested channel {key['name']} is not available in this granule")
 
         logger.debug("Reading %s.", key["name"])
@@ -116,22 +148,29 @@ class OLITIRSCHReader(BaseFileHandler):
                                          "x": "auto"},
                                  mask_and_scale=False).squeeze()
 
-
-        # The fill value for Landsat is '0', for calibration simplicity convert it to np.nan
-        data.data = xr.where(data.data == 0, np.float32(np.nan), data.data)
+        # For calibration simplicity convert the fill value to np.nan
+        bands_9999 = ["TRAD", "DRAD", "URAD", "ATRAN", "EMIS", "EMSD", "CDIST", "qa_st", "qa_atmos_opacity"]
+        if self.collection == "02" and key["name"] in bands_9999:
+            # The fill value for several Landsat L2 bands is '-9999'
+            data.data = xr.where(data.data == -9999, np.float32(np.nan), data.data)
+        else:
+            # The fill value for Landsat is '0'
+            data.data = xr.where(data.data == 0, np.float32(np.nan), data.data)
 
         attrs = data.attrs.copy()
         # Add useful metadata to the attributes.
         attrs["perc_cloud_cover"] = self._mda.cloud_cover
         # Add platform / sensor attributes
         attrs["platform_name"] = self.platform_name
-        attrs["sensor"] = "OLI_TIRS"
+        attrs["sensor"] = self.sensor
         # Apply attrs from YAML
-        attrs["standard_name"] = info["standard_name"]
-        attrs["units"] = info["units"]
+        if "standard_name" in info:
+            attrs["standard_name"] = info["standard_name"]
+        if "units" in info:
+            attrs["units"] = info["units"]
 
         # Only OLI bands have a saturation flag
-        if key["name"] in OLI_BANDLIST:
+        if key["name"] in self.bsat:
             attrs["saturated"] = self.bsat[key["name"]]
 
         # Rename to Satpy convention
@@ -140,12 +179,28 @@ class OLITIRSCHReader(BaseFileHandler):
         data.attrs.update(attrs)
 
         # Calibrate if we're using a band rather than a QA or geometry dataset
-        if key["name"] in BANDLIST:
+        if "calibration" in key:
             data = self.calibrate(data, key["calibration"])
         if key["name"] in ANGLIST:
             data.data = data.data * 0.01
 
         return data
+
+    def calibrate(self, data, calibration):
+        """Calibrate the data from counts into the desired units."""
+        raise NotImplementedError()
+
+    def get_area_def(self, dsid):
+        """Get area definition of the image from the metadata."""
+        return self._mda.build_area_def(dsid["name"])
+
+
+class BaseLandsatL1Reader(BaseLandsatReader):
+    """Basic file handler for Landsat L1 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
 
     def calibrate(self, data, calibration):
         """Calibrate the data from counts into the desired units."""
@@ -159,24 +214,245 @@ class OLITIRSCHReader(BaseFileHandler):
                 return data
 
         if calibration == "reflectance":
-            if int(self.channel[1:]) < 10:
-                data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
-                data.data = data.data.astype(np.float32) * 100
-                return data
+            data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
+            data.data = data.data.astype(np.float32) * 100
+            return data
 
         if calibration == "brightness_temperature":
-            if self.channel[1:] in ["10", "11"]:
-                data.data = (self.calinfo[self.channel][3] / np.log((self.calinfo[self.channel][2] / data.data) + 1))
-                data.data = data.data.astype(np.float32)
-                return data
-
-    def get_area_def(self, dsid):
-        """Get area definition of the image from the metadata."""
-        return self._mda.build_area_def(dsid["name"])
+            data.data = (self.calinfo[self.channel][3] / np.log((self.calinfo[self.channel][2] / data.data) + 1))
+            data.data = data.data.astype(np.float32)
+            return data
 
 
-class OLITIRSMDReader(BaseFileHandler):
-    """File handler for Landsat L1 files (tif)."""
+class BaseLandsatL2Reader(BaseLandsatReader):
+    """Basic file handler for Landsat L2 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+    def calibrate(self, data, calibration):
+        """Calibrate the data from counts into the desired units."""
+        if calibration == "counts":
+            return data
+
+        if calibration in ["reflectance", "brightness_temperature"]:
+            data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
+            if calibration == "reflectance":
+                data.data = data.data * 100
+            data.data = data.data.astype(np.float32)
+            return data
+
+        if calibration == "radiance":
+            data.data = data.data * 0.001
+            data.data = data.data.astype(np.float32)
+            return data
+
+        if calibration in ["emissivity", "atmospheric_transmittance"]:
+            data.data = data.data * 0.0001
+            data.data = data.data.astype(np.float32)
+            return data
+
+        if calibration in ["qa_brightness_temperature", "cloud_distance"]:
+            data.data = data.data * 0.01
+            data.data = data.data.astype(np.float32)
+            return data
+
+
+class OLITIRSCHReader(BaseLandsatL1Reader):
+    """File handler for Landsat OLI-TIRS L1 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        return ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return ["B10", "B11"]
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "OLI_TIRS"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+
+class OLITIRSL2CHReader(BaseLandsatL2Reader):
+    """File handler for Landsat OLI-TIRS L2 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        return ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return ["B10"]
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "OLI_TIRS"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+
+class ETMCHReader(BaseLandsatL1Reader):
+    """File handler for Landsat ETM+ L1 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        return ["B1", "B2", "B3", "B4", "B5", "B7", "B8"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return ["B6_VCID_1", "B6_VCID_2"]
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "ETM+"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+
+class ETML2CHReader(BaseLandsatL2Reader):
+    """File handler for Landsat ETM+ L2 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        return ["B1", "B2", "B3", "B4", "B5", "B7"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return ["B6"]
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "ETM+"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+
+class TMCHReader(BaseLandsatL1Reader):
+    """File handler for Landsat TM L1 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        return ["B1", "B2", "B3", "B4", "B5", "B7"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return ["B6"]
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "TM"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+
+class TML2CHReader(BaseLandsatL2Reader):
+    """File handler for Landsat TM L2 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        return ["B1", "B2", "B3", "B4", "B5", "B7"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return ["B6"]
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "TM"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+
+class MSSCHReader(BaseLandsatL1Reader):
+    """File handler for Landsat MSS L1 files (tif)."""
+
+    @property
+    def spectral_bands(self):
+        """Landsat bands."""
+        if self.platform_name in ["Landsat-1", "Landsat-2", "Landsat-3"]:
+            return ["B4", "B5", "B6", "B7"]
+        elif self.platform_name in ["Landsat-4", "Landsat-5"]:
+            return ["B1", "B2", "B3", "B4"]
+
+    @property
+    def thermal_bands(self):
+        """Landsat thermal bands."""
+        return []
+
+    @property
+    def sensor(self):
+        """Sensor name."""
+        return "MSS"
+
+    def __init__(self, filename, filename_info, filetype_info, mda, **kwargs):
+        """Initialize the reader."""
+        super().__init__(filename, filename_info, filetype_info, mda, **kwargs)
+
+    def available_datasets(self, configured_datasets=None):
+        """Set up wavelength to B4 band."""
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            # some other file handler knows how to load this
+            # don't override what they've done
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            matches = self.file_type_matches(ds_info["file_type"])
+            if matches:
+                if ds_info.get("name") == "B4":
+                    # Modify the dataset's wavelength dynamically
+                    new_info = ds_info.copy()
+                    if self.platform_name in ["Landsat-1", "Landsat-2", "Landsat-3"]:
+                        new_info["wavelength"] = [0.5, 0.55, 0.6]  # Green
+                    elif self.platform_name in ["Landsat-4", "Landsat-5"]:
+                        new_info["wavelength"] = [0.8, 0.95, 1.1]  # NIR
+                    yield True, new_info
+                else:
+                    yield True, ds_info
+
+            elif is_avail is None:
+                # we don't know what to do with this
+                # see if another future file handler does
+                yield is_avail, ds_info
+
+
+class BaseLandsatMDReader(BaseFileHandler):
+    """Metadata file handler for Landsat files (tif)."""
+
     def __init__(self, filename, filename_info, filetype_info):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info)
@@ -189,7 +465,6 @@ class OLITIRSMDReader(BaseFileHandler):
         self.process_level = filename_info["process_level_correction"]
         import bottleneck  # noqa
         import geotiepoints  # noqa
-
 
     @property
     def center_time(self):
@@ -234,42 +509,12 @@ class OLITIRSMDReader(BaseFileHandler):
     @property
     def band_saturation(self):
         """Return per-band saturation flag."""
-        bdict = {}
-        for i in range(1, 10):
-            bdict[f"B{i:01d}"] = self._get_satflag(i)
-
-        return bdict
-
-    def _get_band_radcal(self, band):
-        """Get the radiance scale and offset values."""
-        rad_gain = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/RADIANCE_MULT_BAND_{band}").text)
-        rad_add = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/RADIANCE_ADD_BAND_{band}").text)
-        return rad_gain, rad_add
-
-    def _get_band_viscal(self, band):
-        """Return visible channel calibration info."""
-        rad_gain, rad_add = self._get_band_radcal(band)
-        ref_gain = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/REFLECTANCE_MULT_BAND_{band}").text)
-        ref_add = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/REFLECTANCE_ADD_BAND_{band}").text)
-        return rad_gain, rad_add, ref_gain, ref_add
-
-    def _get_band_tircal(self, band):
-        """Return thermal channel calibration info."""
-        rad_gain, rad_add = self._get_band_radcal(band)
-        bt_k1 = float(self.root.find(f".//LEVEL1_THERMAL_CONSTANTS/K1_CONSTANT_BAND_{band}").text)
-        bt_k2 = float(self.root.find(f".//LEVEL1_THERMAL_CONSTANTS/K2_CONSTANT_BAND_{band}").text)
-        return rad_gain, rad_add, bt_k1, bt_k2
+        raise NotImplementedError()
 
     @property
     def band_calibration(self):
         """Return per-band saturation flag."""
-        bdict = {}
-        for i in range(1, 10):
-            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
-        for i in range(10, 12):
-            bdict[f"B{i:02d}"] = self._get_band_tircal(i)
-
-        return bdict
+        raise NotImplementedError()
 
     def earth_sun_distance(self):
         """Return Earth-Sun distance."""
@@ -281,7 +526,7 @@ class OLITIRSMDReader(BaseFileHandler):
 
         # Here we assume that the thermal bands have the same resolution as the reflective bands,
         # with only the panchromatic band (b08) having a different resolution.
-        if bname in PAN_BANDLIST:
+        if bname in PAN_BANDLIST and self.platform_name in ["Landsat-7", "Landsat-8", "Landsat-9"]:
             pixoff = float(self.root.find(".//PROJECTION_ATTRIBUTES/GRID_CELL_SIZE_PANCHROMATIC").text) / 2.
             x_size = float(self.root.find(".//PROJECTION_ATTRIBUTES/PANCHROMATIC_SAMPLES").text)
             y_size = float(self.root.find(".//PROJECTION_ATTRIBUTES/PANCHROMATIC_LINES").text)
@@ -308,3 +553,264 @@ class OLITIRSMDReader(BaseFileHandler):
 
         # Return the area extent
         return AreaDefinition("geotiff_area", pcs_id, pcs_id, proj4_dict, x_size, y_size, area_extent)
+
+
+class BaseLandsatMDL1Reader(BaseLandsatMDReader):
+    """Metadata file handler for Landsat L1 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    def _get_band_radcal(self, band):
+        """Get the radiance scale and offset values."""
+        rad_gain = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/RADIANCE_MULT_BAND_{band}").text)
+        rad_add = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/RADIANCE_ADD_BAND_{band}").text)
+        return rad_gain, rad_add
+
+    def _get_band_viscal(self, band):
+        """Return visible channel calibration info."""
+        rad_gain, rad_add = self._get_band_radcal(band)
+        ref_gain = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/REFLECTANCE_MULT_BAND_{band}").text)
+        ref_add = float(self.root.find(f".//LEVEL1_RADIOMETRIC_RESCALING/REFLECTANCE_ADD_BAND_{band}").text)
+        return rad_gain, rad_add, ref_gain, ref_add
+
+    def _get_band_tircal(self, band):
+        """Return thermal channel calibration info."""
+        rad_gain, rad_add = self._get_band_radcal(band)
+        bt_k1 = float(self.root.find(f".//LEVEL1_THERMAL_CONSTANTS/K1_CONSTANT_BAND_{band}").text)
+        bt_k2 = float(self.root.find(f".//LEVEL1_THERMAL_CONSTANTS/K2_CONSTANT_BAND_{band}").text)
+        return rad_gain, rad_add, bt_k1, bt_k2
+
+
+class BaseLandsatMDL2Reader(BaseLandsatMDReader):
+    """Metadata file handler for Landsat L2 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    def _get_band_viscal(self, band):
+        """Return visible channel calibration info."""
+        ref_gain = float(self.root.find(f".//LEVEL2_SURFACE_REFLECTANCE_PARAMETERS/REFLECTANCE_MULT_BAND_{band}").text)
+        ref_add = float(self.root.find(f".//LEVEL2_SURFACE_REFLECTANCE_PARAMETERS/REFLECTANCE_ADD_BAND_{band}").text)
+        return ref_gain, ref_add
+
+    def _get_band_tircal(self, band):
+        """Return thermal channel calibration info."""
+        bt_gain = float(self.root.find(f".//LEVEL2_SURFACE_TEMPERATURE_PARAMETERS/TEMPERATURE_MULT_BAND_{band}").text)
+        bt_add = float(self.root.find(f".//LEVEL2_SURFACE_TEMPERATURE_PARAMETERS/TEMPERATURE_ADD_BAND_{band}").text)
+        return bt_gain, bt_add
+
+
+class OLITIRSMDReader(BaseLandsatMDL1Reader):
+    """File handler for Landsat OLI-TIRS L1 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        for i in range(1, 10):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        for i in range(1, 10):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        for i in range(10, 12):
+            bdict[f"B{i:02d}"] = self._get_band_tircal(i)
+
+        return bdict
+
+
+class OLITIRSL2MDReader(BaseLandsatMDL2Reader):
+    """File handler for Landsat OLI-TIRS L2 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        for i in range(1, 8):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        for i in range(1, 8):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        bdict["B10"] = self._get_band_tircal("ST_B10")
+
+        return bdict
+
+
+class ETMMDReader(BaseLandsatMDL1Reader):
+    """File handler for Landsat ETM+ L1 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        for i in range(1, 6):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+        for i in range(7, 9):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+        bdict["B6_VCID_1"] = self._get_satflag("6_VCID_1")
+        bdict["B6_VCID_2"] = self._get_satflag("6_VCID_2")
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        for i in range(1, 6):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        for i in range(7, 9):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        bdict["B6_VCID_1"] = self._get_band_tircal("6_VCID_1")
+        bdict["B6_VCID_2"] = self._get_band_tircal("6_VCID_2")
+
+        return bdict
+
+
+class ETML2MDReader(BaseLandsatMDL2Reader):
+    """File handler for Landsat ETM+ L2 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        for i in range(1, 6):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+        for i in range(7, 8):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        for i in range(1, 6):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        for i in range(7, 8):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        bdict["B6"] = self._get_band_tircal("ST_B6")
+
+        return bdict
+
+
+class TMMDReader(BaseLandsatMDL1Reader):
+    """File handler for Landsat TM L1 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        for i in range(1, 8):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        for i in range(1, 6):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        for i in range(7, 8):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        bdict["B6"] = self._get_band_tircal(6)
+
+        return bdict
+
+
+class TML2MDReader(BaseLandsatMDL2Reader):
+    """File handler for Landsat TM L2 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        for i in range(1, 8):
+            bdict[f"B{i:01d}"] = self._get_satflag(i)
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        for i in range(1, 6):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        for i in range(7, 8):
+            bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        bdict["B6"] = self._get_band_tircal("ST_B6")
+
+        return bdict
+
+
+class MSSMDReader(BaseLandsatMDL1Reader):
+    """File handler for Landsat MSS L1 files (tif)."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info)
+
+    @property
+    def band_saturation(self):
+        """Return per-band saturation flag."""
+        bdict = {}
+        if self.platform_name in ["Landsat-1", "Landsat-2", "Landsat-3"]:
+            for i in range(4, 8):
+                bdict[f"B{i:01d}"] = self._get_satflag(i)
+        elif self.platform_name in ["Landsat-4", "Landsat-5"]:
+            for i in range(1, 5):
+                bdict[f"B{i:01d}"] = self._get_satflag(i)
+
+        return bdict
+
+    @property
+    def band_calibration(self):
+        """Return per-band calibration parameters."""
+        bdict = {}
+        if self.platform_name in ["Landsat-1", "Landsat-2", "Landsat-3"]:
+            for i in range(4, 8):
+                bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+        elif self.platform_name in ["Landsat-4", "Landsat-5"]:
+            for i in range(1, 5):
+                bdict[f"B{i:01d}"] = self._get_band_viscal(i)
+
+        return bdict
+
