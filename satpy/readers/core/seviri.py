@@ -468,10 +468,10 @@ def add_pixel_acq_time(dataset, label="time"):
 
     Args:
         dataset (xarray.DataArray): dataset with acq_time coordinate
-        label (str): Label for time coordinate.  Defaults to "time".
+        label (str): Label for time coordinate.  Defaults to "time".  Choosing
+            a different label might impact the ability of writers trying to
+            process time coordinate information.
     """
-    if "ancillary_variables" not in dataset.attrs:
-        dataset.attrs["ancillary_variables"] = []
     st_time = dataset.attrs["nominal_start_time"]
     delta_per_line = (dataset["acq_time"].chunk({"y": dataset.sizes["y"]}) - np.datetime64(st_time)).astype("m8[s]")
     # convert to float, because datetime64 cannot be resampled and ints cannot

@@ -467,6 +467,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     Those coordinates are kept in resampling iff passing the argument
     ``resample_coords=True`` to :class:`~satpy.Scene.resample`.
+    See the :doc:`example on storing valid time <valid_time>` for details.
 
     **Metadata**
 
