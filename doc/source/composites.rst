@@ -535,11 +535,9 @@ enhancement functions in Satpy.
 .. warning::
    If you define a composite with no matching enhancement, Satpy will by
    default apply the :meth:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
-   cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
-   are enhancing a composite based on :class:`satpy.composites.fill.DayNightCompositor` where
-   the components have their own enhancements defined), you can use the `image_ready` standard name.
+   cutoffs of 0.5% and 99.5%.  If you want no enhancement at all, you can use the `image_ready` standard name.
    If this is not a suitable standard name, you can also define
-   an enhancement that does nothing:
+   an enhancement that does nothing::
 
       enhancements:
         day_x:
@@ -549,5 +547,12 @@ enhancement functions in Satpy.
    It is recommended to define an enhancement even if you intend to use
    the default, in case the default should change in future versions of
    Satpy.
+
+   The compositors :class:`DayNightCompositor`,
+   :class:`BackgroundCompositor`, :class:`SandwichCompositor` and
+   :class:`LuminanceSharpeningCompositor` enhance their input datasets.
+   Therefore, composites using those compositors should almost certainly
+   use ``standard_name: image_ready`` or an equivalent noop enhancement
+   to avoid enhancing the data twice.
 
 .. include:: modifiers.rst
