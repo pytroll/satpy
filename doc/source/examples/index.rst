@@ -15,6 +15,7 @@ as explanations in the various sections of this documentation.
 
     fci_l1c_natural_color
     vii_l1b_nc
+    valid_time
 
 .. list-table::
     :header-rows: 1

@@ -11,7 +11,7 @@ headers (or both).  It is only supported for selected readers and writers.
 By default, Satpy does not keep track of measurement times.  To keep track
 of measurement times, we must first tell the reader to add such times to
 the metadata of each dataset.  With supported readers, this can be done
-by passing ``reader_kwargs={"track_time": True}`` to :meth:`Scene.__init__`:
+by passing ``reader_kwargs={"track_time": True}`` to :meth:`~satpy.scene.Scene`:
 
 .. code-block:: python
 
@@ -24,14 +24,14 @@ The time is stored as a coordinate:
 
    sc["IR_108"].coords["time"]
 
-To retain it upon resampling, pass ``resample_coords=True`` to :meth:`Scene.resample`:
+To retain it upon resampling, pass ``resample_coords=True`` to :meth:`~satpy.scene.Scene.resample`:
 
 .. code-block:: python
 
    ls = sc.resample("eurol", resample_coords=True)
 
 For supported writers, it can be stored in the filename by passing ``dynamic_fields={"valid_time"}``
-to :meth:`Scene.save_datasets`:
+to :meth:`~satpy.scene.Scene.save_datasets`:
 
 .. code-block:: python
 
