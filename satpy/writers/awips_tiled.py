@@ -957,9 +957,8 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if org is not None:
             prod_location = org
         else:
-            LOG.warning("environment ORGANIZATION not set for .production_location attribute, using hostname")
             import socket
-            prod_location = socket.gethostname()  # FUTURE: something more correct but this will do for now
+            prod_location = socket.gethostname()
 
         if len(prod_location) > 31:
             warnings.warn(
