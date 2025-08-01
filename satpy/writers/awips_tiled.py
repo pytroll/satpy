@@ -221,6 +221,7 @@ import string
 import sys
 import warnings
 from collections import namedtuple
+from typing import Any
 
 import dask
 import dask.array as da
@@ -871,7 +872,11 @@ class NetCDFTemplate:
             new_coords[coord_name].encoding = coord_encoding
         return new_coords
 
-    def render(self, dataset_or_data_arrays, shared_attrs=None):
+    def render(
+            self,
+            dataset_or_data_arrays: xr.Dataset | list[xr.DataArray],
+            shared_attrs: dict[str, Any] | None = None,
+    ) -> xr.Dataset:
         """Create :class:`xarray.Dataset` from provided data."""
         data_arrays = dataset_or_data_arrays
         if isinstance(data_arrays, xr.Dataset):
@@ -1115,9 +1120,17 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             attrs["units"] = attrs["units"][:26]
         return attrs
 
-    def render(self, dataset_or_data_arrays, area_def,
-               tile_info, sector_id, creator=None, creation_time=None,
-               shared_attrs=None, extra_global_attrs=None):
+    def render(  # type: ignore[override]
+            self,
+            dataset_or_data_arrays: xr.Dataset | list[xr.DataArray],
+            area_def: AreaDefinition,
+            tile_info: TileInfo,
+            sector_id: str,
+            creator: str | None = None,
+            creation_time: dt.datetime | None = None,
+            shared_attrs: dict[str, Any] | None = None,
+            extra_global_attrs: dict[str, Any] | None = None,
+    ) -> xr.Dataset:
         """Create a :class:`xarray.Dataset` from template using information provided."""
         new_ds = super().render(dataset_or_data_arrays, shared_attrs=shared_attrs)
         new_ds = self.apply_area_def(new_ds, area_def)
@@ -1593,24 +1606,21 @@ class AWIPSTiledWriter(Writer):
                                                 **ds_info)
             self.check_tile_exists(output_filename)
 
-            # TODO: Add "creator" keyword argument
-            res = da.blockwise(
-                _save_tile_block,
-                "a",
-                *tuple(elem for data_arr in data_arrs for elem in (data_arr.data, "".join(data_arr.dims))),
-                new_axes={"a": 1},
-                meta=np.ndarray((), dtype=object),
-                dtype=object,
-                all_attrs=[data_arr.attrs for data_arr in data_arrs],
-                all_coords=[data_arr.coords for data_arr in data_arrs],
-                template=template, area_def=area_def,
-                tile_info=tile_info, sector_id=sector_id,
-                creation_time=creation_time,
-                shared_attrs=ds_info,
-                extra_global_attrs=extra_global_attrs,
-                compress=self.compress,
-                check_categories=check_categories,
-                output_filename=output_filename,
+            render_kwargs = {
+                "area_def": area_def,
+                "tile_info": tile_info,
+                "sector_id": sector_id,
+                "creation_time": creation_time,
+                "shared_attrs": ds_info,
+                "extra_global_attrs": extra_global_attrs,
+            }
+            res = _save_tile_data_arrays(
+                data_arrs,
+                output_filename,
+                template,
+                self.compress,
+                check_categories,
+                render_kwargs,
             )
 
             arrays_to_compute.append(res)
@@ -1623,19 +1633,56 @@ class AWIPSTiledWriter(Writer):
         return dask.compute(arrays_to_compute)
 
 
-def _save_tile_block(*input_arrays, **kwargs):
-    all_attrs = kwargs.pop("all_attrs")
-    all_coords = kwargs.pop("all_coords")
-    compress = kwargs.pop("compress")
-    output_filename = kwargs.pop("output_filename")
-    template = kwargs.pop("template")
-    check_categories = kwargs.pop("check_categories")
+def _save_tile_data_arrays(
+        data_arrs: list[xr.DataArray],
+        output_filename: str,
+        template: NetCDFTemplate,
+        compress: bool,
+        check_categories: bool,
+        render_kwargs: dict[str, Any],
+) -> da.Array:
+    data_arr_dims_pairs = tuple(
+        elem for data_arr in data_arrs
+        for elem in
+        (
+            data_arr.data,
+            # mypy complains because ".dims" are defined as Hashable by xarray, not strings
+            "".join(str(dim) for dim in data_arr.dims),
+        )
+    )
+    return da.blockwise(
+        _save_tile_block,
+        "a",
+        *data_arr_dims_pairs,
+        new_axes={"a": 1},
+        meta=np.ndarray((), dtype=object),
+        dtype=object,
+        all_attrs=[data_arr.attrs for data_arr in data_arrs],
+        all_coords=[data_arr.coords for data_arr in data_arrs],
+        template=template,
+        compress=compress,
+        check_categories=check_categories,
+        output_filename=output_filename,
+        render_kwargs=render_kwargs,
+    )
+
+
+def _save_tile_block(
+        *input_arrays: xr.DataArray,
+        output_filename: str,
+        template: NetCDFTemplate,
+        compress: bool,
+        check_categories: bool,
+        render_kwargs: dict[str, Any],
+        all_attrs: list[dict],
+        all_coords: list[dict],
+) -> str:
     restruct_data_arrs = [
         xr.DataArray(np_arr_list[0][0], attrs=all_attrs[idx], dims=("y", "x"), coords=all_coords[idx])
         for idx, np_arr_list in enumerate(input_arrays)
     ]
     # TODO: Provide attribute caching for things that likely won't change (functools lrucache)
-    new_ds = template.render(restruct_data_arrs, **kwargs)
+    new_ds = template.render(restruct_data_arrs, **render_kwargs)
     if compress:
         new_ds.encoding["zlib"] = True
         for var in new_ds.variables.values():
