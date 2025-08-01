@@ -489,7 +489,7 @@ class TestETML1:
 
     def test_loading_gd(self, mda_file, b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.oli_tirs_l1_tif import ETMCHReader, ETMMDReader
+        from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
         good_mda = ETMMDReader(mda_file, self.filename_info, {})
         rdr = ETMCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
@@ -498,7 +498,7 @@ class TestETML1:
 
     def test_loading_badfil(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.oli_tirs_l1_tif import ETMCHReader, ETMMDReader
+        from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
         good_mda = ETMMDReader(mda_file, self.filename_info, {})
         rdr = ETMCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
@@ -509,7 +509,7 @@ class TestETML1:
 
     def test_badfiles(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.oli_tirs_l1_tif import ETMCHReader, ETMMDReader
+        from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
@@ -593,7 +593,7 @@ class TestETML1:
 
     def test_metadata(self, mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.oli_tirs_l1_tif import ETMMDReader
+        from satpy.readers.landsat_base import ETMMDReader
         mda = ETMMDReader(mda_file, self.filename_info, {})
 
         cal_test_dict = {"B1": (7.7874e-01, -6.97874, 1.1661e-03, -0.010450),
@@ -612,7 +612,7 @@ class TestETML1:
 
     def test_area_def(self, mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.oli_tirs_l1_tif import ETMMDReader
+        from satpy.readers.landsat_base import ETMMDReader
         mda = ETMMDReader(mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B1")

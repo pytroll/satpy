@@ -582,7 +582,7 @@ class TestMSSL1_Landsat_1:
 
     def test_loading_gd(self, l1_mda_file, l1_b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.oli_tirs_l1_tif import MSSCHReader, MSSMDReader
+        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
         good_mda = MSSMDReader(l1_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l1_b4_file, self.filename_info, self.ftype_info, good_mda)
 
@@ -591,7 +591,7 @@ class TestMSSL1_Landsat_1:
 
     def test_loading_badfil(self, l1_mda_file, l1_b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.oli_tirs_l1_tif import MSSCHReader, MSSMDReader
+        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
         good_mda = MSSMDReader(l1_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l1_b4_file, self.filename_info, self.ftype_info, good_mda)
 
@@ -602,7 +602,7 @@ class TestMSSL1_Landsat_1:
 
     def test_badfiles(self, l1_mda_file, l1_b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.oli_tirs_l1_tif import MSSCHReader, MSSMDReader
+        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
@@ -660,7 +660,7 @@ class TestMSSL1_Landsat_1:
 
     def test_metadata(self, l1_mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.oli_tirs_l1_tif import MSSMDReader
+        from satpy.readers.landsat_base import MSSMDReader
         mda = MSSMDReader(l1_mda_file, self.filename_info, {})
 
         cal_test_dict = {"B5": (6.4843e-01, -0.74843, 1.3660e-03, -0.001577),
@@ -679,7 +679,7 @@ class TestMSSL1_Landsat_1:
 
     def test_area_def(self, l1_mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.oli_tirs_l1_tif import MSSMDReader
+        from satpy.readers.landsat_base import MSSMDReader
         mda = MSSMDReader(l1_mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B4")
@@ -738,7 +738,7 @@ class TestMSSL1_Landsat_4:
 
     def test_loading_gd(self, l4_mda_file, l4_b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.oli_tirs_l1_tif import MSSCHReader, MSSMDReader
+        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
         good_mda = MSSMDReader(l4_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l4_b4_file, self.filename_info, self.ftype_info, good_mda)
 
@@ -747,7 +747,7 @@ class TestMSSL1_Landsat_4:
 
     def test_loading_badfil(self, l4_mda_file, l4_b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.oli_tirs_l1_tif import MSSCHReader, MSSMDReader
+        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
         good_mda = MSSMDReader(l4_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l4_b4_file, self.filename_info, self.ftype_info, good_mda)
 
@@ -758,7 +758,7 @@ class TestMSSL1_Landsat_4:
 
     def test_badfiles(self, l4_mda_file, l4_b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.oli_tirs_l1_tif import MSSCHReader, MSSMDReader
+        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
@@ -816,7 +816,7 @@ class TestMSSL1_Landsat_4:
 
     def test_metadata(self, l4_mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.oli_tirs_l1_tif import MSSMDReader
+        from satpy.readers.landsat_base import MSSMDReader
         mda = MSSMDReader(l4_mda_file, self.filename_info, {})
 
         cal_test_dict = {"B1": (8.7520e-01, 2.92480, 1.5680e-03, 0.005240),
@@ -835,7 +835,7 @@ class TestMSSL1_Landsat_4:
 
     def test_area_def(self, l4_mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.oli_tirs_l1_tif import MSSMDReader
+        from satpy.readers.landsat_base import MSSMDReader
         mda = MSSMDReader(l4_mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B4")
