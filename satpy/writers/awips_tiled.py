@@ -257,23 +257,6 @@ TileInfo = namedtuple("TileInfo", ["tile_count", "image_shape", "tile_shape",
 XYFactors = namedtuple("XYFactors", ["mx", "bx", "my", "by"])
 
 
-def fix_awips_file(fn):
-    """Hack the NetCDF4 files to workaround NetCDF-Java bugs used by AWIPS.
-
-    This should not be needed for new versions of AWIPS.
-
-    """
-    # hack to get files created by new NetCDF library
-    # versions to be read by AWIPS buggy java version
-    # of NetCDF
-    LOG.info("Modifying output NetCDF file to work with AWIPS")
-    import h5py
-    h = h5py.File(fn, "a")
-    if "_NCProperties" in h.attrs:
-        del h.attrs["_NCProperties"]
-    h.close()
-
-
 class NumberedTileGenerator(object):
     """Helper class to generate per-tile metadata for numbered tiles."""
 
@@ -1275,26 +1258,15 @@ class AWIPSTiledWriter(Writer):
 
     """
 
-    def __init__(self, compress=False, fix_awips=False, **kwargs):
+    def __init__(self, compress=False, **kwargs):
         """Initialize writer and decision trees."""
         super(AWIPSTiledWriter, self).__init__(default_config_filename="writers/awips_tiled.yaml", **kwargs)
         self.base_dir = kwargs.get("base_dir", "")
         self.awips_sectors = self.config["sectors"]
         self.templates = self.config["templates"]
         self.compress = compress
-        self.fix_awips = fix_awips
         self._fill_sector_info()
         self._enhancer = None
-
-        if self.fix_awips:
-            warnings.warn(
-                "'fix_awips' flag no longer has any effect and is "
-                "deprecated. Modern versions of AWIPS should not "
-                "require this hack.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-            self.fix_awips = False
 
     @property
     def enhancer(self):
@@ -1311,7 +1283,7 @@ class AWIPSTiledWriter(Writer):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(AWIPSTiledWriter, cls).separate_init_kwargs(
             kwargs)
-        for kw in ["compress", "fix_awips"]:
+        for kw in ["compress"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
 
