@@ -1232,7 +1232,14 @@ def to_nonempty_netcdf(dataset_to_save: xr.Dataset,
         mode = "a"
     else:
         mode = "w"
-    dataset_to_save.to_netcdf(output_filename, mode=mode)
+    with warnings.catch_warnings():
+        # this is an expected warning as CF convention tells us not to have a _FillValue for coordinate variables
+        warnings.filterwarnings(
+            "ignore",
+            message="saving variable [xy] with .* without any _FillValue.*",
+            category=xr.SerializationWarning,
+        )
+        dataset_to_save.to_netcdf(output_filename, mode=mode)
 
 
 def tile_filler(data_arr_data, tile_shape, tile_slices, fill_value):
