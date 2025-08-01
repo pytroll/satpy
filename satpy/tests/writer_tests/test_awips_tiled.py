@@ -221,7 +221,7 @@ class TestAWIPSTiledWriter:
     )
     def test_basic_numbered_tiles(self, tile_count, tile_size, tmp_path):
         """Test creating a multiple numbered tiles."""
-        from satpy.tests.utils import CustomScheduler
+        from satpy.tests.utils import assert_maximum_dask_computes
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = _get_test_data()
         area_def = _get_test_area()
@@ -236,11 +236,11 @@ class TestAWIPSTiledWriter:
         )
         should_error = tile_count is None and tile_size is None
         if should_error:
-            with dask.config.set(scheduler=CustomScheduler(0)), \
+            with assert_maximum_dask_computes(max_computes=0), \
                  pytest.raises(ValueError, match=r"Either.*tile_count.*"):
                 w.save_datasets([input_data_arr], **save_kwargs)
         else:
-            with dask.config.set(scheduler=CustomScheduler(1 * 2)):  # precompute=*2
+            with assert_maximum_dask_computes(max_computes=1):
                 w.save_datasets([input_data_arr], **save_kwargs)
 
         all_files = glob(os.path.join(str(tmp_path), "TESTS_AII*.nc"))
