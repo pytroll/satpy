@@ -23,7 +23,6 @@ import os
 import shutil
 from glob import glob
 
-import dask
 import dask.array as da
 import numpy as np
 import pytest
@@ -336,13 +335,8 @@ class TestAWIPSTiledWriter:
         data2 = da.from_array(data2, chunks=500)
         ds2 = _get_test_lcc_data(data2, area_def2)
         w = AWIPSTiledWriter(base_dir=second_base_dir, compress=True)
-        # HACK: The _copy_to_existing function hangs when opening the output
-        #   file multiple times...sometimes. If we limit dask to one worker
-        #   it seems to work fine.
-        # FIXME: Try removing this
         with assert_maximum_dask_computes(max_computes=1):
-            with dask.config.set(num_workers=1):
-                w.save_datasets([ds2], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+            w.save_datasets([ds2], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(second_base_dir, "TESTS_AII*.nc"))
         # 16 original tiles + 4 new tiles
         assert len(all_files) == 20
