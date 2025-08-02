@@ -26,6 +26,7 @@ import pytest
 import xarray as xr
 
 from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands, using_map_blocks
+from satpy.tests.utils import assert_maximum_dask_computes
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -35,7 +36,8 @@ from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands
 def run_and_check_enhancement(func, data, expected, **kwargs):
     """Perform basic checks that apply to multiple tests."""
     pre_attrs = data.attrs
-    img = _get_enhanced_image(func, data, **kwargs)
+    with assert_maximum_dask_computes(max_computes=0):
+        img = _get_enhanced_image(func, data, **kwargs)
 
     _assert_image(img, pre_attrs, func.__name__, "palettes" in kwargs)
     _assert_image_data(img, expected)
