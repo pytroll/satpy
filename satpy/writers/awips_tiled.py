@@ -1650,21 +1650,26 @@ def _save_tile_data_arrays(
             "".join(str(dim) for dim in data_arr.dims),
         )
     )
-    return da.blockwise(
+    # Convert xarray's internal dict-like objects to pure dicts so dask
+    # tokenizing doesn't try generic object tokenization
+    all_attrs = [dict(data_arr.attrs) for data_arr in data_arrs]
+    all_coords = [dict(data_arr.coords) for data_arr in data_arrs]
+    res = da.blockwise(
         _save_tile_block,
         "a",
         *data_arr_dims_pairs,
         new_axes={"a": 1},
         meta=np.ndarray((), dtype=object),
         dtype=object,
-        all_attrs=[data_arr.attrs for data_arr in data_arrs],
-        all_coords=[data_arr.coords for data_arr in data_arrs],
+        all_attrs=all_attrs,
+        all_coords=all_coords,
         template=template,
         compress=compress,
         check_categories=check_categories,
         output_filename=output_filename,
         render_kwargs=render_kwargs,
     )
+    return res
 
 
 def _save_tile_block(
