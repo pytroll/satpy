@@ -128,6 +128,9 @@ def compute_writer_results(results):
     # one or more writers have targets that we need to close in the future
     if targets:
         delayeds.append(da.store(sources, targets, compute=False))
+    elif sources:
+        # array-like only, no targets (ex. reduce to a single map_blocks/blockwise func call)
+        da.compute(sources)
 
     if delayeds:
         # replace Delayed's graph optimization function with the Array function

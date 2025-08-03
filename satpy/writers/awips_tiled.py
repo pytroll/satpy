@@ -1252,6 +1252,7 @@ def to_nonempty_netcdf(dataset_to_save: xr.Dataset,
             message="saving variable [xy] with .* without any _FillValue.*",
             category=xr.SerializationWarning,
         )
+        LOG.info(f"Saving AWIPS tile {output_filename}...")
         dataset_to_save.to_netcdf(output_filename, mode=mode)
 
 
