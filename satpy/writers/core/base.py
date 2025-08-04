@@ -246,6 +246,6 @@ class Writer(Plugin, DataDownloadMixin):
             field: getattr(self, f"get_{field}")(dataset)
             for field in dynamic_fields}
 
-    def get_valid_time(self, dataset):
-        """Get valid time for dataset."""
-        return utils.get_valid_time(dataset)
+    def get_mean_time(self, dataset):
+        """Get mean time for dataset."""
+        return utils.get_mean_time(dataset)

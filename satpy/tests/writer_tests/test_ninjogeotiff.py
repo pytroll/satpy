@@ -993,12 +993,12 @@ def test_str_ids(test_image_small_arctic_P):
         SatelliteNameID="trollsat")
 
 
-def test_write_valid_time(test_image_with_time_coords, tmp_path):
-    """Test that valid time is written to GeoTIFF."""
+def test_write_mean_time(test_image_with_time_coords, tmp_path):
+    """Test that mean time is written to GeoTIFF."""
     import rasterio
 
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
-    fn = os.fspath(tmp_path / "test-{valid_time:%Y%m%d%H%M%S}.tif")
+    fn = os.fspath(tmp_path / "test-{mean_time:%Y%m%d%H%M%S}.tif")
     ngtw = NinJoGeoTIFFWriter(filename=fn)
     ngtw.save_dataset(
         test_image_with_time_coords.data,
@@ -1006,14 +1006,14 @@ def test_write_valid_time(test_image_with_time_coords, tmp_path):
         blockysize=128,
         compress="lzw",
         predictor=2,
-        dynamic_fields={"valid_time"},
+        dynamic_fields={"mean_time"},
         PhysicUnit="N/A",
         PhysicValue="N/A",
         SatelliteNameID="trollsat",
         ChannelID="trollchannel",
         DataType="GORN",
         DataSource="dowsing rod")
-    with rasterio.open(fn.replace("{valid_time:%Y%m%d%H%M%S}",
+    with rasterio.open(fn.replace("{mean_time:%Y%m%d%H%M%S}",
                                   "19850813130001")) as src:
         tgs = src.tags()
     assert tgs["ninjo_DateID"] == "492786000"
