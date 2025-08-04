@@ -172,7 +172,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                 NinJo label for quantity (example: "temperature")
 
         The tag ``ValidDateID`` is included if the dataset has a ``time``
-        coordinate.  See the :doc:`example on storing valid time <valid_time>`
+        coordinate.  See the :doc:`example on storing mean time <mean_time>`
         for details.  All other tags are filled automatically without user action.
         """
         dataset = image.data
