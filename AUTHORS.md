@@ -64,6 +64,7 @@ The following people have made contributions to this project:
 - [Luca Merucci (lmeru)](https://github.com/lmeru)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
 - [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
+- [Mikhail Moskovchenko (simonreise)](https://github.com/simonreise)
 - [David Navia (dnaviap)](https://github.com/dnaviap)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)

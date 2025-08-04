@@ -677,6 +677,7 @@ class MITIFFWriter(ImageWriter):
         for band in img.data["bands"]:
             chn = img.data.sel(bands=band)
             data = chn.values.clip(0, 1) * 254. + 1
+            data = np.nan_to_num(data, copy=False)
             data = data.clip(0, 255)
             mitiff_frames.append(Image.fromarray(data.astype(np.uint8), mode="L"))
         mitiff_frames[0].save(tmp_gen_filename, save_all=True, append_images=mitiff_frames[1:],
