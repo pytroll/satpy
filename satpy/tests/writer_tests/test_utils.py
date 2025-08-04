@@ -23,11 +23,11 @@ import pytest
 import xarray as xr
 
 
-def test_get_valid_time():
+def test_get_mean_time():
     """Test extracting valid time from a dataset."""
-    from satpy.writers.core.utils import get_valid_time
+    from satpy.writers.core.utils import get_mean_time
 
-    da = xr.DataArray(
+    xrda = xr.DataArray(
             np.zeros((3, 3)),
             name="Čuonajóhka",
             dims=("y", "x"),
@@ -37,14 +37,19 @@ def test_get_valid_time():
                         dims=("y", "x"),
                         attrs={"units": "seconds since 2222-02-02T22:22:20"})})
 
-    assert get_valid_time(da) == datetime.datetime(2222, 2, 2, 22, 22, 22)
+    assert get_mean_time(xrda) == datetime.datetime(2222, 2, 2, 22, 22, 22)
 
-    da = xr.DataArray(np.zeros((3, 3)), dims=("y", "x"), name="Liedik")
+
+def test_get_mean_time_no_time_coordinate():
+    """Test raising of ValueError in the absence of a time coordinate."""
+    from satpy.writers.core.utils import get_mean_time
+
+    xrda = xr.DataArray(np.zeros((3, 3)), dims=("y", "x"), name="Liedik")
     with pytest.raises(ValueError,
                        match="Dataset Liedik has no time coordinate."):
-        get_valid_time(da)
+        get_mean_time(xrda)
 
-    da = xr.DataArray(np.zeros((3, 3)), dims=("y", "x"), name="Liedik", attrs={"name": "Gámasčearru"})
+    xrda = xr.DataArray(np.zeros((3, 3)), dims=("y", "x"), name="Liedik", attrs={"name": "Gámasčearru"})
     with pytest.raises(ValueError,
                        match="Dataset Gámasčearru has no time coordinate."):
-        get_valid_time(da)
+        get_mean_time(xrda)

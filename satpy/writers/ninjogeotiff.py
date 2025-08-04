@@ -89,7 +89,7 @@ import logging
 
 import numpy as np
 
-from .core.utils import get_valid_time
+from .core.utils import get_mean_time
 from .geotiff import GeoTIFFWriter
 
 logger = logging.getLogger(__name__)
@@ -442,8 +442,8 @@ class NinJoTagGenerator:
         That's seconds since UNIX Epoch for a representative time for the
         image.
         """
-        dt = get_valid_time(self.dataset)
-        delta = dt.replace(tzinfo=datetime.timezone.utc) - self._epoch
+        mean_time = get_mean_time(self.dataset)
+        delta = mean_time.replace(tzinfo=datetime.timezone.utc) - self._epoch
         return int(delta.total_seconds())
 
     def get_earth_radius_large(self):

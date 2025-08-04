@@ -18,11 +18,11 @@
 from xarray.coding.times import decode_cf_datetime
 
 
-def get_valid_time(dataset):
-    """Get the valid time for a dataset.
+def get_mean_time(dataset):
+    """Get the arithmetic mean time for a dataset.
 
-    If a dataset has time coordinates, get the arithmetic mean time as a
-    representative time for the dataset.
+    If a dataset has time coordinates, get the arithmetic mean time.
+    This can be used as a representative time for the dataset.
 
     Args:
         dataset: xarray dataarray with time coordinates
@@ -34,7 +34,7 @@ def get_valid_time(dataset):
         nm = dataset.attrs.get("name", dataset.name)
         raise ValueError(
            f"Dataset {nm:s} has no time coordinate. "
-            "No valid time can be calculated.  To track valid time, "
+            "No mean time can be calculated.  To track time, "
             "pass `reader_kwargs = {'track_time': True}` to `Scene.__init__` "
             "for a supported reader and, if applicable, `resample_coords=True` "
             "to `Scene.resample`.")
