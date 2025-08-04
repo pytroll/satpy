@@ -107,7 +107,7 @@ Twitter = "https://twitter.com/hashtag/satpy?src=hashtag_click"
 Mastodon = "https://fosstodon.org/tags/satpy"
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling", "hatch-vcs", "setuptools-scm<9.0.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
