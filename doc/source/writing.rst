@@ -23,9 +23,9 @@ datasets.  Following Python string formatting rules, attributes of
 attributes can be referenced as well, for example ``area.name``.  In
 addition to dataset attributes, some reader/writer combinations support
 dynamically calculated field values.  This currently exists only for
-``{valid_time}`` if the keyword argument ``dynamic_fields={"valid_time"}``
+``{mean_time}`` if the keyword argument ``dynamic_fields={"mean_time"}``
 is passed to :meth:`~satpy.scene.Scene.save_datasets`.  See the
-:doc:`example on storing valid time <valid_time>` for details.
+:doc:`example on storing valid time <mean_time>` for details.
 
 .. _writer_table:
 
