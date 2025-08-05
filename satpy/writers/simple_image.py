@@ -48,7 +48,7 @@ class PillowWriter(ImageWriter):
                             If `False` return either a `dask.delayed.Delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
-            dynamic_fields (set[Str]): Fields calculated dynamically from the
+            dynamic_fields (set[str]): Fields calculated dynamically from the
                             data for the purposes of filling in the filename.
             **kwargs: Keyword arguments to pass to the images `save` method.
 

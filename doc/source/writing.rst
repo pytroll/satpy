@@ -25,7 +25,7 @@ addition to dataset attributes, some reader/writer combinations support
 dynamically calculated field values.  This currently exists only for
 ``{mean_time}`` if the keyword argument ``dynamic_fields={"mean_time"}``
 is passed to :meth:`~satpy.scene.Scene.save_datasets`.  See the
-:doc:`example on storing valid time <mean_time>` for details.
+:doc:`example on storing valid time </examples/mean_time>` for details.
 
 .. _writer_table:
 

@@ -466,8 +466,8 @@ class HRITMSGFileHandler(HRITFileHandler):
                             reader_kwargs={'track_time': True})
 
     Those coordinates are kept in resampling if passing the argument
-    ``resample_coords=True`` to :class:`~satpy.Scene.resample`.
-    See the :doc:`example on storing valid time <valid_time>` for details.
+    ``resample_coords=True`` to :meth:`~satpy.scene.Scene.resample`.
+    See the :doc:`example on storing valid time </examples/mean_time>` for details.
 
     **Metadata**
 
