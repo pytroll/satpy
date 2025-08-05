@@ -26,14 +26,22 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import Scene
-
-from satpy.readers.landsat_base import OLITIRSCHReader, OLITIRSMDReader
-from satpy.readers.landsat_base import OLITIRSL2CHReader, OLITIRSL2MDReader
-from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
-from satpy.readers.landsat_base import ETML2CHReader, ETML2MDReader
-from satpy.readers.landsat_base import TMCHReader, TMMDReader
-from satpy.readers.landsat_base import TML2CHReader, TML2MDReader
-from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
+from satpy.readers.landsat_base import (
+    ETMCHReader,
+    ETML2CHReader,
+    ETML2MDReader,
+    ETMMDReader,
+    MSSCHReader,
+    MSSMDReader,
+    OLITIRSCHReader,
+    OLITIRSL2CHReader,
+    OLITIRSL2MDReader,
+    OLITIRSMDReader,
+    TMCHReader,
+    TML2CHReader,
+    TML2MDReader,
+    TMMDReader,
+)
 
 oli_tirs_l1_metadata_text = b"""<?xml version="1.0" encoding="UTF-8"?>
 <LANDSAT_METADATA_FILE>
@@ -2423,6 +2431,7 @@ def get_area_fixture(name, zone, extent):
 
 
 def make_temp_path_fixture(name):
+    """Create a temp directory for a Landsat product."""
     @pytest.fixture(scope="session")
     def _fixture(tmp_path_factory):
         return tmp_path_factory.mktemp(f"{name}_files")
@@ -2749,8 +2758,8 @@ class TestLandsat:
 
     @pytest.mark.parametrize(
         (
-            "reader", "spectral_name", "thermal_name", "all_files", "area", 
-            "date", "level_correction", "spacecraft", "data_type"
+            "reader", "spectral_name", "thermal_name", "all_files", "area",
+            "date", "level_correction", "spacecraft", "data_type",
         ),
         [
             pytest.param(
@@ -2762,7 +2771,7 @@ class TestLandsat:
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_tif", "B4", "B6_VCID_1", "etm_l1_all_files", "etm_l1_area", 
+                "etm_l1_tif", "B4", "B6_VCID_1", "etm_l1_all_files", "etm_l1_area",
                 etm_l1_date, "L1TP", "07", "E", id="etm_l1",
             ),
             pytest.param(
@@ -2825,7 +2834,7 @@ class TestLandsat:
                 assert scn["B4"].attrs["_satpy_id"]["wavelength"].min == 0.5
                 assert scn["B4"].attrs["_satpy_id"]["wavelength"].central == 0.55
                 assert scn["B4"].attrs["_satpy_id"]["wavelength"].max == 0.6
-    
+
     @pytest.mark.parametrize(
         (
             "reader", "date_time", "spectral_file", "spectral_name", "mda_file",
@@ -3233,43 +3242,43 @@ class TestLandsat:
 
     @pytest.mark.parametrize(
         (
-            "reader", "spectral_name", "thermal_name", "sza_rad_name", "all_files", 
+            "reader", "spectral_name", "thermal_name", "sza_rad_name", "all_files",
             "cal_spectral_params", "cal_thermal_params",
-            "date", "level_correction", "spacecraft", "data_type"
+            "date", "level_correction", "spacecraft", "data_type",
         ),
         [
             pytest.param(
-                "oli_tirs_l1_tif", "B4", "B11", None, "oli_tirs_l1_all_files", 
+                "oli_tirs_l1_tif", "B4", "B11", None, "oli_tirs_l1_all_files",
                 oli_tirs_l1_sp_params, oli_tirs_l1_th_params,
                 oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_tif", "B4", "B10", "TRAD", "oli_tirs_l2_all_files", 
+                "oli_tirs_l2_tif", "B4", "B10", "TRAD", "oli_tirs_l2_all_files",
                 oli_tirs_l2_sp_params, oli_tirs_l2_th_params,
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_tif", "B4", "B6_VCID_1", None, "etm_l1_all_files", 
+                "etm_l1_tif", "B4", "B6_VCID_1", None, "etm_l1_all_files",
                 etm_l1_sp_params, etm_l1_th_params,
                 etm_l1_date, "L1TP", "07", "E", id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_tif", "B4", "B6", "TRAD", "etm_l2_all_files", 
+                "etm_l2_tif", "B4", "B6", "TRAD", "etm_l2_all_files",
                 etm_l2_sp_params, etm_l2_th_params,
                 etm_l2_date, "L2SP", "07", "E", id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_tif", "B4", "B6", None, "tm_l1_all_files", 
+                "tm_l1_tif", "B4", "B6", None, "tm_l1_all_files",
                 tm_l1_sp_params, tm_l1_th_params,
                 tm_l1_date, "L1TP", "04", "T", id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_tif", "B4", "B6", "TRAD", "tm_l2_all_files", 
+                "tm_l2_tif", "B4", "B6", "TRAD", "tm_l2_all_files",
                 tm_l2_sp_params, tm_l2_th_params,
                 tm_l2_date, "L2SP", "05", "T", id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, None, "mss_l1_landsat1_all_files", 
+                "mss_l1_tif", "B4", None, None, "mss_l1_landsat1_all_files",
                 mss_l1_landsat1_sp_params, None,
                 mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
             ),
@@ -3306,7 +3315,8 @@ class TestLandsat:
             exp_spectral = (spectral_data * cal_spectral_params[2] + cal_spectral_params[3]).astype(np.float32) * 100
             if thermal_name is not None:
                 exp_thermal = (thermal_data * cal_thermal_params[0] + cal_thermal_params[1])
-                exp_thermal = (cal_thermal_params[3] / np.log((cal_thermal_params[2] / exp_thermal) + 1)).astype(np.float32)
+                exp_thermal = (cal_thermal_params[3] / np.log((cal_thermal_params[2] / exp_thermal) + 1))
+                exp_thermal = exp_thermal.astype(np.float32)
 
         scn = Scene(reader=reader, filenames=all_files)
         if thermal_name is not None:
@@ -3403,12 +3413,12 @@ class TestLandsat:
     def test_metadata(self, reader, MD_reader_class, mda_file, cal_dict, platform_name, earth_sun_distance, request):
         """Check that metadata values loaded correctly."""
         mda_file = request.getfixturevalue(mda_file)
-        
+
         mda = MD_reader_class(mda_file, self.filename_info, {})
 
         assert mda.platform_name == platform_name
         assert mda.earth_sun_distance() == earth_sun_distance
-        
+
         cal_bands = list(cal_dict.keys())
         assert mda.band_calibration[cal_bands[0]] == cal_dict[cal_bands[0]]
         assert mda.band_calibration[cal_bands[1]] == cal_dict[cal_bands[1]]
