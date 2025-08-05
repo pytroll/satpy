@@ -40,8 +40,11 @@ def test_get_mean_time():
     assert get_mean_time(xrda) == datetime.datetime(2222, 2, 2, 22, 22, 22)
 
 
-def test_get_mean_time_no_time_coordinate():
-    """Test raising of ValueError in the absence of a time coordinate."""
+def test_get_mean_time_no_time_coordinate_dataset_name():
+    """Test raising of ValueError in the absence of a time coordinate.
+
+    Takes name from dataset.
+    """
     from satpy.writers.core.utils import get_mean_time
 
     xrda = xr.DataArray(np.zeros((3, 3)), dims=("y", "x"), name="Liedik")
@@ -49,6 +52,13 @@ def test_get_mean_time_no_time_coordinate():
                        match="Dataset Liedik has no time coordinate."):
         get_mean_time(xrda)
 
+
+def test_get_mean_time_no_time_coordinate_attribute_name():
+    """Test raising of ValueError in the absence of a time coordinate.
+
+    Takes name from dataset attribute (more common in satpy).
+    """
+    from satpy.writers.core.utils import get_mean_time
     xrda = xr.DataArray(np.zeros((3, 3)), dims=("y", "x"), name="Liedik", attrs={"name": "Gámasčearru"})
     with pytest.raises(ValueError,
                        match="Dataset Gámasčearru has no time coordinate."):
