@@ -573,8 +573,9 @@ class TestFindFilesAndReaders:
         assert list(ri.keys()) == ["viirs_sdr"]
         assert ri["viirs_sdr"] == [viirs_file]
 
-    def test_sensor_no_files(self):
+    def test_sensor_no_files(self, tmp_path, monkeypatch):
         """Test that readers for the current sensor are loaded."""
+        monkeypatch.chdir(tmp_path)
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
         with pytest.raises(ValueError, match="No supported files found"):
