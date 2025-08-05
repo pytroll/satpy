@@ -274,7 +274,7 @@ datasets:
   B10:
     name: B10
     sensor: oli_tirs
-    wavelength: [10.6, 10.888, 11.19]
+    wavelength: [10.6, 10.895, 11.19]
     resolution: 30
     calibration:
       brightness_temperature:
@@ -291,7 +291,7 @@ datasets:
   B11:
     name: B11
     sensor: oli_tirs
-    wavelength: [11.5, 11.981, 12.51]
+    wavelength: [11.5, 11.205, 12.51]
     resolution: 30
     calibration:
       brightness_temperature:

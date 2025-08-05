@@ -151,7 +151,7 @@ datasets:
   B4:
     name: B4
     sensor: tm
-    wavelength: [0.760, 0.780, 0.900]
+    wavelength: [0.760, 0.830, 0.900]
     resolution: 30
     calibration:
       reflectance:

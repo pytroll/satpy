@@ -81,7 +81,7 @@ datasets:
   B1:
     name: B1
     sensor: mss
-    wavelength: [0.5, 0.45, 0.6]
+    wavelength: [0.5, 0.55, 0.6]
     resolution: 60
     calibration:
       reflectance:
