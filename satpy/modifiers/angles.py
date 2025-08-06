@@ -361,7 +361,7 @@ def compute_relative_azimuth(
         sat_azi, sun_azi,
         dtype=sat_azi.dtype,
         meta=np.array((), dtype=sat_azi.dtype),
-        name="relative_azimuth",
+        token="relative_azimuth",  # nosec: B106
     )
     if xarray_dims is None:
         return rel_azi
