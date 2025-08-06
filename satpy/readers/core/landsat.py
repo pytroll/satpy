@@ -528,8 +528,21 @@ class BaseLandsatMDReader(BaseFileHandler):
 
         # Get remaining geoinfo from file
         datum = self.root.find(".//PROJECTION_ATTRIBUTES/DATUM").text
-        utm_zone = int(self.root.find(".//PROJECTION_ATTRIBUTES/UTM_ZONE").text)
-        utm_str = f"{utm_zone}N"
+
+        # Reading utm zone or get specific crs for arctic and antarctic
+        if self.root.find(".//PROJECTION_ATTRIBUTES/UTM_ZONE") is not None:
+            utm_zone = self.root.find(".//PROJECTION_ATTRIBUTES/UTM_ZONE").text
+            pcs_id = f"{datum} / UTM zone {utm_zone}N"
+            proj_code = f"EPSG:326{utm_zone.zfill(2)}"
+        else:
+            lat_ts = self.root.find(".//PROJECTION_ATTRIBUTES/TRUE_SCALE_LAT").text
+            if lat_ts == "-71.00000":
+                # Antarctic
+                proj_code = "EPSG:3031"
+            if lat_ts == "71.00000":
+                # Arctic
+                proj_code = "EPSG:3995"
+            pcs_id = f"{datum} / EPSG: {proj_code}N"
 
         # We need to subtract / add half a pixel from the corner to get the correct extent (pixel centers)
         ext_p1 = float(self.root.find(".//PROJECTION_ATTRIBUTES/CORNER_UL_PROJECTION_X_PRODUCT").text) - pixoff
@@ -538,12 +551,10 @@ class BaseLandsatMDReader(BaseFileHandler):
         ext_p4 = float(self.root.find(".//PROJECTION_ATTRIBUTES/CORNER_UL_PROJECTION_Y_PRODUCT").text) + pixoff
 
         # Create area definition
-        pcs_id = f"{datum} / UTM zone {utm_str}"
-        proj4_dict = {"proj": "utm", "zone": utm_zone, "datum": datum, "units": "m", "no_defs": None, "type": "crs"}
         area_extent = (ext_p1, ext_p2, ext_p3, ext_p4)
 
         # Return the area extent
-        return AreaDefinition(f"UTM: {utm_zone}", pcs_id, pcs_id, proj4_dict, x_size, y_size, area_extent)
+        return AreaDefinition(f"EPSG: {proj_code}", pcs_id, pcs_id, proj_code, x_size, y_size, area_extent)
 
 
 class LandsatL1MDReader(BaseLandsatMDReader):
