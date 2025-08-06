@@ -159,7 +159,7 @@ class TestACSPOReader:
         ])
         fh_kwargs = {}
         if cloud_clear:
-            fh_kwargs["cloud_clear"] = cloud_clear
+            fh_kwargs["filters"] = ["cloud_clear"]
         r.create_filehandlers(loadables, fh_kwargs=fh_kwargs)
         datasets = r.load([var_name])
         assert len(datasets) == 1
