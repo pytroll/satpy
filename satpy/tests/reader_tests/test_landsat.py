@@ -26,21 +26,16 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import Scene
-from satpy.readers.landsat_base import (
+from satpy.readers.core.landsat import (
     ETMCHReader,
     ETML2CHReader,
-    ETML2MDReader,
-    ETMMDReader,
+    LandsatL1MDReader,
+    LandsatL2MDReader,
     MSSCHReader,
-    MSSMDReader,
     OLITIRSCHReader,
     OLITIRSL2CHReader,
-    OLITIRSL2MDReader,
-    OLITIRSMDReader,
     TMCHReader,
     TML2CHReader,
-    TML2MDReader,
-    TMMDReader,
 )
 
 oli_tirs_l1_metadata_text = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -2895,35 +2890,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, OLITIRSMDReader,
+                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
                 oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, OLITIRSL2MDReader,
+                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, ETMMDReader,
+                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
                 etm_l1_date, "L1TP", "07", "E", id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, ETML2MDReader,
+                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
                 etm_l2_date, "L2SP", "07", "E", id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, TMMDReader,
+                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
                 tm_l1_date, "L1TP", "04", "T", id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, TML2MDReader,
+                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
                 tm_l2_date, "L2SP", "05", "T", id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, MSSMDReader,
+                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
                 mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, MSSMDReader,
+                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
                 mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
             ),
         ],
@@ -2946,35 +2941,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, OLITIRSMDReader,
+                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
                 oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, OLITIRSL2MDReader,
+                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, ETMMDReader,
+                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
                 etm_l1_date, "L1TP", "07", "E", id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, ETML2MDReader,
+                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
                 etm_l2_date, "L2SP", "07", "E", id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, TMMDReader,
+                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
                 tm_l1_date, "L1TP", "04", "T", id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, TML2MDReader,
+                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
                 tm_l2_date, "L2SP", "05", "T", id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, MSSMDReader,
+                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
                 mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, MSSMDReader,
+                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
                 mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
             ),
         ],
@@ -2999,11 +2994,11 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b11_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, OLITIRSMDReader,
+                "oli_tirs_l1_b11_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
                 oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b10_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, OLITIRSL2MDReader,
+                "oli_tirs_l2_b10_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
         ],
@@ -3047,35 +3042,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, OLITIRSMDReader,
+                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
                 oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, OLITIRSL2MDReader,
+                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, ETMMDReader,
+                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
                 etm_l1_date, "L1TP", "07", "E", id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, ETML2MDReader,
+                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
                 etm_l2_date, "L2SP", "07", "E", id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, TMMDReader,
+                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
                 tm_l1_date, "L1TP", "04", "T", id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, TML2MDReader,
+                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
                 tm_l2_date, "L2SP", "05", "T", id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, MSSMDReader,
+                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
                 mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, MSSMDReader,
+                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
                 mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
             ),
         ],
@@ -3377,35 +3372,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_tif", OLITIRSMDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_cal_dict,
+                "oli_tirs_l1_tif", LandsatL1MDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_cal_dict,
                 oli_tirs_l1_date, "L1TP", "08", "C", "Landsat-8", 1.0079981, id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_tif", OLITIRSL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_cal_dict,
+                "oli_tirs_l2_tif", LandsatL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_cal_dict,
                 oli_tirs_l2_date, "L2SP", "09", "C", "Landsat-9", 1.0158933, id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_tif", ETMMDReader, "etm_l1_mda_file", etm_l1_cal_dict,
+                "etm_l1_tif", LandsatL1MDReader, "etm_l1_mda_file", etm_l1_cal_dict,
                 etm_l1_date, "L1TP", "07", "E", "Landsat-7", 0.9850987, id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_tif", ETML2MDReader, "etm_l2_mda_file", etm_l2_cal_dict,
+                "etm_l2_tif", LandsatL2MDReader, "etm_l2_mda_file", etm_l2_cal_dict,
                 etm_l2_date, "L2SP", "07", "E", "Landsat-7", 1.0124651, id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_tif", TMMDReader, "tm_l1_mda_file", tm_l1_cal_dict,
+                "tm_l1_tif", LandsatL1MDReader, "tm_l1_mda_file", tm_l1_cal_dict,
                 tm_l1_date, "L1TP", "04", "T", "Landsat-4", 1.0122057, id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_tif", TML2MDReader, "tm_l2_mda_file", tm_l2_cal_dict,
+                "tm_l2_tif", LandsatL2MDReader, "tm_l2_mda_file", tm_l2_cal_dict,
                 tm_l2_date, "L2SP", "05", "T", "Landsat-5", 1.0125021, id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_tif", MSSMDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_cal_dict,
+                "mss_l1_tif", LandsatL1MDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_cal_dict,
                 mss_l1_landsat1_date, "L1TP", "01", "M", "Landsat-1", 1.0152109, id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", MSSMDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_cal_dict,
+                "mss_l1_tif", LandsatL1MDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_cal_dict,
                 mss_l1_landsat4_date, "L1TP", "04", "M", "Landsat-4", 1.0035512, id="mss_l1_landsat4",
             ),
         ],
@@ -3439,35 +3434,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                OLITIRSMDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_extent, oli_tirs_l1_pan_extent,
+                LandsatL1MDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_extent, oli_tirs_l1_pan_extent,
                 oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
             ),
             pytest.param(
-                OLITIRSL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_extent, None,
+                LandsatL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_extent, None,
                 oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
             ),
             pytest.param(
-                ETMMDReader, "etm_l1_mda_file", etm_l1_extent, etm_l1_pan_extent,
+                LandsatL1MDReader, "etm_l1_mda_file", etm_l1_extent, etm_l1_pan_extent,
                 etm_l1_date, "L1TP", "07", "E", id="etm_l1",
             ),
             pytest.param(
-                ETML2MDReader, "etm_l2_mda_file", etm_l2_extent, None,
+                LandsatL2MDReader, "etm_l2_mda_file", etm_l2_extent, None,
                 etm_l2_date, "L2SP", "07", "E", id="etm_l2",
             ),
             pytest.param(
-                TMMDReader, "tm_l1_mda_file", tm_l1_extent, None,
+                LandsatL1MDReader, "tm_l1_mda_file", tm_l1_extent, None,
                 tm_l1_date, "L1TP", "04", "T", id="tm_l1",
             ),
             pytest.param(
-                TML2MDReader, "tm_l2_mda_file", tm_l2_extent, None,
+                LandsatL2MDReader, "tm_l2_mda_file", tm_l2_extent, None,
                 tm_l2_date, "L2SP", "05", "T", id="tm_l2",
             ),
             pytest.param(
-                MSSMDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_extent, None,
+                LandsatL1MDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_extent, None,
                 mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
             ),
             pytest.param(
-                MSSMDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_extent, None,
+                LandsatL1MDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_extent, None,
                 mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
             ),
         ],

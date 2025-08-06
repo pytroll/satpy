@@ -489,8 +489,8 @@ class TestETML1:
 
     def test_loading_gd(self, mda_file, b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
-        good_mda = ETMMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import ETMCHReader, LandsatL1MDReader
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, {})
         rdr = ETMCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
@@ -498,8 +498,8 @@ class TestETML1:
 
     def test_loading_badfil(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
-        good_mda = ETMMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import ETMCHReader, LandsatL1MDReader
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, {})
         rdr = ETMCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
@@ -509,18 +509,18 @@ class TestETML1:
 
     def test_badfiles(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.landsat_base import ETMCHReader, ETMMDReader
+        from satpy.readers.core.landsat import ETMCHReader, LandsatL1MDReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
 
         # Test that metadata reader initialises with correct filename
-        good_mda = ETMMDReader(mda_file, self.filename_info, ftype)
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, ftype)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            ETMMDReader(mda_file, bad_fname_info, ftype)
+            LandsatL1MDReader(mda_file, bad_fname_info, ftype)
 
         # Test that metadata reader initialises with correct filename
         ETMCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
@@ -593,8 +593,8 @@ class TestETML1:
 
     def test_metadata(self, mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.landsat_base import ETMMDReader
-        mda = ETMMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(mda_file, self.filename_info, {})
 
         cal_test_dict = {"B1": (7.7874e-01, -6.97874, 1.1661e-03, -0.010450),
                          "B5": (1.2622e-01, -1.12622, 1.7365e-03, -0.015494),
@@ -612,8 +612,8 @@ class TestETML1:
 
     def test_area_def(self, mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.landsat_base import ETMMDReader
-        mda = ETMMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B1")
         pan_area = mda.build_area_def("B8")

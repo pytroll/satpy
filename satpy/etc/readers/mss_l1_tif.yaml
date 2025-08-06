@@ -29,52 +29,52 @@ file_types:
     # Spectral bands
 
     granule_B1:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B1.TIF']
         requires: [l1_metadata]
 
     granule_B2:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B2.TIF']
         requires: [l1_metadata]
 
     granule_B3:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B3.TIF']
         requires: [l1_metadata]
 
     granule_B4:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B4.TIF']
         requires: [l1_metadata]
 
     granule_B5:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B5.TIF']
         requires: [l1_metadata]
 
     granule_B6:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B6.TIF']
         requires: [l1_metadata]
 
     granule_B7:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B7.TIF']
         requires: [l1_metadata]
 
     # QA Variables
     granule_qa:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA.TIF', '{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA_PIXEL.TIF']
         requires: [l1_metadata]
     granule_qa_radsat:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSCHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA_RADSAT.TIF']
         requires: [l1_metadata]
 
     l1_metadata:
-        file_reader: !!python/name:satpy.readers.landsat_base.MSSMDReader
+        file_reader: !!python/name:satpy.readers.core.landsat.LandsatL1MDReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_MTL.xml']
 
 datasets:

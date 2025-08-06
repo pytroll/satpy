@@ -469,8 +469,8 @@ class TestOLITIRSL1:
 
     def test_loading_gd(self, mda_file, b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.landsat_base import OLITIRSCHReader, OLITIRSMDReader
-        good_mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, OLITIRSCHReader
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, {})
         rdr = OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
@@ -478,8 +478,8 @@ class TestOLITIRSL1:
 
     def test_loading_badfil(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.landsat_base import OLITIRSCHReader, OLITIRSMDReader
-        good_mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, OLITIRSCHReader
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, {})
         rdr = OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
@@ -489,8 +489,8 @@ class TestOLITIRSL1:
 
     def test_loading_badchan(self, mda_file, b11_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.landsat_base import OLITIRSCHReader, OLITIRSMDReader
-        good_mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, OLITIRSCHReader
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, {})
         ftype = {"standard_name": "test_data", "units": "test_units"}
         bad_finfo = self.filename_info.copy()
         bad_finfo["data_type"] = "T"
@@ -509,18 +509,18 @@ class TestOLITIRSL1:
 
     def test_badfiles(self, mda_file, b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.landsat_base import OLITIRSCHReader, OLITIRSMDReader
+        from satpy.readers.core.landsat import LandsatL1MDReader, OLITIRSCHReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
 
         # Test that metadata reader initialises with correct filename
-        good_mda = OLITIRSMDReader(mda_file, self.filename_info, ftype)
+        good_mda = LandsatL1MDReader(mda_file, self.filename_info, ftype)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            OLITIRSMDReader(mda_file, bad_fname_info, ftype)
+            LandsatL1MDReader(mda_file, bad_fname_info, ftype)
 
         # Test that metadata reader initialises with correct filename
         OLITIRSCHReader(b4_file, self.filename_info, self.ftype_info, good_mda)
@@ -593,8 +593,8 @@ class TestOLITIRSL1:
 
     def test_metadata(self, mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.landsat_base import OLITIRSMDReader
-        mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(mda_file, self.filename_info, {})
 
         cal_test_dict = {"B1": (0.012357, -61.78647, 2e-05, -0.1),
                          "B5": (0.0060172, -30.08607, 2e-05, -0.1),
@@ -613,8 +613,8 @@ class TestOLITIRSL1:
 
     def test_area_def(self, mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.landsat_base import OLITIRSMDReader
-        mda = OLITIRSMDReader(mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B1")
         pan_area = mda.build_area_def("B8")

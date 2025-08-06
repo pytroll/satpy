@@ -33,101 +33,101 @@ reader:
 file_types:
     # Bands on the OLI subsystem
     granule_B1:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B1.TIF']
         requires: [l1_metadata]
 
     granule_B2:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B2.TIF']
         requires: [l1_metadata]
 
     granule_B3:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B3.TIF']
         requires: [l1_metadata]
 
     granule_B4:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B4.TIF']
         requires: [l1_metadata]
 
     granule_B5:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B5.TIF']
         requires: [l1_metadata]
 
     granule_B6:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B6.TIF']
         requires: [l1_metadata]
 
     granule_B7:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_SR_B7.TIF']
         requires: [l1_metadata]
 
     # Bands on the TIRS subsystem
     granule_B10:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_B10.TIF']
         requires: [l1_metadata]
 
     granule_TRAD:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_TRAD.TIF']
         requires: [l1_metadata]
 
     granule_DRAD:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_DRAD.TIF']
         requires: [l1_metadata]
 
     granule_URAD:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_URAD.TIF']
         requires: [l1_metadata]
 
     granule_ATRAN:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_ATRAN.TIF']
         requires: [l1_metadata]
 
     granule_EMIS:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_EMIS.TIF']
         requires: [l1_metadata]
 
     granule_EMSD:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_EMSD.TIF']
         requires: [l1_metadata]
 
     granule_CDIST:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_ST_CDIST.TIF']
         requires: [l1_metadata]
 
     # QA Variables
     granule_qa:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA.TIF', '{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA_PIXEL.TIF']
         requires: [l1_metadata]
     granule_qa_radsat:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA_RADSAT.TIF']
         requires: [l1_metadata]
     granule_qa_aerosol:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_SR_QA_AEROSOL.TIF']
         requires: [l1_metadata]
     granule_qa_st:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2CHReader
+        file_reader: !!python/name:satpy.readers.core.landsat.OLITIRSL2CHReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_ST_QA.TIF']
         requires: [l1_metadata]
 
     l1_metadata:
-        file_reader: !!python/name:satpy.readers.landsat_base.OLITIRSL2MDReader
+        file_reader: !!python/name:satpy.readers.core.landsat.LandsatL2MDReader
         file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category}_MTL.xml']
 
 datasets:

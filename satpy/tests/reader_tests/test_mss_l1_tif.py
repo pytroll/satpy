@@ -582,8 +582,8 @@ class TestMSSL1_Landsat_1:
 
     def test_loading_gd(self, l1_mda_file, l1_b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
-        good_mda = MSSMDReader(l1_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, MSSCHReader
+        good_mda = LandsatL1MDReader(l1_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l1_b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
@@ -591,8 +591,8 @@ class TestMSSL1_Landsat_1:
 
     def test_loading_badfil(self, l1_mda_file, l1_b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
-        good_mda = MSSMDReader(l1_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, MSSCHReader
+        good_mda = LandsatL1MDReader(l1_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l1_b4_file, self.filename_info, self.ftype_info, good_mda)
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
@@ -602,18 +602,18 @@ class TestMSSL1_Landsat_1:
 
     def test_badfiles(self, l1_mda_file, l1_b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
+        from satpy.readers.core.landsat import LandsatL1MDReader, MSSCHReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
 
         # Test that metadata reader initialises with correct filename
-        good_mda = MSSMDReader(l1_mda_file, self.filename_info, ftype)
+        good_mda = LandsatL1MDReader(l1_mda_file, self.filename_info, ftype)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            MSSMDReader(l1_mda_file, bad_fname_info, ftype)
+            LandsatL1MDReader(l1_mda_file, bad_fname_info, ftype)
 
         # Test that metadata reader initialises with correct filename
         MSSCHReader(l1_b4_file, self.filename_info, self.ftype_info, good_mda)
@@ -660,8 +660,8 @@ class TestMSSL1_Landsat_1:
 
     def test_metadata(self, l1_mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.landsat_base import MSSMDReader
-        mda = MSSMDReader(l1_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(l1_mda_file, self.filename_info, {})
 
         cal_test_dict = {"B5": (6.4843e-01, -0.74843, 1.3660e-03, -0.001577),
                          "B6": (6.5236e-01, -0.75236, 1.6580e-03, -0.001912),
@@ -679,8 +679,8 @@ class TestMSSL1_Landsat_1:
 
     def test_area_def(self, l1_mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.landsat_base import MSSMDReader
-        mda = MSSMDReader(l1_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(l1_mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B4")
 
@@ -738,8 +738,8 @@ class TestMSSL1_Landsat_4:
 
     def test_loading_gd(self, l4_mda_file, l4_b4_file):
         """Test loading a Landsat Scene with good channel requests."""
-        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
-        good_mda = MSSMDReader(l4_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, MSSCHReader
+        good_mda = LandsatL1MDReader(l4_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l4_b4_file, self.filename_info, self.ftype_info, good_mda)
 
         # Check case with good file data and load request
@@ -747,8 +747,8 @@ class TestMSSL1_Landsat_4:
 
     def test_loading_badfil(self, l4_mda_file, l4_b4_file):
         """Test loading a Landsat Scene with bad channel requests."""
-        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
-        good_mda = MSSMDReader(l4_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader, MSSCHReader
+        good_mda = LandsatL1MDReader(l4_mda_file, self.filename_info, {})
         rdr = MSSCHReader(l4_b4_file, self.filename_info, self.ftype_info, good_mda)
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
@@ -758,18 +758,18 @@ class TestMSSL1_Landsat_4:
 
     def test_badfiles(self, l4_mda_file, l4_b4_file):
         """Test loading a Landsat Scene with bad data."""
-        from satpy.readers.landsat_base import MSSCHReader, MSSMDReader
+        from satpy.readers.core.landsat import LandsatL1MDReader, MSSCHReader
         bad_fname_info = self.filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
         ftype = {"standard_name": "test_data", "units": "test_units"}
 
         # Test that metadata reader initialises with correct filename
-        good_mda = MSSMDReader(l4_mda_file, self.filename_info, ftype)
+        good_mda = LandsatL1MDReader(l4_mda_file, self.filename_info, ftype)
 
         # Check metadata reader fails if platform type is wrong
         with pytest.raises(ValueError, match="This reader only supports Landsat data"):
-            MSSMDReader(l4_mda_file, bad_fname_info, ftype)
+            LandsatL1MDReader(l4_mda_file, bad_fname_info, ftype)
 
         # Test that metadata reader initialises with correct filename
         MSSCHReader(l4_b4_file, self.filename_info, self.ftype_info, good_mda)
@@ -816,8 +816,8 @@ class TestMSSL1_Landsat_4:
 
     def test_metadata(self, l4_mda_file):
         """Check that metadata values loaded correctly."""
-        from satpy.readers.landsat_base import MSSMDReader
-        mda = MSSMDReader(l4_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(l4_mda_file, self.filename_info, {})
 
         cal_test_dict = {"B1": (8.7520e-01, 2.92480, 1.5680e-03, 0.005240),
                          "B2": (6.2008e-01, 3.07992, 1.2865e-03, 0.006390),
@@ -835,8 +835,8 @@ class TestMSSL1_Landsat_4:
 
     def test_area_def(self, l4_mda_file):
         """Check we can get the area defs properly."""
-        from satpy.readers.landsat_base import MSSMDReader
-        mda = MSSMDReader(l4_mda_file, self.filename_info, {})
+        from satpy.readers.core.landsat import LandsatL1MDReader
+        mda = LandsatL1MDReader(l4_mda_file, self.filename_info, {})
 
         standard_area = mda.build_area_def("B4")
 
