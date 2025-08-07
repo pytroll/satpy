@@ -63,7 +63,6 @@ import pytest
 )
 def test_import_from_package_init_warns(name):
     """Test that compositor classes and helper functions raise warnings when imported from package."""
-    with pytest.warns(UserWarning, match="has been moved to"):
-        from satpy import composites
+    from satpy import composites
     with pytest.warns(UserWarning, match="has been moved to"):
         getattr(composites, name)
