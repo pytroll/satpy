@@ -580,7 +580,7 @@ def check_satpy(readers=None, writers=None, packages=None):
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
-    This is mostly used in :class:`satpy.composites.CompositeBase` to safe
+    This is mostly used in :class:`satpy.composites.core.CompositeBase` to safe
     guard against running :func:`dask.array.map_blocks` with arrays of
     different chunk sizes. Doing so can cause unexpected results or errors.
     However, xarray's ``unify_chunks`` will raise an exception if dimensions
