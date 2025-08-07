@@ -47,7 +47,7 @@ class ImageWriter(Writer):
 
                     {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S}.tif
 
-            base_dir (str | Path):
+            base_dir (str | pathlib.Path):
                 Base destination directories for all created files.
             enhance (bool or Enhancer): Whether to automatically enhance
                 data to be more visually useful and to fit inside the file
@@ -60,13 +60,6 @@ class ImageWriter(Writer):
 
             kwargs (dict): Additional keyword arguments to pass to the
                 :class:`~satpy.writers.core.base.Writer` base class.
-
-        .. versionchanged:: 0.10
-
-            Deprecated `enhancement_config_file` and 'enhancer' in favor of
-            `enhance`. Pass an instance of the `Enhancer` class to `enhance`
-            instead.
-
         """
         super().__init__(name, filename, base_dir, **kwargs)
         if enhance is False:
