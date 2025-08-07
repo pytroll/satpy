@@ -21,6 +21,7 @@ import contextlib
 from typing import Optional
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -38,17 +39,17 @@ def _create_cmip_dataset(data_variable: str = "HT"):
         }
     )
     x__ = xr.DataArray(
-        [0, 1],
+        da.from_array([0, 1]),
         attrs={"scale_factor": 2., "add_offset": -1.},
         dims=("x",),
     )
     y__ = xr.DataArray(
-        [0, 1],
+        da.from_array([0, 1]),
         attrs={"scale_factor": -2., "add_offset": 1.},
         dims=("y",),
     )
 
-    ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
+    ht_da = xr.DataArray(da.from_array(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2))),
                          dims=("y", "x"),
                          attrs={"scale_factor": 0.3052037,
                                 "add_offset": 0.,
@@ -109,11 +110,14 @@ def _create_sst_dataset():
     ds1["SST"].attrs["units"] = "K"
     dqf_data = np.zeros_like(ds1["SST"], dtype=np.uint8)
     dqf_data[-1, -1] = 1
-    dqf = xr.DataArray(dqf_data,
+    dqf = xr.DataArray(da.from_array(dqf_data),
                        dims=ds1["SST"].dims,
                        attrs={
                            "_FillValue": np.uint8(255),
                            "units": "1",
+                           "flag_meanings": "good_quality_qf degraded_quality_qf "
+                                            "severely_degraded_quality_qf invalid_due_to_unprocessed_qf",
+                           "flag_values": [np.uint8(0), np.uint8(1), np.uint8(2), np.uint8(3)],
                        })
     ds1["DQF"] = dqf
     return ds1
@@ -128,14 +132,15 @@ class Test_NC_ABI_L2_get_dataset:
             ("ACHA", _create_cmip_dataset, "HT", {"units": "m"}, {}),
             ("AOD", _create_aod_dataset, "AOD", {"units": "1"}, {}),
             ("SST", _create_sst_dataset, "SST", {"units": "K"}, {}),
-            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {"filter_sst": True}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {"filters": ["good_quality_qf"]}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {"filters": []}),
         ]
     )
     def test_get_dataset(self, obs_type, ds_func, var_name, var_attrs, fh_kwargs):
         """Test basic L2 load."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name=var_name)
-        check_dqf = any("filter" in key for key in fh_kwargs.keys())
+        check_dqf = bool(fh_kwargs.get("filters"))
         with _create_reader_for_fake_data(obs_type, ds_func(), fh_kwargs=fh_kwargs) as reader:
             res = reader.get_dataset(key, {"file_key": var_name})
 
@@ -377,7 +382,7 @@ def _create_reader_for_fake_data(
         filename_info: Optional[dict] = None,
         fh_kwargs: dict | None = None,
 ):
-    from satpy.readers.abi_l2_nc import ABISST, NC_ABI_L2
+    from satpy.readers.abi_l2_nc import NC_ABI_L2
 
     if filename_info is None:
         filename_info = {
@@ -391,7 +396,7 @@ def _create_reader_for_fake_data(
     )
     if fh_kwargs is None:
         fh_kwargs = {}
-    fh_cls = NC_ABI_L2 if "SST" not in fake_dataset else ABISST
+    fh_cls = NC_ABI_L2
     with mock.patch("satpy.readers.core.abi.xr") as xr_:
         xr_.open_dataset.return_value = fake_dataset
         file_handler = fh_cls(*fh_args, **fh_kwargs)

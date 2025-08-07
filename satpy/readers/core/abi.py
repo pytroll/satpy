@@ -131,6 +131,10 @@ class NC_ABI_BASE(BaseFileHandler):
 
         return data
 
+    def __contains__(self, item):
+        """Check if the specified variable exists in this file."""
+        return item in self.nc.variables
+
     def _adjust_data(self, data, item):
         """Adjust data with typing, scaling and filling."""
         factor = data.attrs.get("scale_factor", 1)

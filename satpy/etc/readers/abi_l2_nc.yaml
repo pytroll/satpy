@@ -558,7 +558,7 @@ file_types:
     observation_type: "DSR"
 
   abi_l2_sst:
-    file_reader: !!python/name:satpy.readers.abi_l2_nc.ABISST
+    file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-SST{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
     observation_type: "SST"
 
