@@ -419,7 +419,7 @@ class TestHelpers(unittest.TestCase):
         assert offset == -0.0556
 
         # Test that channels not present in dict return 1.0, 0.0
-        with pytest.warns(UserWarning):
+        with pytest.warns(UserWarning, match=".*not supplied coefficients.*"):
             slope, offset = hf.get_user_calibration_factors("IR097", radcor_dict)
         assert slope == 1.0
         assert offset == 0.0
@@ -661,5 +661,5 @@ def test_init_import_warns(name):
     """Test that importing non-reader functions from __init__.py issue a warning."""
     from satpy.readers import utils
 
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(utils, name)

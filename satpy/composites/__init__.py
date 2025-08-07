@@ -385,7 +385,12 @@ class CategoricalDataCompositor(CompositeBase):
             raise ValueError("Can't have more than one dataset for a categorical data composite")
 
         data = projectables[0].astype(int)
-        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+        res = data.data.map_blocks(
+            self._getitem,
+            self.lut,
+            dtype=self.lut.dtype,
+            meta=np.ndarray((), dtype=self.lut.dtype),
+        )
 
         new_attrs = data.attrs.copy()
         self._update_attrs(new_attrs)
@@ -681,6 +686,7 @@ class PaletteCompositor(ColormapCompositor):
     def _apply_colormap(colormap, data, palette):
         channels, colors = colormap.palettize(data.data.squeeze())
         channels = channels.map_blocks(_insert_palette_colors, palette, dtype=palette.dtype,
+                                       meta=np.ndarray((), dtype=palette.dtype),
                                        new_axis=2, chunks=list(channels.chunks) + [palette.shape[1]])
         return [channels[:, :, i] for i in range(channels.shape[2])]
 
@@ -1433,7 +1439,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         except (KeyError, AttributeError):
             offset = (0, 0)
 
-        res = d.data.map_blocks(_mean4, offset=offset, dtype=d.dtype)
+        res = d.data.map_blocks(_mean4, offset=offset, dtype=d.dtype, meta=np.ndarray((), dtype=d.dtype))
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):

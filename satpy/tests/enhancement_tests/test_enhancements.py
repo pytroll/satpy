@@ -189,20 +189,21 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
                          )
 def test_stretching_warns(name):
     """Test that there's a warning when importing stretching functions from old location."""
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="has been moved to"):
         from satpy import enhancements
+    with pytest.warns(UserWarning, match="has been moved to"):
         getattr(enhancements, name)
 
 
 def test_jma_true_color_repropdution_warns():
     """Test that there's a warning when importing jma_true_color_reproduction from old location."""
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="has been moved to"):
         from satpy.enhancements import jma_true_color_reproduction  # noqa
 
 
 def test_convolution_warns():
     """Test that there's a warning when importing three_d_effect from old location."""
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="has been moved to"):
         from satpy.enhancements import three_d_effect  # noqa
 
 
@@ -214,8 +215,9 @@ def test_convolution_warns():
                          )
 def test_wrappers_warns(name):
     """Test that there's a warning when importing wrapper functions from old location."""
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="has been moved to"):
         from satpy import enhancements
+    with pytest.warns(UserWarning, match="has been moved to"):
         getattr(enhancements, name)
 
 
@@ -226,8 +228,9 @@ def test_wrappers_warns(name):
                           "create_colormap",
                          ]
                          )
-def test_color_mappung_warns(name):
+def test_color_mapping_warns(name):
     """Test that there's a warning when importing color mapping functions from old location."""
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match="has been moved to"):
         from satpy import enhancements
+    with pytest.warns(UserWarning, match="has been moved to"):
         getattr(enhancements, name)

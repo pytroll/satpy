@@ -20,11 +20,14 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy.tests.utils import assert_maximum_dask_computes
+
 
 def run_and_check_enhancement(func, data, expected, **kwargs):
     """Perform basic checks that apply to multiple tests."""
     pre_attrs = data.attrs
-    img = _get_enhanced_image(func, data, **kwargs)
+    with assert_maximum_dask_computes(max_computes=0):
+        img = _get_enhanced_image(func, data, **kwargs)
 
     _assert_image(img, pre_attrs, func.__name__, "palettes" in kwargs)
     _assert_image_data(img, expected)
