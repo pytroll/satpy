@@ -285,7 +285,7 @@ y_size = 100
 date = datetime(1989, 8, 18, tzinfo=timezone.utc)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def area():
     """Get the landsat 1 area def."""
     pcs_id = "WGS84 / UTM zone 46N"
@@ -296,7 +296,7 @@ def area():
                           area_extent)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def b4_data():
     """Get the data for the b4 channel."""
     return da.random.randint(12000, 16000,
@@ -304,7 +304,7 @@ def b4_data():
                              chunks=(50, 50)).astype(np.uint16)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def b6_data():
     """Get the data for the b6 channel."""
     return da.random.randint(8000, 14000,
@@ -312,7 +312,7 @@ def b6_data():
                              chunks=(50, 50)).astype(np.uint16)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sza_data():
     """Get the data for the sza."""
     return da.random.randint(1, 10000,
@@ -333,13 +333,13 @@ def create_tif_file(data, name, area, filename):
                      filename=os.fspath(filename))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def files_path(tmp_path_factory):
     """Create the path for l1 files."""
     return tmp_path_factory.mktemp("tm_l1_files")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def b4_file(files_path, b4_data, area):
     """Create the file for the b4 channel."""
     data = b4_data
@@ -348,7 +348,7 @@ def b4_file(files_path, b4_data, area):
     create_tif_file(data, name, area, filename)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def b6_file(files_path, b6_data, area):
     """Create the file for the b6 channel."""
     data = b6_data
@@ -357,7 +357,7 @@ def b6_file(files_path, b6_data, area):
     create_tif_file(data, name, area, filename)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sza_file(files_path, sza_data, area):
     """Create the file for the sza."""
     data = sza_data
@@ -367,7 +367,7 @@ def sza_file(files_path, sza_data, area):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mda_file(files_path):
     """Create the metadata xml file."""
     filename = files_path / "LT04_L1TP_143021_19890818_20200916_02_T1_MTL.xml"
@@ -376,13 +376,13 @@ def mda_file(files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def all_files(b4_file, b6_file, mda_file, sza_file):
     """Return all the files."""
     return b4_file, b6_file, mda_file, sza_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def all_fs_files(b4_file, b6_file, mda_file, sza_file):
     """Return all the files as FSFile objects."""
     from fsspec.implementations.local import LocalFileSystem

@@ -2663,7 +2663,7 @@ mss_l1_landsat1_sp_params = [9.5591e-01, -18.55591, 1.7282e-03, -0.033547]
 mss_l1_landsat4_sp_params = [4.7638e-01, 3.82362, 1.7954e-03, 0.014411]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def spectral_data():
     """Get the data for the generic spectral channel."""
     return da.random.randint(12000, 16000,
@@ -2671,7 +2671,7 @@ def spectral_data():
                              chunks=(50, 50)).astype(np.uint16)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def thermal_data():
     """Get the data for the generic thermal channel."""
     return da.random.randint(8000, 14000,
@@ -2679,7 +2679,7 @@ def thermal_data():
                              chunks=(50, 50)).astype(np.uint16)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sza_rad_data():
     """Get the data for the sza or radiance channel."""
     return da.random.randint(1, 10000,
@@ -2702,7 +2702,7 @@ def create_tif_file(data, name, area, filename, date):
 
 def get_area_fixture(name, zone, extent):
     """Get area def."""
-    @pytest.fixture(scope="session")
+    @pytest.fixture(scope="module")
     def _fixture():
         """Fixture body."""
         pcs_id = "WGS84 / UTM zone {zone}N"
@@ -2716,7 +2716,7 @@ def get_area_fixture(name, zone, extent):
 
 def make_temp_path_fixture(name):
     """Create a temp directory for a Landsat product."""
-    @pytest.fixture(scope="session")
+    @pytest.fixture(scope="module")
     def _fixture(tmp_path_factory):
         return tmp_path_factory.mktemp(f"{name}_files")
     _fixture.__name__ = f"{name}_files_path"
@@ -2757,7 +2757,7 @@ mss_l1_landsat4_files_path = make_temp_path_fixture("mss_l1_landsat4")
 antarctic_files_path = make_temp_path_fixture("antarctic")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l1_b4_file(oli_tirs_l1_files_path, spectral_data, oli_tirs_l1_area):
     """Create the file for the Landsat OLI TIRS L1 B4 channel."""
     filename = oli_tirs_l1_files_path / "LC08_L1TP_026200_20240502_20240513_02_T2_B4.TIF"
@@ -2765,7 +2765,7 @@ def oli_tirs_l1_b4_file(oli_tirs_l1_files_path, spectral_data, oli_tirs_l1_area)
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l1_b11_file(oli_tirs_l1_files_path, thermal_data, oli_tirs_l1_area):
     """Create the file for the Landsat OLI TIRS L1 B11 channel."""
     filename = oli_tirs_l1_files_path / "LC08_L1TP_026200_20240502_20240513_02_T2_B11.TIF"
@@ -2773,7 +2773,7 @@ def oli_tirs_l1_b11_file(oli_tirs_l1_files_path, thermal_data, oli_tirs_l1_area)
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l1_sza_file(oli_tirs_l1_files_path, sza_rad_data, oli_tirs_l1_area):
     """Create the file for the Landsat OLI TIRS L1 sza."""
     filename = oli_tirs_l1_files_path / "LC08_L1TP_026200_20240502_20240513_02_T2_SZA.TIF"
@@ -2781,7 +2781,7 @@ def oli_tirs_l1_sza_file(oli_tirs_l1_files_path, sza_rad_data, oli_tirs_l1_area)
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l1_mda_file(oli_tirs_l1_files_path):
     """Create the Landsat OLI TIRS L1 metadata xml file."""
     filename = oli_tirs_l1_files_path / "LC08_L1TP_026200_20240502_20240513_02_T2_MTL.xml"
@@ -2790,27 +2790,27 @@ def oli_tirs_l1_mda_file(oli_tirs_l1_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l1_all_files(oli_tirs_l1_b4_file, oli_tirs_l1_b11_file, oli_tirs_l1_mda_file, oli_tirs_l1_sza_file):
     """Return all the files."""
     return oli_tirs_l1_b4_file, oli_tirs_l1_b11_file, oli_tirs_l1_mda_file, oli_tirs_l1_sza_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l2_b4_file(oli_tirs_l2_files_path, spectral_data, oli_tirs_l2_area):
     """Create the file for the Landsat OLI TIRS L2 B4 channel."""
     filename = oli_tirs_l2_files_path / "LC09_L2SP_029030_20240616_20240617_02_T1_SR_B4.TIF"
     create_tif_file(spectral_data, "B4", oli_tirs_l2_area, filename, oli_tirs_l2_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l2_b10_file(oli_tirs_l2_files_path, thermal_data, oli_tirs_l2_area):
     """Create the file for the Landsat OLI TIRS L2 B10 channel."""
     filename = oli_tirs_l2_files_path / "LC09_L2SP_029030_20240616_20240617_02_T1_ST_B10.TIF"
     create_tif_file(thermal_data, "B10", oli_tirs_l2_area, filename, oli_tirs_l2_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l2_rad_file(oli_tirs_l2_files_path, sza_rad_data, oli_tirs_l2_area):
     """Create the file for the Landsat OLI TIRS L2 TRAD channel."""
     filename = oli_tirs_l2_files_path / "LC09_L2SP_029030_20240616_20240617_02_T1_ST_TRAD.TIF"
@@ -2818,7 +2818,7 @@ def oli_tirs_l2_rad_file(oli_tirs_l2_files_path, sza_rad_data, oli_tirs_l2_area)
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l2_mda_file(oli_tirs_l2_files_path):
     """Create the Landsat OLI TIRS L2 metadata xml file."""
     filename = oli_tirs_l2_files_path / "LC09_L2SP_029030_20240616_20240617_02_T1_MTL.xml"
@@ -2827,27 +2827,27 @@ def oli_tirs_l2_mda_file(oli_tirs_l2_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def oli_tirs_l2_all_files(oli_tirs_l2_b4_file, oli_tirs_l2_b10_file, oli_tirs_l2_mda_file, oli_tirs_l2_rad_file):
     """Return all the files."""
     return oli_tirs_l2_b4_file, oli_tirs_l2_b10_file, oli_tirs_l2_mda_file, oli_tirs_l2_rad_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l1_b4_file(etm_l1_files_path, spectral_data, etm_l1_area):
     """Create the file for the Landsat ETM+ L1 B4 channel."""
     filename = etm_l1_files_path / "LE07_L1TP_230080_20231208_20240103_02_T1_B4.TIF"
     create_tif_file(spectral_data, "B4", etm_l1_area, filename, etm_l1_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l1_b6_file(etm_l1_files_path, thermal_data, etm_l1_area):
     """Create the file for the Landsat ETM+ L1 B6 channel."""
     filename = etm_l1_files_path / "LE07_L1TP_230080_20231208_20240103_02_T1_B6_VCID_1.TIF"
     create_tif_file(thermal_data, "B6_VCID_1", etm_l1_area, filename, etm_l1_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l1_sza_file(etm_l1_files_path, sza_rad_data, etm_l1_area):
     """Create the file for the Landsat ETM+ L1 sza."""
     filename = etm_l1_files_path / "LE07_L1TP_230080_20231208_20240103_02_T1_SZA.TIF"
@@ -2855,7 +2855,7 @@ def etm_l1_sza_file(etm_l1_files_path, sza_rad_data, etm_l1_area):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l1_mda_file(etm_l1_files_path):
     """Create the Landsat ETM+ L1 metadata xml file."""
     filename = etm_l1_files_path / "LE07_L1TP_230080_20231208_20240103_02_T1_MTL.xml"
@@ -2864,27 +2864,27 @@ def etm_l1_mda_file(etm_l1_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l1_all_files(etm_l1_b4_file, etm_l1_b6_file, etm_l1_mda_file, etm_l1_sza_file):
     """Return all the files."""
     return etm_l1_b4_file, etm_l1_b6_file, etm_l1_mda_file, etm_l1_sza_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l2_b4_file(etm_l2_files_path, spectral_data, etm_l2_area):
     """Create the file for the Landsat ETM+ L2 B4 channel."""
     filename = etm_l2_files_path / "LE07_L2SP_028030_20230817_20230912_02_T1_SR_B4.TIF"
     create_tif_file(spectral_data, "B4", etm_l2_area, filename, etm_l2_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l2_b6_file(etm_l2_files_path, thermal_data, etm_l2_area):
     """Create the file for the Landsat ETM+ L2 B6 channel."""
     filename = etm_l2_files_path / "LE07_L2SP_028030_20230817_20230912_02_T1_ST_B6.TIF"
     create_tif_file(thermal_data, "B6", etm_l2_area, filename, etm_l2_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l2_rad_file(etm_l2_files_path, sza_rad_data, etm_l2_area):
     """Create the file for the Landsat ETM+ L2 TRAD channel."""
     filename = etm_l2_files_path / "LE07_L2SP_028030_20230817_20230912_02_T1_ST_TRAD.TIF"
@@ -2892,7 +2892,7 @@ def etm_l2_rad_file(etm_l2_files_path, sza_rad_data, etm_l2_area):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l2_mda_file(etm_l2_files_path):
     """Create the Landsat ETM+ L2 metadata xml file."""
     filename = etm_l2_files_path / "LE07_L2SP_028030_20230817_20230912_02_T1_MTL.xml"
@@ -2901,27 +2901,27 @@ def etm_l2_mda_file(etm_l2_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def etm_l2_all_files(etm_l2_b4_file, etm_l2_b6_file, etm_l2_mda_file, etm_l2_rad_file):
     """Return all the files."""
     return etm_l2_b4_file, etm_l2_b6_file, etm_l2_mda_file, etm_l2_rad_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l1_b4_file(tm_l1_files_path, spectral_data, tm_l1_area):
     """Create the file for the Landsat TM L1 B4 channel."""
     filename = tm_l1_files_path / "LT04_L1TP_143021_19890818_20200916_02_T1_B4.TIF"
     create_tif_file(spectral_data, "B4", tm_l1_area, filename, tm_l1_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l1_b6_file(tm_l1_files_path, thermal_data, tm_l1_area):
     """Create the file for the Landsat TM L1 B6 channel."""
     filename = tm_l1_files_path / "LT04_L1TP_143021_19890818_20200916_02_T1_B6.TIF"
     create_tif_file(thermal_data, "B6", tm_l1_area, filename, tm_l1_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l1_sza_file(tm_l1_files_path, sza_rad_data, tm_l1_area):
     """Create the file for the Landsat TM L1 sza."""
     filename = tm_l1_files_path / "LT04_L1TP_143021_19890818_20200916_02_T1_SZA.TIF"
@@ -2929,7 +2929,7 @@ def tm_l1_sza_file(tm_l1_files_path, sza_rad_data, tm_l1_area):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l1_mda_file(tm_l1_files_path):
     """Create the Landsat TM L1 metadata xml file."""
     filename = tm_l1_files_path / "LT04_L1TP_143021_19890818_20200916_02_T1_MTL.xml"
@@ -2938,27 +2938,27 @@ def tm_l1_mda_file(tm_l1_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l1_all_files(tm_l1_b4_file, tm_l1_b6_file, tm_l1_mda_file, tm_l1_sza_file):
     """Return all the files."""
     return tm_l1_b4_file, tm_l1_b6_file, tm_l1_mda_file, tm_l1_sza_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l2_b4_file(tm_l2_files_path, spectral_data, tm_l2_area):
     """Create the file for the Landsat TM L2 B4 channel."""
     filename = tm_l2_files_path / "LT05_L2SP_165054_20110817_20200820_02_T1_SR_B4.TIF"
     create_tif_file(spectral_data, "B4", tm_l2_area, filename, tm_l2_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l2_b6_file(tm_l2_files_path, thermal_data, tm_l2_area):
     """Create the file for the Landsat TM L2 B6 channel."""
     filename = tm_l2_files_path / "LT05_L2SP_165054_20110817_20200820_02_T1_ST_B6.TIF"
     create_tif_file(thermal_data, "B6", tm_l2_area, filename, tm_l2_date)
     return os.fspath(filename)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l2_rad_file(tm_l2_files_path, sza_rad_data, tm_l2_area):
     """Create the file for the Landsat TM L2 TRAD channel."""
     filename = tm_l2_files_path / "LT05_L2SP_165054_20110817_20200820_02_T1_ST_TRAD.TIF"
@@ -2966,7 +2966,7 @@ def tm_l2_rad_file(tm_l2_files_path, sza_rad_data, tm_l2_area):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l2_mda_file(tm_l2_files_path):
     """Create the Landsat TM L2 metadata xml file."""
     filename = tm_l2_files_path / "LT05_L2SP_165054_20110817_20200820_02_T1_MTL.xml"
@@ -2975,13 +2975,13 @@ def tm_l2_mda_file(tm_l2_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tm_l2_all_files(tm_l2_b4_file, tm_l2_b6_file, tm_l2_mda_file, tm_l2_rad_file):
     """Return all the files."""
     return tm_l2_b4_file, tm_l2_b6_file, tm_l2_mda_file, tm_l2_rad_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mss_l1_landsat1_b4_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_landsat1_area):
     """Create the file for the Landsat-1 MSS L1 B4 channel."""
     filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_B4.TIF"
@@ -2989,7 +2989,7 @@ def mss_l1_landsat1_b4_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_la
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
     """Create the Landsat-1 MSS L1 metadata xml file."""
     filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_MTL.xml"
@@ -2998,13 +2998,13 @@ def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mss_l1_landsat1_all_files(mss_l1_landsat1_b4_file, mss_l1_landsat1_mda_file):
     """Return all the files."""
     return mss_l1_landsat1_b4_file, mss_l1_landsat1_mda_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mss_l1_landsat4_b4_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_landsat4_area):
     """Create the file for the Landsat-4 MSS L1 B4 channel."""
     filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_B4.TIF"
@@ -3012,7 +3012,7 @@ def mss_l1_landsat4_b4_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_la
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mss_l1_landsat4_mda_file(mss_l1_landsat4_files_path):
     """Create the Landsat-4 MSS L1 metadata xml file."""
     filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_MTL.xml"
@@ -3021,13 +3021,13 @@ def mss_l1_landsat4_mda_file(mss_l1_landsat4_files_path):
     return os.fspath(filename)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def mss_l1_landsat4_all_files(mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file):
     """Return all the files."""
     return mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def antarctic_mda_file(antarctic_files_path):
     """Create the Antarctic Landsat OLI-TIRS L1 metadata xml file."""
     filename = antarctic_files_path / "LC08_L1GT_132122_20220301_20220308_02_T2_MTL.xml"
