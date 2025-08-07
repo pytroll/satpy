@@ -19,7 +19,7 @@
 
 import logging
 
-from satpy.composites import GenericCompositor
+from satpy.composites.core import GenericCompositor
 
 LOG = logging.getLogger(__name__)
 

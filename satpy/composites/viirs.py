@@ -28,8 +28,9 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.composites import CompositeBase, GenericCompositor
 from satpy.dataset import combine_metadata
+
+from .core import CompositeBase, GenericCompositor
 
 LOG = logging.getLogger(__name__)
 

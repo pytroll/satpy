@@ -163,7 +163,7 @@ def temporal_rgb(
     The first dataset is used as the Red component of the new composite, the second as Green and the third as Blue.
     All the other datasets are discarded.
     """
-    from satpy.composites import GenericCompositor
+    from satpy.composites.core import GenericCompositor
 
     compositor = GenericCompositor("temporal_composite")
     composite = compositor((data_arrays[0], data_arrays[1], data_arrays[2]))
