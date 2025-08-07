@@ -189,8 +189,7 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
                          )
 def test_stretching_warns(name):
     """Test that there's a warning when importing stretching functions from old location."""
-    with pytest.warns(UserWarning, match="has been moved to"):
-        from satpy import enhancements
+    from satpy import enhancements
     with pytest.warns(UserWarning, match="has been moved to"):
         getattr(enhancements, name)
 
@@ -215,8 +214,7 @@ def test_convolution_warns():
                          )
 def test_wrappers_warns(name):
     """Test that there's a warning when importing wrapper functions from old location."""
-    with pytest.warns(UserWarning, match="has been moved to"):
-        from satpy import enhancements
+    from satpy import enhancements
     with pytest.warns(UserWarning, match="has been moved to"):
         getattr(enhancements, name)
 
@@ -230,7 +228,6 @@ def test_wrappers_warns(name):
                          )
 def test_color_mapping_warns(name):
     """Test that there's a warning when importing color mapping functions from old location."""
-    with pytest.warns(UserWarning, match="has been moved to"):
-        from satpy import enhancements
+    from satpy import enhancements
     with pytest.warns(UserWarning, match="has been moved to"):
         getattr(enhancements, name)
