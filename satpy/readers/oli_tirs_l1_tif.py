@@ -34,6 +34,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class OLITIRSCHReader(BaseFileHandler):
 
         logger.debug("Reading %s.", key["name"])
 
-        data = xr.open_dataarray(self.filename, engine="rasterio",
+        data = xr.open_dataarray(open_file_or_filename(self.filename), engine="rasterio",
                                  chunks={"band": 1,
                                          "y": "auto",
                                          "x": "auto"},
@@ -184,7 +185,7 @@ class OLITIRSMDReader(BaseFileHandler):
             raise ValueError("This reader only supports Landsat data")
         self.platform_name = PLATFORMS[filename_info["spacecraft_id"]]
         self._obs_date = filename_info["observation_date"]
-        self.root = ET.parse(self.filename)
+        self.root = ET.parse(open_file_or_filename(self.filename))
         self.process_level = filename_info["process_level_correction"]
         import bottleneck  # noqa
         import geotiepoints  # noqa

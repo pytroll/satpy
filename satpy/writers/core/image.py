@@ -47,7 +47,7 @@ class ImageWriter(Writer):
 
                     {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S}.tif
 
-            base_dir (str):
+            base_dir (str | Path):
                 Base destination directories for all created files.
             enhance (bool or Enhancer): Whether to automatically enhance
                 data to be more visually useful and to fit inside the file

@@ -215,7 +215,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         except (KeyError, AttributeError):
             offset = (0, 0)
 
-        res = d.data.map_blocks(_mean4, offset=offset, dtype=d.dtype)
+        res = d.data.map_blocks(_mean4, offset=offset, dtype=d.dtype, meta=np.ndarray((), dtype=d.dtype))
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):

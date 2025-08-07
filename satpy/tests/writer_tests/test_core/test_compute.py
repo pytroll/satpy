@@ -20,6 +20,7 @@ import datetime as dt
 import os
 import shutil
 
+import numpy as np
 import xarray as xr
 from dask import array as da
 
@@ -178,3 +179,40 @@ class TestComputeWriterResults:
         compute_writer_results([res1, res2, res3])
         assert os.path.isfile(fname1)
         assert os.path.isfile(fname2)
+
+    def test_source_only(self):
+        """Test writers who only return dask arrays with no targets.
+
+        With newer versions of dask it is recommended to not pass Arrays to
+        Delayed functions as the tasks aren't properly/completely optimized.
+        The alternative is to reduce the Array into a single array-like operation
+        with map_blocks, blockwise, or some other reduction function.
+        """
+        from satpy.writers.core.compute import compute_writer_results
+
+        compute_count = 0
+
+        def reduced_map_blocks(_: np.ndarray) -> str:
+            nonlocal compute_count
+            compute_count += 1
+            return "abc"
+
+        arr1 = da.zeros((5, 5))
+        arr2 = da.ones((5, 5))
+        res1 = da.map_blocks(
+            reduced_map_blocks,
+            arr1.rechunk(arr1.shape),
+            dtype=str,
+            meta=np.ndarray((), dtype=str),
+            chunks=(1, 1),
+        )
+        res2 = da.map_blocks(
+            reduced_map_blocks,
+            arr2.rechunk(arr2.shape),
+            dtype=str,
+            meta=np.ndarray((), dtype=str),
+            chunks=(1, 1),
+        )
+
+        compute_writer_results([res1, res2])
+        assert compute_count == 2
