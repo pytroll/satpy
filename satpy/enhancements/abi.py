@@ -16,7 +16,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancement functions specific to the ABI sensor."""
 
-from satpy.enhancements import exclude_alpha, using_map_blocks
+from satpy.enhancements.wrappers import exclude_alpha, using_map_blocks
 
 
 def cimss_true_color_contrast(img, **kwargs):

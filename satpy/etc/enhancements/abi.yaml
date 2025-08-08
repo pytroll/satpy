@@ -4,10 +4,10 @@ enhancements:
     sensor: abi
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 120.}
       - name: sqrt
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs: {gamma: 2.0}
       - name: contrast
         method: !!python/name:satpy.enhancements.abi.cimss_true_color_contrast
@@ -16,17 +16,17 @@ enhancements:
     standard_name: toa_lambertian_equivalent_albedo_multiplied_by_cosine_solar_zenith_angle
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs: {gamma: 1.5}
 
   airmass:
     standard_name: airmass
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [-26.2, -43.2, 243.9]
@@ -38,7 +38,7 @@ enhancements:
     sensor: abi
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0., 0., 0.]
@@ -49,13 +49,13 @@ enhancements:
     standard_name: cira_fire_temperature
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [273.15, 0.0, 0.0]
           max_stretch: [333.15, 100.0, 75.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [0.4, 1, 1]
 
@@ -63,13 +63,13 @@ enhancements:
     standard_name: cimss_cloud_type
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0.0, 0.0, 0.0]
           max_stretch: [10.0, 80.0, 80.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.5, 0.75, 1.0]
 
@@ -80,7 +80,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -6.0, 243.6]
@@ -92,13 +92,13 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -0.5, 261.2]
         max_stretch: [ 2.6, 20.0, 288.7]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1, 2.5, 1]
 
@@ -108,7 +108,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-35.0, -5.0, -75]
@@ -120,7 +120,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -3.1, 243.55]
@@ -132,13 +132,13 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [-7.1, -2.9, 273]
         max_stretch: [ 2.4,  1.1, 300]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.0, 1.0, 1.0]
 
@@ -148,7 +148,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
 
   land_cloud:
@@ -157,7 +157,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [ 0.0,   0.0,   0.0]
@@ -169,7 +169,7 @@ enhancements:
     sensor: abi
     operations:
       - name: btemp_threshold
-        method: !!python/name:satpy.enhancements.btemp_threshold
+        method: !!python/name:satpy.enhancements.contrast.btemp_threshold
         kwargs:
           threshold: 242.0
           min_in: 163.0
@@ -181,7 +181,7 @@ enhancements:
     standard_name: cloud_phase
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [ 0,  0,   0]
@@ -193,7 +193,7 @@ enhancements:
     name: BCM
     operations:
       - name: palettize
-        method: !!python/name:satpy.enhancements.palettize
+        method: !!python/name:satpy.enhancements.colormap.palettize
         kwargs:
           palettes:
             - {'values': [  0, # Clear
@@ -211,7 +211,7 @@ enhancements:
     name: ACM
     operations:
       - name: palettize
-        method: !!python/name:satpy.enhancements.palettize
+        method: !!python/name:satpy.enhancements.colormap.palettize
         kwargs:
           palettes:
             - {'values': [  0, # Clear
@@ -233,7 +233,7 @@ enhancements:
     name: Cloud_Probabilities
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
              - {colors: 'spectral',
@@ -247,7 +247,7 @@ enhancements:
     name: MVFR_Fog_Prob
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: 0
@@ -256,7 +256,7 @@ enhancements:
     name: IFR_Fog_Prob
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: 0
@@ -265,7 +265,7 @@ enhancements:
     name: LIFR_Fog_Prob
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: 0
@@ -274,7 +274,7 @@ enhancements:
     name: Fog_Depth
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: 0
@@ -285,13 +285,13 @@ enhancements:
     sensor: abi
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0.0, 0.0, 0.0]
           max_stretch: [50.0, 20.0, 30.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [0.7, 1.0, 0.7]
   day_cloud_type:
@@ -300,13 +300,13 @@ enhancements:
     sensor: abi
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           # limits taken from AWIPS. Quick Guide PDF is missing stretch limits
           min_stretch: [0.0, 0.0, 0.0]
           max_stretch: [10.0, 78.0, 59.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.5, 1, 1]
