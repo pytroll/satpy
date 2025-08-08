@@ -3040,8 +3040,9 @@ class TestLandsat:
     """Test Landsat image readers."""
 
     ftype_info = {"file_type": "granule_B4"}
-    
+
     def get_filename_info(self, date, level_correction, spacecraft, data_type):
+        """Set up a filename info dict."""
         return dict(observation_date=date,
                     platform_type="L",
                     process_level_correction=level_correction,
