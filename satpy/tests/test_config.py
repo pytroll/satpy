@@ -172,7 +172,7 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
 
     composites:
         fake_composite:
-            compositor: !!python/name:satpy.composites.GenericCompositor
+            compositor: !!python/name:satpy.composites.core.GenericCompositor
             prerequisites:
             - 3.9
             - 10.8

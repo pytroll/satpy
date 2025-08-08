@@ -17,7 +17,7 @@
 
 import logging
 
-from satpy.composites import GenericCompositor
+from satpy.composites.core import GenericCompositor
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
@@ -198,3 +198,38 @@ class NDVIHybridGreen(SpectralBlender):
             + self.limits[0]
 
         return fraction
+
+
+# TODO: Turn this into a weighted RGB compositor
+class NaturalEnh(GenericCompositor):
+    """Enhanced version of natural color composite by Simon Proud.
+
+    Args:
+        ch16_w (float): weight for red channel (1.6 um). Default: 1.3
+        ch08_w (float): weight for green channel (0.8 um). Default: 2.5
+        ch06_w (float): weight for blue channel (0.6 um). Default: 2.2
+
+    """
+
+    def __init__(self, name, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2,
+                 *args, **kwargs):
+        """Initialize the class."""
+        self.ch06_w = ch06_w
+        self.ch08_w = ch08_w
+        self.ch16_w = ch16_w
+        super(NaturalEnh, self).__init__(name, *args, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        ch16 = projectables[0]
+        ch08 = projectables[1]
+        ch06 = projectables[2]
+
+        ch1 = self.ch16_w * ch16 + self.ch08_w * ch08 + self.ch06_w * ch06
+        ch1.attrs = ch16.attrs
+        ch2 = ch08
+        ch3 = ch06
+
+        return super(NaturalEnh, self).__call__((ch1, ch2, ch3),
+                                                *args, **kwargs)

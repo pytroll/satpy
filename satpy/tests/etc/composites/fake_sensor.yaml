@@ -223,21 +223,21 @@ composites:
     prerequisites:
       - name: comp14
   comp27:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+      - compositor: !!python/name:satpy.composites.core.SingleBandCompositor
         prerequisites:
           - name: ds5
             modifiers: ['mod1', 'mod_opt_only']
-      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+      - compositor: !!python/name:satpy.composites.core.SingleBandCompositor
         prerequisites:
           - name: ds1
             modifiers: ['mod1', 'mod_opt_only']
-      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+      - compositor: !!python/name:satpy.composites.core.SingleBandCompositor
         prerequisites:
           - name: ds2
             modifiers: ['mod1', 'mod_opt_only']
-      - compositor: !!python/name:satpy.composites.SingleBandCompositor
+      - compositor: !!python/name:satpy.composites.core.SingleBandCompositor
         prerequisites:
           - name: ds13
             modifiers: ['mod1', 'mod_opt_only']
