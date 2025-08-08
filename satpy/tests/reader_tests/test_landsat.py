@@ -3040,6 +3040,14 @@ class TestLandsat:
     """Test Landsat image readers."""
 
     ftype_info = {"file_type": "granule_B4"}
+    
+    def get_filename_info(self, date, level_correction, spacecraft, data_type):
+        return dict(observation_date=date,
+                    platform_type="L",
+                    process_level_correction=level_correction,
+                    spacecraft_id=spacecraft,
+                    data_type=data_type,
+                    collection_id="02")
 
     @pytest.mark.parametrize(
         ("reader", "spectral_name", "thermal_name", "all_files", "area"),
@@ -3195,12 +3203,7 @@ class TestLandsat:
         spectral_file = request.getfixturevalue(spectral_file)
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = dict(observation_date=date,
-                             platform_type="L",
-                             process_level_correction=level_correction,
-                             spacecraft_id=spacecraft,
-                             data_type=data_type,
-                             collection_id="02")
+        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         good_mda = MD_reader_class(mda_file, filename_info, {})
         rdr = CH_reader_class(spectral_file, filename_info, self.ftype_info, good_mda)
@@ -3264,12 +3267,7 @@ class TestLandsat:
         spectral_file = request.getfixturevalue(spectral_file)
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = dict(observation_date=date,
-                             platform_type="L",
-                             process_level_correction=level_correction,
-                             spacecraft_id=spacecraft,
-                             data_type=data_type,
-                             collection_id="02")
+        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         good_mda = MD_reader_class(mda_file, filename_info, {})
         rdr = CH_reader_class(spectral_file, filename_info, self.ftype_info, good_mda)
@@ -3311,12 +3309,7 @@ class TestLandsat:
         thermal_file = request.getfixturevalue(thermal_file)
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = dict(observation_date=date,
-                             platform_type="L",
-                             process_level_correction=level_correction,
-                             spacecraft_id=spacecraft,
-                             data_type=data_type,
-                             collection_id="02")
+        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         good_mda = MD_reader_class(mda_file, filename_info, {})
         ftype = {"standard_name": "test_data", "units": "test_units"}
@@ -3401,12 +3394,7 @@ class TestLandsat:
         spectral_file = request.getfixturevalue(spectral_file)
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = dict(observation_date=date,
-                             platform_type="L",
-                             process_level_correction=level_correction,
-                             spacecraft_id=spacecraft,
-                             data_type=data_type,
-                             collection_id="02")
+        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         bad_fname_info = filename_info.copy()
         bad_fname_info["platform_type"] = "B"
@@ -3698,12 +3686,7 @@ class TestLandsat:
         """Check that metadata values loaded correctly."""
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = dict(observation_date=date,
-                             platform_type="L",
-                             process_level_correction=level_correction,
-                             spacecraft_id=spacecraft,
-                             data_type=data_type,
-                             collection_id="02")
+        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         mda = MD_reader_class(mda_file, filename_info, {})
 
@@ -3782,12 +3765,7 @@ class TestLandsat:
         """Check we can get the area defs properly."""
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = dict(observation_date=date,
-                             platform_type="L",
-                             process_level_correction=level_correction,
-                             spacecraft_id=spacecraft,
-                             data_type=data_type,
-                             collection_id="02")
+        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         mda = MD_reader_class(mda_file, filename_info, {})
 
