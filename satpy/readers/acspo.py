@@ -167,6 +167,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             data = data * scale_factor + add_offset
 
         if self.cloud_clear and ds_info.get("cloud_clear", False):
+            LOG.info(f"Cloud clearing {dataset_id}")
             # clear-sky if bit 15-16 are 00
             l2p_flags = self._get_unsigned_l2p_flags()
             clear_sky_mask = (l2p_flags & 0b1100000000000000) != 0
