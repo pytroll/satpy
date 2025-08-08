@@ -554,7 +554,7 @@ class BaseLandsatMDReader(BaseFileHandler):
         area_extent = (ext_p1, ext_p2, ext_p3, ext_p4)
 
         # Return the area extent
-        return AreaDefinition(f"EPSG: {proj_code[5:]}", pcs_id, pcs_id, proj_code, x_size, y_size, area_extent)
+        return AreaDefinition(f"EPSG_{proj_code[5:]}", pcs_id, pcs_id, proj_code, x_size, y_size, area_extent)
 
 
 class LandsatL1MDReader(BaseLandsatMDReader):
