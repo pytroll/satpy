@@ -409,28 +409,38 @@ class MSSCHReader(BaseLandsatL1Reader):
         """Set up wavelength to B4 band."""
         # update previously configured datasets
         for is_avail, ds_info in (configured_datasets or []):
-            # some other file handler knows how to load this
-            # don't override what they've done
-            if is_avail is not None:
-                yield is_avail, ds_info
+            availability, info = self._get_dataset_info(ds_info, is_avail)
+            yield availability, info
 
-            matches = self.file_type_matches(ds_info["file_type"])
-            if matches:
-                if ds_info.get("name") == "B4":
-                    # Modify the dataset's wavelength dynamically
-                    new_info = ds_info.copy()
-                    if self.platform_name in ["Landsat-1", "Landsat-2", "Landsat-3"]:
-                        new_info["wavelength"] = [0.5, 0.55, 0.6]  # Green
-                    elif self.platform_name in ["Landsat-4", "Landsat-5"]:
-                        new_info["wavelength"] = [0.8, 0.95, 1.1]  # NIR
-                    yield True, new_info
-                else:
-                    yield True, ds_info
+    def _get_dataset_info(self, ds_info, is_avail):
+        # some other file handler knows how to load this
+        # don't override what they've done
+        if is_avail is not None:
+            return is_avail, ds_info
 
-            elif is_avail is None:
-                # we don't know what to do with this
-                # see if another future file handler does
-                yield is_avail, ds_info
+        matches = self.file_type_matches(ds_info["file_type"])
+        if matches:
+            info = self._get_matched_dataset_info(ds_info)
+            return True, info
+
+        # we don't know what to do with this
+        # see if another future file handler does
+        return is_avail, ds_info
+
+    def _get_matched_dataset_info(self, ds_info):
+        if ds_info.get("name") == "B4":
+            return self._get_modified_wavelength_info(ds_info)
+        return True, ds_info
+
+    def _get_modified_wavelength_info(self, ds_info):
+        # Modify the dataset's wavelength dynamically
+        new_info = ds_info.copy()
+        if self.platform_name in ["Landsat-1", "Landsat-2", "Landsat-3"]:
+            new_info["wavelength"] = [0.5, 0.55, 0.6]  # Green
+        elif self.platform_name in ["Landsat-4", "Landsat-5"]:
+            new_info["wavelength"] = [0.8, 0.95, 1.1]  # NIR
+
+        return new_info
 
 
 class BaseLandsatMDReader(BaseFileHandler):
