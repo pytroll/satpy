@@ -170,16 +170,31 @@ class BaseLandsatReader(BaseFileHandler):
         self._check_oli_tirs_thermal(name)
 
     def _check_channel_and_reader(self, name):
-        if self.channel != name and self.channel not in ANGLIST_CHAN and name not in QALIST_CHAN:
-            raise ValueError(f"Requested channel {name} does not match the reader channel {self.channel}")
+        if self.channel == name:
+            return
+        if self.channel in ANGLIST_CHAN:
+            return
+        if name in QALIST_CHAN:
+            return
+        raise ValueError(f"Requested channel {name} does not match the reader channel {self.channel}")
 
     def _check_oli_tirs_spectral(self, name):
-        if self.sensor == "OLI_TIRS" and name in self.spectral_bands and self.chan_selector not in ["O", "C"]:
-            raise ValueError(f"Requested channel {name} is not available in this granule")
+        if self.sensor != "OLI_TIRS":
+            return
+        if name not in self.spectral_bands:
+            return
+        if self.chan_selector in ["O", "C"]:
+            return
+        raise ValueError(f"Requested channel {name} is not available in this granule")
 
     def _check_oli_tirs_thermal(self, name):
-        if self.sensor == "OLI_TIRS" and name in self.thermal_bands and self.chan_selector not in ["T", "C"]:
-            raise ValueError(f"Requested channel {name} is not available in this granule")
+        if self.sensor != "OLI_TIRS":
+            return
+        if name not in self.thermal_bands:
+            return
+        if self.chan_selector in ["T", "C"]:
+            return
+        raise ValueError(f"Requested channel {name} is not available in this granule")
 
     def _mask_data(self, data, name):
         # For calibration simplicity convert the fill value to np.nan
