@@ -466,19 +466,11 @@ class BaseLandsatMDReader(BaseFileHandler):
 
         for elem in self.root.findall(f".//{top_key}/*"):
             if elem.tag.startswith(f"{key_1}_BAND_"):
-                band_num = elem.tag.replace(f"{key_1}_BAND_", "")
-                if band_num.startswith("ST_"):
-                    band_num = band_num.replace("ST_", "")
-                else:
-                    band_num = "B" + band_num
+                band_num = _parse_band_num(elem, key_1)
                 gain_flags[band_num] = float(elem.text)
 
             if elem.tag.startswith(f"{key_2}_BAND_"):
-                band_num = elem.tag.replace(f"{key_2}_BAND_", "")
-                if band_num.startswith("ST_"):
-                    band_num = band_num.replace("ST_", "")
-                else:
-                    band_num = "B" + band_num
+                band_num = _parse_band_num(elem, key_2)
                 add_flags[band_num] = float(elem.text)
 
         return {key: tuple([gain_flags[key], add_flags[key]]) for key in gain_flags}
@@ -579,6 +571,15 @@ class BaseLandsatMDReader(BaseFileHandler):
 
         # Return the area extent
         return AreaDefinition(f"EPSG_{proj_code[5:]}", pcs_id, pcs_id, proj_code, x_size, y_size, area_extent)
+
+
+def _parse_band_num(elem, key):
+    band_num = elem.tag.replace(f"{key}_BAND_", "")
+    if band_num.startswith("ST_"):
+        band_num = band_num.replace("ST_", "")
+    else:
+        band_num = "B" + band_num
+    return band_num
 
 
 class LandsatL1MDReader(BaseLandsatMDReader):
