@@ -133,14 +133,7 @@ class BaseLandsatReader(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key["name"] and self.channel not in ANGLIST_CHAN and key["name"] not in QALIST_CHAN:
-            raise ValueError(f"Requested channel {key['name']} does not match the reader channel {self.channel}")
-
-        # OLI-TIRS sensor data sometimes can contain only OLI or only TIRS data
-        if self.sensor == "OLI_TIRS" and key["name"] in self.spectral_bands and self.chan_selector not in ["O", "C"]:
-            raise ValueError(f"Requested channel {key['name']} is not available in this granule")
-        if self.sensor == "OLI_TIRS" and key["name"] in self.thermal_bands and self.chan_selector not in ["T", "C"]:
-            raise ValueError(f"Requested channel {key['name']} is not available in this granule")
+        self._check_channel_availability(key["name"])
 
         logger.debug("Reading %s.", key["name"])
 
@@ -153,15 +146,43 @@ class BaseLandsatReader(BaseFileHandler):
                                          "x": "auto"},
                                  mask_and_scale=False).squeeze()
 
+        self._mask_data(data, key["name"])
+
+        attrs = self._collect_attrs(data, key["name"], info)
+
+        # Rename to Satpy convention
+        data = data.rename({"band": "bands"})
+
+        data.attrs.update(attrs)
+
+        # Calibrate if we're using a band rather than a QA or geometry dataset
+        if "calibration" in key:
+            data = self.calibrate(data, key["calibration"])
+
+        self._scale_angle_data(data, key["name"])
+
+        return data
+
+    def _check_channel_availability(self, name):
+        if self.channel != name and self.channel not in ANGLIST_CHAN and name not in QALIST_CHAN:
+            raise ValueError(f"Requested channel {name} does not match the reader channel {self.channel}")
+        # OLI-TIRS sensor data sometimes can contain only OLI or only TIRS data
+        if self.sensor == "OLI_TIRS" and name in self.spectral_bands and self.chan_selector not in ["O", "C"]:
+            raise ValueError(f"Requested channel {name} is not available in this granule")
+        if self.sensor == "OLI_TIRS" and name in self.thermal_bands and self.chan_selector not in ["T", "C"]:
+            raise ValueError(f"Requested channel {name} is not available in this granule")
+
+    def _mask_data(self, data, name):
         # For calibration simplicity convert the fill value to np.nan
         bands_9999 = ["TRAD", "DRAD", "URAD", "ATRAN", "EMIS", "EMSD", "CDIST", "qa_st", "qa_atmos_opacity"]
-        if self.collection == "02" and key["name"] in bands_9999:
+        if self.collection == "02" and name in bands_9999:
             # The fill value for several Landsat L2 bands is '-9999'
             data.data = da.where(data.data == -9999, np.float32(np.nan), data.data)
         else:
             # The fill value for Landsat is '0'
             data.data = da.where(data.data == 0, np.float32(np.nan), data.data)
 
+    def _collect_attrs(self, data, name, info):
         attrs = data.attrs.copy()
         # Add useful metadata to the attributes.
         attrs["perc_cloud_cover"] = self._mda.cloud_cover
@@ -175,21 +196,14 @@ class BaseLandsatReader(BaseFileHandler):
             attrs["units"] = info["units"]
 
         # Only OLI bands have a saturation flag
-        if key["name"] in self.bsat:
-            attrs["saturated"] = self.bsat[key["name"]]
+        if name in self.bsat:
+            attrs["saturated"] = self.bsat[name]
 
-        # Rename to Satpy convention
-        data = data.rename({"band": "bands"})
+        return attrs
 
-        data.attrs.update(attrs)
-
-        # Calibrate if we're using a band rather than a QA or geometry dataset
-        if "calibration" in key:
-            data = self.calibrate(data, key["calibration"])
-        if key["name"] in ANGLIST:
+    def _scale_angle_data(self, data, name):
+        if name in ANGLIST:
             data.data = data.data * 0.01
-
-        return data
 
     def calibrate(self, data, calibration):
         """Calibrate the data from counts into the desired units."""
