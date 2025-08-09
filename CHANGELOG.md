@@ -1,3 +1,45 @@
+## Version 0.58.0 (2025/08/08)
+
+### Issues Closed
+
+* [Issue 3192](https://github.com/pytroll/satpy/issues/3192) - DifferenceCompositor
+* [Issue 3171](https://github.com/pytroll/satpy/issues/3171) - Add `fsspec` support to Landsat reader
+* [Issue 3167](https://github.com/pytroll/satpy/issues/3167) - `AlignmentError` due to addition of time bounds when calling `.to_xarray()` on a timeseries blended multiscene ([PR 3170](https://github.com/pytroll/satpy/pull/3170) by [@sfinkens](https://github.com/sfinkens))
+* [Issue 3162](https://github.com/pytroll/satpy/issues/3162) - For FCI L1C, calculating the mean of `ir_105_time` fails with IndexError
+* [Issue 3158](https://github.com/pytroll/satpy/issues/3158) - reduce_data isn't called for the VIIRS nearest resampler
+* [Issue 3156](https://github.com/pytroll/satpy/issues/3156) - `oli_tirs_l1_tif` reader incompatible with `xarray`: missing `rasterio` engine support
+
+In this release 6 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 3191](https://github.com/pytroll/satpy/pull/3191) - Use token kwarg in dask map_blocks call instead of name
+* [PR 3187](https://github.com/pytroll/satpy/pull/3187) - Fix AWIPS tiled writer not being computed properly when compute=False
+* [PR 3186](https://github.com/pytroll/satpy/pull/3186) - Optimize AWIPS Tiled writer and remove use of dask delayed
+* [PR 3175](https://github.com/pytroll/satpy/pull/3175) - Use maximum end time from attributes for time bounds
+* [PR 3172](https://github.com/pytroll/satpy/pull/3172) - Update VIIRS composites to use map_blocks instead of delayed
+* [PR 3170](https://github.com/pytroll/satpy/pull/3170) - Fix adding time bounds to timeseries ([3167](https://github.com/pytroll/satpy/issues/3167), [3167](https://github.com/pytroll/satpy/issues/3167))
+
+#### Features added
+
+* [PR 3177](https://github.com/pytroll/satpy/pull/3177) - Add cloud clear option to ACSPO reader
+* [PR 3174](https://github.com/pytroll/satpy/pull/3174) - Add ABI L2 SST data quality filtering
+* [PR 3169](https://github.com/pytroll/satpy/pull/3169) - Add surface type and terrain elevation to the AWS L1b loading
+* [PR 3155](https://github.com/pytroll/satpy/pull/3155) - Refactor enhancements
+
+#### Backward incompatible changes
+
+* [PR 3177](https://github.com/pytroll/satpy/pull/3177) - Add cloud clear option to ACSPO reader
+
+#### Refactoring
+
+* [PR 3155](https://github.com/pytroll/satpy/pull/3155) - Refactor enhancements
+
+In this release 12 pull requests were closed.
+
+
 ## Version 0.57.0 (2025/06/13)
 
 ### Issues Closed
