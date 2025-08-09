@@ -164,11 +164,20 @@ class BaseLandsatReader(BaseFileHandler):
         return data
 
     def _check_channel_availability(self, name):
+        self._check_channel_and_reader(name)
+        # OLI-TIRS sensor data sometimes can contain only OLI or only TIRS data
+        self._check_oli_tirs_spectral(name)
+        self._check_oli_tirs_thermal(name)
+
+    def _check_channel_and_reader(self, name):
         if self.channel != name and self.channel not in ANGLIST_CHAN and name not in QALIST_CHAN:
             raise ValueError(f"Requested channel {name} does not match the reader channel {self.channel}")
-        # OLI-TIRS sensor data sometimes can contain only OLI or only TIRS data
+
+    def _check_oli_tirs_spectral(self, name):
         if self.sensor == "OLI_TIRS" and name in self.spectral_bands and self.chan_selector not in ["O", "C"]:
             raise ValueError(f"Requested channel {name} is not available in this granule")
+
+    def _check_oli_tirs_thermal(self, name):
         if self.sensor == "OLI_TIRS" and name in self.thermal_bands and self.chan_selector not in ["T", "C"]:
             raise ValueError(f"Requested channel {name} is not available in this granule")
 
