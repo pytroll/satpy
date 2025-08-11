@@ -163,3 +163,19 @@ max-complexity = 10
 [tool.coverage.run]
 relative_files = true
 omit = ["satpy/version.py"]
+
+[tool.pytest.ini_options]
+minversion = 6.0
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+log_cli_level = "info"
+testpaths = ["satpy/tests"]
+filterwarnings = [
+    # Uncomment once all warnings are removed so a warning is now a failure:
+    # "error",
+    "ignore:numpy.ndarray size changed, may indicate binary incompatibility:RuntimeWarning",
+    # remove after dask 2025.8.0 release
+    "ignore:The `token=` keyword to:FutureWarning",
+    # remove after pillow 12.0.0 is released (https://github.com/python-pillow/Pillow/pull/9063)
+    "ignore:'mode' parameter is deprecated and will be removed:DeprecationWarning",
+]

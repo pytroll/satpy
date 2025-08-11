@@ -21,6 +21,7 @@ import datetime as dt
 import os
 import tempfile
 import warnings
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -531,17 +532,23 @@ class TestNetcdfEncodingKwargs:
     @pytest.mark.parametrize(
         "versions",
         [
-            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development"},
-            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version"}
+            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development",
+             "warning_msg": "Backend version mismatch"},
+            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version",
+             "warning_msg": "Unable to parse netcdf-c"},
         ]
     )
     def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch, versions):
         """Test warning if backends don't match."""
         import netCDF4
+        invalid_catch = nullcontext()
+        if "invalid" in versions["libnetcdf"]:
+            invalid_catch = pytest.warns(UserWarning, match="invalid-version")
         with monkeypatch.context() as m:
             m.setattr(netCDF4, "__version__", versions["netCDF4"])
             m.setattr(netCDF4, "__netcdf4libversion__", versions["libnetcdf"])
-            with pytest.warns(UserWarning, match=r"Backend version mismatch"):
+            with pytest.warns(UserWarning, match="Backend version mismatch"), \
+                    invalid_catch:
                 scene.save_datasets(filename=filename, writer="cf")
 
     def test_no_warning_if_backends_match(self, scene, filename, monkeypatch):

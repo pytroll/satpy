@@ -784,7 +784,6 @@ class TestParallaxCorrectionSceneLoad:
             assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
 
-    @pytest.mark.xfail(reason="awaiting pyresample fixes")
     def test_no_compute(self, fake_scene, conf_file):
         """Test that no computation occurs."""
         from satpy.tests.utils import CustomScheduler
