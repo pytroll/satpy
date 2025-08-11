@@ -239,7 +239,7 @@ def oli_tirs_l1_sza_file(oli_tirs_l1_files_path, sza_rad_data, oli_tirs_l1_area)
 def oli_tirs_l1_mda_file(oli_tirs_l1_files_path):
     """Create the Landsat OLI TIRS L1 metadata xml file."""
     filename = oli_tirs_l1_files_path / "LC08_L1TP_026200_20240502_20240513_02_T2_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "oli_tirs_l1_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "oli_tirs_l1_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -275,7 +275,7 @@ def oli_tirs_l2_rad_file(oli_tirs_l2_files_path, sza_rad_data, oli_tirs_l2_area)
 def oli_tirs_l2_mda_file(oli_tirs_l2_files_path):
     """Create the Landsat OLI TIRS L2 metadata xml file."""
     filename = oli_tirs_l2_files_path / "LC09_L2SP_029030_20240616_20240617_02_T1_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "oli_tirs_l2_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "oli_tirs_l2_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -311,7 +311,7 @@ def etm_l1_sza_file(etm_l1_files_path, sza_rad_data, etm_l1_area):
 def etm_l1_mda_file(etm_l1_files_path):
     """Create the Landsat ETM+ L1 metadata xml file."""
     filename = etm_l1_files_path / "LE07_L1TP_230080_20231208_20240103_02_T1_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "etm_l1_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "etm_l1_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -347,7 +347,7 @@ def etm_l2_rad_file(etm_l2_files_path, sza_rad_data, etm_l2_area):
 def etm_l2_mda_file(etm_l2_files_path):
     """Create the Landsat ETM+ L2 metadata xml file."""
     filename = etm_l2_files_path / "LE07_L2SP_028030_20230817_20230912_02_T1_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "etm_l2_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "etm_l2_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -383,7 +383,7 @@ def tm_l1_sza_file(tm_l1_files_path, sza_rad_data, tm_l1_area):
 def tm_l1_mda_file(tm_l1_files_path):
     """Create the Landsat TM L1 metadata xml file."""
     filename = tm_l1_files_path / "LT04_L1TP_143021_19890818_20200916_02_T1_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "tm_l1_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "tm_l1_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -419,7 +419,7 @@ def tm_l2_rad_file(tm_l2_files_path, sza_rad_data, tm_l2_area):
 def tm_l2_mda_file(tm_l2_files_path):
     """Create the Landsat TM L2 metadata xml file."""
     filename = tm_l2_files_path / "LT05_L2SP_165054_20110817_20200820_02_T1_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "tm_l2_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "tm_l2_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -441,7 +441,7 @@ def mss_l1_landsat1_b4_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_la
 def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
     """Create the Landsat-1 MSS L1 metadata xml file."""
     filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "mss_l1_landsat1_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "mss_l1_landsat1_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -463,7 +463,7 @@ def mss_l1_landsat4_b4_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_la
 def mss_l1_landsat4_mda_file(mss_l1_landsat4_files_path):
     """Create the Landsat-4 MSS L1 metadata xml file."""
     filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "mss_l1_landsat4_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "mss_l1_landsat4_metadata.xml"), filename)
     return os.fspath(filename)
 
 
@@ -477,7 +477,7 @@ def mss_l1_landsat4_all_files(mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file)
 def antarctic_mda_file(antarctic_files_path):
     """Create the Antarctic Landsat OLI-TIRS L1 metadata xml file."""
     filename = antarctic_files_path / "LC08_L1GT_132122_20220301_20220308_02_T2_MTL.xml"
-    shutil.copyfile(os.path.join(ETC_DIR, "antarctic_metadata.txt"), filename)
+    shutil.copyfile(os.path.join(ETC_DIR, "antarctic_metadata.xml"), filename)
     return os.fspath(filename)
 
 
