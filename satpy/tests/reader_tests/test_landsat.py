@@ -531,6 +531,12 @@ class TestLandsat:
         else:
             scn.load([spectral_name])
 
+        self._check_basicload_thermal(scn, spectral_name, thermal_name, area, reader)
+        self._check_basicload_mss_l1_tif(reader, scn)
+
+
+    @staticmethod
+    def _check_basicload_thermal(scn, spectral_name, thermal_name, area, reader):
         # Check dataset is loaded correctly
         assert scn[spectral_name].shape == (100, 100)
         assert scn[spectral_name].attrs["area"] == area
@@ -544,6 +550,10 @@ class TestLandsat:
                     assert not scn[thermal_name].attrs["saturated"]
             else:
                 assert not scn[thermal_name].attrs["saturated"]
+
+
+    @staticmethod
+    def _check_basicload_mss_l1_tif(reader, scn):
         # Check if MSS sets wavelength correctly
         if reader == "mss_l1_tif":
             if scn["B4"].attrs["platform_name"] == "Landsat-4":
@@ -554,6 +564,7 @@ class TestLandsat:
                 assert scn["B4"].attrs["_satpy_id"]["wavelength"].min == 0.5
                 assert scn["B4"].attrs["_satpy_id"]["wavelength"].central == 0.55
                 assert scn["B4"].attrs["_satpy_id"]["wavelength"].max == 0.6
+
 
     @pytest.mark.parametrize(
         ("reader", "date_time", "spectral_file", "spectral_name", "mda_file"),
@@ -1017,18 +1028,43 @@ class TestLandsat:
         """Test high level calibration modes for the reader."""
         all_files = request.getfixturevalue(all_files)
 
-        if "_l2_" in reader:
-            exp_spectral = (spectral_data * cal_spectral_params[0] + cal_spectral_params[1]).astype(np.float32) * 100
-            if thermal_name is not None:
-                exp_thermal = (thermal_data * cal_thermal_params[0] + cal_thermal_params[1]).astype(np.float32)
-                exp_rad = (sza_rad_data * 0.001).astype(np.float32)
-        else:
-            exp_spectral = (spectral_data * cal_spectral_params[2] + cal_spectral_params[3]).astype(np.float32) * 100
-            if thermal_name is not None:
-                exp_thermal = (thermal_data * cal_thermal_params[0] + cal_thermal_params[1])
-                exp_thermal = (cal_thermal_params[3] / np.log((cal_thermal_params[2] / exp_thermal) + 1))
-                exp_thermal = exp_thermal.astype(np.float32)
+        exp_spectral = self._get_expected_highlevel_spectral(reader, spectral_data, cal_spectral_params)
+        exp_thermal, exp_rad = self._get_expected_highlevel_thermal(
+            reader, thermal_data, cal_thermal_params, sza_rad_data, thermal_name)
 
+        scn = self._get_scn_highlevel(reader, all_files, spectral_name, thermal_name, sza_rad_name)
+
+        assert scn[spectral_name].attrs["units"] == "%"
+        if "_l2_" in reader:
+            assert scn[spectral_name].attrs["standard_name"] == "surface_bidirectional_reflectance"
+        else:
+            assert scn[spectral_name].attrs["standard_name"] == "toa_bidirectional_reflectance"
+        np.testing.assert_allclose(np.array(scn[spectral_name].values), np.array(exp_spectral), rtol=1e-4)
+
+        if thermal_name is not None:
+            self._check_thermal_highlevel(scn, thermal_name, exp_thermal)
+            self._check_thermal_l2_highlevel(reader, scn, sza_rad_name, exp_rad)
+
+    @staticmethod
+    def _get_expected_highlevel_spectral(reader, spectral_data, cal_spectral_params):
+        if "_l2_" in reader:
+            return (spectral_data * cal_spectral_params[0] + cal_spectral_params[1]).astype(np.float32) * 100
+        return (spectral_data * cal_spectral_params[2] + cal_spectral_params[3]).astype(np.float32) * 100
+
+    @staticmethod
+    def _get_expected_highlevel_thermal(reader, thermal_data, cal_thermal_params, sza_rad_data, thermal_name):
+        exp_thermal, exp_rad = None, None
+        if "_l2_" in reader and thermal_name is not None:
+            exp_thermal = (thermal_data * cal_thermal_params[0] + cal_thermal_params[1]).astype(np.float32)
+            exp_rad = (sza_rad_data * 0.001).astype(np.float32)
+        elif thermal_name is not None:
+            exp_thermal = (thermal_data * cal_thermal_params[0] + cal_thermal_params[1])
+            exp_thermal = (cal_thermal_params[3] / np.log((cal_thermal_params[2] / exp_thermal) + 1))
+            exp_thermal = exp_thermal.astype(np.float32)
+        return exp_thermal, exp_rad
+
+    @staticmethod
+    def _get_scn_highlevel(reader, all_files, spectral_name, thermal_name, sza_rad_name):
         scn = Scene(reader=reader, filenames=all_files)
         if thermal_name is not None:
             if "_l2_" in reader:
@@ -1037,21 +1073,20 @@ class TestLandsat:
                 scn.load([spectral_name, thermal_name])
         else:
             scn.load([spectral_name])
+        return scn
 
-        assert scn[spectral_name].attrs["units"] == "%"
+    @staticmethod
+    def _check_thermal_highlevel(scn, thermal_name, exp_thermal):
+        assert scn[thermal_name].attrs["units"] == "K"
+        assert scn[thermal_name].attrs["standard_name"] == "brightness_temperature"
+        np.testing.assert_allclose(scn[thermal_name].values, exp_thermal, rtol=1e-6)
+
+    @staticmethod
+    def _check_thermal_l2_highlevel(reader, scn, sza_rad_name, exp_rad):
         if "_l2_" in reader:
-            assert scn[spectral_name].attrs["standard_name"] == "surface_bidirectional_reflectance"
-        else:
-            assert scn[spectral_name].attrs["standard_name"] == "toa_bidirectional_reflectance"
-        np.testing.assert_allclose(np.array(scn[spectral_name].values), np.array(exp_spectral), rtol=1e-4)
-        if thermal_name is not None:
-            assert scn[thermal_name].attrs["units"] == "K"
-            assert scn[thermal_name].attrs["standard_name"] == "brightness_temperature"
-            np.testing.assert_allclose(scn[thermal_name].values, exp_thermal, rtol=1e-6)
-            if "_l2_" in reader:
-                assert scn[sza_rad_name].attrs["units"] == "W m-2 um-1 sr-1"
-                assert scn[sza_rad_name].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
-                np.testing.assert_allclose(scn[sza_rad_name].values, exp_rad, rtol=1e-6)
+            assert scn[sza_rad_name].attrs["units"] == "W m-2 um-1 sr-1"
+            assert scn[sza_rad_name].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
+            np.testing.assert_allclose(scn[sza_rad_name].values, exp_rad, rtol=1e-6)
 
     @pytest.mark.parametrize(
         ("reader", "all_files"),
