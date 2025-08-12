@@ -481,19 +481,20 @@ def antarctic_mda_file(antarctic_files_path):
     return os.fspath(filename)
 
 
+def get_filename_info(date, level_correction, spacecraft, data_type):
+    """Set up a filename info dict."""
+    return dict(observation_date=date,
+                platform_type="L",
+                process_level_correction=level_correction,
+                spacecraft_id=spacecraft,
+                data_type=data_type,
+                collection_id="02")
+
+
 class TestLandsat:
     """Test Landsat image readers."""
 
     ftype_info = {"file_type": "granule_B4"}
-
-    def get_filename_info(self, date, level_correction, spacecraft, data_type):
-        """Set up a filename info dict."""
-        return dict(observation_date=date,
-                    platform_type="L",
-                    process_level_correction=level_correction,
-                    spacecraft_id=spacecraft,
-                    data_type=data_type,
-                    collection_id="02")
 
     @pytest.mark.parametrize(
         ("reader", "spectral_name", "thermal_name", "all_files", "area"),
@@ -607,40 +608,40 @@ class TestLandsat:
     @pytest.mark.parametrize(
         (
             "spectral_file", "mda_file", "CH_reader_class", "MD_reader_class",
-            "date", "level_correction", "spacecraft", "data_type",
+            "filename_info",
         ),
         [
             pytest.param(
                 "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
-                oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
                 "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
-                oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
+                get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
                 "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
-                etm_l1_date, "L1TP", "07", "E", id="etm_l1",
+                get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
                 "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
-                etm_l2_date, "L2SP", "07", "E", id="etm_l2",
+                get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
                 "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
-                tm_l1_date, "L1TP", "04", "T", id="tm_l1",
+                get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
                 "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
-                tm_l2_date, "L2SP", "05", "T", id="tm_l2",
+                get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
                 "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
-                mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
+                get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
                 "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
-                mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
+                get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
         ],
     )
@@ -650,17 +651,12 @@ class TestLandsat:
         MD_reader_class,
         mda_file,
         spectral_file,
-        date,
-        level_correction,
-        spacecraft,
-        data_type,
+        filename_info,
         request,
     ):
         """Test loading a Landsat Scene with good channel requests."""
         spectral_file = request.getfixturevalue(spectral_file)
         mda_file = request.getfixturevalue(mda_file)
-
-        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         good_mda = MD_reader_class(mda_file, filename_info, {})
         rdr = CH_reader_class(spectral_file, filename_info, self.ftype_info, good_mda)
@@ -671,40 +667,40 @@ class TestLandsat:
     @pytest.mark.parametrize(
         (
             "spectral_file", "mda_file", "CH_reader_class", "MD_reader_class",
-            "date", "level_correction", "spacecraft", "data_type",
+            "filename_info",
         ),
         [
             pytest.param(
                 "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
-                oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
                 "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
-                oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
+                get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
                 "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
-                etm_l1_date, "L1TP", "07", "E", id="etm_l1",
+                get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
                 "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
-                etm_l2_date, "L2SP", "07", "E", id="etm_l2",
+                get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
                 "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
-                tm_l1_date, "L1TP", "04", "T", id="tm_l1",
+                get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
                 "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
-                tm_l2_date, "L2SP", "05", "T", id="tm_l2",
+                get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
                 "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
-                mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
+                get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
                 "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
-                mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
+                get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
         ],
     )
@@ -714,17 +710,12 @@ class TestLandsat:
         MD_reader_class,
         mda_file,
         spectral_file,
-        date,
-        level_correction,
-        spacecraft,
-        data_type,
+        filename_info,
         request,
     ):
         """Test loading a Landsat Scene with bad channel requests."""
         spectral_file = request.getfixturevalue(spectral_file)
         mda_file = request.getfixturevalue(mda_file)
-
-        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         good_mda = MD_reader_class(mda_file, filename_info, {})
         rdr = CH_reader_class(spectral_file, filename_info, self.ftype_info, good_mda)
@@ -737,16 +728,16 @@ class TestLandsat:
     @pytest.mark.parametrize(
         (
             "thermal_file", "mda_file", "CH_reader_class", "MD_reader_class",
-            "date", "level_correction", "spacecraft", "data_type",
+            "filename_info",
         ),
         [
             pytest.param(
                 "oli_tirs_l1_b11_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
-                oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
                 "oli_tirs_l2_b10_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
-                oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
+                get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
         ],
     )
@@ -756,17 +747,12 @@ class TestLandsat:
         MD_reader_class,
         mda_file,
         thermal_file,
-        date,
-        level_correction,
-        spacecraft,
-        data_type,
+        filename_info,
         request,
     ):
         """Test loading a Landsat Scene with bad channel requests."""
         thermal_file = request.getfixturevalue(thermal_file)
         mda_file = request.getfixturevalue(mda_file)
-
-        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         good_mda = MD_reader_class(mda_file, filename_info, {})
         ftype = {"standard_name": "test_data", "units": "test_units"}
@@ -798,40 +784,40 @@ class TestLandsat:
     @pytest.mark.parametrize(
         (
             "spectral_file", "mda_file", "CH_reader_class", "MD_reader_class",
-            "date", "level_correction", "spacecraft", "data_type",
+            "filename_info",
         ),
         [
             pytest.param(
                 "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
-                oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
                 "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
-                oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
+                get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
                 "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
-                etm_l1_date, "L1TP", "07", "E", id="etm_l1",
+                get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
                 "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
-                etm_l2_date, "L2SP", "07", "E", id="etm_l2",
+                get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
                 "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
-                tm_l1_date, "L1TP", "04", "T", id="tm_l1",
+                get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
                 "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
-                tm_l2_date, "L2SP", "05", "T", id="tm_l2",
+                get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
                 "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
-                mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
+                get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
                 "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
-                mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
+                get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
         ],
     )
@@ -841,17 +827,12 @@ class TestLandsat:
         MD_reader_class,
         mda_file,
         spectral_file,
-        date,
-        level_correction,
-        spacecraft,
-        data_type,
+        filename_info,
         request,
     ):
         """Test loading a Landsat Scene with bad data."""
         spectral_file = request.getfixturevalue(spectral_file)
         mda_file = request.getfixturevalue(mda_file)
-
-        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         bad_fname_info = filename_info.copy()
         bad_fname_info["platform_type"] = "B"
@@ -1113,40 +1094,48 @@ class TestLandsat:
     @pytest.mark.parametrize(
         (
             "reader", "MD_reader_class", "mda_file", "cal_dict",
-            "date", "level_correction", "spacecraft", "data_type", "platform_name", "earth_sun_distance",
+            "filename_info", "platform_name", "earth_sun_distance",
         ),
         [
             pytest.param(
                 "oli_tirs_l1_tif", LandsatL1MDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_cal_dict,
-                oli_tirs_l1_date, "L1TP", "08", "C", "Landsat-8", 1.0079981, id="oli_tirs_l1",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"),
+                "Landsat-8", 1.0079981, id="oli_tirs_l1",
             ),
             pytest.param(
                 "oli_tirs_l2_tif", LandsatL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_cal_dict,
-                oli_tirs_l2_date, "L2SP", "09", "C", "Landsat-9", 1.0158933, id="oli_tirs_l2",
+                get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"),
+                "Landsat-9", 1.0158933, id="oli_tirs_l2",
             ),
             pytest.param(
                 "etm_l1_tif", LandsatL1MDReader, "etm_l1_mda_file", etm_l1_cal_dict,
-                etm_l1_date, "L1TP", "07", "E", "Landsat-7", 0.9850987, id="etm_l1",
+                get_filename_info(etm_l1_date, "L1TP", "07", "E"),
+                "Landsat-7", 0.9850987, id="etm_l1",
             ),
             pytest.param(
                 "etm_l2_tif", LandsatL2MDReader, "etm_l2_mda_file", etm_l2_cal_dict,
-                etm_l2_date, "L2SP", "07", "E", "Landsat-7", 1.0124651, id="etm_l2",
+                get_filename_info(etm_l2_date, "L2SP", "07", "E"),
+                "Landsat-7", 1.0124651, id="etm_l2",
             ),
             pytest.param(
                 "tm_l1_tif", LandsatL1MDReader, "tm_l1_mda_file", tm_l1_cal_dict,
-                tm_l1_date, "L1TP", "04", "T", "Landsat-4", 1.0122057, id="tm_l1",
+                get_filename_info(tm_l1_date, "L1TP", "04", "T"),
+                "Landsat-4", 1.0122057, id="tm_l1",
             ),
             pytest.param(
                 "tm_l2_tif", LandsatL2MDReader, "tm_l2_mda_file", tm_l2_cal_dict,
-                tm_l2_date, "L2SP", "05", "T", "Landsat-5", 1.0125021, id="tm_l2",
+                get_filename_info(tm_l2_date, "L2SP", "05", "T"),
+                "Landsat-5", 1.0125021, id="tm_l2",
             ),
             pytest.param(
                 "mss_l1_tif", LandsatL1MDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_cal_dict,
-                mss_l1_landsat1_date, "L1TP", "01", "M", "Landsat-1", 1.0152109, id="mss_l1_landsat1",
+                get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"),
+                "Landsat-1", 1.0152109, id="mss_l1_landsat1",
             ),
             pytest.param(
                 "mss_l1_tif", LandsatL1MDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_cal_dict,
-                mss_l1_landsat4_date, "L1TP", "04", "M", "Landsat-4", 1.0035512, id="mss_l1_landsat4",
+                get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"),
+                "Landsat-4", 1.0035512, id="mss_l1_landsat4",
             ),
         ],
     )
@@ -1158,16 +1147,11 @@ class TestLandsat:
         cal_dict,
         platform_name,
         earth_sun_distance,
-        date,
-        level_correction,
-        spacecraft,
-        data_type,
+        filename_info,
         request
     ):
         """Check that metadata values loaded correctly."""
         mda_file = request.getfixturevalue(mda_file)
-
-        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
 
         mda = MD_reader_class(mda_file, filename_info, {})
 
@@ -1190,44 +1174,44 @@ class TestLandsat:
     @pytest.mark.parametrize(
         (
             "MD_reader_class", "mda_file", "extent", "pan_extent",
-            "date", "level_correction", "spacecraft", "data_type"
+            "filename_info",
         ),
         [
             pytest.param(
                 LandsatL1MDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_extent, oli_tirs_l1_pan_extent,
-                oli_tirs_l1_date, "L1TP", "08", "C", id="oli_tirs_l1",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
                 LandsatL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_extent, None,
-                oli_tirs_l2_date, "L2SP", "09", "C", id="oli_tirs_l2",
+                get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
                 LandsatL1MDReader, "etm_l1_mda_file", etm_l1_extent, etm_l1_pan_extent,
-                etm_l1_date, "L1TP", "07", "E", id="etm_l1",
+                get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
                 LandsatL2MDReader, "etm_l2_mda_file", etm_l2_extent, None,
-                etm_l2_date, "L2SP", "07", "E", id="etm_l2",
+                get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
                 LandsatL1MDReader, "tm_l1_mda_file", tm_l1_extent, None,
-                tm_l1_date, "L1TP", "04", "T", id="tm_l1",
+                get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
                 LandsatL2MDReader, "tm_l2_mda_file", tm_l2_extent, None,
-                tm_l2_date, "L2SP", "05", "T", id="tm_l2",
+                get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
                 LandsatL1MDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_extent, None,
-                mss_l1_landsat1_date, "L1TP", "01", "M", id="mss_l1_landsat1",
+                get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
                 LandsatL1MDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_extent, None,
-                mss_l1_landsat4_date, "L1TP", "04", "M", id="mss_l1_landsat4",
+                get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
             pytest.param(
                 LandsatL1MDReader, "antarctic_mda_file", antarctic_extent, antarctic_pan_extent,
-                oli_tirs_l1_date, "L1TP", "08", "C", id="antarctic",
+                get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="antarctic",
             ),
         ],
     )
@@ -1237,19 +1221,13 @@ class TestLandsat:
         mda_file,
         extent,
         pan_extent,
-        date,
-        level_correction,
-        spacecraft,
-        data_type,
+        filename_info,
         request
     ):
         """Check we can get the area defs properly."""
         mda_file = request.getfixturevalue(mda_file)
 
-        filename_info = self.get_filename_info(date, level_correction, spacecraft, data_type)
-
         mda = MD_reader_class(mda_file, filename_info, {})
-
         standard_area = mda.build_area_def("B4")
         assert standard_area.area_extent == extent
 
