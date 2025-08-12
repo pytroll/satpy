@@ -282,7 +282,7 @@ Throughout the calculations that Satpy performs you may see various warnings
 or if you have logging enabled (see :ref:`troubleshooting` below) see warning
 or error log messages. There are some warnings emitted as part of Satpy's
 processing that originate in the libraries that Satpy depends on, but are
-mostly expected due to the way Satpy does it's calculations and the data that
+mostly expected due to the way Satpy does its calculations and the data that
 Satpy is working with. Except for in special cases, Satpy does not generally
 hide or ignore these warnigns from dependencies and it is left to the user
 to control how they'd like to handle them.
