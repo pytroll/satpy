@@ -96,7 +96,7 @@ def test_camel_l3_area_def(camel_filename, caplog):
     assert area_def.height == dimensions["latitude"]
     assert np.allclose(area_def.area_extent, exp_ext)
 
-    assert area_def.proj4_string == ps
+    assert area_def.proj_str == ps
 
 
 def test_bad_longitude(camel_filename_bad1):
