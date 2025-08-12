@@ -17,9 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.msi_safe module."""
 import unittest.mock as mock
+import warnings
 from datetime import datetime
 from io import BytesIO, StringIO
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -1447,8 +1449,7 @@ def jp2_builder(process_level, band_name, mask_saturated=True, test_l1b=False):
     tile_xml_fh = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
                                                          filename_info, mock.MagicMock())
     tile_xml_fh.start_time.return_value = tilemd_dt
-    tile_xml_fh.get_dataset.return_value = xr.DataArray([[22.5, 23.8],
-                                                          [22.5, 24.8]],
+    tile_xml_fh.get_dataset.return_value = xr.DataArray(da.from_array([[22.5, 23.8], [22.5, 24.8]]),
                                                         dims=["x", "y"])
     jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
@@ -1547,7 +1548,10 @@ class TestTileXML:
             dict(xml_tag=angle_tag[0] + "/" + angle_tag[1])
         xml_tile_fh = xml_builder(process_level)[1]
 
-        res = xml_tile_fh.get_dataset(make_alt_dataid(name=angle_name, resolution=60), info)
+        with warnings.catch_warnings():
+            # L1C case includes NaNs in angles that result in NaN during the nanmean calculation
+            warnings.filterwarnings("ignore", message="Mean of empty slice", category=RuntimeWarning)
+            res = xml_tile_fh.get_dataset(make_alt_dataid(name=angle_name, resolution=60), info)
         if res is not None:
             res = res[::200, ::200]
 
@@ -1579,7 +1583,7 @@ class TestMTDXML:
 
     def setup_method(self):
         """Set up the test case."""
-        self.fake_data = xr.DataArray([[[0, 1, 2, 3], [4, 1000, 65534, 65535]]], dims=["band", "x", "y"])
+        self.fake_data = xr.DataArray(da.from_array([[[0, 1, 2, 3], [4, 1000, 65534, 65535]]]), dims=["band", "x", "y"])
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
                              [
@@ -1647,9 +1651,22 @@ class TestSAFEMSIL1C:
 
     def setup_method(self):
         """Set up the test."""
-        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
-        self.fake_data_l1b = xr.Dataset({"band_data": xr.DataArray([[[1000, 1205.5], [3000.4, 2542.]]],
-                                                                   dims=["band", "x", "y"])})
+        self.fake_data = xr.Dataset(
+            {
+                "band_data": xr.DataArray(
+                    da.from_array([[[0, 1], [65534, 65535]]]),
+                    dims=["band", "x", "y"],
+                ),
+            },
+        )
+        self.fake_data_l1b = xr.Dataset(
+            {
+                "band_data": xr.DataArray(
+                    da.from_array([[[1000, 1205.5], [3000.4, 2542.]]]),
+                    dims=["band", "x", "y"],
+                ),
+            },
+        )
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
                              [

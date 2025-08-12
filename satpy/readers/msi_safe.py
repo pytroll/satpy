@@ -403,7 +403,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         elts = angles.findall(info["xml_tag"] + '[@bandId="1"]')
         for elt in elts:
             arrays.append(self._get_values_from_tag(elt, info["xml_item"]))
-        angles = np.nanmean(np.dstack(arrays), -1)
+        angles = np.nanmean(np.dstack(arrays), axis=-1)
         return angles
 
     def get_dataset(self, key, info):
