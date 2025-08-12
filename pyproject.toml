@@ -182,4 +182,6 @@ filterwarnings = [
     # remove after pyproj 3.8.0 is released in Sept 2025
     # see https://github.com/pyproj4/pyproj/issues/1309
     "ignore:Conversion of an array with ndim:DeprecationWarning",
+    # remove once pyresample https://github.com/pytroll/pyresample/pull/546 is merged
+    "ignore:The `frequency` argument is pending deprecation:PendingDeprecationWarning",
 ]
