@@ -96,11 +96,24 @@ class TestSceneSaving:
 
     def test_save_dataset_default(self, tmp_path):
         """Save a dataset using 'save_dataset'."""
+        from pyresample.geometry import AreaDefinition
+
+        area_def = AreaDefinition(
+            "test",
+            "test",
+            "test",
+            "EPSG:4326",
+            200,
+            100,
+            (-2000, -1000, 2000, 1000),
+        )
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
+                   "area": area_def,
+            }
         )
         scn = Scene()
         scn["test"] = ds1
