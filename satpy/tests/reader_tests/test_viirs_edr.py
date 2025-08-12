@@ -21,8 +21,11 @@ Note: This is adapted from the test_slstr_l2.py code.
 """
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import shutil
+import warnings
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Iterable
 
@@ -389,6 +392,16 @@ def test_available_datasets(aod_file):
     assert fake_availables[0][0] is None
 
 
+@contextlib.contextmanager
+def set_chunk_size(bytes_in_m_row: int) -> Iterator[None]:
+    """Set dask chunks and ignore expected performance warning."""
+    with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}), \
+            warnings.catch_warnings():
+        # we're setting the dask chunks
+        warnings.filterwarnings("ignore", message="The specified chunks separate the stored", category=UserWarning)
+        yield
+
+
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
@@ -407,7 +420,7 @@ class TestVIIRSJRRReader:
             data_files = [data_files]
         is_multiple = len(data_files) > 1
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=data_files)
             scn.load(["surf_refl_I01", "surf_refl_M01"])
         assert scn.start_time == START_TIME
@@ -435,7 +448,7 @@ class TestVIIRSJRRReader:
             data_files = [data_files]
         is_multiple = len(data_files) > 1
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=data_files,
                         reader_kwargs={"filter_veg": filter_veg})
             scn.load(["NDVI", "EVI", "surf_refl_qf1"])
@@ -454,7 +467,7 @@ class TestVIIRSJRRReader:
         """Test datasets from cloud height files."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=[data_file])
             scn.load(var_names)
         for var_name in var_names:
@@ -464,7 +477,7 @@ class TestVIIRSJRRReader:
         """Test loading category (integer) data products."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=[cloud_phase_file])
             scn.load(["CloudPhase"])
         data_arr = scn["CloudPhase"]
@@ -483,7 +496,7 @@ class TestVIIRSJRRReader:
         """Test that the AOD product can be loaded and filtered."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=[aod_file], reader_kwargs={"aod_qc_filter": aod_qc_filter})
             scn.load(["AOD550"])
         _check_continuous_data_arr(scn["AOD550"])
