@@ -76,6 +76,7 @@ jobs:
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
+          --only-binary ":all:" \
           --no-deps --pre --upgrade \
           matplotlib \
           numpy \
