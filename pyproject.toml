@@ -179,4 +179,7 @@ filterwarnings = [
     # remove after pillow 12.0.0 is released (https://github.com/python-pillow/Pillow/pull/9063)
     "ignore:'mode' parameter is deprecated and will be removed:DeprecationWarning",
     "ignore:invalid value encountered in:RuntimeWarning",
+    # remove after pyproj 3.8.0 is released in Sept 2025
+    # see https://github.com/pyproj4/pyproj/issues/1309
+    "ignore:Conversion of an array with ndim:DeprecationWarning",
 ]
