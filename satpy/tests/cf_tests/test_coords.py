@@ -118,7 +118,7 @@ class TestCFtime:
         ds = add_time_bounds_dimension(ds)
 
         assert "bnds_1d" in ds.dims
-        assert ds.dims["bnds_1d"] == 2
+        assert ds.sizes["bnds_1d"] == 2
         assert "time_bnds" in list(ds.data_vars)
         assert "bounds" in ds["time"].attrs
         assert "standard_name" in ds["time"].attrs
