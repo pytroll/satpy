@@ -39,7 +39,7 @@ from satpy.readers.core.landsat import (
     TML2CHReader,
 )
 
-ETC_DIR = os.path.join(os.path.dirname(__file__), "landsat_etc")
+ETC_DIR = os.path.join(os.path.dirname(__file__), "landsat_metadata")
 
 x_size = 100
 y_size = 100
