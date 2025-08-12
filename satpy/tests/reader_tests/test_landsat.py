@@ -25,6 +25,7 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
+from pytest_lazy_fixtures.lazy_fixture import lf
 
 from satpy import Scene
 from satpy.readers.core.landsat import (
@@ -500,29 +501,28 @@ class TestLandsat:
         ("reader", "spectral_name", "thermal_name", "all_files", "area"),
         [
             pytest.param(
-                "oli_tirs_l1_tif", "B4", "B11", "oli_tirs_l1_all_files", "oli_tirs_l1_area", id="oli_tirs_l1",
+                "oli_tirs_l1_tif", "B4", "B11", lf("oli_tirs_l1_all_files"), lf("oli_tirs_l1_area"), id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_tif", "B4", "B10", "oli_tirs_l2_all_files", "oli_tirs_l2_area", id="oli_tirs_l2",
+                "oli_tirs_l2_tif", "B4", "B10", lf("oli_tirs_l2_all_files"), lf("oli_tirs_l2_area"), id="oli_tirs_l2",
             ),
-            pytest.param("etm_l1_tif", "B4", "B6_VCID_1", "etm_l1_all_files", "etm_l1_area", id="etm_l1"),
-            pytest.param("etm_l2_tif", "B4", "B6", "etm_l2_all_files", "etm_l2_area", id="etm_l2"),
-            pytest.param("tm_l1_tif", "B4", "B6", "tm_l1_all_files", "tm_l1_area", id="tm_l1"),
-            pytest.param("tm_l2_tif", "B4", "B6", "tm_l2_all_files", "tm_l2_area", id="tm_l2"),
+            pytest.param("etm_l1_tif", "B4", "B6_VCID_1", lf("etm_l1_all_files"), lf("etm_l1_area"), id="etm_l1"),
+            pytest.param("etm_l2_tif", "B4", "B6", lf("etm_l2_all_files"), lf("etm_l2_area"), id="etm_l2"),
+            pytest.param("tm_l1_tif", "B4", "B6", lf("tm_l1_all_files"), lf("tm_l1_area"), id="tm_l1"),
+            pytest.param("tm_l2_tif", "B4", "B6", lf("tm_l2_all_files"), lf("tm_l2_area"), id="tm_l2"),
             pytest.param(
-                "mss_l1_tif", "B4", None, "mss_l1_landsat1_all_files", "mss_l1_landsat1_area", id="mss_l1_landsat1",
+                "mss_l1_tif", "B4", None, lf("mss_l1_landsat1_all_files"), lf("mss_l1_landsat1_area"),
+                id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, "mss_l1_landsat4_all_files", "mss_l1_landsat4_area", id="mss_l1_landsat4",
+                "mss_l1_tif", "B4", None, lf("mss_l1_landsat4_all_files"), lf("mss_l1_landsat4_area"),
+                id="mss_l1_landsat4",
             ),
         ],
     )
     @pytest.mark.parametrize("remote", [True, False])
-    def test_basicload(self, reader, area, all_files, spectral_name, thermal_name, remote, request):
+    def test_basicload(self, reader, area, all_files, spectral_name, thermal_name, remote):
         """Test loading a Landsat Scene."""
-        all_files = request.getfixturevalue(all_files)
-        area = request.getfixturevalue(area)
-
         if remote:
             all_files = convert_to_fsfile(all_files)
 
@@ -571,32 +571,29 @@ class TestLandsat:
         ("reader", "date_time", "spectral_file", "spectral_name", "mda_file"),
         [
             pytest.param(
-                "oli_tirs_l1_tif", oli_tirs_l1_datetime, "oli_tirs_l1_b4_file", "B4", "oli_tirs_l1_mda_file",
+                "oli_tirs_l1_tif", oli_tirs_l1_datetime, lf("oli_tirs_l1_b4_file"), "B4", lf("oli_tirs_l1_mda_file"),
                 id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_tif", oli_tirs_l2_datetime, "oli_tirs_l2_b4_file", "B4", "oli_tirs_l2_mda_file",
+                "oli_tirs_l2_tif", oli_tirs_l2_datetime, lf("oli_tirs_l2_b4_file"), "B4", lf("oli_tirs_l2_mda_file"),
                 id="oli_tirs_l2",
             ),
-            pytest.param("etm_l1_tif", etm_l1_datetime, "etm_l1_b4_file", "B4", "etm_l1_mda_file", id="etm_l1"),
-            pytest.param("etm_l2_tif", etm_l2_datetime, "etm_l2_b4_file", "B4", "etm_l2_mda_file", id="etm_l2"),
-            pytest.param("tm_l1_tif", tm_l1_datetime, "tm_l1_b4_file", "B4", "tm_l1_mda_file", id="tm_l1"),
-            pytest.param("tm_l2_tif", tm_l2_datetime, "tm_l2_b4_file", "B4", "tm_l2_mda_file", id="tm_l2"),
+            pytest.param("etm_l1_tif", etm_l1_datetime, lf("etm_l1_b4_file"), "B4", lf("etm_l1_mda_file"), id="etm_l1"),
+            pytest.param("etm_l2_tif", etm_l2_datetime, lf("etm_l2_b4_file"), "B4", lf("etm_l2_mda_file"), id="etm_l2"),
+            pytest.param("tm_l1_tif", tm_l1_datetime, lf("tm_l1_b4_file"), "B4", lf("tm_l1_mda_file"), id="tm_l1"),
+            pytest.param("tm_l2_tif", tm_l2_datetime, lf("tm_l2_b4_file"), "B4", lf("tm_l2_mda_file"), id="tm_l2"),
             pytest.param(
-                "mss_l1_tif", mss_l1_landsat1_datetime, "mss_l1_landsat1_b4_file", "B4", "mss_l1_landsat1_mda_file",
-                id="mss_l1_landsat1",
+                "mss_l1_tif", mss_l1_landsat1_datetime, lf("mss_l1_landsat1_b4_file"), "B4",
+                lf("mss_l1_landsat1_mda_file"), id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", mss_l1_landsat4_datetime, "mss_l1_landsat4_b4_file", "B4", "mss_l1_landsat4_mda_file",
-                id="mss_l1_landsat4",
+                "mss_l1_tif", mss_l1_landsat4_datetime, lf("mss_l1_landsat4_b4_file"), "B4",
+                lf("mss_l1_landsat4_mda_file"), id="mss_l1_landsat4",
             ),
         ],
     )
-    def test_ch_startend(self, reader, spectral_file, mda_file, spectral_name, date_time, request):
+    def test_ch_startend(self, reader, spectral_file, mda_file, spectral_name, date_time):
         """Test correct retrieval of start/end times."""
-        spectral_file = request.getfixturevalue(spectral_file)
-        mda_file = request.getfixturevalue(mda_file)
-
         scn = Scene(reader=reader, filenames=[spectral_file, mda_file])
         bnds = scn.available_dataset_names()
         assert bnds == [spectral_name]
@@ -612,35 +609,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
+                lf("oli_tirs_l1_b4_file"), lf("oli_tirs_l1_mda_file"), OLITIRSCHReader, LandsatL1MDReader,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
+                lf("oli_tirs_l2_b4_file"), lf("oli_tirs_l2_mda_file"), OLITIRSL2CHReader, LandsatL2MDReader,
                 get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
+               lf( "etm_l1_b4_file"), lf("etm_l1_mda_file"), ETMCHReader, LandsatL1MDReader,
                 get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
+                lf("etm_l2_b4_file"), lf("etm_l2_mda_file"), ETML2CHReader, LandsatL2MDReader,
                 get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
+                lf("tm_l1_b4_file"), lf("tm_l1_mda_file"), TMCHReader, LandsatL1MDReader,
                 get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
+                lf("tm_l2_b4_file"), lf("tm_l2_mda_file"), TML2CHReader, LandsatL2MDReader,
                 get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
+                lf("mss_l1_landsat1_b4_file"), lf("mss_l1_landsat1_mda_file"), MSSCHReader, LandsatL1MDReader,
                 get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
+                lf("mss_l1_landsat4_b4_file"), lf("mss_l1_landsat4_mda_file"), MSSCHReader, LandsatL1MDReader,
                 get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
         ],
@@ -652,12 +649,8 @@ class TestLandsat:
         mda_file,
         spectral_file,
         filename_info,
-        request,
     ):
         """Test loading a Landsat Scene with good channel requests."""
-        spectral_file = request.getfixturevalue(spectral_file)
-        mda_file = request.getfixturevalue(mda_file)
-
         good_mda = MD_reader_class(mda_file, filename_info, {})
         rdr = CH_reader_class(spectral_file, filename_info, self.ftype_info, good_mda)
 
@@ -671,35 +664,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
+                lf("oli_tirs_l1_b4_file"), lf("oli_tirs_l1_mda_file"), OLITIRSCHReader, LandsatL1MDReader,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
+                lf("oli_tirs_l2_b4_file"), lf("oli_tirs_l2_mda_file"), OLITIRSL2CHReader, LandsatL2MDReader,
                 get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
+                lf("etm_l1_b4_file"), lf("etm_l1_mda_file"), ETMCHReader, LandsatL1MDReader,
                 get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
+                lf("etm_l2_b4_file"), lf("etm_l2_mda_file"), ETML2CHReader, LandsatL2MDReader,
                 get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
+                lf("tm_l1_b4_file"), lf("tm_l1_mda_file"), TMCHReader, LandsatL1MDReader,
                 get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
+                lf("tm_l2_b4_file"), lf("tm_l2_mda_file"), TML2CHReader, LandsatL2MDReader,
                 get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
+                lf("mss_l1_landsat1_b4_file"), lf("mss_l1_landsat1_mda_file"), MSSCHReader, LandsatL1MDReader,
                 get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
+                lf("mss_l1_landsat4_b4_file"), lf("mss_l1_landsat4_mda_file"), MSSCHReader, LandsatL1MDReader,
                 get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
         ],
@@ -711,12 +704,8 @@ class TestLandsat:
         mda_file,
         spectral_file,
         filename_info,
-        request,
     ):
         """Test loading a Landsat Scene with bad channel requests."""
-        spectral_file = request.getfixturevalue(spectral_file)
-        mda_file = request.getfixturevalue(mda_file)
-
         good_mda = MD_reader_class(mda_file, filename_info, {})
         rdr = CH_reader_class(spectral_file, filename_info, self.ftype_info, good_mda)
 
@@ -732,11 +721,11 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b11_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
+                lf("oli_tirs_l1_b11_file"), lf("oli_tirs_l1_mda_file"), OLITIRSCHReader, LandsatL1MDReader,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b10_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
+                lf("oli_tirs_l2_b10_file"), lf("oli_tirs_l2_mda_file"), OLITIRSL2CHReader, LandsatL2MDReader,
                 get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
         ],
@@ -748,12 +737,8 @@ class TestLandsat:
         mda_file,
         thermal_file,
         filename_info,
-        request,
     ):
         """Test loading a Landsat Scene with bad channel requests."""
-        thermal_file = request.getfixturevalue(thermal_file)
-        mda_file = request.getfixturevalue(mda_file)
-
         good_mda = MD_reader_class(mda_file, filename_info, {})
         ftype = {"standard_name": "test_data", "units": "test_units"}
         bad_finfo = filename_info.copy()
@@ -788,35 +773,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_b4_file", "oli_tirs_l1_mda_file", OLITIRSCHReader, LandsatL1MDReader,
+                lf("oli_tirs_l1_b4_file"),  lf("oli_tirs_l1_mda_file"), OLITIRSCHReader, LandsatL1MDReader,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_b4_file", "oli_tirs_l2_mda_file", OLITIRSL2CHReader, LandsatL2MDReader,
+                lf("oli_tirs_l2_b4_file"),  lf("oli_tirs_l2_mda_file"), OLITIRSL2CHReader, LandsatL2MDReader,
                 get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_b4_file", "etm_l1_mda_file", ETMCHReader, LandsatL1MDReader,
+                lf("etm_l1_b4_file"),  lf("etm_l1_mda_file"), ETMCHReader, LandsatL1MDReader,
                 get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_b4_file", "etm_l2_mda_file", ETML2CHReader, LandsatL2MDReader,
+                lf("etm_l2_b4_file"),  lf("etm_l2_mda_file"), ETML2CHReader, LandsatL2MDReader,
                 get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_b4_file", "tm_l1_mda_file", TMCHReader, LandsatL1MDReader,
+                lf("tm_l1_b4_file"),  lf("tm_l1_mda_file"), TMCHReader, LandsatL1MDReader,
                 get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_b4_file", "tm_l2_mda_file", TML2CHReader, LandsatL2MDReader,
+                lf("tm_l2_b4_file"),  lf("tm_l2_mda_file"), TML2CHReader, LandsatL2MDReader,
                 get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_landsat1_b4_file", "mss_l1_landsat1_mda_file", MSSCHReader, LandsatL1MDReader,
+                lf("mss_l1_landsat1_b4_file"),  lf("mss_l1_landsat1_mda_file"), MSSCHReader, LandsatL1MDReader,
                 get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_landsat4_b4_file", "mss_l1_landsat4_mda_file", MSSCHReader, LandsatL1MDReader,
+                lf("mss_l1_landsat4_b4_file"),  lf("mss_l1_landsat4_mda_file"), MSSCHReader, LandsatL1MDReader,
                 get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
         ],
@@ -828,12 +813,8 @@ class TestLandsat:
         mda_file,
         spectral_file,
         filename_info,
-        request,
     ):
         """Test loading a Landsat Scene with bad data."""
-        spectral_file = request.getfixturevalue(spectral_file)
-        mda_file = request.getfixturevalue(mda_file)
-
         bad_fname_info = filename_info.copy()
         bad_fname_info["platform_type"] = "B"
 
@@ -862,14 +843,14 @@ class TestLandsat:
     @pytest.mark.parametrize(
         ("reader", "spectral_name", "thermal_name", "all_files"),
         [
-            pytest.param("oli_tirs_l1_tif", "B4", "B11", "oli_tirs_l1_all_files", id="oli_tirs_l1"),
-            pytest.param("oli_tirs_l2_tif", "B4", "B10", "oli_tirs_l2_all_files", id="oli_tirs_l2"),
-            pytest.param("etm_l1_tif", "B4", "B6_VCID_1", "etm_l1_all_files", id="etm_l1"),
-            pytest.param("etm_l2_tif", "B4", "B6", "etm_l2_all_files", id="etm_l2"),
-            pytest.param("tm_l1_tif", "B4", "B6", "tm_l1_all_files", id="tm_l1"),
-            pytest.param("tm_l2_tif", "B4", "B6", "tm_l2_all_files", id="tm_l2"),
-            pytest.param("mss_l1_tif", "B4", None, "mss_l1_landsat1_all_files", id="mss_l1_landsat1"),
-            pytest.param("mss_l1_tif", "B4", None, "mss_l1_landsat4_all_files", id="mss_l1_landsat4"),
+            pytest.param("oli_tirs_l1_tif", "B4", "B11", lf("oli_tirs_l1_all_files"), id="oli_tirs_l1"),
+            pytest.param("oli_tirs_l2_tif", "B4", "B10", lf("oli_tirs_l2_all_files"), id="oli_tirs_l2"),
+            pytest.param("etm_l1_tif", "B4", "B6_VCID_1", lf("etm_l1_all_files"), id="etm_l1"),
+            pytest.param("etm_l2_tif", "B4", "B6", lf("etm_l2_all_files"), id="etm_l2"),
+            pytest.param("tm_l1_tif", "B4", "B6", lf("tm_l1_all_files"), id="tm_l1"),
+            pytest.param("tm_l2_tif", "B4", "B6", lf("tm_l2_all_files"), id="tm_l2"),
+            pytest.param("mss_l1_tif", "B4", None, lf("mss_l1_landsat1_all_files"), id="mss_l1_landsat1"),
+            pytest.param("mss_l1_tif", "B4", None, lf("mss_l1_landsat4_all_files"), id="mss_l1_landsat4"),
         ],
     )
     def test_calibration_counts(
@@ -880,11 +861,8 @@ class TestLandsat:
         thermal_name,
         spectral_data,
         thermal_data,
-        request
     ):
         """Test counts calibration mode for the reader."""
-        all_files = request.getfixturevalue(all_files)
-
         scn = Scene(reader=reader, filenames=all_files)
         if thermal_name is not None:
             scn.load([spectral_name, thermal_name], calibration="counts")
@@ -904,19 +882,22 @@ class TestLandsat:
         ("reader", "spectral_name", "thermal_name", "all_files", "cal_spectral_params", "cal_thermal_params"),
         [
             pytest.param(
-                "oli_tirs_l1_tif", "B4", "B11", "oli_tirs_l1_all_files", oli_tirs_l1_sp_params, oli_tirs_l1_th_params,
-                id="oli_tirs_l1",
+                "oli_tirs_l1_tif", "B4", "B11", lf("oli_tirs_l1_all_files"),
+                oli_tirs_l1_sp_params, oli_tirs_l1_th_params, id="oli_tirs_l1",
             ),
             pytest.param(
-                "etm_l1_tif", "B4", "B6_VCID_1", "etm_l1_all_files", etm_l1_sp_params, etm_l1_th_params, id="etm_l1",
+                "etm_l1_tif", "B4", "B6_VCID_1", lf("etm_l1_all_files"), etm_l1_sp_params, etm_l1_th_params,
+                id="etm_l1",
             ),
-            pytest.param("tm_l1_tif", "B4", "B6", "tm_l1_all_files", tm_l1_sp_params, tm_l1_th_params, id="tm_l1"),
+            pytest.param("tm_l1_tif", "B4", "B6", lf("tm_l1_all_files"), tm_l1_sp_params, tm_l1_th_params,
+                         id="tm_l1",
+                         ),
             pytest.param(
-                "mss_l1_tif", "B4", None, "mss_l1_landsat1_all_files", mss_l1_landsat1_sp_params, None,
+                "mss_l1_tif", "B4", None, lf("mss_l1_landsat1_all_files"), mss_l1_landsat1_sp_params, None,
                 id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, "mss_l1_landsat4_all_files", mss_l1_landsat4_sp_params, None,
+                "mss_l1_tif", "B4", None, lf("mss_l1_landsat4_all_files"), mss_l1_landsat4_sp_params, None,
                 id="mss_l1_landsat4",
             ),
         ],
@@ -931,11 +912,8 @@ class TestLandsat:
         cal_thermal_params,
         spectral_data,
         thermal_data,
-        request,
     ):
         """Test radiance calibration mode for the reader."""
-        all_files = request.getfixturevalue(all_files)
-
         exp_spectral = (spectral_data * cal_spectral_params[0] + cal_spectral_params[1]).astype(np.float32)
         if thermal_name is not None:
             exp_thermal = (thermal_data * cal_thermal_params[0] + cal_thermal_params[1]).astype(np.float32)
@@ -962,32 +940,35 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_tif", "B4", "B11", None, "oli_tirs_l1_all_files",
+                "oli_tirs_l1_tif", "B4", "B11", None, lf("oli_tirs_l1_all_files"),
                 oli_tirs_l1_sp_params, oli_tirs_l1_th_params, id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_tif", "B4", "B10", "TRAD", "oli_tirs_l2_all_files",
+                "oli_tirs_l2_tif", "B4", "B10", "TRAD", lf("oli_tirs_l2_all_files"),
                 oli_tirs_l2_sp_params, oli_tirs_l2_th_params, id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_tif", "B4", "B6_VCID_1", None, "etm_l1_all_files",
+                "etm_l1_tif", "B4", "B6_VCID_1", None, lf("etm_l1_all_files"),
                 etm_l1_sp_params, etm_l1_th_params, id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_tif", "B4", "B6", "TRAD", "etm_l2_all_files", etm_l2_sp_params, etm_l2_th_params, id="etm_l2",
+                "etm_l2_tif", "B4", "B6", "TRAD", lf("etm_l2_all_files"), etm_l2_sp_params, etm_l2_th_params,
+                id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_tif", "B4", "B6", None, "tm_l1_all_files", tm_l1_sp_params, tm_l1_th_params, id="tm_l1",
+                "tm_l1_tif", "B4", "B6", None, lf("tm_l1_all_files"), tm_l1_sp_params, tm_l1_th_params,
+                id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_tif", "B4", "B6", "TRAD", "tm_l2_all_files", tm_l2_sp_params, tm_l2_th_params, id="tm_l2",
+                "tm_l2_tif", "B4", "B6", "TRAD", lf("tm_l2_all_files"), tm_l2_sp_params, tm_l2_th_params,
+                id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, None, "mss_l1_landsat1_all_files",
+                "mss_l1_tif", "B4", None, None, lf("mss_l1_landsat1_all_files"),
                 mss_l1_landsat1_sp_params, None, id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, None, "mss_l1_landsat4_all_files",
+                "mss_l1_tif", "B4", None, None, lf("mss_l1_landsat4_all_files"),
                 mss_l1_landsat4_sp_params, None, id="mss_l1_landsat4",
             ),
         ],
@@ -1004,11 +985,8 @@ class TestLandsat:
         spectral_data,
         thermal_data,
         sza_rad_data,
-        request,
     ):
         """Test high level calibration modes for the reader."""
-        all_files = request.getfixturevalue(all_files)
-
         exp_spectral = self._get_expected_highlevel_spectral(reader, spectral_data, cal_spectral_params)
         exp_thermal, exp_rad = self._get_expected_highlevel_thermal(
             reader, thermal_data, cal_thermal_params, sza_rad_data, thermal_name)
@@ -1072,16 +1050,14 @@ class TestLandsat:
     @pytest.mark.parametrize(
         ("reader", "all_files"),
         [
-            pytest.param("oli_tirs_l1_tif", "oli_tirs_l1_all_files", id="oli_tirs_l1"),
-            pytest.param("etm_l1_tif", "etm_l1_all_files", id="etm_l1",),
-            pytest.param("tm_l1_tif", "tm_l1_all_files", id="tm_l1"),
+            pytest.param("oli_tirs_l1_tif", lf("oli_tirs_l1_all_files"), id="oli_tirs_l1"),
+            pytest.param("etm_l1_tif", lf("etm_l1_all_files"), id="etm_l1",),
+            pytest.param("tm_l1_tif", lf("tm_l1_all_files"), id="tm_l1"),
         ],
     )
-    def test_angles(self, reader, all_files, sza_rad_data, request):
+    def test_angles(self, reader, all_files, sza_rad_data):
         """Test calibration modes for the reader."""
         # Check angles are calculated correctly
-        all_files = request.getfixturevalue(all_files)
-
         scn = Scene(reader=reader, filenames=all_files)
         scn.load(["solar_zenith_angle"])
         assert scn["solar_zenith_angle"].attrs["units"] == "degrees"
@@ -1098,42 +1074,42 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                "oli_tirs_l1_tif", LandsatL1MDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_cal_dict,
+                "oli_tirs_l1_tif", LandsatL1MDReader,  lf("oli_tirs_l1_mda_file"), oli_tirs_l1_cal_dict,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"),
                 "Landsat-8", 1.0079981, id="oli_tirs_l1",
             ),
             pytest.param(
-                "oli_tirs_l2_tif", LandsatL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_cal_dict,
+                "oli_tirs_l2_tif", LandsatL2MDReader,  lf("oli_tirs_l2_mda_file"), oli_tirs_l2_cal_dict,
                 get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"),
                 "Landsat-9", 1.0158933, id="oli_tirs_l2",
             ),
             pytest.param(
-                "etm_l1_tif", LandsatL1MDReader, "etm_l1_mda_file", etm_l1_cal_dict,
+                "etm_l1_tif", LandsatL1MDReader,  lf("etm_l1_mda_file"), etm_l1_cal_dict,
                 get_filename_info(etm_l1_date, "L1TP", "07", "E"),
                 "Landsat-7", 0.9850987, id="etm_l1",
             ),
             pytest.param(
-                "etm_l2_tif", LandsatL2MDReader, "etm_l2_mda_file", etm_l2_cal_dict,
+                "etm_l2_tif", LandsatL2MDReader,  lf("etm_l2_mda_file"), etm_l2_cal_dict,
                 get_filename_info(etm_l2_date, "L2SP", "07", "E"),
                 "Landsat-7", 1.0124651, id="etm_l2",
             ),
             pytest.param(
-                "tm_l1_tif", LandsatL1MDReader, "tm_l1_mda_file", tm_l1_cal_dict,
+                "tm_l1_tif", LandsatL1MDReader,  lf("tm_l1_mda_file"), tm_l1_cal_dict,
                 get_filename_info(tm_l1_date, "L1TP", "04", "T"),
                 "Landsat-4", 1.0122057, id="tm_l1",
             ),
             pytest.param(
-                "tm_l2_tif", LandsatL2MDReader, "tm_l2_mda_file", tm_l2_cal_dict,
+                "tm_l2_tif", LandsatL2MDReader,  lf("tm_l2_mda_file"), tm_l2_cal_dict,
                 get_filename_info(tm_l2_date, "L2SP", "05", "T"),
                 "Landsat-5", 1.0125021, id="tm_l2",
             ),
             pytest.param(
-                "mss_l1_tif", LandsatL1MDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_cal_dict,
+                "mss_l1_tif", LandsatL1MDReader,  lf("mss_l1_landsat1_mda_file"), mss_l1_landsat1_cal_dict,
                 get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"),
                 "Landsat-1", 1.0152109, id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", LandsatL1MDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_cal_dict,
+                "mss_l1_tif", LandsatL1MDReader,  lf("mss_l1_landsat4_mda_file"), mss_l1_landsat4_cal_dict,
                 get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"),
                 "Landsat-4", 1.0035512, id="mss_l1_landsat4",
             ),
@@ -1148,11 +1124,8 @@ class TestLandsat:
         platform_name,
         earth_sun_distance,
         filename_info,
-        request
     ):
         """Check that metadata values loaded correctly."""
-        mda_file = request.getfixturevalue(mda_file)
-
         mda = MD_reader_class(mda_file, filename_info, {})
 
         assert mda.platform_name == platform_name
@@ -1178,39 +1151,39 @@ class TestLandsat:
         ),
         [
             pytest.param(
-                LandsatL1MDReader, "oli_tirs_l1_mda_file", oli_tirs_l1_extent, oli_tirs_l1_pan_extent,
+                LandsatL1MDReader,  lf("oli_tirs_l1_mda_file"), oli_tirs_l1_extent, oli_tirs_l1_pan_extent,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="oli_tirs_l1",
             ),
             pytest.param(
-                LandsatL2MDReader, "oli_tirs_l2_mda_file", oli_tirs_l2_extent, None,
+                LandsatL2MDReader,  lf("oli_tirs_l2_mda_file"), oli_tirs_l2_extent, None,
                 get_filename_info(oli_tirs_l2_date, "L2SP", "09", "C"), id="oli_tirs_l2",
             ),
             pytest.param(
-                LandsatL1MDReader, "etm_l1_mda_file", etm_l1_extent, etm_l1_pan_extent,
+                LandsatL1MDReader,  lf("etm_l1_mda_file"), etm_l1_extent, etm_l1_pan_extent,
                 get_filename_info(etm_l1_date, "L1TP", "07", "E"), id="etm_l1",
             ),
             pytest.param(
-                LandsatL2MDReader, "etm_l2_mda_file", etm_l2_extent, None,
+                LandsatL2MDReader,  lf("etm_l2_mda_file"), etm_l2_extent, None,
                 get_filename_info(etm_l2_date, "L2SP", "07", "E"), id="etm_l2",
             ),
             pytest.param(
-                LandsatL1MDReader, "tm_l1_mda_file", tm_l1_extent, None,
+                LandsatL1MDReader,  lf("tm_l1_mda_file"), tm_l1_extent, None,
                 get_filename_info(tm_l1_date, "L1TP", "04", "T"), id="tm_l1",
             ),
             pytest.param(
-                LandsatL2MDReader, "tm_l2_mda_file", tm_l2_extent, None,
+                LandsatL2MDReader,  lf("tm_l2_mda_file"), tm_l2_extent, None,
                 get_filename_info(tm_l2_date, "L2SP", "05", "T"), id="tm_l2",
             ),
             pytest.param(
-                LandsatL1MDReader, "mss_l1_landsat1_mda_file", mss_l1_landsat1_extent, None,
+                LandsatL1MDReader,  lf("mss_l1_landsat1_mda_file"), mss_l1_landsat1_extent, None,
                 get_filename_info(mss_l1_landsat1_date, "L1TP", "01", "M"), id="mss_l1_landsat1",
             ),
             pytest.param(
-                LandsatL1MDReader, "mss_l1_landsat4_mda_file", mss_l1_landsat4_extent, None,
+                LandsatL1MDReader,  lf("mss_l1_landsat4_mda_file"), mss_l1_landsat4_extent, None,
                 get_filename_info(mss_l1_landsat4_date, "L1TP", "04", "M"), id="mss_l1_landsat4",
             ),
             pytest.param(
-                LandsatL1MDReader, "antarctic_mda_file", antarctic_extent, antarctic_pan_extent,
+                LandsatL1MDReader, lf("antarctic_mda_file"), antarctic_extent, antarctic_pan_extent,
                 get_filename_info(oli_tirs_l1_date, "L1TP", "08", "C"), id="antarctic",
             ),
         ],
@@ -1222,11 +1195,8 @@ class TestLandsat:
         extent,
         pan_extent,
         filename_info,
-        request
     ):
         """Check we can get the area defs properly."""
-        mda_file = request.getfixturevalue(mda_file)
-
         mda = MD_reader_class(mda_file, filename_info, {})
         standard_area = mda.build_area_def("B4")
         assert standard_area.area_extent == extent
