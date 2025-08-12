@@ -208,6 +208,7 @@ class TestForwardParallax:
         np.testing.assert_allclose(val, 2141.2404451757875)
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionClass:
     """Test that the ParallaxCorrection class is behaving sensibly."""
 
@@ -475,6 +476,7 @@ class TestParallaxCorrectionClass:
                 fake_area_small.get_lonlats())
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionModifier:
     """Test that the parallax correction modifier works correctly."""
 
@@ -663,7 +665,7 @@ class TestParallaxCorrectionModifier:
                 "ouagadougou": {
                     7500: (159, 164, 140, 160),
                     15000: (163, 168, 141, 161)}}
-        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.name][cth]
+        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.area_id][cth]
         dest_mask[x_lo:x_hi, y_lo:y_hi] = True
 
         modif = ParallaxCorrectionModifier(
@@ -711,6 +713,7 @@ composites:
 """
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionSceneLoad:
     """Test that scene load interface works as expected."""
 
