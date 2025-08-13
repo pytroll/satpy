@@ -348,7 +348,10 @@ def generic_open(filename, *args, **kwargs):
 
     Yields an open file-like object.
     """
-    path = UPath(filename)
+    try:
+        path = filename.to_upath()
+    except AttributeError:
+        path = UPath(filename)
     new_kwargs = kwargs.copy()
     new_kwargs["compression"] = "infer"
     with path.open(*args, **new_kwargs) as fp:
