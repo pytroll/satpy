@@ -85,7 +85,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
             one_layer_dataset = nc.createVariable("test_one_layer", np.float32,
                                                   dimensions=("number_of_rows", "number_of_columns"))
-            one_layer_dataset[:] = np.ones((100, 10))
+            one_layer_dataset[:] = np.arange(1000.0).reshape((100, 10))
             one_layer_dataset.test_attr = "attr"
             one_layer_dataset.units = "test_units"
 
@@ -172,7 +172,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "fill_value": -999,
                                        "file_type": "test_file_type"})
 
-        np.testing.assert_allclose(dataset.values, np.ones((100, 10)))
+        np.testing.assert_allclose(dataset.values, np.arange(1000).reshape((100, 10)))
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["fill_value"] == -999
 
@@ -494,8 +494,8 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
         self.test_byte_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.test_byte_file, "w") as nc_byte:
             # Create dimensions
-            nc_byte.createDimension("number_of_columns", 1)
-            nc_byte.createDimension("number_of_rows", 1)
+            nc_byte.createDimension("number_of_columns", 2)
+            nc_byte.createDimension("number_of_rows", 2)
 
             # add global attributes
             nc_byte.data_source = "TEST_DATA_SOURCE"
@@ -504,11 +504,11 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             # Add datasets
             x = nc_byte.createVariable("x", np.float32, dimensions=("number_of_columns",))
             x.standard_name = "projection_x_coordinate"
-            x[:] = np.arange(1)
+            x[:] = np.arange(2.0).reshape((2,))
 
             y = nc_byte.createVariable("y", np.float32, dimensions=("number_of_rows",))
             x.standard_name = "projection_y_coordinate"
-            y[:] = np.arange(1)
+            y[:] = np.arange(2.0).reshape((2,))
 
             mtg_geos_projection = nc_byte.createVariable("mtg_geos_projection", int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 0.0
@@ -547,7 +547,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 "extract_byte": 1,
                                                 })
 
-        assert dataset.values == 1
+        np.testing.assert_allclose(dataset.values, 1)
 
         # Value of 0 is expected fto be returned or this test
         dataset = self.byte_reader.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
@@ -558,7 +558,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 "extract_byte": 23,
                                                 })
 
-        assert dataset.values == 0
+        np.testing.assert_allclose(dataset.values, 0)
 
 
 @pytest.fixture(scope="module")
