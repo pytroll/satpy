@@ -658,6 +658,7 @@ def to_upath(fsfile):
     return path
 
 
+@pytest.mark.filterwarnings("ignore:UPath 'zip' filesystem not explicitly implemented:UserWarning")
 def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as UPath."""
     from satpy.readers.core.remote import FSFile
