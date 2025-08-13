@@ -188,6 +188,7 @@ from collections.abc import Iterable, Sequence
 import dask.array as da
 import numpy as np
 import pyproj
+import xarray as xr
 from numpy.polynomial.chebyshev import Chebyshev
 
 import satpy.readers.core.utils as utils
@@ -454,6 +455,41 @@ def add_scanline_acq_time(dataset, acq_time):
     dataset.coords["acq_time"] = ("y", acq_time)
     dataset.coords["acq_time"].attrs[
         "long_name"] = "Mean scanline acquisition time"
+
+
+def add_pixel_acq_time(dataset, label="time"):
+    """Add estimated pixel acquisition time for the given dataset.
+
+    Pixel acquisition time is added as a coordinate with the indicated name.
+    The coordinate will have dtype float32 and units of seconds since the
+    nominal start time.
+
+    For simplicity, takes scanline time as measurement time for an entire scanline.
+
+    Args:
+        dataset (xarray.DataArray): dataset with acq_time coordinate
+        label (str): Label for time coordinate.  Defaults to "time".  Choosing
+            a different label might impact the ability of writers trying to
+            process time coordinate information.
+    """
+    st_time = dataset.attrs["nominal_start_time"]
+    delta_per_line = (dataset["acq_time"].chunk({"y": dataset.sizes["y"]}) - np.datetime64(st_time)).astype("m8[s]")
+    # convert to float, because datetime64 cannot be resampled and ints cannot
+    # cover missing data
+    #
+    # NaT does not cast to nan but to -9.223372036854776e+18, hence detour via
+    # where
+    delta_per_line = xr.where(
+            delta_per_line.notnull(),
+            delta_per_line.astype(np.float32),
+            np.nan)
+    # this constant assumption could be improved
+    delta_per_pixel = delta_per_line.expand_dims({"x": dataset.sizes["x"]})
+    dataset.coords[label] = (
+            ("y", "x"),
+            delta_per_pixel.rename("time").transpose("y", "x").data)
+    dataset.coords[label].attrs["long_name"] = "Approximate pixel acquisition time"
+    dataset.coords[label].attrs["units"] = f"Seconds since {st_time:%Y-%m-%d %H:%M:%SZ}"
 
 
 def dec10216(inbuf):
