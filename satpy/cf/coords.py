@@ -319,7 +319,7 @@ class _TimeBoundsCalculator:
             bounds = [
                 (t[0], t[1]),
                 (t[1], t[2]),
-                (t[2], min_end_time_from_attrs)
+                (t[2], max_end_time_from_attrs)
             ]
 
         """
@@ -336,18 +336,18 @@ class _TimeBoundsCalculator:
     def _get_bounds_for_last_timestep(self):
         return [
             self.times[-1],
-            self._get_min_time_from_attrs("end_time")
+            self._get_time_from_attrs("end_time", max)
         ]
 
-    def _get_min_time_from_attrs(self, time_attr):
+    def _get_time_from_attrs(self, time_attr, min_or_max):
         times = [
             data_array.attrs.get(time_attr, None)
             for data_array in self.ds.data_vars.values()
         ]
-        min_time = min(
+        time = min_or_max(
             t for t in times if t is not None
         )
-        return np.datetime64(min_time, "ns")
+        return np.datetime64(time, "ns")
 
     def _get_bounds_single_timestep(self):
         """Get time bounds for a dataset with a single timestep.
@@ -356,6 +356,6 @@ class _TimeBoundsCalculator:
         start_time and end_time.
         """
         return [
-            [self._get_min_time_from_attrs("start_time"),
-             self._get_min_time_from_attrs("end_time")]
+            [self._get_time_from_attrs("start_time", min),
+             self._get_time_from_attrs("end_time", max)]
         ]

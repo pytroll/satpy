@@ -12,7 +12,7 @@ the key/values of the DataID used to identify it.
 Built-in Compositors
 ====================
 
-.. py:currentmodule:: satpy.composites
+.. py:currentmodule:: satpy.composites.core
 
 There are many built-in compositors available in Satpy.
 The majority use the :class:`GenericCompositor` base class
@@ -33,11 +33,11 @@ for more examples.
 GenericCompositor
 -----------------
 
-:class:`GenericCompositor` class can be used to create basic single
+:class:`satpy.composites.core.GenericCompositor` class can be used to create basic single
 channel and RGB composites. For example, building an overview composite
 can be done manually within Python code with::
 
-    >>> from satpy.composites import GenericCompositor
+    >>> from satpy.composites.core import GenericCompositor
     >>> compositor = GenericCompositor("overview")
     >>> composite = compositor([local_scene[0.6],
     ...                         local_scene[0.8],
@@ -60,28 +60,28 @@ This part is called `enhancement`, and is covered in more detail in
 :doc:`enhancements`.
 
 Single channel composites can also be generated with the
-:class:`GenericCompositor`, but in some cases, the
-:class:`SingleBandCompositor` may be more appropriate.  For example,
-the :class:`GenericCompositor` removes attributes such as ``units``
+:class:`satpy.composites.core.GenericCompositor`, but in some cases, the
+:class:`satpy.composites.core.SingleBandCompositor` may be more appropriate.  For example,
+the :class:`satpy.composites.core.GenericCompositor` removes attributes such as ``units``
 because they are typically not meaningful for an RGB image.  Such attributes
-are retained in the :class:`SingleBandCompositor`.
+are retained in the :class:`satpy.composites.core.SingleBandCompositor`.
 
 DifferenceCompositor
 --------------------
 
-:class:`DifferenceCompositor` calculates a difference of two datasets::
+:class:`satpy.composites.arithmetic.DifferenceCompositor` calculates a difference of two datasets::
 
-    >>> from satpy.composites import DifferenceCompositor
+    >>> from satpy.composites.arithmetic import DifferenceCompositor
     >>> compositor = DifferenceCompositor("diffcomp")
     >>> composite = compositor([local_scene[10.8], local_scene[12.0]])
 
 FillingCompositor
 -----------------
 
-:class:`FillingCompositor`:: fills the missing values in three datasets
+:class:`satpy.composites.fill.FillingCompositor`:: fills the missing values in three datasets
 with the values of another dataset:::
 
-    >>> from satpy.composites import FillingCompositor
+    >>> from satpy.composites.fill import FillingCompositor
     >>> compositor = FillingCompositor("fillcomp")
     >>> filler = local_scene[0.6]
     >>> data_with_holes_1 = local_scene['ch_a']
@@ -93,10 +93,10 @@ with the values of another dataset:::
 PaletteCompositor
 ------------------
 
-:class:`PaletteCompositor` creates a color version of a single channel
+:class:`satpy.composites.lookup.PaletteCompositor` creates a color version of a single channel
 categorical dataset using a colormap::
 
-    >>> from satpy.composites import PaletteCompositor
+    >>> from satpy.composites.lookup import PaletteCompositor
     >>> compositor = PaletteCompositor("palcomp")
     >>> composite = compositor([local_scene['cma'], local_scene['cma_pal']])
 
@@ -107,17 +107,17 @@ being visualized.
 
 .. deprecated:: 0.40
 
-   Composites produced with :class:`PaletteCompositor` will result in
+   Composites produced with :class:`satpy.composites.lookup.PaletteCompositor` will result in
    an image with mode RGB when enhanced.  To produce an image with mode P, use
-   the :class:`SingleBandCompositor` with an associated
-   :func:`~satpy.enhancements.palettize` enhancement and pass ``keep_palette=True``
+   the :class:`satpy.composites.core.SingleBandCompositor` with an associated
+   :func:`~satpy.enhancements.colormap.palettize` enhancement and pass ``keep_palette=True``
    to :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.  If the colormap is sourced from
    the same dataset as the dataset to be palettized, it must be contained
    in the auxiliary datasets.
 
    Since Satpy 0.40, all built-in composites that used
-   :class:`PaletteCompositor` have been migrated to use
-   :class:`SingleBandCompositor` instead.  This has no impact on resulting
+   :class:`satpy.composites.lookup.PaletteCompositor` have been migrated to use
+   :class:`satpy.composites.core.SingleBandCompositor` instead.  This has no impact on resulting
    images unless ``keep_palette=True`` is passed to
    :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`, but the loaded composite now has only
    one band (previously three).
@@ -125,7 +125,7 @@ being visualized.
 DayNightCompositor
 ------------------
 
-:class:`DayNightCompositor` merges two different composites.  The
+:class:`satpy.composites.fill.DayNightCompositor` merges two different composites.  The
 first composite will be placed on the day-side of the scene, and the
 second one on the night side.  The transition from day to night is
 done by calculating solar zenith angle (SZA) weighed average of the
@@ -150,7 +150,7 @@ They can be defined when initializing the compositor::
 
 Usage (with default values)::
 
-    >>> from satpy.composites import DayNightCompositor
+    >>> from satpy.composites.fill import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_night")
     >>> composite = compositor([local_scene['true_color'],
     ...                         local_scene['night_fog']])
@@ -160,7 +160,7 @@ a day product or only a night product and mask out (make transparent)
 the opposite portion of the image (night or day). The example below
 provides only a day product with night portion masked-out::
 
-    >>> from satpy.composites import DayNightCompositor
+    >>> from satpy.composites.fill import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only")
     >>> composite = compositor([local_scene['true_color'])
 
@@ -172,18 +172,18 @@ when saving to geotiff to get a single-band image with black background.
 In the case below, the image shows its day portion and day/night
 transition with night portion blacked-out instead of transparent::
 
-    >>> from satpy.composites import DayNightCompositor
+    >>> from satpy.composites.fill import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only", include_alpha=False)
     >>> composite = compositor([local_scene['true_color'])
 
 RealisticColors
 ---------------
 
-:class:`RealisticColors` compositor is a special compositor that is
+:class:`satpy.composites.seviri.RealisticColors` compositor is a special compositor that is
 used to create realistic near-true-color composite from MSG/SEVIRI
 data::
 
-    >>> from satpy.composites import RealisticColors
+    >>> from satpy.composites.seviri import RealisticColors
     >>> compositor = RealisticColors("realcols", lim_low=85., lim_high=95.)
     >>> composite = compositor([local_scene['VIS006'],
     ...                         local_scene['VIS008'],
@@ -192,7 +192,7 @@ data::
 CloudCompositor
 ---------------
 
-:class:`CloudCompositor` can be used to threshold the data so that
+:class:`satpy.composites.mask.CloudCompositor` can be used to threshold the data so that
 "only" clouds are visible.  These composites can be used as an overlay
 on top of e.g. static terrain images to show a rough idea where there
 are clouds.  The data are thresholded using three variables::
@@ -203,7 +203,7 @@ are clouds.  The data are thresholded using three variables::
 
 Usage (with default values)::
 
-    >>> from satpy.composites import CloudCompositor
+    >>> from satpy.composites.mask import CloudCompositor
     >>> compositor = CloudCompositor("clouds", transition_min=258.15,
     ...                              transition_max=298.15,
     ...                              transition_gamma=3.0)
@@ -216,18 +216,18 @@ temperatures, is to be added.
 RatioSharpenedRGB
 -----------------
 
-:class:`RatioSharpenedRGB`
+:class:`satpy.composites.resolution.RatioSharpenedRGB`
 
 SelfSharpenedRGB
 ----------------
 
-:class:`SelfSharpenedRGB` sharpens the RGB with ratio of a band with a
+:class:`satpy.composites.resolution.SelfSharpenedRGB` sharpens the RGB with ratio of a band with a
 strided version of itself.
 
 LuminanceSharpeningCompositor
 -----------------------------
 
-:class:`LuminanceSharpeningCompositor` replaces the luminance from an
+:class:`satpy.composites.resolution.LuminanceSharpeningCompositor` replaces the luminance from an
 RGB composite with luminance created from reflectance data.  If the
 resolutions of the reflectance data _and_ of the target area
 definition are higher than the base RGB, more details can be
@@ -235,7 +235,7 @@ retrieved.  This compositor can be useful also with matching
 resolutions, e.g. to highlight shadowing at cloudtops in colorized
 infrared composite.
 
-    >>> from satpy.composites import LuminanceSharpeningCompositor
+    >>> from satpy.composites.resolution import LuminanceSharpeningCompositor
     >>> compositor = LuminanceSharpeningCompositor("vis_sharpened_ir")
     >>> vis_data = local_scene['HRV']
     >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
@@ -244,13 +244,13 @@ infrared composite.
 SandwichCompositor
 ------------------
 
-Similar to :class:`LuminanceSharpeningCompositor`,
-:class:`SandwichCompositor` uses reflectance data to bring out more
+Similar to :class:`satpy.composites.resolution.LuminanceSharpeningCompositor`,
+:class:`satpy.composites.resolution.SandwichCompositor` uses reflectance data to bring out more
 details out of infrared or low-resolution composites.
-:class:`SandwichCompositor` multiplies the RGB channels with (scaled)
+:class:`satpy.composites.resolution.SandwichCompositor` multiplies the RGB channels with (scaled)
 reflectance.
 
-    >>> from satpy.composites import SandwichCompositor
+    >>> from satpy.composites.resolution import SandwichCompositor
     >>> compositor = SandwichCompositor("ir_sandwich")
     >>> vis_data = local_scene['HRV']
     >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
@@ -259,25 +259,25 @@ reflectance.
 StaticImageCompositor
 ---------------------
 
-    :class:`StaticImageCompositor` can be used to read an image from disk
+    :class:`satpy.composites.aux_data.StaticImageCompositor` can be used to read an image from disk
     and used just like satellite data, including resampling and using as a
     part of other composites.
 
-    >>> from satpy.composites import StaticImageCompositor
+    >>> from satpy.composites.aux_data import StaticImageCompositor
     >>> compositor = StaticImageCompositor("static_image", filename="image.tif")
     >>> composite = compositor()
 
 BackgroundCompositor
 --------------------
 
-    :class:`BackgroundCompositor` can be used to stack two composites
+    :class:`satpy.composites.fill.BackgroundCompositor` can be used to stack two composites
     together.  If the composites don't have `alpha` channels, the
     `background` is used where `foreground` has no data.  If `foreground`
     has alpha channel, the `alpha` values are used to weight when blending
     the two composites.
 
     >>> from satpy import Scene
-    >>> from satpy.composites import BackgroundCompositor
+    >>> from satpy.composites.fill import BackgroundCompositor
     >>> compositor = BackgroundCompositor()
     >>> clouds = local_scene['ir_cloud_day']
     >>> background = local_scene['overview']
@@ -286,7 +286,7 @@ BackgroundCompositor
 CategoricalDataCompositor
 -------------------------
 
-:class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
+:class:`satpy.composites.lookup.CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
 combine comparable categories into a common category. The category remapping from `data` to `composite` is done
 using a look-up-table (`lut`)::
 
@@ -326,13 +326,13 @@ Simple RGB composite
 --------------------
 
 This is the overview composite shown in the first code example above
-using :class:`GenericCompositor`::
+using :class:`satpy.composites.core.GenericCompositor`::
 
     sensor_name: visir
 
     composites:
       overview:
-        compositor: !!python/name:satpy.composites.GenericCompositor
+        compositor: !!python/name:satpy.composites.core.GenericCompositor
         prerequisites:
         - 0.6
         - 0.8
@@ -349,7 +349,7 @@ it extends the generic visir composites::
     composites:
 
       overview:
-        compositor: !!python/name:satpy.composites.GenericCompositor
+        compositor: !!python/name:satpy.composites.core.GenericCompositor
         prerequisites:
         - VIS006
         - VIS008
@@ -368,7 +368,7 @@ adjusted, e.g. for Solar zenith angle normalization.  These modifiers
 can be applied in the following way::
 
       overview:
-        compositor: !!python/name:satpy.composites.GenericCompositor
+        compositor: !!python/name:satpy.composites.core.GenericCompositor
         prerequisites:
         - name: VIS006
           modifiers: [sunz_corrected]
@@ -400,7 +400,7 @@ In this example we have one composite that relies on solar channels on
 the day side, and another for the night side::
 
     natural_with_night_fog:
-      compositor: !!python/name:satpy.composites.DayNightCompositor
+      compositor: !!python/name:satpy.composites.fill.DayNightCompositor
       prerequisites:
         - natural_color
         - night_fog
@@ -411,7 +411,7 @@ defined (shown with the default values, thus identical result as
 above)::
 
     natural_with_night_fog:
-      compositor: !!python/name:satpy.composites.DayNightCompositor
+      compositor: !!python/name:satpy.composites.fill.DayNightCompositor
       prerequisites:
         - natural_color
         - night_fog
@@ -427,13 +427,13 @@ It is also possible to define sub-composites in-line.  This example is
 the built-in airmass composite::
 
     airmass:
-      compositor: !!python/name:satpy.composites.GenericCompositor
+      compositor: !!python/name:satpy.composites.core.GenericCompositor
       prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
         - wavelength: 6.2
         - wavelength: 7.3
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - wavelength: 9.7
           - wavelength: 10.8
@@ -444,8 +444,8 @@ Using a pre-made image as a background
 --------------------------------------
 
 Below is an example composite config using
-:class:`StaticImageCompositor`, :class:`DayNightCompositor`,
-:class:`CloudCompositor` and :class:`BackgroundCompositor` to show how
+:class:`satpy.composites.aux_data.StaticImageCompositor`, :class:`satpy.composites.fill.DayNightCompositor`,
+:class:`satpy.composites.mask.CloudCompositor` and :class:`satpy.composites.fill.BackgroundCompositor` to show how
 to create a composite with a blended day/night imagery as background
 for clouds.  As the images are in PNG format, and thus not
 georeferenced, the name of the area definition for the background
@@ -460,23 +460,23 @@ be left out.
 ::
 
     clouds_with_background:
-      compositor: !!python/name:satpy.composites.BackgroundCompositor
+      compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
       standard_name: clouds_with_background
       prerequisites:
         - ir_cloud_day
-        - compositor: !!python/name:satpy.composites.DayNightCompositor
+        - compositor: !!python/name:satpy.composites.fill.DayNightCompositor
           prerequisites:
             - static_day
             - static_night
 
     static_day:
-      compositor: !!python/name:satpy.composites.StaticImageCompositor
+      compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
       standard_name: static_day
       filename: /path/to/day_image.png
       area: euro4
 
     static_night:
-      compositor: !!python/name:satpy.composites.StaticImageCompositor
+      compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
       standard_name: static_night
       filename: /path/to/night_image.png
       area: euro4
@@ -489,7 +489,7 @@ image) for both of the static images::
       standard_name: static_day
       operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.stretching.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
@@ -536,7 +536,7 @@ enhancement functions in Satpy.
    If you define a composite with no matching enhancement, Satpy will by
    default apply the :meth:`~trollimage.xrimage.XRImage.stretch_linear` enhancement with
    cutoffs of 0.5% and 99.5%.  If you want no enhancement at all (maybe you
-   are enhancing a composite based on :class:`DayNightCompositor` where
+   are enhancing a composite based on :class:`satpy.composites.fill.DayNightCompositor` where
    the components have their own enhancements defined), you can use the `image_ready` standard name.
    If this is not a suitable standard name, you can also define
    an enhancement that does nothing:

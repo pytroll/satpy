@@ -75,15 +75,15 @@ A plugin package should consist of three main parts:
      reader subclasses and
      :class:`~satpy.readers.core.file_handlers.BaseFileHandler` for any custom file
      handlers. See :doc:`custom_reader` for more information.
-   * composites and modifiers: :class:`~satpy.composites.CompositeBase` for
-     any generic compositor and :class:`~satpy.composites.GenericCompositor`
+   * composites and modifiers: :class:`~satpy.composites.core.CompositeBase` for
+     any generic compositor and :class:`~satpy.composites.core.GenericCompositor`
      for any composite that represents an image (RGB, L, etc). For modifiers,
      use :class:`~satpy.modifiers.base.ModifierBase`.
-   * enhancements: See decorators in :mod:`satpy.enhancements` including
-     :func:`~satpy.enhancements.exclude_alpha`,
-     :func:`~satpy.enhancements.on_separate_bands`,
-     :func:`~satpy.enhancements.on_dask_array`, and
-     :func:`~satpy.enhancements.using_map_blocks`.
+   * enhancements: See decorators in :mod:`satpy.enhancements.wrappers` including
+     :func:`~satpy.enhancements.wrappers.exclude_alpha`,
+     :func:`~satpy.enhancements.wrappers.on_separate_bands`,
+     :func:`~satpy.enhancements.wrappers.on_dask_array`, and
+     :func:`~satpy.enhancements.wrappers.using_map_blocks`.
    * writers: :class:`~satpy.writers.core.base.Writer`
 
    Lastly, this directory should be structured like a standard python package.

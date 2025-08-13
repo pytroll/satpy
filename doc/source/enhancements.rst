@@ -36,29 +36,29 @@ a series of enhancement "sections". An example file might look like:
      default:
        operations:
        - name: stretch
-         method: !!python/name:satpy.enhancements.stretch
+         method: !!python/name:satpy.enhancements.contrast.stretch
          kwargs: {stretch: linear}
      reflectance_default:
        standard_name: toa_bidirectional_reflectance
        operations:
        - name: linear_stretch
-         method: !!python/name:satpy.enhancements.stretch
+         method: !!python/name:satpy.enhancements.contrast.stretch
          kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
        - name: gamma
-         method: !!python/name:satpy.enhancements.gamma
+         method: !!python/name:satpy.enhancements.contrast.gamma
          kwargs: {gamma: 1.5}
      overview:
        standard_name: overview
        operations:
          - name: inverse
-           method: !!python/name:satpy.enhancements.invert
+           method: !!python/name:satpy.enhancements.contrast.invert
            args: [False, False, True]
          - name: stretch
-           method: !!python/name:satpy.enhancements.stretch
+           method: !!python/name:satpy.enhancements.contrast.stretch
            kwargs:
              stretch: linear
          - name: gamma
-           method: !!python/name:satpy.enhancements.gamma
+           method: !!python/name:satpy.enhancements.contrast.gamma
            kwargs:
              gamma: [1.7, 1.7, 1.7]
 
@@ -345,7 +345,7 @@ on both ends of the scale, but these can be overridden with
 ``cutoffs=(0.005, 0.005)`` argument::
 
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
         cutoffs: [0.003, 0.005]
@@ -363,7 +363,7 @@ range by clipping the data. This is followed by a linear stretch with
 no cutoffs specified (see above). Example::
 
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -385,7 +385,7 @@ piecewise_linear_stretch
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use :func:`numpy.interp` to linearly interpolate data to a new range. See
-:func:`satpy.enhancements.piecewise_linear_stretch` for more information and examples.
+:func:`satpy.enhancements.contrast.piecewise_linear_stretch` for more information and examples.
 
 cira_stretch
 ^^^^^^^^^^^^
@@ -415,7 +415,7 @@ to colors. One or several `standard Trollimage color maps`_ may be used as in
 the example here::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
           palettes:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
@@ -425,7 +425,7 @@ In addition, it is also possible to add a linear alpha channel to the colormap, 
 following example::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - {colors: ylorrd, min_alpha: 100, max_alpha: 255}
@@ -437,7 +437,7 @@ Sea Surface Temperature (SST) imagery, as in this example with the EUMETSAT
 Ocean and Sea Ice SAF (OSISAF) GHRSST product::
 
     - name: osisaf_sst
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
           palettes:
             - colors: [
@@ -478,7 +478,7 @@ as such by the reader.  To apply such a palette directly, pass the ``dataset``
 keyword.  For example::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -492,7 +492,7 @@ keyword.  For example::
 
 The above examples are just three different ways to apply colors to images with
 Satpy. There is a wealth of other options for how to declare a colormap, please
-see :func:`~satpy.enhancements.create_colormap` for more inspiration.
+see :func:`~satpy.enhancements.colormap.create_colormap` for more inspiration.
 
 .. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
 
@@ -508,7 +508,7 @@ convolving with a 3x3 kernel.  User can adjust the strength of the
 effect by determining the weight (default: 1.0).  Example::
 
     - name: 3d_effect
-      method: !!python/name:satpy.enhancements.three_d_effect
+      method: !!python/name:satpy.enhancements.convolution.three_d_effect
       kwargs:
         weight: 1.0
 
@@ -573,7 +573,7 @@ Or more complex enhancement functions in Satpy (described above):
 
 .. code-block::
 
-   from satpy.enhancements import
+   from satpy.enhancements.convolution import three_d_effect
    img = three_d_effect(img)
 
 .. note::

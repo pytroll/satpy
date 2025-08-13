@@ -463,7 +463,7 @@ def _scale_and_mask_data_array(data_arr: xr.DataArray, is_category: bool = False
         data_arr.data,
         dtype=dtype,
         meta=np.array((), dtype=dtype),
-        name="scale_and_mask",
+        token="scale_and_mask",  # nosec: B106
         scale_factor=scale_factor,
         add_offset=add_offset,
         fill_value=fill_value,

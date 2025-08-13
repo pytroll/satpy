@@ -18,6 +18,7 @@
 
 import datetime as dt
 import os
+from collections import defaultdict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
@@ -30,7 +31,7 @@ from pyresample.geometry import BaseDefinition, SwathDefinition
 from xarray import DataArray
 
 from satpy import Scene
-from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.composites.core import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
@@ -277,13 +278,15 @@ class FakeFileHandler(BaseFileHandler):
             yield is_avail, ds_info
 
 
-class CustomScheduler(object):
+class CustomScheduler:
     """Scheduler raising an exception if data are computed too many times."""
 
-    def __init__(self, max_computes=1):
+    def __init__(self, max_computes: int = 1, expect_duplicate_computes: bool = False):
         """Set starting and maximum compute counts."""
         self.max_computes = max_computes
         self.total_computes = 0
+        self.task_counts: dict[Any, int] = defaultdict(lambda: 0)
+        self.expect_duplicate_computes = expect_duplicate_computes
 
     def __call__(self, dsk, keys, **kwargs):
         """Compute dask task and keep track of number of times we do so."""
@@ -292,6 +295,15 @@ class CustomScheduler(object):
         if self.total_computes > self.max_computes:
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
+
+        for key in keys:
+            self.task_counts[key] += 1
+            if not self.expect_duplicate_computes and self.task_counts[key] > self.max_computes:
+                raise RuntimeError(
+                    f"Task {key} is being computed more than once. This is "
+                    f"typically caused by dask incorrectly optimizing dask "
+                    f"graphs. This could be a bug in dask or expected if "
+                    f"passing Arrays to Delayed functions. ")
         return dask.get(dsk, keys, **kwargs)
 
 

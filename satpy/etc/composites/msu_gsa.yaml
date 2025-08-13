@@ -2,14 +2,14 @@ sensor_name: visir/msu_gsa
 
 composites:
   overview_raw:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: C01
     - name: C03
     - name: C09
     standard_name: overview
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: C01
       modifiers: [sunz_corrected]
@@ -18,7 +18,7 @@ composites:
     - name: C09
     standard_name: overview
   msugsa_color:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: C03
       modifiers: [sunz_corrected]
@@ -28,7 +28,7 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: natural_color
   msugsa_color_raw:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: C03
     - name: C02
@@ -36,7 +36,7 @@ composites:
     standard_name: natural_color
 
   night_ir_alpha:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     standard_name: night_ir_alpha
     prerequisites:
       - 3.8
@@ -45,7 +45,7 @@ composites:
       - 10.8
 
   day_color_with_night_ir:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     standard_name: day_color_with_night_ir
     lim_low: 90.0
     lim_high: 100.0
@@ -54,7 +54,7 @@ composites:
       - night_ir_with_background
 
   day_color_with_night_ir_hires:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     standard_name: day_color_with_night_ir
     lim_low: 90.0
     lim_high: 100.0
@@ -63,14 +63,14 @@ composites:
       - night_ir_with_background_hires
 
   night_ir_with_background:
-    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background
 
   night_ir_with_background_hires:
-    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     standard_name: night_ir_with_background_hires
     prerequisites:
       - night_ir_alpha

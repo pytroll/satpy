@@ -66,6 +66,19 @@ def make_fake_angles(geo_size, geo_dims, shape):
     return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
 
 
+def make_fake_lsm(geo_size, geo_dims, shape):
+    """Return fake land surface type data array."""
+    maxval = 1
+    dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int16")
+    return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
+
+def make_fake_dem(geo_size, geo_dims, shape):
+    """Return fake DEM data array."""
+    maxval = 10000
+    dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int16")
+    return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
+
+
 def make_fake_mwr_lonlats(geo_size, geo_dims, shape):
     """Return fake geolocation data arrays for all 4 MWR horns."""
     maxval = 3600000
@@ -137,6 +150,9 @@ def aws_eps_sterna_mwr_level1_file(fake_mwr_data_array, eps_sterna=True, l1b=Tru
     ds[f"data/navigation/{prefix}solar_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape)
     ds[f"data/navigation/{prefix}satellite_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape)
     ds[f"data/navigation/{prefix}satellite_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}surface_type"] = make_fake_lsm(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}terrain_elevation"] = make_fake_dem(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}not_implemented_yet"] = make_fake_dem(geo_size, geo_dims, shape)
     if l1b:
         ds["status/satellite/subsat_latitude_end"] = np.array(22.39)
         ds["status/satellite/subsat_longitude_start"] = np.array(304.79)

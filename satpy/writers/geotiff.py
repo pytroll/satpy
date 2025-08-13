@@ -267,7 +267,7 @@ class GeoTIFFWriter(ImageWriter):
                           "setting fill value to 'NaN'")
                 fill_value = np.nan
         if keep_palette and cmap is None and img.palette is not None:
-            from satpy.enhancements import create_colormap
+            from satpy.enhancements.colormap import create_colormap
             cmap = create_colormap({"colors": img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 

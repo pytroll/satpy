@@ -308,9 +308,9 @@ class TestCFWriter:
         """Test minimum bounds."""
         scn = Scene()
         start_timeA = dt.datetime(2018, 5, 30, 10, 0)  # expected to be used
-        end_timeA = dt.datetime(2018, 5, 30, 10, 20)
+        end_timeA = dt.datetime(2018, 5, 30, 10, 15)
         start_timeB = dt.datetime(2018, 5, 30, 10, 3)
-        end_timeB = dt.datetime(2018, 5, 30, 10, 15)  # expected to be used
+        end_timeB = dt.datetime(2018, 5, 30, 10, 20)  # expected to be used
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
