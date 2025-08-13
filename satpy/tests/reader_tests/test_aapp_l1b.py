@@ -18,7 +18,6 @@
 """Test module for the avhrr aapp l1b reader."""
 
 import datetime
-import tempfile
 from unittest import mock
 
 import numpy as np
@@ -104,6 +103,85 @@ def all_channels_fh(all_channels_path):
         "file_type": "avhrr_aapp_l1b"
     }
     return AVHRRAAPPL1BFile(all_channels_path, filename_info, filetype_info)
+
+
+@pytest.fixture(scope="module")
+def missing3a_path(tmp_path_factory):
+    """Create AAPP file with 3a missing."""
+    fp = tmp_path_factory.mktemp("missing3a_data") / "missing3a.l1b"
+
+    header = np.zeros(1, dtype=_HEADERTYPE)
+    header["satid"][0] = 13
+    header["radtempcnv"][0] = [[267194, -171669, 1002811],
+                               [930310, -59084, 1001600],
+                               [828600, -37854, 1001147]]
+    # first 3a is off, 3b is on
+    header["inststat1"][0] = 0b1111011100000000
+    # valid for the whole pass
+    header["statchrecnb"][0] = 0
+    header["inststat2"][0] = 0b0
+
+    data = np.zeros(3, dtype=_SCANTYPE)
+    data["scnlinyr"][:] = 2020
+    data["scnlindy"][:] = 8
+    data["scnlintime"][0] = 30195225
+    data["scnlintime"][1] = 30195389
+    data["scnlintime"][2] = 30195556
+    data["scnlinbit"][0] = -16383
+    data["scnlinbit"][1] = -16383
+    data["scnlinbit"][2] = -16383
+    calvis = np.array([[[0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [543489984, -21941870, 1592440064, -545027008, 499]],
+                       [[0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [540780032, -22145690, 1584350080, -543935616, 500]],
+                       [[0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [257550000, -10449420, 1812019968, -785690304, 499]]])
+    data["calvis"][:] = calvis
+    data["calir"] = [[[[0, -2675, 2655265],
+                       [0, 0, 0]],
+                      [[33605, -260786, 226818992],
+                       [0, 0, 0]],
+                      [[13869, -249508, 234624768],
+                       [0, 0, 0]]],
+                     [[[0, -2675, 2655265],
+                       [0, 0, 0]],
+                      [[33609, -260810, 226837328],
+                       [0, 0, 0]],
+                      [[13870, -249520, 234638704],
+                       [0, 0, 0]]],
+                     [[[0, 0, 0],
+                       [0, 0, 0]],
+                      [[33614, -260833, 226855664],
+                       [0, 0, 0]],
+                      [[13871, -249531, 234652640],
+                       [0, 0, 0]]]]
+    data["hrpt"] = np.ones_like(data["hrpt"]) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
+
+    with open(fp, mode="wb") as f:
+        header.tofile(f)
+        f.seek(22016, 0)
+        data.tofile(f)
+    return fp
+
+
+@pytest.fixture(scope="module")
+def missing3a_fh(missing3a_path):
+    """Create file handler instance with 3a missing."""
+    filename_info = {
+        "platform_shortname": "metop03", "start_time": datetime.datetime(2020, 1, 8, 8, 19),
+        "orbit_number": 6071
+    }
+    filetype_info = {
+        "file_reader": AVHRRAAPPL1BFile,
+        "file_patterns": [
+            "hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b"],
+        # noqa
+        "file_type": "avhrr_aapp_l1b"
+    }
+    return AVHRRAAPPL1BFile(missing3a_path, filename_info, filetype_info)
 
 
 class TestAAPPL1BAllChannelsPresent:
@@ -281,99 +359,27 @@ class TestAAPPL1BAllChannelsPresent:
 class TestAAPPL1BChannel3AMissing:
     """Test the filehandler when channel 3a is missing."""
 
-    def setup_method(self):
-        """Set up the test case."""
-        self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._header["satid"][0] = 13
-        self._header["radtempcnv"][0] = [[267194, -171669, 1002811],
-                                         [930310, -59084, 1001600],
-                                         [828600, -37854, 1001147]]
-        # first 3a is off, 3b is on
-        self._header["inststat1"][0] = 0b1111011100000000
-        # valid for the whole pass
-        self._header["statchrecnb"][0] = 0
-        self._header["inststat2"][0] = 0b0
-
-        self._data = np.zeros(3, dtype=_SCANTYPE)
-        self._data["scnlinyr"][:] = 2020
-        self._data["scnlindy"][:] = 8
-        self._data["scnlintime"][0] = 30195225
-        self._data["scnlintime"][1] = 30195389
-        self._data["scnlintime"][2] = 30195556
-        self._data["scnlinbit"][0] = -16383
-        self._data["scnlinbit"][1] = -16383
-        self._data["scnlinbit"][2] = -16383
-        calvis = np.array([[[0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0],
-                            [543489984, -21941870, 1592440064, -545027008, 499]],
-                           [[0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0],
-                            [540780032, -22145690, 1584350080, -543935616, 500]],
-                           [[0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0],
-                            [257550000, -10449420, 1812019968, -785690304, 499]]])
-        self._data["calvis"][:] = calvis
-        self._data["calir"] = [[[[0, -2675, 2655265],
-                                 [0, 0, 0]],
-                                [[33605, -260786, 226818992],
-                                 [0, 0, 0]],
-                                [[13869, -249508, 234624768],
-                                 [0, 0, 0]]],
-                               [[[0, -2675, 2655265],
-                                 [0, 0, 0]],
-                                [[33609, -260810, 226837328],
-                                 [0, 0, 0]],
-                                [[13870, -249520, 234638704],
-                                 [0, 0, 0]]],
-                               [[[0, 0, 0],
-                                 [0, 0, 0]],
-                                [[33614, -260833, 226855664],
-                                 [0, 0, 0]],
-                                [[13871, -249531, 234652640],
-                                 [0, 0, 0]]]]
-        self._data["hrpt"] = np.ones_like(self._data["hrpt"]) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
-
-        self.filename_info = {"platform_shortname": "metop03", "start_time": datetime.datetime(2020, 1, 8, 8, 19),
-                              "orbit_number": 6071}
-        self.filetype_info = {"file_reader": AVHRRAAPPL1BFile,
-                              "file_patterns": [
-                                  "hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b"],
-                              # noqa
-                              "file_type": "avhrr_aapp_l1b"}
-
-    def test_loading_missing_channels_returns_none(self):
+    def test_loading_missing_channels_returns_none(self, missing3a_fh):
         """Test that loading a missing channel raises a keyerror."""
-        with tempfile.TemporaryFile() as tmpfile:
-            self._header.tofile(tmpfile)
-            tmpfile.seek(22016, 0)
-            self._data.tofile(tmpfile)
+        info = {}
+        key = make_dataid(name="3a", calibration="reflectance")
+        assert missing3a_fh.get_dataset(key, info) is None
 
-            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
-            info = {}
-            key = make_dataid(name="3a", calibration="reflectance")
-            assert fh.get_dataset(key, info) is None
-
-    def test_available_datasets_miss_3a(self):
+    def test_available_datasets_miss_3a(self, missing3a_fh):
         """Test that channel 3a is missing from available datasets."""
-        with tempfile.TemporaryFile() as tmpfile:
-            self._header.tofile(tmpfile)
-            tmpfile.seek(22016, 0)
-            self._data.tofile(tmpfile)
-
-            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
-            configured_datasets = [[None, {"name": "1"}],
-                                   [None, {"name": "2"}],
-                                   [None, {"name": "3a"}],
-                                   [None, {"name": "3b"}],
-                                   [None, {"name": "4"}],
-                                   [None, {"name": "5"}],
-                                   ]
-            available_datasets = fh.available_datasets(configured_datasets)
-            for status, mda in available_datasets:
-                if mda["name"] == "3a":
-                    assert status is False
-                else:
-                    assert status is True
+        configured_datasets = [[None, {"name": "1"}],
+                               [None, {"name": "2"}],
+                               [None, {"name": "3a"}],
+                               [None, {"name": "3b"}],
+                               [None, {"name": "4"}],
+                               [None, {"name": "5"}],
+                               ]
+        available_datasets = missing3a_fh.available_datasets(configured_datasets)
+        for status, mda in available_datasets:
+            if mda["name"] == "3a":
+                assert not status
+            else:
+                assert status
 
 
 @pytest.fixture
