@@ -159,7 +159,8 @@ class TestCFcoords:
             "lat": xr.DataArray(data=lat, dims=("y", "x"))
         }
 
-        datasets = add_coordinates_attrs_coords(datasets)
+        with pytest.warns(UserWarning, match="""Coordinate \"not_exist\" referenced"""):
+            datasets = add_coordinates_attrs_coords(datasets)
 
         # Check that link has been established correctly and 'coordinate' atrribute has been dropped
         assert "lon" in datasets["var1"].coords
