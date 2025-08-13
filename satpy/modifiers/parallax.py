@@ -314,7 +314,7 @@ class ParallaxCorrection:
         """
         logger.debug("Calculating parallax correction using heights from "
                      f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}, "
-                     f"with base area {self.base_area.name!s}.")
+                     f"with base area {self.base_area.description!s}.")
         (sat_lon, sat_lat, sat_alt_m) = _get_satpos_from_cth(cth_dataset)
         self._check_overlap(cth_dataset)
 

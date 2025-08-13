@@ -157,7 +157,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Uncompress downloaded LUTs, which are a tarball."""
         import tarfile
         tar = tarfile.open(tarred_file)
-        tar.extractall(outdir)  # nosec
+        tar.extractall(outdir, filter="data")
         tar.close()
         os.remove(tarred_file)
 

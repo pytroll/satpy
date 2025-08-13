@@ -18,6 +18,7 @@
 """Tests CF-compliant Dataset(s) creation."""
 import datetime
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -40,7 +41,7 @@ class TestCollectCfDataset:
             area_extent=[-1, -1, 1, 1])
 
         # Define test datasets
-        data = [[1, 2], [3, 4]]
+        data = da.from_array([[1.0, 2.0], [3.0, 4.0]])
         y = [1, 2]
         x = [1, 2]
         time = [1, 2]
@@ -73,7 +74,7 @@ class TestCollectCfDataset:
         """Test collecting CF datasets with latitude named lat."""
         from satpy.cf.datasets import _collect_cf_dataset
 
-        data = [[75, 2], [3, 4]]
+        data = da.from_array([[75.0, 2.0], [3.0, 4.0]])
         y = [1, 2]
         x = [1, 2]
         geos = AreaDefinition(
@@ -129,7 +130,7 @@ class TestCollectCfDataset:
         from satpy.tests.utils import make_fake_scene
 
         scn = make_fake_scene(
-            {"ketolysis": np.arange(25).reshape(5, 5)},
+            {"ketolysis": np.arange(25.0).reshape(5, 5)},
             daskify=True,
             area=create_area_def("mavas", 4326, shape=(5, 5),
                                  center=(0, 0), resolution=(1, 1)))
