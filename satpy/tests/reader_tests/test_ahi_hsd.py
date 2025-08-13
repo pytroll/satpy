@@ -648,7 +648,11 @@ class TestNominalTimeCalculator:
     def test_invalid_timeline(self, timeline, expected):
         """Test handling of invalid timeline."""
         calc = _NominalTimeCalculator(timeline, "FLDK")
-        res = calc.get_nominal_start_time(dt.datetime(2020, 1, 1, 12, 0, 0))
+        exp_warning = contextlib.nullcontext()
+        if timeline == "65526":
+            exp_warning = pytest.warns(UserWarning, match="Observation timeline is fill value")
+        with exp_warning:
+            res = calc.get_nominal_start_time(dt.datetime(2020, 1, 1, 12, 0, 0))
         assert res == expected
 
     @pytest.mark.parametrize(
