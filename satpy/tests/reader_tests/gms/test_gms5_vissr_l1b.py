@@ -121,13 +121,18 @@ class TestFileHandler:
         return gzip.open if with_compression else open
 
     @pytest.fixture
-    def vissr_file(self, dataset_id, file_contents, open_function, tmp_path):
+    def vissr_filename(self, tmp_path, with_compression):
+        """Construct the VISSR filename."""
+        return tmp_path / ("vissr_file" + (".gz" if with_compression else ""))
+
+
+    @pytest.fixture
+    def vissr_file(self, dataset_id, file_contents, open_function, vissr_filename):
         """Get test VISSR file."""
-        filename = tmp_path / "vissr_file"
         ch_type = fmt.CHANNEL_TYPES[dataset_id["name"]]
         writer = VissrFileWriter(ch_type, open_function)
-        writer.write(filename, file_contents)
-        return filename
+        writer.write(vissr_filename, file_contents)
+        return vissr_filename
 
     @pytest.fixture
     def file_contents(self, control_block, image_parameters, image_data):
