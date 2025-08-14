@@ -18,9 +18,9 @@
 
 """Testing of helper functions."""
 
+import bz2
 import datetime as dt
 import os
-import unittest
 from unittest import mock
 
 import dask.array as da
@@ -35,7 +35,25 @@ from pyproj import CRS
 from satpy.readers.core import utils as hf
 
 
-class TestHelpers(unittest.TestCase):
+@pytest.fixture
+def data_file(tmp_path):
+    """Generate a dummy file with data."""
+    filename = tmp_path / "test.DAT"
+    with filename.open("wb") as fp:
+        fp.write(b"TEST")
+    return filename
+
+
+@pytest.fixture
+def bzipped_data_file(tmp_path):
+    """Generate a bzipped dummy file with data."""
+    filename = tmp_path / "test.DAT.bz2"
+    with bz2.open(filename, "wb") as fp:
+        fp.write(b"TEST")
+    return filename
+
+
+class TestHelpers:
     """Test the area helpers."""
 
     def test_lonlat_from_geos(self):
@@ -308,19 +326,11 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(filename)
         assert new_fname is None
 
-    @mock.patch("bz2.BZ2File")
-    def test_generic_open_BZ2File(self, bz2_mock):
+    def test_generic_open_BZ2File(self, bzipped_data_file):
         """Test the generic_open method with bz2 filename input."""
-        mock_bz2_open = mock.MagicMock()
-        mock_bz2_open.read.return_value = b"TEST"
-        bz2_mock.return_value = mock_bz2_open
-
-        filename = "tester.DAT.bz2"
-        with hf.generic_open(filename) as file_object:
+        with hf.generic_open(bzipped_data_file, "rb") as file_object:
             data = file_object.read()
             assert data == b"TEST"
-
-        assert mock_bz2_open.read.called
 
     def test_generic_open_FSFile_MemoryFileSystem(self):
         """Test the generic_open method with FSFile in MemoryFileSystem."""
@@ -330,23 +340,16 @@ class TestHelpers(unittest.TestCase):
         mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
         mem_file.commit()
         fsf = FSFile(mem_file)
-        with hf.generic_open(fsf) as file_object:
+        with hf.generic_open(fsf, "rb") as file_object:
             data = file_object.read()
             assert data == b"TEST"
 
-    @mock.patch("satpy.readers.core.utils.open")
-    def test_generic_open_filename(self, open_mock):
+    def test_generic_open_filename(self, data_file):
         """Test the generic_open method with filename (str)."""
-        mock_fn_open = mock.MagicMock()
-        mock_fn_open.read.return_value = b"TEST"
-        open_mock.return_value = mock_fn_open
-
-        filename = "test.DAT"
-        with hf.generic_open(filename) as file_object:
+        with hf.generic_open(data_file, "rb") as file_object:
             data = file_object.read()
             assert data == b"TEST"
 
-        assert mock_fn_open.read.called
 
     @mock.patch("bz2.decompress", return_value=b"TEST_DECOMPRESSED")
     def test_unzip_FSFile(self, bz2_mock):
