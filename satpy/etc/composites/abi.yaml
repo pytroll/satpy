@@ -824,7 +824,7 @@ composites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
 
-  blowing_snow:
+  day_blowing_snow:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     description: >
       Blowing Snow RGB
@@ -837,7 +837,7 @@ composites:
         prerequisites:
           - name: C07
           - name: C13
-    standard_name: blowing_snow
+    standard_name: day_blowing_snow
 
   day_cloud_type:
     description: >
