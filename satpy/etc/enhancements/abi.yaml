@@ -114,6 +114,20 @@ enhancements:
         min_stretch: [-35.0, -5.0, -75]
         max_stretch: [  5.0, 60.0, 25]
 
+  day_severe_storms:
+    standard_name: day_severe_storms
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-35, -5, -75]
+          max_stretch: [5, 60, 25]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1, 0.5, 1]
+
   night_microphysics_abi:
     ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
     standard_name: night_microphysics
