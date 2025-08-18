@@ -311,3 +311,12 @@ enhancements:
         method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.5, 1, 1]
+  day_cloud_type_distinction:
+    standard_name: day_cloud_type_distinction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [280.7, 0, 1]
+          max_stretch: [219.6, 78, 59]
