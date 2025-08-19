@@ -427,7 +427,7 @@ composites:
 
   cloud_phase_distinction:
     deprecation_warning: >
-      "'cloud_phase_distinction' is deprecated. Use of 'day_cloud_type_distinction' is recommended instead."
+      'cloud_phase_distinction' is deprecated. Use of 'day_cloud_type_distinction' is recommended instead.
     description: >
       Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
       Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
@@ -464,7 +464,7 @@ composites:
 
   cloud_phase_distinction_raw:
     deprecation_warning: >
-      "'cloud_phase_distinction_raw' is deprecated. Use of 'day_cloud_type_distinction_raw' is recommended instead."
+      'cloud_phase_distinction_raw' is deprecated. Use of 'day_cloud_type_distinction_raw' is recommended instead.
     description: >
       same as cloud_phase_distinction
     compositor: !!python/name:satpy.composites.core.GenericCompositor
@@ -538,6 +538,8 @@ composites:
 
 
   so2:
+    deprecation_warning: >
+      'so2' is deprecated. Use of 'volcanic_emissions_so2' is recommended instead.
     description: >
       SO2 RGB, for GOESR: NASA, NOAA
     references:
@@ -554,6 +556,24 @@ composites:
           - name: C11
       - name: C13
     standard_name: so2
+
+  volcanic_emissions_so2:
+    description: >
+      Volcanic Emissions (SO2 and Ash) RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: C09
+          - name: C10
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: C13
+          - name: C11
+      - name: C13
+    standard_name: volcanic_emissions_so2
 
   snow_fog:
     description: >
