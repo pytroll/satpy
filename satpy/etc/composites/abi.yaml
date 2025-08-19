@@ -485,6 +485,8 @@ composites:
     standard_name: day_cloud_type_distinction
 
   water_vapors1:
+    deprecation_warning: >
+      'water_vapors1' is deprecated. Use of 'simple_water_vapor' is recommended instead.
     description: >
       Simple Water Vapor RGB, for GOESR: NASA, NOAA
     references:
@@ -496,6 +498,19 @@ composites:
       - name: C08
       - name: C10
     standard_name: water_vapors1
+
+  simple_water_vapor:
+    description: >
+      Simple Water Vapor RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Simple_Water_Vapor_RGB.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: C13
+      - name: C08
+      - name: C10
+    standard_name: simple_water_vapor
 
   water_vapors2:
     description: >
@@ -537,7 +552,6 @@ composites:
           - name: C05
           - name: C02
     standard_name: convection
-
 
   so2:
     deprecation_warning: >

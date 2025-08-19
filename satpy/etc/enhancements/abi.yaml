@@ -345,3 +345,16 @@ enhancements:
           stretch: crude
           min_stretch: [280.7, 0, 1]
           max_stretch: [219.6, 78, 59]
+  simple_water_vapor:
+    standard_name: simple_water_vapor
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [279.0, 242.7, 261.0]
+          max_stretch: [202.3, 214.7, 245.1]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [10, 5.5, 5.5]
