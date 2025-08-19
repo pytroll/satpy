@@ -353,7 +353,7 @@ composites:
 
   cira_day_convection:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
-    deprecation_warning: "'cira_day_convection' is deprecated. Use 'convection' instead."
+    deprecation_warning: "'cira_day_convection' is deprecated. Use 'day_severe_storms' instead."
     standard_name: convection
     description: >
       The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
@@ -514,6 +514,8 @@ composites:
     standard_name: water_vapors2
 
   convection:
+    deprecation_warning: >
+      'convection' is deprecated. Use of 'volcanic_emissions_so2' is recommended instead.
     description: >
       The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
       indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
