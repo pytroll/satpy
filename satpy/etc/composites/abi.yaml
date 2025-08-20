@@ -555,7 +555,7 @@ composites:
 
   so2:
     deprecation_warning: >
-      'so2' is deprecated. Use of 'volcanic_emissions_so2' is recommended instead.
+      'so2' is deprecated. Use of 'volcanic_emissions' is recommended instead.
     description: >
       SO2 RGB, for GOESR: NASA, NOAA
     references:
@@ -573,7 +573,7 @@ composites:
       - name: C13
     standard_name: so2
 
-  volcanic_emissions_so2:
+  volcanic_emissions:
     description: >
       Volcanic Emissions (SO2 and Ash) RGB, for GOESR: NASA, NOAA
     references:
@@ -589,7 +589,7 @@ composites:
           - name: C13
           - name: C11
       - name: C13
-    standard_name: volcanic_emissions_so2
+    standard_name: volcanic_emissions
 
   snow_fog:
     description: >

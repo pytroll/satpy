@@ -114,9 +114,9 @@ enhancements:
         min_stretch: [-35.0, -5.0, -75]
         max_stretch: [  5.0, 60.0, 25]
 
-  volcanic_emissions_so2:
-    ## RGB SO2 recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
-    standard_name: volcanic_emissions_so2
+  volcanic_emissions:
+    ## RGB Volcanic Emissions (SO2 and Ash) recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
+    standard_name: volcanic_emissions
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
