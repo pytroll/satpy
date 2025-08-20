@@ -35,12 +35,13 @@ Warnings encountered during testing should be handled in one of a couple
 different ways.
 
 1. Fix the underlying issue. For example, if a dependency is changing behavior
-then update Satpy's usage to not produce the warning.
-2. Catch the specific warning as part of the test. For example, if a test is
-expecting to produce the warning should be making sure that it is, do::
+   then update Satpy's usage to not produce the warning.
 
-   with pytest.warns(UserWarning, match="the warning message"):
-       # code being tested
+2. Catch the specific warning as part of the test. For example, if a test is
+   expecting to produce the warning should be making sure that it is, do::
+
+    with pytest.warns(UserWarning, match="the warning message"):
+        # code being tested
 
 3. Ignore the error at the test level::
 
@@ -49,12 +50,12 @@ expecting to produce the warning should be making sure that it is, do::
         # test code
 
 4. Ignore the warning globally. This is typically reserved for dependency
-changes that are expected to be removed in a future version. These are
-configured in the ``pyproject.toml`` in the root of the repository in the
-``tool.pytest.ini_options`` section. See existing warning filters there for
-examples.
+   changes that are expected to be removed in a future version. These are
+   configured in the ``pyproject.toml`` in the root of the repository in the
+   ``tool.pytest.ini_options`` section. See existing warning filters there for
+   examples.
 
-Other tips for avoiding warnings:
+**Other warnings tips**
 
 * Create semi-realistic test data and avoid ``da.zeros`` or ``da.ones`` when
   creating test data. A simple option is to use ``arange``::
