@@ -225,7 +225,36 @@ datasets:
         file_type: gac_lac_l1b
         standard_name: gcp_y_displacement
 
+    random_uncertainty:
+        name: random_uncertainty
+        long_name: Random uncertainty
+        resolution: 1050
+        file_type: gac_lac_l1b
+        units: Albedo/K
 
+    systematic_uncertainty:
+        name: systematic_uncertainty
+        long_name: Systematic uncertainty
+        resolution: 1050
+        file_type: gac_lac_l1b
+        units: Albedo/K
+
+    channel_covariance_ratio:
+        name: channel_covariance_ratio
+        long_name: Channel covariance ratio
+        resolution: 1050
+        file_type: gac_lac_l1b
+        units: "1"
+
+    uncertainty_flags:
+        name: uncertainty_flags
+        long_name: Uncertainty flags
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+        units: "1"
 file_types:
     gac_lac_l1b:
         file_reader: !!python/name:satpy.readers.avhrr_l1b_gaclac.GACLACFile

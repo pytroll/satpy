@@ -82,6 +82,9 @@ class GACLACFile(BaseFileHandler):
         """Init the file handler.
 
         Args:
+            filename: the file to read
+            filename_info: the info extracted from the filename
+            filetype_info: the static info for this filetype
             start_line: User defined start scanline
             end_line: User defined end scanline
             strip_invalid_coords: Strip scanlines with invalid coordinates in
@@ -246,6 +249,14 @@ class GACLACFile(BaseFileHandler):
                 "Solar contamination of blackbody in channels 4",
                 "Solar contamination of blackbody in channels 5",
             ]
+        elif ds_name in ["random_uncertainty",
+                         "systematic_uncertainty",
+                         "channel_covariance_ratio",
+                         "uncertainty_flags"]:
+            # rename is done in cal_ds, why do we need it here?
+            res = self.cal_ds[ds_name].rename(columns="x", scan_line_index="y").drop_vars(["times", "y"])
+            self._update_attrs(res)
+            return res
         elif dataset_id["name"].upper() in self.chn_dict:
             # Read and calibrate channel data
             data = self._get_channel(dataset_id)
