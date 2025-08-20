@@ -44,9 +44,9 @@ expecting to produce the warning should be making sure that it is, do::
 
 3. Ignore the error at the test level::
 
-   @pytest.mark.filterwarnings("ignore:the warning message:UserWarning")
-   def test_something():
-       # test code
+    @pytest.mark.filterwarnings("ignore:the warning message:UserWarning")
+    def test_something():
+        # test code
 
 4. Ignore the warning globally. This is typically reserved for dependency
 changes that are expected to be removed in a future version. These are
@@ -57,16 +57,16 @@ examples.
 Other tips for avoiding warnings:
 
 * Create semi-realistic test data and avoid ``da.zeros`` or ``da.ones`` when
-creating test data. A simple option is to use ``arange``::
+  creating test data. A simple option is to use ``arange``::
 
-  test_data = da.arange(100 * 200).reshape((100, 200)).rechunk(50)
+    test_data = da.arange(100 * 200).reshape((100, 200)).rechunk(50)
 
 * If using pytest's ``parametrize`` functionality and only some of the
-parameters should produce a warning, use ``contextlib.nullcontext``::
+  parameters should produce a warning, use ``contextlib.nullcontext``::
 
-  exp_warning = pytest.warns(...) if condition else contextlib.nullcontext()
-  with exp_warning:
-      # code being tested
+    exp_warning = pytest.warns(...) if condition else contextlib.nullcontext()
+    with exp_warning:
+        # code being tested
 
 Lastly, note that all Numpy "invalid value" warnings are ignored globally in
 the ``pyproject.toml`` file. So if your test involves NaNs in the data and
