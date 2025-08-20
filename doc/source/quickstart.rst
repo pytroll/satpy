@@ -275,6 +275,8 @@ To subset multi-resolution data consistently, use the :meth:`~satpy.scene.Scene.
   >>> vis006_llbox_meas = vis006_llbox.values
   >>> vis006_llbox_lon, vis006_llbox_lat = vis006_llbox.attrs['area'].get_lonlats()
 
+.. _user_warnings_errors:
+
 Warnings and Errors
 ===================
 
