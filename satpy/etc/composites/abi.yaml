@@ -530,7 +530,7 @@ composites:
 
   convection:
     deprecation_warning: >
-      'convection' is deprecated. Use of 'volcanic_emissions_so2' is recommended instead.
+      'convection' is deprecated. Use of 'volcanic_emissions' is recommended instead.
     description: >
       The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
       indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
