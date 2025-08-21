@@ -32,6 +32,25 @@ enhancements:
         kwargs:
           gamma: [0.4, 1, 1]
 
+  fire_temperature_fci_contrast_tuned:
+    standard_name: fire_temperature_fci_contrast_tuned
+    description: >
+      This enhancement is tuned for more contrast with case studies over europe. 
+      Surface signal are stongly reduced by using a lower limit at 20 °C instead of 0°C and using 0.2 gamma.
+      Intra-fire distiction is improved by lowering the maximum tresholds for yellow and white signals. 
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [293.15, 0.0, 0.0]
+          max_stretch: [333.15, 50.0, 60.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [0.2, 1, 1]
+
+
   fire_temperature_fci_38refl:
     standard_name: fire_temperature_fci_38refl
     operations:
