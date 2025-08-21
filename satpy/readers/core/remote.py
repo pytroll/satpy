@@ -22,6 +22,7 @@ import pickle  # nosec B403
 from functools import total_ordering
 
 import fsspec
+from upath import UPath
 
 
 @total_ordering
@@ -71,6 +72,15 @@ class FSFile(os.PathLike):
         else:
             self._file = file
             self._fs = fs
+
+    def to_upath(self):
+        """Convert to UPath."""
+        try:
+            kwargs = self._fs.to_dict()
+            kwargs.pop("cls")
+        except AttributeError:
+            kwargs = dict()
+        return UPath(self._file, **kwargs)
 
     def __str__(self):
         """Return the string version of the filename."""
