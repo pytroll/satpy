@@ -35,9 +35,9 @@ enhancements:
   fire_temperature_fci_contrast_tuned:
     standard_name: fire_temperature_fci_contrast_tuned
     description: >
-      This enhancement is tuned for more contrast with case studies over europe. 
+      This enhancement is tuned for more contrast with case studies over europe.
       Surface signal are stongly reduced by using a lower limit at 20 °C instead of 0°C and using 0.2 gamma.
-      Intra-fire distiction is improved by lowering the maximum tresholds for yellow and white signals. 
+      Intra-fire distiction is improved by lowering the maximum tresholds for yellow and white signals.
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
