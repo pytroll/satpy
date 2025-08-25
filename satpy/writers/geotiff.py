@@ -313,4 +313,8 @@ def _trollimage_res_to_satpy_res(res):
             # convert old trollimage single (source, target) to ([source], [target])
             res = ([res[0]], [res[1]])
         return res
+    if isinstance(res, list) and len(res) == 2 and isinstance(res[0], tuple):
+        # old trollimage with dask-based tags specified (see ninjogeotiff writer)
+        # returns [(tuple of sources), (tuple of targets)], this swaps those types:
+        return list(res[0]), list(res[1])
     return [res]
