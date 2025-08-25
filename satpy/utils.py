@@ -346,7 +346,7 @@ def get_satpos(
             the dataset metadata contain the satellite position directly.
 
     Returns:
-        Geodetic longitude, latitude, altitude [km]
+        Geodetic longitude, latitude, altitude [m]
 
     """
     if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
