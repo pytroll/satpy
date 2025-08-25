@@ -294,14 +294,7 @@ class GeoTIFFWriter(ImageWriter):
                        overviews_minsize=overviews_minsize,
                        tiled=tiled,
                        **gdal_options)
-        # in old trollimage <1.27.0: result is either None or (sources_list, targets_list) or (source, target)
-        # in new trollimage: result is either str or Path or (sources_list, targets_list)
-        if isinstance(res, tuple):
-            if isinstance(res[0], da.Array):
-                # convert old trollimage single (source, target) to ([source], [target])
-                res = ([res[0]], [res[1]])
-            return res
-        return [res]
+        return _trollimage_res_to_satpy_res(res)
 
     def _get_gdal_options(self, kwargs):
         # Update global GDAL options with these specific ones
@@ -310,3 +303,14 @@ class GeoTIFFWriter(ImageWriter):
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
         return gdal_options
+
+
+def _trollimage_res_to_satpy_res(res):
+    # in old trollimage <1.27.0: result is either None or (sources_list, targets_list) or (source, target)
+    # in new trollimage: result is either str or Path or (sources_list, targets_list)
+    if isinstance(res, tuple):
+        if isinstance(res[0], da.Array):
+            # convert old trollimage single (source, target) to ([source], [target])
+            res = ([res[0]], [res[1]])
+        return res
+    return [res]
