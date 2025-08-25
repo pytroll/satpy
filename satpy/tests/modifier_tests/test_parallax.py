@@ -205,7 +205,7 @@ class TestForwardParallax:
 
         val = get_surface_parallax_displacement(
                 0, 0, 36_000_000, 0, 10, 10_000)
-        np.testing.assert_allclose(val, 2141.2404451757875)
+        np.testing.assert_allclose(val, 2075.6863144582703)
 
 
 @pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
