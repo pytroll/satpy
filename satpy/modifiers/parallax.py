@@ -155,7 +155,7 @@ def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distan
     Returns:
         Parallax shift in cartesian coordinates in meter.
     """
-    sat_xyz = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
+    sat_xyz = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * (sat_alt + EARTH_RADIUS * 1e3)
     cth_xyz = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS*1e3  # km → m
     delta_xyz = cth_xyz - sat_xyz
     sat_distance = np.sqrt((delta_xyz*delta_xyz).sum(axis=-1))
