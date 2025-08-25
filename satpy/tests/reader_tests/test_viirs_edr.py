@@ -191,7 +191,8 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
         bad_qf_start = 4  # 0.5x the last test pixel set in "vi_data" above (I-band versus M-band index)
         if qf_num == 1:
             qf_data[:, :] |= 0b00000010  # medium cloud mask quality everywhere
-            qf_data[0, bad_qf_start] |= 0b11000000  # sun glint
+            # qf_data[0, bad_qf_start] |= 0b11000000  # sun glint
+            qf_data[0, bad_qf_start] |= 0b00001100  # cloudy
             qf_data[0, bad_qf_start + 1] |= 0b00001100  # cloudy
             qf_data[0, bad_qf_start + 2] = 0b00000001  # low cloud mask quality
         elif qf_num == 2:
