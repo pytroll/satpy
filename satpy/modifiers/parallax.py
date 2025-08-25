@@ -542,12 +542,12 @@ class ParallaxCorrectionModifier(ModifierBase):
 
 
 def _get_satpos_from_cth(cth_dataset):
-    """Obtain satellite position from CTH dataset, height in meter.
+    """Obtain satellite position from CTH dataset.
 
-    From a CTH dataset, obtain the satellite position lon, lat, altitude/m,
+    From a CTH dataset, obtain the satellite position lon, lat, altitude [m],
     either directly from orbital parameters, or, when missing, from the
     platform name using pyorbital and skyfield.
     """
-    (sat_lon, sat_lat, sat_alt_km) = get_satpos(
+    (sat_lon, sat_lat, sat_alt) = get_satpos(
             cth_dataset, use_tle=True)
-    return (sat_lon, sat_lat, sat_alt_km * 1000)
+    return (sat_lon, sat_lat, sat_alt)
