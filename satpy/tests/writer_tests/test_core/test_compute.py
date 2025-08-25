@@ -214,5 +214,5 @@ class TestComputeWriterResults:
             chunks=(1, 1),
         )
 
-        compute_writer_results([res1, res2])
+        compute_writer_results([[res1], [res2]])
         assert compute_count == 2

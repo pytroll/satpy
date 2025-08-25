@@ -1291,7 +1291,9 @@ class Scene:
             computed with `delayed.compute()` or a two element tuple of
             sources and targets to be passed to :func:`dask.array.store`. If
             `targets` is provided then it is the caller's responsibility to
-            close any objects that have a "close" method.
+            close any objects that have a "close" method. It is recommended to
+            use the utility function
+            :func:`~satpy.writers.core.compute.compute_writer_results`.
 
         """
         from satpy._scene_converters import _get_dataarrays_from_identifiers

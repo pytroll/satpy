@@ -64,6 +64,7 @@ class TestPillowWriter(unittest.TestCase):
 
     def test_simple_delayed_write(self):
         """Test writing datasets with delayed computation."""
+        import dask.array as da
         from dask.delayed import Delayed
 
         from satpy.writers.core.compute import compute_writer_results
@@ -72,6 +73,8 @@ class TestPillowWriter(unittest.TestCase):
         w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)
         for r__ in res:
-            assert isinstance(r__, Delayed)
+            # trollimage 1.27.0+ returns Arrays
+            # trollimage <1.27.0 returns Delayed objects
+            assert isinstance(r__, (Delayed, da.Array))
             r__.compute()
-        compute_writer_results(res)
+        compute_writer_results([res])

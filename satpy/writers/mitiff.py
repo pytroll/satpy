@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MITIFF writer objects for creating MITIFF files from `Dataset` objects."""
+from __future__ import annotations
 
 import logging
 import os
+import typing
 
 import dask
 import numpy as np
@@ -27,6 +29,14 @@ from PIL import Image, ImagePalette
 from satpy.dataset import DataID, DataQuery
 from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.writers.core.image import ImageWriter
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any
+
+    import dask.array as da
+    import xarray as xr
+    from dask.delayed import Delayed
 
 IMAGEDESCRIPTION = 270
 
@@ -56,7 +66,7 @@ class MITIFFWriter(ImageWriter):
 
     def __init__(self, name=None, tags=None, **kwargs):
         """Initialize reader with tag and other configuration information."""
-        ImageWriter.__init__(self, name=name, default_config_filename="writers/mitiff.yaml", **kwargs)
+        super().__init__(name=name, default_config_filename="writers/mitiff.yaml", **kwargs)
         self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
@@ -70,14 +80,28 @@ class MITIFFWriter(ImageWriter):
         self.palette = False
         self.sensor = None
 
-    def save_image(self):
-        """Save dataset as an image array."""
-        raise NotImplementedError("save_image mitiff is not implemented.")
-
-    def save_dataset(self, dataset, filename=None, fill_value=None,
-                     compute=True, **kwargs):
+    def save_dataset(
+            self,
+            dataset: xr.DataArray,
+            filename: str | None = None,
+            fill_value: float | int | None = None,
+            compute: bool = True,
+            units: str | None = None,
+            overlay: dict | None = None,
+            decorate: dict | None = None,
+            **kwargs,
+        ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | os.PathLike | None]:
         """Save single dataset as mitiff file."""
         LOG.debug("Starting in mitiff save_dataset ... ")
+
+        if fill_value is not None:
+            raise ValueError("'fill_value' is not used by the MITIFF writer.")
+        if overlay is not None or decorate is not None:
+            raise ValueError("'overlay' and 'decorate' options are not implemented by the MITIFF writer.")
+        # to match parent class functionality and interface:
+        if units is not None:
+            import pint_xarray  # noqa
+            dataset = dataset.pint.quantify().pint.to(units).pint.dequantify()
 
         def _delayed_create(dataset):
             try:
@@ -110,14 +134,21 @@ class MITIFFWriter(ImageWriter):
             except (KeyError, ValueError, RuntimeError):
                 raise
 
+            return gen_filename
+
         delayed = dask.delayed(_delayed_create)(dataset)
 
         if compute:
-            return delayed.compute()
-        return delayed
+            return [delayed.compute()]
+        return [delayed]
 
-    def save_datasets(self, datasets, filename=None, fill_value=None,
-                      compute=True, **kwargs):
+    def save_datasets(
+            self,
+            datasets: Iterable[xr.DataArray],
+            compute: bool = True,
+            filename: str | None = None,
+            **kwargs,
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | os.PathLike | None]:
         """Save all datasets to one or more files."""
         LOG.debug("Starting in mitiff save_datasets ... ")
 
@@ -150,11 +181,13 @@ class MITIFFWriter(ImageWriter):
             except (KeyError, ValueError, RuntimeError):
                 raise
 
+            return gen_filename
+
         delayed = dask.delayed(_delayed_create)(datasets)
         LOG.debug("About to call delayed compute ...")
         if compute:
-            return delayed.compute()
-        return delayed
+            return [delayed.compute()]
+        return [delayed]
 
     def _make_channel_list(self, datasets, **kwargs):
         channels = []
