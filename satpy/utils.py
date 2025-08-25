@@ -429,7 +429,7 @@ def _get_satpos_from_platform_name(cth_dataset):
     gc = es.at(ts.from_datetime(
         cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
     (lat, lon) = wgs84.latlon_of(gc)
-    height = wgs84.height_of(gc).to("km")
+    height = wgs84.height_of(gc).to("m")
     return (lon.degrees, lat.degrees, height.value)
 
 
