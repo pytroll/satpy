@@ -114,6 +114,31 @@ enhancements:
         min_stretch: [-35.0, -5.0, -75]
         max_stretch: [  5.0, 60.0, 25]
 
+  volcanic_emissions:
+    ## RGB Volcanic Emissions (SO2 and Ash) recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
+    standard_name: volcanic_emissions
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-4.0, -4.0, 243.0]
+          max_stretch: [ 2.0,  5.0, 303.0]
+
+  day_severe_storms:
+    standard_name: day_severe_storms
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-35, -5, -75]
+          max_stretch: [5, 60, 25]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1, 0.5, 1]
+
   night_microphysics_abi:
     ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
     standard_name: night_microphysics
@@ -279,16 +304,17 @@ enhancements:
           stretch: crude
           min_stretch: 0
           max_stretch: 500
-  blowing_snow:
+  day_blowing_snow:
     ## RGB Recipe: https://rammb2.cira.colostate.edu/wp-content/uploads/2024/11/GOES-BlowingSnowRGB1_QuickGuide_24April2024.pdf
-    standard_name: blowing_snow
+    ## Modified to match recommendations from RGB Workshop 2025
+    standard_name: day_blowing_snow
     sensor: abi
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
-          min_stretch: [0.0, 0.0, 0.0]
+          min_stretch: [0.0, 2.0, 0.0]
           max_stretch: [50.0, 20.0, 30.0]
       - name: gamma
         method: !!python/name:satpy.enhancements.contrast.gamma
@@ -310,3 +336,25 @@ enhancements:
         method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.5, 1, 1]
+  day_cloud_type_distinction:
+    standard_name: day_cloud_type_distinction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [280.7, 0, 1]
+          max_stretch: [219.6, 78, 59]
+  simple_water_vapor:
+    standard_name: simple_water_vapor
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [279.0, 242.7, 261.0]
+          max_stretch: [202.3, 214.7, 245.1]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [10, 5.5, 5.5]
