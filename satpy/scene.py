@@ -955,7 +955,7 @@ class Scene:
 
     def resample(
             self,
-            destination: AreaDefinition | CoordinateDefinition | None = None,
+            destination: AreaDefinition | CoordinateDefinition | str | None = None,
             datasets: Iterable | None = None,
             generate: bool = True,
             unload: bool = True,
@@ -968,7 +968,11 @@ class Scene:
         Args:
             destination: area definition to
                 resample to. If not specified then the area returned by
-                `Scene.finest_area()` will be used.
+                `Scene.finest_area()` will be used. Inputs can be
+                :class:`pyresample.geometry.AreaDefinition` or
+                :class:`pyresample.geometry.CoordinateDefinition` objects, or
+                a string containing the name of a pre-configured area definition,
+                see :ref:`area-definitions-in-satpy`.
             datasets: Limit datasets to resample to these specified
                 data arrays. By default all currently loaded
                 datasets are resampled.
