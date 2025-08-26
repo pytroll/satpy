@@ -370,6 +370,7 @@ class TestVIIRSL1BReaderDay:
     def test_available_datasets_quality_flags(self):
         """Test that <name>_quality_flags datasets are available when present."""
         from satpy.readers.core.loading import load_reader
+
         # Load the reader with fake file contents
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
