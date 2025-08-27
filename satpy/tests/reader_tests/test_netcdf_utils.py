@@ -73,7 +73,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
 class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def dummy_nc_file(self, tmp_path):
         """Create a test NetCDF4 file."""
         from netCDF4 import Dataset
@@ -390,7 +390,7 @@ def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
     assert res.attrs == NC_ATTRS
 
 
-@pytest.fixture()
+@pytest.fixture
 def dummy_nc(tmp_path):
     """Fixture to create a dummy NetCDF file and return its path."""
     import xarray as xr
