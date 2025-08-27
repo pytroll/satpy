@@ -498,7 +498,6 @@ def _nc_dataset_wrapper(*args, auto_maskandscale, **kwargs):
     pass it to CachingFileManager directly.  Currently sets
     auto_maskandscale globally (for all variables).
     """
-
     nc = netCDF4.Dataset(*args, **kwargs)
     nc.set_auto_maskandscale(auto_maskandscale)
     return nc
@@ -542,7 +541,7 @@ class PreloadableSegments:
 
     This feature is experimental.
 
-    .. versionadded:: 0.52
+    .. versionadded:: 0.59
     """
 
     def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):

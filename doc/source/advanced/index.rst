@@ -54,7 +54,7 @@ the computation of the dask graphs until data become available.
 
 For additional configuration parameters, see the :ref:`configuration documentation <preload_settings>`.
 
-Known limitations as of Satpy 0.51:
+Known limitations as of Satpy 0.59:
 
 - Mixing different file types for the same reader is not yet supported.
   For FCI, that means it is not yet possible to mix FDHSI and HRFI data.
@@ -85,7 +85,7 @@ on how this could be extended to other readers, see the API documentations for
 :class:`~satpy.readers.netcdf_utils.PreloadableSegments` and
 :class:`~satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
 
-.. versionadded:: 0.52
+.. versionadded:: 0.59
 
 .. toctree::
     :hidden:
