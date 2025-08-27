@@ -1,8 +1,9 @@
+.. _resampling_docs:
+
 ==========
 Resampling
 ==========
 
-.. _resampling_docs:
 
 .. automodule:: satpy.resample
    :noindex:
