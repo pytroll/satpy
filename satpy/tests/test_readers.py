@@ -1325,7 +1325,7 @@ def test_create_preloadable_cache(tmp_path):
     gsyr.file_handlers["handler"] = [dph]
 
     with unittest.mock.patch("satpy.readers.core.loading.load_readers") as srcll:
-        with unittest.mock.patch("appdirs.user_cache_dir") as au:
+        with unittest.mock.patch("platformdirs.user_cache_dir") as au:
             au.return_value = os.fspath(tmp_path / "cache")
             srcll.return_value = {"tartupaluk": gsyr}
             create_preloadable_cache("tartupaluk", [tmp_path / "a-0.nc"])

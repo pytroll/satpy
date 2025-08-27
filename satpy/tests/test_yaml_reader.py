@@ -1683,7 +1683,7 @@ def test_preloaded_instances_works(
         fn_info = {"platform": "M9a", "start_time": dt.datetime(2100, 1, 1, 5, 30),
                    "end_time": dt.datetime(2100, 1, 1, 5, 31), "segment": 1}
 
-        with unittest.mock.patch("appdirs.user_cache_dir") as au:
+        with unittest.mock.patch("platformdirs.user_cache_dir") as au:
             au.return_value = os.fspath(tmp_path / "cache")
             # prepare cache files
             dph = dummy_preloadable_handler(os.fspath(fake_simple_nc_file),
@@ -1775,7 +1775,7 @@ def test_get_cache_filename(tmp_path, include):
                      "m9g": ft_info}})
     fh = BaseFileHandler(fn, fn_info, ft_info)
 
-    with unittest.mock.patch("appdirs.user_cache_dir") as au:
+    with unittest.mock.patch("platformdirs.user_cache_dir") as au:
         au.return_value = os.fspath(tmp_path / "cache")
         cf = gsyr._get_cache_filename(os.fspath(fn), fn_info, fh)
         assert cf == os.fspath(tmp_path / "cache" / "satpy" / "preloadable" /
