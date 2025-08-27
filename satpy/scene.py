@@ -967,12 +967,14 @@ class Scene:
 
         Args:
             destination: area definition to
-                resample to. If not specified then the area returned by
+                resample to. If not specified, then the area returned by
                 `Scene.finest_area()` will be used. Inputs can be
-                :class:`pyresample.geometry.AreaDefinition` or
-                :class:`pyresample.geometry.CoordinateDefinition` objects, or
-                a string containing the name of a pre-configured area definition,
-                see :ref:`area-definitions-in-satpy`.
+                pyresample geometry objects, or
+                a string containing the name of an area
+                defined in the ``areas.yaml`` file. See :ref:`resampling_docs`
+                for the list of pre-configured areas already available in satpy
+                and :ref:`component_configuration`
+                on how to configure your own ``areas.yaml`` file.
             datasets: Limit datasets to resample to these specified
                 data arrays. By default all currently loaded
                 datasets are resampled.
