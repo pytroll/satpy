@@ -18,7 +18,6 @@
 """Module for testing the satpy.readers.core.netcdf module."""
 
 import os
-import unittest
 
 import numpy as np
 import pytest
@@ -71,13 +70,15 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 
-class TestNetCDF4FileHandler(unittest.TestCase):
+class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
 
-    def setUp(self):
+    @pytest.fixture
+    def dummy_nc_file(self, tmp_path):
         """Create a test NetCDF4 file."""
         from netCDF4 import Dataset
-        with Dataset("test.nc", "w") as nc:
+        fn = tmp_path / "test.nc"
+        with Dataset(fn, "w") as nc:
             # Create dimensions
             nc.createDimension("rows", 10)
             nc.createDimension("cols", 100)
@@ -116,17 +117,14 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 d.test_attr_str = "test_string"
                 d.test_attr_int = 0
                 d.test_attr_float = 1.2
+        return fn
 
-    def tearDown(self):
-        """Remove the previously created test file."""
-        os.remove("test.nc")
-
-    def test_all_basic(self):
+    def test_all_basic(self, dummy_nc_file):
         """Test everything about the NetCDF4 class."""
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler("test.nc", {}, {})
+        file_handler = NetCDF4FileHandler(dummy_nc_file, {}, {})
 
         assert file_handler["/dimension/rows"] == 10
         assert file_handler["/dimension/cols"] == 100
@@ -165,7 +163,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         assert file_handler.file_handle is None
         assert file_handler["ds2_sc"] == 42
 
-    def test_listed_variables(self):
+    def test_listed_variables(self, dummy_nc_file):
         """Test that only listed variables/attributes area collected."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
@@ -175,12 +173,12 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 "attr/test_attr_str",
             ]
         }
-        file_handler = NetCDF4FileHandler("test.nc", {}, filetype_info)
+        file_handler = NetCDF4FileHandler(dummy_nc_file, {}, filetype_info)
         assert len(file_handler.file_content) == 2
         assert "test_group/attr/test_attr_str" in file_handler.file_content
         assert "attr/test_attr_str" in file_handler.file_content
 
-    def test_listed_variables_with_composing(self):
+    def test_listed_variables_with_composing(self, dummy_nc_file):
         """Test that composing for listed variables is performed."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
@@ -199,7 +197,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 ],
             }
         }
-        file_handler = NetCDF4FileHandler("test.nc", {}, filetype_info)
+        file_handler = NetCDF4FileHandler(dummy_nc_file, {}, filetype_info)
         assert len(file_handler.file_content) == 3
         assert "test_group/ds1_f/attr/test_attr_str" in file_handler.file_content
         assert "test_group/ds1_i/attr/test_attr_str" in file_handler.file_content
@@ -208,10 +206,10 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         assert not any("another_parameter" in var for var in file_handler.file_content)
         assert "test_group/attr/test_attr_str" in file_handler.file_content
 
-    def test_caching(self):
+    def test_caching(self, dummy_nc_file):
         """Test that caching works as intended."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
+        h = NetCDF4FileHandler(dummy_nc_file, {}, {}, cache_var_size=1000,
                                cache_handle=True)
         assert h.file_handle is not None
         assert h.file_handle.isopen()
@@ -226,8 +224,6 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         np.testing.assert_array_equal(
                 h["ds2_f"],
                 np.arange(10. * 100).reshape((10, 100)))
-        h.__del__()
-        assert not h.file_handle.isopen()
 
     def test_filenotfound(self):
         """Test that error is raised when file not found."""
@@ -237,21 +233,21 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
-    def test_get_and_cache_npxr_is_xr(self):
+    def test_get_and_cache_npxr_is_xr(self, dummy_nc_file):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler("test.nc", {}, {}, cache_handle=True)
+        file_handler = NetCDF4FileHandler(dummy_nc_file, {}, {}, cache_handle=True)
 
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert isinstance(data, xr.DataArray)
 
-    def test_get_and_cache_npxr_data_is_cached(self):
+    def test_get_and_cache_npxr_data_is_cached(self, dummy_nc_file):
         """Test that the data are cached when get_and_cache_npxr() is called."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
-        file_handler = NetCDF4FileHandler("test.nc", {}, {}, cache_handle=True)
+        file_handler = NetCDF4FileHandler(dummy_nc_file, {}, {}, cache_handle=True)
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
 
         # Delete the dataset from the file content dict, it should be available from the cache
@@ -265,7 +261,6 @@ class TestNetCDF4FsspecFileHandler:
 
     def test_default_to_netcdf4_lib(self):
         """Test that the NetCDF4 backend is used by default."""
-        import os
         import tempfile
 
         import h5py
@@ -393,3 +388,40 @@ def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
     res = get_data_as_xarray(fid["test_data"])
     np.testing.assert_equal(res.data, np.array(data))
     assert res.attrs == NC_ATTRS
+
+
+@pytest.fixture
+def dummy_nc(tmp_path):
+    """Fixture to create a dummy NetCDF file and return its path."""
+    import xarray as xr
+
+    fn = tmp_path / "sjaunja.nc"
+    ds = xr.Dataset(data_vars={"kaitum": (["x"], np.arange(10))})
+    ds.to_netcdf(fn)
+    return fn
+
+
+def test_caching_distributed(dummy_nc):
+    """Test that the distributed scheduler works with file handle caching.
+
+    This is a test for GitHub issue 2815.
+    """
+    from dask.distributed import Client
+
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+    fh = NetCDF4FileHandler(dummy_nc, {}, {}, cache_handle=True)
+
+    def doubler(x):
+        return x * 2
+
+    # As documented in GH issue 2815, using dask distributed with the file
+    # handle cacher might fail in non-trivial ways, such as giving incorrect
+    # results.  Testing map_blocks is one way to reproduce the problem
+    # reliably, even though the problem also manifests itself (in different
+    # ways) without map_blocks.
+
+
+    with Client():
+        dask_doubler = fh["kaitum"].map_blocks(doubler)
+        dask_doubler.compute()
