@@ -28,8 +28,8 @@ from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
-import appdirs
 import numpy as np
+import platformdirs
 import xarray as xr
 import yaml
 from pyresample.boundary import AreaDefBoundary, Boundary
@@ -1393,7 +1393,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                                       "handlers with required segments.")
         filetype_cls = filetype_info["file_reader"]
         for (filename, filename_info) in self._predict_filenames(filetype_info, fh):
-            # FIXME: handle fh_kwargs
+            # not implemented yet: handle other keyword arguments
             yield filetype_cls(filename, filename_info, filetype_info,
                                preload=True, ref_fh=fh,
                                rc_cache=self._get_cache_filename(
@@ -1457,7 +1457,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         return os.path.join(dirname, os.fspath(pt))
 
     def _get_cache_dir(self, fh):
-        return os.path.join(appdirs.user_cache_dir(), "satpy", "preloadable",
+        return os.path.join(platformdirs.user_cache_dir(), "satpy", "preloadable",
                             type(fh).__name__)
 
 

@@ -6,7 +6,6 @@ authors = [
     { name = "The Pytroll Team", email = "pytroll@googlegroups.com" }
 ]
 dependencies = [
-    "appdirs",
     "platformdirs",
     "dask[array]>=0.17.1",
     "donfig",

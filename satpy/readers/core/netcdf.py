@@ -662,7 +662,7 @@ class PreloadableSegments:
         filename = filename or self.rc_cache
         LOG.info(f"Storing cache to {filename!s}")
         with open(filename, "wb") as fp:
-            # FIXME: potential security risk?  Acceptable?
+            # potential security risk?  Acceptable?
             pickle.dump(to_store, fp)
 
 
