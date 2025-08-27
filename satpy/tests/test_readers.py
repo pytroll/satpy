@@ -1144,7 +1144,7 @@ class TestFSFile:
         assert fs is None
 
 
-def test_fs_property_is_read_only(self, local_filename):
+def test_fs_property_is_read_only(local_filename):
     """Test that the fs property of the class is read-only."""
     from satpy.readers.core.remote import FSFile
 
