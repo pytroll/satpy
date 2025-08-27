@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2024 Satpy developers
+# Copyright (c) 2016-2025 Satpy developers
 #
 # This file is part of satpy.
 #

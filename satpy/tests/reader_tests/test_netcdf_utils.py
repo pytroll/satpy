@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
+# Copyright (c) 2017-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,7 +19,6 @@ import concurrent.futures
 import os
 import pickle
 import time
-import unittest
 
 import dask.array as da
 import numpy as np
@@ -84,7 +81,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
 class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def dummy_nc_file(self, tmp_path):
         """Create a test NetCDF4 file."""
         from netCDF4 import Dataset
@@ -496,7 +493,7 @@ class TestPreloadableHandler:
         var_del = _get_delayed_value_from_nc(ncname, "earth/europe/vaduz")
         np.testing.assert_array_equal(var_del.compute(), np.ones((2, 2)))
 
-    @pytest.fixture()
+    @pytest.fixture
     def fake_config(self):
         """Get a fake required net vars configuration."""
         return {"required_netcdf_variables": {
@@ -510,7 +507,7 @@ class TestPreloadableHandler:
                      "volcano": ["eyjafjallajökull", "sýlingarfell"]
                  }}
 
-    @pytest.fixture()
+    @pytest.fixture
     def preloadable_false(self, fake_config, tmp_path):
         """Return a preloadable filehandler with preload=False."""
         ds = xr.Dataset()
@@ -539,14 +536,14 @@ class TestPreloadableHandler:
         handler.file_content["/iceland/sýlingarfell/magma/shape"] = (1, 3)
         return handler
 
-    @pytest.fixture()
+    @pytest.fixture
     def cache_file(self, preloadable_false, tmp_path):
         """Define a cache file."""
         cf = os.fspath(tmp_path / "test.pkl")
         preloadable_false.store_cache(cf)
         return cf
 
-    @pytest.fixture()
+    @pytest.fixture
     def preloadable_true(self, preloadable_false, tmp_path, cache_file,
                          fake_config):
         """Return a preloadable filehandler with preload=True."""
@@ -634,7 +631,7 @@ class TestPreloadableHandler:
         preloadable_false._collect_listed_variables(None, {})
 
 
-@pytest.fixture()
+@pytest.fixture
 def dummy_nc(tmp_path):
     """Fixture to create a dummy NetCDF file and return its path."""
     import xarray as xr

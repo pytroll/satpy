@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2024 Satpy developers
+# Copyright (c) 2017-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -134,10 +134,7 @@ import satpy
 from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate
-from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
-from satpy.readers.eum_base import get_service_mode
-
-from .netcdf_utils import NetCDF4FsspecFileHandler, PreloadableSegments
+from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler, PreloadableSegments
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +214,6 @@ class FCIL1cNCFileHandler(PreloadableSegments, NetCDF4FsspecFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  *args, clip_negative_radiances=None, **kwargs):
-                 *args, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,

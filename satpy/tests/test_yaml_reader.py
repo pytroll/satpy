@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2022 Satpy developers
+# Copyright (c) 2015-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -1539,8 +1537,8 @@ def _get_fake_handler(parent, filename):
     fake_filename = os.fspath(parent / filename)
     fake_filename_info = {
             "platform": "M9G",
-            "start_time": datetime(2100, 1, 1, 10, 0, 0),
-            "end_time": datetime(2100, 1, 1, 10, 1, 0),
+            "start_time": dt.datetime(2100, 1, 1, 10, 0, 0),
+            "end_time": dt.datetime(2100, 1, 1, 10, 1, 0),
             "segment": 1}
     fakehandler = BaseFileHandler(
             fake_filename,
@@ -1559,12 +1557,12 @@ def test_predict_filename_info(tmp_path):
     info = _predict_filename_info(fh, 3)
     assert info == {
             "platform": "M9G",
-            "start_time": datetime(2100, 1, 1, 23, 59, 59),
-            "end_time": datetime(2100, 1, 1, 23, 59, 59),
+            "start_time": dt.datetime(2100, 1, 1, 23, 59, 59),
+            "end_time": dt.datetime(2100, 1, 1, 23, 59, 59),
             "segment": 3}
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_gsyreader():
     """Create a fake GeoSegmentYAMLReader."""
     from satpy.readers.yaml_reader import GEOSegmentYAMLReader
@@ -1589,7 +1587,7 @@ def test_predict_filename(tmp_path, fake_gsyreader):
     newname = fake_gsyreader._predict_filename(fh, 4)
     assert newname[0] == os.fspath(tmp_path / "M9G-b-21000101??????-21000101??????-0004.nc")
 
-    st = datetime(2023, 12, 20, 15, 8, 49)
+    st = dt.datetime(2023, 12, 20, 15, 8, 49)
     et = st + dt.timedelta(minutes=5)
     fn = f"M9G-b-{st:%Y%m%d%H%M%S}-{et:%Y%m%d%H%M%S}-0001.nc"
     pt = "M9G-b-20231220??????-20231220??????-0004.nc"
@@ -1615,7 +1613,7 @@ def test_select_pattern(fake_gsyreader):
             "M9G-c-21000101100000-21000101100100-0001.nc")
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_simple_nc_file(tmp_path):
     """Create a small dummy NetCDF file for testing preloaded instances.
 
@@ -1632,7 +1630,7 @@ def fake_simple_nc_file(tmp_path):
     return nm
 
 
-@pytest.fixture()
+@pytest.fixture
 def dummy_preloadable_handler():
     """Return a dummy preloadable netcdf4-based filehandler."""
     from satpy.readers.netcdf_utils import NetCDF4FileHandler, PreloadableSegments
@@ -1641,7 +1639,7 @@ def dummy_preloadable_handler():
     return DummyPreloadableHandler
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_filetype_info(dummy_preloadable_handler):
     """Return a fake filetype info dict."""
     ft_info = {
@@ -1720,8 +1718,8 @@ def test_preloaded_instances_requirement(
             ft_info,
             [(os.fspath(fake_simple_nc_file),
               {"platform": "M9G",
-               "start_time": datetime(2100, 1, 1, 5, 30, ),
-               "end_time": datetime(2100, 1, 1, 5, 31, ),
+               "start_time": dt.datetime(2100, 1, 1, 5, 30, ),
+               "end_time": dt.datetime(2100, 1, 1, 5, 31, ),
                "segment": 1})])
     with pytest.raises(ValueError, match="Unable to preload"):
         list(g)

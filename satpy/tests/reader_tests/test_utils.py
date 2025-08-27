@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2014-2019 Satpy developers
+# Copyright (c) 2014-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -723,7 +721,7 @@ def test_init_import_warns(name):
         _ = getattr(utils, name)
 
 
-@pytest.fixture()
+@pytest.fixture
 def dummy_nc(tmp_path):
     """Fixture to create a dummy NetCDF file and return its path."""
     import xarray as xr

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2015-2025 Satpy developers
 #
 # This file is part of satpy.
@@ -202,4 +201,3 @@ def create_preloadable_cache(reader_name, filenames):
                 p = pathlib.Path(filename)
                 p.parent.mkdir(exist_ok=True, parents=True)
                 handler.store_cache(filename)
-
