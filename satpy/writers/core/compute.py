@@ -35,7 +35,7 @@ def split_results(
     results collected from one or more writers. This function will treat dask
     Arrays and Delayed objects with no targets as dask collections to be
     computed. Otherwise dask Arrays can be supplied with an associated target
-    array-like file object and will be passed to :func:`dask.array.core.store`.
+    array-like file object and will be passed to :func:`dask.array.store`.
 
     We assume that the provided input is a list containing any combination of:
 
@@ -130,19 +130,19 @@ def group_results_by_output_file(sources, targets):
 def compute_writer_results(
         results: Iterable[list[da.Array | Delayed] | tuple[list[da.Array], list[Any]]],
 ) -> list[np.ndarray | str | os.PathLike | None]:
-    """Compute all the given dask graphs `results` so that the files are saved.
+    """Compute all the given dask graphs ``results`` so that the files are saved.
 
     Args:
         results: Iterable of dask collections resulting from calls to
-        ``scn.save_datasets(..., compute=False)``. The iterable passed
-        should always **contain** the results of the writer/save_datasets
-        call, not be the results themselves. Each collection of results from
-        a writer should be either a list of dask containers to be computed
-        (ex. Array or Delayed) or a 2-element tuple where the first element
-        is a list of dask Array objects and the second element is a list of
-        target file-like objects supporting ``__setitem__`` syntax. In the
-        case of the 2-element tuple, these lists will be passed to
-        :func:`dask.array.core.store` to write the Arrays to the targets.
+            ``scn.save_datasets(..., compute=False)``. The iterable passed
+            should always **contain** the results of the writer/save_datasets
+            call, not be the results themselves. Each collection of results from
+            a writer should be either a list of dask containers to be computed
+            (ex. Array or Delayed) or a 2-element tuple where the first element
+            is a list of dask Array objects and the second element is a list of
+            target file-like objects supporting ``__setitem__`` syntax. In the
+            case of the 2-element tuple, these lists will be passed to
+            :func:`dask.array.store` to write the Arrays to the targets.
 
     Returns:
         A list of the computed results. These are typically string or Path
