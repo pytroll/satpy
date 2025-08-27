@@ -144,16 +144,16 @@ and loaded using pyresample's utility methods
     >>> my_area = load_area('my_areas.yaml', 'my_area')
 
 Or using :func:`satpy.area.get_area_def`, which will search through all
-``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
+``areas.yaml`` files in your ``SATPY_CONFIG_PATH`` (see :ref:`component_configuration`)::
 
     >>> from satpy.area import get_area_def
     >>> area_eurol = get_area_def("eurol")
 
-For examples of area definitions, see the file ``etc/areas.yaml`` that is
+For examples of area definitions, see the file
+`etc/areas.yaml <https://github.com/pytroll/satpy/blob/main/satpy/etc/areas.yaml>`_ that is
 included with Satpy and where all the area definitions shipped with Satpy are
 defined. The section below gives an overview of these area definitions.
 
-.. _area-definitions-in-satpy:
 
 Area definitions included in Satpy
 ----------------------------------
