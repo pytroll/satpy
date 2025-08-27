@@ -1324,10 +1324,10 @@ def test_create_preloadable_cache(tmp_path):
     gsyr = GEOSegmentYAMLReader(fake_config, preload=True)
     gsyr.file_handlers["handler"] = [dph]
 
-    with unittest.mock.patch("satpy.readers.load_readers") as srl:
+    with unittest.mock.patch("satpy.readers.core.loading.load_readers") as srcll:
         with unittest.mock.patch("appdirs.user_cache_dir") as au:
             au.return_value = os.fspath(tmp_path / "cache")
-            srl.return_value = {"tartupaluk": gsyr}
+            srcll.return_value = {"tartupaluk": gsyr}
             create_preloadable_cache("tartupaluk", [tmp_path / "a-0.nc"])
     with (tmp_path / "cache" / "satpy" / "preloadable" /
           "FakePreloadableHandler" / "a-0.pkl").open(mode="rb") as fp:
