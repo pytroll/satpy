@@ -738,6 +738,7 @@ def get_serializable_dask_array(manager, varname, chunks, dtype):
             return var[tuple(slice(*x) for x in arrloc)]
 
     return da.map_blocks(
+            get_chunk,
             chunks=chunks,
             dtype=dtype,
             meta=np.array([], dtype=dtype))
