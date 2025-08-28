@@ -971,7 +971,7 @@ class Scene:
                 `Scene.finest_area()` will be used. Inputs can be
                 pyresample geometry objects, or
                 a string containing the name of an area
-                defined in the ``areas.yaml`` file. See :ref:`resampling_docs`
+                defined in the ``areas.yaml`` file. See :doc:`/resample`
                 for the list of pre-configured areas already available in satpy
                 and :ref:`component_configuration`
                 on how to configure your own ``areas.yaml`` file.
