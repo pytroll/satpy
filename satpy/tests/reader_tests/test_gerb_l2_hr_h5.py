@@ -129,3 +129,14 @@ def test_dataset_load(gerb_l2_hr_h5_dummy_file, name):
     scene.load([name])
     assert scene[name].shape == (1237, 1237)
     assert np.nanmax((scene[name].to_numpy().flatten() - 0.25)) < 1e-6
+
+
+@pytest.mark.xfail(xfail_h5py_unstable_numpy2(), reason="h5py doesn't include numpy 2 fix")
+@pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux", "Solar Radiance", "Thermal Radiance"])
+def test_dataset_load_iodc(gerb_l2_hr_h5_dummy_file, name):
+    """Test loading the solar flux component."""
+    scene = Scene(reader="gerb_l2_hr_h5", filenames=[gerb_l2_hr_h5_dummy_file],
+                  reader_kwargs={"area_def": "msg_seviri_iodc_9km"})
+    scene.load([name])
+    assert scene[name].shape == (1237, 1237)
+    assert np.nanmax((scene[name].to_numpy().flatten() - 0.25)) < 1e-6
