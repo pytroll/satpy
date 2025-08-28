@@ -1,5 +1,3 @@
-.. _resampling_docs:
-
 ==========
 Resampling
 ==========
