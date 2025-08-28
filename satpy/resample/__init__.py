@@ -154,7 +154,6 @@ For examples of area definitions, see the file
 included with Satpy and where all the area definitions shipped with Satpy are
 defined. The section below gives an overview of these area definitions.
 
-
 Area definitions included in Satpy
 ----------------------------------
 
