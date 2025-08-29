@@ -17,7 +17,8 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
+import warnings
+from collections.abc import Iterable, Sized
 from typing import Any
 
 import dask
@@ -52,16 +53,37 @@ def split_results(
     delayeds_or_arrays: list[da.Array | Delayed] = []
 
     for result in results:
-        if not result:
+        if isinstance(result, Sized) and len(result) == 0:
             continue
-        if isinstance(result, tuple) and len(result) == 2:
+        if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], list):
             sources.extend(result[0])
             targets.extend(result[1])
         elif isinstance(result, list):
             delayeds_or_arrays.extend(result)
         else:
-            raise ValueError(f"Unexpected result from Satpy writer: {result!r}")
+            # Satpy 1.0 error message:
+            # raise ValueError(f"Unexpected result from Satpy writer: {result!r}")
+            # Satpy <1.0 warning:
+            warnings.warn(f"Unexpected result from Satpy writer: {result!r}. "
+                          "This form of result is no longer supported and will be removed in Satpy 1.0. "
+                          "See docstring for expected values and https://github.com/pytroll/satpy/pull/3215 "
+                          "for details.",
+                          stacklevel=2)
+            flat_results = _flatten(result)
+            sources.extend([res for res in flat_results if isinstance(res, da.Array)])
+            targets.extend([res for res in flat_results if not isinstance(res, (da.Array, Delayed))])
+            delayeds_or_arrays.extend([res for res in flat_results if isinstance(res, Delayed)])
     return sources, targets, delayeds_or_arrays
+
+
+def _flatten(results):
+    # Remove in Satpy 1.0
+    out = []
+    if isinstance(results, (list, tuple)):
+        for itm in results:
+            out.extend(_flatten(itm))
+        return out
+    return [results]
 
 
 def group_results_by_output_file(sources, targets):

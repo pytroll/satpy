@@ -21,8 +21,11 @@ import os
 import shutil
 
 import numpy as np
+import pytest
 import xarray as xr
 from dask import array as da
+
+from satpy.writers.core.compute import compute_writer_results
 
 
 def test_group_results_by_output_file(tmp_path):
@@ -216,3 +219,25 @@ class TestComputeWriterResults:
 
         compute_writer_results([[res1], [res2]])
         assert compute_count == 2
+
+
+class _Writable:
+    def __setitem__(self, window_slice, data):
+        ...
+
+
+TEST_TARGET = _Writable()
+TEST_SRC = da.zeros((5, 5), chunks=2)
+
+@pytest.mark.parametrize(
+    "results",
+    [
+        (TEST_SRC, TEST_TARGET),
+        [(TEST_SRC, TEST_TARGET)],
+    ]
+)
+def test_legacy_return_values(results):
+    """Test old ways that writers can return things produces a warning."""
+    # in Satpy 1.0, change to `pytest.raises`
+    with pytest.warns(UserWarning, match="Unexpected result from Satpy writer"):
+        compute_writer_results(results)
