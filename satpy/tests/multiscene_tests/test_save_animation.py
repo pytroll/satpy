@@ -249,7 +249,7 @@ class TestMultiSceneSave(unittest.TestCase):
         source_mock.__class__ = da.Array
         target_mock = mock.MagicMock()
         with mock.patch("satpy.multiscene._multiscene.Scene.save_datasets") as save_datasets:
-            save_datasets.return_value = [(source_mock, target_mock)]  # some arbitrary return value
+            save_datasets.return_value = ([source_mock], [target_mock])  # some arbitrary return value
             # force order of datasets by specifying them
             with pytest.raises(NotImplementedError):
                 mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=["ds1", "ds2", "ds3"],
