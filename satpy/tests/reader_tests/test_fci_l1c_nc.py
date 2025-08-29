@@ -301,7 +301,8 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
         "add_offset": -10,
         "long_name": "Effective Radiance",
         "units": "mW.m-2.sr-1.(cm-1)-1",
-        "ancillary_variables": "pixel_quality"
+        "ancillary_variables": "pixel_quality",
+        "_FillValue": 65535
     }
     if "38" in ch_path:
         fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
@@ -910,6 +911,22 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         numpy.testing.assert_array_equal(res["ir_38"][-1, :], 5)  # smallest positive radiance
         numpy.testing.assert_array_equal(res2["ir_38"][-1, :], 5)  # smallest positive radiance
         assert res["ir_38"].dtype == res2["ir_38"].dtype == np.dtype("float32")
+
+    @pytest.mark.parametrize("fh_param", [lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")])
+    def test_drop_fill_value(self, reader_configs, fh_param):
+        """Test that _FillValue attribute is dropped for floats.
+
+        See https://github.com/pytroll/satpy/issues/3058.
+        """
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        did = make_dataid(name="ir_105", calibration="brightness_temperature")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" not in res["ir_105"].attrs
+
+        # but for counts it should still be there
+        did = make_dataid(name="ir_105", calibration="counts")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" in res["ir_105"].attrs
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
