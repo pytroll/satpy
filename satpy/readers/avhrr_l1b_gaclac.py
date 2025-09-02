@@ -288,6 +288,9 @@ class GACLACFile(BaseFileHandler):
         res["acq_time"] = ("y", times)
         res["acq_time"].attrs["long_name"] = "Mean scanline acquisition time"
 
+        res.attrs["georeferenced"] = self.cal_ds.attrs.get("georeferenced", False)
+        res.attrs["uncertainties_computed"] = self.cal_ds.attrs.get("uncertainties_computed", False)
+
         with suppress(KeyError):
             res.attrs["median_gcp_distance"] = self.cal_ds.attrs["median_gcp_distance"]
 
