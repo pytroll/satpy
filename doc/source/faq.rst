@@ -201,7 +201,7 @@ routine. A similar result can be obtained as follows:
 
 .. code-block:: python
 
-    plt.imshow((sub_scn['natural_color'].transpose('y', 'x', 'bands')/100*255).astype('uint8'))
+    plt.imshow((sub_scn['natural_color'].transpose('y', 'x', 'bands') / 100 * 255).astype('uint8'))
 
 .. note::
 
