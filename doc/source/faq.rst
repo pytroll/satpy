@@ -203,7 +203,6 @@ routine. A similar result can be obtained as follows:
 
     plt.imshow((sub_scn['natural_color'].transpose('y', 'x', 'bands') / 100 * 255).astype('uint8'))
 
-.. note::
-
-    To understand how to exploit image data in your Python programs, see the section on
-    :doc:`enhancements`.
+To learn more about how Satpy scales data for images and more on the
+:func:`~satpy.enhancements.enhancer.get_enhanced_image` function see the
+:doc:`enhancements` documentation.
