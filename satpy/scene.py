@@ -1049,7 +1049,7 @@ class Scene:
             scn: Satpy Scene.
             gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to ``geoviews.Image``.
+                Default to :class:`geoviews.Image <geoviews.element.geo.Image>`.
                 See Geoviews documentation for details.
             datasets: Limit included products to these datasets
             vdims:
