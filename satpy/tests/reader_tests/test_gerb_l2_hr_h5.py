@@ -136,7 +136,7 @@ def test_dataset_load(gerb_l2_hr_h5_dummy_file, name):
 def test_dataset_load_iodc(gerb_l2_hr_h5_dummy_file, name):
     """Test loading the solar flux component."""
     scene = Scene(reader="gerb_l2_hr_h5", filenames=[gerb_l2_hr_h5_dummy_file],
-                  reader_kwargs={"area_def": "msg_seviri_iodc_9km"})
+                  reader_kwargs={"area": "msg_seviri_iodc_9km"})
     scene.load([name])
     assert scene[name].shape == (1237, 1237)
     assert np.nanmax((scene[name].to_numpy().flatten() - 0.25)) < 1e-6

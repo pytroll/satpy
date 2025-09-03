@@ -30,7 +30,7 @@ Reader Arguments
 Some arguments can be provided to the reader to change its behaviour. These are
 provided through the `Scene` instantiation, eg::
 
-  scn = Scene(filenames=filenames, reader="gerb_l2_hr_h5", reader_kwargs={"area_def": "msg_seviri_fes_9km"})
+  scn = Scene(filenames=filenames, reader="gerb_l2_hr_h5", reader_kwargs={"area": "msg_seviri_fes_9km"})
 
 
 """
@@ -63,24 +63,24 @@ def gerb_get_dataset(ds, ds_info):
 class GERB_HR_FileHandler(HDF5FileHandler):
     """File handler for GERB L2 High Resolution H5 files.
 
-    **Overriding the ``area_def``**
+    **Overriding the ``area``**
 
     By default, the GERB HR reader looks at the attribute "Geolocation/attr/Nominal
     Satellite Longitude (degrees)" for selecting the area definition. This data is not
     available for the GERB-like products however, so you may need to override it with the
-    ``area_def`` argument::
+    ``area`` argument::
 
         scene = satpy.Scene(filenames, reader="gerb_l2_hr_h5",
-                                       area_def="msg_seviri_fes_9km")
+                                       area="msg_seviri_fes_9km")
 
     """
 
-    def __init__(self, filename, filename_info, filetype_info, area_def=None):
+    def __init__(self, filename, filename_info, filetype_info, area=None):
         """Initialize the reader."""
         super(GERB_HR_FileHandler, self).__init__(filename, filename_info, filetype_info)
-        self.user_area_def = None
-        if area_def is not None:
-            self.user_area_def = area_def
+        self.user_area = None
+        if area is not None:
+            self.user_area = area
 
     @property
     def end_time(self):
@@ -106,8 +106,8 @@ class GERB_HR_FileHandler(HDF5FileHandler):
 
     def get_area_def(self, dsid):
         """Area definition for the GERB product."""
-        if self.user_area_def is not None:
-            return get_area_def(self.user_area_def)
+        if self.user_area is not None:
+            return get_area_def(self.user_area)
 
         ssp_lon = self.file_content["Geolocation/attr/Nominal Satellite Longitude (degrees)"]
 
