@@ -29,13 +29,13 @@ import numpy.testing
 import pyresample.geometry
 import pytest
 import xarray as xr
-from dask.distributed.utils_test import cleanup  # noqa
-from dask.distributed.utils_test import client as dask_dist_client  # noqa
 from dask.distributed.utils_test import (  # noqa
+    cleanup,  # noqa
     cluster_fixture,
     loop,
     loop_in_thread,
 )
+from dask.distributed.utils_test import client as dask_dist_client  # noqa
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
