@@ -29,6 +29,13 @@ import numpy.testing
 import pyresample.geometry
 import pytest
 import xarray as xr
+from dask.distributed.utils_test import cleanup  # noqa
+from dask.distributed.utils_test import client as dask_dist_client  # noqa
+from dask.distributed.utils_test import (  # noqa
+    cluster_fixture,
+    loop,
+    loop_in_thread,
+)
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
@@ -517,6 +524,7 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
     assert read_binary_data == dummy_data
 
 
+
 class TestDistributed:
     """Distributed-related tests.
 
@@ -525,19 +533,11 @@ class TestDistributed:
     slow.
     """
 
-    @pytest.fixture(scope="class")
-    def dask_dist_client(self):
-        """Set up and close a dask distributed client."""
-        from dask.distributed import Client
-        cl = Client()
-        yield cl
-        cl.close()
-
 
     @pytest.mark.parametrize("shape", [(2,), (2, 3), (2, 3, 4)])
     @pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
     @pytest.mark.parametrize("grp", ["/", "/in/a/group"])
-    def test_get_serializable_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):
+    def test_get_serializable_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):  # noqa
         """Test getting a dask distributed friendly serialisable dask array."""
         import netCDF4
         from xarray.backends import CachingFileManager
