@@ -30,12 +30,12 @@ import pyresample.geometry
 import pytest
 import xarray as xr
 from dask.distributed.utils_test import (  # noqa
-    cleanup,  # noqa
+    cleanup,
+    client,
     cluster_fixture,
     loop,
     loop_in_thread,
 )
-from dask.distributed.utils_test import client as dask_dist_client  # noqa
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
@@ -537,7 +537,7 @@ class TestDistributed:
     @pytest.mark.parametrize("shape", [(2,), (2, 3), (2, 3, 4)])
     @pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
     @pytest.mark.parametrize("grp", ["/", "/in/a/group"])
-    def test_get_serializable_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):  # noqa
+    def test_get_serializable_dask_array(self, tmp_path, client, shape, dtype, grp):  # noqa
         """Test getting a dask distributed friendly serialisable dask array."""
         import netCDF4
         from xarray.backends import CachingFileManager
