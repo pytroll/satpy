@@ -278,7 +278,7 @@ class TestGACLACFile(GACLACFilePatcher):
         for name, exp_data in zip(["longitude", "latitude"], [lons, lats]):
             key = make_dataid(name=name)
             info = {"name": name, "standard_name": "my_standard_name"}
-            res = fh.get_dataset(key=key, info=info)
+            res = fh.get_dataset(dataset_id=key, ds_info=info)
             exp = xr.DataArray(exp_data,
                                name=res.name,
                                dims=("y", "x"),
@@ -290,7 +290,7 @@ class TestGACLACFile(GACLACFilePatcher):
         for name, _exp_data in zip(["longitude", "latitude"], [lons, lats]):
             key = make_dataid(name=name)
             info = {"name": name, "standard_name": "my_standard_name"}
-            res = fh.get_dataset(key=key, info=info)
+            res = fh.get_dataset(dataset_id=key, ds_info=info)
             assert res.dims == ("y", "x_every_eighth")
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs")
@@ -315,7 +315,7 @@ class TestGACLACFile(GACLACFilePatcher):
         for angle in ANGLES:
             key = make_dataid(name=angle)
             info = {"name": angle, "standard_name": "my_standard_name"}
-            res = fh.get_dataset(key=key, info=info)
+            res = fh.get_dataset(dataset_id=key, ds_info=info)
             exp = xr.DataArray(ones,
                                name=res.name,
                                dims=("y", "x"),
@@ -327,7 +327,7 @@ class TestGACLACFile(GACLACFilePatcher):
         for angle in ANGLES:
             key = make_dataid(name=angle)
             info = {"name": angle, "standard_name": "my_standard_name"}
-            res = fh.get_dataset(key=key, info=info)
+            res = fh.get_dataset(dataset_id=key, ds_info=info)
             assert res.dims == ("y", "x_every_eighth")
 
     @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs")
@@ -348,7 +348,7 @@ class TestGACLACFile(GACLACFilePatcher):
 
         key = make_dataid(name="qual_flags")
         info = {"name": "qual_flags"}
-        res = fh.get_dataset(key=key, info=info)
+        res = fh.get_dataset(dataset_id=key, ds_info=info)
         exp = xr.DataArray(qual_flags,
                            name=res.name,
                            dims=("y", "num_flags"),
