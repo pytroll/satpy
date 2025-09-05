@@ -1036,18 +1036,10 @@ enhancements:
         method: !!python/name:satpy.enhancements.contrast.invert
         args:
           - [True, false]
-      - name: stretch
-        method: !!python/name:satpy.enhancements.contrast.stretch
-        kwargs:
-          stretch: crude
 
   geo_color_low_clouds:
     standard_name: geo_color_low_clouds
     operations:
-      - name: stretch
-        method: !!python/name:satpy.enhancements.contrast.stretch
-        kwargs:
-          stretch: crude
       - name: colorize
         method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
