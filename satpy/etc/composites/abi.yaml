@@ -875,7 +875,7 @@ composites:
           - name: C07
       - name: C13
       - compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
-        standard_name: land_water_mask
+        standard_name: static_image_8bit
         url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
         known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
 
