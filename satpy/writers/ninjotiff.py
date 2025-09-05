@@ -175,7 +175,7 @@ class NinjoTIFFWriter(ImageWriter):
                     )
         if img.mode.startswith("P"):
             img.data = img.data.astype(np.uint8)
-        return nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)
+        return [nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)]
 
     def save_dataset(
         self, dataset, filename=None, fill_value=None, compute=True,

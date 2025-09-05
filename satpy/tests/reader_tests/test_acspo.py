@@ -36,7 +36,7 @@ DEFAULT_FILE_SHAPE = (10, 300)
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler."""
 
-    def get_test_content(self, filename, filename_info, filetype_info):
+    def get_test_content(self, filename: str, filename_info: dict, filetype_info: dict) -> dict:
         """Mimic reader input file content."""
         DEFAULT_FILE_DTYPE = np.uint16
         DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
