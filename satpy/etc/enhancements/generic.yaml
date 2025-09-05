@@ -1192,16 +1192,6 @@ enhancements:
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
 
-  night_background:
-    standard_name: night_background
-    operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.contrast.stretch
-      kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [255, 255, 255]
-
   night_ir_alpha:
     standard_name: night_ir_alpha
     operations:
@@ -1459,6 +1449,16 @@ enhancements:
   image_ready:
     standard_name: image_ready
     operations: []
+
+  static_image_8bit:
+    standard_name: static_image_8bit
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: 0
+        max_stretch: 255
 
   mw183_humidity:
     # matches EPS-Sterna and AWS MWR, and ATMS and MHS
