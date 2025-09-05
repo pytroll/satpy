@@ -792,6 +792,66 @@ datasets:
        - latitude
     fill_value: 0
 
+  test1:
+    name: test1
+    key: '#1#amountSegmentCloudFree'
+    resolution: 48006.450653072
+    units: '%'
+    file_type: seviri_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  test2:
+    name: test2
+    key: '#2#amountSegmentCloudFree'
+    resolution: 48006.450653072
+    units: '%'
+    file_type: seviri_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  test3:
+    name: test3
+    key: '#1#cloudAmountInSegment'
+    resolution: 48006.450653072
+    units: '%'
+    file_type: seviri_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  test4:
+    name: test4
+    key: '#2#cloudAmountInSegment'
+    resolution: 48006.450653072
+    units: '%'
+    file_type: seviri_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  test5:
+    name: test5
+    key: '#3#cloudAmountInSegment'
+    resolution: 48006.450653072
+    units: '%'
+    file_type: seviri_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  test6:
+    name: test6
+    key: '#4#cloudAmountInSegment'
+    resolution: 48006.450653072
+    units: '%'
+    file_type: seviri_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
   # ---- CLA products ------------
   hca:
     name: hca

@@ -186,6 +186,34 @@ datasets:
       - latitude
 
   # ---- ASR products ------------
+  vza:
+    name: vza
+    long_name: Satellite Viewing Zenith Angle
+    standard_name: viewing_zenith_angle
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#1#satelliteZenithAngle'
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
+  sza:
+    name: sza
+    long_name: Solar Zenith Angle
+    standard_name: solar_zenith_angle
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
+    key: '#1#solarZenithAngle'
+    cell_method: area:mean
+    units: K
+    fill_value: -1.0e+100
+    coordinates:
+      - longitude
+      - latitude
+
   bt_mean_all_ir38:
     name: bt_mean_all_ir38
     long_name: TOA Brightness Temperature segment mean at 3.8um (all pixels)
@@ -1254,3 +1282,108 @@ datasets:
     coordinates:
       - longitude
       - latitude
+
+  pcld:
+    name: pcld
+    key: '#1#cloudAmountInSegment'
+    fill_value: -1.0e+100
+    resolution: 32000
+    long_name: Cloud Fraction in Segment
+    standard_name: cloud_area_fraction
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pclr:
+    name: pclr
+    long_name: Clear Sky Fraction in Segment
+    standard_name: clear_sky_area_fraction
+    key: '#1#amountSegmentCloudFree'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pclrs:
+    name: pclrs
+    long_name: Clear Sky Fraction in Segment
+    standard_name: clear_sky_area_fraction
+    key: '#2#amountSegmentCloudFree'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pixel_percentage_clear:
+    name: pixel_percentage_clear
+    key: '#1#amountSegmentCloudFree'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pixel_percentage_clear_water:
+    name: pixel_percentage_clear_water
+    key: '#2#amountSegmentCloudFree'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pixel_percentage_cloudy:
+    name: pixel_percentage_cloudy
+    key: '#1#cloudAmountInSegment'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pixel_percentage_cloudy_low:
+    name: pixel_percentage_cloudy_low
+    key: '#2#cloudAmountInSegment'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pixel_percentage_cloudy_mid:
+    name: pixel_percentage_cloudy_mid
+    key: '#3#cloudAmountInSegment'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+
+  pixel_percentage_cloudy_high:
+    name: pixel_percentage_cloudy_high
+    key: '#4#cloudAmountInSegment'
+    fill_value: -1.0e+100
+    resolution: 32000
+    units: '%'
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude

@@ -828,6 +828,14 @@ datasets:
     file_type: nc_fci_crm
     nc_key: mean_solar_zenith
 
+  mean_vza:
+    name: mean_vza
+    long_name: Satellite Viewing Zenith Angle (temporal average)
+    standard_name: viewing_zenith_angle
+    resolution: 1000
+    file_type: nc_fci_crm
+    nc_key: mean_satellite_zenith
+
   mean_rel_azi:
     name: mean_rel_azi
     long_name: Relative Solar Satellite Azimuth Angle (temporal average)
@@ -1371,6 +1379,29 @@ datasets:
     import_enum_information: True
 
   # ASR - All-Sky Radiances
+
+  vza:
+    name: vza
+    long_name: Satellite Viewing Zenith Angle
+    standard_name: viewing_zenith_angle
+    resolution: 32000
+    file_type: nc_fci_asr
+    nc_key: satellite_zenith_angle
+    coordinates:
+    - longitude
+    - latitude
+
+  sza:
+    name: sza
+    long_name: Solar Zenith Angle
+    standard_name: solar_zenith_angle
+    resolution: 32000
+    file_type: nc_fci_asr
+    nc_key: solar_zenith_angle
+    coordinates:
+    - longitude
+    - latitude
+
   bt_max:
     name: bt_max
     long_name: TOA Brightess Temperature Segment max
@@ -3137,6 +3168,45 @@ datasets:
     file_type: nc_fci_asr
     nc_key: pixel_percentage
     category_id: 2
+    units: '%'
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_cloudy_low:
+    name: pixel_percentage_cloudy_low
+    long_name: Percentage of FoR pixels used (cloudy pixels)
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: nc_fci_asr
+    nc_key: pixel_percentage
+    category_id: 3
+    units: '%'
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_cloudy_mid:
+    name: pixel_percentage_cloudy_mid
+    long_name: Percentage of FoR pixels used (cloudy pixels)
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: nc_fci_asr
+    nc_key: pixel_percentage
+    category_id: 4
+    units: '%'
+    coordinates:
+    - longitude
+    - latitude
+
+  pixel_percentage_cloudy_high:
+    name: pixel_percentage_cloudy_high
+    long_name: Percentage of FoR pixels used (cloudy pixels)
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: nc_fci_asr
+    nc_key: pixel_percentage
+    category_id: 5
     units: '%'
     coordinates:
     - longitude
