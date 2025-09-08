@@ -535,13 +535,13 @@ composites:
 
   _night_background:
     compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
-    standard_name: static_image_8bit
+    standard_name: night_background
     url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_01deg_geo.tif"
     known_hash: "sha256:146c116962677ae113d9233374715686737ff97141a77cc5da69a9451315a685"  # optional
 
   _night_background_hires:
     compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
-    standard_name: static_image_8bit
+    standard_name: night_background
     url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_3km_geo.tif"
     known_hash: "sha256:e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0"  # optional
 
