@@ -89,6 +89,7 @@ import logging
 
 import numpy as np
 
+from .core.utils import get_mean_time
 from .geotiff import GeoTIFFWriter
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             compute=True, keep_palette=False, cmap=None, overviews=None,
             overviews_minsize=256, overviews_resampling=None,
             tags=None, config_files=None,
+            dynamic_fields=set(),
             *, ChannelID, DataType, PhysicUnit, PhysicValue,
             SatelliteNameID, **kwargs):
         """Save image along with NinJo tags.
@@ -137,6 +139,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overviews_minsize (int):
                 As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             overviews_resampling (str):
+                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
+            dynamic_fields (set[str]):
                 As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             tags (dict): Extra (not NinJo) tags to add to GDAL MetaData
             config_files (Any): Not directly used by this writer, supported
@@ -167,12 +171,16 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             PhysicValue (str)
                 NinJo label for quantity (example: "temperature")
 
+        The tag ``ValidDateID`` is included if the dataset has a ``time``
+        coordinate.  See the :doc:`example on storing mean time </examples/mean_time>`
+        for details.  All other tags are filled automatically without user action.
         """
         dataset = image.data
 
         # filename not passed on to writer by Scene.save_dataset, but I need
         # it!
-        filename = filename or self.get_filename(**dataset.attrs)
+        filename = filename or self.get_filename(**dataset.attrs,
+                                                 **self._get_dynamic_fields(dataset, dynamic_fields))
 
         gdal_opts = {}
         ntg_opts = {}
@@ -263,13 +271,16 @@ class NinJoTagGenerator:
     Tags are gathered from three sources:
 
     - Fixed tags, contained in the attribute ``fixed_tags``.  The value of
-      those tags is hardcoded and never changes.
+      those tags is hardcoded and does not change unless there is a major
+      change in the fileformat definition.
     - Tags passed by the user, contained in the attribute ``passed_tags``.
       Those tags must be passed by the user as arguments to the writer, which
       will pass them on when instantiating this class.
     - Tags calculated from data and metadata.  Those tags are defined in the
       attribute ``dynamic_tags``.  They are either calculated from image data,
       from image metadata, or from arguments passed by the user to the writer.
+      Some dynamic tags, such as ``ValidDateID``, are only calculated if
+      necessary metadata are available in the input data.
 
     Some tags are mandatory (defined in ``mandatory_tags``).  All tags that are
     not mandatory are optional.  By default, optional tags are generated if and
@@ -293,6 +304,7 @@ class NinJoTagGenerator:
         "ColorDepth": "color_depth",
         "CreationDateID": "creation_date_id",
         "DateID": "date_id",
+        "ValidDateID": "valid_date_id",
         "EarthRadiusLarge": "earth_radius_large",
         "EarthRadiusSmall": "earth_radius_small",
         "FileName": "filename",
@@ -323,7 +335,7 @@ class NinJoTagGenerator:
                      "OverFlightTime", "IsBlackLinesCorrection",
                      "IsAtmosphereCorrected", "IsCalibrated", "IsNormalized",
                      "OriginalHeader", "IsValueTableAvailable",
-                     "ValueTableFloatField"}
+                     "ValueTableFloatField", "ValidDateID"}
 
     # tags that are added later in other ways
     postponed_tags = {"AxisIntercept", "Gradient"}
@@ -357,7 +369,7 @@ class NinJoTagGenerator:
         for tag in self.tag_names:
             try:
                 tags[tag] = self.get_tag(tag)
-            except (AttributeError, KeyError) as e:
+            except (AttributeError, KeyError, ValueError) as e:
                 if tag in self.mandatory_tags:
                     raise
                 logger.debug(
@@ -418,10 +430,20 @@ class NinJoTagGenerator:
         """Calculate the date ID.
 
         That's seconds since UNIX Epoch for the time corresponding to the
-        satellite image start of measurement time.
+        satellite image reference time or start of measurement time.
         """
         tm = self.dataset.attrs["start_time"]
         delta = tm.replace(tzinfo=datetime.timezone.utc) - self._epoch
+        return int(delta.total_seconds())
+
+    def get_valid_date_id(self):
+        """Calculate the valid date ID.
+
+        That's seconds since UNIX Epoch for a representative time for the
+        image.
+        """
+        mean_time = get_mean_time(self.dataset)
+        delta = mean_time.replace(tzinfo=datetime.timezone.utc) - self._epoch
         return int(delta.total_seconds())
 
     def get_earth_radius_large(self):

@@ -60,13 +60,6 @@ class ImageWriter(Writer):
 
             kwargs (dict): Additional keyword arguments to pass to the
                 :class:`~satpy.writers.core.base.Writer` base class.
-
-        .. versionchanged:: 0.10
-
-            Deprecated `enhancement_config_file` and 'enhancer' in favor of
-            `enhance`. Pass an instance of the `Enhancer` class to `enhance`
-            instead.
-
         """
         super().__init__(name, filename, base_dir, **kwargs)
         if enhance is False:

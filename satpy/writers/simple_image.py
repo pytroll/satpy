@@ -34,7 +34,8 @@ class PillowWriter(ImageWriter):
             default_config_filename="writers/simple_image.yaml",
             **kwargs)
 
-    def save_image(self, img, filename=None, compute=True, **kwargs):
+    def save_image(self, img, filename=None, compute=True,
+                   dynamic_fields=set(), **kwargs):
         """Save Image object to a given ``filename``.
 
         Args:
@@ -47,6 +48,8 @@ class PillowWriter(ImageWriter):
                             If `False` return either a `dask.delayed.Delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
+            dynamic_fields (set[str]): Fields calculated dynamically from the
+                            data for the purposes of filling in the filename.
             **kwargs: Keyword arguments to pass to the images `save` method.
 
         Returns:
@@ -61,7 +64,9 @@ class PillowWriter(ImageWriter):
             this method.
 
         """
-        filename = filename or self.get_filename(**img.data.attrs)
+        filename = filename or self.get_filename(**img.data.attrs,
+                                                 **self._get_dynamic_fields(img.data,
+                                                                            dynamic_fields))
 
         LOG.debug("Saving to image: %s", filename)
         return img.save(filename, compute=compute, **kwargs)

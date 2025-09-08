@@ -71,7 +71,7 @@ Nominal start/end time
 ``nominal_start_time`` and ``nominal_end_time`` are also available directly
 via ``start_time`` and ``end_time`` respectively.
 
-Here is an exmaple of the content of the start/end time and ``time_parameters`` attibutes
+Here is an example of the content of the start/end time and ``time_parameters`` attibutes
 
 .. code-block:: python
 
@@ -246,6 +246,7 @@ from satpy.readers.core.seviri import (
     OrbitPolynomialFinder,
     ScanParams,
     SEVIRICalibrationHandler,
+    add_pixel_acq_time,
     add_scanline_acq_time,
     create_coef_dict,
     get_cds_time,
@@ -336,7 +337,8 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
+                 mda_max_array_size=None, fill_hrv=None,
+                 mask_bad_quality_scan_lines=None, track_time=False):
         """Initialize the reader."""
         super().__init__(filename, filename_info,
                          filetype_info,
@@ -407,7 +409,8 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
-                 mda_max_array_size=None, fill_hrv=None, mask_bad_quality_scan_lines=None):
+                 mda_max_array_size=None, fill_hrv=None,
+                 mask_bad_quality_scan_lines=None, track_time=False):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -453,6 +456,19 @@ class HRITMSGFileHandler(HRITFileHandler):
                             reader='seviri_l1b_hrit',
                             reader_kwargs={'fill_hrv': False})
 
+    **Time tracking**
+
+    The reader supports adding per-pixel time estimates as coordinates to
+    loaded variables::
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'track_time': True})
+
+    Those coordinates are kept in resampling if passing the argument
+    ``resample_coords=True`` to :meth:`~satpy.scene.Scene.resample`.
+    See the :doc:`example on storing valid time </examples/mean_time>` for details.
+
     **Metadata**
 
     See :mod:`satpy.readers.core.seviri`.
@@ -463,7 +479,8 @@ class HRITMSGFileHandler(HRITFileHandler):
                  prologue, epilogue, calib_mode="nominal",
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=100, fill_hrv=True,
-                 mask_bad_quality_scan_lines=True):
+                 mask_bad_quality_scan_lines=True,
+                 track_time=False):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -483,6 +500,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.mask_bad_quality_scan_lines = mask_bad_quality_scan_lines
         self._get_header()
+        self.track_time = track_time
 
     def _get_header(self):
         """Read the header info, and fill the metadata dictionary."""
@@ -690,6 +708,8 @@ class HRITMSGFileHandler(HRITFileHandler):
             res = self.pad_hrv_data(res)
         self._update_attrs(res, info)
         self._add_scanline_acq_time(res)
+        if self.track_time:
+            self._add_pixel_acq_time(res)
         return res
 
     def pad_hrv_data(self, res):
@@ -768,6 +788,10 @@ class HRITMSGFileHandler(HRITFileHandler):
         tline = self.mda["image_segment_line_quality"]["line_mean_acquisition"]
         acq_time = get_cds_time(days=tline["days"], msecs=tline["milliseconds"])
         add_scanline_acq_time(dataset, acq_time)
+
+    def _add_pixel_acq_time(self, dataset):
+        """Estimate pixel acquisition time to the given dataset."""
+        add_pixel_acq_time(dataset)
 
     def _update_attrs(self, res, info):
         """Update dataset attributes."""

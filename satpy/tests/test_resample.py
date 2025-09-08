@@ -706,3 +706,46 @@ def test_moved_import_warns(name):
     import satpy.resample
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(satpy.resample, name)
+
+
+@pytest.fixture
+def scene_with_time_coords():
+    """Return a scene with time coordinates."""
+    from pyresample import create_area_def
+
+    from satpy.tests.utils import make_fake_scene
+
+    ar1 = create_area_def("test", 4087, shape=(5, 5), resolution=1000, center=(0, 0))
+
+    sc = make_fake_scene(
+            {"ir": np.arange(25, dtype="f4").reshape(5, 5)},
+            area=ar1)
+    sc["ir"].coords["time"] = (
+            ("y", "x"),
+            np.linspace(0, 900, 25, dtype="uint16").reshape(5, 5))
+    sc["ir"].coords["time"].attrs["units"] = "seconds since 2222-02-22T22:22:22"
+    return sc
+
+def test_resample_time_coordinate(scene_with_time_coords):
+    """Test that resampling retains the time coordinate."""
+    from pyresample import create_area_def
+
+    ar2 = create_area_def("test", 4087, shape=(4, 4), resolution=1200, center=(100, 100))
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest")
+    assert "time" not in ls["ir"].coords  # drop by default
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest", resample_coords=False)
+    assert "time" not in ls["ir"].coords
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest", resample_coords=True)
+    assert "time" in ls["ir"].coords
+    assert ls["ir"].coords["time"].sizes == ls["ir"].sizes
+    assert ls["ir"].coords["time"].dtype == scene_with_time_coords["ir"].coords["time"].dtype
+    np.testing.assert_allclose(ls["ir"].coords["time"].mean(), 449.75)
+
+
+def test_slice_scene_time_coordinate(scene_with_time_coords):
+    """Test that slicing retains the time coordinate."""
+    # this test function may fit better elsewhere, but shares a fixture with
+    # test_resample_time_coordinate
+    sc2 = scene_with_time_coords[::2, ::2]
+    assert "time" in sc2["ir"].coords
+    assert sc2["ir"].coords["time"].sizes == sc2["ir"].sizes

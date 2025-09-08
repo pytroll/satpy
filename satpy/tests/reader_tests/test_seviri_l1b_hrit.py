@@ -681,3 +681,26 @@ def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
                                   dict(units="", wavelength=0.8, standard_name="counts"))
     res.compute()
+
+
+def test_track_time(prologue_file, segment_file, epilogue_file):
+    """Check tracking time with a virtual aux dataset."""
+    info = dict(start_time=dt.datetime(2222, 2, 22, 22, 0), service="")
+    prologue_fh = HRITMSGPrologueFileHandler(prologue_file, info, dict())
+    epilogue_fh = HRITMSGEpilogueFileHandler(epilogue_file, info, dict())
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning,
+            message="No orbit polynomial valid for")
+        filehandler = HRITMSGFileHandler(segment_file, info, dict(),
+                                     prologue_fh, epilogue_fh,
+                                     track_time=True)
+    fake_acq_time = (np.datetime64("2022-02-22T22:00:00") +
+                     np.linspace(0, 900, 464).astype("m8[s]"))
+    fake_acq_time[:2] = np.datetime64("NaT")
+    fake_acq_time[-2:] = np.datetime64("NaT")
+    with mock.patch("satpy.readers.seviri_l1b_hrit.get_cds_time") as srsg:
+        srsg.return_value = fake_acq_time
+        res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),
+                                      dict(units="", wavelength=0.8, standard_name="counts"))
+    assert "time" in res.coords
+    assert res.dims == res.coords["time"].dims
