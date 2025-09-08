@@ -1032,10 +1032,12 @@ enhancements:
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
     operations:
-      - name: inverse
-        method: !!python/name:satpy.enhancements.contrast.invert
-        args:
-          - [True, false]
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [300, 0]
+          max_stretch: [215, 1]
 
   geo_color_low_clouds:
     standard_name: geo_color_low_clouds
