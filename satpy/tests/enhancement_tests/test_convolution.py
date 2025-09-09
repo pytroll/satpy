@@ -18,25 +18,15 @@
 
 import numpy as np
 
-from .utils import create_ch1, create_ch2, create_rgb, run_and_check_enhancement
+from .utils import create_ch1, run_and_check_enhancement
 
 
-class TestEnhancementsConvolution:
-    """Class for testing enhancements in satpy.enhancements.convolution module."""
+def test_three_d_effect():
+    """Test the three_d_effect enhancement function."""
+    from satpy.enhancements.convolution import three_d_effect
 
-    def setup_method(self):
-        """Create test data used by every test."""
-        self.ch1 = create_ch1()
-        self.ch2 = create_ch2()
-        self.rgb = create_rgb()
-
-    def test_three_d_effect(self):
-        """Test the three_d_effect enhancement function."""
-        from satpy.enhancements.convolution import three_d_effect
-        expected = np.array([[
-            [np.nan, np.nan, -389.5, -294.5, 826.5],
-            [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
-        run_and_check_enhancement(three_d_effect, self.ch1, expected)
-
-    def tearDown(self):
-        """Clean up."""
+    ch1 = create_ch1()
+    expected = np.array([[
+        [np.nan, np.nan, -389.5, -294.5, 826.5],
+        [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
+    run_and_check_enhancement(three_d_effect, ch1, expected)

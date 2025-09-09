@@ -955,7 +955,7 @@ class Scene:
 
     def resample(
             self,
-            destination: AreaDefinition | CoordinateDefinition | None = None,
+            destination: AreaDefinition | CoordinateDefinition | str | None = None,
             datasets: Iterable | None = None,
             generate: bool = True,
             unload: bool = True,
@@ -967,8 +967,14 @@ class Scene:
 
         Args:
             destination: area definition to
-                resample to. If not specified then the area returned by
-                `Scene.finest_area()` will be used.
+                resample to. If not specified, then the area returned by
+                `Scene.finest_area()` will be used. Inputs can be
+                pyresample geometry objects, or
+                a string containing the name of an area
+                defined in the ``areas.yaml`` file. See :doc:`/resample`
+                for the list of pre-configured areas already available in satpy
+                and :ref:`component_configuration`
+                on how to configure your own ``areas.yaml`` file.
             datasets: Limit datasets to resample to these specified
                 data arrays. By default all currently loaded
                 datasets are resampled.
@@ -1043,7 +1049,7 @@ class Scene:
             scn: Satpy Scene.
             gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to ``geoviews.Image``.
+                Default to :class:`geoviews.Image <geoviews.element.geo.Image>`.
                 See Geoviews documentation for details.
             datasets: Limit included products to these datasets
             vdims:
