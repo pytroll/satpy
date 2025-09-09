@@ -349,8 +349,10 @@ def generic_open(filename, *args, **kwargs):
     Yields an open file-like object.
     """
     try:
+        # satpy.readers.core.remote.FSFile instance
         path = filename.to_upath()
     except AttributeError:
+        # str or Path-like
         path = UPath(filename)
     new_kwargs = kwargs.copy()
     new_kwargs["compression"] = "infer"
