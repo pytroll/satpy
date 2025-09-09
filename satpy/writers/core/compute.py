@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 import warnings
-from collections.abc import Iterable, Sized
+from collections.abc import Iterable
 from typing import Any
 
 import dask
@@ -53,8 +53,6 @@ def split_results(
     delayeds_or_arrays: list[da.Array | Delayed] = []
 
     for result in results:
-        if isinstance(result, Sized) and len(result) == 0:
-            continue
         if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], list):
             sources.extend(result[0])
             targets.extend(result[1])

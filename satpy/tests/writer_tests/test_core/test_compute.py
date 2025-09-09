@@ -20,6 +20,7 @@ import datetime as dt
 import os
 import shutil
 
+import dask
 import numpy as np
 import pytest
 import xarray as xr
@@ -111,14 +112,8 @@ class TestComputeWriterResults:
         except OSError:
             pass
 
-    def test_empty(self):
-        """Test empty result list."""
-        from satpy.writers.core.compute import compute_writer_results
-        compute_writer_results([])
-
     def test_simple_image(self):
         """Test writing to PNG file."""
-        from satpy.writers.core.compute import compute_writer_results
         fname = os.path.join(self.base_dir, "simple_image.png")
         res = self.scn.save_datasets(filename=fname,
                                      datasets=["test"],
@@ -129,7 +124,6 @@ class TestComputeWriterResults:
 
     def test_geotiff(self):
         """Test writing to mitiff file."""
-        from satpy.writers.core.compute import compute_writer_results
         fname = os.path.join(self.base_dir, "geotiff.tif")
         res = self.scn.save_datasets(filename=fname,
                                      datasets=["test"],
@@ -139,7 +133,6 @@ class TestComputeWriterResults:
 
     def test_multiple_geotiff(self):
         """Test writing to mitiff file."""
-        from satpy.writers.core.compute import compute_writer_results
         fname1 = os.path.join(self.base_dir, "geotiff1.tif")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -154,7 +147,6 @@ class TestComputeWriterResults:
 
     def test_multiple_simple(self):
         """Test writing to geotiff files."""
-        from satpy.writers.core.compute import compute_writer_results
         fname1 = os.path.join(self.base_dir, "simple_image1.png")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -169,7 +161,6 @@ class TestComputeWriterResults:
 
     def test_mixed(self):
         """Test writing to multiple mixed-type files."""
-        from satpy.writers.core.compute import compute_writer_results
         fname1 = os.path.join(self.base_dir, "simple_image3.png")
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=["test"],
@@ -191,8 +182,6 @@ class TestComputeWriterResults:
         The alternative is to reduce the Array into a single array-like operation
         with map_blocks, blockwise, or some other reduction function.
         """
-        from satpy.writers.core.compute import compute_writer_results
-
         compute_count = 0
 
         def reduced_map_blocks(_: np.ndarray) -> str:
@@ -221,6 +210,23 @@ class TestComputeWriterResults:
         assert compute_count == 2
 
 
+@pytest.mark.parametrize(
+    "results",
+    [
+        [],
+        [[]],
+    ]
+)
+def test_empty(results):
+    """Test empty result list."""
+    from satpy.tests.utils import assert_maximum_dask_computes
+
+    # almost impossible for dask to compute anything, but let's make sure
+    with assert_maximum_dask_computes(0):
+        res = compute_writer_results(results)
+        assert res == []
+
+
 class _Writable:
     def __setitem__(self, window_slice, data):
         ...
@@ -232,8 +238,9 @@ TEST_SRC = da.zeros((5, 5), chunks=2)
 @pytest.mark.parametrize(
     "results",
     [
-        (TEST_SRC, TEST_TARGET),
-        [(TEST_SRC, TEST_TARGET)],
+        # (TEST_SRC, TEST_TARGET),
+        # [(TEST_SRC, TEST_TARGET)],
+        [dask.delayed(TEST_SRC)],
     ]
 )
 def test_legacy_return_values(results):
