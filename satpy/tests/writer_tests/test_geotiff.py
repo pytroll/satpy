@@ -153,7 +153,8 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path, enhance=False)
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
-            save_method.return_value = None
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["dtype"] == np.float32
 
@@ -163,7 +164,8 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path, enhance=False, dtype=np.uint8)
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
-            save_method.return_value = None
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["dtype"] == np.uint8
 
@@ -174,7 +176,8 @@ class TestGeoTIFFWriter:
         w = GeoTIFFWriter(base_dir=tmp_path)
         w.info["fill_value"] = 128
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
-            save_method.return_value = None
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["fill_value"] == 128
 
@@ -185,7 +188,8 @@ class TestGeoTIFFWriter:
         w = GeoTIFFWriter(tags={"test1": 1}, base_dir=tmp_path)
         w.info["fill_value"] = 128
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
-            save_method.return_value = None
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, tags={"test2": 2}, compute=False)
             called_tags = save_method.call_args[1]["tags"]
             assert called_tags == {"test1": 1, "test2": 2}
@@ -212,7 +216,8 @@ class TestGeoTIFFWriter:
         w = GeoTIFFWriter(tags={"test1": 1}, base_dir=tmp_path)
         w.info["fill_value"] = 128
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
-            save_method.return_value = None
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, tags={"test2": 2}, compute=False, **save_kwargs)
         kwarg_name = "include_scale_offset_tags" if "include_scale_offset" in save_kwargs else "scale_offset_tags"
         kwarg_value = save_method.call_args[1].get(kwarg_name)
@@ -224,7 +229,8 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path)
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
-            save_method.return_value = None
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["tiled"]
 

@@ -22,6 +22,12 @@ from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.writers.core.base import Writer
 
 if typing.TYPE_CHECKING:
+    from os import PathLike
+    from typing import Any
+
+    import dask.array as da
+    import xarray as xr
+    from dask.delayed import Delayed
     from trollimage.xrimage import XRImage
 
 
@@ -92,8 +98,17 @@ class ImageWriter(Writer):
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
 
-    def save_dataset(self, dataset, filename=None, fill_value=None,
-                     overlay=None, decorate=None, compute=True, units=None, **kwargs):
+    def save_dataset(
+        self,
+        dataset: xr.DataArray,
+        filename: str | None = None,
+        fill_value: float | int | None = None,
+        compute: bool = True,
+        units: str | None = None,
+        overlay: dict | None = None,
+        decorate: dict | None = None,
+        **kwargs,
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save the ``dataset`` to a given ``filename``.
 
         This method creates an enhanced image using :func:`~satpy.enhancements.enhancer.get_enhanced_image`.
@@ -114,7 +129,7 @@ class ImageWriter(Writer):
             filename: str | None = None,
             compute: bool = True,
             **kwargs
-    ):
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save Image object to a given ``filename``.
 
         Args:

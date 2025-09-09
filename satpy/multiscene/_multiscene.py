@@ -402,7 +402,7 @@ class MultiScene(object):
 
         for scene in scenes_iter:
             delayeds = scene.save_datasets(compute=False, **kwargs)
-            sources, targets, delayeds = split_results(delayeds)
+            sources, targets, delayeds = split_results([delayeds])
             if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination
