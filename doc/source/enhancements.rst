@@ -173,7 +173,7 @@ be used. No other section matches by "name" or any other key.
 **Example 3**
 
 If the ``DataArray`` was for a completely different channel from
-the "abi_l2_nc" reader with the following metadata metadata:
+the "abi_l2_nc" reader with the following metadata:
 
 .. code-block:: python
 
