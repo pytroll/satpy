@@ -173,7 +173,7 @@ be used. No other section matches by "name" or any other key.
 **Example 3**
 
 If the ``DataArray`` was for a completely different channel from
-the "abi_l2_nc" reader with the following metadata metadata:
+the "abi_l2_nc" reader with the following metadata:
 
 .. code-block:: python
 
@@ -220,7 +220,7 @@ to the higher priority "name" key matching first.
 Writing Enhancement Functions
 -----------------------------
 
-As mentioend above, any importable function can be specified in the YAML
+As mentioned above, any importable function can be specified in the YAML
 configuration file. The function should expect at least one argument which
 is the :class:`~trollimage.xrimage.XRImage` object to be enhanced. Additional
 arguments and keyword arguments can be specified and must be passed from the

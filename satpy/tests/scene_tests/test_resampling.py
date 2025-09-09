@@ -255,13 +255,17 @@ class TestSceneResampling:
 
         """
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
 
         rs.side_effect = self._fake_resample_dataset
-        proj_dict = proj4_str_to_dict("+proj=lcc +datum=WGS84 +ellps=WGS84 "
-                                      "+lon_0=-95. +lat_0=25 +lat_1=25 "
-                                      "+units=m +no_defs")
-        area_def = AreaDefinition("test", "test", "test", proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def = AreaDefinition(
+            "test",
+            "test",
+            "test",
+            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
+            5,
+            5,
+            (-1000., -1500., 1000., 1500.),
+        )
         area_def.get_area_slices = mock.MagicMock()
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
 
@@ -334,11 +338,16 @@ class TestSceneResampling:
     def test_resample_ancillary(self):
         """Test that the Scene reducing data does not affect final output."""
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        proj_dict = proj4_str_to_dict("+proj=lcc +datum=WGS84 +ellps=WGS84 "
-                                      "+lon_0=-95. +lat_0=25 +lat_1=25 "
-                                      "+units=m +no_defs")
-        area_def = AreaDefinition("test", "test", "test", proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+
+        area_def = AreaDefinition(
+            "test",
+            "test",
+            "test",
+            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
+            5,
+            5,
+            (-1000., -1500., 1000., 1500.),
+        )
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
 
         scene.load(["comp19", "comp20"])
@@ -346,11 +355,15 @@ class TestSceneResampling:
         scene["comp19"].attrs["ancillary_variables"] = [scene["comp20"]]
         scene["comp20"].attrs["area"] = area_def
 
-        dst_area = AreaDefinition("dst", "dst", "dst",
-                                  proj_dict,
-                                  2, 2,
-                                  (-1000., -1500., 0., 0.),
-                                  )
+        dst_area = AreaDefinition(
+            "dst",
+            "dst",
+            "dst",
+            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
+            2,
+            2,
+            (-1000., -1500., 0., 0.),
+        )
         new_scene = scene.resample(dst_area)
         assert new_scene["comp20"] is new_scene["comp19"].attrs["ancillary_variables"][0]
 
@@ -406,17 +419,13 @@ class TestSceneResampling:
     def test_no_generate_comp10(self, rs):
         """Test generating a composite after loading."""
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
 
         rs.side_effect = self._fake_resample_dataset
-        proj_dict = proj4_str_to_dict("+proj=lcc +datum=WGS84 +ellps=WGS84 "
-                                      "+lon_0=-95. +lat_0=25 +lat_1=25 "
-                                      "+units=m +no_defs")
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj_dict,
+            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
             200,
             400,
             (-1000., -1500., 1000., 1500.),

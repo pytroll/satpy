@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 
-import dask
 import dask.array as da
 import numpy as np
 
@@ -45,12 +44,18 @@ def three_d_effect(img, **kwargs):
 def _three_d_effect(band_data, kernel=None, mode=None, index=None):
     del index
 
-    delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
-    new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
-    return new_data
+    new_data = da.map_blocks(
+        _three_d_effect_numpy,
+        band_data.rechunk(band_data.shape),
+        kernel,
+        mode,
+        dtype=band_data.dtype,
+        meta=np.ndarray((), dtype=band_data.dtype),
+    )
+    return new_data.rechunk(band_data.chunks)
 
 
-def _three_d_effect_delayed(band_data, kernel, mode):
+def _three_d_effect_numpy(band_data, kernel, mode):
     """Kernel for running delayed 3D effect creation."""
     from scipy.signal import convolve2d
     band_data = band_data.reshape(band_data.shape[1:])

@@ -43,7 +43,7 @@ class TestPillowWriter(unittest.TestCase):
         import dask.array as da
         import xarray as xr
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
                    "start_time": dt.datetime.now(dt.timezone.utc)}

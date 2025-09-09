@@ -41,7 +41,7 @@ class TestBaseWriter:
             100, 200, (-180., -90., 180., 90.),
         )
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={
                 "name": "test",

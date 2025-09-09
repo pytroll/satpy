@@ -511,7 +511,7 @@ def intp(grid_x, grid_y, interpolator):
 
 def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
-    from scipy.interpolate.interpnd import LinearNDInterpolator
+    from scipy.interpolate import LinearNDInterpolator
 
     if isinstance(chunks, (list, tuple)):
         vchunks, hchunks = chunks

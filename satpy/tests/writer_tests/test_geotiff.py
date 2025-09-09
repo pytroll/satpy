@@ -39,7 +39,7 @@ def _get_test_datasets_2d():
         100, 200, (-180., -90., 180., 90.),
     )
     ds1 = xr.DataArray(
-        da.zeros((100, 200), chunks=50),
+        da.arange(100 * 200, dtype=np.float32).reshape((100, 200)).rechunk(50),
         dims=("y", "x"),
         attrs={"name": "test",
                "start_time": dt.datetime.now(dt.timezone.utc),
@@ -68,7 +68,7 @@ def _get_test_datasets_3d():
         100, 200, (-180., -90., 180., 90.),
     )
     ds1 = xr.DataArray(
-        da.zeros((3, 100, 200), chunks=50),
+        da.arange(3 * 100 * 200, dtype=np.float32).reshape((3, 100, 200)).rechunk(50),
         dims=("bands", "y", "x"),
         coords={"bands": ["R", "G", "B"]},
         attrs={"name": "test",
@@ -155,7 +155,7 @@ class TestGeoTIFFWriter:
         with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
-            assert save_method.call_args[1]["dtype"] == np.float64
+            assert save_method.call_args[1]["dtype"] == np.float32
 
     def test_dtype_for_enhance_false_and_given_dtype(self, tmp_path):
         """Test that dtype of dataset is used if enhance=False and dtype=uint8."""
@@ -240,4 +240,5 @@ class TestGeoTIFFWriter:
         w.save_dataset(dataset, filename=filename, units="degC")
         ds = xr.open_dataset(filename, engine="rasterio")
         assert ds["band_data"].dtype == dtype
-        np.testing.assert_allclose(ds["band_data"], -273.15)
+        exp = np.arange(100 * 200, dtype=np.float32).reshape((1, 100, 200)) - 273.15
+        np.testing.assert_allclose(ds["band_data"], exp)
