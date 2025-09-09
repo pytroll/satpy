@@ -220,7 +220,7 @@ to the higher priority "name" key matching first.
 Writing Enhancement Functions
 -----------------------------
 
-As mentioend above, any importable function can be specified in the YAML
+As mentioned above, any importable function can be specified in the YAML
 configuration file. The function should expect at least one argument which
 is the :class:`~trollimage.xrimage.XRImage` object to be enhanced. Additional
 arguments and keyword arguments can be specified and must be passed from the
