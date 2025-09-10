@@ -26,7 +26,7 @@ from operator import eq, is_
 
 import numpy as np
 
-from satpy.writers.utils import flatten_dict
+from satpy.utils import flatten_dict
 
 
 def combine_metadata(*metadata_objects, average_times=None):
@@ -148,7 +148,7 @@ def average_datetimes(datetime_list):
         time zone (UTC).
 
     Args:
-        datetime_list (iterable): Datetime objects to average
+        datetime_list (Iterable): Datetime objects to average
 
     Returns: Average datetime as a datetime object
 

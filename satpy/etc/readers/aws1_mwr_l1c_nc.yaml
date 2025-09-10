@@ -3,7 +3,7 @@ reader:
   short_name: AWS1 MWR L1C
   long_name: AWS1 MWR L1C Radiance (NetCDF4)
   description: Reader for the ESA AWS (Arctic Weather Satellite) MWR level-1c files in netCDF4.
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [mwr,]
   status: Beta
   supports_fsspec: false
@@ -360,6 +360,24 @@ datasets:
         file_type: aws_l1c_nc
         file_key: data/navigation/aws_satellite_zenith_angle
         standard_name: satellite_zenith_angle
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type:
+        name: surface_type
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation:
+        name: terrain_elevation
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
         coordinates:
             - longitude
             - latitude

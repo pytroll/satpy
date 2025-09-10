@@ -81,14 +81,14 @@ the defined temperature ranges.  Beyond those limits the image clipped to
 the specified colors.
 
     >>> import numpy as np
-    >>> from satpy.composites import BWCompositor
-    >>> from satpy.enhancements import colorize
-    >>> from satpy.writers import to_image
+    >>> from satpy.composites.core import BWCompositor
+    >>> from satpy.enhancements.colormap import colorize
+    >>> from trollimage.xrimage import XRImage
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
     >>> np.save("/tmp/binary_colormap.npy", arr)
-    >>> compositor = BWCompositor("test", standard_name="colorized_ir_clouds")
+    >>> compositor = SingleBandCompositor("test", standard_name="colorized_ir_clouds")
     >>> composite = compositor((local_scene[10.8], ))
-    >>> img = to_image(composite)
+    >>> img = XRImage(composite)
     >>> kwargs = {"palettes": [{"filename": "/tmp/binary_colormap.npy",
     ...           "min_value": 223.15, "max_value": 303.15}]}
     >>> colorize(img, **kwargs)
@@ -109,7 +109,7 @@ The above example can be used in enhancements YAML config like this:
     standard_name: hot_or_cold
     operations:
       - name: colorize
-        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
+        method: &colorizefun !!python/name:satpy.enhancements.colormap.colorize ''
         kwargs:
           palettes:
             - {filename: /tmp/binary_colormap.npy, min_value: 223.15, max_value: 303.15}
@@ -129,7 +129,9 @@ and save them all at once.
 
 ::
 
-    >>> from satpy.writers import compute_writer_results
+
+
+    >>> from satpy.writers.core.compute import compute_writer_results
     >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
     ...                          writer="simple_image",
     ...                          compute=False)

@@ -28,7 +28,7 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 
-from satpy.resample import NativeResampler
+from satpy.resample.native import NativeResampler
 
 
 def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=None,
@@ -109,7 +109,7 @@ class TestHLResample(unittest.TestCase):
         """Check that the type of resampled datasets is preserved."""
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import resample_dataset
+        from satpy.resample.base import resample_dataset
         source_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=["y", "x"]),
                                       xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=["y", "x"]))
         dest_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=["y", "x"]),
@@ -131,14 +131,14 @@ class TestHLResample(unittest.TestCase):
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
-    @mock.patch("satpy.resample.xr.Dataset")
-    @mock.patch("satpy.resample.zarr.open")
-    @mock.patch("satpy.resample.KDTreeResampler._create_cache_filename")
+    @mock.patch("satpy.resample.kdtree.xr.Dataset")
+    @mock.patch("satpy.resample.kdtree.zarr.open")
+    @mock.patch("satpy.resample.kdtree.KDTreeResampler._create_cache_filename")
     @mock.patch("pyresample.kd_tree.XArrayResamplerNN")
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
                            xr_dset):
         """Test the kd resampler."""
-        from satpy.resample import KDTreeResampler
+        from satpy.resample.kdtree import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
         mock_dset = mock.MagicMock()
         xr_dset.return_value = mock_dset
@@ -327,13 +327,13 @@ class TestNativeResampler:
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
-    @mock.patch("satpy.resample._move_existing_caches")
-    @mock.patch("satpy.resample.BilinearResampler._create_cache_filename")
+    @mock.patch("satpy.resample.kdtree._move_existing_caches")
+    @mock.patch("satpy.resample.kdtree.BilinearResampler._create_cache_filename")
     @mock.patch("pyresample.bilinear.XArrayBilinearResampler")
     def test_bil_resampling(self, xr_resampler, create_filename,
                             move_existing_caches):
         """Test the bilinear resampler."""
-        from satpy.resample import BilinearResampler
+        from satpy.resample.kdtree import BilinearResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
 
         # Test that bilinear resampling info calculation is called
@@ -413,7 +413,7 @@ class TestBilinearResampler(unittest.TestCase):
             zarr_file = os.path.join(the_dir, "test.zarr")
             with open(zarr_file, "w") as fid:
                 fid.write("42")
-            from satpy.resample import _move_existing_caches
+            from satpy.resample.kdtree import _move_existing_caches
             _move_existing_caches(the_dir, zarr_file)
             assert not os.path.exists(zarr_file)
             assert os.path.exists(os.path.join(the_dir, "moved_by_satpy", "test.zarr"))
@@ -425,118 +425,12 @@ class TestBilinearResampler(unittest.TestCase):
             shutil.rmtree(the_dir)
 
 
-class TestCoordinateHelpers(unittest.TestCase):
-    """Test various utility functions for working with coordinates."""
-
-    def test_area_def_coordinates(self):
-        """Test coordinates being added with an AreaDefinition."""
-        from pyresample.geometry import AreaDefinition
-
-        from satpy.resample import add_crs_xy_coords
-        area_def = AreaDefinition(
-            "test", "test", "test", {"proj": "lcc", "lat_1": 25, "lat_0": 25},
-            100, 200, [-100, -100, 100, 100]
-        )
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={"area": area_def},
-            dims=("y", "x"),
-        )
-        new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        assert "y" in new_data_arr.coords
-        assert "x" in new_data_arr.coords
-
-        assert "units" in new_data_arr.coords["y"].attrs
-        assert new_data_arr.coords["y"].attrs["units"] == "meter"
-        assert "units" in new_data_arr.coords["x"].attrs
-        assert new_data_arr.coords["x"].attrs["units"] == "meter"
-        assert "crs" in new_data_arr.coords
-        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
-        assert area_def.crs == new_data_arr.coords["crs"].item()
-
-        # already has coords
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={"area": area_def},
-            dims=("y", "x"),
-            coords={"y": np.arange(2, 202), "x": np.arange(100)}
-        )
-        new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        assert "y" in new_data_arr.coords
-        assert "units" not in new_data_arr.coords["y"].attrs
-        assert "x" in new_data_arr.coords
-        assert "units" not in new_data_arr.coords["x"].attrs
-        np.testing.assert_equal(new_data_arr.coords["y"], np.arange(2, 202))
-
-        assert "crs" in new_data_arr.coords
-        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
-        assert area_def.crs == new_data_arr.coords["crs"].item()
-
-        # lat/lon area
-        area_def = AreaDefinition(
-            "test", "test", "test", {"proj": "latlong"},
-            100, 200, [-100, -100, 100, 100]
-        )
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={"area": area_def},
-            dims=("y", "x"),
-        )
-        new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        assert "y" in new_data_arr.coords
-        assert "x" in new_data_arr.coords
-
-        assert "units" in new_data_arr.coords["y"].attrs
-        assert new_data_arr.coords["y"].attrs["units"] == "degrees_north"
-        assert "units" in new_data_arr.coords["x"].attrs
-        assert new_data_arr.coords["x"].attrs["units"] == "degrees_east"
-        assert "crs" in new_data_arr.coords
-        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
-        assert area_def.crs == new_data_arr.coords["crs"].item()
-
-    def test_swath_def_coordinates(self):
-        """Test coordinates being added with an SwathDefinition."""
-        from pyresample.geometry import SwathDefinition
-
-        from satpy.resample import add_crs_xy_coords
-        lons_data = da.random.random((200, 100), chunks=50)
-        lats_data = da.random.random((200, 100), chunks=50)
-        lons = xr.DataArray(lons_data, attrs={"units": "degrees_east"},
-                            dims=("y", "x"))
-        lats = xr.DataArray(lats_data, attrs={"units": "degrees_north"},
-                            dims=("y", "x"))
-        area_def = SwathDefinition(lons, lats)
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={"area": area_def},
-            dims=("y", "x"),
-        )
-        new_data_arr = add_crs_xy_coords(data_arr, area_def)
-        # See https://github.com/pydata/xarray/issues/3068
-        # self.assertIn('longitude', new_data_arr.coords)
-        # self.assertIn('units', new_data_arr.coords['longitude'].attrs)
-        # self.assertEqual(
-        #     new_data_arr.coords['longitude'].attrs['units'], 'degrees_east')
-        # self.assertIsInstance(new_data_arr.coords['longitude'].data, da.Array)
-        # self.assertIn('latitude', new_data_arr.coords)
-        # self.assertIn('units', new_data_arr.coords['latitude'].attrs)
-        # self.assertEqual(
-        #     new_data_arr.coords['latitude'].attrs['units'], 'degrees_north')
-        # self.assertIsInstance(new_data_arr.coords['latitude'].data, da.Array)
-
-        assert "crs" in new_data_arr.coords
-        crs = new_data_arr.coords["crs"].item()
-        assert isinstance(crs, CRS)
-        assert crs.is_geographic
-        assert isinstance(new_data_arr.coords["crs"].item(), CRS)
-
-
 class TestBucketAvg(unittest.TestCase):
     """Test the bucket resampler."""
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketAvg
+        from satpy.resample.bucket import BucketAvg
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         get_proj_vectors = mock.MagicMock()
@@ -648,7 +542,7 @@ class TestBucketSum(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketSum
+        from satpy.resample.bucket import BucketSum
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
@@ -700,7 +594,7 @@ class TestBucketCount(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketCount
+        from satpy.resample.bucket import BucketCount
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
@@ -740,7 +634,7 @@ class TestBucketFraction(unittest.TestCase):
 
     def setUp(self):
         """Create fake area definitions and resampler to be tested."""
-        from satpy.resample import BucketFraction
+        from satpy.resample.bucket import BucketFraction
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         get_proj_vectors = mock.MagicMock()
@@ -787,3 +681,28 @@ class TestBucketFraction(unittest.TestCase):
         assert "categories" in res.coords
         assert "categories" in res.dims
         assert np.all(res.coords["categories"] == np.array([0, 1, 2]))
+
+
+@pytest.mark.parametrize("name",
+                         ["KDTreeResampler",
+                          "BilinearResampler",
+                          "NativeResampler",
+                          "BucketResamplerBase",
+                          "BucketAvg",
+                          "BucketSum",
+                          "BucketCount",
+                          "BucketFraction",
+                          "resample",
+                          "prepare_resampler",
+                          "resample_dataset",
+                          "get_area_file",
+                          "get_area_def",
+                          "add_xy_coords",
+                          "add_crs_xy_coords",
+                          ]
+                         )
+def test_moved_import_warns(name):
+    """Test that imports done directly from satpy.resample sub-package issue a warning."""
+    import satpy.resample
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
+        _ = getattr(satpy.resample, name)

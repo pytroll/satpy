@@ -27,9 +27,10 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample import create_area_def
+from trollimage.xrimage import XRImage
 
 from satpy import Scene
-from satpy.writers import get_enhanced_image, to_image
+from satpy.enhancements.enhancer import get_enhanced_image
 
 try:
     from math import prod
@@ -186,7 +187,9 @@ def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
         attrs={
             "name": "test-small-mid-atlantic",
             "start_time": datetime.datetime(1985, 8, 13, 13, 0),
-            "area": test_area_tiny_eqc_sphere})
+            "area": test_area_tiny_eqc_sphere},
+        coords={"bands": ["L"]},
+    )
     return get_enhanced_image(arr)
 
 
@@ -200,7 +203,9 @@ def test_image_small_mid_atlantic_K_L(test_area_tiny_eqc_sphere):
             "name": "test-small-mid-atlantic",
             "start_time": datetime.datetime(1985, 8, 13, 13, 0),
             "area": test_area_tiny_eqc_sphere,
-            "units": "K"})
+            "units": "K"},
+        coords={"bands": ["L"]},
+    )
     return get_enhanced_image(arr)
 
 
@@ -213,6 +218,7 @@ def test_image_small_mid_atlantic_L_no_quantity(test_area_tiny_eqc_sphere):
     arr = xr.DataArray(
         _get_fake_da(0, 273, test_area_tiny_eqc_sphere.shape + (1,)),
         dims=("y", "x", "bands"),
+        coords={"bands": ["L"]},
         attrs={
             "name": "test-small-mid-atlantic",
             "start_time": datetime.datetime(1985, 8, 13, 13, 0),
@@ -254,7 +260,7 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
             "offset": np.float64(0.0),
             "colormap": Mock()}]
 
-    return to_image(arr)
+    return XRImage(arr)
 
 
 @pytest.fixture(scope="module")

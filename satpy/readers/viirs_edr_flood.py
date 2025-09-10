@@ -20,7 +20,7 @@
 import numpy as np
 from pyresample import geometry
 
-from satpy.readers.hdf4_utils import HDF4FileHandler
+from satpy.readers.core.hdf4 import HDF4FileHandler
 
 
 class VIIRSEDRFlood(HDF4FileHandler):

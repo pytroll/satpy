@@ -38,7 +38,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from .netcdf_utils import NetCDF4FsspecFileHandler
+from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
 
 class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):

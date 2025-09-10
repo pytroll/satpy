@@ -56,7 +56,7 @@ Compression
 -----------
 
 This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT readers, see
-:class:`satpy.readers.hrit_base.HRITFileHandler`.
+:class:`satpy.readers.core.hrit.HRITFileHandler`.
 
 This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
 epilogue, and segment files.
@@ -132,7 +132,7 @@ Output:
         ancillary_variables:      []
 
 The `filenames` argument can either be a list of strings, see the example above, or a list of
-:class:`satpy.readers.FSFile` objects. FSFiles can be used in conjunction with `fsspec`_,
+:class:`satpy.readers.core.remote.FSFile` objects. FSFiles can be used in conjunction with `fsspec`_,
 e.g. to handle in-memory data:
 
 .. code-block:: python
@@ -141,7 +141,7 @@ e.g. to handle in-memory data:
 
     from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
     from satpy import Scene
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     # In this example, we will make use of `MemoryFile`s in a `MemoryFileSystem`.
     memory_fs = MemoryFileSystem()
@@ -222,18 +222,18 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-import satpy.readers.utils as utils
+import satpy.readers.core.utils as utils
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
-from satpy.readers.hrit_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode, recarray2dict, time_cds_short
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,
     base_hdr_map,
     image_data_function,
 )
-from satpy.readers.seviri_base import (
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     REPEAT_CYCLE_DURATION,
@@ -440,7 +440,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
 
     **Padding of the HRV channel**
@@ -455,7 +455,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 
@@ -683,7 +683,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         res = self.calibrate(res, key["calibration"])
 
         is_calibration = key["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
-        if is_calibration and self.mask_bad_quality_scan_lines:  # noqa: E129
+        if is_calibration and self.mask_bad_quality_scan_lines:
             res = self._mask_bad_quality(res)
 
         if key["name"] == "HRV" and self.fill_hrv:

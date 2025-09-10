@@ -48,7 +48,7 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -239,12 +239,12 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         raise ValueError("No solar irradiance values were found in the metadata.")
 
     @cached_property
-    def sun_earth_dist(self):
-        """Get the sun-earth distance from the metadata."""
+    def solar_correction_factor(self):
+        """Get the solar correction factor from the metadata."""
         sed = self.root.find(".//U")
         if sed.text is not None:
             return float(sed.text)
-        raise ValueError("Sun-Earth distance in metadata is missing.")
+        raise ValueError("Solar correction factor, U, in metadata is missing.")
 
     @cached_property
     def special_values(self):
@@ -270,13 +270,17 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         return (data + self.band_offset(band_name)) / physical_gain
 
     def calibrate_to_radiances(self, data, solar_zenith, band_name):
-        """Calibrate *data* to radiance using the radiometric information for the metadata."""
-        sed = self.sun_earth_dist
+        """Calibrate *data* to radiance using the radiometric information for the metadata.
+
+        This follows the principle set out in the user guide:
+        https://sentiwiki.copernicus.eu/web/s2-products#S2Products-Level-1CProductsS2-Products-L1Ctrue
+        """
+        ucor = self.solar_correction_factor
         solar_irrad_band = self.solar_irradiance(band_name)
 
         solar_zenith = np.deg2rad(solar_zenith)
 
-        return (data / 100.) * solar_irrad_band * np.cos(solar_zenith) / (np.pi * sed * sed)
+        return (data / 100.) * solar_irrad_band * np.cos(solar_zenith) * ucor / np.pi
 
     def physical_gain(self, band_name):
         """Get the physical gain for a given *band_name*."""
@@ -399,7 +403,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         elts = angles.findall(info["xml_tag"] + '[@bandId="1"]')
         for elt in elts:
             arrays.append(self._get_values_from_tag(elt, info["xml_item"]))
-        angles = np.nanmean(np.dstack(arrays), -1)
+        angles = np.nanmean(np.dstack(arrays), axis=-1)
         return angles
 
     def get_dataset(self, key, info):

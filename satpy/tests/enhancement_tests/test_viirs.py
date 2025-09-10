@@ -23,7 +23,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from .test_enhancements import run_and_check_enhancement
+from .utils import run_and_check_enhancement
 
 
 class TestVIIRSEnhancement(unittest.TestCase):

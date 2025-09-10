@@ -15,22 +15,29 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""GeoTIFF writer objects for creating GeoTIFF files from `DataArray` objects."""
+"""GeoTIFF writer objects for creating GeoTIFF files from :class:`xarray.DataArray` objects."""
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Union
+import typing
 
+import dask.array as da
 import numpy as np
 
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
+from numpy.typing import DTypeLike
 from trollimage.colormap import Colormap
 from trollimage.xrimage import XRImage
 
-from satpy._compat import DTypeLike
-from satpy.writers import ImageWriter
+from satpy.writers.core.image import ImageWriter
+
+if typing.TYPE_CHECKING:
+    from os import PathLike
+    from typing import Any
+
+    from dask.delayed import Delayed
 
 LOG = logging.getLogger(__name__)
 
@@ -140,50 +147,50 @@ class GeoTIFFWriter(ImageWriter):
     def save_image(  # noqa: D417
             self,
             img: XRImage,
-            filename: Optional[str] = None,
+            filename: str | None = None,
             compute: bool = True,
-            dtype: Optional[DTypeLike] = None,
-            fill_value: Optional[Union[int, float]] = None,
+            dtype: DTypeLike | None = None,
+            fill_value: int | float | None = None,
             keep_palette: bool = False,
-            cmap: Optional[Colormap] = None,
-            tags: Optional[dict[str, Any]] = None,
-            overviews: Optional[list[int]] = None,
+            cmap: Colormap | None = None,
+            tags: dict[str, Any] | None = None,
+            overviews: list[int] | None = None,
             overviews_minsize: int = 256,
-            overviews_resampling: Optional[str] = None,
+            overviews_resampling: str | None = None,
             include_scale_offset: bool = False,
-            scale_offset_tags: Optional[tuple[str, str]] = None,
-            colormap_tag: Optional[str] = None,
-            driver: Optional[str] = None,
+            scale_offset_tags: tuple[str, str] | None = None,
+            colormap_tag: str | None = None,
+            driver: str | None = None,
             tiled: bool = True,
             **kwargs
-    ):
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note this writer requires the ``rasterio`` library to be installed.
 
         Args:
-            img (xarray.DataArray): Data to save to geotiff.
-            filename (str): Filename to save the image to. Defaults to
+            img: Data to save to geotiff.
+            filename: Filename to save the image to. Defaults to
                 ``filename`` passed during writer creation. Unlike the
                 creation ``filename`` keyword argument, this filename does not
                 get formatted with data attributes.
-            compute (bool): Compute dask arrays and save the image
+            compute: Compute dask arrays and save the image
                 immediately. If ``False`` then the return value can be passed
-                to :func:`~satpy.writers.compute_writer_results` to do the
+                to :func:`~satpy.writers.core.compute.compute_writer_results` to do the
                 computation. This is useful when multiple images may share
                 input calculations where dask can benefit from not repeating
                 them multiple times. Defaults to ``True`` in the writer by
                 itself, but is typically passed as ``False`` by callers where
                 calculations can be combined.
-            dtype (DTypeLike): Numpy data type to save the image as.
+            dtype: Numpy data type to save the image as.
                 Defaults to 8-bit unsigned integer (``np.uint8``) or the data
                 type of the data to be saved if ``enhance=False``. If the
                 ``dtype`` argument is provided during writer creation then
                 that will be used as the default.
-            fill_value (float or int): Value to use where data values are
+            fill_value: Value to use where data values are
                 NaN/null. If this is specified in the writer configuration
                 file that value will be used as the default.
-            keep_palette (bool): Save palette/color table to geotiff.
+            keep_palette: Save palette/color table to geotiff.
                 To be used with images that were palettized with the
                 "palettize" enhancement. Setting this to ``True`` will cause
                 the colormap of the image to be written as a "color table" in
@@ -192,14 +199,14 @@ class GeoTIFFWriter(ImageWriter):
                 use the colormap used in the "palettize" operation.
                 See the ``cmap`` option for other options. This option defaults
                 to ``False`` and palettized images will be converted to RGB/A.
-            cmap (trollimage.colormap.Colormap or None): Colormap to save
+            cmap: Colormap to save
                 as a color table in the output geotiff. See ``keep_palette``
                 for more information. Defaults to the palette of the provided
                 ``img`` object. The colormap's range should be set to match
                 the index range of the palette
                 (ex. `cmap.set_range(0, len(colors))`).
-            tags (dict): Extra metadata to store in geotiff.
-            overviews (list): The reduction factors of the overviews to include
+            tags: Extra metadata to store in geotiff.
+            overviews: The reduction factors of the overviews to include
                 in the image, eg::
 
                     scn.save_datasets(overviews=[2, 4, 8, 16])
@@ -208,33 +215,33 @@ class GeoTIFFWriter(ImageWriter):
                 computed as powers of two until the last level has less
                 pixels than `overviews_minsize`.
                 Default is to not add overviews.
-            overviews_minsize (int): Minimum number of pixels for the smallest
+            overviews_minsize: Minimum number of pixels for the smallest
                 overview size generated when `overviews` is auto-generated.
                 Defaults to 256.
-            overviews_resampling (str): Resampling method
+            overviews_resampling: Resampling method
                 to use when generating overviews. This must be the name of an
                 enum value from :class:`rasterio.enums.Resampling` and
                 only takes effect if the `overviews` keyword argument is
                 provided. Common values include `nearest` (default),
                 `bilinear`, `average`, and many others. See the rasterio
                 documentation for more information.
-            scale_offset_tags (Tuple[str, str]): If set, include inclusion of
+            scale_offset_tags: If set, include inclusion of
                 scale and offset in the GeoTIFF headers in the GDALMetaData
                 tag.  The value of this argument should be a keyword argument
                 ``(scale_label, offset_label)``, for example, ``("scale",
                 "offset")``, indicating the labels to be used.
-            colormap_tag (Optional[str]): If set and the image being saved was
+            colormap_tag: If set and the image being saved was
                 colorized or palettized then a comma-separated version of the
                 colormap is saved to a custom geotiff tag with the provided
                 name. See :meth:`trollimage.colormap.Colormap.to_csv` for more
                 information.
-            driver (Optional[str]): Name of GDAL driver to use to save the
+            driver: Name of GDAL driver to use to save the
                 geotiff. If not specified or None (default) the "GTiff" driver
                 is used. Another common option is "COG" for Cloud Optimized
                 GeoTIFF. See GDAL documentation for more information.
-            tiled (bool): For performance this defaults to ``True``.
+            tiled: For performance this defaults to ``True``.
                 Pass ``False`` to created striped TIFF files.
-            include_scale_offset (deprecated, bool): Deprecated.
+            include_scale_offset: Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
 
@@ -267,7 +274,7 @@ class GeoTIFFWriter(ImageWriter):
                           "setting fill value to 'NaN'")
                 fill_value = np.nan
         if keep_palette and cmap is None and img.palette is not None:
-            from satpy.enhancements import create_colormap
+            from satpy.enhancements.colormap import create_colormap
             cmap = create_colormap({"colors": img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
@@ -275,18 +282,19 @@ class GeoTIFFWriter(ImageWriter):
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat="tif", driver=driver,
-                        fill_value=fill_value,
-                        dtype=dtype, compute=compute,
-                        keep_palette=keep_palette, cmap=cmap,
-                        tags=tags, include_scale_offset_tags=include_scale_offset,
-                        scale_offset_tags=scale_offset_tags,
-                        colormap_tag=colormap_tag,
-                        overviews=overviews,
-                        overviews_resampling=overviews_resampling,
-                        overviews_minsize=overviews_minsize,
-                        tiled=tiled,
-                        **gdal_options)
+        res = img.save(filename, fformat="tif", driver=driver,
+                       fill_value=fill_value,
+                       dtype=dtype, compute=compute,
+                       keep_palette=keep_palette, cmap=cmap,
+                       tags=tags, include_scale_offset_tags=include_scale_offset,
+                       scale_offset_tags=scale_offset_tags,
+                       colormap_tag=colormap_tag,
+                       overviews=overviews,
+                       overviews_resampling=overviews_resampling,
+                       overviews_minsize=overviews_minsize,
+                       tiled=tiled,
+                       **gdal_options)
+        return _trollimage_res_to_satpy_res(res)
 
     def _get_gdal_options(self, kwargs):
         # Update global GDAL options with these specific ones
@@ -295,3 +303,18 @@ class GeoTIFFWriter(ImageWriter):
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
         return gdal_options
+
+
+def _trollimage_res_to_satpy_res(res):
+    # in old trollimage <1.27.0: result is either None or (sources_list, targets_list) or (source, target)
+    # in new trollimage: result is either str or Path or (sources_list, targets_list)
+    if isinstance(res, tuple):
+        if isinstance(res[0], da.Array):
+            # convert old trollimage single (source, target) to ([source], [target])
+            res = ([res[0]], [res[1]])
+        return res
+    if isinstance(res, list) and len(res) == 2 and isinstance(res[0], tuple):
+        # old trollimage with dask-based tags specified (see ninjogeotiff writer)
+        # returns [(tuple of sources), (tuple of targets)], this swaps those types:
+        return list(res[0]), list(res[1])
+    return [res]

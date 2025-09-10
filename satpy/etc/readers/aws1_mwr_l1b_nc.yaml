@@ -3,7 +3,7 @@ reader:
   short_name: AWS1 MWR L1B
   long_name: AWS1 MWR L1B Radiance (NetCDF4)
   description: Reader for the ESA AWS (Arctic Weather Satellite) Microwave Radiometer (MWR) level-1b files in netCDF4.
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [mwr,]
   status: Beta
   supports_fsspec: false
@@ -518,6 +518,86 @@ datasets:
         file_type: aws_l1b_nc
         file_key: data/navigation/aws_satellite_azimuth_angle
         standard_name: satellite_azimuth_angle
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn1:
+        name: surface_type_horn1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn2:
+        name: surface_type_horn2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn3:
+        name: surface_type_horn3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn4:
+        name: surface_type_horn4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn1:
+        name: terrain_elevation_horn1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn2:
+        name: terrain_elevation_horn2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn3:
+        name: terrain_elevation_horn3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn4:
+        name: terrain_elevation_horn4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
         horn: "4"
         coordinates:
             - longitude

@@ -76,7 +76,7 @@ class ZarrCacheHelper:
             use to determine if caching should be done.
         uncacheable_arg_types: Types that if present in the passed arguments
             should trigger caching to *not* happen. By default this includes
-            ``SwathDefinition``, ``xr.DataArray``, and ``da.Array`` objects.
+            ``SwathDefinition``, ``xr.DataArray``, and ``dask.array.Array`` objects.
         sanitize_args_func: Optional function to call to sanitize provided
             arguments before they are considered for caching. This can be used
             to make arguments more "cacheable" by replacing them with similar
@@ -361,7 +361,7 @@ def compute_relative_azimuth(
         sat_azi, sun_azi,
         dtype=sat_azi.dtype,
         meta=np.array((), dtype=sat_azi.dtype),
-        name="relative_azimuth",
+        token="relative_azimuth",  # nosec: B106
     )
     if xarray_dims is None:
         return rel_azi

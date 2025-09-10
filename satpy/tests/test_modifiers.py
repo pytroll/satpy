@@ -178,7 +178,7 @@ class TestSunZenithCorrector:
 
     def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
-        from satpy.composites import IncompatibleAreas
+        from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=90)
         with pytest.raises(IncompatibleAreas):

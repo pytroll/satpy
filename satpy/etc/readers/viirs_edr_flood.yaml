@@ -3,9 +3,9 @@ reader:
     short_name: VIIRS flood
     long_name: VIIRS EDR Flood data in HDF4 format
     description: VIIRS flood HDF4 reader
-    status: Beta
+    status: Defunct
     supports_fsspec: false
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
     sensors: [viirs]
 
 file_types:

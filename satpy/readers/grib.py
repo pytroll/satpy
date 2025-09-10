@@ -35,7 +35,7 @@ from pyproj import Proj
 from pyresample import geometry
 
 from satpy.dataset import DataQuery
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)

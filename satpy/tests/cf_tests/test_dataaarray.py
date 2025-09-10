@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests CF-compliant DataArray creation."""
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dsq
@@ -35,13 +36,16 @@ def test_preprocess_dataarray_name():
     assert out_da.attrs["original_name"] == "1"
 
     # If numeric_name_prefix is empty string, False or None, test do not add original_name attributes
-    out_da = _preprocess_data_array_name(dataarray, numeric_name_prefix="", include_orig_name=True)
+    with pytest.warns(UserWarning, match="Invalid NetCDF dataset name"):
+        out_da = _preprocess_data_array_name(dataarray, numeric_name_prefix="", include_orig_name=True)
     assert "original_name" not in out_da.attrs
 
-    out_da = _preprocess_data_array_name(dataarray, numeric_name_prefix=False, include_orig_name=True)
+    with pytest.warns(UserWarning, match="Invalid NetCDF dataset name"):
+        out_da = _preprocess_data_array_name(dataarray, numeric_name_prefix=False, include_orig_name=True)
     assert "original_name" not in out_da.attrs
 
-    out_da = _preprocess_data_array_name(dataarray, numeric_name_prefix=None, include_orig_name=True)
+    with pytest.warns(UserWarning, match="Invalid NetCDF dataset name"):
+        out_da = _preprocess_data_array_name(dataarray, numeric_name_prefix=None, include_orig_name=True)
     assert "original_name" not in out_da.attrs
 
 
@@ -50,7 +54,7 @@ def test_make_cf_dataarray_lonlat():
     from pyresample import create_area_def
 
     from satpy.cf.data_array import make_cf_data_array
-    from satpy.resample import add_crs_xy_coords
+    from satpy.coords import add_crs_xy_coords
 
     area = create_area_def("mavas", 4326, shape=(5, 5),
                            center=(0, 0), resolution=(1, 1))

@@ -39,10 +39,10 @@ def _get_test_datasets_2d():
         100, 200, (-180., -90., 180., 90.),
     )
     ds1 = xr.DataArray(
-        da.zeros((100, 200), chunks=50),
+        da.arange(100 * 200, dtype=np.float32).reshape((100, 200)).rechunk(50),
         dims=("y", "x"),
         attrs={"name": "test",
-               "start_time": dt.datetime.utcnow(),
+               "start_time": dt.datetime.now(dt.timezone.utc),
                "units": "K",
                "area": adef}
     )
@@ -68,11 +68,11 @@ def _get_test_datasets_3d():
         100, 200, (-180., -90., 180., 90.),
     )
     ds1 = xr.DataArray(
-        da.zeros((3, 100, 200), chunks=50),
+        da.arange(3 * 100 * 200, dtype=np.float32).reshape((3, 100, 200)).rechunk(50),
         dims=("bands", "y", "x"),
         coords={"bands": ["R", "G", "B"]},
         attrs={"name": "test",
-               "start_time": dt.datetime.utcnow(),
+               "start_time": dt.datetime.now(dt.timezone.utc),
                "area": adef}
     )
     return [ds1]
@@ -152,18 +152,20 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path, enhance=False)
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
-            save_method.return_value = None
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
-            assert save_method.call_args[1]["dtype"] == np.float64
+            assert save_method.call_args[1]["dtype"] == np.float32
 
     def test_dtype_for_enhance_false_and_given_dtype(self, tmp_path):
         """Test that dtype of dataset is used if enhance=False and dtype=uint8."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path, enhance=False, dtype=np.uint8)
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
-            save_method.return_value = None
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["dtype"] == np.uint8
 
@@ -173,8 +175,9 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path)
         w.info["fill_value"] = 128
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
-            save_method.return_value = None
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["fill_value"] == 128
 
@@ -184,8 +187,9 @@ class TestGeoTIFFWriter:
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(tags={"test1": 1}, base_dir=tmp_path)
         w.info["fill_value"] = 128
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
-            save_method.return_value = None
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, tags={"test2": 2}, compute=False)
             called_tags = save_method.call_args[1]["tags"]
             assert called_tags == {"test1": 1, "test2": 2}
@@ -211,8 +215,9 @@ class TestGeoTIFFWriter:
         datasets = input_func()
         w = GeoTIFFWriter(tags={"test1": 1}, base_dir=tmp_path)
         w.info["fill_value"] = 128
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
-            save_method.return_value = None
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, tags={"test2": 2}, compute=False, **save_kwargs)
         kwarg_name = "include_scale_offset_tags" if "include_scale_offset" in save_kwargs else "scale_offset_tags"
         kwarg_value = save_method.call_args[1].get(kwarg_name)
@@ -223,8 +228,9 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = _get_test_datasets_2d()
         w = GeoTIFFWriter(base_dir=tmp_path)
-        with mock.patch("satpy.writers.XRImage.save") as save_method:
-            save_method.return_value = None
+        with mock.patch("trollimage.xrimage.XRImage.save") as save_method:
+            # compute is False in `save_datasets` so we need to return something dask-like
+            save_method.return_value = da.zeros((1, 1))
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]["tiled"]
 
@@ -240,4 +246,5 @@ class TestGeoTIFFWriter:
         w.save_dataset(dataset, filename=filename, units="degC")
         ds = xr.open_dataset(filename, engine="rasterio")
         assert ds["band_data"].dtype == dtype
-        np.testing.assert_allclose(ds["band_data"], -273.15)
+        exp = np.arange(100 * 200, dtype=np.float32).reshape((1, 100, 200)) - 273.15
+        np.testing.assert_allclose(ds["band_data"], exp)

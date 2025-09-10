@@ -31,8 +31,8 @@ from pyproj import Geod
 from pyresample import create_area_def
 
 import satpy.resample
+from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.tests.utils import xfail_skyfield_unstable_numpy2
-from satpy.writers import get_enhanced_image
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -208,6 +208,7 @@ class TestForwardParallax:
         np.testing.assert_allclose(val, 2141.2404451757875)
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionClass:
     """Test that the ParallaxCorrection class is behaving sensibly."""
 
@@ -475,6 +476,7 @@ class TestParallaxCorrectionClass:
                 fake_area_small.get_lonlats())
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionModifier:
     """Test that the parallax correction modifier works correctly."""
 
@@ -499,7 +501,7 @@ class TestParallaxCorrectionModifier:
         res = modif([fake_bt, cth_clear], optional_datasets=[])
         np.testing.assert_allclose(res, fake_bt)
         with unittest.mock.patch("satpy.modifiers.parallax.resample_dataset") as smp:
-            smp.side_effect = satpy.resample.resample_dataset
+            smp.side_effect = satpy.resample.base.resample_dataset
             modif([fake_bt, cth_clear], optional_datasets=[])
             assert smp.call_args_list[0].kwargs["radius_of_influence"] == 48_000
             assert smp.call_args_list[1].kwargs["radius_of_influence"] == 49_000
@@ -663,7 +665,7 @@ class TestParallaxCorrectionModifier:
                 "ouagadougou": {
                     7500: (159, 164, 140, 160),
                     15000: (163, 168, 141, 161)}}
-        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.name][cth]
+        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.area_id][cth]
         dest_mask[x_lo:x_hi, y_lo:y_hi] = True
 
         modif = ParallaxCorrectionModifier(
@@ -704,13 +706,14 @@ modifiers:
 
 composites:
   parallax_corrected_VIS006:
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
       - name: VIS006
         modifiers: [parallax_corrected]
 """
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionSceneLoad:
     """Test that scene load interface works as expected."""
 
@@ -784,7 +787,6 @@ class TestParallaxCorrectionSceneLoad:
             assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
 
-    @pytest.mark.xfail(reason="awaiting pyresample fixes")
     def test_no_compute(self, fake_scene, conf_file):
         """Test that no computation occurs."""
         from satpy.tests.utils import CustomScheduler

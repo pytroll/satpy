@@ -57,7 +57,7 @@ example, please provide the actual name for that data: eps_sterna_mwr_l1b_nc.
 
 import xarray as xr
 
-from .netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 MWR_CHANNEL_NAMES = [str(i) for i in range(1, 20)]
 
@@ -77,6 +77,14 @@ NAVIGATION_DATASET_NAMES = ["satellite_zenith_horn1",
                             "satellite_azimuth_horn2",
                             "satellite_azimuth_horn3",
                             "satellite_azimuth_horn4",
+                            "surface_type_horn1",
+                            "surface_type_horn2",
+                            "surface_type_horn3",
+                            "surface_type_horn4",
+                            "terrain_elevation_horn1",
+                            "terrain_elevation_horn2",
+                            "terrain_elevation_horn3",
+                            "terrain_elevation_horn4",
                             "longitude",
                             "latitude"]
 

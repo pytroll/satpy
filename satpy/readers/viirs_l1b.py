@@ -22,7 +22,7 @@ import logging
 
 import numpy as np
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -255,7 +255,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         """Generate dataset info and their availablity.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """
@@ -270,6 +270,26 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             var_path = self._dataset_name_to_var_path(ds_info["name"], ds_info)
             is_in_file = var_path in self
             yield ft_matches and is_in_file, ds_info
+
+            # Handle the _quality_flags dataset
+            qf_name = ds_info["name"] + "_quality_flags"
+
+            # Create a copy and override file_key if not explicitly provided
+            qf_ds_info = ds_info.copy()
+            qf_ds_info["name"] = qf_name
+            qf_ds_info["file_key"] = f"observation_data/{qf_name}"
+            qf_var_path = self._dataset_name_to_var_path(qf_name, qf_ds_info)
+
+            if qf_var_path in self:
+                qf_info = {
+                    "name": qf_name,
+                    "file_type": ds_info["file_type"],
+                    "resolution": ds_info.get("resolution"),
+                    "coordinates": ds_info.get("coordinates") or [],
+                    "units": "1",
+                    "standard_name": "quality_flag",
+                }
+                yield True, qf_info
 
     @staticmethod
     def _dataset_name_to_var_path(dataset_name: str, ds_info: dict) -> str:

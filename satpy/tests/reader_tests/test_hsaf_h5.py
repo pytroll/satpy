@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from satpy import Scene
-from satpy.resample import get_area_def
+from satpy.area import get_area_def
 
 # real shape is 916, 1902
 SHAPE_SC = (916, 1902)

@@ -29,7 +29,7 @@ import warnings
 from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
 import dask.utils
@@ -38,7 +38,7 @@ import xarray as xr
 import yaml
 from yaml import BaseLoader, UnsafeLoader
 
-from satpy._compat import DTypeLike
+from satpy._compat import ArrayLike, DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -178,15 +178,18 @@ def in_ipynb():
 # Spherical conversions
 
 
-def lonlat2xyz(lon, lat):
+def lonlat2xyz(
+        lon: ArrayLike,
+        lat: ArrayLike,
+) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
     """Convert lon lat to cartesian.
 
     For a sphere with unit radius, convert the spherical coordinates
     longitude and latitude to cartesian coordinates.
 
     Args:
-        lon (number or array of numbers): Longitude in °.
-        lat (number or array of numbers): Latitude in °.
+        lon: Longitude in °.
+        lat: Latitude in °.
 
     Returns:
         (x, y, z) Cartesian coordinates [1]
@@ -199,21 +202,26 @@ def lonlat2xyz(lon, lat):
     return x, y, z
 
 
-def xyz2lonlat(x, y, z, asin=False):
+def xyz2lonlat(
+        x: ArrayLike,
+        y: ArrayLike,
+        z: ArrayLike,
+        asin: bool = False,
+) -> tuple[ArrayLike, ArrayLike]:
     """Convert cartesian to lon lat.
 
     For a sphere with unit radius, convert cartesian coordinates to spherical
     coordinates longitude and latitude.
 
     Args:
-        x (number or array of numbers): x-coordinate, unitless
-        y (number or array of numbers): y-coordinate, unitless
-        z (number or array of numbers): z-coordinate, unitless
-        asin (optional, bool): If true, use arcsin for calculations.
+        x: x-coordinate, unitless
+        y: y-coordinate, unitless
+        z: z-coordinate, unitless
+        asin: If true, use arcsin for calculations.
             If false, use arctan2 for calculations.
 
     Returns:
-        (lon, lat): Longitude and latitude in °.
+        Longitude and latitude in °.
     """
     lon = np.rad2deg(np.arctan2(y, x))
     if asin:
@@ -551,8 +559,8 @@ def check_satpy(readers=None, writers=None, packages=None):
         None
 
     """
-    from satpy.readers import configs_for_reader
-    from satpy.writers import configs_for_writer
+    from satpy.readers.core.config import configs_for_reader
+    from satpy.writers.core.config import configs_for_writer
 
     print("Readers")  # noqa: T201
     print("=======")  # noqa: T201
@@ -572,8 +580,8 @@ def check_satpy(readers=None, writers=None, packages=None):
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
-    This is mostly used in :class:`satpy.composites.CompositeBase` to safe
-    guard against running :func:`dask.array.core.map_blocks` with arrays of
+    This is mostly used in :class:`satpy.composites.core.CompositeBase` to safe
+    guard against running :func:`dask.array.map_blocks` with arrays of
     different chunk sizes. Doing so can cause unexpected results or errors.
     However, xarray's ``unify_chunks`` will raise an exception if dimensions
     of the provided DataArrays are different sizes. This is a common case for
@@ -800,7 +808,7 @@ def _check_file_protocols(filenames, storage_options):
 
 
 def _sort_files_to_local_remote_and_fsfiles(filenames):
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     local_files = []
     remote_files = []
@@ -820,7 +828,7 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
 def _filenames_to_fsfile(filenames, storage_options):
     import fsspec
 
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     if filenames:
         fsspec_files = fsspec.open_files(filenames, **storage_options)
@@ -887,15 +895,49 @@ def find_in_ancillary(data, dataset):
     return matches[0]
 
 
-def datetime64_to_pydatetime(dt64):
+def datetime64_to_pydatetime(dt64: np.datetime64) -> datetime.datetime:
     """Convert numpy.datetime64 timestamp to Python datetime.
 
     Discards nanosecond precision, because Python datetime only has microsecond
     precision.
 
     Args:
-        dt64 (np.datetime64): Timestamp to be converted
-    Returns (dt.datetime):
+        dt64: Timestamp to be converted
+    Returns:
         Converted timestamp
     """
     return dt64.astype("datetime64[us]").astype(datetime.datetime)
+
+
+def _import_and_warn_new_location(new_module: str, name: str) -> Any:
+    import inspect
+    from importlib import import_module
+
+    frame = inspect.stack()[1]
+    old_module_name = inspect.getmodule(frame[0]).__name__  # type: ignore
+
+    mod = import_module(new_module)
+    obj = getattr(mod, name)
+
+    warnings.warn(
+        f"'{old_module_name}.{name}' has been moved to '{new_module}.{name}'. "
+        f"Import from the new location instead (ex. 'from {new_module} import {name}'). "
+        "The old import paths will be removed in Satpy 1.0",
+        stacklevel=3,
+    )
+    return obj
+
+
+def flatten_dict(d, parent_key="", sep="_"):
+    """Flatten a nested dictionary.
+
+    Based on https://stackoverflow.com/a/6027615/5703449
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, parent_key=new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)

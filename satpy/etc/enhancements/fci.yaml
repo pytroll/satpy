@@ -3,7 +3,7 @@ enhancements:
     standard_name: fci_day_night_blend
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [ 0,0,0 ]
@@ -13,7 +13,7 @@ enhancements:
     standard_name: night_ir105
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - { colors: greys, min_value: 190, max_value: 295 }
@@ -22,13 +22,13 @@ enhancements:
     standard_name: fire_temperature_fci
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [273.15, 0.0, 0.0]
           max_stretch: [333.15, 100.0, 75.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [0.4, 1, 1]
 
@@ -36,13 +36,13 @@ enhancements:
     standard_name: fire_temperature_fci_38refl
     operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0.0, 0.0]
           max_stretch: [50, 100.0, 75.0]
       - name: gamma
-        method: !!python/name:satpy.enhancements.gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1, 1, 1]
 
@@ -52,11 +52,108 @@ enhancements:
     # note: the stretch parameters have been converted to wavelength units
     # compared to e.g. the VIIRS recipe
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [5.1, 17.7, 22.0]
     - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs: {gamma: [1.0, 1.0, 1.0]}
+
+  fci_flames_colorised:
+    standard_name: fci_flames_colorised
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
+        kwargs:
+          palettes:
+            - { colors: ylorrd, min_value: 330, max_value: 430 , reverse: true}
+
+  fci_fire_temperature_sum:
+    standard_name: fci_fire_temperature_sum
+    operations: []
+
+  true_color_flames:
+    standard_name: true_color_flames
+    operations: []
+
+  volcanic_emissions:
+    standard_name: volcanic_emissions
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-4, -4.0, 243.0]
+          max_stretch: [2.0, 5.0, 303.0]
+
+  day_severe_storms:
+    standard_name: day_severe_storms
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-30, 0, -70]
+          max_stretch: [0, 55, 20]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1.0, 0.5, 1.0]
+
+  airmass:
+    standard_name: airmass
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-23.8, -39.7, 244.5]
+          max_stretch: [1.4, 4.1, 209.4]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1.0, 1.0, 1.0]
+
+  overshooting_tops:
+    standard_name: overshooting_tops
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-23.8, -29.9, 244.5]
+        max_stretch: [6.4, 23.6, 191.4]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
+      kwargs:
+        gamma: [1.0, 1.0, 1.0]
+
+  night_microphysics:
+    standard_name: night_microphysics
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-7.1, -2.9, 242]
+          max_stretch: [2.4, 5.0, 293]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1.0, 1.0, 1.0]
+
+  night_microphysics_tropical:
+    standard_name: night_microphysics_tropical
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-7.1, -2.9, 273]
+          max_stretch: [2.4, 1.1, 300]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1.0, 1.0, 1.0]

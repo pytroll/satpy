@@ -21,8 +21,9 @@ import logging
 
 import xarray as xr
 
-from satpy.composites import GenericCompositor
-from satpy.writers import get_enhanced_image
+from satpy.enhancements.enhancer import get_enhanced_image
+
+from .core import GenericCompositor
 
 LOG = logging.getLogger(__name__)
 

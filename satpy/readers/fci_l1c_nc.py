@@ -134,10 +134,10 @@ from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
 import satpy
-from satpy.readers._geos_area import get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode
-
-from .netcdf_utils import NetCDF4FsspecFileHandler
+from satpy.readers.core._geos_area import get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.fci import platform_name_translate
+from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -195,26 +195,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     This class implements the Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) Level-1c NetCDF reader.
-    It is designed to be used through the :class:`~satpy.Scene`
-    class using the :mod:`~satpy.Scene.load` method with the reader
+    It is designed to be used through the :class:`satpy.Scene <satpy.scene.Scene>`
+    class using the :mod:`Scene.load <satpy.scene.Scene.load>` method with the reader
     ``"fci_l1c_nc"``.
 
     """
-
-    # Platform names according to the MTG FCI L1 Product User Guide,
-    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
-    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
-    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
-    #
-    # After launch: translate to METEOSAT-xx instead?  Not sure how the
-    # numbering will be considering MTG-S1 and MTG-S2 will be launched
-    # in-between.
-    _platform_name_translate = {
-        "MTI1": "MTG-I1",
-        "MTI2": "MTG-I2",
-        "MTI3": "MTG-I3",
-        "MTI4": "MTG-I4"}
-
     def __init__(self, filename, filename_info, filetype_info,
                  clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
@@ -376,7 +361,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = _ensure_dataarray(data)
 
         fv = attrs.pop(
-            "FillValue",
+            "_FillValue",
             default_fillvals.get(data.dtype.str[1:], np.float32(np.nan)))
         vr = attrs.get("valid_range", [np.float32(-np.inf), np.float32(np.inf)])
         if key["calibration"] == "counts":
@@ -415,7 +400,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         res.attrs.update(info)
         res.attrs.update(attrs)
 
-        res.attrs["platform_name"] = self._platform_name_translate.get(
+        res.attrs["platform_name"] = platform_name_translate.get(
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
@@ -723,7 +708,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2").astype(np.float32)
 
         for v in (vc, a, b, c1, c2):
-            if v == v.attrs.get("FillValue",
+            if v == v.attrs.get("_FillValue",
                                 default_fillvals.get(v.dtype.str[1:])):
                 logger.error(
                     "{:s} set to fill value, cannot produce "
@@ -747,7 +732,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance").astype(np.float32)
 
         if cesi == cesi.attrs.get(
-                "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
+                "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))

@@ -26,7 +26,7 @@ import datetime as dt
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 
 class HY2SCATL2BH5FileHandler(HDF5FileHandler):

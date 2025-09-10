@@ -23,14 +23,13 @@ import os
 import shutil
 from glob import glob
 
-import dask
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 from pyproj import CRS
 
-from satpy.resample import update_resampled_coords
+from satpy.tests.utils import assert_maximum_dask_computes
 
 START_TIME = dt.datetime(2018, 1, 1, 12, 0, 0)
 END_TIME = START_TIME + dt.timedelta(minutes=20)
@@ -137,6 +136,8 @@ def _get_test_data(shape=(200, 100), chunks=50):
 
 
 def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
+    from satpy.resample.base import _update_resampled_coords
+
     attrs = dict(
         name="test_ds",
         platform_name="PLAT",
@@ -154,7 +155,7 @@ def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
         dims=("y", "x") if dask_arr.ndim == 2 else ("bands", "y", "x"),
         attrs=attrs,
     )
-    return update_resampled_coords(ds, ds, area_def)
+    return _update_resampled_coords(ds, ds, area_def)
 
 
 class TestAWIPSTiledWriter:
@@ -180,7 +181,8 @@ class TestAWIPSTiledWriter:
         data = _get_test_data()
         area_def = _get_test_area()
         input_data_arr = _get_test_lcc_data(data, area_def, extra_attrs)
-        with caplog.at_level(logging.DEBUG):
+        with assert_maximum_dask_computes(max_computes=1), \
+                caplog.at_level(logging.DEBUG):
             w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
             if use_save_dataset:
                 w.save_dataset(input_data_arr, sector_id="TEST", source_name="TESTS")
@@ -221,7 +223,6 @@ class TestAWIPSTiledWriter:
     )
     def test_basic_numbered_tiles(self, tile_count, tile_size, tmp_path):
         """Test creating a multiple numbered tiles."""
-        from satpy.tests.utils import CustomScheduler
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = _get_test_data()
         area_def = _get_test_area()
@@ -236,11 +237,11 @@ class TestAWIPSTiledWriter:
         )
         should_error = tile_count is None and tile_size is None
         if should_error:
-            with dask.config.set(scheduler=CustomScheduler(0)), \
+            with assert_maximum_dask_computes(max_computes=0), \
                  pytest.raises(ValueError, match=r"Either.*tile_count.*"):
                 w.save_datasets([input_data_arr], **save_kwargs)
         else:
-            with dask.config.set(scheduler=CustomScheduler(1 * 2)):  # precompute=*2
+            with assert_maximum_dask_computes(max_computes=1):
                 w.save_datasets([input_data_arr], **save_kwargs)
 
         all_files = glob(os.path.join(str(tmp_path), "TESTS_AII*.nc"))
@@ -265,7 +266,8 @@ class TestAWIPSTiledWriter:
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
         # tile_count should be ignored since we specified lettered_grid
-        w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(str(tmp_path), "TESTS_AII*.nc"))
         assert len(all_files) == 16
         for fn in all_files:
@@ -284,7 +286,8 @@ class TestAWIPSTiledWriter:
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
         # tile_count should be ignored since we specified lettered_grid
-        w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = sorted(glob(os.path.join(str(tmp_path), "TESTS_AII*.nc")))
         assert len(all_files) == 24
         assert "TC02" in all_files[0]  # the first tile should be TC02
@@ -308,7 +311,8 @@ class TestAWIPSTiledWriter:
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
         # tile_count should be ignored since we specified lettered_grid
-        w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = sorted(glob(os.path.join(first_base_dir, "TESTS_AII*.nc")))
         assert len(all_files) == 16
         first_files = []
@@ -331,10 +335,7 @@ class TestAWIPSTiledWriter:
         data2 = da.from_array(data2, chunks=500)
         ds2 = _get_test_lcc_data(data2, area_def2)
         w = AWIPSTiledWriter(base_dir=second_base_dir, compress=True)
-        # HACK: The _copy_to_existing function hangs when opening the output
-        #   file multiple times...sometimes. If we limit dask to one worker
-        #   it seems to work fine.
-        with dask.config.set(num_workers=1):
+        with assert_maximum_dask_computes(max_computes=1):
             w.save_datasets([ds2], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(second_base_dir, "TESTS_AII*.nc"))
         # 16 original tiles + 4 new tiles
@@ -369,9 +370,10 @@ class TestAWIPSTiledWriter:
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
-        w.save_datasets([ds], sector_id="LCC", source_name="TESTS",
-                        lettered_grid=True, use_sector_reference=True,
-                        use_end_time=True)
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="LCC", source_name="TESTS",
+                            lettered_grid=True, use_sector_reference=True,
+                            use_end_time=True)
         all_files = glob(os.path.join(str(tmp_path), "TESTS_AII*.nc"))
         assert len(all_files) == 16
         for fn in all_files:
@@ -389,7 +391,8 @@ class TestAWIPSTiledWriter:
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(4000000., 5000000., 5000000., 6000000.))
         ds = _get_test_lcc_data(data, area_def)
-        w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created
         all_files = glob(os.path.join(str(tmp_path), "TESTS_AII*.nc"))
         assert not all_files
@@ -402,7 +405,8 @@ class TestAWIPSTiledWriter:
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
-        w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="LCC", source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created - all NaNs should result in no tiles being created
         all_files = glob(os.path.join(str(tmp_path), "TESTS_AII*.nc"))
         assert not all_files
@@ -415,7 +419,8 @@ class TestAWIPSTiledWriter:
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
-        with pytest.raises(KeyError):
+        with assert_maximum_dask_computes(max_computes=1), \
+                pytest.raises(KeyError):
             w.save_datasets([ds],
                             sector_id="LCC",
                             source_name="TESTS",
@@ -432,7 +437,8 @@ class TestAWIPSTiledWriter:
         ds = ds.rename(dict((old, new) for old, new in zip(ds.dims, ["bands", "y", "x"])))
         ds.coords["bands"] = ["R", "G", "B"]
 
-        w.save_datasets([ds], sector_id="TEST", source_name="TESTS", tile_count=(3, 3))
+        with assert_maximum_dask_computes(max_computes=1):
+            w.save_datasets([ds], sector_id="TEST", source_name="TESTS", tile_count=(3, 3))
         chan_files = glob(os.path.join(str(tmp_path), "TESTS_AII*test_ds_R*.nc"))
         all_files = chan_files[:]
         assert len(chan_files) == 9
@@ -495,7 +501,8 @@ class TestAWIPSTiledWriter:
             "_FillValue": 1,
         })
 
-        with pytest.warns(UserWarning, match="Production location attribute "):
+        with assert_maximum_dask_computes(max_computes=1), \
+                pytest.warns(UserWarning, match="Production location attribute "):
             w.save_datasets([ds1, ds2, ds3, dqf], sector_id="TEST", source_name="TESTS",
                             tile_count=(3, 3), template="glm_l2_rad{}".format(sector.lower()),
                             **extra_kwargs)

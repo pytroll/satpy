@@ -32,7 +32,7 @@ import h5py
 import numpy as np
 from xarray import DataArray
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

@@ -94,13 +94,13 @@ class FrequencyQuadrupleSideBand(FrequencyBandBaseArithmetics, FrequencyQuadrupl
         """Return if two channel frequencies are equal.
 
         Args:
-            other (tuple or scalar): (central frq, side band frq, side-side band frq,
-            and band width frq) or scalar frq
+            other (tuple[numbers.Number] or numbers.Number): (central frq, side band frq, side-side band frq,
+                and band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is a
-            tuple equal to self, or if other is a number contained by self.
-            False otherwise.
+            (bool): True if other is a scalar and min <= other <= max, or if other is a
+                tuple equal to self, or if other is a number contained by self.
+                False otherwise.
 
         """
         if other is None:
@@ -223,12 +223,13 @@ class FrequencyDoubleSideBand(FrequencyBandBaseArithmetics, FrequencyDoubleSideB
         """Return if two channel frequencies are equal.
 
         Args:
-            other (tuple or scalar): (central frq, side band frq and band width frq) or scalar frq
+            other (tuple[numbers.Number] or numbers.Number): (central frq, side band frq and band width frq)
+                or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is a
-            tuple equal to self, or if other is a number contained by self.
-            False otherwise.
+            (bool): True if other is a scalar and min <= other <= max, or if other is a
+                tuple equal to self, or if other is a number contained by self.
+                False otherwise.
 
         """
         if other is None:
@@ -352,12 +353,12 @@ class FrequencyRange(FrequencyBandBaseArithmetics, FrequencyRangeBase):
         """Check wether two channel frequencies are equal.
 
         Args:
-            other (tuple or scalar): (central frq, band width frq) or scalar frq
+            other (tuple[numbers.Number] or numbers.Number): (central frq, band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is a
-            tuple equal to self, or if other is a number contained by self.
-            False otherwise.
+            (bool): True if other is a scalar and min <= other <= max, or if other is a
+                tuple equal to self, or if other is a number contained by self.
+                False otherwise.
 
         """
         if other is None:

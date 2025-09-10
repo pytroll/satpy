@@ -36,29 +36,29 @@ a series of enhancement "sections". An example file might look like:
      default:
        operations:
        - name: stretch
-         method: !!python/name:satpy.enhancements.stretch
+         method: !!python/name:satpy.enhancements.contrast.stretch
          kwargs: {stretch: linear}
      reflectance_default:
        standard_name: toa_bidirectional_reflectance
        operations:
        - name: linear_stretch
-         method: !!python/name:satpy.enhancements.stretch
+         method: !!python/name:satpy.enhancements.contrast.stretch
          kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
        - name: gamma
-         method: !!python/name:satpy.enhancements.gamma
+         method: !!python/name:satpy.enhancements.contrast.gamma
          kwargs: {gamma: 1.5}
      overview:
        standard_name: overview
        operations:
          - name: inverse
-           method: !!python/name:satpy.enhancements.invert
+           method: !!python/name:satpy.enhancements.contrast.invert
            args: [False, False, True]
          - name: stretch
-           method: !!python/name:satpy.enhancements.stretch
+           method: !!python/name:satpy.enhancements.contrast.stretch
            kwargs:
              stretch: linear
          - name: gamma
-           method: !!python/name:satpy.enhancements.gamma
+           method: !!python/name:satpy.enhancements.contrast.gamma
            kwargs:
              gamma: [1.7, 1.7, 1.7]
 
@@ -100,7 +100,7 @@ implementation depends on the following keys:
 6. ``units``
 
 For low-level implementation details see the
-:class:`~satpy.writers.EnhancementDecisionTree` class.
+:class:`~satpy.enhancements.enhancer.EnhancementDecisionTree` class.
 
 The example YAML in the above section specified one of these keys,
 ``standard_name``.
@@ -173,7 +173,7 @@ be used. No other section matches by "name" or any other key.
 **Example 3**
 
 If the ``DataArray`` was for a completely different channel from
-the "abi_l2_nc" reader with the following metadata metadata:
+the "abi_l2_nc" reader with the following metadata:
 
 .. code-block:: python
 
@@ -220,7 +220,7 @@ to the higher priority "name" key matching first.
 Writing Enhancement Functions
 -----------------------------
 
-As mentioend above, any importable function can be specified in the YAML
+As mentioned above, any importable function can be specified in the YAML
 configuration file. The function should expect at least one argument which
 is the :class:`~trollimage.xrimage.XRImage` object to be enhanced. Additional
 arguments and keyword arguments can be specified and must be passed from the
@@ -277,13 +277,13 @@ You should then see log messages like the following::
     TRACE    :             | sensor=abi
     TRACE    :             | standard_name=cloud_type
 
-Additionally, you can directly load the :class:`~satpy.writers.Enhancer`
+Additionally, you can directly load the :class:`~satpy.enhancements.enhancer.Enhancer`
 object used by Satpy and print the entire "tree" and attempt to follow the
 path to match your particular DataArray's metadata:
 
 .. code-block:: python
 
-   from satpy.writers import Enhancer
+   from satpy.enhancements.enhancer import Enhancer
    enh = Enhancer()
    # NOTE: This is not loading sensor-specific enhancement configs
    # You would need `enh.add_sensor_enhancements(["abi"])`
@@ -345,7 +345,7 @@ on both ends of the scale, but these can be overridden with
 ``cutoffs=(0.005, 0.005)`` argument::
 
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: linear
         cutoffs: [0.003, 0.005]
@@ -363,7 +363,7 @@ range by clipping the data. This is followed by a linear stretch with
 no cutoffs specified (see above). Example::
 
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]
@@ -385,7 +385,7 @@ piecewise_linear_stretch
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use :func:`numpy.interp` to linearly interpolate data to a new range. See
-:func:`satpy.enhancements.piecewise_linear_stretch` for more information and examples.
+:func:`satpy.enhancements.contrast.piecewise_linear_stretch` for more information and examples.
 
 cira_stretch
 ^^^^^^^^^^^^
@@ -415,7 +415,7 @@ to colors. One or several `standard Trollimage color maps`_ may be used as in
 the example here::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
           palettes:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
@@ -425,7 +425,7 @@ In addition, it is also possible to add a linear alpha channel to the colormap, 
 following example::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - {colors: ylorrd, min_alpha: 100, max_alpha: 255}
@@ -437,7 +437,7 @@ Sea Surface Temperature (SST) imagery, as in this example with the EUMETSAT
 Ocean and Sea Ice SAF (OSISAF) GHRSST product::
 
     - name: osisaf_sst
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
           palettes:
             - colors: [
@@ -478,7 +478,7 @@ as such by the reader.  To apply such a palette directly, pass the ``dataset``
 keyword.  For example::
 
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
           - dataset: ctth_alti_pal
@@ -492,7 +492,7 @@ keyword.  For example::
 
 The above examples are just three different ways to apply colors to images with
 Satpy. There is a wealth of other options for how to declare a colormap, please
-see :func:`~satpy.enhancements.create_colormap` for more inspiration.
+see :func:`~satpy.enhancements.colormap.create_colormap` for more inspiration.
 
 .. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
 
@@ -508,7 +508,7 @@ convolving with a 3x3 kernel.  User can adjust the strength of the
 effect by determining the weight (default: 1.0).  Example::
 
     - name: 3d_effect
-      method: !!python/name:satpy.enhancements.three_d_effect
+      method: !!python/name:satpy.enhancements.convolution.three_d_effect
       kwargs:
         weight: 1.0
 
@@ -533,7 +533,7 @@ Get Enhanced Image
 ^^^^^^^^^^^^^^^^^^
 
 If you have a :class:`~satpy.scene.Scene` object named ``scn`` with
-loaded data, you can run the :func:`~satpy.writers.get_enhanced_image`
+loaded data, you can run the :func:`~satpy.enhancements.enhancer.get_enhanced_image`
 function. This function will convert the provided :class:`xarray.DataArray`
 into a :class:`~trollimage.xrimage.XRImage` object with YAML configured
 enhancements applied. The enhanced DataArray can then be access via the
@@ -541,7 +541,7 @@ enhancements applied. The enhanced DataArray can then be access via the
 
 .. code-block:: python
 
-   from satpy.writers import get_enhanced_image
+   from satpy.enhancements.enhancer import get_enhanced_image
 
    scn = Scene(...)
    scn.load(["my_dataset"])
@@ -554,17 +554,12 @@ Call Enhancement Functions
 
 To not use the YAML configuration files, you can also run the individual
 enhancement operations manually. First, the DataArray must be converted
-to an :class:`~trollimage.xrimage.XRImage` object using
-:func:`~satpy.writers.to_image`.
+to an :class:`~trollimage.xrimage.XRImage`.
 
 .. code-block:: python
 
-   from satpy.writers import to_image
-   img = to_image(composite)
-
-Note this function is different than the ``get_enhanced_image`` function
-used in the previous section as ``to_image`` does not apply any configured
-enhancements.
+   from trollimage.xrimage import XRImage
+   img = XRImage(composite)
 
 Now it is possible to apply enhancements available in the ``XRImage`` class:
 
@@ -578,7 +573,7 @@ Or more complex enhancement functions in Satpy (described above):
 
 .. code-block::
 
-   from satpy.enhancements import
+   from satpy.enhancements.convolution import three_d_effect
    img = three_d_effect(img)
 
 .. note::
@@ -587,7 +582,7 @@ Or more complex enhancement functions in Satpy (described above):
    object and the DataArray underneath inplace. So although the ``img =``
    is unnecessary it is recommended for future compatibility if this changes.
 
-Finally, the :class:`~trollimage.xrimageXRImage` class supports showing an
+Finally, the :class:`~trollimage.xrimage.XRImage` class supports showing an
 image in your system's image viewer:
 
 .. code-block:: python

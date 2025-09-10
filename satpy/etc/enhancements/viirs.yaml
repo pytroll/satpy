@@ -6,7 +6,7 @@ enhancements:
     name: dynamic_dnb
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 1.0}
   water_detection:
     name: WaterDetection
@@ -79,3 +79,22 @@ enhancements:
           ],
           min_value: 0,
           max_value: 201}
+
+  viirs_flames_colorised:
+    standard_name: viirs_flames_colorised
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
+        kwargs:
+          palettes:
+            - { colors: ylorrd, min_value: 330, max_value: 430 , reverse: true}
+
+
+  night_ir105:
+    standard_name: night_ir105
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
+        kwargs:
+          palettes:
+            - { colors: greys, min_value: 190, max_value: 295 }

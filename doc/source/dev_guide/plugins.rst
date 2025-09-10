@@ -7,6 +7,13 @@ Extending Satpy via plugins
     For now, it should not be used for anything else than toy examples and
     should not be relied on.
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 Satpy is able to load additional functionality outside of the builtin features
 in the library. It does this by searching a series of configured paths for
 additional configuration files for:
@@ -64,17 +71,20 @@ A plugin package should consist of three main parts:
    be based on or at least compatible with Satpy's base classes for each
    component or use utilities available from Satpy whenever possible.
 
-   * readers: :class:`~satpy.readers.yaml_reader.FileYAMLReader` for any
+   * readers: :class:`~satpy.readers.core.yaml_reader.FileYAMLReader` for any
      reader subclasses and
-     :class:`~satpy.readers.file_handlers.BaseFileHandler` for any custom file
+     :class:`~satpy.readers.core.file_handlers.BaseFileHandler` for any custom file
      handlers. See :doc:`custom_reader` for more information.
-   * composites and modifiers: :class:`~satpy.composites.CompositeBase` for
-     any generic compositor and :class:`~satpy.composites.GenericCompositor`
+   * composites and modifiers: :class:`~satpy.composites.core.CompositeBase` for
+     any generic compositor and :class:`~satpy.composites.core.GenericCompositor`
      for any composite that represents an image (RGB, L, etc). For modifiers,
-     use :class:`~satpy.modifiers.ModifierBase`.
-   * enhancements: Although not required, consider using
-     :func:`satpy.enhancements.apply_enhancement`.
-   * writers: :class:`~satpy.writers.Writer`
+     use :class:`~satpy.modifiers.base.ModifierBase`.
+   * enhancements: See decorators in :mod:`satpy.enhancements.wrappers` including
+     :func:`~satpy.enhancements.wrappers.exclude_alpha`,
+     :func:`~satpy.enhancements.wrappers.on_separate_bands`,
+     :func:`~satpy.enhancements.wrappers.on_dask_array`, and
+     :func:`~satpy.enhancements.wrappers.using_map_blocks`.
+   * writers: :class:`~satpy.writers.core.base.Writer`
 
    Lastly, this directory should be structured like a standard python package.
    This primarily means a ``mypkg/__init__.py`` file should exist.
