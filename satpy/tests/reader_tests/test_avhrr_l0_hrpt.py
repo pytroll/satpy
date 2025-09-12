@@ -27,11 +27,35 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.hrpt import HRPTFile, dtype
-from satpy.tests.reader_tests.test_avhrr_l1b_gaclac import PygacPatcher
 from satpy.tests.utils import make_dataid
 
 NUMBER_OF_SCANS = 10
 SWATH_WIDTH = 2048
+
+
+class PygacPatcher(unittest.TestCase):
+    """Patch pygac."""
+
+    def setUp(self):
+        """Patch pygac imports."""
+        self.pygac = mock.MagicMock()
+        self.fhs = mock.MagicMock()
+        modules = {
+            "pygac": self.pygac,
+            "pygac.gac_klm": self.pygac.gac_klm,
+            "pygac.gac_pod": self.pygac.gac_pod,
+            "pygac.lac_klm": self.pygac.lac_klm,
+            "pygac.lac_pod": self.pygac.lac_pod,
+            "pygac.utils": self.pygac.utils,
+            "pygac.calibration": self.pygac.calibration,
+        }
+
+        self.module_patcher = mock.patch.dict("sys.modules", modules)
+        self.module_patcher.start()
+
+    def tearDown(self):
+        """Unpatch the pygac imports."""
+        self.module_patcher.stop()
 
 
 class TestHRPTWithFile(unittest.TestCase):
