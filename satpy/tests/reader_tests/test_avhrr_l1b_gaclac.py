@@ -295,14 +295,7 @@ class TestReadingGacKlmFile(GacTestBase):
     def stub(self):
         """Create GAC KLM stub."""
         num_lines = 55
-        times = xr.DataArray(
-            [
-                dt.datetime(2009, 12, 28, 23, 59, 50) + dt.timedelta(milliseconds=line * 500)
-                for line in range(num_lines)
-            ],
-        )
-        msecs_since_00 = (1000 * (
-                    times.dt.hour * 3600 + times.dt.minute * 60 + times.dt.second) + times.dt.microsecond / 1000)
+        times, msecs_since_00 = _get_times(num_lines)
         telemetry = np.zeros(1, dtype=pygac.klm_reader.analog_telemetry_v2)
         scans = np.ones(num_lines, dtype=pygac.gac_klm.scanline)
         scans["scan_line_number"] = np.arange(num_lines)
