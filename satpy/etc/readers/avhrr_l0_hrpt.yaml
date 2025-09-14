@@ -1,6 +1,6 @@
 reader:
-  name: avhrr_l1b_hrpt
-  short_name: AVHRR l1b hrpt
+  name: avhrr_l0_hrpt
+  short_name: AVHRR l0 hrpt
   long_name: NOAA 15 to 19 AVHRR data in raw HRPT format
   description: HRPT Reader for AVHRR
   status: Alpha

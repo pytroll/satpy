@@ -18,10 +18,6 @@
 
 """Reading and calibrating hrpt avhrr data.
 
-Todo:
-- AMSU
-- Compare output with AAPP
-
 Reading:
 http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c4/sec4-1.htm#t413-1
 

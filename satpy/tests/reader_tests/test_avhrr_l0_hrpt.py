@@ -81,7 +81,7 @@ class TestHRPTGetUncalibratedData:
     """Test case for reading uncalibrated hrpt data."""
 
     def test_get_dataset_returns_a_dataarray(self, hrpt_fh):
-        """Test that get_dataset returns a dataarray."""
+        """Test that get_dataset returns a data array."""
         result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="counts"), {})
         assert isinstance(result, xr.DataArray)
 
@@ -91,7 +91,7 @@ class TestHRPTGetUncalibratedData:
         assert result.attrs["platform_name"] == "NOAA 19"
 
     def test_no_calibration_values_are_raw(self, hrpt_fh):
-        """Test that the values of non-calibrated data is 1."""
+        """Test that the values of uncalibrated data is the raw data."""
         result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="counts"), {})
         assert (result.values == COUNTS[:, :, 0]).all()
 
@@ -156,7 +156,6 @@ class TestHRPTNavigation:
 
     def test_longitudes_are_returned(self, hrpt_fh, mock_nav):
         """Check that latitudes are returned properly."""
-        # self._prepare_mocks(Orbital, SatelliteInterpolator, get_lonlatalt)
         dataset_id = make_dataid(name="longitude")
         result = hrpt_fh.get_dataset(dataset_id, {})
         assert (result == LONS).all()
