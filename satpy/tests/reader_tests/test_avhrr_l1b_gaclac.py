@@ -190,11 +190,6 @@ class GacTestBase(metaclass=abc.ABCMeta):
     def platform_name_exp(self):
         """Expected platform name."""
 
-    @pytest.fixture(scope="class")
-    def reader_kwargs(self, tle_dir):
-        """Reader keyword arguments."""
-        return {"tle_dir": str(tle_dir), "tle_name": "TLE_%(satname)s.txt", "strip_invalid_coords": False}
-
     @pytest.fixture(autouse=True, scope="class")
     def tle_file(self, tle_dir, tle):
         """Write TLE file."""
@@ -282,6 +277,11 @@ class TestReadingGacKlmFile(GacTestBase):
     platform_name_exp = "noaa15"
 
     @pytest.fixture(scope="class")
+    def reader_kwargs(self, tle_dir):
+        """Reader keyword arguments."""
+        return {"tle_dir": str(tle_dir), "tle_name": "TLE_%(satname)s.txt", "strip_invalid_coords": True}
+
+    @pytest.fixture(scope="class")
     def tle(self):
         """NOAA-15 two line elements."""
         return """1 25338U 98030A   09361.80631861 -.00000112  00000-0 -29536-4 0  2104
@@ -354,6 +354,13 @@ class TestReadingGacPodFile(GacTestBase):
     start_time_exp_slice = dt.datetime(2009, 12, 28, 23, 59, 54, 800000)
     end_time_exp_slice = dt.datetime(2009, 12, 28, 23, 59, 59, 800000)
     platform_name_exp = "noaa14"
+
+    @pytest.fixture(scope="class")
+    def reader_kwargs(self, tle_dir):
+        """Reader keyword arguments."""
+        # When stripping invaid coordinates the remaining test sample is too
+        # small for the POD reader, so turn it off.
+        return {"tle_dir": str(tle_dir), "tle_name": "TLE_%(satname)s.txt", "strip_invalid_coords": False}
 
     @pytest.fixture(scope="class")
     def tle(self):
