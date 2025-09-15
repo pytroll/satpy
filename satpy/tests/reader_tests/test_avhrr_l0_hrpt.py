@@ -17,221 +17,173 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the hrpt reader."""
 
-import os
-import unittest
-from contextlib import suppress
-from tempfile import NamedTemporaryFile
+from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
-from satpy.readers.hrpt import HRPTFile, dtype
-from satpy.tests.reader_tests.test_avhrr_l1b_gaclac import PygacPatcher
+from satpy.readers import hrpt
+from satpy.readers.hrpt import HRPTFile, scanline_dtype, time_seconds
 from satpy.tests.utils import make_dataid
 
 NUMBER_OF_SCANS = 10
 SWATH_WIDTH = 2048
 
+COUNTS = (np.arange(5 * NUMBER_OF_SCANS * SWATH_WIDTH) % 500 + 450).reshape((NUMBER_OF_SCANS, SWATH_WIDTH, 5))
+LONS = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH))
+LATS = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH)) * 2
 
-class TestHRPTWithFile(unittest.TestCase):
-    """Test base class with writing a fake file."""
 
-    def setUp(self) -> None:
+@pytest.fixture
+def hrpt_file(tmp_path):
         """Set up the test case."""
-        test_data = np.ones(NUMBER_OF_SCANS, dtype=dtype)
+        test_data = np.ones(NUMBER_OF_SCANS, dtype=scanline_dtype)
+        time_code = []
+        dt = datetime(2009, 6, 9, 9, 45)
+        offset = timedelta(seconds=1/6)
+        for line in range(NUMBER_OF_SCANS):
+            time_code.append(to_timecode(dt + offset * line)[0])
+        test_data["timecode"] = time_code
+        test_data["image_data"] = COUNTS
+        test_data["telemetry"]["PRT"] = 250
+        test_data["telemetry"]["PRT"][::5] = 0
         # Channel 3a
         test_data["id"]["id"][:5] = 891
+        test_data[:5]["space_data"] = [38, 39, 38, 991, 995]
+        test_data[:5]["back_scan"] = [40, 445, 420]
         # Channel 3b
         test_data["id"]["id"][5:] = 890
-        with NamedTemporaryFile(mode="w+", suffix=".hmf", delete=False) as hrpt_file:
-            self.filename = hrpt_file.name
-            test_data.tofile(hrpt_file)
-
-    def tearDown(self) -> None:
-        """Tear down the test case."""
-        with suppress(OSError):
-            os.remove(self.filename)
-
-    def _get_dataset(self, dataset_id):
-        fh = HRPTFile(self.filename, {}, {})
-        return fh.get_dataset(dataset_id, {})
+        test_data[5:]["space_data"] = [38, 39, 980, 991, 995]
+        test_data[5:]["back_scan"] = [440, 445, 420]
+        filename = tmp_path / "20250609094500_noaa19.hmf"
+        test_data.tofile(filename)
+        return filename
 
 
-class TestHRPTReading(TestHRPTWithFile):
+@pytest.fixture
+def hrpt_fh(hrpt_file):
+    """Open the file handler."""
+    return HRPTFile(hrpt_file, {}, {})
+
+
+class TestHRPTReading:
     """Test case for reading hrpt data."""
 
-    def test_reading(self):
+    def test_reading(self, hrpt_file):
         """Test that data is read."""
-        fh = HRPTFile(self.filename, {}, {})
+        fh = HRPTFile(hrpt_file, {}, {})
         assert fh._data is not None
 
 
-class TestHRPTGetUncalibratedData(TestHRPTWithFile):
+class TestHRPTGetUncalibratedData:
     """Test case for reading uncalibrated hrpt data."""
 
-    def _get_channel_1_counts(self):
-        return self._get_dataset(make_dataid(name="1", calibration="counts"))
-
-    def test_get_dataset_returns_a_dataarray(self):
-        """Test that get_dataset returns a dataarray."""
-        result = self._get_channel_1_counts()
+    def test_get_dataset_returns_a_dataarray(self, hrpt_fh):
+        """Test that get_dataset returns a data array."""
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="counts"), {})
         assert isinstance(result, xr.DataArray)
 
-    def test_platform_name(self):
+    def test_platform_name(self, hrpt_fh):
         """Test that the platform name is correct."""
-        result = self._get_channel_1_counts()
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="counts"), {})
         assert result.attrs["platform_name"] == "NOAA 19"
 
-    def test_no_calibration_values_are_1(self):
-        """Test that the values of non-calibrated data is 1."""
-        result = self._get_channel_1_counts()
-        assert (result.values == 1).all()
+    def test_no_calibration_values_are_raw(self, hrpt_fh):
+        """Test that the values of uncalibrated data is the raw data."""
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="counts"), {})
+        assert (result.values == COUNTS[:, :, 0]).all()
 
 
-def fake_calibrate_solar(data, *args, **kwargs):
-    """Fake calibration."""
-    del args, kwargs
-    return data * 25.43 + 3
-
-
-def fake_calibrate_thermal(data, *args, **kwargs):
-    """Fake calibration."""
-    del args, kwargs
-    return data * 35.43 + 3
-
-
-class CalibratorPatcher(PygacPatcher):
-    """Patch pygac."""
-
-    def setUp(self) -> None:
-        """Patch pygac's calibration."""
-        super().setUp()
-
-        # Import things to patch here to make them patchable. Otherwise another function
-        # might import it first which would prevent a successful patch.
-        from pygac.calibration import Calibrator, calibrate_solar, calibrate_thermal
-        self.Calibrator = Calibrator
-        self.calibrate_thermal = calibrate_thermal
-        self.calibrate_thermal.side_effect = fake_calibrate_thermal
-        self.calibrate_solar = calibrate_solar
-        self.calibrate_solar.side_effect = fake_calibrate_solar
-
-
-class TestHRPTWithPatchedCalibratorAndFile(CalibratorPatcher, TestHRPTWithFile):
-    """Test case with patched calibration routines and a synthetic file."""
-
-    def setUp(self) -> None:
-        """Set up the test case."""
-        CalibratorPatcher.setUp(self)
-        TestHRPTWithFile.setUp(self)
-
-    def tearDown(self):
-        """Tear down the test case."""
-        CalibratorPatcher.tearDown(self)
-        TestHRPTWithFile.tearDown(self)
-
-
-class TestHRPTGetCalibratedReflectances(TestHRPTWithPatchedCalibratorAndFile):
+class TestHRPTGetCalibratedReflectances:
     """Test case for reading calibrated reflectances from hrpt data."""
 
-    def _get_channel_1_reflectance(self):
-        """Get the channel 1 reflectance."""
-        dataset_id = make_dataid(name="1", calibration="reflectance")
-        return self._get_dataset(dataset_id)
-
-    def test_calibrated_reflectances_values(self):
+    def test_calibrated_reflectances_values(self, hrpt_fh):
         """Test the calibrated reflectance values."""
-        result = self._get_channel_1_reflectance()
-        np.testing.assert_allclose(result.values, 28.43)
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
+        np.testing.assert_allclose(result.values.mean(), 62.262344)
 
 
-class TestHRPTGetCalibratedBT(TestHRPTWithPatchedCalibratorAndFile):
+class TestHRPTGetCalibratedBT:
     """Test case for reading calibrated brightness temperature from hrpt data."""
 
-    def _get_channel_4_bt(self):
-        """Get the channel 4 bt."""
-        dataset_id = make_dataid(name="4", calibration="brightness_temperature")
-        return self._get_dataset(dataset_id)
-
-    def test_calibrated_bt_values(self):
+    def test_calibrated_bt_values(self, hrpt_fh):
         """Test the calibrated reflectance values."""
-        result = self._get_channel_4_bt()
-        np.testing.assert_allclose(result.values, 38.43)
+        result = hrpt_fh.get_dataset(make_dataid(name="4", calibration="brightness_temperature"), {})
+        np.testing.assert_allclose(result.values.mean(), 249.52884)
 
 
-class TestHRPTChannel3(TestHRPTWithPatchedCalibratorAndFile):
+class TestHRPTChannel3:
     """Test case for reading calibrated brightness temperature from hrpt data."""
 
-    def _get_channel_3b_bt(self):
-        """Get the channel 4 bt."""
-        dataset_id = make_dataid(name="3b", calibration="brightness_temperature")
-        return self._get_dataset(dataset_id)
-
-    def _get_channel_3a_reflectance(self):
-        """Get the channel 4 bt."""
-        dataset_id = make_dataid(name="3a", calibration="reflectance")
-        return self._get_dataset(dataset_id)
-
-    def _get_channel_3a_counts(self):
-        """Get the channel 4 bt."""
-        dataset_id = make_dataid(name="3a", calibration="counts")
-        return self._get_dataset(dataset_id)
-
-    def test_channel_3b_masking(self):
+    def test_channel_3b_masking(self, hrpt_fh):
         """Test that channel 3b is split correctly."""
-        result = self._get_channel_3b_bt()
+        result = hrpt_fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
         assert np.isnan(result.values[:5]).all()
         assert np.isfinite(result.values[5:]).all()
 
-    def test_channel_3a_masking(self):
+    def test_channel_3a_masking(self, hrpt_fh):
         """Test that channel 3a is split correctly."""
-        result = self._get_channel_3a_reflectance()
+        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
 
-    def test_uncalibrated_channel_3a_masking(self):
+    def test_uncalibrated_channel_3a_masking(self, hrpt_fh):
         """Test that channel 3a is split correctly."""
-        result = self._get_channel_3a_counts()
+        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="counts"), {})
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
 
 
-class TestHRPTNavigation(TestHRPTWithFile):
+@pytest.fixture
+def mock_nav(monkeypatch):
+        """Prepare the mocks."""
+        monkeypatch.setattr(hrpt, "compute_pixels", mock.Mock())
+        Orbital = mock.Mock()
+        Orbital.return_value.get_position.return_value = mock.MagicMock(), mock.MagicMock()
+        monkeypatch.setattr(hrpt, "Orbital", Orbital)
+        get_lonlatalt = mock.Mock()
+        get_lonlatalt.return_value = (mock.MagicMock(), mock.MagicMock(), mock.MagicMock())
+        monkeypatch.setattr(hrpt, "get_lonlatalt", get_lonlatalt)
+        SatelliteInterpolator = mock.Mock()
+        SatelliteInterpolator.return_value.interpolate.return_value = LONS, LATS
+        monkeypatch.setattr(hrpt, "SatelliteInterpolator", SatelliteInterpolator)
+
+
+class TestHRPTNavigation:
     """Test case for computing HRPT navigation."""
 
-    def setUp(self) -> None:
-        """Set up the test case."""
-        super().setUp()
-        self.fake_lons = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH))
-        self.fake_lats = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH)) * 2
-
-    def _prepare_mocks(self, Orbital, SatelliteInterpolator, get_lonlatalt):
-        """Prepare the mocks."""
-        Orbital.return_value.get_position.return_value = mock.MagicMock(), mock.MagicMock()
-        get_lonlatalt.return_value = (mock.MagicMock(), mock.MagicMock(), mock.MagicMock())
-        SatelliteInterpolator.return_value.interpolate.return_value = self.fake_lons, self.fake_lats
-
-    @mock.patch.multiple("satpy.readers.hrpt",
-                         Orbital=mock.DEFAULT,
-                         compute_pixels=mock.DEFAULT,
-                         get_lonlatalt=mock.DEFAULT,
-                         SatelliteInterpolator=mock.DEFAULT)
-    def test_longitudes_are_returned(self, Orbital, compute_pixels, get_lonlatalt, SatelliteInterpolator):
+    def test_longitudes_are_returned(self, hrpt_fh, mock_nav):
         """Check that latitudes are returned properly."""
-        self._prepare_mocks(Orbital, SatelliteInterpolator, get_lonlatalt)
         dataset_id = make_dataid(name="longitude")
-        result = self._get_dataset(dataset_id)
-        assert (result == self.fake_lons).all()
+        result = hrpt_fh.get_dataset(dataset_id, {})
+        assert (result == LONS).all()
 
-    @mock.patch.multiple("satpy.readers.hrpt",
-                         Orbital=mock.DEFAULT,
-                         compute_pixels=mock.DEFAULT,
-                         get_lonlatalt=mock.DEFAULT,
-                         SatelliteInterpolator=mock.DEFAULT)
-    def test_latitudes_are_returned(self, Orbital, compute_pixels, get_lonlatalt, SatelliteInterpolator):
+    def test_latitudes_are_returned(self, hrpt_fh, mock_nav):
         """Check that latitudes are returned properly."""
-        self._prepare_mocks(Orbital, SatelliteInterpolator, get_lonlatalt)
         dataset_id = make_dataid(name="latitude")
-        result = self._get_dataset(dataset_id)
-        assert (result == self.fake_lats).all()
+        result = hrpt_fh.get_dataset(dataset_id, {})
+        assert (result == LATS).all()
+
+
+def to_timecode(dt_time):
+    """Convert a datetime to timecode for hrpt scans."""
+    year = dt_time.year
+    delta = dt_time - datetime(year, 1, 1)
+    days = delta.days + 1
+    timecode = np.array([0, 0, 0, 0])
+    timecode[0] = days << 1
+    msecs = int(delta.seconds * 1000 + delta.microseconds / 1000)
+    timecode[1] = (msecs >> 20) & 127
+    timecode[2] = (msecs >> 10) & 1023
+    timecode[3] = msecs & 1023
+    return timecode, year
+
+
+def test_time_seconds():
+    """Test conversion of timecode to datetime64."""
+    current = datetime.now()
+    current = current.replace(microsecond=round(current.microsecond, -3))
+    timecode, year = to_timecode(current)
+    assert time_seconds(np.array([timecode], "u2"), year) == np.datetime64(current)

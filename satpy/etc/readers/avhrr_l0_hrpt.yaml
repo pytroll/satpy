@@ -1,0 +1,114 @@
+reader:
+  name: avhrr_l0_hrpt
+  short_name: AVHRR l0 hrpt
+  long_name: NOAA 15 to 19 AVHRR data in raw HRPT format
+  description: HRPT Reader for AVHRR
+  status: Alpha
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  sensors: [avhrr-3, avhrr-2]
+  default_channels: [1, 2, 3a, 3b, 4, 5]
+
+datasets:
+  "1":
+    name: "1"
+    wavelength: [0.58, 0.63, 0.68]
+    resolution: 1050
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    coordinates: [longitude, latitude]
+    file_type: avhrr_hrpt
+  "2":
+    name: "2"
+    wavelength: [0.725, 0.8625, 1.0]
+    resolution: 1050
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    coordinates: [longitude, latitude]
+    file_type: avhrr_hrpt
+  "3a":
+    name: "3a"
+    wavelength: [1.58, 1.61, 1.64]
+    resolution: 1050
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+    coordinates: [longitude, latitude]
+    file_type: avhrr_hrpt
+  "3b":
+    name: "3b"
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1050
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    coordinates: [longitude, latitude]
+    file_type: avhrr_hrpt
+  "4":
+    name: "4"
+    wavelength: [10.3, 10.8, 11.3]
+    resolution: 1050
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    coordinates: [longitude, latitude]
+    file_type: avhrr_hrpt
+  "5":
+    name: "5"
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 1050
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+    coordinates: [longitude, latitude]
+    file_type: avhrr_hrpt
+
+  longitude:
+    name: longitude
+    resolution: 1050
+    file_type: avhrr_hrpt
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution: 1050
+    file_type: avhrr_hrpt
+    standard_name: latitude
+    units: degree
+
+file_types:
+  avhrr_hrpt:
+    file_reader: !!python/name:satpy.readers.hrpt.HRPTFile
+    file_patterns:
+      [
+        "{start_time:%Y%m%d%H%M%S}_{platform_name}.hmf",
+        "{start_time:%Y%j%H%M}_{platform_name}_hmf.hmf",
+        "hrpt16_{platform_name:s}_{start_time:%d-%b-%Y_%H:%M:%S.%f}_{orbit_number:05d}",
+      ]
