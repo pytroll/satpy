@@ -465,3 +465,24 @@ class TestReadingGacFile:
         scene.load(["latitude"])
         assert scene["latitude"].shape == (expect.num_lines, 51)
         assert scene["latitude"].dims == ("y", "x_every_eighth")
+
+
+def test_all_data_masked_out(tmp_dir: Path, tle_dir: Path):
+    """Test reading a file where all scanlines are masked."""
+    flags = pygac.klm_reader.KLM_QualityIndicator
+    params = TestParams(
+        data_type=DataType.KLM,
+        satellite="noaa15",
+        tle=tle_noaa15,
+        filename="NSS.GHRR.NK.D09362.S2359.E0001.B6044445.GC",
+        reader_kwargs={},
+        qual_flag=flags.FATAL_FLAG | flags.CALIBRATION | flags.NO_EARTH_LOCATION
+    )
+    _write_tle(params, tle_dir)
+    stub = _write_stub(params, tmp_dir)
+    reader_kwargs = _get_reader_kwargs(params, tle_dir)
+    scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                  reader_kwargs=reader_kwargs)
+    scene.load(["1"])
+    with pytest.raises(KeyError):
+        scene["1"].compute()
