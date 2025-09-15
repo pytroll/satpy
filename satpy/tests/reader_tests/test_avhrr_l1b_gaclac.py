@@ -17,8 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Pygac interface."""
-import abc
 import datetime as dt
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
 
 import numpy as np
 import pygac.gac_klm
@@ -141,161 +143,67 @@ class TestGACLACFile:
                 assert fh.reader_kwargs["header_date"] > dt.date(1994, 11, 15)
 
 
-@pytest.fixture(scope="class")
-def tmp_dir(tmp_path_factory):
-    """Create temporary directory."""
-    return tmp_path_factory.mktemp("stubs")
+
+class DataType(Enum):
+    """AVHRR GAC data type."""
+    KLM = "klm"
+    POD = "pod"
 
 
-@pytest.fixture(scope="class")
-def tle_dir(tmp_dir):
-    """Create TLE directory."""
-    tle_dir = tmp_dir / "tle"
-    tle_dir.mkdir()
-    return tle_dir
+@dataclass
+class TestParams:
+    """Test parameters."""
+    data_type: DataType
+    satellite: str
+    tle: str
+    filename: str
+    reader_kwargs: dict
+    qual_flag: int = 0
+
+@dataclass
+class Expectations:
+    """Expected scene properties."""
+    num_lines: int
+    start_time: dt.datetime
+    end_time: dt.datetime
+    num_lines_slc: int
+    start_time_slc: dt.datetime
+    end_time_slc: dt.datetime
+    platform_name: str
 
 
-class GacTestBase(metaclass=abc.ABCMeta):
-    """Base class for GAC reader tests."""
+tle_noaa14 = """1 23455U 94089A   09363.50221683 -.00000013  00000-0  16673-4 0  8853
+2 23455  98.8939  80.3339 0009410   2.6550 357.4665 14.13775739773522
+1 23455U 94089A   09363.50221683 -.00000013  00000-0  16673-4 0  8864
+2 23455  98.8939  80.3339 0009410   2.6550 357.4665 14.13775739773522
+1 23455U 94089A   09363.78530466 -.00000027  00000-0  94367-5 0  8879
+2 23455  98.8938  80.6155 0009463   1.7605 358.3582 14.13775588773563"""
 
-    @abc.abstractproperty
-    def filename(self):
-        """GAC file name."""
-
-    @abc.abstractproperty
-    def num_lines_exp(self):
-        """Expected number of scanlines."""
-
-    @abc.abstractproperty
-    def num_lines_exp_slice(self):
-        """Expected number of scanlines after slicing."""
-
-    @abc.abstractproperty
-    def start_time_exp(self):
-        """Expected start time."""
-
-    @abc.abstractproperty
-    def end_time_exp(self):
-        """Expected end time."""
-
-    @abc.abstractproperty
-    def start_time_exp_slice(self):
-        """Expected start time after slicing."""
-
-    @abc.abstractproperty
-    def end_time_exp_slice(self):
-        """Expected end time after slicing."""
-
-    @abc.abstractproperty
-    def platform_name_exp(self):
-        """Expected platform name."""
-
-    @pytest.fixture(autouse=True, scope="class")
-    def tle_file(self, tle_dir, tle):
-        """Write TLE file."""
-        filename = tle_dir / f"TLE_{self.platform_name_exp}.txt"
-        with filename.open("w") as fh:
-            fh.write(tle)
-
-    @pytest.fixture(scope="class")
-    def stub_file(self, tmp_dir, stub):
-        """Write stub file."""
-        filename = tmp_dir / self.filename
-        with filename.open("wb") as fh:
-            for array in stub:
-                array.tofile(fh)
-        return filename
-
-    def test_get_channel_calibrated(self, stub_file, reader_kwargs):
-        """Test getting calibrated channel."""
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["1"])
-        assert scene["1"].shape == (self.num_lines_exp, 409)
-        assert scene["1"].dims == ("y", "x")
-        assert scene["1"].start_time == self.start_time_exp
-        assert scene["1"].end_time == self.end_time_exp
-        assert scene["1"].units == "%"
-        assert "tle" in scene["1"].attrs["orbital_parameters"]
-        assert scene["1"].attrs["platform_name"] == self.platform_name_exp
-
-    def test_get_channel_counts(self, stub_file, reader_kwargs):
-        """Test getting raw channel counts."""
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["1"], calibration="counts")
-        assert scene["1"].units == "count"
-
-    def test_slice(self, stub_file, reader_kwargs):
-        """Test slicing a range of scanlines from the overpass."""
-        reader_kwargs = reader_kwargs | {"start_line": 10, "end_line": 20}
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["1"])
-        assert scene["1"].shape == (self.num_lines_exp_slice, 409)
-        assert scene["1"].start_time == self.start_time_exp_slice
-        assert scene["1"].end_time == self.end_time_exp_slice
-
-    def test_get_latlon(self, stub_file, reader_kwargs):
-        """Test getting lat/lon coordinates."""
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["latitude"])
-        assert scene["latitude"].shape == (self.num_lines_exp, 409)
-        assert scene["latitude"].dims == ("y", "x")
-        assert scene["latitude"].units == "degrees_north"
-
-    def test_get_angles(self, stub_file, reader_kwargs):
-        """Test getting sun/sensor angles."""
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["sensor_zenith_angle"])
-        assert scene["sensor_zenith_angle"].shape == (self.num_lines_exp, 409)
-        assert scene["sensor_zenith_angle"].dims == ("y", "x")
-        assert scene["sensor_zenith_angle"].units == "degrees"
-
-    def test_get_qual_flags(self, stub_file, reader_kwargs):
-        """Test getting quality flags."""
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["qual_flags"])
-        assert scene["qual_flags"].shape == (self.num_lines_exp, 7)
-        assert scene["qual_flags"].dims == ("y", "num_flags")
-
-
-
-class TestReadingGacKlmFile(GacTestBase):
-    """Test reading GAC KLM file."""
-    filename = "NSS.GHRR.NK.D09362.S2359.E0001.B6044445.GC"
-    num_lines_exp = 55
-    num_lines_exp_slice = 11
-    # Start time doesn't make sense, probably side effect of using the stub
-    start_time_exp = dt.datetime(2009, 12, 29, 9, 5, 57, 500000)
-    end_time_exp = dt.datetime(2009, 12, 29, 0, 0, 16, 500000)
-    start_time_exp_slice = dt.datetime(2009, 12, 28, 23, 59, 54, 500000)
-    end_time_exp_slice = dt.datetime(2009, 12, 28, 23, 59, 59, 500000)
-    platform_name_exp = "noaa15"
-
-    @pytest.fixture(scope="class")
-    def reader_kwargs(self, tle_dir):
-        """Reader keyword arguments."""
-        return {"tle_dir": str(tle_dir), "tle_name": "TLE_%(satname)s.txt", "strip_invalid_coords": True}
-
-    @pytest.fixture(scope="class")
-    def tle(self):
-        """NOAA-15 two line elements."""
-        return """1 25338U 98030A   09361.80631861 -.00000112  00000-0 -29536-4 0  2104
+tle_noaa15 = """1 25338U 98030A   09361.80631861 -.00000112  00000-0 -29536-4 0  2104
 2 25338  98.6031 346.9543 0010160 209.9249 150.1326 14.24798410604342
 1 25338U 98030A   09362.36812158 -.00000012  00000-0  13243-4 0  2102
 2 25338  98.6030 347.5048 0010160 208.4397 151.6285 14.24799183604423
 1 25338U 98030A   09363.49172435  .00000077  00000-0  51611-4 0  2116
 2 25338  98.6031 348.6054 0010232 205.1043 154.9644 14.24799790604581"""
 
-    @pytest.fixture(scope="class")
-    def stub(self):
-        """Create GAC KLM stub."""
+
+
+class FakeDataGenerator:
+    """Generate fake GAC data."""
+
+    @staticmethod
+    def get_data(params: TestParams) -> list[np.ndarray]:
+        """Get fake data."""
+        methods = {
+            DataType.KLM: FakeDataGenerator._get_klm_data,
+            DataType.POD: FakeDataGenerator._get_pod_data,
+        }
+        return methods[params.data_type](params.filename, params.qual_flag)
+
+    @staticmethod
+    def _get_klm_data(filename: str, qual_flag: int):
         num_lines = 55
-        times, msecs_since_00 = _get_times(num_lines)
+        times, msecs_since_00 = FakeDataGenerator._get_times(num_lines)
         telemetry = np.zeros(1, dtype=pygac.klm_reader.analog_telemetry_v2)
         scans = np.ones(num_lines, dtype=pygac.gac_klm.scanline)
         scans["scan_line_number"] = np.arange(num_lines)
@@ -303,10 +211,11 @@ class TestReadingGacKlmFile(GacTestBase):
         scans["scan_line_day_of_year"] = times.dt.dayofyear.values
         scans["scan_line_utc_time_of_day"] = msecs_since_00.values
         scans["telemetry"]["PRT"] = np.repeat(np.arange(num_lines), 3).reshape((num_lines, 3))
+        scans["quality_indicator_bit_field"] = np.full(num_lines, qual_flag)
 
         hdr = np.zeros(1, dtype=pygac.klm_reader.header)
         hdr["data_type_code"] = 2  # GAC
-        hdr["data_set_name"] = self.filename
+        hdr["data_set_name"] = filename
         hdr["noaa_spacecraft_identification_code"] = 4  # NOAA-15
         hdr["noaa_level_1b_format_version_number"] = 2
         hdr["count_of_data_records"] = num_lines
@@ -318,65 +227,24 @@ class TestReadingGacKlmFile(GacTestBase):
 
         return [hdr, telemetry, spare, scans]
 
-    def test_get_latlon_no_interpolation(self, stub_file, reader_kwargs):
-        """Test getting lat/lon coordinates without interpolation.
+    @staticmethod
+    def _get_times(num_lines: int):
+        times = xr.DataArray(
+            [
+                dt.datetime(2009, 12, 28, 23, 59, 50) + dt.timedelta(milliseconds=line/GACReader.scan_freq)
+                for line in range(num_lines)
+            ],
+        )
+        msecs_since_00 = (
+            1000 * (times.dt.hour * 3600 + times.dt.minute * 60 + times.dt.second) +
+            times.dt.microsecond / 1000
+        )
+        return times, msecs_since_00
 
-        Only works for KLM, because the stub file is too small.
-        """
-        reader_kwargs = reader_kwargs | {"interpolate_coords": False}
-        scene = Scene(filenames=[stub_file], reader="avhrr_l1b_gaclac",
-                      reader_kwargs=reader_kwargs)
-        scene.load(["latitude"])
-        assert scene["latitude"].shape == (self.num_lines_exp, 51)
-        assert scene["latitude"].dims == ("y", "x_every_eighth")
-
-
-def _get_times(num_lines):
-    times = xr.DataArray(
-        [
-            dt.datetime(2009, 12, 28, 23, 59, 50) + dt.timedelta(milliseconds=line/GACReader.scan_freq)
-            for line in range(num_lines)
-        ],
-    )
-    msecs_since_00 = (
-        1000 * (times.dt.hour * 3600 + times.dt.minute * 60 + times.dt.second) +
-        times.dt.microsecond / 1000
-    )
-    return times, msecs_since_00
-
-class TestReadingGacPodFile(GacTestBase):
-    """Test reading GAC POD file."""
-    filename = "NSS.GHRR.NJ.D09362.S2359.E0001.B6044445.GC"
-    num_lines_exp = 54
-    num_lines_exp_slice = 11
-    start_time_exp = dt.datetime(2009, 12, 28, 23, 59, 49, 800000)
-    end_time_exp = dt.datetime(2009, 12, 29, 0, 0, 16, 300000)
-    start_time_exp_slice = dt.datetime(2009, 12, 28, 23, 59, 54, 800000)
-    end_time_exp_slice = dt.datetime(2009, 12, 28, 23, 59, 59, 800000)
-    platform_name_exp = "noaa14"
-
-    @pytest.fixture(scope="class")
-    def reader_kwargs(self, tle_dir):
-        """Reader keyword arguments."""
-        # When stripping invaid coordinates the remaining test sample is too
-        # small for the POD reader, so turn it off.
-        return {"tle_dir": str(tle_dir), "tle_name": "TLE_%(satname)s.txt", "strip_invalid_coords": False}
-
-    @pytest.fixture(scope="class")
-    def tle(self):
-        """NOAA-14 two line elements."""
-        return """1 23455U 94089A   09363.50221683 -.00000013  00000-0  16673-4 0  8853
-2 23455  98.8939  80.3339 0009410   2.6550 357.4665 14.13775739773522
-1 23455U 94089A   09363.50221683 -.00000013  00000-0  16673-4 0  8864
-2 23455  98.8939  80.3339 0009410   2.6550 357.4665 14.13775739773522
-1 23455U 94089A   09363.78530466 -.00000027  00000-0  94367-5 0  8879
-2 23455  98.8938  80.6155 0009463   1.7605 358.3582 14.13775588773563"""
-
-    @pytest.fixture(scope="class")
-    def stub(self):
-        """Create GAC POD stub."""
+    @staticmethod
+    def _get_pod_data(filename: str, qual_flag: int):
         num_lines = 55
-        times, msecs_since_00 = _get_times(num_lines)
+        times, msecs_since_00 = FakeDataGenerator._get_times(num_lines)
         times_enc = encode_timestamps_pod(
             times.dt.year.values,
             times.dt.dayofyear.values,
@@ -387,6 +255,7 @@ class TestReadingGacPodFile(GacTestBase):
         scans["scan_line_number"] = np.arange(num_lines)
         scans["time_code"] = times_enc
         scans["telemetry"] = 100 * np.arange(35 * num_lines).reshape((num_lines, 35))
+        scans["quality_indicators"] = np.empty(num_lines, np.uint16(qual_flag))
 
         hdr0 = np.zeros(1, dtype=pygac.pod_reader.header0)
         hdr0["start_time"] = times_enc[0]
@@ -399,7 +268,7 @@ class TestReadingGacPodFile(GacTestBase):
         return [hdr0, hdr3, spare, scans]
 
 
-def encode_timestamps_pod(year, jday, msec):
+def encode_timestamps_pod(year: np.ndarray, jday: np.ndarray, msec: np.ndarray) -> np.ndarray:
     """Encode timestamps like in POD files.
 
     Reverse engineered from Pygac code by an LLM.
@@ -421,3 +290,178 @@ def test_encode_timestamps_pod():
     np.testing.assert_equal(year_dec, year)
     np.testing.assert_equal(jday_dec, jday)
     np.testing.assert_equal(msec_dec, msec)
+
+
+@pytest.fixture(scope="class")
+def tmp_dir(tmp_path_factory):
+    """Create temporary directory."""
+    return tmp_path_factory.mktemp("stubs")
+
+
+@pytest.fixture(scope="class")
+def tle_dir(tmp_dir: Path):
+    """Create TLE directory."""
+    tle_dir = tmp_dir / "tle"
+    tle_dir.mkdir()
+    return tle_dir
+
+
+
+def _write_tle(params, tle_dir):
+    filename = tle_dir / f"TLE_{params.satellite}.txt"
+    with filename.open("w") as fh:
+        fh.write(params.tle)
+
+
+def _write_stub(params: TestParams, tmp_dir: Path):
+    fake_data = FakeDataGenerator.get_data(params)
+    filename = tmp_dir / params.filename
+    with filename.open("wb") as fh:
+        for array in fake_data:
+            array.tofile(fh)
+    return filename
+
+
+def _get_reader_kwargs(params: TestParams, tle_dir: Path):
+    default = {"tle_name": "TLE_%(satname)s.txt", "tle_dir": str(tle_dir)}
+    return default | params.reader_kwargs
+
+
+class TestReadingGacFile:
+    """Test reading GAC files."""
+
+    klm_params = TestParams(
+        data_type=DataType.KLM,
+        satellite="noaa15",
+        filename="NSS.GHRR.NK.D09362.S2359.E0001.B6044445.GC",
+        reader_kwargs={"strip_invalid_coords": True},
+        tle=tle_noaa15
+    )
+    pod_params = TestParams(
+        data_type=DataType.POD,
+        satellite="noaa14",
+        filename="NSS.GHRR.NJ.D09362.S2359.E0001.B6044445.GC",
+        # When stripping invaid coordinates the remaining test sample is too
+        # small for the POD reader, so turn it off.
+        reader_kwargs={"strip_invalid_coords": False},
+        tle=tle_noaa14
+    )
+
+    @pytest.fixture(params=["klm_params", "pod_params"], scope="class")
+    def params(self, request):
+        """Get test parameters."""
+        return getattr(request.cls, request.param)
+
+    @pytest.fixture(scope="class")
+    def expect(self, params: TestParams):
+        """Get expectations."""
+        klm_expect = Expectations(
+            num_lines=55,
+            start_time=dt.datetime(2009, 12, 29, 9, 5, 57, 500000),
+            end_time=dt.datetime(2009, 12, 29, 0, 0, 16, 500000),
+            num_lines_slc=11,
+            start_time_slc=dt.datetime(2009, 12, 28, 23, 59, 54, 500000),
+            end_time_slc=dt.datetime(2009, 12, 28, 23, 59, 59, 500000),
+            platform_name="noaa15"
+        )
+        pod_expect = Expectations(
+            num_lines=54,
+            start_time=dt.datetime(2009, 12, 28, 23, 59, 49, 800000),
+            end_time=dt.datetime(2009, 12, 29, 0, 0, 16, 300000),
+            num_lines_slc=11,
+            start_time_slc=dt.datetime(2009, 12, 28, 23, 59, 54, 800000),
+            end_time_slc=dt.datetime(2009, 12, 28, 23, 59, 59, 800000),
+            platform_name="noaa14"
+        )
+        exp = {
+            DataType.KLM: klm_expect,
+            DataType.POD: pod_expect
+        }
+        return exp[params.data_type]
+
+    @pytest.fixture(autouse=True, scope="class")
+    def tle_file(self, tle_dir: Path, params: TestParams):
+        """Write TLE file."""
+        _write_tle(params, tle_dir)
+
+    @pytest.fixture(scope="class")
+    def stub(self, tmp_dir: Path, params: TestParams):
+        """Write stub file."""
+        return _write_stub(params, tmp_dir)
+
+    @pytest.fixture(scope="class")
+    def reader_kwargs(self, params: TestParams, tle_dir: Path):
+        """Get reader keyword arguments."""
+        return _get_reader_kwargs(params, tle_dir)
+
+    def test_get_channel_calibrated(self, stub: Path, reader_kwargs: dict, expect: Expectations):
+        """Test getting calibrated channel."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["1"])
+        assert scene["1"].shape == (expect.num_lines, 409)
+        assert scene["1"].dims == ("y", "x")
+        assert scene["1"].start_time == expect.start_time
+        assert scene["1"].end_time == expect.end_time
+        assert scene["1"].units == "%"
+        assert "tle" in scene["1"].attrs["orbital_parameters"]
+        assert scene["1"].attrs["platform_name"] == expect.platform_name
+
+    def test_get_channel_counts(self, stub: Path, reader_kwargs: dict):
+        """Test getting raw channel counts."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["1"], calibration="counts")
+        assert scene["1"].units == "count"
+
+    def test_slice(self, stub: Path, reader_kwargs: dict, expect: Expectations):
+        """Test slicing a range of scanlines from the overpass."""
+        slice_kwargs = reader_kwargs | {"start_line": 10, "end_line": 20}
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=slice_kwargs)
+        scene.load(["1"])
+        assert scene["1"].shape == (expect.num_lines_slc, 409)
+        assert scene["1"].start_time == expect.start_time_slc
+        assert scene["1"].end_time == expect.end_time_slc
+
+    def test_get_latlon(self, stub: Path, reader_kwargs: dict, expect: Expectations):
+        """Test getting lat/lon coordinates."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["latitude"])
+        assert scene["latitude"].shape == (expect.num_lines, 409)
+        assert scene["latitude"].dims == ("y", "x")
+        assert scene["latitude"].units == "degrees_north"
+
+    def test_get_angles(self, stub: Path, reader_kwargs: dict, expect: Expectations):
+        """Test getting sun/sensor angles."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["sensor_zenith_angle"])
+        assert scene["sensor_zenith_angle"].shape == (expect.num_lines, 409)
+        assert scene["sensor_zenith_angle"].dims == ("y", "x")
+        assert scene["sensor_zenith_angle"].units == "degrees"
+
+    def test_get_qual_flags(self, stub: Path, reader_kwargs: dict, expect: Expectations):
+        """Test getting quality flags."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["qual_flags"])
+        assert scene["qual_flags"].shape == (expect.num_lines, 7)
+        assert scene["qual_flags"].dims == ("y", "num_flags")
+
+    def test_get_latlon_without_interp(self, stub: Path, params: TestParams, expect: Expectations, tle_dir: Path):
+        """Test getting lat/lon coordinates without interpolation.
+
+        Only works for KLM, because the stub file is too small.
+        """
+        if params.data_type == DataType.POD:
+            pytest.skip()
+
+        params.reader_kwargs = {"interpolate_coords": False}
+        reader_kwargs = _get_reader_kwargs(params, tle_dir)
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["latitude"])
+        assert scene["latitude"].shape == (expect.num_lines, 51)
+        assert scene["latitude"].dims == ("y", "x_every_eighth")
