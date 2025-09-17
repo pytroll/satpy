@@ -1,3 +1,4 @@
+"""Various functions to use with the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method."""
 from __future__ import annotations
 
 from typing import Callable, Iterable, Mapping, Optional, Sequence
