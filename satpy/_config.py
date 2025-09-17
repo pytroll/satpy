@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -53,6 +51,12 @@ _CONFIG_DEFAULTS = {
     "sensor_angles_position_preference": "actual",
     "readers": {
         "clip_negative_radiances": False,
+        "preload": {
+            "enable": False,
+            "step": 2,
+            "attempts": 300,
+            "assume_distributed": False,
+        },
     },
 }
 
