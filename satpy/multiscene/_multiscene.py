@@ -350,7 +350,7 @@ class MultiScene(object):
         """
         if blend_function is None:
             # delay importing blend funcs until now in case they aren't used
-            from ._blend_funcs import stack
+            from .blend_funcs import stack
             blend_function = stack
 
         new_scn = Scene()
