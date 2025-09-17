@@ -6,6 +6,8 @@ reader:
     Reader for EUMETSAT EPS-SG 3MI Multi-Angle Polarimeter Level 1C Radiance files in NetCDF4 format per PFS
   sensors: [3mi]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  supports_fsspec: true
+  status: Beta
 
   data_identification_keys:
     name:

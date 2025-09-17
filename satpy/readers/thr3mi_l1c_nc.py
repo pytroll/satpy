@@ -20,7 +20,7 @@
 The ``3mi_l1c_nc`` reader reads EPS-SG 3MI L1C image data in netCDF format. The format is explained
 in the `EPS-SG 3MI Level 1C Product Format Specification`_. Details of format and test data can be
 found at:
-https://user.eumetsat.int/resources/user-guides/metop-sg-3-mi-l1b-and-l1c-data-guide
+https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_3_MI_Level_1_C_Product_Format_Specification_web_1e7e9e67b2.pdf
 
 This is an initial draft version. Note that as the 3MI uses 1D arrays, the data has to be
 resampled first before using the "show()" function. Working on a conversion to a 2D array at input to fix this.
@@ -32,7 +32,7 @@ from datetime import datetime
 
 import xarray as xr
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,6 @@ class Thr3miL1cNCFileHandler(NetCDF4FileHandler):
             if i_overlap == 0:
                 variable_old = variable.copy(deep=True)
             if i_overlap > 0:
-                #variable_old = variable.copy(deep=True)
                 if var_key[-9:] != "longitude" and var_key[-8:] != "latitude":
                     variable = xr.concat([variable[:, view_key], variable_old[:, view_key]],
                                          dim="geo_reference_grid_cells")
