@@ -43,9 +43,9 @@ def noop_with_warning(img, msg=""):
     """Perform no enhancement but emit a warning.
 
     The warning message is specified by the ``msg`` keyword argument
-    and can be a format string. Keyword arguments will be passed
-    to the formatting of the message string with the underlying
-    ``DataArray``s ``.attrs`` dictionary.
+    and can be a format string. Keyword arguments for the message
+    formatting are taken from the underlying ``DataArray``s ``.attrs``
+    dictionary.
 
     """
     formatted_msg = msg.format(**img.data.attrs)
