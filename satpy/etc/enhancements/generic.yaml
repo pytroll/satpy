@@ -3,9 +3,13 @@
 enhancements:
   default:
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.contrast.stretch
-      kwargs: {stretch: linear}
+      - name: warn_no_predefined
+        method: !!python/name:satpy.enhancements.contrast.noop_with_warning
+        kwargs:
+          msg: "No YAML enhancement configured for {name!r}. Falling back to a dynamic linear stretch."
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs: {stretch: linear}
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
     operations:

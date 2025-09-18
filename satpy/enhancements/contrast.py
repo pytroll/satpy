@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import typing
+import warnings
 from collections import namedtuple
 from numbers import Number
 from typing import Optional
@@ -36,6 +37,30 @@ if typing.TYPE_CHECKING:
     from trollimage.xrimage import XRImage
 
 LOG = logging.getLogger(__name__)
+
+
+def noop_with_warning(img, msg=""):
+    """Perform no enhancement but emit a warning.
+
+    The warning message is specified by the ``msg`` keyword argument
+    and can be a format string. Keyword arguments will be passed
+    to the formatting of the message string with the underlying
+    ``DataArray``s ``.attrs`` dictionary.
+
+    """
+    formatted_msg = msg.format(**img.data.attrs)
+    warnings.warn(formatted_msg, UserWarning, stacklevel=2)
+    return img
+
+
+def stretch_if_not_integer(img, **kwargs):
+    """Perform a regular linear stretch but warn about no other enhancement."""
+    # XXX: Should this be all integers or just uint8?
+    # XXX: Should it check for "bands" dimension?
+    # XXX: Rename to "stretch_if_necessary"
+    if np.issubdtype(img.data.dtype, np.integer):
+        return img
+    return stretch(img, **kwargs)
 
 
 def stretch(img, **kwargs):

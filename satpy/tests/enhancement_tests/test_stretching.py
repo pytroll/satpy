@@ -21,6 +21,20 @@ import pytest
 from .utils import create_ch1, create_ch2, create_rgb, run_and_check_enhancement, run_and_check_enhancement_with_dtype
 
 
+def test_default_enhancement_warning():
+    """Test that the default enhancement warns for floating point data."""
+    from trollimage.xrimage import XRImage
+
+    from satpy.enhancements.contrast import noop_with_warning
+
+    ch1 = create_ch1()
+    ch1.attrs["name"] = "NAME"
+    img = XRImage(ch1)
+
+    with pytest.warns(UserWarning, match="TEST NAME"):
+        noop_with_warning(img, msg="TEST {name}")
+
+
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_cira_stretch(dtype):
     """Test applying the cira_stretch."""
