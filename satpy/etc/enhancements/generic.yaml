@@ -8,7 +8,7 @@ enhancements:
         kwargs:
           msg: "No YAML enhancement configured for {name!r}. Falling back to a dynamic linear stretch."
       - name: stretch
-        method: !!python/name:satpy.enhancements.contrast.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch_if_not_integer
         kwargs: {stretch: linear}
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
