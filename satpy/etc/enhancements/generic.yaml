@@ -6,7 +6,7 @@ enhancements:
       - name: warn_no_predefined
         method: !!python/name:satpy.enhancements.contrast.noop_with_warning
         kwargs:
-          msg: "No YAML enhancement configured for {name!r}. Falling back to a dynamic linear stretch."
+          msg: "No YAML enhancement found for {name!r}. Falling back to a dynamic linear stretch in case of floating point data, or no enhancement otherwise. See https://satpy.readthedocs.io/en/stable/enhancements.html for documentation on defining an enhancement."
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch_if_not_integer
         kwargs: {stretch: linear}
