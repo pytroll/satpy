@@ -58,9 +58,9 @@ def stretch_if_not_integer(img, **kwargs):
     # XXX: Should this be all integers or just uint8?
     # XXX: Should it check for "bands" dimension?
     # XXX: Rename to "stretch_if_necessary"
-    if np.issubdtype(img.data.dtype, np.integer):
-        return img
+if np.issubdtype(img.data.dtype, np.floating):
     return stretch(img, **kwargs)
+return img
 
 
 def stretch(img, **kwargs):
