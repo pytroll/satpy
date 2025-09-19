@@ -25,14 +25,14 @@ def test_default_enhancement_warning():
     """Test that the default enhancement warns for floating point data."""
     from trollimage.xrimage import XRImage
 
-    from satpy.enhancements.contrast import noop_with_warning
+    from satpy.enhancements.contrast import warn_if_float_debug_otherwise
 
     ch1 = create_ch1()
     ch1.attrs["name"] = "NAME"
     img = XRImage(ch1)
 
     with pytest.warns(UserWarning, match="TEST NAME"):
-        noop_with_warning(img, msg="TEST {name}")
+        warn_if_float_debug_otherwise(img, msg="TEST {name}")
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])

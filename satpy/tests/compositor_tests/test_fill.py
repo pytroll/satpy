@@ -46,7 +46,7 @@ class TestDayNightCompositor(unittest.TestCase):
         a[:, 1, 0] = 0.3
         a[:, 1, 1] = 0.4
         a = da.from_array(a, a.shape)
-        self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time},
+        self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time, "name": "a"},
                                    coords={"bands": bands}, dims=("bands", "y", "x"))
         b = np.zeros((3, 2, 2), dtype=np.float32)
         b[:, 0, 0] = np.nan
@@ -54,7 +54,7 @@ class TestDayNightCompositor(unittest.TestCase):
         b[:, 1, 0] = 0.50
         b[:, 1, 1] = 0.75
         b = da.from_array(b, b.shape)
-        self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time},
+        self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time, "name": "b"},
                                    coords={"bands": bands}, dims=("bands", "y", "x"))
 
         sza = np.array([[80., 86.], [94., 100.]], dtype=np.float32)
