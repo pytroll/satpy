@@ -281,7 +281,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(sensor="test_empty", mode="L"),
+                       attrs=dict(sensor="test_empty", mode="L", name="1"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -295,7 +295,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(sensor="test_sensor2", mode="L"),
+                       attrs=dict(sensor="test_sensor2", mode="L", name="1"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
