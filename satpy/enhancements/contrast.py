@@ -39,8 +39,8 @@ if typing.TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 
 
-def noop_with_warning(img, msg=""):
-    """Perform no enhancement but emit a warning.
+def warn_if_float_debug_otherwise(img, msg=""):
+    """Perform no enhancement but emit a warning if data is floating point.
 
     The warning message is specified by the ``msg`` keyword argument
     and can be a format string. Keyword arguments for the message
@@ -49,18 +49,18 @@ def noop_with_warning(img, msg=""):
 
     """
     formatted_msg = msg.format(**img.data.attrs)
-    warnings.warn(formatted_msg, UserWarning, stacklevel=2)
+    if np.issubdtype(img.data.dtype, np.floating):
+        warnings.warn(formatted_msg, UserWarning, stacklevel=2)
+    else:
+        LOG.debug(formatted_msg)
     return img
 
 
-def stretch_if_not_integer(img, **kwargs):
+def stretch_if_floating(img, **kwargs):
     """Perform a regular linear stretch but warn about no other enhancement."""
-    # XXX: Should this be all integers or just uint8?
-    # XXX: Should it check for "bands" dimension?
-    # XXX: Rename to "stretch_if_necessary"
-if np.issubdtype(img.data.dtype, np.floating):
-    return stretch(img, **kwargs)
-return img
+    if np.issubdtype(img.data.dtype, np.floating):
+        return stretch(img, **kwargs)
+    return img
 
 
 def stretch(img, **kwargs):
