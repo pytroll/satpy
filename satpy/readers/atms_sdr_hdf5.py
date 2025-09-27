@@ -83,7 +83,12 @@ class ATMS_SDR_FileHandler(JPSS_SDR_FileHandler):
         for granule in range(self[nb_granules_path]):
             scans_path = "Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans"
             scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
-            scans.append(self[scans_path])
+            number_of_scans = self[scans_path]
+            if number_of_scans == -993:
+                LOG.warning("Unable to get number of scans for granule from file! Attribute name = %s", scans_path)
+                LOG.warning("Assume 12 scans per granule.")
+                number_of_scans = 12
+            scans.append(number_of_scans)
         return scans
 
     def _get_variable(self, var_path, channel_index=None):
