@@ -1,0 +1,204 @@
+reader:
+  name: goci2_l1_nc
+  short_name: GOCI-II L1 NetCDF4
+  long_name: GK-2B GOCI-II Level 1 products in netCDF4 format from NOSC
+  status: Beta
+  supports_fsspec: true
+  sensors: ['goci2']
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', "slot"]
+
+file_types:
+    goci2_l1:
+        file_reader: !!python/name:satpy.readers.goci2_l1_nc.GOCI2L1NCFileHandler
+        file_patterns:
+         - '{platform:3s}_{sensor:5s}_{processing_level:3s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}_G{segment:3d}.nc'
+         - '{platform:3s}_{sensor:5s}_{processing_level:3s}_{acquisition_date:%Y%m%d}_{acquisition_time:%H%M%S}_{coverage:2s}_S{slot:3d}.nc'
+
+
+datasets:
+# --- Navigation Data ---
+  latitude:
+    name: latitude
+    file_type: goci2_l1
+    file_key: latitude
+    standard_name: latitude
+    units: degrees_north
+
+  longitude:
+    name: longitude
+    file_type: goci2_l1
+    file_key: longitude
+    standard_name: longitude
+    units: degrees_east
+
+# --- Radiance Data ---
+  L380:
+    name: L380
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_380
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L412:
+    name: L412
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_412
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L443:
+    name: L443
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_443
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L490:
+    name: L490
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_490
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L510:
+    name: L510
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_510
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L555:
+    name: L555
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_555
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L620:
+    name: L620
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_620
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L660:
+    name: L660
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_660
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L680:
+    name: L680
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_680
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L709:
+    name: L709
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_709
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L745:
+    name: L745
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_745
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+  L865:
+    name: L865
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 250
+    file_type: goci2_l1
+    file_key: L_TOA_865
+    coordinates: [longitude, latitude]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
