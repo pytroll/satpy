@@ -49,6 +49,7 @@ The following people have made contributions to this project:
 - [Jactry Zeng](https://github.com/jactry)
 - [Zoé Jequier](https://github.com/jequierz)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
+- Daniel Johnsson
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Przemyslaw Juda (pjuda)](https://github.com/pjuda)
 - [Pouria Khalaj](https://github.com/pkhalaj)
