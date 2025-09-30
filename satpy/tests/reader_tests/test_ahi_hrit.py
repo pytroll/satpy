@@ -93,7 +93,7 @@ class TestHRITJMAFileHandler:
 
     def test_init(self):
         """Test creating the file handler."""
-        from satpy.readers.hrit_jma import HIMAWARI8, UNKNOWN_AREA
+        from satpy.readers.hrit_jma import HIMAWARI8
 
         # Test addition of extra metadata
         mda = self._get_mda()
@@ -123,14 +123,18 @@ class TestHRITJMAFileHandler:
         # Check platform
         assert reader.platform == HIMAWARI8
 
-        # Check is_segmented attribute
+    def test_segmented_checks(self):
+        """Test segments are identified."""
         expected = {0: False, 1: True, 8: True}
         for segno, is_segmented in expected.items():
             mda = self._get_mda(segno=segno)
             reader = self._get_reader(mda=mda)
             assert reader.is_segmented == is_segmented
 
-        # Check area IDs
+    def test_check_areas(self):
+        """Test area names coming from the filename."""
+        from satpy.readers.hrit_jma import UNKNOWN_AREA
+
         expected = [
             ({"area": 1}, 1),
             ({"area": 1234}, UNKNOWN_AREA),
