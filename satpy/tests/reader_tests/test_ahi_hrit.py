@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The hrit ahi reader tests package."""
 
-import unittest
 from unittest import mock
 
 import dask.array as da
@@ -27,7 +26,7 @@ from xarray import DataArray
 from satpy.tests.utils import make_dataid
 
 
-class TestHRITJMAFileHandler(unittest.TestCase):
+class TestHRITJMAFileHandler:
     """Test the HRITJMAFileHandler."""
 
     @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.__init__")
