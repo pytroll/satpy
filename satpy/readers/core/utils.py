@@ -348,17 +348,30 @@ def generic_open(filename, *args, **kwargs):
 
     Yields an open file-like object.
     """
-    try:
-        # satpy.readers.core.remote.FSFile instance
-        path = filename.to_upath()
-    except AttributeError:
-        # str or Path-like
-        protocol = getattr(filename, "protocol", "file")
-        path = UPath(filename, protocol=protocol)
+    path = _to_upath(filename)
+
     new_kwargs = kwargs.copy()
     new_kwargs["compression"] = "infer"
     with path.open(*args, **new_kwargs) as fp:
         yield fp
+
+
+def _to_upath(filename: FSFile | str | os.PathLike | UPath) -> UPath:
+    """Convert to UPath."""
+    if isinstance(filename, UPath):
+        return filename
+
+    if hasattr(filename, "to_upath"):
+        # satpy.readers.core.remote.FSFile instance
+        return filename.to_upath()
+
+    if not hasattr(filename, "protocol"):
+        # str or Path-like
+        return UPath(filename, protocol="file")
+
+    warnings.warn(f"Converting {type(filename)} to UPath.", UserWarning)
+    return UPath(filename)
+
 
 
 def fromfile(filename, dtype, count=1, offset=0):
