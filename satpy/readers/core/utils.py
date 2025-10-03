@@ -363,8 +363,8 @@ def _to_upath(filename: str | os.PathLike | UPath | FSFile) -> UPath:
         # satpy.readers.core.remote.FSFile instance
         return filename.to_upath()
 
-    # str or Path-like
-    return UPath(filename)
+    # str or Path-like (assume local file path)
+    return UPath(filename, protocol="file")
 
 
 def fromfile(filename, dtype, count=1, offset=0):
