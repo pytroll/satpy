@@ -353,7 +353,8 @@ def generic_open(filename, *args, **kwargs):
         path = filename.to_upath()
     except AttributeError:
         # str or Path-like
-        path = UPath(filename)
+        protocol = getattr(filename, "protocol", "file")
+        path = UPath(filename, protocol=protocol)
     new_kwargs = kwargs.copy()
     new_kwargs["compression"] = "infer"
     with path.open(*args, **new_kwargs) as fp:
