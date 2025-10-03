@@ -529,7 +529,12 @@ class TestNetcdfEncodingKwargs:
             assert f["test-array"].attrs["scale_factor"] == expected["scale_factor"]
             assert f["test-array"].attrs["_FillValue"] == expected["fill_value"]
             assert f["test-array"].dtype == expected["dtype"]
-            assert f["test-array"].encoding["complevel"] == expected["complevel"]
+            if "complevel" in f["test-array"].encoding:
+                # netcdf4 engine and h5netcdf engine (when not 0)
+                assert f["test-array"].encoding["complevel"] == expected["complevel"]
+            else:
+                assert expected["complevel"] == 0, "No compression option found when compression was non-zero"
+
 
     @pytest.mark.parametrize(
         "versions",
