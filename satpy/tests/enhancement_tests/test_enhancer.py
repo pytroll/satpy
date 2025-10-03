@@ -102,6 +102,7 @@ class _CustomImageWriter(ImageWriter):
 
     def save_image(self, img, **kwargs):
         self.img = img
+        return [None]
 
 
 class _BaseCustomEnhancementConfigTests:
