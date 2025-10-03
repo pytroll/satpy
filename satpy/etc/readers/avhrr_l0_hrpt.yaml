@@ -7,7 +7,6 @@ reader:
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [avhrr-3, avhrr-2]
-  default_channels: [1, 2, 3a, 3b, 4, 5]
 
 datasets:
   "1":

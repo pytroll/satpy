@@ -6,7 +6,6 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [fci]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
