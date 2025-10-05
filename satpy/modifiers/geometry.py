@@ -101,8 +101,9 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
         Args:
             correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. Pixels beyond this limit have a
-                constant correction applied. Default 88.
+                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
+                constant correction applied.Otherwise, the correction is gradually reduced to 0 at
+                ``max_sza``. Default 88.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 
@@ -147,8 +148,9 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
         Args:
             correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. Pixels beyond this limit have a
-                constant correction applied. Default 88.
+                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
+                constant correction applied.Otherwise, the correction is gradually reduced to 0 at
+                ``max_sza``. Default 88.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 
