@@ -158,6 +158,17 @@ def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
     return _update_resampled_coords(ds, ds, area_def)
 
 
+@pytest.fixture(autouse=True)
+def short_prod_location(monkeypatch):
+    """Force the environment variable used for "production_location" to a short string.
+
+    If not set, the writer would use the current hostname, but some CI runners
+    may have a long hostname and trigger warnings that we'd like to avoid.
+
+    """
+    monkeypatch.setenv("ORGANIZATION", "ABC")
+
+
 class TestAWIPSTiledWriter:
     """Test basic functionality of AWIPS Tiled writer."""
 
@@ -466,10 +477,11 @@ class TestAWIPSTiledWriter:
             {"environment_prefix": "BB", "filename": "{environment_prefix}_{name}_GLM_T{tile_number:04d}.nc"},
         ]
     )
-    def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs, tmp_path):
+    def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs, tmp_path, monkeypatch):
         """Test creating a tiles with multiple variables."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        os.environ["ORGANIZATION"] = "1" * 50
+
+        monkeypatch.setenv("ORGANIZATION", "1" * 50)
         w = AWIPSTiledWriter(base_dir=tmp_path, compress=True)
         data = _get_test_data()
         area_def = _get_test_area()
