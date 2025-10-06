@@ -365,8 +365,7 @@ def _to_upath(filename: FSFile | str | os.PathLike | UPath) -> UPath:
         # satpy.readers.core.remote.FSFile instance
         return filename.to_upath()
 
-    if not hasattr(filename, "protocol"):
-        # str or Path-like
+    if isinstance(filename, (str, os.PathLike)):
         return UPath(filename, protocol="file")
 
     warnings.warn(f"Converting {type(filename)} to UPath.", UserWarning)
