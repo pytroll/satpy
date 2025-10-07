@@ -227,10 +227,10 @@ class TestSunZenithReducer:
             SunZenithReducer(name="sza_reduction_test_invalid", modifiers=tuple(), max_sza=None)
 
 
-class TestNIRReflectance(unittest.TestCase):
+class TestNIRReflectance:
     """Test NIR reflectance compositor."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case for the NIRReflectance compositor."""
         self.get_lonlats = mock.MagicMock()
         self.lons, self.lats = 1, 2
@@ -325,7 +325,13 @@ class TestNIRReflectance(unittest.TestCase):
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
         co2_arr = RANDOM_GEN.random((2, 2))
-        co2 = xr.DataArray(da.from_array(co2_arr), dims=["y", "x"])
+        co2 = xr.DataArray(
+            da.from_array(co2_arr),
+            dims=["y", "x"],
+            attrs={
+                "area": self.nir.attrs["area"],
+                "start_time": self.start_time,
+            })
         co2.attrs["wavelength"] = [12.0, 13.0, 14.0]
         co2.attrs["units"] = "K"
         res = comp([self.nir, self.ir_], optional_datasets=[co2], **info)
