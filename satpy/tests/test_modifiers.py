@@ -235,7 +235,8 @@ class TestNIRReflectance(unittest.TestCase):
         self.get_lonlats = mock.MagicMock()
         self.lons, self.lats = 1, 2
         self.get_lonlats.return_value = (self.lons, self.lats)
-        area = mock.MagicMock(get_lonlats=self.get_lonlats)
+        self.area = area = mock.MagicMock(get_lonlats=self.get_lonlats)
+        self.area_hr = mock.MagicMock(get_lonlats=self.get_lonlats)
 
         self.start_time = 1
         self.metadata = {"platform_name": "Meteosat-11",
@@ -253,10 +254,10 @@ class TestNIRReflectance(unittest.TestCase):
         self.ir_.attrs["area"] = area
 
         self.sunz_arr = 100 * RANDOM_GEN.random((2, 2))
-        self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"])
+        self.da_sunz = da.from_array(self.sunz_arr)
+        self.sunz = xr.DataArray(self.da_sunz, dims=["y", "x"])
         self.sunz.attrs["standard_name"] = "solar_zenith_angle"
         self.sunz.attrs["area"] = area
-        self.da_sunz = da.from_array(self.sunz_arr)
 
         refl_arr = RANDOM_GEN.random((2, 2))
         self.refl = da.from_array(refl_arr)
@@ -397,6 +398,22 @@ class TestNIRReflectance(unittest.TestCase):
         comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
         assert comp.masking_limit is not None
+
+    def test_nir_multiple_resolutions(self):
+        """Check that multiple resolutions in the optional datasets produce an IncompatibleArea."""
+        from satpy.composites.core import IncompatibleAreas
+        from satpy.modifiers.spectral import NIRReflectance
+
+        # make sunz that is twice as many pixels
+        sunz_arr = 100 * RANDOM_GEN.random((4, 4))
+        sunz = xr.DataArray(da.from_array(sunz_arr), dims=["y", "x"])
+        sunz.attrs["standard_name"] = "solar_zenith_angle"
+        sunz.attrs["area"] = self.area_hr
+
+        comp = NIRReflectance(name="test")
+        info = {"modifiers": None}
+        with pytest.raises(IncompatibleAreas):
+            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
 
 
 class TestNIREmissivePartFromReflectance(unittest.TestCase):
