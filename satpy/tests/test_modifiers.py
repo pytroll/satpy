@@ -254,21 +254,18 @@ class TestNIRReflectance:
                          "area": area,
                          "start_time": self.start_time}
 
-        self.nir_arr = nir_arr = np.array([[273.15, 275.15], [277.15, 279.15]], dtype=np.float32)
+        self.nir_arr = nir_arr = np.array([[283.15, 285.15], [287.15, 289.15]], dtype=np.float32)
         self.nir = xr.DataArray(da.from_array(nir_arr), dims=["y", "x"])
         self.nir.attrs.update(self.metadata)
 
-        ir_arr = np.array([[283.15, 285.15], [287.15, 289.15]], dtype=np.float32)
-        self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"])
-        self.ir_.attrs["area"] = area
+        ir_arr = np.array([[273.15, 275.15], [277.15, 279.15]], dtype=np.float32)
+        self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"], attrs={"area": area})
 
-        self.sunz_arr = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
-        self.da_sunz = da.from_array(self.sunz_arr)
-        self.sunz = xr.DataArray(self.da_sunz, dims=["y", "x"])
-        self.sunz.attrs["standard_name"] = "solar_zenith_angle"
-        self.sunz.attrs["area"] = area
+        self.sunz_arr = np.array([[1.0, 20.0], [40.0, 60.0]], dtype=np.float32)
+        self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                                 attrs={"standard_name": "solar_zenith_angle", "area": area})
 
-        co2_arr = np.array([[300.0, 301.0], [302.0, 303.0]], dtype=np.float32)
+        co2_arr = np.array([[240.0, 241.0], [242.0, 243.0]], dtype=np.float32)
         self.co2 = xr.DataArray(
             da.from_array(co2_arr),
             dims=("y", "x"),
@@ -283,9 +280,9 @@ class TestNIRReflectance:
     @pytest.mark.parametrize(
         ("include_sunz", "include_co2", "exp_res"),
         [
-            (False, False, np.array([[-4.56851, -5.000861], [-5.472561, -5.989477]], dtype=np.float32)),
-            (True, False, np.array([[-4.164202, -4.555971], [-4.985142, -5.456021]], dtype=np.float32)),
-            (False, True, np.array([[-5.350111, -5.811294], [-6.309603, -6.850538]], dtype=np.float32)),
+            (False, False, np.array([[4.3689156, 4.762686], [5.1886106, 5.6510105]], dtype=np.float32)),
+            (True, False, np.array([[3.9977279, 4.6561675], [6.348353, 11.350167]], dtype=np.float32)),
+            (False, True, np.array([[5.170569, 5.6666946], [6.205907, 6.79378]], dtype=np.float32)),
         ]
     )
     def test_basic_call(self, include_sunz, include_co2, exp_res):
