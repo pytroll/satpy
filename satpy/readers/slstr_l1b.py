@@ -36,11 +36,13 @@ logger = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {"S3A": "Sentinel-3A",
-                  "S3B": "Sentinel-3B"}
+                  "S3B": "Sentinel-3B",
+                  "S3C": "Sentinel-3C",
+                  "S3D": "Sentinel-3D"}
 
 # These are the default channel adjustment factors.
-# Defined in the product notice: S3.PN-SLSTR-L1.08
-# https://sentinel.esa.int/documents/247904/2731673/Sentinel-3A-and-3B-SLSTR-Product-Notice-Level-1B-SL-1-RBT-at-NRT-and-NTC.pdf
+# Defined in the product notice: S3.PN-SLSTR-L1.10
+# https://user.eumetsat.int/s3/eup-strapi-media/S3_PN_SLSTR_L1_10_i1r0_SLSTR_L1_PB_SL_L1_004_05_00_fbf01b8813.pdf
 CHANCALIB_FACTORS = {"S1_nadir": 0.97,
                      "S2_nadir": 0.98,
                      "S3_nadir": 0.98,
