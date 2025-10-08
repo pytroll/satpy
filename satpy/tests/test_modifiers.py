@@ -261,7 +261,7 @@ class TestNIRReflectance:
         ir_arr = np.array([[273.15, 275.15], [277.15, 279.15]], dtype=np.float32)
         self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"], attrs={"area": area})
 
-        self.sunz_arr = np.array([[1.0, 20.0], [40.0, 60.0]], dtype=np.float32)
+        self.sunz_arr = np.array([[1.0, 20.0], [87.0, 89.0]], dtype=np.float32)
         self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
                                  attrs={"standard_name": "solar_zenith_angle", "area": area})
 
@@ -281,7 +281,7 @@ class TestNIRReflectance:
         ("include_sunz", "include_co2", "exp_res"),
         [
             (False, False, np.array([[4.3689156, 4.762686], [5.1886106, 5.6510105]], dtype=np.float32)),
-            (True, False, np.array([[3.9977279, 4.6561675], [6.348353, 11.350167]], dtype=np.float32)),
+            (True, False, np.array([[3.9977279, 4.6561675], [384.3708, np.nan]], dtype=np.float32)),
             (False, True, np.array([[5.170569, 5.6666946], [6.205907, 6.79378]], dtype=np.float32)),
         ]
     )
