@@ -24,8 +24,20 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 from xarray import DataArray
 
+from satpy.readers.hrit_jma import (
+    AREA_NAMES,
+    FULL_DISK,
+    HIMAWARI8,
+    NORTH_HEMIS,
+    PLATFORMS,
+    SOUTH_HEMIS,
+    UNKNOWN_AREA,
+    UNKNOWN_PLATFORM,
+    HRITJMAFileHandler,
+)
 from satpy.tests.utils import make_dataid
 
 
@@ -105,7 +117,6 @@ def create_fake_ahi_hrit(hrit_path: Path, metadata_overrides: dict | None = None
 
 @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.__init__")
 def _get_reader(mocked_init, mda, filename_info=None, filetype_info=None, reader_kwargs=None):
-    from satpy.readers.hrit_jma import HRITJMAFileHandler
     if not filename_info:
         filename_info = {}
     if not filetype_info:
@@ -177,9 +188,6 @@ class TestHRITJMAFileHandler:
 
     def test_init(self, tmp_path):
         """Test creating the file handler."""
-        from satpy.readers.hrit_jma import HIMAWARI8, HRITJMAFileHandler
-
-
         mda = _get_mda()
         mda_expected = mda.copy()
         mda_expected.update(
@@ -215,18 +223,22 @@ class TestHRITJMAFileHandler:
         # Check platform
         assert reader.platform == HIMAWARI8
 
-    def test_segmented_checks(self):
+    @pytest.mark.parametrize(
+        ("segno", "is_segmented"),
+        [
+            (0, False),
+            (1, True),
+            (8, True),
+        ]
+    )
+    def test_segmented_checks(self, segno, is_segmented):
         """Test segments are identified."""
-        expected = {0: False, 1: True, 8: True}
-        for segno, is_segmented in expected.items():
-            mda = _get_mda(segno=segno)
-            reader = _get_reader(mda=mda)
-            assert reader.is_segmented == is_segmented
+        mda = _get_mda(segno=segno)
+        reader = _get_reader(mda=mda)
+        assert reader.is_segmented == is_segmented
 
     def test_check_areas(self):
         """Test area names coming from the filename."""
-        from satpy.readers.hrit_jma import UNKNOWN_AREA
-
         expected = [
             ({"area": 1}, 1),
             ({"area": 1234}, UNKNOWN_AREA),
@@ -240,8 +252,6 @@ class TestHRITJMAFileHandler:
     @mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__")
     def test_get_platform(self, mocked_init):
         """Test platform identification."""
-        from satpy.readers.hrit_jma import PLATFORMS, UNKNOWN_PLATFORM, HRITJMAFileHandler
-
         mocked_init.return_value = None
         reader = HRITJMAFileHandler()
 
@@ -256,8 +266,6 @@ class TestHRITJMAFileHandler:
 
     def test_get_area_def(self):
         """Test getting an AreaDefinition."""
-        from satpy.readers.hrit_jma import AREA_NAMES, FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS
-
         cases = [
             # Non-segmented, full disk
             {"loff": 1375.0, "coff": 1375.0,
@@ -363,8 +371,6 @@ class TestHRITJMAFileHandler:
     @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
         """Test getting a dataset."""
-        from satpy.readers.hrit_jma import HIMAWARI8
-
         mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
         reader = _get_reader(mda=mda)
@@ -397,12 +403,6 @@ class TestHRITJMAFileHandler:
             reader.get_dataset(key, {"units": "%", "sensor": "jami"})
             log_mock.assert_called()
 
-    def test_mjd2datetime64(self):
-        """Test conversion from modified julian day to datetime64."""
-        from satpy.readers.hrit_jma import mjd2datetime64
-        assert mjd2datetime64(np.array([0])) == np.datetime64("1858-11-17", "ns")
-        assert mjd2datetime64(np.array([40587.5])) == np.datetime64("1970-01-01 12:00", "ns")
-
     def test_get_acq_time(self):
         """Test computation of scanline acquisition times."""
         dt_line = np.arange(1, 11000+1).astype("timedelta64[s]")
@@ -418,7 +418,6 @@ class TestHRITJMAFileHandler:
 
     def test_start_time_from_filename(self):
         """Test that by default the datetime in the filename is returned."""
-        import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
         for platform in ["Himawari-8", "MTSAT-2"]:
             mda = _get_mda(platform=platform)
@@ -427,7 +426,6 @@ class TestHRITJMAFileHandler:
 
     def test_start_time_from_aqc_time(self):
         """Test that by the datetime from the metadata returned when `use_acquisition_time_as_start_time=True`."""
-        import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
         for platform in ["Himawari-8", "MTSAT-2"]:
             mda = _get_mda(platform=platform)
@@ -438,3 +436,16 @@ class TestHRITJMAFileHandler:
             )
             assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
             assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)
+
+
+@pytest.mark.parametrize(
+    ("mjd", "dt_str"),
+    [
+        (0, "1858-11-17"),
+        (40587.5, "1970-01-01 12:00"),
+    ]
+)
+def test_mjd2datetime64(mjd, dt_str):
+    """Test conversion from modified julian day to datetime64."""
+    from satpy.readers.hrit_jma import mjd2datetime64
+    assert mjd2datetime64(np.array([mjd])) == np.datetime64(dt_str, "ns")
