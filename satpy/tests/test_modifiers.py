@@ -268,13 +268,38 @@ class TestNIRReflectance:
         self.sunz.attrs["standard_name"] = "solar_zenith_angle"
         self.sunz.attrs["area"] = area
 
-    def test_provide_sunz_no_co2(self):
-        """Test NIR reflectance compositor provided only sunz."""
+        co2_arr = np.array([[300.0, 301.0], [302.0, 303.0]], dtype=np.float32)
+        self.co2 = xr.DataArray(
+            da.from_array(co2_arr),
+            dims=("y", "x"),
+            attrs={
+                "area": self.area,
+                "start_time": self.start_time,
+                "wavelength": (12.0, 13.0, 14.0),
+                "units": "K",
+            })
+
+
+    @pytest.mark.parametrize(
+        ("include_sunz", "include_co2", "exp_res"),
+        [
+            (False, False, np.array([[-4.56851, -5.000861], [-5.472561, -5.989477]], dtype=np.float32)),
+            (True, False, np.array([[-4.164202, -4.555971], [-4.985142, -5.456021]], dtype=np.float32)),
+            (False, True, np.array([[-5.350111, -5.811294], [-6.309603, -6.850538]], dtype=np.float32)),
+        ]
+    )
+    def test_basic_call(self, include_sunz, include_co2, exp_res):
+        """Test NIR reflectance compositor with various optional inputs."""
         from satpy.modifiers.spectral import NIRReflectance
 
+        opt_datasets = []
+        if include_sunz:
+            opt_datasets.append(self.sunz)
+        if include_co2:
+            opt_datasets.append(self.co2)
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
+        res = comp([self.nir, self.ir_], optional_datasets=opt_datasets, **info)
         res_da = res.data
         res_np = res.data.compute()
         assert res_np.dtype == res_da.dtype
@@ -286,63 +311,7 @@ class TestNIRReflectance:
         assert res.attrs["units"] == "%"
         assert res.attrs["sun_zenith_threshold"] == 85.0
         assert res.attrs["sun_zenith_masking_limit"] == 88.0
-        np.testing.assert_allclose(
-            res_np,
-            np.array([
-                [-4.164202, -4.555971],
-                [-4.985142, -5.456021],
-            ]),
-        )
-
-    def test_no_sunz_no_co2(self):
-        """Test NIR reflectance compositor with minimal parameters."""
-        from satpy.modifiers.spectral import NIRReflectance
-
-        comp = NIRReflectance(name="test")
-        info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=[], **info)
-        res_da = res.data
-        res_np = res.data.compute()
-        assert res_np.dtype == res_da.dtype
-        assert res_np.dtype == self.nir.dtype
-
-        np.testing.assert_allclose(
-            res_np,
-            np.array([
-                [-4.56851, -5.000861],
-                [-5.472561, -5.989477],
-            ]),
-        )
-
-    def test_no_sunz_with_co2(self):
-        """Test NIR reflectance compositor provided extra co2 info."""
-        from satpy.modifiers.spectral import NIRReflectance
-
-        comp = NIRReflectance(name="test")
-        info = {"modifiers": None}
-        co2_arr = np.array([[300.0, 301.0], [302.0, 303.0]], dtype=np.float32)
-        co2 = xr.DataArray(
-            da.from_array(co2_arr),
-            dims=("y", "x"),
-            attrs={
-                "area": self.area,
-                "start_time": self.start_time,
-                "wavelength": (12.0, 13.0, 14.0),
-                "units": "K",
-            })
-        res = comp([self.nir, self.ir_], optional_datasets=[co2], **info)
-        res_da = res.data
-        res_np = res.data.compute()
-        assert res_np.dtype == res_da.dtype
-        assert res_np.dtype == self.nir.dtype
-
-        np.testing.assert_allclose(
-            res_np,
-            np.array([
-                [-5.350111, -5.811294],
-                [-6.309603, -6.850538],
-            ]),
-        )
+        np.testing.assert_allclose(res_np, exp_res, atol=1e-6)
 
     @pytest.mark.parametrize(
         "comp_kwargs",
