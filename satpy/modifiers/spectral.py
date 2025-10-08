@@ -66,7 +66,9 @@ class NIRReflectance(ModifierBase):
 
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
-        projectables = self.match_data_arrays(projectables)
+        matched_data_arrs = self.match_data_arrays(projectables + optional_datasets)
+        projectables = matched_data_arrs[:len(projectables)]
+        optional_datasets = matched_data_arrs[len(projectables):]
         inputs = self._get_nir_inputs(projectables, optional_datasets)
         return self._get_reflectance_as_dataarray(*inputs)
 
