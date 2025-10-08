@@ -16,7 +16,10 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The hrit ahi reader tests package."""
+from __future__ import annotations
 
+import datetime as dt
+from pathlib import Path
 from unittest import mock
 
 import dask.array as da
@@ -26,86 +29,175 @@ from xarray import DataArray
 from satpy.tests.utils import make_dataid
 
 
+def create_fake_ahi_hrit(hrit_path: Path, metadata_overrides: dict | None = None) -> None:
+    """Create a fake AHI HRIT file on disk."""
+    num_rows = 11000  # 1km
+    num_cols = 11000  # 1km
+    coff_loffs = f"LINE:=1\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
+    for lnum in range(1000, num_rows + 1, 1000):
+        coff_loffs += f"LINE:={lnum}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
+        if lnum != num_rows:
+            coff_loffs += f"LINE:={lnum + 1}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
+    coff_loffs_bytes = coff_loffs.encode()
+    acq_times_bytes = _get_acq_time(num_rows)
+
+
+    with hrit_path.open(mode="wb") as fp:
+        header_data = (
+            # header 0
+            np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            # 4km ->np.void((0, 1841, 121000000),
+            np.void((0, 2219, 1936000000),
+                    dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
+
+            # header 1
+            np.void((1, 9), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            # np.void((16, 2750, 2750, 0),
+            np.void((16, num_cols, num_rows, 0),
+                    dtype=[("number_of_bits_per_pixel", "u1"), ("number_of_columns", ">u2"), ("number_of_lines", ">u2"),
+                           ("compression_flag_for_data", "u1")]),
+
+            # header 2
+            np.void((2, 51), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.void((b"GEOS(140.70)                    ", 40932549, 40932549, 5500, 5500),
+                    dtype=[("projection_name", "S32"),
+                           ("cfac", ">i4"), ("lfac", ">i4"),
+                           ("coff", ">i4"), ("loff", ">i4")]),
+
+            # header 3
+            np.void((3, 85), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.array(b"$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r0:=-0.10\r1023:=100.00\r65535:=100.00\r",
+                     dtype="|S82"),
+
+            # header 4
+            np.void((4, 27), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.array(b"IMG_DK01VIS_201809100300", dtype="|S24"),
+
+            # header 5
+            np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.void((64, (22167, 11162999)),
+                    dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])]),
+
+            # header 128
+            np.void((128, 7), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.void((0, 1, 1),
+                    dtype=[("image_segm_seq_no", "u1"), ("total_no_image_segm", "u1"), ("line_no_image_segm", ">u2")]),
+
+            # header 130
+            np.void((130, len(coff_loffs_bytes) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.bytes_(coff_loffs_bytes),
+
+            # header 131
+            np.void((131, len(acq_times_bytes) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.bytes_(acq_times_bytes),
+
+            # header 132
+            np.void((132, 12), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.array(b"NO_ERROR\r", dtype="|S9"),
+        )
+        for header_arr in header_data:
+            if metadata_overrides and header_arr.dtype.fields is not None:
+                for key in header_arr.dtype.fields:
+                    if key in metadata_overrides:
+                        header_arr[key] = metadata_overrides[key]
+            header_arr.tofile(fp)
+
+
+@mock.patch("satpy.readers.hrit_jma.HRITFileHandler.__init__")
+def _get_reader(mocked_init, mda, filename_info=None, filetype_info=None, reader_kwargs=None):
+    from satpy.readers.hrit_jma import HRITJMAFileHandler
+    if not filename_info:
+        filename_info = {}
+    if not filetype_info:
+        filetype_info = {}
+    if not reader_kwargs:
+        reader_kwargs = {}
+    HRITJMAFileHandler.filename = "filename"
+    HRITJMAFileHandler.mda = mda
+    HRITJMAFileHandler._start_time = filename_info.get("start_time")
+    return HRITJMAFileHandler("filename", filename_info, filetype_info, **reader_kwargs)
+
+
+def _get_acq_time(nlines):
+    """Get sample header entry for scanline acquisition times.
+
+    Lines: 1, 21, 41, 61, ..., nlines
+    Times: 1970-01-01 00:00 + (1, 21, 41, 61, ..., nlines) seconds
+
+    So the interpolated times are expected to be 1970-01-01 +
+    (1, 2, 3, 4, ..., nlines) seconds. Note that there will be some
+    floating point inaccuracies, because timestamps are stored
+    with only 6 decimals precision.
+    """
+    # AHI:
+    # 11000 == 1km
+    # 2750 == 4km
+    mjd_1970 = 40587.0
+    lines_sparse = np.array(list(range(1, nlines, 20)) + [nlines])
+    times_sparse = mjd_1970 + lines_sparse / 24 / 3600
+    acq_time_s = ["LINE:={}\rTIME:={:.6f}\r".format(line, time)
+                  for line, time in zip(lines_sparse, times_sparse)]
+    acq_time_b = "".join(acq_time_s).encode()
+    return acq_time_b
+
+
+def _get_mda(loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
+             segno=0, numseg=1, vis=True, platform="Himawari-8"):
+    """Create metadata dict like HRITFileHandler would do it."""
+    if vis:
+        idf = b"$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r" \
+              b"0:=-0.10\r1023:=100.00\r65535:=100.00\r"
+    else:
+        idf = b"$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r" \
+              b"0:=329.98\r1023:=130.02\r65535:=130.02\r"
+    proj_h8 = b"GEOS(140.70)                    "
+    proj_mtsat2 = b"GEOS(145.00)                    "
+    proj_name = proj_h8 if platform == "Himawari-8" else proj_mtsat2
+    return {"image_segm_seq_no": np.uint8(segno),
+            "total_no_image_segm": np.uint8(numseg),
+            "projection_name": np.bytes_(proj_name),
+            "projection_parameters": {
+                "a": 6378169.00,
+                "b": 6356583.80,
+                "h": 35785831.00,
+            },
+            "cfac": np.int32(10233128),
+            "lfac": np.int32(10233128),
+            "coff": np.int32(coff),
+            "loff": np.int32(loff),
+            "number_of_columns": np.uint16(ncols),
+            "number_of_lines": np.uint16(nlines),
+            "image_data_function": np.bytes_(idf),
+            "image_observation_time": np.bytes_(_get_acq_time(nlines)),
+            }
+
+
 class TestHRITJMAFileHandler:
     """Test the HRITJMAFileHandler."""
 
-    @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.__init__")
-    def _get_reader(self, mocked_init, mda, filename_info=None, filetype_info=None, reader_kwargs=None):
-        from satpy.readers.hrit_jma import HRITJMAFileHandler
-        if not filename_info:
-            filename_info = {}
-        if not filetype_info:
-            filetype_info = {}
-        if not reader_kwargs:
-            reader_kwargs = {}
-        HRITJMAFileHandler.filename = "filename"
-        HRITJMAFileHandler.mda = mda
-        HRITJMAFileHandler._start_time = filename_info.get("start_time")
-        return HRITJMAFileHandler("filename", filename_info, filetype_info, **reader_kwargs)
-
-    def _get_acq_time(self, nlines):
-        """Get sample header entry for scanline acquisition times.
-
-        Lines: 1, 21, 41, 61, ..., nlines
-        Times: 1970-01-01 00:00 + (1, 21, 41, 61, ..., nlines) seconds
-
-        So the interpolated times are expected to be 1970-01-01 +
-        (1, 2, 3, 4, ..., nlines) seconds. Note that there will be some
-        floating point inaccuracies, because timestamps are stored
-        with only 6 decimals precision.
-        """
-        mjd_1970 = 40587.0
-        lines_sparse = np.array(list(range(1, nlines, 20)) + [nlines])
-        times_sparse = mjd_1970 + lines_sparse / 24 / 3600
-        acq_time_s = ["LINE:={}\rTIME:={:.6f}\r".format(line, time)
-                      for line, time in zip(lines_sparse, times_sparse)]
-        acq_time_b = "".join(acq_time_s).encode()
-        return acq_time_b
-
-    def _get_mda(self, loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
-                 segno=0, numseg=1, vis=True, platform="Himawari-8"):
-        """Create metadata dict like HRITFileHandler would do it."""
-        if vis:
-            idf = b"$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r" \
-                  b"0:=-0.10\r1023:=100.00\r65535:=100.00\r"
-        else:
-            idf = b"$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r" \
-                  b"0:=329.98\r1023:=130.02\r65535:=130.02\r"
-        proj_h8 = b"GEOS(140.70)                    "
-        proj_mtsat2 = b"GEOS(145.00)                    "
-        proj_name = proj_h8 if platform == "Himawari-8" else proj_mtsat2
-        return {"image_segm_seq_no": np.uint8(segno),
-                "total_no_image_segm": np.uint8(numseg),
-                "projection_name": proj_name,
-                "projection_parameters": {
-                    "a": 6378169.00,
-                    "b": 6356583.80,
-                    "h": 35785831.00,
-                },
-                "cfac": 10233128,
-                "lfac": 10233128,
-                "coff": np.int32(coff),
-                "loff": np.int32(loff),
-                "number_of_columns": np.uint16(ncols),
-                "number_of_lines": np.uint16(nlines),
-                "image_data_function": idf,
-                "image_observation_time": self._get_acq_time(nlines)}
-
-    def test_init(self):
+    def test_init(self, tmp_path):
         """Test creating the file handler."""
-        from satpy.readers.hrit_jma import HIMAWARI8
+        from satpy.readers.hrit_jma import HIMAWARI8, HRITJMAFileHandler
 
-        # Test addition of extra metadata
-        mda = self._get_mda()
+
+        mda = _get_mda()
         mda_expected = mda.copy()
         mda_expected.update(
-            {"planned_end_segment_number": 1,
-             "planned_start_segment_number": 1,
-             "segment_sequence_number": 0,
+            {"planned_end_segment_number": np.uint8(1),
+             "planned_start_segment_number": np.uint8(1),
+             "segment_sequence_number": np.uint8(0),
              "unit": "ALBEDO(%)"})
         mda_expected["projection_parameters"]["SSP_longitude"] = 140.7
-        reader = self._get_reader(mda=mda)
-        assert reader.mda == mda_expected
+
+        hrit_path = tmp_path / "IMG_DK01B04_202509261940_001"
+        create_fake_ahi_hrit(hrit_path, metadata_overrides=mda)
+
+        reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
+
+        # Test addition of extra metadata
+        # expected dict doesn"t have every possible key so we only check what is expected
+        for mda_key, exp_val in mda_expected.items():
+            assert reader.mda[mda_key] == exp_val
 
         # Check projection name
         assert reader.projection_name == "GEOS(140.70)"
@@ -127,8 +219,8 @@ class TestHRITJMAFileHandler:
         """Test segments are identified."""
         expected = {0: False, 1: True, 8: True}
         for segno, is_segmented in expected.items():
-            mda = self._get_mda(segno=segno)
-            reader = self._get_reader(mda=mda)
+            mda = _get_mda(segno=segno)
+            reader = _get_reader(mda=mda)
             assert reader.is_segmented == is_segmented
 
     def test_check_areas(self):
@@ -140,9 +232,9 @@ class TestHRITJMAFileHandler:
             ({"area": 1234}, UNKNOWN_AREA),
             ({}, UNKNOWN_AREA)
         ]
-        mda = self._get_mda()
+        mda = _get_mda()
         for filename_info, area_id in expected:
-            reader = self._get_reader(mda=mda, filename_info=filename_info)
+            reader = _get_reader(mda=mda, filename_info=filename_info)
             assert reader.area_id == area_id
 
     @mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__")
@@ -204,11 +296,10 @@ class TestHRITJMAFileHandler:
                         5502000.089024927, -1098000.0177661523)},
         ]
         for case in cases:
-            mda = self._get_mda(loff=case["loff"], coff=case["coff"],
+            mda = _get_mda(loff=case["loff"], coff=case["coff"],
                                 nlines=case["nlines"], ncols=case["ncols"],
                                 segno=case["segno"], numseg=case["numseg"])
-            reader = self._get_reader(mda=mda,
-                                      filename_info={"area": case["area"]})
+            reader = _get_reader(mda=mda, filename_info={"area": case["area"]})
             area = reader.get_area_def("some_id")
             assert area.area_extent == case["extent"]
             assert area.description == AREA_NAMES[case["area"]]["long"]
@@ -236,9 +327,9 @@ class TestHRITJMAFileHandler:
 
         # Choose an area near the subsatellite point to avoid masking
         # of space pixels
-        mda = self._get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0,
+        mda = _get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0,
                             segno=0)
-        reader = self._get_reader(mda=mda)
+        reader = _get_reader(mda=mda)
 
         # 1. Counts
         res = reader.calibrate(data=counts, calibration="counts")
@@ -249,18 +340,18 @@ class TestHRITJMAFileHandler:
         np.testing.assert_allclose(refl, res.values)  # also compares NaN
 
         # 3. Brightness temperature
-        mda_bt = self._get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0,
+        mda_bt = _get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0,
                                segno=0, vis=False)
-        reader_bt = self._get_reader(mda=mda_bt)
+        reader_bt = _get_reader(mda=mda_bt)
         res = reader_bt.calibrate(data=counts,
                                   calibration="brightness_temperature")
         np.testing.assert_allclose(bt, res.values)  # also compares NaN
 
     def test_mask_space(self):
         """Test masking of space pixels."""
-        mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
+        mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
-        reader = self._get_reader(mda=mda)
+        reader = _get_reader(mda=mda)
         data = DataArray(da.ones((275, 1375), chunks=1024))
         masked = reader._mask_space(data)
 
@@ -274,9 +365,9 @@ class TestHRITJMAFileHandler:
         """Test getting a dataset."""
         from satpy.readers.hrit_jma import HIMAWARI8
 
-        mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
+        mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
-        reader = self._get_reader(mda=mda)
+        reader = _get_reader(mda=mda)
         key = make_dataid(name="VIS", calibration="reflectance")
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
@@ -319,8 +410,8 @@ class TestHRITJMAFileHandler:
         for platform in ["Himawari-8", "MTSAT-2"]:
             # Results are not exactly identical because timestamps are stored in
             # the header with only 6 decimals precision (max diff here: 45 msec).
-            mda = self._get_mda(platform=platform)
-            reader = self._get_reader(mda=mda)
+            mda = _get_mda(platform=platform)
+            reader = _get_reader(mda=mda)
             np.testing.assert_allclose(reader.acq_time.astype(np.int64),
                                        acq_time_exp.astype(np.int64),
                                        atol=45000000)
@@ -330,10 +421,8 @@ class TestHRITJMAFileHandler:
         import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
         for platform in ["Himawari-8", "MTSAT-2"]:
-            mda = self._get_mda(platform=platform)
-            reader = self._get_reader(
-                mda=mda,
-                filename_info={"start_time": start_time})
+            mda = _get_mda(platform=platform)
+            reader = _get_reader(mda=mda, filename_info={"start_time": start_time})
             assert reader._start_time == start_time
 
     def test_start_time_from_aqc_time(self):
@@ -341,10 +430,11 @@ class TestHRITJMAFileHandler:
         import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
         for platform in ["Himawari-8", "MTSAT-2"]:
-            mda = self._get_mda(platform=platform)
-            reader = self._get_reader(
+            mda = _get_mda(platform=platform)
+            reader = _get_reader(
                 mda=mda,
                 filename_info={"start_time": start_time},
-                reader_kwargs={"use_acquisition_time_as_start_time": True})
+                reader_kwargs={"use_acquisition_time_as_start_time": True},
+            )
             assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
             assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)
