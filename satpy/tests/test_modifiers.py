@@ -344,32 +344,30 @@ class TestNIRReflectance:
             ]),
         )
 
-    def test_provide_sunz_and_threshold(self):
+    @pytest.mark.parametrize(
+        "comp_kwargs",
+        [
+            {"sunz_threshold": 84.0},
+            {"masking_limit": None},
+        ]
+    )
+    def test_provide_sunz_threshold_and_masking_limit(self, comp_kwargs):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
         from satpy.modifiers.spectral import Calculator, NIRReflectance
 
-        comp = NIRReflectance(name="test", sunz_threshold=84.0)
+        comp = NIRReflectance(name="test", **comp_kwargs)
+        exp_call_kwargs = {
+            "sunz_threshold": comp_kwargs.get("sunz_threshold", NIRReflectance.TERMINATOR_LIMIT),
+            "masking_limit": comp_kwargs.get("masking_limit", NIRReflectance.MASKING_LIMIT),
+        }
         info = {"modifiers": None}
 
         with mock.patch("satpy.modifiers.spectral.Calculator", wraps=Calculator) as calculator:
             res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
-        assert res.attrs["sun_zenith_threshold"] == 84.0
-        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039",
-                                      sunz_threshold=84.0, masking_limit=NIRReflectance.MASKING_LIMIT)
-
-    def test_provide_masking_limit(self):
-        """Test NIR reflectance compositor provided sunz and a sunz threshold."""
-        from satpy.modifiers.spectral import Calculator, NIRReflectance
-
-        comp = NIRReflectance(name="test", masking_limit=None)
-        info = {"modifiers": None}
-        with mock.patch("satpy.modifiers.spectral.Calculator", wraps=Calculator) as calculator:
-            res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
-
-        assert res.attrs["sun_zenith_masking_limit"] is None
-        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039",
-                                      sunz_threshold=NIRReflectance.TERMINATOR_LIMIT, masking_limit=None)
+        assert res.attrs["sun_zenith_threshold"] == exp_call_kwargs["sunz_threshold"]
+        assert res.attrs["sun_zenith_masking_limit"] == exp_call_kwargs["masking_limit"]
+        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039", **exp_call_kwargs)
 
     def test_nir_multiple_resolutions(self):
         """Check that multiple resolutions in the optional datasets produce an IncompatibleArea."""
