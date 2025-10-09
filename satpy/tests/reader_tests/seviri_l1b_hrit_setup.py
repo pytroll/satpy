@@ -29,15 +29,16 @@ from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = {"spectral_channel_id": 1}
-    instance.mda.setdefault("number_of_bits_per_pixel", 10)
+    mda = {"spectral_channel_id": 1}
+    mda.setdefault("number_of_bits_per_pixel", 10)
 
-    instance.mda["projection_parameters"] = {"a": 6378169.00,
+    mda["projection_parameters"] = {"a": 6378169.00,
                                              "b": 6356583.80,
                                              "h": 35785831.00,
                                              "SSP_longitude": 0.0}
-    instance.mda["orbital_parameters"] = {}
-    instance.mda["total_header_length"] = 12
+    mda["orbital_parameters"] = {}
+    mda["total_header_length"] = 12
+    return mda
 
 
 def get_new_read_prologue(prologue):
