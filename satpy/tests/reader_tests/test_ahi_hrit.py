@@ -236,87 +236,102 @@ def test_segmented_checks(segno, is_segmented):
     assert reader.is_segmented == is_segmented
 
 
-def test_check_areas():
-    """Test area names coming from the filename."""
-    expected = [
+@pytest.mark.parametrize(
+    ("filename_info", "area_id"),
+    [
         ({"area": 1}, 1),
         ({"area": 1234}, UNKNOWN_AREA),
         ({}, UNKNOWN_AREA)
     ]
+)
+def test_check_areas(filename_info, area_id):
+    """Test area names coming from the filename."""
     mda = _get_mda()
-    for filename_info, area_id in expected:
-        reader = _get_reader(mda=mda, filename_info=filename_info)
-        assert reader.area_id == area_id
+    reader = _get_reader(mda=mda, filename_info=filename_info)
+    assert reader.area_id == area_id
 
 
-@mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__")
-def test_get_platform(mocked_init):
+@pytest.mark.parametrize(("proj_name", "platform"), list(PLATFORMS.items()) + [("invalid", UNKNOWN_PLATFORM)])
+def test_get_platform(proj_name, platform, caplog):
     """Test platform identification."""
-    mocked_init.return_value = None
-    reader = HRITJMAFileHandler()
+    with mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__") as mocked_init:
+        mocked_init.return_value = None
+        reader = HRITJMAFileHandler()
 
-    for proj_name, platform in PLATFORMS.items():
-        reader.projection_name = proj_name
-        assert reader._get_platform() == platform
+    reader.projection_name = proj_name
+    assert reader._get_platform() == platform
 
-    with mock.patch("logging.Logger.error") as mocked_log:
-        reader.projection_name = "invalid"
-        assert reader._get_platform() == UNKNOWN_PLATFORM
-        mocked_log.assert_called()
+    if proj_name == "invalid":
+        assert "Unable to determine platform" in caplog.text
 
 
-def test_get_area_def():
-    """Test getting an AreaDefinition."""
-    cases = [
+@pytest.mark.parametrize(
+    ("mda_info", "area_name", "extent"),
+    [
         # Non-segmented, full disk
-        {"loff": 1375.0, "coff": 1375.0,
-         "nlines": 2750, "ncols": 2750,
-         "segno": 0, "numseg": 1,
-         "area": FULL_DISK,
-         "extent": (-5498000.088960204, -5498000.088960204,
-                    5502000.089024927, 5502000.089024927)},
+        (
+            {
+                "loff": 1375.0, "coff": 1375.0,
+                "nlines": 2750, "ncols": 2750,
+                "segno": 0, "numseg": 1,
+            },
+            FULL_DISK,
+            (-5498000.088960204, -5498000.088960204, 5502000.089024927, 5502000.089024927),
+        ),
         # Non-segmented, northern hemisphere
-        {"loff": 1325.0, "coff": 1375.0,
-         "nlines": 1375, "ncols": 2750,
-         "segno": 0, "numseg": 1,
-         "area": NORTH_HEMIS,
-         "extent": (-5498000.088960204, -198000.00320373234,
-                    5502000.089024927, 5302000.085788833)},
+        (
+            {
+                "loff": 1325.0, "coff": 1375.0,
+                "nlines": 1375, "ncols": 2750,
+                "segno": 0, "numseg": 1,
+            },
+            NORTH_HEMIS,
+            (-5498000.088960204, -198000.00320373234, 5502000.089024927, 5302000.085788833),
+        ),
         # Non-segmented, southern hemisphere
-        {"loff": 50, "coff": 1375.0,
-         "nlines": 1375, "ncols": 2750,
-         "segno": 0, "numseg": 1,
-         "area": SOUTH_HEMIS,
-         "extent": (-5498000.088960204, -5298000.085724112,
-                    5502000.089024927, 202000.0032684542)},
+        (
+            {
+                "loff": 50, "coff": 1375.0,
+                "nlines": 1375, "ncols": 2750,
+                "segno": 0, "numseg": 1,
+            },
+            SOUTH_HEMIS,
+            (-5498000.088960204, -5298000.085724112, 5502000.089024927, 202000.0032684542),
+        ),
         # Segmented, segment #1
-        {"loff": 1375.0, "coff": 1375.0,
-         "nlines": 275, "ncols": 2750,
-         "segno": 1, "numseg": 10,
-         "area": FULL_DISK,
-         "extent": (-5498000.088960204, 4402000.071226413,
-                    5502000.089024927, 5502000.089024927)},
+        (
+            {
+                "loff": 1375.0, "coff": 1375.0,
+                "nlines": 275, "ncols": 2750,
+                "segno": 1, "numseg": 10,
+            },
+            FULL_DISK,
+            (-5498000.088960204, 4402000.071226413, 5502000.089024927, 5502000.089024927),
+        ),
         # Segmented, segment #7
-        {"loff": 1375.0, "coff": 1375.0,
-         "nlines": 275, "ncols": 2750,
-         "segno": 7, "numseg": 10,
-         "area": FULL_DISK,
-         "extent": (-5498000.088960204, -2198000.035564665,
-                    5502000.089024927, -1098000.0177661523)},
+        (
+            {
+                "loff": 1375.0, "coff": 1375.0,
+                "nlines": 275, "ncols": 2750,
+                "segno": 7, "numseg": 10,
+            },
+            FULL_DISK,
+            (-5498000.088960204, -2198000.035564665, 5502000.089024927, -1098000.0177661523),
+        ),
     ]
-    for case in cases:
-        mda = _get_mda(loff=case["loff"], coff=case["coff"],
-                            nlines=case["nlines"], ncols=case["ncols"],
-                            segno=case["segno"], numseg=case["numseg"])
-        reader = _get_reader(mda=mda, filename_info={"area": case["area"]})
-        area = reader.get_area_def("some_id")
-        assert area.area_extent == case["extent"]
-        assert area.description == AREA_NAMES[case["area"]]["long"]
+)
+def test_get_area_def(mda_info, area_name, extent):
+    """Test getting an AreaDefinition."""
+    mda = _get_mda(**mda_info)
+    reader = _get_reader(mda=mda, filename_info={"area": area_name})
+    area = reader.get_area_def("some_id")
+    assert area.area_extent == extent
+    assert area.description == AREA_NAMES[area_name]["long"]
 
 
-def test_calibrate():
+@pytest.mark.parametrize("calibration", ["counts", "reflectance", "brightness_temperature"])
+def test_calibrate(calibration):
     """Test calibration."""
-    # Generate test data
     counts = np.linspace(0, 1200, 25).reshape(5, 5)
     counts[-1, -1] = 65535
     counts = DataArray(da.from_array(counts, chunks=5))
@@ -335,33 +350,22 @@ def test_calibrate():
          [134.51567937, 130.02,       130.02,       130.02,       np.nan]]
     )
 
-    # Choose an area near the subsatellite point to avoid masking
-    # of space pixels
-    mda = _get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0,
-                        segno=0)
+    # Choose an area near the subsatellite point to avoid masking of space pixels
+    mda = _get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0, segno=0, vis=calibration == "reflectance")
     reader = _get_reader(mda=mda)
 
-    # 1. Counts
-    res = reader.calibrate(data=counts, calibration="counts")
-    assert np.all(counts.values == res.values)
-
-    # 2. Reflectance
-    res = reader.calibrate(data=counts, calibration="reflectance")
-    np.testing.assert_allclose(refl, res.values)  # also compares NaN
-
-    # 3. Brightness temperature
-    mda_bt = _get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0,
-                           segno=0, vis=False)
-    reader_bt = _get_reader(mda=mda_bt)
-    res = reader_bt.calibrate(data=counts,
-                              calibration="brightness_temperature")
-    np.testing.assert_allclose(bt, res.values)  # also compares NaN
+    res = reader.calibrate(data=counts, calibration=calibration)
+    exp = {
+        "counts": counts.values,
+        "reflectance": refl,
+        "brightness_temperature": bt,
+    }
+    np.testing.assert_allclose(exp[calibration], res.values)
 
 
 def test_mask_space():
     """Test masking of space pixels."""
-    mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
-                        segno=1, numseg=10)
+    mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375, segno=1, numseg=10)
     reader = _get_reader(mda=mda)
     data = DataArray(da.ones((275, 1375), chunks=1024))
     masked = reader._mask_space(data)
@@ -369,14 +373,13 @@ def test_mask_space():
     # First line of the segment should be space, in the middle of the
     # last line there should be some valid pixels
     np.testing.assert_allclose(masked.values[0, :], np.nan)
-    assert np.all(masked.values[-1, 588:788] == 1)
+    np.testing.assert_array_equal(masked.values[-1, 588:788], 1)
 
 
 @mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset")
 def test_get_dataset(base_get_dataset):
     """Test getting a dataset."""
-    mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
-                        segno=1, numseg=10)
+    mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375, segno=1, numseg=10)
     reader = _get_reader(mda=mda)
     key = make_dataid(name="VIS", calibration="reflectance")
 
@@ -403,46 +406,50 @@ def test_get_dataset(base_get_dataset):
             mask_space.assert_called()
             calibrate.assert_called()
 
-    with mock.patch("logging.Logger.error") as log_mock:
+
+def test_sensor_mismatch(caplog):
+    """Test that a file for a different sensor is detected."""
+    reader = _get_reader(mda=_get_mda())
+    key = make_dataid(name="VIS", calibration="reflectance")
+    with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset:
+        base_get_dataset.return_value = DataArray(
+            da.ones((11000, 11000), chunks=1024),
+            dims=("y", "x"))
         reader.get_dataset(key, {"units": "%", "sensor": "jami"})
-        log_mock.assert_called()
-
-
-def test_get_acq_time():
-    """Test computation of scanline acquisition times."""
-    dt_line = np.arange(1, 11000+1).astype("timedelta64[s]")
-    acq_time_exp = np.datetime64("1970-01-01", "ns") + dt_line
-    for platform in ["Himawari-8", "MTSAT-2"]:
-        # Results are not exactly identical because timestamps are stored in
-        # the header with only 6 decimals precision (max diff here: 45 msec).
-        mda = _get_mda(platform=platform)
-        reader = _get_reader(mda=mda)
-        np.testing.assert_allclose(reader.acq_time.astype(np.int64),
-                                   acq_time_exp.astype(np.int64),
-                                   atol=45000000)
-
-
-def test_start_time_from_filename():
-    """Test that by default the datetime in the filename is returned."""
-    start_time = dt.datetime(2022, 1, 20, 12, 10)
-    for platform in ["Himawari-8", "MTSAT-2"]:
-        mda = _get_mda(platform=platform)
-        reader = _get_reader(mda=mda, filename_info={"start_time": start_time})
-        assert reader._start_time == start_time
+    assert "Sensor-Platform mismatch" in caplog.text
 
 
 @pytest.mark.parametrize("platform", ["Himawari-8", "MTSAT-2"])
-def test_start_time_from_aqc_time(platform):
+def test_get_acq_time(platform):
+    """Test computation of scanline acquisition times."""
+    dt_line = np.arange(1, 11000+1).astype("timedelta64[s]")
+    acq_time_exp = np.datetime64("1970-01-01", "ns") + dt_line
+    # Results are not exactly identical because timestamps are stored in
+    # the header with only 6 decimals precision (max diff here: 45 msec).
+    mda = _get_mda(platform=platform)
+    reader = _get_reader(mda=mda)
+    np.testing.assert_allclose(reader.acq_time.astype(np.int64),
+                               acq_time_exp.astype(np.int64),
+                               atol=45000000)
+
+
+@pytest.mark.parametrize("platform", ["Himawari-8", "MTSAT-2"])
+@pytest.mark.parametrize("use_acq_time", [None, False, True])
+def test_start_time_from_aqc_time(platform, use_acq_time):
     """Test that by the datetime from the metadata returned when `use_acquisition_time_as_start_time=True`."""
     start_time = dt.datetime(2022, 1, 20, 12, 10)
     mda = _get_mda(platform=platform)
+    reader_kwargs = {"use_acquisition_time_as_start_time": True} if use_acq_time else {}
     reader = _get_reader(
         mda=mda,
         filename_info={"start_time": start_time},
-        reader_kwargs={"use_acquisition_time_as_start_time": True},
+        reader_kwargs=reader_kwargs,
     )
-    assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
-    assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)
+    if use_acq_time:
+        assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
+        assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)
+    else:
+        assert reader.start_time == start_time
 
 
 @pytest.mark.parametrize(
