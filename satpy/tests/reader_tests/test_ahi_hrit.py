@@ -41,10 +41,15 @@ from satpy.readers.hrit_jma import (
 from satpy.tests.utils import make_dataid
 
 
-def create_fake_ahi_hrit(hrit_path: Path, metadata_overrides: dict | None = None) -> None:
+def create_fake_ahi_hrit(
+        hrit_path: Path,
+        num_rows: int = 11000,  # default 1km
+        num_cols: int = 11000,  # default 1km
+        is_vis: bool = True,
+        annotation: str | None = None,
+        metadata_overrides: dict | None = None,
+) -> None:
     """Create a fake AHI HRIT file on disk."""
-    num_rows = 11000  # 1km
-    num_cols = 11000  # 1km
     coff_loffs = f"LINE:=1\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
     for lnum in range(1000, num_rows + 1, 1000):
         coff_loffs += f"LINE:={lnum}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
@@ -52,38 +57,41 @@ def create_fake_ahi_hrit(hrit_path: Path, metadata_overrides: dict | None = None
             coff_loffs += f"LINE:={lnum + 1}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
     coff_loffs_bytes = coff_loffs.encode()
     acq_times_bytes = _get_acq_time(num_rows)
-
+    if annotation is None:
+        annotation = hrit_path.name
+    if is_vis:
+        idf = "$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r0:=-0.10\r1023:=100.00\r65535:=100.00\r"
+    else:
+        idf = "$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r0:=329.98\r1023:=130.02\r65535:=130.02\r"
 
     with hrit_path.open(mode="wb") as fp:
         header_data = (
             # header 0
             np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            # 4km ->np.void((0, 1841, 121000000),
-            np.void((0, 2219, 1936000000),
+            # total_header_length is updated below
+            np.void((0, 0, 0),
                     dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
 
             # header 1
             np.void((1, 9), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            # np.void((16, 2750, 2750, 0),
             np.void((16, num_cols, num_rows, 0),
                     dtype=[("number_of_bits_per_pixel", "u1"), ("number_of_columns", ">u2"), ("number_of_lines", ">u2"),
                            ("compression_flag_for_data", "u1")]),
 
             # header 2
             np.void((2, 51), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.void((b"GEOS(140.70)                    ", 40932549, 40932549, 5500, 5500),
+            np.void((b"GEOS(140.70)                    ", 10233128, 10233128, 5500, 5500),
                     dtype=[("projection_name", "S32"),
                            ("cfac", ">i4"), ("lfac", ">i4"),
                            ("coff", ">i4"), ("loff", ">i4")]),
 
             # header 3
-            np.void((3, 85), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.array(b"$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r0:=-0.10\r1023:=100.00\r65535:=100.00\r",
-                     dtype="|S82"),
+            np.void((3, len(idf) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.bytes_(idf),
 
             # header 4
-            np.void((4, 27), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.array(b"IMG_DK01VIS_201809100300", dtype="|S24"),
+            np.void((4, len(annotation) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+            np.bytes_(annotation),
 
             # header 5
             np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
@@ -107,6 +115,9 @@ def create_fake_ahi_hrit(hrit_path: Path, metadata_overrides: dict | None = None
             np.void((132, 12), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
             np.array(b"NO_ERROR\r", dtype="|S9"),
         )
+        total_header_length = sum([x.size * x.dtype.itemsize for x in header_data])
+        header_data[1]["total_header_length"] = total_header_length
+
         for header_arr in header_data:
             if metadata_overrides and header_arr.dtype.fields is not None:
                 for key in header_arr.dtype.fields:
@@ -183,24 +194,36 @@ def _get_mda(loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
             }
 
 
-def test_init(tmp_path):
+@pytest.mark.parametrize(
+    ("channel", "is_vis", "shape"),
+    [
+        ("VIS", True, (11000, 11000)),
+    ],
+)
+def test_header_parsing(tmp_path, channel, is_vis, shape):
     """Test creating the file handler."""
-    mda = _get_mda()
-    mda_expected = mda.copy()
-    mda_expected.update(
-        {"planned_end_segment_number": np.uint8(1),
-         "planned_start_segment_number": np.uint8(1),
-         "segment_sequence_number": np.uint8(0),
-         "unit": "ALBEDO(%)"})
+    mda_expected = _get_mda(nlines=shape[0], ncols=shape[1], vis=is_vis)
+    mda_expected.update({
+        "planned_end_segment_number": np.uint8(1),
+        "planned_start_segment_number": np.uint8(1),
+        "segment_sequence_number": np.uint8(0),
+    })
     mda_expected["projection_parameters"]["SSP_longitude"] = 140.7
+    if is_vis:
+        mda_expected["unit"] = "ALBEDO(%)"
+    else:
+        mda_expected["unit"] = "KELVIN"
 
-    hrit_path = tmp_path / "IMG_DK01B04_202509261940_001"
-    create_fake_ahi_hrit(hrit_path, metadata_overrides=mda)
-
+    hrit_path = tmp_path / f"IMG_DK01{channel}_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        shape[0],
+        shape[1],
+        is_vis=is_vis,
+    )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     # Test addition of extra metadata
-    # expected dict doesn"t have every possible key so we only check what is expected
     for mda_key, exp_val in mda_expected.items():
         assert reader.mda[mda_key] == exp_val
 
@@ -208,9 +231,14 @@ def test_init(tmp_path):
     assert reader.projection_name == "GEOS(140.70)"
 
     # Check calibration table
-    cal_expected = np.array([[0, -0.1],
-                             [1023,  100],
-                             [65535,  100]])
+    if is_vis:
+        cal_expected = np.array([[0, -0.1],
+                                 [1023,  100],
+                                 [65535,  100]])
+    else:
+        cal_expected = np.array([[0, 329.98],
+                                 [1023, 130.02],
+                                 [65535, 130.02]])
     assert np.all(reader.calibration_table == cal_expected)
 
     # Check if scanline timestamps are there (dedicated test below)
