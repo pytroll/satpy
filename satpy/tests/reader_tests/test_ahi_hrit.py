@@ -50,12 +50,7 @@ def create_fake_ahi_hrit(
         metadata_overrides: dict | None = None,
 ) -> None:
     """Create a fake AHI HRIT file on disk."""
-    coff_loffs = f"LINE:=1\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
-    for lnum in range(1000, num_rows + 1, 1000):
-        coff_loffs += f"LINE:={lnum}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
-        if lnum != num_rows:
-            coff_loffs += f"LINE:={lnum + 1}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
-    coff_loffs_bytes = coff_loffs.encode()
+    coff_loffs_bytes = _get_line_offsets(num_rows, num_cols)
     acq_times_bytes = _get_acq_time(num_rows)
     if annotation is None:
         annotation = hrit_path.name
@@ -122,22 +117,21 @@ def create_fake_ahi_hrit(
             if metadata_overrides and header_arr.dtype.fields is not None:
                 for key in header_arr.dtype.fields:
                     if key in metadata_overrides:
-                        header_arr[key] = metadata_overrides[key]
+                        new_val = metadata_overrides[key]
+                        if np.issubdtype(header_arr[key].dtype, np.bytes_):
+                            # null-pad the provided bytes
+                            new_val = np.array(new_val, dtype=header_arr[key].dtype)
+                        header_arr[key] = new_val
             header_arr.tofile(fp)
 
 
-@mock.patch("satpy.readers.hrit_jma.HRITFileHandler.__init__")
-def _get_reader(mocked_init, mda, filename_info=None, filetype_info=None, reader_kwargs=None):
-    if not filename_info:
-        filename_info = {}
-    if not filetype_info:
-        filetype_info = {}
-    if not reader_kwargs:
-        reader_kwargs = {}
-    HRITJMAFileHandler.filename = "filename"
-    HRITJMAFileHandler.mda = mda
-    HRITJMAFileHandler._start_time = filename_info.get("start_time")
-    return HRITJMAFileHandler("filename", filename_info, filetype_info, **reader_kwargs)
+def _get_line_offsets(num_rows: int, num_cols: int) -> bytes:
+    coff_loffs = f"LINE:=1\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
+    for lnum in range(1000, num_rows + 1, 1000):
+        coff_loffs += f"LINE:={lnum}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
+        if lnum != num_rows:
+            coff_loffs += f"LINE:={lnum + 1}\rCOFF:={num_cols / 2}\rLOFF:={num_rows / 2}"
+    return coff_loffs.encode()
 
 
 def _get_acq_time(nlines):
@@ -163,57 +157,15 @@ def _get_acq_time(nlines):
     return acq_time_b
 
 
-def _get_mda(loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
-             segno=0, numseg=1, vis=True, platform="Himawari-8"):
-    """Create metadata dict like HRITFileHandler would do it."""
-    if vis:
-        idf = b"$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r" \
-              b"0:=-0.10\r1023:=100.00\r65535:=100.00\r"
-    else:
-        idf = b"$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r" \
-              b"0:=329.98\r1023:=130.02\r65535:=130.02\r"
-    proj_h8 = b"GEOS(140.70)                    "
-    proj_mtsat2 = b"GEOS(145.00)                    "
-    proj_name = proj_h8 if platform == "Himawari-8" else proj_mtsat2
-    return {"image_segm_seq_no": np.uint8(segno),
-            "total_no_image_segm": np.uint8(numseg),
-            "projection_name": np.bytes_(proj_name),
-            "projection_parameters": {
-                "a": 6378169.00,
-                "b": 6356583.80,
-                "h": 35785831.00,
-            },
-            "cfac": np.int32(10233128),
-            "lfac": np.int32(10233128),
-            "coff": np.int32(coff),
-            "loff": np.int32(loff),
-            "number_of_columns": np.uint16(ncols),
-            "number_of_lines": np.uint16(nlines),
-            "image_data_function": np.bytes_(idf),
-            "image_observation_time": np.bytes_(_get_acq_time(nlines)),
-            }
-
-
 @pytest.mark.parametrize(
     ("channel", "is_vis", "shape"),
     [
         ("VIS", True, (11000, 11000)),
+        ("IR4", False, (2750, 2750)),
     ],
 )
 def test_header_parsing(tmp_path, channel, is_vis, shape):
     """Test creating the file handler."""
-    mda_expected = _get_mda(nlines=shape[0], ncols=shape[1], vis=is_vis)
-    mda_expected.update({
-        "planned_end_segment_number": np.uint8(1),
-        "planned_start_segment_number": np.uint8(1),
-        "segment_sequence_number": np.uint8(0),
-    })
-    mda_expected["projection_parameters"]["SSP_longitude"] = 140.7
-    if is_vis:
-        mda_expected["unit"] = "ALBEDO(%)"
-    else:
-        mda_expected["unit"] = "KELVIN"
-
     hrit_path = tmp_path / f"IMG_DK01{channel}_202509261940_001"
     create_fake_ahi_hrit(
         hrit_path,
@@ -223,11 +175,24 @@ def test_header_parsing(tmp_path, channel, is_vis, shape):
     )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
-    # Test addition of extra metadata
-    for mda_key, exp_val in mda_expected.items():
-        assert reader.mda[mda_key] == exp_val
-
-    # Check projection name
+    assert reader.mda["image_segm_seq_no"] == np.uint8(0)
+    assert reader.mda["total_no_image_segm"] == np.uint8(1)
+    assert reader.mda["projection_parameters"] == {
+        "a": 6378169.00,
+        "b": 6356583.80,
+        "h": 35785831.00,
+        "SSP_longitude": 140.7,
+    }
+    assert reader.mda["cfac"] == np.int32(10233128)
+    assert reader.mda["lfac"] == np.int32(10233128)
+    assert reader.mda["coff"] == np.int32(5500.0)
+    assert reader.mda["loff"] == np.int32(5500.0)
+    assert reader.mda["number_of_lines"] == np.uint16(shape[0])
+    assert reader.mda["number_of_columns"] == np.uint16(shape[1])
+    assert reader.mda["planned_end_segment_number"] == np.uint8(1)
+    assert reader.mda["planned_start_segment_number"] == np.uint8(1)
+    assert reader.mda["segment_sequence_number"] == np.uint8(0)
+    assert reader.mda["unit"] == ("ALBEDO(%)" if is_vis else "KELVIN")
     assert reader.projection_name == "GEOS(140.70)"
 
     # Check calibration table
@@ -257,34 +222,59 @@ def test_header_parsing(tmp_path, channel, is_vis, shape):
         (8, True),
     ]
 )
-def test_segmented_checks(segno, is_segmented):
+def test_segmented_checks(tmp_path, segno, is_segmented):
     """Test segments are identified."""
-    mda = _get_mda(segno=segno)
-    reader = _get_reader(mda=mda)
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        11000,
+        11000,
+        metadata_overrides={"image_segm_seq_no": segno},
+    )
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
     assert reader.is_segmented == is_segmented
 
 
 @pytest.mark.parametrize(
-    ("filename_info", "area_id"),
+    ("extra_filename_info", "area_id"),
     [
-        ({"area": 1}, 1),
+        ({"area": FULL_DISK}, FULL_DISK),
         ({"area": 1234}, UNKNOWN_AREA),
         ({}, UNKNOWN_AREA)
     ]
 )
-def test_check_areas(filename_info, area_id):
+def test_check_areas(tmp_path, extra_filename_info, area_id):
     """Test area names coming from the filename."""
-    mda = _get_mda()
-    reader = _get_reader(mda=mda, filename_info=filename_info)
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        11000,
+        11000,
+    )
+    filename_info = {"start_time": dt.datetime.now()}
+    filename_info.update(extra_filename_info)
+    reader = HRITJMAFileHandler(
+        hrit_path,
+        filename_info,
+        {})
     assert reader.area_id == area_id
 
 
-@pytest.mark.parametrize(("proj_name", "platform"), list(PLATFORMS.items()) + [("invalid", UNKNOWN_PLATFORM)])
-def test_get_platform(proj_name, platform, caplog):
+@pytest.mark.parametrize(("proj_name", "platform"), list(PLATFORMS.items()) + [("MERCATOR(0.0)", UNKNOWN_PLATFORM)])
+def test_get_platform(tmp_path, proj_name, platform, caplog):
     """Test platform identification."""
-    with mock.patch("satpy.readers.hrit_jma.HRITJMAFileHandler.__init__") as mocked_init:
-        mocked_init.return_value = None
-        reader = HRITJMAFileHandler()
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        11000,
+        11000,
+        metadata_overrides={"projection_name": proj_name},
+    )
+    filename_info = {"start_time": dt.datetime.now()}
+    reader = HRITJMAFileHandler(
+        hrit_path,
+        filename_info,
+        {})
 
     reader.projection_name = proj_name
     assert reader._get_platform() == platform
@@ -348,17 +338,32 @@ def test_get_platform(proj_name, platform, caplog):
         ),
     ]
 )
-def test_get_area_def(mda_info, area_name, extent):
+def test_get_area_def(tmp_path, mda_info, area_name, extent):
     """Test getting an AreaDefinition."""
-    mda = _get_mda(**mda_info)
-    reader = _get_reader(mda=mda, filename_info={"area": area_name})
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        mda_info["nlines"],
+        mda_info["ncols"],
+        metadata_overrides={
+            "loff": mda_info["loff"],
+            "coff": mda_info["coff"],
+            "image_segm_seq_no": mda_info["segno"],
+            "total_no_image_segm": mda_info["numseg"],
+        },
+    )
+    reader = HRITJMAFileHandler(
+        hrit_path,
+        {"start_time": dt.datetime.now(), "area": area_name},
+        {})
+
     area = reader.get_area_def("some_id")
     assert area.area_extent == extent
     assert area.description == AREA_NAMES[area_name]["long"]
 
 
 @pytest.mark.parametrize("calibration", ["counts", "reflectance", "brightness_temperature"])
-def test_calibrate(calibration):
+def test_calibrate(tmp_path, calibration):
     """Test calibration."""
     counts = np.linspace(0, 1200, 25).reshape(5, 5)
     counts[-1, -1] = 65535
@@ -378,9 +383,22 @@ def test_calibrate(calibration):
          [134.51567937, 130.02,       130.02,       130.02,       np.nan]]
     )
 
-    # Choose an area near the subsatellite point to avoid masking of space pixels
-    mda = _get_mda(nlines=5, ncols=5, loff=1375.0, coff=1375.0, segno=0, vis=calibration == "reflectance")
-    reader = _get_reader(mda=mda)
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        5,
+        5,
+        is_vis=calibration == "reflectance",
+        # Choose an area near the subsatellite point to avoid masking of space pixels
+        metadata_overrides={
+            "loff": 1375.0,
+            "coff": 1375.0,
+        },
+    )
+    reader = HRITJMAFileHandler(
+        hrit_path,
+        {"start_time": dt.datetime.now()},
+        {})
 
     res = reader.calibrate(data=counts, calibration=calibration)
     exp = {
@@ -391,10 +409,26 @@ def test_calibrate(calibration):
     np.testing.assert_allclose(exp[calibration], res.values)
 
 
-def test_mask_space():
+def test_mask_space(tmp_path):
     """Test masking of space pixels."""
-    mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375, segno=1, numseg=10)
-    reader = _get_reader(mda=mda)
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        275,
+        1375,
+        # Choose an area near the subsatellite point to avoid masking of space pixels
+        metadata_overrides={
+            "loff": 1375.0,
+            "coff": 1375.0,
+            "image_segm_seq_no": 1,
+            "total_no_image_segm": 10,
+        },
+    )
+    reader = HRITJMAFileHandler(
+        hrit_path,
+        {"start_time": dt.datetime.now()},
+        {})
+
     data = DataArray(da.ones((275, 1375), chunks=1024))
     masked = reader._mask_space(data)
 
@@ -404,19 +438,33 @@ def test_mask_space():
     np.testing.assert_array_equal(masked.values[-1, 588:788], 1)
 
 
-@mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset")
-def test_get_dataset(base_get_dataset):
+def test_get_dataset(tmp_path):
     """Test getting a dataset."""
-    mda = _get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375, segno=1, numseg=10)
-    reader = _get_reader(mda=mda)
-    key = make_dataid(name="VIS", calibration="reflectance")
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(
+        hrit_path,
+        275,
+        1375,
+        # Choose an area near the subsatellite point to avoid masking of space pixels
+        metadata_overrides={
+            "loff": 1375.0,
+            "coff": 1375.0,
+            "image_segm_seq_no": 1,
+            "total_no_image_segm": 10,
+        },
+    )
+    reader = HRITJMAFileHandler(
+        hrit_path,
+        {"start_time": dt.datetime.now()},
+        {})
 
-    base_get_dataset.return_value = DataArray(da.ones((275, 1375),
-                                                      chunks=1024),
-                                              dims=("y", "x"))
+    key = make_dataid(name="VIS", calibration="reflectance")
+    with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset:
+        base_get_dataset.return_value = DataArray(da.ones((275, 1375), chunks=1024),
+                                                  dims=("y", "x"))
+        res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
 
     # Check attributes
-    res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
     assert res.attrs["units"] == "%"
     assert res.attrs["sensor"] == "ahi"
     assert res.attrs["platform_name"] == HIMAWARI8
@@ -428,6 +476,7 @@ def test_get_dataset(base_get_dataset):
     assert "acq_time" in res.coords
 
     # Check called methods
+    # TODO: Wrap these methods instead of completely mocking
     with mock.patch.object(reader, "_mask_space") as mask_space:
         with mock.patch.object(reader, "calibrate") as calibrate:
             reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
@@ -435,9 +484,12 @@ def test_get_dataset(base_get_dataset):
             calibrate.assert_called()
 
 
-def test_sensor_mismatch(caplog):
+def test_sensor_mismatch(tmp_path, caplog):
     """Test that a file for a different sensor is detected."""
-    reader = _get_reader(mda=_get_mda())
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(hrit_path)
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
+
     key = make_dataid(name="VIS", calibration="reflectance")
     with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset:
         base_get_dataset.return_value = DataArray(
@@ -447,32 +499,32 @@ def test_sensor_mismatch(caplog):
     assert "Sensor-Platform mismatch" in caplog.text
 
 
-@pytest.mark.parametrize("platform", ["Himawari-8", "MTSAT-2"])
-def test_get_acq_time(platform):
+@pytest.mark.parametrize("projection_name", ["GEOS(140.70)", "GEOS(145.00)"])
+def test_get_acq_time(tmp_path, projection_name):
     """Test computation of scanline acquisition times."""
     dt_line = np.arange(1, 11000+1).astype("timedelta64[s]")
     acq_time_exp = np.datetime64("1970-01-01", "ns") + dt_line
     # Results are not exactly identical because timestamps are stored in
     # the header with only 6 decimals precision (max diff here: 45 msec).
-    mda = _get_mda(platform=platform)
-    reader = _get_reader(mda=mda)
+
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(hrit_path, metadata_overrides={"projection_name": projection_name})
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
     np.testing.assert_allclose(reader.acq_time.astype(np.int64),
                                acq_time_exp.astype(np.int64),
                                atol=45000000)
 
 
-@pytest.mark.parametrize("platform", ["Himawari-8", "MTSAT-2"])
+@pytest.mark.parametrize("projection_name", ["GEOS(140.70)", "GEOS(145.00)"])
 @pytest.mark.parametrize("use_acq_time", [None, False, True])
-def test_start_time_from_aqc_time(platform, use_acq_time):
+def test_start_time_from_aqc_time(tmp_path, projection_name, use_acq_time):
     """Test that by the datetime from the metadata returned when `use_acquisition_time_as_start_time=True`."""
     start_time = dt.datetime(2022, 1, 20, 12, 10)
-    mda = _get_mda(platform=platform)
+    hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    create_fake_ahi_hrit(hrit_path, metadata_overrides={"projection_name": projection_name})
     reader_kwargs = {"use_acquisition_time_as_start_time": True} if use_acq_time else {}
-    reader = _get_reader(
-        mda=mda,
-        filename_info={"start_time": start_time},
-        reader_kwargs=reader_kwargs,
-    )
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": start_time}, {}, **reader_kwargs)
+
     if use_acq_time:
         assert reader.start_time == dt.datetime(1970, 1, 1, 0, 0, 1, 36799)
         assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)
