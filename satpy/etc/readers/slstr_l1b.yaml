@@ -6,7 +6,6 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [slstr]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
   data_identification_keys:

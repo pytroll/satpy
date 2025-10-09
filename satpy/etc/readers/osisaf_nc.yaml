@@ -11,7 +11,6 @@ reader:
   status: Beta
   supports_fsspec: true
   sensors: [osisaf]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
