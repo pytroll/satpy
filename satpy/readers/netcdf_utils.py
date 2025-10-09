@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2014-2025 Satpy developers
 #
 # This file is part of satpy.
