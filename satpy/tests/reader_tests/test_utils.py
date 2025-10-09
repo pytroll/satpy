@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2014-2019 Satpy developers
+# Copyright (c) 2014-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -520,6 +518,64 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
     assert read_binary_data == dummy_data
 
 
+class TestDistributed:
+    """Distributed-related tests.
+
+    Distributed-related tests are grouped so that they can share a class-scoped
+    fixture setting up the distributed client, as this setup is relatively
+    slow.
+    """
+
+    @pytest.fixture(scope="class")
+    def dask_dist_client(self):
+        """Set up and close a dask distributed client."""
+        from dask.distributed import Client
+        cl = Client()
+        yield cl
+        cl.close()
+
+
+    @pytest.mark.parametrize("shape", [(2,), (2, 3), (2, 3, 4)])
+    @pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
+    @pytest.mark.parametrize("grp", ["/", "/in/a/group"])
+    def test_get_serializable_dask_array(self, tmp_path, dask_dist_client, shape, dtype, grp):
+        """Test getting a dask distributed friendly serialisable dask array."""
+        import netCDF4
+        from xarray.backends import CachingFileManager
+
+        fn = tmp_path / "sjaunja.nc"
+        ds = xr.Dataset(
+                data_vars={
+                    "kaitum": (["x", "y", "z"][:len(shape)],
+                               np.arange(np.prod(shape),
+                                         dtype=dtype).reshape(shape))})
+        ds.to_netcdf(fn, group=grp)
+
+        cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
+        arr = hf.get_serializable_dask_array(cfm, "/".join([grp, "kaitum"]),
+                                             chunks=shape, dtype=dtype)
+
+        # As documented in GH issue 2815, using dask distributed with the file
+        # handle cacher might fail in non-trivial ways, such as giving incorrect
+        # results.  Testing map_blocks is one way to reproduce the problem
+        # reliably, even though the problem also manifests itself (in different
+        # ways) without map_blocks.
+
+        def doubler(x):
+            # with a workaround for https://github.com/numpy/numpy/issues/27029
+            return x * x.dtype.type(2)
+
+        dask_doubler = arr.map_blocks(doubler, dtype=arr.dtype)
+        res = dask_doubler.compute()
+        # test before and after computation, as to confirm we have the correct
+        # shape and dtype and that computing doesn't change them
+        assert shape == dask_doubler.shape
+        assert shape == res.shape
+        assert dtype == dask_doubler.dtype
+        assert dtype == res.dtype
+        np.testing.assert_array_equal(res, np.arange(np.prod(shape)).reshape(shape)*2)
+
+
 class TestCalibrationCoefficientPicker:
     """Unit tests for calibration coefficient selection."""
 
@@ -666,3 +722,14 @@ def test_init_import_warns(name):
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(utils, name)
+
+
+@pytest.fixture
+def dummy_nc(tmp_path):
+    """Fixture to create a dummy NetCDF file and return its path."""
+    import xarray as xr
+
+    fn = tmp_path / "sjaunja.nc"
+    ds = xr.Dataset(data_vars={"kaitum": (["x"], np.arange(10, dtype="i4"))})
+    ds.to_netcdf(fn)
+    return fn
