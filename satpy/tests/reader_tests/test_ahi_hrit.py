@@ -52,10 +52,12 @@ def create_fake_ahi_hrit(
     """Create a fake AHI HRIT file on disk."""
     header_data = _get_fake_header_data(num_rows, num_cols, is_vis, annotation or hrit_path.name)
     _update_header_with_metadata(header_data, metadata_overrides)
+    data_arr = np.ones((num_rows, num_cols), dtype=np.uint16).ravel()
 
     with hrit_path.open(mode="wb") as fp:
         for header_arr in header_data:
             header_arr.tofile(fp)
+        data_arr.tofile(fp)
 
 
 def _get_fake_header_data(
@@ -473,11 +475,8 @@ def test_get_dataset(tmp_path):
         {})
 
     key = make_dataid(name="VIS", calibration="reflectance")
-    with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset, \
-            mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
+    with mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
             mock.patch.object(reader, "calibrate", wraps=reader.calibrate) as calibrate:
-        base_get_dataset.return_value = DataArray(da.ones((275, 1375), chunks=1024),
-                                                  dims=("y", "x"))
         res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
         mask_space.assert_called()
         calibrate.assert_called()
@@ -501,11 +500,7 @@ def test_sensor_mismatch(tmp_path, caplog):
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     key = make_dataid(name="VIS", calibration="reflectance")
-    with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset:
-        base_get_dataset.return_value = DataArray(
-            da.ones((11000, 11000), chunks=1024),
-            dims=("y", "x"))
-        reader.get_dataset(key, {"units": "%", "sensor": "jami"})
+    reader.get_dataset(key, {"units": "%", "sensor": "jami"})
     assert "Sensor-Platform mismatch" in caplog.text
 
 
