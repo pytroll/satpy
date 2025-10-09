@@ -243,7 +243,7 @@ def test_segmented_checks(tmp_path, segno, is_segmented):
     hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
     create_fake_ahi_hrit(
         hrit_path,
-        11000,
+        1100,
         11000,
         metadata_overrides={"image_segm_seq_no": segno},
     )
@@ -262,17 +262,10 @@ def test_segmented_checks(tmp_path, segno, is_segmented):
 def test_check_areas(tmp_path, extra_filename_info, area_id):
     """Test area names coming from the filename."""
     hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
-    create_fake_ahi_hrit(
-        hrit_path,
-        11000,
-        11000,
-    )
+    create_fake_ahi_hrit(hrit_path)
     filename_info = {"start_time": dt.datetime.now()}
     filename_info.update(extra_filename_info)
-    reader = HRITJMAFileHandler(
-        hrit_path,
-        filename_info,
-        {})
+    reader = HRITJMAFileHandler(hrit_path, filename_info, {})
     assert reader.area_id == area_id
 
 
@@ -280,17 +273,9 @@ def test_check_areas(tmp_path, extra_filename_info, area_id):
 def test_get_platform(tmp_path, proj_name, platform, caplog):
     """Test platform identification."""
     hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
-    create_fake_ahi_hrit(
-        hrit_path,
-        11000,
-        11000,
-        metadata_overrides={"projection_name": proj_name},
-    )
+    create_fake_ahi_hrit(hrit_path, metadata_overrides={"projection_name": proj_name})
     filename_info = {"start_time": dt.datetime.now()}
-    reader = HRITJMAFileHandler(
-        hrit_path,
-        filename_info,
-        {})
+    reader = HRITJMAFileHandler(hrit_path, filename_info, {})
 
     reader.projection_name = proj_name
     assert reader._get_platform() == platform
@@ -411,10 +396,7 @@ def test_calibrate(tmp_path, calibration):
             "coff": 1375.0,
         },
     )
-    reader = HRITJMAFileHandler(
-        hrit_path,
-        {"start_time": dt.datetime.now()},
-        {})
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     res = reader.calibrate(data=counts, calibration=calibration)
     exp = {
@@ -440,10 +422,7 @@ def test_mask_space(tmp_path):
             "total_no_image_segm": 10,
         },
     )
-    reader = HRITJMAFileHandler(
-        hrit_path,
-        {"start_time": dt.datetime.now()},
-        {})
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     data = DataArray(da.ones((275, 1375), chunks=1024))
     masked = reader._mask_space(data)
@@ -469,10 +448,7 @@ def test_get_dataset(tmp_path):
             "total_no_image_segm": 10,
         },
     )
-    reader = HRITJMAFileHandler(
-        hrit_path,
-        {"start_time": dt.datetime.now()},
-        {})
+    reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     key = make_dataid(name="VIS", calibration="reflectance")
     with mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
