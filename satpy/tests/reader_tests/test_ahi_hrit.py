@@ -50,79 +50,93 @@ def create_fake_ahi_hrit(
         metadata_overrides: dict | None = None,
 ) -> None:
     """Create a fake AHI HRIT file on disk."""
+    header_data = _get_fake_header_data(num_rows, num_cols, is_vis, annotation or hrit_path.name)
+    _update_header_with_metadata(header_data, metadata_overrides)
+
+    with hrit_path.open(mode="wb") as fp:
+        for header_arr in header_data:
+            header_arr.tofile(fp)
+
+
+def _get_fake_header_data(
+        num_rows: int,
+        num_cols: int,
+        is_vis: bool,
+        annotation: str,
+) -> tuple[np.ndarray, ...]:
     coff_loffs_bytes = _get_line_offsets(num_rows, num_cols)
     acq_times_bytes = _get_acq_time(num_rows)
-    if annotation is None:
-        annotation = hrit_path.name
     if is_vis:
         idf = "$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r0:=-0.10\r1023:=100.00\r65535:=100.00\r"
     else:
         idf = "$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r0:=329.98\r1023:=130.02\r65535:=130.02\r"
 
-    with hrit_path.open(mode="wb") as fp:
-        header_data = (
-            # header 0
-            np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            # total_header_length is updated below
-            np.void((0, 0, 0),
-                    dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
+    header_data = (
+        # header 0
+        np.void((0, 16), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        # total_header_length is updated below
+        np.void((0, 0, 0),
+                dtype=[("file_type", "u1"), ("total_header_length", ">u4"), ("data_field_length", ">u8")]),
 
-            # header 1
-            np.void((1, 9), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.void((16, num_cols, num_rows, 0),
-                    dtype=[("number_of_bits_per_pixel", "u1"), ("number_of_columns", ">u2"), ("number_of_lines", ">u2"),
-                           ("compression_flag_for_data", "u1")]),
+        # header 1
+        np.void((1, 9), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((16, num_cols, num_rows, 0),
+                dtype=[("number_of_bits_per_pixel", "u1"), ("number_of_columns", ">u2"), ("number_of_lines", ">u2"),
+                       ("compression_flag_for_data", "u1")]),
 
-            # header 2
-            np.void((2, 51), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.void((b"GEOS(140.70)                    ", 10233128, 10233128, 5500, 5500),
-                    dtype=[("projection_name", "S32"),
-                           ("cfac", ">i4"), ("lfac", ">i4"),
-                           ("coff", ">i4"), ("loff", ">i4")]),
+        # header 2
+        np.void((2, 51), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((b"GEOS(140.70)                    ", 10233128, 10233128, 5500, 5500),
+                dtype=[("projection_name", "S32"),
+                       ("cfac", ">i4"), ("lfac", ">i4"),
+                       ("coff", ">i4"), ("loff", ">i4")]),
 
-            # header 3
-            np.void((3, len(idf) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.bytes_(idf),
+        # header 3
+        np.void((3, len(idf) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.bytes_(idf),
 
-            # header 4
-            np.void((4, len(annotation) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.bytes_(annotation),
+        # header 4
+        np.void((4, len(annotation) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.bytes_(annotation),
 
-            # header 5
-            np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.void((64, (22167, 11162999)),
-                    dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])]),
+        # header 5
+        np.void((5, 10), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((64, (22167, 11162999)),
+                dtype=[("cds_p_field", "u1"), ("timestamp", [("Days", ">u2"), ("Milliseconds", ">u4")])]),
 
-            # header 128
-            np.void((128, 7), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.void((0, 1, 1),
-                    dtype=[("image_segm_seq_no", "u1"), ("total_no_image_segm", "u1"), ("line_no_image_segm", ">u2")]),
+        # header 128
+        np.void((128, 7), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.void((0, 1, 1),
+                dtype=[("image_segm_seq_no", "u1"), ("total_no_image_segm", "u1"), ("line_no_image_segm", ">u2")]),
 
-            # header 130
-            np.void((130, len(coff_loffs_bytes) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.bytes_(coff_loffs_bytes),
+        # header 130
+        np.void((130, len(coff_loffs_bytes) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.bytes_(coff_loffs_bytes),
 
-            # header 131
-            np.void((131, len(acq_times_bytes) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.bytes_(acq_times_bytes),
+        # header 131
+        np.void((131, len(acq_times_bytes) + 3), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.bytes_(acq_times_bytes),
 
-            # header 132
-            np.void((132, 12), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
-            np.array(b"NO_ERROR\r", dtype="|S9"),
-        )
-        total_header_length = sum([x.size * x.dtype.itemsize for x in header_data])
-        header_data[1]["total_header_length"] = total_header_length
+        # header 132
+        np.void((132, 12), dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),
+        np.array(b"NO_ERROR\r", dtype="|S9"),
+    )
+    total_header_length = sum([x.size * x.dtype.itemsize for x in header_data])
+    header_data[1]["total_header_length"] = total_header_length
+    return header_data
 
-        for header_arr in header_data:
-            if metadata_overrides and header_arr.dtype.fields is not None:
-                for key in header_arr.dtype.fields:
-                    if key in metadata_overrides:
-                        new_val = metadata_overrides[key]
-                        if np.issubdtype(header_arr[key].dtype, np.bytes_):
-                            # null-pad the provided bytes
-                            new_val = np.array(new_val, dtype=header_arr[key].dtype)
-                        header_arr[key] = new_val
-            header_arr.tofile(fp)
+
+def _update_header_with_metadata(header_data: tuple[np.ndarray, ...], metadata_overrides: dict | None) -> None:
+    if metadata_overrides is None:
+        return
+    for header_arr in header_data:
+        keys_to_update = set(metadata_overrides.keys()) & set(header_arr.dtype.fields or [])
+        for key in keys_to_update:
+            new_val = metadata_overrides[key]
+            if np.issubdtype(header_arr[key].dtype, np.bytes_):
+                # null-pad the provided bytes
+                new_val = np.array(new_val, dtype=header_arr[key].dtype)
+            header_arr[key] = new_val
 
 
 def _get_line_offsets(num_rows: int, num_cols: int) -> bytes:
