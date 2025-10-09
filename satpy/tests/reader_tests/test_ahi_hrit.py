@@ -459,10 +459,14 @@ def test_get_dataset(tmp_path):
         {})
 
     key = make_dataid(name="VIS", calibration="reflectance")
-    with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset:
+    with mock.patch("satpy.readers.hrit_jma.HRITFileHandler.get_dataset") as base_get_dataset, \
+            mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
+            mock.patch.object(reader, "calibrate", wraps=reader.calibrate) as calibrate:
         base_get_dataset.return_value = DataArray(da.ones((275, 1375), chunks=1024),
                                                   dims=("y", "x"))
         res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
+        mask_space.assert_called()
+        calibrate.assert_called()
 
     # Check attributes
     assert res.attrs["units"] == "%"
@@ -474,14 +478,6 @@ def test_get_dataset(tmp_path):
 
     # Check if acquisition time is a coordinate
     assert "acq_time" in res.coords
-
-    # Check called methods
-    # TODO: Wrap these methods instead of completely mocking
-    with mock.patch.object(reader, "_mask_space") as mask_space:
-        with mock.patch.object(reader, "calibrate") as calibrate:
-            reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
-            mask_space.assert_called()
-            calibrate.assert_called()
 
 
 def test_sensor_mismatch(tmp_path, caplog):
