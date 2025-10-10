@@ -79,8 +79,7 @@ class NetCDF4FileHandler(BaseFileHandler):
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_var_size=0, cache_handle=False, engine="netcdf4"):
         """Initialize object."""
-        super().__init__(
-            filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
         self.file_content = {}
         self.cached_file_content = {}
         self.engine = engine
@@ -246,16 +245,16 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _collect_cache_var_names(self, cache_var_size):
         return [varname for (varname, var)
                 in self.file_content.items()
-                if isinstance(var, self.accessor.variable_type)
+                if self.accessor.is_variable(var)
                 and isinstance(var.dtype, np.dtype)  # vlen may be str
                 and var.size * var.dtype.itemsize < cache_var_size]
 
     def __getitem__(self, key):
         """Get item for given key."""
         val = self.file_content[key]
-        if isinstance(val, self.accessor.variable_type):
+        if self.accessor.is_variable(val):
             return self._get_variable(key, val)
-        if isinstance(val, self.accessor.group_type):
+        if self.accessor.is_group(val):
             return self._get_group(key, val)
         return val
 
@@ -409,14 +408,19 @@ class NetCDF4Accessor:
     """Accessor using the netCDF4 library as engine."""
     engine = "netcdf4"
 
-    def __init__(self):
-        """Set up the accessor."""
-        self.variable_type = netCDF4.Variable
-        self.group_type = netCDF4.Group
-
     def create_file_handle(self, filename):
         """Create a file handle."""
         return netCDF4.Dataset(filename, "r")
+
+    @staticmethod
+    def is_variable(obj):
+        """Check if obj is a variable."""
+        return isinstance(obj, netCDF4.Variable)
+
+    @staticmethod
+    def is_group(obj):
+        """Check if obj is a group."""
+        return isinstance(obj, netCDF4.Group)
 
     @staticmethod
     def get_attr(obj, key):
@@ -443,17 +447,23 @@ class H5NetcdfAccessor:
     """Accessor using the h5netcdf library as engine."""
     engine = "h5netcdf"
 
-    def __init__(self):
-        """Set up the accessor."""
-        import h5netcdf
-        self.variable_type = h5netcdf.Variable
-        self.group_type = h5netcdf.Group
-
     def create_file_handle(self, filename):
         """Create a file handle."""
         import h5netcdf
         f_obj = open_file_or_filename(filename)
         return h5netcdf.File(f_obj, "r")
+
+    @staticmethod
+    def is_variable(obj):
+        """Check if obj is a variable."""
+        import h5netcdf
+        return isinstance(obj, h5netcdf.Variable)
+
+    @staticmethod
+    def is_group(obj):
+        """Check if obj is a group."""
+        import h5netcdf
+        return isinstance(obj, h5netcdf.Group)
 
     @staticmethod
     def get_object_attrs(obj):
