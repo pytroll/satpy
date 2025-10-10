@@ -22,11 +22,7 @@ import os
 import numpy as np
 import pytest
 
-try:
-    from satpy.readers.core.netcdf import NetCDF4FileHandler
-except ImportError:
-    # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = object  # type: ignore
+from satpy.readers.core.netcdf import NetCDF4FileHandler, choose_accessor_from_engine
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -41,13 +37,12 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         del xarray_kwargs
         del cache_var_size
         del cache_handle
-        if NetCDF4FileHandler is object:
-            raise ImportError("Base 'NetCDF4FileHandler' could not be "
-                              "imported.")
-        super().__init__(filename, filename_info, filetype_info)
+        super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         if extra_file_content:
             self.file_content.update(extra_file_content)
+        self.engine = "netcdf4"
+        self.accessor = choose_accessor_from_engine(self.engine)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
