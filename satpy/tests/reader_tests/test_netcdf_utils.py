@@ -275,7 +275,7 @@ class TestNetCDF4FsspecFileHandler:
             fid.close()
 
             fh = NetCDF4FsspecFileHandler(fname, {}, {})
-            assert fh._engine == "netcdf4"
+            assert fh.accessor.engine == "netcdf4"
 
     def test_use_h5netcdf_for_file_not_accessible_locally(self):
         """Test that h5netcdf is used for files that are not accesible locally."""
@@ -288,8 +288,8 @@ class TestNetCDF4FsspecFileHandler:
                 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
-                h5_file.assert_called_once()
-                assert fh._engine == "h5netcdf"
+                h5_file.assert_called()
+                assert fh.accessor.engine == "h5netcdf"
 
     def test_h5netcdf_engine(self):
         """Test that h5netcdf engine is used."""
@@ -328,8 +328,6 @@ class TestNetCDF4FsspecFileHandler:
 
                 NetCDF4FsspecFileHandler(fname, {}, {}, engine="netcdf4")
                 file_opener.assert_called_once()
-
-
 
 
 NC_ATTRS = {
