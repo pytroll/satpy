@@ -286,43 +286,16 @@ class TestNetCDF4FsspecFileHandler:
                 h5_file.assert_called()
                 assert fh.accessor.engine == "h5netcdf"
 
-    def test_h5netcdf_engine(self):
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_netcdf_engines(self, netcdf_file, engine):
         """Test that h5netcdf engine is used."""
-        from unittest.mock import patch
+        from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
-        fname = "/data/object.nc"
-
-        with patch("h5netcdf.File") as h5_file:
-            with patch("satpy.readers.core.netcdf.open_file_or_filename"):
-                from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
-
-                NetCDF4FsspecFileHandler(fname, {}, {}, engine="h5netcdf")
-                h5_file.assert_called_once()
-
-    def test_netcdf4_engine(self):
-        """Test that h5netcdf engine is used."""
-        from unittest.mock import patch
-
-        fname = "/data/object.nc"
-
-        class FakeDataset:
-            groups = {}
-            variables = {}
-            dimensions = {}
-
-            def ncattrs(self):
-                return []
-
-            def close(self):
-                pass
-
-        with patch("netCDF4.Dataset") as file_opener:
-            file_opener.return_value = FakeDataset()
-            with patch("satpy.readers.core.netcdf.open_file_or_filename"):
-                from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
-
-                NetCDF4FsspecFileHandler(fname, {}, {}, engine="netcdf4")
-                file_opener.assert_called_once()
+        fh = NetCDF4FsspecFileHandler(netcdf_file, {}, {}, engine=engine)
+        assert fh.accessor.engine == engine
+        np.testing.assert_array_equal(
+                fh["ds2_f"],
+                np.arange(10. * 100).reshape((10, 100)))
 
 
 NC_ATTRS = {
