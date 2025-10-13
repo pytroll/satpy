@@ -238,17 +238,9 @@ class GACLACFile(BaseFileHandler):
             xdim = "x" if self.interpolate_coords else "x_every_eighth"
             xcoords = None
         elif ds_name == "qual_flags":
-            data = self.reader.get_qual_flags()
-            xdim = "num_flags"
-            xcoords = [
-                "Scan line number",
-                "Fatal error flag",
-                "Insufficient data for calibration",
-                "Insufficient data for calibration",
-                "Solar contamination of blackbody in channels 3",
-                "Solar contamination of blackbody in channels 4",
-                "Solar contamination of blackbody in channels 5",
-            ]
+            res = self.cal_ds["quality_flags"].rename(scan_line_index="y").drop_vars(["times", "y"])
+            self._update_attrs(res)
+            return res
         elif ds_name in ["random_uncertainty",
                          "systematic_uncertainty",
                          "channel_covariance_ratio",
