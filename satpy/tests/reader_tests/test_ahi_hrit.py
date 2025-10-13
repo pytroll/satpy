@@ -22,10 +22,8 @@ import datetime as dt
 from pathlib import Path
 from unittest import mock
 
-import dask.array as da
 import numpy as np
 import pytest
-from xarray import DataArray
 
 from satpy.readers.hrit_jma import (
     AREA_NAMES,
@@ -52,7 +50,9 @@ def create_fake_ahi_hrit(
     """Create a fake AHI HRIT file on disk."""
     header_data = _get_fake_header_data(num_rows, num_cols, is_vis, annotation or hrit_path.name)
     _update_header_with_metadata(header_data, metadata_overrides)
-    data_arr = np.ones((num_rows, num_cols), dtype=np.uint16).ravel()
+    # incremement by 1 but roll over to uint16 big-endian
+    data_arr = np.arange(num_rows * num_cols, dtype=">u2")
+    data_arr[-1] = 65535  # always make sure the last one is a fill value
 
     with hrit_path.open(mode="wb") as fp:
         for header_arr in header_data:
@@ -366,45 +366,47 @@ def test_get_area_def(tmp_path, mda_info, area_name, extent):
 @pytest.mark.parametrize("calibration", ["counts", "reflectance", "brightness_temperature"])
 def test_calibrate(tmp_path, calibration):
     """Test calibration."""
-    counts = np.linspace(0, 1200, 25).reshape(5, 5)
-    counts[-1, -1] = 65535
-    counts = DataArray(da.from_array(counts, chunks=5))
-    refl = np.array(
-        [[-0.1,            4.79247312,   9.68494624,  14.57741935,  19.46989247],
-         [24.36236559,  29.25483871,  34.14731183,  39.03978495,  43.93225806],
-         [48.82473118,  53.7172043,   58.60967742,  63.50215054,  68.39462366],
-         [73.28709677,  78.17956989,  83.07204301,  87.96451613,  92.85698925],
-         [97.74946237,  100.,         100.,         100.,         np.nan]]
-    )
-    bt = np.array(
-        [[329.98,            320.20678397, 310.43356794, 300.66035191, 290.88713587],
-         [281.11391984, 271.34070381, 261.56748778, 251.79427175, 242.02105572],
-         [232.24783969, 222.47462366, 212.70140762, 202.92819159, 193.15497556],
-         [183.38175953, 173.6085435,  163.83532747, 154.06211144, 144.28889541],
-         [134.51567937, 130.02,       130.02,       130.02,       np.nan]]
-    )
-
+    num_rows = 275
+    num_cols = 1375
     hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
+    units = {
+        "counts": "1",
+        "reflectance": "%",
+        "brightness_temperature": "K",
+    }[calibration]
     create_fake_ahi_hrit(
         hrit_path,
-        5,
-        5,
+        num_rows,
+        num_cols,
         is_vis=calibration == "reflectance",
         # Choose an area near the subsatellite point to avoid masking of space pixels
         metadata_overrides={
             "loff": 1375.0,
             "coff": 1375.0,
+            "image_segm_seq_no": 1,
+            "total_no_image_segm": 10,
         },
     )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
+    key = make_dataid(name="VIS", calibration=calibration)
+    res = reader.get_dataset(
+        key,
+        {
+            "units": units,
+            "sensor": "ahi",
+        },
+    )
 
-    res = reader.calibrate(data=counts, calibration=calibration)
+    exp_counts = np.arange(49658, 49658 + 200, 1, dtype=">u2").astype(np.float32)
     exp = {
-        "counts": counts.values,
-        "reflectance": refl,
-        "brightness_temperature": bt,
+        "counts": exp_counts,
+        "reflectance": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
+        "brightness_temperature": np.interp(exp_counts, [0, 1023, 65535], [329.98, 130.02, 130.02]),
     }
-    np.testing.assert_allclose(exp[calibration], res.values)
+    res_np = res.data.compute()
+    assert res_np.dtype == res.dtype
+    assert res_np.dtype == np.float32 if calibration == "counts" else np.float64
+    np.testing.assert_allclose(res_np[-1, 588:788], exp[calibration])
 
 
 def test_mask_space(tmp_path):
@@ -424,13 +426,17 @@ def test_mask_space(tmp_path):
     )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
-    data = DataArray(da.ones((275, 1375), chunks=1024))
-    masked = reader._mask_space(data)
+    key = make_dataid(name="VIS", calibration="counts")
+    res = reader.get_dataset(key, {"units": "1", "sensor": "ahi"})
+    res_np = res.data.compute()
+    assert res_np.dtype == res.dtype
+    assert res_np.dtype == np.float32
 
     # First line of the segment should be space, in the middle of the
     # last line there should be some valid pixels
-    np.testing.assert_allclose(masked.values[0, :], np.nan)
-    np.testing.assert_array_equal(masked.values[-1, 588:788], 1)
+    np.testing.assert_allclose(res_np[0, :], np.nan)
+    exp = np.arange(49658, 49658 + 200, 1, dtype=">u2").astype(np.float32)
+    np.testing.assert_array_equal(res_np[-1, 588:788], exp)
 
 
 def test_get_dataset(tmp_path):
