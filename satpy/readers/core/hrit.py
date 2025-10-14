@@ -24,9 +24,12 @@ the common building blocks for hrit reading.
 One of the features here is the on-the-fly decompression of hrit files when
 compressed hrit files are encountered (files finishing with `.C_`).
 """
+from __future__ import annotations
 
 import datetime as dt
 import logging
+import typing
+from typing import Any
 
 import dask
 import dask.array as da
@@ -38,6 +41,9 @@ import satpy.readers.core.utils as utils
 from satpy.readers.core.eum import time_cds_short
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.seviri import dec10216
+
+if typing.TYPE_CHECKING:
+    import io
 
 logger = logging.getLogger("hrit_base")
 
@@ -102,7 +108,7 @@ def decompress_buffer(buffer) -> bytes:
     return xrit.data()
 
 
-def get_header_id(fp):
+def get_header_id(fp: io.BufferedReader) -> np.ndarray:
     """Return the HRIT header common data."""
     data = fp.read(common_hdr.itemsize)
     return np.frombuffer(data, dtype=common_hdr, count=1)[0]
@@ -114,6 +120,54 @@ def get_header_content(fp, header_dtype, count=1):
     return np.frombuffer(data, dtype=header_dtype, count=count)
 
 
+def parse_header_dict(
+        fp: io.BufferedReader,
+        hdr_info: tuple[dict[int, np.dtype], dict[np.dtype, str], dict[np.dtype, str]],
+        verbose: bool = False,
+) -> dict[str, Any]:
+    """Parse HRIT header data into a dictionary."""
+    hdr_map, variable_length_headers, text_headers = hdr_info
+
+    mda: dict[str, Any] = {}
+    total_header_length = 16
+    while fp.tell() < total_header_length:
+        hdr_id = get_header_id(fp)
+        if verbose:
+            print("hdr_id")  # noqa: T201
+            print(f'np.void({hdr_id}, dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),')  # noqa: T201
+        the_type = hdr_map[hdr_id["hdr_id"]]
+        if the_type in variable_length_headers:
+            field_length = int((hdr_id["record_length"] - 3) /
+                               the_type.itemsize)
+            current_hdr = get_header_content(fp, the_type, field_length)
+            if verbose:
+                print(f"np.zeros(({field_length}, ), dtype={the_type}),")  # noqa: T201
+            key = variable_length_headers[the_type]
+            if key in mda:
+                if not isinstance(mda[key], list):
+                    mda[key] = [mda[key]]
+                mda[key].append(current_hdr)
+            else:
+                mda[key] = current_hdr
+        elif the_type in text_headers:
+            field_length = int((hdr_id["record_length"] - 3) /
+                               the_type.itemsize)
+            char = list(the_type.fields.values())[0][0].char
+            new_type = np.dtype(char + str(field_length))
+            current_hdr = get_header_content(fp, new_type)[0]
+            if verbose:
+                print(f'np.array({current_hdr}, dtype="{new_type}"),')  # noqa: T201
+            mda[text_headers[the_type]] = current_hdr
+        else:
+            current_hdr = get_header_content(fp, the_type)[0]
+            if verbose:
+                print(f"np.void({current_hdr}, dtype={the_type}),")  # noqa: T201
+            mda.update(dict(zip(current_hdr.dtype.names, current_hdr)))
+
+        total_header_length = mda["total_header_length"]
+    return mda
+
+
 class HRITFileHandler(BaseFileHandler):
     """HRIT standard format reader."""
 
@@ -123,60 +177,24 @@ class HRITFileHandler(BaseFileHandler):
 
         self.mda = {}
         self.hdr_info = hdr_info
-        self._get_hd(self.hdr_info)
+        self.mda = self._get_hd(self.hdr_info)
         self._start_time = filename_info["start_time"]
         self._end_time = self._start_time + dt.timedelta(minutes=15)
 
     def _get_hd(self, hdr_info, verbose=False):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
-        hdr_map, variable_length_headers, text_headers = hdr_info
         with utils.generic_open(self.filename, mode="rb") as fp:
-            total_header_length = 16
-            while fp.tell() < total_header_length:
-                hdr_id = get_header_id(fp)
-                if verbose:
-                    print("hdr_id")  # noqa: T201
-                    print(f'np.void({hdr_id}, dtype=[("hdr_id", "u1"), ("record_length", ">u2")]),')  # noqa: T201
-                the_type = hdr_map[hdr_id["hdr_id"]]
-                if the_type in variable_length_headers:
-                    field_length = int((hdr_id["record_length"] - 3) /
-                                       the_type.itemsize)
-                    current_hdr = get_header_content(fp, the_type, field_length)
-                    if verbose:
-                        print(f"np.zeros(({field_length}, ), dtype={the_type}),")  # noqa: T201
-                    key = variable_length_headers[the_type]
-                    if key in self.mda:
-                        if not isinstance(self.mda[key], list):
-                            self.mda[key] = [self.mda[key]]
-                        self.mda[key].append(current_hdr)
-                    else:
-                        self.mda[key] = current_hdr
-                elif the_type in text_headers:
-                    field_length = int((hdr_id["record_length"] - 3) /
-                                       the_type.itemsize)
-                    char = list(the_type.fields.values())[0][0].char
-                    new_type = np.dtype(char + str(field_length))
-                    current_hdr = get_header_content(fp, new_type)[0]
-                    if verbose:
-                        print(f'np.array({current_hdr}, dtype="{new_type}"),')  # noqa: T201
-                    self.mda[text_headers[the_type]] = current_hdr
-                else:
-                    current_hdr = get_header_content(fp, the_type)[0]
-                    if verbose:
-                        print(f"np.void({current_hdr}, dtype={the_type}),")  # noqa: T201
-                    self.mda.update(
-                        dict(zip(current_hdr.dtype.names, current_hdr)))
+            mda = parse_header_dict(fp, hdr_info, verbose=verbose)
 
-                total_header_length = self.mda["total_header_length"]
+        mda.setdefault("number_of_bits_per_pixel", 10)
 
-        self.mda.setdefault("number_of_bits_per_pixel", 10)
-
-        self.mda["projection_parameters"] = {"a": 6378169.00,
+        mda["projection_parameters"] = {"a": 6378169.00,
                                              "b": 6356583.80,
                                              "h": 35785831.00,
                                              # FIXME: find a reasonable SSP
                                              "SSP_longitude": 0.0}
-        self.mda["orbital_parameters"] = {}
+        mda["orbital_parameters"] = {}
+        return mda
 
     @property
     def observation_start_time(self):
