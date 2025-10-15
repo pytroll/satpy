@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for modifiers in modifiers/__init__.py."""
-
+import contextlib
 import datetime as dt
 import unittest
 from unittest import mock
@@ -227,6 +227,30 @@ class TestSunZenithReducer:
             SunZenithReducer(name="sza_reduction_test_invalid", modifiers=tuple(), max_sza=None)
 
 
+@contextlib.contextmanager
+def mock_pyspectral_calculator():
+    """Mock pyspectrals Calculator class and provide semi-reasonable output."""
+    from satpy.modifiers.spectral import Calculator
+
+    def _fake_refl_from_tbs(*args, **kwargs):
+        # args should be (sza, nir, ir) and kwargs may or may not have CO2 band
+        # scale input NIR data to arbitrary range that is similar to real output
+        refl = (args[1] - 280.0) / (380.0 - 280.0)
+        # produce something different if CO2 is provided
+        if not args[0].name.startswith("rad2deg"):
+            # the rad2deg dask task is the generated SZA, not the test provided one
+            # given the test SZA we do some extra stuff
+            refl = da.where(args[0] > 85, refl * 1.1, refl)
+            refl = da.where(args[0] > 88, np.nan, refl)
+        if kwargs.get("tb_ir_co2") is not None:
+            refl += 0.05
+        return refl
+
+    with mock.patch("satpy.modifiers.spectral.Calculator", autospec=Calculator) as calculator:
+        calculator.return_value.reflectance_from_tbs.side_effect = _fake_refl_from_tbs
+        yield calculator
+
+
 class TestNIRReflectance:
     """Test NIR reflectance compositor."""
 
@@ -280,9 +304,9 @@ class TestNIRReflectance:
     @pytest.mark.parametrize(
         ("include_sunz", "include_co2", "exp_res"),
         [
-            (False, False, np.array([[4.3689156, 4.762686], [5.1886106, 5.6510105]], dtype=np.float32)),
-            (True, False, np.array([[3.9977279, 4.6561675], [384.3708, np.nan]], dtype=np.float32)),
-            (False, True, np.array([[5.170569, 5.6666946], [6.205907, 6.79378]], dtype=np.float32)),
+            (False, False, np.array([[3.149994, 5.149994], [7.149993, 9.149994]], dtype=np.float32)),
+            (True, False, np.array([[3.149994, 5.149994], [7.864993, np.nan]], dtype=np.float32)),
+            (False, True, np.array([[8.149994, 10.149995], [12.149994, 14.149994]], dtype=np.float32)),
         ]
     )
     def test_basic_call(self, include_sunz, include_co2, exp_res):
@@ -296,7 +320,8 @@ class TestNIRReflectance:
             opt_datasets.append(self.co2)
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=opt_datasets, **info)
+        with mock_pyspectral_calculator():
+            res = comp([self.nir, self.ir_], optional_datasets=opt_datasets, **info)
         res_da = res.data
         res_np = res.data.compute()
         assert res_np.dtype == res_da.dtype
@@ -319,7 +344,7 @@ class TestNIRReflectance:
     )
     def test_provide_sunz_threshold_and_masking_limit(self, comp_kwargs):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
-        from satpy.modifiers.spectral import Calculator, NIRReflectance
+        from satpy.modifiers.spectral import NIRReflectance
 
         comp = NIRReflectance(name="test", **comp_kwargs)
         exp_call_kwargs = {
@@ -328,7 +353,7 @@ class TestNIRReflectance:
         }
         info = {"modifiers": None}
 
-        with mock.patch("satpy.modifiers.spectral.Calculator", wraps=Calculator) as calculator:
+        with mock_pyspectral_calculator() as calculator:
             res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
         assert res.attrs["sun_zenith_threshold"] == exp_call_kwargs["sunz_threshold"]
@@ -419,6 +444,20 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
                                       masking_limit=NIRReflectance.MASKING_LIMIT)
 
 
+@contextlib.contextmanager
+def mock_pyspectral_rayleigh():
+    """Mock pyspectral's Rayleigh class."""
+    from pyspectral.rayleigh import Rayleigh
+
+    def _fake_rayleigh(*args, **kwargs):
+        return args[0]
+
+    with mock.patch("pyspectral.rayleigh.Rayleigh", autospec=Rayleigh) as rayleigh:
+        rayleigh.return_value.get_reflectance.side_effect = _fake_rayleigh
+        rayleigh.return_value.reduce_rayleigh_highzenith.side_effect = _fake_rayleigh
+        yield rayleigh
+
+
 class TestPSPRayleighReflectance:
     """Test the pyspectral-based Rayleigh correction modifier."""
 
@@ -487,25 +526,16 @@ class TestPSPRayleighReflectance:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize(
-        ("name", "wavelength", "resolution", "aerosol_type", "reduce_lim_low", "reduce_lim_high", "reduce_strength",
-         "exp_mean", "exp_unique"),
+        ("name", "wavelength", "resolution", "aerosol_type", "reduce_lim_low", "reduce_lim_high", "reduce_strength"),
         [
-            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", 70, 95, 1, 41.540239,
-             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
-                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
-            ("B02", (0.49, 0.51, 0.53), 1000, "rayleigh_only", 70, 95, 1, 43.663805,
-             np.array([13.15770104, 14.26526104, 16.49084485, 40.88633902, 42.60682921, 46.04288,
-                       46.2356062, 46.28276282, 70.92799823, 71.33561614, 72.07001693])),
-            ("B03", (0.62, 0.64, 0.66), 500, "rayleigh_only", 70, 95, 1, 46.916187,
-             np.array([19.22922328, 19.76884762, 20.91027446, 45.51075967, 46.39925968, 48.10221156,
-                       48.15715058, 48.18698356, 73.01115816, 73.21552816, 73.58666477])),
-            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", -95, -70, -1, 41.540239,
-             np.array([9.22630464, 10.67844368, 13.58057226, 37.92186549, 40.13822472, 44.66259518,
-                       44.92748445, 45.03917091, 69.5821722, 70.11226943, 71.07352559])),
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", 70, 95, 1),
+            ("B02", (0.49, 0.51, 0.53), 1000, "rayleigh_only", 70, 95, 1),
+            ("B03", (0.62, 0.64, 0.66), 500, "rayleigh_only", 70, 95, 1),
+            ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", -95, -70, -1),
         ]
     )
     def test_rayleigh_corrector(self, name, wavelength, resolution, aerosol_type, reduce_lim_low, reduce_lim_high,
-                                reduce_strength, exp_mean, exp_unique, dtype):
+                                reduce_strength, dtype):
         """Test PSPRayleighReflectance with fake data."""
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
         ray_cor = PSPRayleighReflectance(name=name, atmosphere="us-standard", aerosol_types=aerosol_type,
@@ -519,17 +549,14 @@ class TestPSPRayleighReflectance:
         assert ray_cor.attrs["reduce_strength"] == reduce_strength
 
         input_band, red_band, *_ = self._create_test_data(name, wavelength, resolution)
-        res = ray_cor([input_band.astype(dtype), red_band.astype(dtype)])
+        with mock_pyspectral_rayleigh():
+            res = ray_cor([input_band.astype(dtype), red_band.astype(dtype)])
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
         assert res.dtype == dtype
-
         data = res.values
-        unique = np.unique(data[~np.isnan(data)])
-        np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-5)
         assert data.shape == (3, 5)
-        np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
         assert data.dtype == dtype
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -540,17 +567,14 @@ class TestPSPRayleighReflectance:
         aerosol_type = "rayleigh_only"
         ray_cor = PSPRayleighReflectance(name="B01", atmosphere="us-standard", aerosol_types=aerosol_type)
         prereqs, opt_prereqs = self._get_angles_prereqs_and_opts(as_optionals, dtype)
-        with mock.patch("satpy.modifiers.atmosphere.get_angles") as get_angles:
+        with mock.patch("satpy.modifiers.atmosphere.get_angles") as get_angles, mock_pyspectral_rayleigh():
             res = ray_cor(prereqs, opt_prereqs)
         get_angles.assert_not_called()
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
         assert res.dtype == dtype
-
         data = res.values
-        unique = np.unique(data[~np.isnan(data)])
-        np.testing.assert_allclose(unique, np.array([-75.0, -37.71298492, 31.14350754]), rtol=1e-5)
         assert data.shape == (3, 5)
         assert data.dtype == dtype
 
