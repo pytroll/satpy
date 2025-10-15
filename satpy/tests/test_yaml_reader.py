@@ -42,7 +42,6 @@ MHS_YAML_READER_DICT = {
     "reader": {"name": "mhs_l1c_aapp",
                "description": "AAPP l1c Reader for AMSU-B/MHS data",
                "sensors": ["mhs"],
-               "default_channels": [1, 2, 3, 4, 5],
                "data_identification_keys": {"name": {"required": True},
                                             "frequency_double_sideband":
                                                 {"type": FrequencyDoubleSideBand},

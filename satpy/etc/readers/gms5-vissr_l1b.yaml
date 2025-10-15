@@ -11,7 +11,6 @@ reader:
   status: Alpha
   supports_fsspec: true
   sensors: [gms5-vissr]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
