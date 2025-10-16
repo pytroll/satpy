@@ -37,7 +37,7 @@ TEMPLATE = '''
 
 .. raw:: html
 
-    {{ resources }}
+    {{ resources | indent(5) }}
     {{ pyr_icons_svg | indent(5) }}
     <style>
     {{ pyr_css_style | indent(5) }}
