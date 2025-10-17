@@ -110,7 +110,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Choose the accessor based on the engine, and return in along with the file handle."""
         if not isinstance(self.engine, str):
             return get_accessor_and_filehandle_from_engines(self.filename, *self.engine)
-        return get_accessor_and_filehandle_from_engine(self.engine)
+        return get_accessor_and_filehandle_from_engine(self.filename, self.engine)
 
     @staticmethod
     def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
