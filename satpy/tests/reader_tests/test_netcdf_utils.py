@@ -22,7 +22,7 @@ import os
 import numpy as np
 import pytest
 
-from satpy.readers.core.netcdf import NetCDF4FileHandler, choose_accessor_from_engine
+from satpy.readers.core.netcdf import NetCDF4FileHandler, get_accessor_and_filehandle_from_engine
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -42,7 +42,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         if extra_file_content:
             self.file_content.update(extra_file_content)
         self.engine = "netcdf4"
-        self.accessor = choose_accessor_from_engine(self.engine)
+        self.accessor = get_accessor_and_filehandle_from_engine(self.engine)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
