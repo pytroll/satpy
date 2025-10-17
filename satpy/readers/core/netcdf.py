@@ -378,15 +378,18 @@ def get_data_as_xarray(variable):
     return arr
 
 
+def choose_accessor_from_engine(engine):
+    """Choose an accessor from engine."""
+    if engine == "netcdf4":
+        return NetCDF4Accessor()
+    elif engine == "h5netcdf":
+        return H5NetcdfAccessor()
+    raise NotImplementedError(f"Engine {engine} not implemented.")
+
+
 def get_accessor_and_filehandle_from_engine(filename, engine):
     """Choose an accessor from engine, and return in along with the file handle."""
-    if engine == "netcdf4":
-        accessor = NetCDF4Accessor()
-    elif engine == "h5netcdf":
-        accessor = H5NetcdfAccessor()
-    else:
-        raise NotImplementedError(f"Engine {engine} not implemented.")
-
+    accessor = choose_accessor_from_engine(engine)
     file_handle = accessor.create_file_handle(filename)
     return accessor, file_handle
 
