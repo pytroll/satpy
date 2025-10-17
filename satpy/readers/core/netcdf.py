@@ -1,6 +1,7 @@
 """Helpers for reading netcdf-based files."""
 
 import logging
+from contextlib import suppress
 
 import dask.array as da
 import netCDF4
@@ -84,8 +85,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.cached_file_content = {}
         self.engine = engine
         try:
-            self.accessor = self.choose_accessor()
-            file_handle = self.accessor.create_file_handle(self.filename)
+            self.accessor, file_handle = self.get_accessor_and_filehandle()
         except IOError:
             LOG.exception(
                 "Failed reading file %s. Possibly corrupted file", self.filename)
@@ -106,11 +106,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             file_handle.close()
 
-    def choose_accessor(self):
-        """Choose the accessor based on the engine."""
+    def get_accessor_and_filehandle(self):
+        """Choose the accessor based on the engine, and return in along with the file handle."""
         if not isinstance(self.engine, str):
-            return choose_accessor_from_engines(self.filename, *self.engine)
-        return choose_accessor_from_engine(self.engine)
+            return get_accessor_and_filehandle_from_engines(self.filename, *self.engine)
+        return get_accessor_and_filehandle_from_engine(self.engine)
 
     @staticmethod
     def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
@@ -184,10 +184,8 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __del__(self):
         """Delete the file handler."""
         if self.file_handle is not None:
-            try:
+            with suppress(RuntimeError):
                 self.file_handle.close()
-            except RuntimeError:  # presumably closed already
-                pass
 
     def _collect_global_attrs(self, obj):
         """Collect all the global attributes for the provided file object."""
@@ -380,23 +378,24 @@ def get_data_as_xarray(variable):
     return arr
 
 
-def choose_accessor_from_engine(engine):
-    """Choose an accessor from engine."""
+def get_accessor_and_filehandle_from_engine(filename, engine):
+    """Choose an accessor from engine, and return in along with the file handle."""
     if engine == "netcdf4":
-        return NetCDF4Accessor()
+        accessor = NetCDF4Accessor()
     elif engine == "h5netcdf":
-        return H5NetcdfAccessor()
+        accessor = H5NetcdfAccessor()
+    else:
+        raise NotImplementedError(f"Engine {engine} not implemented.")
 
-    raise NotImplementedError(f"Engine {engine} not implemented.")
+    file_handle = accessor.create_file_handle(filename)
+    return accessor, file_handle
 
 
-def choose_accessor_from_engines(filename, *engines):
-    """Choose an accessor from the first possible engine."""
+def get_accessor_and_filehandle_from_engines(filename, *engines):
+    """Choose an accessor from the first possible engine, and return in along with the file handle."""
     for engine in engines:
         try:
-            accessor = choose_accessor_from_engine(engine)
-            _ = accessor.create_file_handle(filename)
-            return accessor
+            return get_accessor_and_filehandle_from_engine(filename, engine)
         except Exception as err:
             LOG.warning(str(err))
             continue
