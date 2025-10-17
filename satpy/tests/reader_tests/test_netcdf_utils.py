@@ -42,7 +42,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         if extra_file_content:
             self.file_content.update(extra_file_content)
         self.engine = "netcdf4"
-        self.accessor = get_accessor_and_filehandle_from_engine(self.engine)
+        self.accessor = get_accessor_and_filehandle_from_engine(filename, self.engine)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
