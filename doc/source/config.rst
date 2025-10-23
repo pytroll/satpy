@@ -278,6 +278,47 @@ Clipping of negative radiances is currently implemented for the following reader
 
 * ``abi_l1b``, ``ami_l1b``, ``fci_l1c_nc``
 
+.. _preload_settings:
+
+Preloading segments
+^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+   Preloading is an advanced topic and experimental.  See :ref:`preload`
+   for details.
+
+* **Environment variable**: ``SATPY_READERS__PRELOAD__ENABLE``
+* **YAML-Config Key**: ``readers.preload.enable``
+* **Default**: False
+
+Preload segments for those readers where it is supported.
+
+* **Environment variable**: ``SATPY_READERS__PRELOAD__STEP``
+* **YAML-Config Key**: ``readers.preload.step``
+* **Default**: 2
+
+When preloading, internal time in seconds to check if a file has become
+available.
+
+* **Environment variable**: ``SATPY_READERS__PRELOAD__ATTEMPTS``.
+* **YAML-Config Key**: ``readers.preload.attempts``.
+* **Default**: 300
+
+When preloading, how many times to check if a file has become available
+before giving up.
+
+* **Environment variable**: ``SATPY_READERS__PRELOAD__ASSUME_DISTRIBUTED``
+* **YAML-Config Key**: ``readers.preload.assume_distributed``.
+* **Default**: False
+
+When preloading, assume we are working in a dask distributed environment.
+When active, Satpy workers will secede and rejoin while waiting for files.
+This might partially avoid the problem that tasks waiting for later files
+are blocking workers, while tasks working on earlier files are needlessly
+waiting in the queue.  However, Satpy has limited compatibility with
+dask distributed.  Please refer to the note at :ref:`preload` before
+considering this option.
 
 Temporary Directory
 ^^^^^^^^^^^^^^^^^^^
