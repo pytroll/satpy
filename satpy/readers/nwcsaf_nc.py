@@ -136,7 +136,7 @@ class NcNWCSAF(BaseFileHandler):
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
-        if self.pps and var.dims[0] == "time":
+        if var.dims[0] == "time":
             data = var[0, :, :]
             data.attrs = var.attrs
             var = data
@@ -338,7 +338,8 @@ class NcNWCSAF(BaseFileHandler):
 
         crs, area_extent = self._get_projection()
         crs, area_extent = self._ensure_crs_extents_in_meters(crs, area_extent)
-        nlines, ncols = self.nc[dsid["name"]].shape
+        variable = self.remove_timedim(self.nc[dsid["name"]])
+        nlines, ncols = variable.shape
         area = AreaDefinition("some_area_name",
                               "On-the-fly area",
                               "geosmsg",
