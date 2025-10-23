@@ -28,6 +28,7 @@ from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
 
+import dask.array as da
 import numpy as np
 import pyproj
 import xarray as xr
@@ -712,3 +713,45 @@ class CalibrationCoefficientPicker:
 
 def _make_coefs(coefs, mode):
     return {"coefs": coefs, "mode": mode}
+
+
+def get_serializable_dask_array(manager, varname, chunks, dtype):
+    """Construct a serializable dask array from a variable.
+
+    When we construct a dask array using da.array from a file, and use
+    that to create an xarray dataarray, the result is not serializable
+    and dask graphs using this dataarray cannot be computed when the dask
+    distributed scheduler is in use.  To circumvent this problem, xarray
+    provides the CachingFileManager.  See GH#2815 for more information.
+
+    Should have at least one dimension.
+
+    Example::
+
+        >>> import netCDF4
+        >>> from xarray.backends import CachingFileManager
+        >>> cfm = CachingFileManager(netCDF4.Dataset, filename, mode="r")
+        >>> arr = get_serializable_dask_array(cfm, "my_var", 1024, "f4")
+
+    Args:
+        manager (xarray.backends.CachingFileManager):
+            Instance of :class:`~xarray.backends.CachingFileManager` encapsulating the
+            dataset to be read.
+        varname (str):
+            Name of the variable (possibly including a group path).
+        chunks (tuple):
+            Chunks to use when creating the dask array.
+        dtype (dtype):
+            What dtype to use.
+    """
+    def get_chunk(block_info=None):
+        arrloc = block_info[None]["array-location"]
+        with manager.acquire_context() as nc:
+            var = nc[varname]
+            return var[tuple(slice(*x) for x in arrloc)]
+
+    return da.map_blocks(
+            get_chunk,
+            chunks=chunks,
+            dtype=dtype,
+            meta=np.array([], dtype=dtype))
