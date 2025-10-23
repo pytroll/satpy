@@ -183,6 +183,18 @@ datasets:
 
 # ---- CTTH products ------------
 
+  # v2025 onwards
+  ctth_hfeet:
+    name: ctth_hfeet
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
+  # v2025 onwards
+  ctth_hfeet_pal:
+    name: ctth_hfeet_pal
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
   ctth_alti:
     name: ctth_alti
     resolution: 3000
