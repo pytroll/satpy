@@ -58,9 +58,10 @@ def warn_if_float_debug_otherwise(img, msg=""):
 
 def stretch_if_floating(img, **kwargs):
     """Perform a regular linear stretch but warn about no other enhancement."""
-    if np.issubdtype(img.data.dtype, np.floating):
-        return stretch(img, **kwargs)
-    return img
+    # if np.issubdtype(img.data.dtype, np.floating):
+    #     return stretch(img, **kwargs)
+    # return img
+    return stretch(img, **kwargs)
 
 
 def stretch(img, **kwargs):
