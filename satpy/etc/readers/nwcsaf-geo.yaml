@@ -67,6 +67,10 @@ file_types:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
         file_patterns: ['S_NWC_ASII-GW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
+    nc_nwcsaf_asii_ice:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_ASII-ICE_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
     nc_nwcsaf_geo_hrw:
         file_reader: !!python/name:satpy.readers.nwcsaf_hrw_nc.NWCSAFGEOHRWFileHandler
         file_patterns: ['S_NWC_HRW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
@@ -789,3 +793,20 @@ datasets:
     name: asiigw_quality
     resolution: 3000
     file_type: nc_nwcsaf_asii_gw
+
+# ----ASII-ICE products------------
+
+  asiiice_haic_mask:
+    name: asiiice_haic_mask
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_ice
+
+  asiiice_sc_mask:
+    name: asiiice_sc_mask
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_ice
+
+  asiiice_quality:
+    name: asiiice_quality
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_ice
