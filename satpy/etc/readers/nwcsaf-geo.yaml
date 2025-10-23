@@ -755,6 +755,18 @@ datasets:
 
 # ----ASII-GW product ------------
 
+  # v2025 onwards
+  asiigw_ir_prob:
+    name: asiigw_ir_prob
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  # v2025 onwards
+  asiigw_ir_prob_pal:
+    name: asiigw_ir_prob_pal
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
   # v2021 onwards
   asiigw_wv_prob:
     name: asiigw_wv_prob
