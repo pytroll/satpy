@@ -246,6 +246,12 @@ datasets:
       - longitude
       - latitude
 
+  wind_time:
+    name: wind_time
+    standard_name: wind_time
+    file_type: nc_fci_amv
+    nc_key: wind_time
+
   speed_u_component:
     name: speed_u_component
     standard_name: wind_speed_horizontal_component

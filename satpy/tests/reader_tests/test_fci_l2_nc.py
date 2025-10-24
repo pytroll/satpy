@@ -18,6 +18,7 @@
 
 """The fci_cld_l2_nc reader tests package."""
 
+import datetime as dt
 import os
 import unittest
 import uuid
@@ -26,6 +27,7 @@ from unittest import mock
 
 import numpy as np
 import pytest
+import xarray as xr
 from netCDF4 import Dataset
 from pyresample import geometry
 
@@ -601,11 +603,16 @@ def amv_file(tmp_path_factory):
 @pytest.fixture(scope="module")
 def amv_filehandler(amv_file):
     """Create an AMV filehandler."""
-    return FciL2NCAMVFileHandler(filename=amv_file,
+    fh = FciL2NCAMVFileHandler(filename=amv_file,
                                  filename_info={"channel":"test_channel"},
                                  filetype_info={}
                                 )
-
+    mock_wind_time_ = xr.DataArray(
+        np.array(8.14275e+08),  # seconds since 2000-01-01
+        name="wind_time"
+    )
+    fh.nc = fh.nc.assign(wind_time=mock_wind_time_)
+    return fh
 
 class TestFciL2NCAMVFileHandler:
     """Test the FciL2NCAMVFileHandler reader."""
@@ -624,6 +631,7 @@ class TestFciL2NCAMVFileHandler:
             "platform_name": "TEST_PLATFORM",
             "channel": "test_channel",
             "ssp_lon": 0.0,
+            "time_parameters": {"wind_time":dt.datetime(2025, 10, 20, 11, 30)}
         }
         assert global_attributes == expected_global_attributes
 
