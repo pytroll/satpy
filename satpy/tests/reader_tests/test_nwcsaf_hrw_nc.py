@@ -21,7 +21,7 @@ import h5py
 import numpy as np
 import pytest
 
-from satpy.readers.nwcsaf_hrw_nc import WIND_CHANNELS
+from satpy.readers.nwcsaf_hrw_nc import PRE_V2025_SEVIRI_WIND_CHANNELS
 
 # This is the actual dtype of the trajectory items. We do not support it, so won't add this
 # complexity to the test file creation. It's here anyway if someone wants to add it.
@@ -88,9 +88,11 @@ WIND_DTYPES = [
 ]
 
 # Global attributes accessed by the file handler
-NOMINAL_PRODUCT_TIME = "2025-02-06T13:00:00Z"
+NOMINAL_PRODUCT_TIME = np.bytes_("2025-02-06T13:00:00Z")
 SPATIAL_RESOLUTION = np.array([3.], dtype=np.float32)
 SATELLITE_IDENTIFIER = np.bytes_("MSG3")
+V2021_ALGORITHM_VERSION = np.bytes_("6.2.2")
+
 # Dataset attributes accessed by the file handler
 TIME_PERIOD = np.array([15.], dtype=np.float32)
 
@@ -108,7 +110,8 @@ def hrw_file(tmp_path_factory):
         h5f.attrs["nominal_product_time"] = NOMINAL_PRODUCT_TIME
         h5f.attrs["spatial_resolution"] = SPATIAL_RESOLUTION
         h5f.attrs["satellite_identifier"] = SATELLITE_IDENTIFIER
-        for ch in WIND_CHANNELS:
+        h5f.attrs["product_algorithm_version"] = V2021_ALGORITHM_VERSION
+        for ch in PRE_V2025_SEVIRI_WIND_CHANNELS:
             _create_channel_dataset(h5f, ch)
     return fname
 
@@ -150,7 +153,7 @@ def test_available_datasets(hrw_file):
 
     avail = fh.available_datasets()
 
-    assert len(list(avail)) == len(WIND_CHANNELS) * len(WIND_DTYPES)
+    assert len(list(avail)) == len(PRE_V2025_SEVIRI_WIND_CHANNELS) * len(WIND_DTYPES)
 
 
 def test_available_merged_datasets(hrw_file):
@@ -184,7 +187,7 @@ def test_get_merged_dataset(hrw_file):
 
     data = fh.get_dataset({"name": "wind_speed"}, {})
 
-    assert data.size == len(WIND_CHANNELS) * NUM_OBS
+    assert data.size == len(PRE_V2025_SEVIRI_WIND_CHANNELS) * NUM_OBS
 
 
 def _check_common_attrs(data):
@@ -231,4 +234,4 @@ def test_merged_hrw_via_scene(hrw_file):
     scn.load(["wind_from_direction"])
     data = scn["wind_from_direction"]
 
-    assert data.shape == (len(WIND_CHANNELS) * NUM_OBS,)
+    assert data.shape == (len(PRE_V2025_SEVIRI_WIND_CHANNELS) * NUM_OBS,)
