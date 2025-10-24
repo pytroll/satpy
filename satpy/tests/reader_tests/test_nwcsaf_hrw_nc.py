@@ -89,9 +89,13 @@ WIND_DTYPES = [
 
 # Global attributes accessed by the file handler
 NOMINAL_PRODUCT_TIME = np.bytes_("2025-02-06T13:00:00Z")
+NOMINAL_PRODUCT_TIME_V2025 = np.bytes_("2025-09-23T13:00:00Z")
 SPATIAL_RESOLUTION = np.array([3.], dtype=np.float32)
 SATELLITE_IDENTIFIER = np.bytes_("MSG3")
-V2021_ALGORITHM_VERSION = np.bytes_("6.2.2")
+SATELLITE_IDENTIFIER_V2025 = np.bytes_("MTI1")
+ALGORITHM_VERSION_V2021 = np.bytes_("6.2.2")
+ALGORITHM_VERSION_V2025 = np.bytes_("7.0")
+SAMPLING_INTERVAL_V2025 = np.bytes_("10.00 minutes")
 
 # Dataset attributes accessed by the file handler
 TIME_PERIOD = np.array([15.], dtype=np.float32)
@@ -99,6 +103,7 @@ TIME_PERIOD = np.array([15.], dtype=np.float32)
 NUM_OBS = 123
 
 FILENAME_INFO = {"platform_id": "MSG3", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 2, 6, 13, 0)}
+FILENAME_INFO_V2025 = {"platform_id": "MTI1", "region_id": "MSG-N-BS", "start_time": dt.datetime(2025, 9, 23, 13, 0)}
 FILETYPE_INFO = {"file_type": "nc_nwcsaf_geo_hrw"}
 
 
@@ -110,7 +115,7 @@ def hrw_file(tmp_path_factory):
         h5f.attrs["nominal_product_time"] = NOMINAL_PRODUCT_TIME
         h5f.attrs["spatial_resolution"] = SPATIAL_RESOLUTION
         h5f.attrs["satellite_identifier"] = SATELLITE_IDENTIFIER
-        h5f.attrs["product_algorithm_version"] = V2021_ALGORITHM_VERSION
+        h5f.attrs["product_algorithm_version"] = ALGORITHM_VERSION_V2021
         for ch in PRE_V2025_SEVIRI_WIND_CHANNELS:
             _create_channel_dataset(h5f, ch)
     return fname
@@ -131,6 +136,38 @@ def _create_data():
         data.append(val)
 
     return tuple(data)
+
+
+@pytest.fixture(scope="module")
+def hrw_v2025_file(tmp_path_factory):
+    """Create a HRW data file in v2025 format."""
+    fname = tmp_path_factory.mktemp("data") / "S_NWC_HRW_MTI1_MSG-N-BS_20250923T130000Z.nc"
+    with h5py.File(fname, "w") as h5f:
+        h5f.attrs["nominal_product_time"] = NOMINAL_PRODUCT_TIME_V2025
+        h5f.attrs["spatial_resolution"] = SPATIAL_RESOLUTION
+        h5f.attrs["satellite_identifier"] = SATELLITE_IDENTIFIER_V2025
+        h5f.attrs["product_algorithm_version"] = ALGORITHM_VERSION_V2025
+        h5f.attrs["sampling_interval"] = SAMPLING_INTERVAL_V2025
+        # Just add one, they are pretty much the same:
+        dset = h5f.create_dataset("wind_speed", shape=(NUM_OBS,), dtype=np.double)
+        dset.attrs["standard_name"] = np.bytes_("wind_speed")
+        dset.attrs["units"] = np.bytes_("m s-1")
+        dset.attrs["valid_range"] = np.array([0., 409.3])
+        dset.attrs["_FillValue"] = np.double(409.5)
+        dset[:] = np.array(409.4 * np.random.random((NUM_OBS,)), dtype=np.double)  # noqa
+        # And coordinates, those are needed
+        lons = h5f.create_dataset("lon", shape=(NUM_OBS,), dtype=np.double)
+        lons.attrs["standard_name"] = "longitude"
+        lons.attrs["units"] = "degrees_east"
+        lons.attrs["valid_range"] = np.array([-90., 90.], dtype=np.double)
+        lons.attrs["_FillValue"] = np.double(245.)
+        lats = h5f.create_dataset("lat", shape=(NUM_OBS,), dtype=np.double)
+        lats.attrs["standard_name"] = "latitude"
+        lats.attrs["units"] = "degrees_north"
+        lats.attrs["valid_range"] = np.array([-180., 179.99999], dtype=np.double)
+        lats.attrs["_FillValue"] = np.double(491.)
+    return fname
+
 
 
 def test_hrw_handler_init(hrw_file):
@@ -235,3 +272,26 @@ def test_merged_hrw_via_scene(hrw_file):
     data = scn["wind_from_direction"]
 
     assert data.shape == (len(PRE_V2025_SEVIRI_WIND_CHANNELS) * NUM_OBS,)
+
+
+def test_hrw_handler_init_v2025(hrw_v2025_file):
+    """Test the filehandler initialization works."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    fh = NWCSAFGEOHRWFileHandler(hrw_v2025_file, FILENAME_INFO_V2025, FILETYPE_INFO)
+
+    assert fh.filename_info == FILENAME_INFO_V2025
+    assert fh.filetype_info == FILETYPE_INFO
+    assert fh.platform_name is not None
+    assert fh.sensor == "fci"
+
+
+def test_get_dataset_v2025(hrw_v2025_file):
+    """Test reading a dataset from a file in v2025 format."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    fh = NWCSAFGEOHRWFileHandler(hrw_v2025_file, FILENAME_INFO, FILETYPE_INFO)
+
+    data = fh.get_dataset({"name": "wind_speed"}, {"the_answer": 42})
+    assert "units" in data.attrs
+    assert data.shape == (NUM_OBS,)
