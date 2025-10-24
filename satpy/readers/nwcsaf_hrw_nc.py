@@ -107,6 +107,7 @@ import dask.array as da
 import h5py
 import numpy as np
 import xarray as xr
+from packaging.version import Version
 
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.nwcsaf_nc import PLATFORM_NAMES, SENSOR, read_nwcsaf_time
@@ -116,7 +117,9 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_chunk_size_limit()
 
-WIND_CHANNELS = [
+FIRST_V2025_ALGORITHM_VERSION = Version("7.0")
+
+PRE_V2025_SEVIRI_WIND_CHANNELS = [
     "wind_hrvis",
     "wind_ir108",
     "wind_ir120",
@@ -124,6 +127,49 @@ WIND_CHANNELS = [
     "wind_vis08",
     "wind_wv062",
     "wind_wv073",
+]
+
+POST_V2025_DATASETS = [
+    "air_pressure",
+    "air_pressure_correction",
+    "air_pressure_error",
+    "air_pressure_nwp_at_best_fit_level",
+    "air_temperature",
+    "barometric_altitude_in_hectofeet",
+    "cloud_type",
+    "correlation",
+    "correlation_test",
+    "height_assignment_method",
+    "latitude",
+    "latitude_increment",
+    "longitude",
+    "longitude_increment",
+    "number_of_trajectory_points",
+    "number_of_winds",
+    "orographic_index",
+    "quality_index_iwwg_value",
+    "quality_index_with_forecast",
+    "quality_index_without_forecast",
+    "quality_test",
+    "satellite_channel",
+    "segment_x",
+    "segment_x_pix",
+    "segment_y",
+    "segment_y_pix",
+    "tracer_correlation_method",
+    "tracer_type",
+    "wind_from_direction",
+    "wind_from_direction_difference_nwp_at_amv_level",
+    "wind_from_direction_difference_nwp_at_best_fit_level",
+    "wind_from_direction_nwp_at_amv_level",
+    "wind_from_direction_nwp_at_best_fit_level",
+    "wind_id",
+    "wind_prev_id",
+    "wind_speed",
+    "wind_speed_difference_nwp_at_amv_level",
+    "wind_speed_difference_nwp_at_best_fit_level",
+    "wind_speed_nwp_at_amv_level",
+    "wind_speed_nwp_at_best_fit_level",
 ]
 
 # Source: NWC/CDOP3/GEO/AEMET/SW/DOF
@@ -185,6 +231,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.lats = {}
         # Imaging period, which is set after reading any data, and used to calculate end time
         self.period = None
+        self._algorithm_version = Version(self.h5f.attrs["product_algorithm_version"].astype(str))
 
         # The resolution is given in kilometers, convert to meters
         self.resolution = 1000 * self.h5f.attrs["spatial_resolution"].item()
@@ -196,7 +243,13 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Form the names for the available datasets."""
-        for channel in WIND_CHANNELS:
+        if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+            return self._pre_v2025_available_datasets()
+        else:
+            return self._post_v2025_available_datasets()
+
+    def _pre_v2025_available_datasets(self):
+        for channel in PRE_V2025_SEVIRI_WIND_CHANNELS:
             prefix = self._get_channel_prefix(channel)
             dset = self.h5f[channel]
             for measurand in dset.dtype.fields.keys():
@@ -206,6 +259,20 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
                 yield True, ds_info
             if self.merge_channels:
                 break
+
+    def _post_v2025_available_datasets(self):
+        for dset in POST_V2025_DATASETS:
+            dset_name = dset
+            if dset == "lon":
+                dset_name = "longitude"
+            elif dset == "lat":
+                dset_name = "latitude"
+            ds_info = {
+                "file_type": self.filetype_info["file_type"],
+                "resolution": self.resolution,
+                "name": dset_name,
+            }
+            yield True, ds_info
 
     def _get_channel_prefix(self, channel):
         if self.merge_channels:
@@ -230,7 +297,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug("Reading %s.", key["name"])
-        if self.merge_channels:
+        if self.merge_channels and self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
             data = self._read_merged_dataset(key)
         else:
             data = self._read_dataset(key)
@@ -246,7 +313,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         collect_coords = True
         if "merged" in self.lons:
             collect_coords = False
-        for channel in WIND_CHANNELS:
+        for channel in PRE_V2025_SEVIRI_WIND_CHANNELS:
             if collect_coords:
                 self._read_channel_coordinates(channel)
                 self._append_merged_coordinates(channel)
@@ -296,18 +363,36 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
     def _read_dataset(self, dataset_key):
         """Read a dataset."""
         dataset_name = dataset_key["name"]
-        key_parts = dataset_name.split("_")
-        channel = "_".join(key_parts[:2])
+        if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+            key_parts = dataset_name.split("_")
+            channel = "_".join(key_parts[:2])
+            measurand = "_".join(key_parts[2:])
+        else:
+            channel = measurand = dataset_name
+            if dataset_name == "longitude":
+                channel = measurand = "lon"
+            elif dataset_name == "latitude":
+                channel = measurand = "lat"
         self._read_channel_coordinates(channel)
         if self.period is None:
-            self.period = self.h5f[channel].attrs["time_period"].item()
-        measurand = "_".join(key_parts[2:])
+            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+                self.period = self.h5f[channel].attrs["time_period"].item()
+            else:
+                interval = self.h5f.attrs["sampling_interval"].astype(str).item()
+                self.period = float(interval.split()[0])
+
         try:
-            data = self.h5f[channel][measurand]
+            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+                data = self.h5f[channel][measurand]
+            else:
+                data = self.h5f[measurand]
         except ValueError:
             logger.warning("Reading %s is not supported.", dataset_name)
 
-        units = DATASET_UNITS[measurand]
+        try:
+            units = data.attrs["units"].astype(str).item()
+        except AttributeError:
+            units = DATASET_UNITS[measurand]
 
         return self._create_xarray(
             data, dataset_name, units, channel)
@@ -315,8 +400,12 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
 
     def _read_channel_coordinates(self, channel):
         if channel not in self.lons:
-            self.lons[channel] = self.h5f[channel]["longitude"]
-            self.lats[channel] = self.h5f[channel]["latitude"]
+            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+                self.lons[channel] = self.h5f[channel]["longitude"]
+                self.lats[channel] = self.h5f[channel]["latitude"]
+            else:
+                self.lons[channel] = self.h5f["lon"]
+                self.lats[channel] = self.h5f["lat"]
 
     @property
     def start_time(self):
