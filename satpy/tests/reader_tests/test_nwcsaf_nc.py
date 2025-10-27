@@ -112,15 +112,31 @@ def nwcsaf_geo_ct_filename(tmp_path_factory):
 
 def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
     """Create a CT file."""
-    filename = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
+    fname = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
+    return _create_nwcsaf_cf_file(
+        fname,
+        attrs,
+        "v2021")
+
+
+def _create_nwcsaf_cf_file(filename, attrs, version):
     with h5netcdf.File(filename, mode="w") as nc_file:
-        nc_file.dimensions = dimensions_v2021
         nc_file.attrs.update(attrs)
         var_name = "ct"
-
-        var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint8,
-                                      chunks=(256, 256))
-        var[:] = RANDOM_GEN.integers(0, 255, size=(928, 1530), dtype=np.uint8)
+        if version == "v2025":
+            dim_names = ("time", "ny", "nx")
+            chunks = (1, 256, 256)
+            dimensions = dimensions_v2025
+            shape = (1, 928, 1530)
+        else:
+            dim_names = ("ny", "nx")
+            chunks = (256, 256)
+            dimensions = dimensions_v2021
+            shape = (928, 1530)
+        nc_file.dimensions = dimensions
+        var = nc_file.create_variable(var_name, dim_names, np.uint8,
+                                      chunks=chunks)
+        var[:] = RANDOM_GEN.integers(0, 255, size=shape, dtype=np.uint8)
 
     return filename
 
@@ -139,17 +155,11 @@ def nwcsaf_geo_v2025_ct_filename(tmp_path_factory):
 
 def create_nwcsaf_geo_v2025_ct_file(directory, attrs=global_attrs_geo_v2025):
     """Create a CT file in v2025 format."""
-    filename = directory / "S_NWC_CT_MTI1_MSG-N-NR_20250923T130000Z.nc"
-    with h5netcdf.File(filename, mode="w") as nc_file:
-        nc_file.dimensions = dimensions_v2025
-        nc_file.attrs.update(attrs)
-        var_name = "ct"
-
-        var = nc_file.create_variable(var_name, ("time", "ny", "nx"), np.uint8,
-                                      chunks=(1, 256, 256))
-        var[:] = RANDOM_GEN.integers(0, 255, size=(1, 928, 1530), dtype=np.uint8)
-
-    return filename
+    fname = directory / "S_NWC_CT_MTI1_MSG-N-NR_20250923T130000Z.nc"
+    return _create_nwcsaf_cf_file(
+        fname,
+        attrs,
+        "v2025")
 
 
 @pytest.fixture
