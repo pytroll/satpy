@@ -329,7 +329,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         return self._create_xarray(
             data,
             dataset_name,
-            units,
+            {"units": units},
             "merged"
         )
 
@@ -340,10 +340,9 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.lons["merged"].append(self.lons[channel])
         self.lats["merged"].append(self.lats[channel])
 
-    def _create_xarray(self, data, dataset_name, units, channel):
+    def _create_xarray(self, data, dataset_name, attrs, channel):
         lons = self.lons[channel]
         lats = self.lats[channel]
-
         prefix = channel + "_"
         if channel == "merged":
             data = np.concat(data)
@@ -351,12 +350,14 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
             lats = np.concat(lats)
             prefix = ""
 
-        xr_data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                               name=dataset_name,
-                               dims=["y"])
+        xr_data = xr.DataArray(
+            da.from_array(data, chunks=CHUNK_SIZE),
+            name=dataset_name,
+            dims=["y"],
+            attrs=attrs,
+        )
         xr_data[prefix + "longitude"] = ("y", lons)
         xr_data[prefix + "latitude"] = ("y", lats)
-        xr_data.attrs["units"] = units
 
         return xr_data
 
@@ -371,15 +372,17 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         try:
             if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
                 data = self.h5f[channel][measurand]
+                attrs = {"units": DATASET_UNITS[measurand]}
             else:
                 data = self.h5f[measurand]
+                if data.dtype == np.double:
+                    data = np.where(data == data.attrs["_FillValue"], np.nan, data)
+                attrs = dict(self.h5f[measurand].attrs)
         except ValueError:
             logger.warning("Reading %s is not supported.", dataset_name)
 
-        units = _get_units_for_measurand(data, measurand)
-
         return self._create_xarray(
-            data, dataset_name, units, channel)
+            data, dataset_name, attrs, channel)
 
 
     def _read_channel_coordinates(self, channel):
@@ -425,12 +428,3 @@ def _get_channel_and_measurand_for_version(algorithm_version, dataset_name):
             channel = measurand = "lat"
 
     return channel, measurand
-
-
-def _get_units_for_measurand(data, measurand):
-    try:
-        units = data.attrs["units"].astype(str).item()
-    except AttributeError:
-        units = DATASET_UNITS[measurand]
-
-    return units

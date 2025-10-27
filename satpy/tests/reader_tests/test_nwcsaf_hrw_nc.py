@@ -153,22 +153,25 @@ def hrw_v2025_file(tmp_path_factory):
         dset = h5f.create_dataset("wind_speed", shape=(NUM_OBS,), dtype=np.double)
         dset.attrs["standard_name"] = np.bytes_("wind_speed")
         dset.attrs["units"] = np.bytes_("m s-1")
-        dset.attrs["valid_range"] = np.array([0., 409.3])
+        dset.attrs["valid_range"] = np.array([0., 409.4])
         dset.attrs["_FillValue"] = np.double(409.5)
-        dset[:] = np.array(409.4 * RANDOM_GEN.random((NUM_OBS,)), dtype=np.double)
+        # Make the first value invalid
+        data = np.array(409.4 * RANDOM_GEN.random((NUM_OBS,)), dtype=np.double)
+        data[0] = 409.5
+        dset[:] = data
         # And coordinates, those are needed
         lons = h5f.create_dataset("lon", shape=(NUM_OBS,), dtype=np.double)
         lons.attrs["standard_name"] = "longitude"
         lons.attrs["units"] = "degrees_east"
         lons.attrs["valid_range"] = np.array([-90., 90.], dtype=np.double)
         lons.attrs["_FillValue"] = np.double(245.)
-        dset[:] = 180 * RANDOM_GEN.random((NUM_OBS,), dtype=np.double) - 90
+        lons[:] = 180 * RANDOM_GEN.random((NUM_OBS,), dtype=np.double) - 90
         lats = h5f.create_dataset("lat", shape=(NUM_OBS,), dtype=np.double)
         lats.attrs["standard_name"] = "latitude"
         lats.attrs["units"] = "degrees_north"
         lats.attrs["valid_range"] = np.array([-180., 179.99999], dtype=np.double)
         lats.attrs["_FillValue"] = np.double(491.)
-        dset[:] = 360 * RANDOM_GEN.random((NUM_OBS,), dtype=np.double) - 180.00001
+        lats[:] = 360 * RANDOM_GEN.random((NUM_OBS,), dtype=np.double) - 180.00001
     return fname
 
 
@@ -298,3 +301,17 @@ def test_get_dataset_v2025(hrw_v2025_file):
     data = fh.get_dataset({"name": "wind_speed"}, {"the_answer": 42})
     assert "units" in data.attrs
     assert data.shape == (NUM_OBS,)
+
+
+def test_hrw_via_scene_v2025(hrw_v2025_file):
+    """Test reading HRW v2025 datasets via Scene."""
+    from satpy import Scene
+
+    scn = Scene(reader="nwcsaf-geo", filenames=[hrw_v2025_file])
+    scn.load(["wind_speed"])
+    data = scn["wind_speed"]
+
+    assert data.shape == (NUM_OBS,)
+    assert "units" in data.attrs
+    assert "standard_name" in data.attrs
+    assert np.isnan(data[0].compute())
