@@ -475,7 +475,8 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def wind_time(self):
         """Return wind time as a datetime object.
 
-        This quantity is already present as a wind_time dataset,
+        This quantity represents the start_time of the second image used
+        for the AMV tracking, and is already present as a wind_time dataset
         in units of Seconds since 2000-01-01 00:00:00.0.
         """
         ref = dt.datetime(2000,1,1,0,0,0)
