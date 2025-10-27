@@ -22,6 +22,7 @@ import numpy as np
 import pytest
 
 from satpy.readers.nwcsaf_hrw_nc import PRE_V2025_SEVIRI_WIND_CHANNELS
+from satpy.tests.utils import RANDOM_GEN
 
 # This is the actual dtype of the trajectory items. We do not support it, so won't add this
 # complexity to the test file creation. It's here anyway if someone wants to add it.
@@ -132,7 +133,7 @@ def _create_channel_dataset(h5f, name):
 def _create_data():
     data = []
     for key, dtype in WIND_DTYPES:
-        val = np.array(255 * np.random.random(), dtype=dtype).item()  # noqa
+        val = np.array(255 * RANDOM_GEN.random(), dtype=dtype).item()
         data.append(val)
 
     return tuple(data)
@@ -154,7 +155,7 @@ def hrw_v2025_file(tmp_path_factory):
         dset.attrs["units"] = np.bytes_("m s-1")
         dset.attrs["valid_range"] = np.array([0., 409.3])
         dset.attrs["_FillValue"] = np.double(409.5)
-        dset[:] = np.array(409.4 * np.random.random((NUM_OBS,)), dtype=np.double)  # noqa
+        dset[:] = np.array(409.4 * RANDOM_GEN.random((NUM_OBS,)), dtype=np.double)
         # And coordinates, those are needed
         lons = h5f.create_dataset("lon", shape=(NUM_OBS,), dtype=np.double)
         lons.attrs["standard_name"] = "longitude"
