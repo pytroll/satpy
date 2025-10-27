@@ -363,23 +363,10 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
     def _read_dataset(self, dataset_key):
         """Read a dataset."""
         dataset_name = dataset_key["name"]
-        if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-            key_parts = dataset_name.split("_")
-            channel = "_".join(key_parts[:2])
-            measurand = "_".join(key_parts[2:])
-        else:
-            channel = measurand = dataset_name
-            if dataset_name == "longitude":
-                channel = measurand = "lon"
-            elif dataset_name == "latitude":
-                channel = measurand = "lat"
+        channel, measurand = _get_channel_and_measurand_for_version(
+            self._algorithm_version, dataset_name)
         self._read_channel_coordinates(channel)
-        if self.period is None:
-            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-                self.period = self.h5f[channel].attrs["time_period"].item()
-            else:
-                interval = self.h5f.attrs["sampling_interval"].astype(str).item()
-                self.period = float(interval.split()[0])
+        self._get_period(channel)
 
         try:
             if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
@@ -389,10 +376,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         except ValueError:
             logger.warning("Reading %s is not supported.", dataset_name)
 
-        try:
-            units = data.attrs["units"].astype(str).item()
-        except AttributeError:
-            units = DATASET_UNITS[measurand]
+        units = _get_units_for_measurand(data, measurand)
 
         return self._create_xarray(
             data, dataset_name, units, channel)
@@ -407,6 +391,14 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
                 self.lons[channel] = self.h5f["lon"]
                 self.lats[channel] = self.h5f["lat"]
 
+    def _get_period(self, channel):
+        if self.period is None:
+            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+                self.period = self.h5f[channel].attrs["time_period"].item()
+            else:
+                interval = self.h5f.attrs["sampling_interval"].astype(str).item()
+                self.period = float(interval.split()[0])
+
     @property
     def start_time(self):
         """Get the start time."""
@@ -418,3 +410,27 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         if self.period is None:
             return self.start_time
         return self.start_time + dt.timedelta(minutes=self.period)
+
+
+def _get_channel_and_measurand_for_version(algorithm_version, dataset_name):
+    if algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+        key_parts = dataset_name.split("_")
+        channel = "_".join(key_parts[:2])
+        measurand = "_".join(key_parts[2:])
+    else:
+        channel = measurand = dataset_name
+        if dataset_name == "longitude":
+            channel = measurand = "lon"
+        elif dataset_name == "latitude":
+            channel = measurand = "lat"
+
+    return channel, measurand
+
+
+def _get_units_for_measurand(data, measurand):
+    try:
+        units = data.attrs["units"].astype(str).item()
+    except AttributeError:
+        units = DATASET_UNITS[measurand]
+
+    return units
