@@ -112,11 +112,9 @@ def nwcsaf_geo_ct_filename(tmp_path_factory):
 
 def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
     """Create a CT file."""
-    fname = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
-    return _create_nwcsaf_cf_file(
-        fname,
-        attrs,
-        "v2021")
+    filename = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
+    _create_nwcsaf_cf_file(filename, attrs, "v2021")
+    return filename
 
 
 def _create_nwcsaf_cf_file(filename, attrs, version):
@@ -138,8 +136,6 @@ def _create_nwcsaf_cf_file(filename, attrs, version):
                                       chunks=chunks)
         var[:] = RANDOM_GEN.integers(0, 255, size=shape, dtype=np.uint8)
 
-    return filename
-
 
 @pytest.fixture
 def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
@@ -155,11 +151,9 @@ def nwcsaf_geo_v2025_ct_filename(tmp_path_factory):
 
 def create_nwcsaf_geo_v2025_ct_file(directory, attrs=global_attrs_geo_v2025):
     """Create a CT file in v2025 format."""
-    fname = directory / "S_NWC_CT_MTI1_MSG-N-NR_20250923T130000Z.nc"
-    return _create_nwcsaf_cf_file(
-        fname,
-        attrs,
-        "v2025")
+    filename = directory / "S_NWC_CT_MTI1_MSG-N-NR_20250923T130000Z.nc"
+    _create_nwcsaf_cf_file(filename, attrs, "v2025")
+    return filename
 
 
 @pytest.fixture
