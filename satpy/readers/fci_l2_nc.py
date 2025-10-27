@@ -75,8 +75,7 @@ class FciL2CommonFunctions(object):
                 platform_name: name of the platform
             Only for AMVs product:
                 channel: channel at which the AMVs have been retrieved
-                time_parameters: dictionary of time attributes:
-                    - wind_time
+                time_parameters: dictionary of time attributes (currently only wind_time)
 
         """
         attributes = {
