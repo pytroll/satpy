@@ -162,11 +162,13 @@ def hrw_v2025_file(tmp_path_factory):
         lons.attrs["units"] = "degrees_east"
         lons.attrs["valid_range"] = np.array([-90., 90.], dtype=np.double)
         lons.attrs["_FillValue"] = np.double(245.)
+        dset[:] = 180 * RANDOM_GEN.random((NUM_OBS,), dtype=np.double) - 90
         lats = h5f.create_dataset("lat", shape=(NUM_OBS,), dtype=np.double)
         lats.attrs["standard_name"] = "latitude"
         lats.attrs["units"] = "degrees_north"
         lats.attrs["valid_range"] = np.array([-180., 179.99999], dtype=np.double)
         lats.attrs["_FillValue"] = np.double(491.)
+        dset[:] = 360 * RANDOM_GEN.random((NUM_OBS,), dtype=np.double) - 180.00001
     return fname
 
 
