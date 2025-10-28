@@ -107,3 +107,40 @@ composites:
           - name: 'vii_8540'
       - name: 'vii_10690'
     standard_name: dust
+
+  true_color_daytime:
+      description: >
+        True Color during daytime
+      compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+      standard_name: image_ready
+      lim_low: 78
+      lim_high: 88
+      day_night: day_only
+      prerequisites:
+        - true_color
+
+  true_color_daytime_uncorrected:
+      description: >
+        True Color during daytime
+      compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+      standard_name: image_ready
+      lim_low: 78
+      lim_high: 88
+      day_night: day_only
+      prerequisites:
+        - true_color_uncorrected
+  
+  night_10695:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+      - name: 'vii_10690'
+    standard_name: night_10695
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - name: vii_3740
+      - name: vii_10690
+      - name: vii_12020
+      - name: vii_10690
