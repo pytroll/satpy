@@ -112,6 +112,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
                                                   hour=18, minute=30, second=50)
         }
+        self.filename_info = filename_info
 
         # Create a reader
         self.reader = ViiNCBaseFileHandler(
@@ -214,6 +215,47 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                     except (TypeError, ValueError):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
                     assert equal
+
+    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
+    def test_start_end_time_additional_formats(self, pgi_):
+        """Test parsing additional datetime formats."""
+        interp_longitude = xr.DataArray(np.ones((10, 100)))
+        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
+        pgi_.return_value = (interp_longitude, interp_latitude)
+
+        time_cases = [
+            (
+                "2017-09-20T17:30:40.888000",
+                datetime.datetime(2017, 9, 20, 17, 30, 40, 888000),
+                "2017-09-20T17:41:17.555000",
+                datetime.datetime(2017, 9, 20, 17, 41, 17, 555000),
+            ),
+            (
+                "2017-09-20 17:30:40",
+                datetime.datetime(2017, 9, 20, 17, 30, 40),
+                "2017-09-20 17:41:17",
+                datetime.datetime(2017, 9, 20, 17, 41, 17),
+            ),
+        ]
+
+        filetype_info = {
+            "cached_longitude": "data/measurement_data/longitude",
+            "cached_latitude": "data/measurement_data/latitude",
+        }
+
+        for start_str, expected_start, end_str, expected_end in time_cases:
+            with Dataset(self.test_file_name, "r+") as nc:
+                nc.sensing_start_time_utc = start_str
+                nc.sensing_end_time_utc = end_str
+
+            reader = ViiNCBaseFileHandler(
+                filename=self.test_file_name,
+                filename_info=self.filename_info,
+                filetype_info=filetype_info,
+            )
+
+            assert reader.start_time == expected_start
+            assert reader.end_time == expected_end
 
     @mock.patch("satpy.readers.core.vii_nc.tie_points_interpolation")
     @mock.patch("satpy.readers.core.vii_nc.tie_points_geo_interpolation")
