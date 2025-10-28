@@ -109,3 +109,4 @@ The following people have made contributions to this project:
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
 - [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
+- [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
