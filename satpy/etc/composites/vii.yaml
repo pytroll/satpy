@@ -129,7 +129,7 @@ composites:
       day_night: day_only
       prerequisites:
         - true_color_uncorrected
-  
+
   night_10695:
     compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
