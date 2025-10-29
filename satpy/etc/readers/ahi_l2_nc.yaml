@@ -93,6 +93,11 @@ datasets:
       file_key: CldTopEmss
       file_type: [ ahi_l2_height ]
 
+  cloud_top_height:
+    name: cloud_top_height
+    file_key: CldTopHght
+    file_type: [ ahi_l2_height ]
+
   cloud_top_pressure:
       name: cloud_top_pressure
       file_key: CldTopPres
