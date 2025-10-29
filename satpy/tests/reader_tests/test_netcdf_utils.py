@@ -18,16 +18,11 @@
 """Module for testing the satpy.readers.core.netcdf module."""
 
 import os
-import unittest
 
 import numpy as np
 import pytest
 
-try:
-    from satpy.readers.core.netcdf import NetCDF4FileHandler
-except ImportError:
-    # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = object  # type: ignore
+from satpy.readers.core.netcdf import NetCDF4FileHandler, choose_accessor_from_engine
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -42,13 +37,12 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         del xarray_kwargs
         del cache_var_size
         del cache_handle
-        if NetCDF4FileHandler is object:
-            raise ImportError("Base 'NetCDF4FileHandler' could not be "
-                              "imported.")
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         if extra_file_content:
             self.file_content.update(extra_file_content)
+        self.engine = "netcdf4"
+        self.accessor = choose_accessor_from_engine(self.engine)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
@@ -71,62 +65,61 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 
-class TestNetCDF4FileHandler(unittest.TestCase):
+@pytest.fixture
+def netcdf_file(tmp_path):
+    """Create a test NetCDF4 file."""
+    from netCDF4 import Dataset
+    filename = tmp_path / "test.nc"
+    with Dataset(filename, "w") as nc:
+        # Create dimensions
+        nc.createDimension("rows", 10)
+        nc.createDimension("cols", 100)
+
+        # Create Group
+        g1 = nc.createGroup("test_group")
+
+        # Add datasets
+        ds1_f = g1.createVariable("ds1_f", np.float32,
+                                  dimensions=("rows", "cols"))
+        ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
+        ds1_i = g1.createVariable("ds1_i", np.int32,
+                                  dimensions=("rows", "cols"))
+        ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
+        ds2_f = nc.createVariable("ds2_f", np.float32,
+                                  dimensions=("rows", "cols"))
+        ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
+        ds2_i = nc.createVariable("ds2_i", np.int32,
+                                  dimensions=("rows", "cols"))
+        ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
+        ds2_s = nc.createVariable("ds2_s", np.int8,
+                                  dimensions=("rows",))
+        ds2_s[:] = np.arange(10)
+        ds2_sc = nc.createVariable("ds2_sc", np.int8, dimensions=())
+        ds2_sc[:] = 42
+
+        # Add attributes
+        nc.test_attr_str = "test_string"
+        nc.test_attr_int = 0
+        nc.test_attr_float = 1.2
+        nc.test_attr_str_arr = np.array(b"test_string2")
+        g1.test_attr_str = "test_string"
+        g1.test_attr_int = 0
+        g1.test_attr_float = 1.2
+        for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
+            d.test_attr_str = "test_string"
+            d.test_attr_int = 0
+            d.test_attr_float = 1.2
+    return filename
+
+class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
 
-    def setUp(self):
-        """Create a test NetCDF4 file."""
-        from netCDF4 import Dataset
-        with Dataset("test.nc", "w") as nc:
-            # Create dimensions
-            nc.createDimension("rows", 10)
-            nc.createDimension("cols", 100)
-
-            # Create Group
-            g1 = nc.createGroup("test_group")
-
-            # Add datasets
-            ds1_f = g1.createVariable("ds1_f", np.float32,
-                                      dimensions=("rows", "cols"))
-            ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
-            ds1_i = g1.createVariable("ds1_i", np.int32,
-                                      dimensions=("rows", "cols"))
-            ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
-            ds2_f = nc.createVariable("ds2_f", np.float32,
-                                      dimensions=("rows", "cols"))
-            ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
-            ds2_i = nc.createVariable("ds2_i", np.int32,
-                                      dimensions=("rows", "cols"))
-            ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
-            ds2_s = nc.createVariable("ds2_s", np.int8,
-                                      dimensions=("rows",))
-            ds2_s[:] = np.arange(10)
-            ds2_sc = nc.createVariable("ds2_sc", np.int8, dimensions=())
-            ds2_sc[:] = 42
-
-            # Add attributes
-            nc.test_attr_str = "test_string"
-            nc.test_attr_int = 0
-            nc.test_attr_float = 1.2
-            nc.test_attr_str_arr = np.array(b"test_string2")
-            g1.test_attr_str = "test_string"
-            g1.test_attr_int = 0
-            g1.test_attr_float = 1.2
-            for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
-                d.test_attr_str = "test_string"
-                d.test_attr_int = 0
-                d.test_attr_float = 1.2
-
-    def tearDown(self):
-        """Remove the previously created test file."""
-        os.remove("test.nc")
-
-    def test_all_basic(self):
+    def test_all_basic(self, netcdf_file):
         """Test everything about the NetCDF4 class."""
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler("test.nc", {}, {})
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
 
         assert file_handler["/dimension/rows"] == 10
         assert file_handler["/dimension/cols"] == 100
@@ -165,7 +158,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         assert file_handler.file_handle is None
         assert file_handler["ds2_sc"] == 42
 
-    def test_listed_variables(self):
+    def test_listed_variables(self, netcdf_file):
         """Test that only listed variables/attributes area collected."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
@@ -175,12 +168,12 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 "attr/test_attr_str",
             ]
         }
-        file_handler = NetCDF4FileHandler("test.nc", {}, filetype_info)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
         assert len(file_handler.file_content) == 2
         assert "test_group/attr/test_attr_str" in file_handler.file_content
         assert "attr/test_attr_str" in file_handler.file_content
 
-    def test_listed_variables_with_composing(self):
+    def test_listed_variables_with_composing(self, netcdf_file):
         """Test that composing for listed variables is performed."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
@@ -199,7 +192,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 ],
             }
         }
-        file_handler = NetCDF4FileHandler("test.nc", {}, filetype_info)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
         assert len(file_handler.file_content) == 3
         assert "test_group/ds1_f/attr/test_attr_str" in file_handler.file_content
         assert "test_group/ds1_i/attr/test_attr_str" in file_handler.file_content
@@ -208,10 +201,10 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         assert not any("another_parameter" in var for var in file_handler.file_content)
         assert "test_group/attr/test_attr_str" in file_handler.file_content
 
-    def test_caching(self):
+    def test_caching(self, netcdf_file):
         """Test that caching works as intended."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
+        h = NetCDF4FileHandler(netcdf_file, {}, {}, cache_var_size=1000,
                                cache_handle=True)
         assert h.file_handle is not None
         assert h.file_handle.isopen()
@@ -237,21 +230,21 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
-    def test_get_and_cache_npxr_is_xr(self):
+    def test_get_and_cache_npxr_is_xr(self, netcdf_file):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler("test.nc", {}, {}, cache_handle=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True)
 
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert isinstance(data, xr.DataArray)
 
-    def test_get_and_cache_npxr_data_is_cached(self):
+    def test_get_and_cache_npxr_data_is_cached(self, netcdf_file):
         """Test that the data are cached when get_and_cache_npxr() is called."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
-        file_handler = NetCDF4FileHandler("test.nc", {}, {}, cache_handle=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True)
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
 
         # Delete the dataset from the file content dict, it should be available from the cache
@@ -259,13 +252,11 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         data2 = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert np.all(data == data2)
 
-
 class TestNetCDF4FsspecFileHandler:
     """Test the remote reading class."""
 
     def test_default_to_netcdf4_lib(self):
         """Test that the NetCDF4 backend is used by default."""
-        import os
         import tempfile
 
         import h5py
@@ -279,7 +270,7 @@ class TestNetCDF4FsspecFileHandler:
             fid.close()
 
             fh = NetCDF4FsspecFileHandler(fname, {}, {})
-            assert fh._use_h5netcdf is False
+            assert fh.accessor.engine == "netcdf4"
 
     def test_use_h5netcdf_for_file_not_accessible_locally(self):
         """Test that h5netcdf is used for files that are not accesible locally."""
@@ -292,8 +283,19 @@ class TestNetCDF4FsspecFileHandler:
                 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
-                h5_file.assert_called_once()
-                assert fh._use_h5netcdf
+                h5_file.assert_called()
+                assert fh.accessor.engine == "h5netcdf"
+
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_netcdf_engines(self, netcdf_file, engine):
+        """Test that h5netcdf engine is used."""
+        from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
+
+        fh = NetCDF4FsspecFileHandler(netcdf_file, {}, {}, engine=engine)
+        assert fh.accessor.engine == engine
+        np.testing.assert_array_equal(
+                fh["ds2_f"],
+                np.arange(10. * 100).reshape((10, 100)))
 
 
 NC_ATTRS = {
