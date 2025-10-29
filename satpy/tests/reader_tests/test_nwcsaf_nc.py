@@ -39,10 +39,15 @@ PROJ = {"gdal_projection": f"+proj=geos +a=6378137.000 +b=6356752.300 +lon_0=0.0
         "gdal_ygeo_low_right": 2653500.0}
 
 
-dimensions = {"nx": 1530,
-              "ny": 928,
-              "pal_colors_250": 250,
-              "pal_rgb": 3}
+dimensions_v2021 = {
+    "nx": 1530,
+    "ny": 928,
+    "pal_colors_250": 250,
+    "pal_rgb": 3,
+}
+
+dimensions_v2025 = dimensions_v2021.copy()
+dimensions_v2025["time"] = 1
 
 NOMINAL_LONGITUDE = 0.0
 NOMINAL_TIME = "2023-01-18T10:30:00Z"
@@ -51,16 +56,26 @@ END_TIME = "2023-01-18T10:42:22Z"
 START_TIME_PPS = "20230118T103917000Z"
 END_TIME_PPS = "20230118T104222000Z"
 
-global_attrs = {"source": "NWC/GEO version v2021.1",
-                "satellite_identifier": "MSG4",
-                "sub-satellite_longitude": NOMINAL_LONGITUDE,
-                "time_coverage_start": START_TIME,
-                "time_coverage_end": END_TIME}
+global_attrs = {
+    "source": "NWC/GEO version v2021.1",
+    "satellite_identifier": "MSG4",
+    "sub-satellite_longitude": NOMINAL_LONGITUDE,
+    "time_coverage_start": START_TIME,
+    "time_coverage_end": END_TIME,
+}
 
 global_attrs.update(PROJ)
 
 global_attrs_geo = global_attrs.copy()
 global_attrs_geo["nominal_product_time"] = NOMINAL_TIME
+
+global_attrs_geo_v2025 = {
+    "source": "NWC/GEO version v2025.1",
+    "satellite_identifier": "MTI1",
+    "sub-satellite_longitude": NOMINAL_LONGITUDE,
+    "time_coverage_start": "2025-09-23T13:07:53Z",
+    "time_coverage_end": "2025-09-23T13:09:29Z",
+}
 
 CTTH_PALETTE_MEANINGS = ("0 500 1000 1500")
 
@@ -98,22 +113,53 @@ def nwcsaf_geo_ct_filename(tmp_path_factory):
 def create_nwcsaf_geo_ct_file(directory, attrs=global_attrs_geo):
     """Create a CT file."""
     filename = directory / "S_NWC_CT_MSG4_MSG-N-VISIR_20230118T103000Z_PLAX.nc"
+    _create_nwcsaf_cf_file(filename, attrs, "v2021")
+    return filename
+
+
+def _create_nwcsaf_cf_file(filename, attrs, version):
     with h5netcdf.File(filename, mode="w") as nc_file:
-        nc_file.dimensions = dimensions
         nc_file.attrs.update(attrs)
         var_name = "ct"
-
-        var = nc_file.create_variable(var_name, ("ny", "nx"), np.uint8,
-                                      chunks=(256, 256))
-        var[:] = RANDOM_GEN.integers(0, 255, size=(928, 1530), dtype=np.uint8)
-
-    return filename
+        if version == "v2025":
+            dim_names = ("time", "ny", "nx")
+            chunks = (1, 256, 256)
+            dimensions = dimensions_v2025
+            shape = (1, 928, 1530)
+        else:
+            dim_names = ("ny", "nx")
+            chunks = (256, 256)
+            dimensions = dimensions_v2021
+            shape = (928, 1530)
+        nc_file.dimensions = dimensions
+        var = nc_file.create_variable(var_name, dim_names, np.uint8,
+                                      chunks=chunks)
+        var[:] = RANDOM_GEN.integers(0, 255, size=shape, dtype=np.uint8)
 
 
 @pytest.fixture
 def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
     """Create a CT filehandler."""
     return NcNWCSAF(nwcsaf_geo_ct_filename, {}, {})
+
+
+@pytest.fixture(scope="session")
+def nwcsaf_geo_v2025_ct_filename(tmp_path_factory):
+    """Create a CT file in the v2025 format and return the filename."""
+    return create_nwcsaf_geo_v2025_ct_file(tmp_path_factory.mktemp("data"))
+
+
+def create_nwcsaf_geo_v2025_ct_file(directory, attrs=global_attrs_geo_v2025):
+    """Create a CT file in v2025 format."""
+    filename = directory / "S_NWC_CT_MTI1_MSG-N-NR_20250923T130000Z.nc"
+    _create_nwcsaf_cf_file(filename, attrs, "v2025")
+    return filename
+
+
+@pytest.fixture
+def nwcsaf_geo_v2025_ct_filehandler(nwcsaf_geo_v2025_ct_filename):
+    """Create a CT filehandler."""
+    return NcNWCSAF(nwcsaf_geo_v2025_ct_filename, {}, {})
 
 
 @pytest.fixture(scope="session")
@@ -142,7 +188,7 @@ def create_cmic_file(path, filetype, attrs=global_attrs):
     """Create a cmic file."""
     filename = path / f"S_NWC_{filetype.upper()}_npp_00000_20230118T1427508Z_20230118T1429150Z.nc"
     with h5netcdf.File(filename, mode="w") as nc_file:
-        nc_file.dimensions = dimensions
+        nc_file.dimensions = dimensions_v2021
         nc_file.attrs.update(attrs)
         create_cot_variable(nc_file, f"{filetype}_cot")
         create_cot_pal_variable(nc_file, f"{filetype}_cot_pal")
@@ -154,7 +200,7 @@ def create_ctth_file(path, attrs=global_attrs):
     """Create a cmic file."""
     filename = path / "S_NWC_CTTH_npp_00000_20230118T1427508Z_20230118T1429150Z.nc"
     with h5netcdf.File(filename, mode="w") as nc_file:
-        nc_file.dimensions = dimensions
+        nc_file.dimensions = dimensions_v2021
         nc_file.attrs.update(attrs)
         create_ctth_variables(nc_file, "ctth_alti")
         create_ctth_alti_pal_variable_with_fill_value_color(nc_file, "ctth_alti_pal")
@@ -367,6 +413,13 @@ class TestNcNWCSAFGeo:
                 {"name": "ct"},
                 {"name": "ct", "file_type": "nc_nwcsaf_geo"})
         assert ct.dtype == np.dtype("uint8")
+
+    def test_v2025_dimensions(self, nwcsaf_geo_v2025_ct_filehandler):
+        """Test that the filehandler drops the time dimension for v2025 format."""
+        dsid ={"name": "ct"}
+        ds_info = {}
+        data = nwcsaf_geo_v2025_ct_filehandler.get_dataset(dsid, ds_info)
+        assert data.dims == ("y", "x")
 
 
 class TestNcNWCSAFPPS:
