@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2020 Satpy developers
+# Copyright (c) 2016-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -17,16 +15,24 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
 
+import functools
+import glob
 import logging
+import os
+import pickle  # nosec
+import time
+import warnings
 
 import dask.array as da
+import dask.distributed
 import netCDF4
 import numpy as np
 import xarray as xr
 
+import satpy
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
-from satpy.readers.core.utils import np2str
+from satpy.readers.core.utils import get_serializable_dask_array, np2str
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -85,10 +91,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
         cache_var_size (int): Cache variables smaller than this size.
         cache_handle (bool): Keep files open for lifetime of filehandler.
+            Uses xarray.backends.CachingFileManager, which uses a least
+            recently used cache.
 
     """
 
-    file_handle = None
+    manager = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
@@ -99,31 +107,50 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content = {}
         self.cached_file_content = {}
         self._use_h5netcdf = False
-        try:
-            file_handle = self._get_file_handle()
-        except IOError:
-            LOG.exception(
-                "Failed reading file %s. Possibly corrupted file", self.filename)
-            raise
+        self._auto_maskandscale = auto_maskandscale
+        if cache_handle:
+            file_handle = self._get_cached_file_handle(auto_maskandscale)
+        else:
+            try:
+                file_handle = self._get_file_handle()
+            except IOError:
+                LOG.exception(
+                    "Failed reading file %s. Possibly corrupted file", self.filename)
+                raise
 
-        self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
+            self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
         self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
         listed_variables = filetype_info.get("required_netcdf_variables")
-        if listed_variables:
+        if listed_variables is not None:
             self._collect_listed_variables(file_handle, listed_variables)
         else:
             self.collect_metadata("", file_handle)
             self.collect_dimensions("", file_handle)
         self.collect_cache_vars(cache_var_size)
 
-        if cache_handle:
-            self.file_handle = file_handle
-        else:
+        if not cache_handle:
             file_handle.close()
 
     def _get_file_handle(self):
         return netCDF4.Dataset(self.filename, "r")
+
+    def _get_cached_file_handle(self, auto_maskandscale):
+        self.manager = xr.backends.CachingFileManager(
+                functools.partial(_nc_dataset_wrapper,
+                                  auto_maskandscale=auto_maskandscale),
+                self.filename, mode="r")
+        return self.manager.acquire()
+
+    @property
+    def file_handle(self):
+        """Backward-compatible way for file handle caching."""
+        warnings.warn(
+                "attribute .file_handle is deprecated, use .manager instead",
+                DeprecationWarning)
+        if self.manager is None:
+            return None
+        return self.manager.acquire()
 
     @staticmethod
     def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
@@ -196,11 +223,8 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the file handler."""
-        if self.file_handle is not None:
-            try:
-                self.file_handle.close()
-            except RuntimeError:  # presumably closed already
-                pass
+        if self.manager is not None:
+            self.manager.close()
 
     def _collect_global_attrs(self, obj):
         """Collect all the global attributes for the provided file object."""
@@ -301,8 +325,8 @@ class NetCDF4FileHandler(BaseFileHandler):
             group, key = parts
         else:
             group = None
-        if self.file_handle is not None:
-            val = self._get_var_from_filehandle(group, key)
+        if self.manager is not None:
+            val = self._get_var_from_manager(group, key)
         else:
             val = self._get_var_from_xr(group, key)
         return val
@@ -331,18 +355,27 @@ class NetCDF4FileHandler(BaseFileHandler):
                 val.load()
         return val
 
-    def _get_var_from_filehandle(self, group, key):
+    def _get_var_from_manager(self, group, key):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
+
+        with self.manager.acquire_context() as ds:
+            if group is not None:
+                v = ds[group][key]
+            else:
+                v = ds[key]
         if group is None:
-            g = self.file_handle
+            dv = get_serializable_dask_array(
+                    self.manager, key,
+                    chunks=v.shape, dtype=v.dtype)
         else:
-            g = self.file_handle[group]
-        v = g[key]
+            dv = get_serializable_dask_array(
+                    self.manager, "/".join([group, key]),
+                    chunks=v.shape, dtype=v.dtype)
         attrs = self._get_object_attrs(v)
         x = xr.DataArray(
-                da.from_array(v), dims=v.dimensions, attrs=attrs,
-                name=v.name)
+                dv,
+                dims=v.dimensions, attrs=attrs, name=v.name)
         return x
 
     def __contains__(self, item):
@@ -455,3 +488,223 @@ class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
         if self._use_h5netcdf:
             return obj.attrs[key]
         return super()._get_attr(obj, key)
+
+
+def _nc_dataset_wrapper(*args, auto_maskandscale, **kwargs):
+    """Wrap netcdf4.Dataset setting auto_maskandscale globally.
+
+    Helper function that wraps netcdf4.Dataset while setting extra parameters.
+    By encapsulating this in a helper function, we can
+    pass it to CachingFileManager directly.  Currently sets
+    auto_maskandscale globally (for all variables).
+    """
+    nc = netCDF4.Dataset(*args, **kwargs)
+    nc.set_auto_maskandscale(auto_maskandscale)
+    return nc
+
+
+
+class PreloadableSegments:
+    """Mixin class for pre-loading segments.
+
+    This is a mixin class designed to use with file handlers that support
+    preloading segments.  Subclasses deriving from this mixin are expected
+    to be geo-segmentable file handlers, and can be created based on
+    a glob pattern for a non-existing file (as well as a path or glob
+    pattern to an existing file).  The first segment of a repeat cycle
+    is always processed only after the file exists.  For the remaining
+    segments, metadata are collected as much as possible before the file
+    exists, from two possible sources:
+
+    - From the first segment.  For some file formats, many pieces of metadata
+      can be expected to be identical between segments.
+    - From the same segment number for a previous repeat cycle.  In this case,
+      caching is done on disk.
+
+    To implement a filehandler using this, make sure it derives from both
+    :class:`NetCDF4FileHandler` and this class, and make sure to pass keyword
+    arguments in ``__init__`` to the superclass.  In the YAML file,
+    ``required_netcdf_variables`` must be defined as a dictionary.  The keys
+    are variable names, and values are a list of strings describing what
+    assumptions can be made about caching, where ``"rc"`` means the value is
+    expected to be constant between repeat cycles, and ``"segment"`` means it is
+    expected to be constant between the segments within a repeat cycle.  For
+    variables that are actually variable, define the empty list.
+
+    Attributes (variable, global, and group), shapes, dtypes, and dimension names
+    are assumed to be always shareable between repeat cycles.
+
+    To use preloading, set the satpy configuration variable
+    ``readers.preload_segments`` to True.  The initialisation parameter
+    for this filehandler might still be False, because the first segment (the
+    reference segment) of a repeat cycle is loaded normally.
+
+    This feature is experimental.
+
+    .. versionadded:: 0.59
+    """
+
+    def __init__(self, *args, preload=False, ref_fh=None, rc_cache=None, **kwargs):
+        """Store attributes needed for preloading to work."""
+        self.preload = preload
+        self.preload_attempts = satpy.config.get("readers.preload.attempts")
+        self.preload_step = satpy.config.get("readers.preload.step")
+        self.use_distributed = satpy.config.get("readers.preload.assume_distributed")
+        if preload:
+            if not isinstance(ref_fh, BaseFileHandler):
+                raise TypeError(
+                    "Expect reference filehandler when preloading, got "
+                    f"{type(ref_fh)!s}")
+            self.ref_fh = ref_fh
+            if not isinstance(rc_cache, (str, bytes, os.PathLike)):
+                raise TypeError(
+                    "Expected cache file when preloading, got "
+                    f"{type(rc_cache)!s}")
+            self.rc_cache = rc_cache
+        super().__init__(*args, **kwargs)
+        if "required_netcdf_variables" not in self.filetype_info:
+            raise ValueError("For preloadable filehandlers, "
+                             "required_netcdf_variables is mandatory.")
+
+    def _collect_listed_variables(self, file_handle, listed_variables):
+        """Collect listed variables, either preloaded or regular."""
+        if self.preload:
+            self._preload_listed_variables(listed_variables)
+        else:
+            super()._collect_listed_variables(file_handle, listed_variables)
+
+    def _preload_listed_variables(self, listed_variables):
+        """Preload listed variables, either from RC cache or segment cache."""
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        with open(self.rc_cache, "rb") as fp:
+            self.file_content.update(pickle.load(fp))  # nosec
+        for raw_name in listed_variables:
+            for subst_name in self._get_required_variable_names(
+                    [raw_name], variable_name_replacements):
+                if self._can_get_from_other_segment(raw_name):
+                    self.file_content[subst_name] = self.ref_fh.file_content[subst_name]
+                elif not self._can_get_from_other_rc(raw_name):
+                    self._collect_variable_delayed(subst_name)
+
+    def _can_get_from_other_segment(self, itm):
+        """Return true if variable is segment-cachable."""
+        return "segment" in self.filetype_info["required_netcdf_variables"][itm]
+
+    def _can_get_from_other_rc(self, itm):
+        """Return true if variable is rc-cachable."""
+        # it's always safe to store variable attributes, shapes, dtype, dimensions
+        # between repeat cycles
+        if self._is_safely_shareable_metadata(itm):
+            return True
+        # need an inverted mapping so I can tell which variables I can store
+        invmap = self._get_inv_name_map()
+        if "rc" in self.filetype_info["required_netcdf_variables"][invmap.get(itm, itm)]:
+            return True
+        return False
+
+    def _is_safely_shareable_metadata(self, itm):
+        """Check if item refers to safely shareable metadata."""
+        for meta in ("/attr/", "/shape", "/dtype", "/dimension/", "/dimensions"):
+            if meta in itm:
+                return True
+
+    def _get_inv_name_map(self):
+        """Get inverted mapping for variable name replacements."""
+        listed_variables = self.filetype_info.get("required_netcdf_variables")
+        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
+        invmap = {}
+        for raw_name in listed_variables:
+            for subst_name in self._get_required_variable_names([raw_name],
+                                                                variable_name_replacements):
+                invmap[subst_name] = raw_name
+        return invmap
+
+    def _collect_variable_delayed(self, subst_name):
+        md = self.ref_fh[subst_name]  # some metadata from reference segment
+        fn_matched = _wait_for_file(self.filename, self.preload_attempts,
+                                    self.preload_step,
+                                    self.use_distributed)
+        dade = _get_delayed_value_from_nc(fn_matched, subst_name)
+        array = da.from_delayed(
+                dade,
+                shape=self[subst_name + "/shape"],  # not safe from reference segment!
+                dtype=md.dtype)
+
+        var_obj = xr.DataArray(
+                array,
+                dims=md.dims,  # dimension /names/ should be safe
+                attrs=md.attrs,  # FIXME: is this safe?  More involved to gather otherwise
+                name=md.name)
+        self.file_content[subst_name] = var_obj
+
+    def _get_file_handle(self):
+        if self.preload:
+            return open(os.devnull, "r")
+        return super()._get_file_handle()
+
+    def _get_cached_file_handle(self, auto_maskandscale):
+        if self.preload:
+            return open(os.devnull, "r")
+        return super()._get_cached_file_handle(auto_maskandscale)
+
+    def store_cache(self, filename=None):
+        """Store RC-cachable data to cache."""
+        if self.preload:
+            raise ValueError("Cannot store cache with pre-loaded handler")
+        to_store = {}
+        for key in self.file_content.keys():
+            if self._can_get_from_other_rc(key):
+                try:
+                    to_store[key] = self[key].compute()
+                except AttributeError:  # not a dask array
+                    to_store[key] = self[key]
+
+        filename = filename or self.rc_cache
+        LOG.info(f"Storing cache to {filename!s}")
+        with open(filename, "wb") as fp:
+            # potential security risk?  Acceptable?
+            pickle.dump(to_store, fp)
+
+
+@dask.delayed
+def _wait_for_file(pat, max_tries=300, wait=2, use_distributed=False):
+    """Wait for file to appear."""
+    for i in range(max_tries):
+        if (match := _check_for_matching_file(i, pat, wait, use_distributed)):
+            LOG.debug(f"Found {match!s} matching {pat!s}!")
+            return match
+    else:
+        raise TimeoutError(f"File matching {pat!s} failed to materialise")
+
+
+def _check_for_matching_file(i, pat, wait, use_distributed=False):
+    fns = glob.glob(pat)
+    if len(fns) == 0:
+        _log_and_wait(i, pat, wait, use_distributed)
+        return
+    if len(fns) > 1:
+        raise ValueError(f"Expected one matching file, found {len(fns):d}")
+    return fns[0]
+
+
+def _log_and_wait(i, pat, wait, use_distributed=False):
+    """Maybe log that we're waiting for pat, then wait."""
+    if i == 0:
+        LOG.debug(f"Waiting for {pat!s} to appear.")
+    if i % 60 == 30:
+        LOG.debug(f"Still waiting for {pat!s}")
+    if use_distributed:
+        dask.distributed.secede()
+    time.sleep(wait)
+    if use_distributed:
+        dask.distributed.rejoin()
+
+
+@dask.delayed
+def _get_delayed_value_from_nc(fn, var, auto_maskandscale=False):
+    if "/" in var:
+        (grp, var) = var.rsplit("/", maxsplit=1)
+    else:
+        (grp, var) = (None, var)
+    with xr.open_dataset(fn, group=grp, mask_and_scale=auto_maskandscale, engine="h5netcdf") as nc:
+        return nc[var][:]

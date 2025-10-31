@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2022 Satpy developers
+# Copyright (c) 2016-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -17,10 +15,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes and utilities for all readers configured by YAML files."""
 
+import datetime
 import glob
 import itertools
 import logging
 import os
+import pathlib
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
@@ -29,11 +29,14 @@ from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
 import numpy as np
+import platformdirs
 import xarray as xr
 import yaml
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
-from trollsift.parser import globify, parse
+from trollsift.parser import Parser, globify, parse
+
+import satpy
 
 try:
     from yaml import CLoader as Loader
@@ -1169,7 +1172,24 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     field which will be used if ``expected_segments`` is not defined. This
     will default to 1 segment.
 
+    This reader uses the ``readers.preload_segments`` configuration setting.
+    This argument is intended for near real time processing.  When only
+    one segment has arrived, the user can create a scene using this one
+    segment and ``preload=True``, and Satpy will populate a scene based on
+    all expected segments with dask delayed objects.  When computing the
+    dask graphs, satpy will process each segment as soon as it comes in,
+    strongly reducing the timeliness for processing a full disc image in
+    near real time.  Checking for new files can be controlled with the
+    arguments ``preload_step`` (time in seconds) and ``preload_tries``
+    (how many tries before giving up).
+
+    This feature is experimental.  Use at your own risk.
     """
+
+    def __init__(self, *args, **kwargs):
+        """Initialise object."""
+        self.preload = satpy.config.get("readers.preload.enable")
+        super().__init__(*args, **kwargs)
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Create file handler objects and determine expected segments for each.
@@ -1331,6 +1351,129 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
 
         return new_height_proj_coord, new_height_px
+
+    def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
+        """Get new filehandler instances.
+
+        Gets new filehandler instances, either just for files that exist, or,
+        if self.preload is True, also for predicted files that don't exist,
+        as a glob pattern.
+        """
+        if fh_kwargs is None:
+            fh_kwargs = {}
+        fh_kwargs_without_preload = fh_kwargs.copy()
+        fh_kwargs_without_preload.pop("preload", None)
+        fh_it = super()._new_filehandler_instances(filetype_info,
+                                                   filename_items,
+                                                   fh_kwargs=fh_kwargs_without_preload)
+        if not self.preload:
+            yield from fh_it
+            return
+        if "requires" in filetype_info:
+            raise ValueError("Unable to preload with required types")
+        try:
+            fh_first = next(fh_it)
+        except StopIteration:
+            return
+        yield fh_first
+        yield from fh_it
+        yield from self._new_preloaded_filehandler_instances(
+                filetype_info, fh_first)
+
+    def _new_preloaded_filehandler_instances(self, filetype_info, fh):
+        """Get filehandler instances for non-existing files.
+
+        Based on the filehandler for a single existing file, yield filehandler
+        instances for all files that we expect for a full disc cycle.  Those
+        filehandler instances are usually based on glob patterns rather than on
+        the explicit filename, which may not be reliably predictable.
+        """
+        if filetype_info.get("requires"):
+            raise NotImplementedError("Pre-loading not implemented for "
+                                      "handlers with required segments.")
+        filetype_cls = filetype_info["file_reader"]
+        for (filename, filename_info) in self._predict_filenames(filetype_info, fh):
+            # not implemented yet: handle other keyword arguments
+            yield filetype_cls(filename, filename_info, filetype_info,
+                               preload=True, ref_fh=fh,
+                               rc_cache=self._get_cache_filename(
+                                   filename, filename_info, fh))
+
+    def _predict_filenames(self, filetype_info, fh):
+        """Predict what filenames or glob patterns we should expect.
+
+        Based on the filehandler for a single existing file, yield strings
+        for filenames or glob patterns for all files that we expect to make up
+        a scene in the end.
+        """
+        for i in range(fh.filename_info[filetype_info["segment_tag"]]+1,
+                       fh.filetype_info["expected_segments"]+1):
+            yield self._predict_filename(fh, i)
+
+    def _select_pattern(self, filename):
+        """Choose the matching file pattern.
+
+        Given a filename for a yamlreader with multiple file patterns,
+        return the matching file pattern.
+        """
+        for pattern in self.file_patterns:
+            if _match_filenames([filename], pattern):
+                return pattern
+        else:
+            raise ValueError("Cannot predict filenames, because the "
+                             "initial file doesn't appear to meet any defined "
+                             "pattern.")
+
+    def _predict_filename(self, fh, i):
+        """Predict filename or glob pattern.
+
+        Given a filehandler for an extant file, predict what the filename or
+        glob pattern will be for segment i.
+
+        Returns filename pattern and filename info dict.
+        """
+        pat = self._select_pattern(fh.filename)
+        p = Parser(pat)
+        new_info = _predict_filename_info(fh, i)
+        new_filename = p.compose(new_info)
+        basedir = pathlib.Path(fh.filename).parent
+        new_filename = new_filename.replace("235959", "??????")
+        new_filename = os.fspath(basedir / new_filename)
+        return (new_filename, new_info)
+
+    def _get_cache_filename(self, filename, filename_info, fh):
+        """Get filename for inter-rc caching."""
+        dirname = self._get_cache_dir(fh)
+        pat = self._select_pattern(filename)
+        p = Parser(pat)
+        new_info = filename_info.copy()
+        for tm in fh.filetype_info.get("time_tags", []):
+            new_info[tm] = datetime.datetime.max
+        for ct in fh.filetype_info.get("variable_tags", []):
+            new_info[ct] = 0
+        name = p.compose(new_info)
+        pt = pathlib.Path(name)
+        pt = pt.with_suffix(".pkl")
+        return os.path.join(dirname, os.fspath(pt))
+
+    def _get_cache_dir(self, fh):
+        return os.path.join(platformdirs.user_cache_dir(), "satpy", "preloadable",
+                            type(fh).__name__)
+
+
+def _predict_filename_info(fh, i):
+    """Predict filename info for file that doesn't exist yet.
+
+    Taking an existing filehandler that refers to a real file with a segmented
+    reader, return a glob pattern that should match the file for segment number
+    i.
+    """
+    new_info = fh.filename_info.copy()
+    new_info[fh.filetype_info["segment_tag"]] = i
+    for tm in fh.filetype_info["time_tags"]:
+        new_info[tm] = new_info[tm].replace(
+            hour=23, minute=59, second=59)
+    return new_info
 
 
 def _stack_area_defs(area_def_dict):

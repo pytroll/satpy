@@ -70,6 +70,7 @@ Documentation
     enhancements
     writing
     multiscene
+    advanced/index
     dev_guide/index
     readers_formats
 

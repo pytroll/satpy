@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2025 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,10 +18,9 @@
 
 This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Level-1c data.  FCI flies
-on the MTG Imager (MTG-I) series of satellites, with the first satellite (MTG-I1)
-launched on the 13th of December 2022.
-For more information about FCI, see `EUMETSAT`_.
+Imager (FCI) Level-1c data.  FCI flies on the MTG Imager (MTG-I) series
+of satellites, with the first satellite (MTG-I1) launched on the 13th
+of December 2022.  For more information about FCI, see `EUMETSAT`_.
 
 To download data to be used with this reader, see `MTG data store guide`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
@@ -137,7 +134,7 @@ import satpy
 from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate
-from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
+from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler, PreloadableSegments
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +187,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
+class FCIL1cNCFileHandler(PreloadableSegments, NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -200,13 +197,30 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
+
+    # Platform names according to the MTG FCI L1 Product User Guide,
+    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+    #
+    # After launch: translate to METEOSAT-xx instead?  Not sure how the
+    # numbering will be considering MTG-S1 and MTG-S2 will be launched
+    # in-between.
+    _platform_name_translate = {
+        "MTI1": "MTG-I1",
+        "MTI2": "MTG-I2",
+        "MTI3": "MTG-I3",
+        "MTI4": "MTG-I4"}
+
     def __init__(self, filename, filename_info, filetype_info,
-                 clip_negative_radiances=None, **kwargs):
+                 *args, clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
         super().__init__(filename, filename_info,
                          filetype_info,
+                         *args,
                          cache_var_size=0,
-                         cache_handle=True)
+                         cache_handle=True,
+                         **kwargs)
         logger.debug("Reading: {}".format(self.filename))
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))
