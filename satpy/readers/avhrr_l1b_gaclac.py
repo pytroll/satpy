@@ -285,6 +285,10 @@ class GACLACFile(BaseFileHandler):
 
         with suppress(KeyError):
             res.attrs["median_gcp_distance"] = self.cal_ds.attrs["median_gcp_distance"]
+        with suppress(KeyError):
+            res.attrs["estimated_attitude_in_degrees"] = self.cal_ds.attrs["estimated_attitude_in_degrees"]
+        with suppress(KeyError):
+            res.attrs["estimated_time_offset_in_seconds"] = self.cal_ds.attrs["estimated_time_offset_in_seconds"]
 
         return res
 
