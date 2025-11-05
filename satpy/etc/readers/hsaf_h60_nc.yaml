@@ -1,0 +1,44 @@
+reader:
+  name: hsaf_h60_nc
+  short_name: H60 Rain Rate
+  long_name: "H SAF Instantaneous Rain Rate (H60) in NetCDF4 format"
+  description: |
+    Reads H SAF H60 NetCDF files containing instantaneous rain rate (rr)
+    and quality index (qind).
+  status: Alpha
+  supports_fsspec: false
+  sensors: [hsaf]
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+
+file_types:
+  nc_hsaf_h60:
+    file_patterns:
+      # internally compressed
+      - 'h60_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
+      # externally compressed
+      - 'S-HSAF-h60_{start_time:%Y%m%d_%H%M}_{suffix}.nc.gz'
+      # uncompressed
+      - 'S-HSAF-h60_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
+    file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
+datasets:
+  rr:
+    name: rr
+    file_type: nc_hsaf_h60
+    file_key: rr
+    standard_name: rain_rate
+    long_name: "Instantaneous Rain Rate"
+    units: "mm h-1"
+    area: msg_seviri_fes_3km
+    resolution: 3000
+    sensor: hsaf
+
+  qind:
+    name: qind
+    file_type: nc_hsaf_h60
+    file_key: qind
+    standard_name: quality_index
+    long_name: "Pixel Quality Index"
+    units: "percent"
+    area: msg_seviri_fes_3km
+    resolution: 3000
+    sensor: hsaf
