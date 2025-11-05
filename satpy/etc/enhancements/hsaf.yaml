@@ -1,0 +1,39 @@
+enhancements:
+  rr:
+    standard_name: rain_rate
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
+        kwargs:
+          palettes:
+            - colors: [
+              [ 0, 0, 0, 0 ],        # Fully transparent for no data/NaN
+              [ 255, 255, 204, 255 ],  # Very light rain - fully opaque
+              [ 227, 244, 192, 255 ],
+              [ 198, 232, 179, 255 ],
+              [ 162, 218, 183, 255 ],
+              [ 126, 204, 186, 255 ],
+              [ 96, 194, 191, 255 ],
+              [ 65, 183, 196, 255 ],
+              [ 47, 164, 194, 255 ],
+              [ 29, 145, 191, 255 ],
+              [ 32, 120, 180, 255 ],
+              [ 34, 94, 168, 255 ],
+              [ 12, 44, 133, 255 ]     # Heavy rain - fully opaque
+            ]
+              values: [
+                0.0,    # Transparent for zero/NaN values
+                0.1,    # Very light precipitation threshold
+                0.2,
+                1,
+                2,
+                3,
+                5,
+                7,
+                10,
+                15,
+                20,
+                30,
+                50
+              ]
+              colormap_mode: RGBA
