@@ -224,7 +224,7 @@ class TestGetSatPos:
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
                 (lon, lat, alt),
-                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                (119.39533705010592, -1.1491628298731498, 35803199.86408156),
                 rtol=1e-4,
             )
 
