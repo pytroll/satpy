@@ -4,7 +4,7 @@ reader:
   long_name: Sentinel-1 A and B SAR-C data in SAFE format
   description: SAFE Reader for SAR-C data
   status: Nominal
-  supports_fsspec: false
+  supports_fsspec: true
   sensors: [sar-c]
   reader: !!python/name:satpy.readers.sar_c_safe.SAFESARReader
   data_identification_keys:
