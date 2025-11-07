@@ -29,6 +29,13 @@ import numpy.testing
 import pyresample.geometry
 import pytest
 import xarray as xr
+from dask.distributed.utils_test import (  # noqa
+    cleanup,
+    client,
+    cluster_fixture,
+    loop,
+    loop_in_thread,
+)
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
@@ -518,6 +525,47 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
         read_binary_data = f.read()
 
     assert read_binary_data == dummy_data
+
+
+@pytest.mark.parametrize("shape", [(2,), (2, 3), (2, 3, 4)])
+@pytest.mark.parametrize("dtype", ["i4", "f4", "f8"])
+@pytest.mark.parametrize("grp", ["/", "/in/a/group"])
+def test_get_serializable_dask_array(tmp_path, client, shape, dtype, grp):  # noqa
+    """Test getting a dask distributed friendly serialisable dask array."""
+    import netCDF4
+    from xarray.backends import CachingFileManager
+
+    fn = tmp_path / "sjaunja.nc"
+    ds = xr.Dataset(
+            data_vars={
+                "kaitum": (["x", "y", "z"][:len(shape)],
+                           np.arange(np.prod(shape),
+                                     dtype=dtype).reshape(shape))})
+    ds.to_netcdf(fn, group=grp)
+
+    cfm = CachingFileManager(netCDF4.Dataset, fn, mode="r")
+    arr = hf.get_serializable_dask_array(cfm, "/".join([grp, "kaitum"]),
+                                         chunks=shape, dtype=dtype)
+
+    # As documented in GH issue 2815, using dask distributed with the file
+    # handle cacher might fail in non-trivial ways, such as giving incorrect
+    # results.  Testing map_blocks is one way to reproduce the problem
+    # reliably, even though the problem also manifests itself (in different
+    # ways) without map_blocks.
+
+    def doubler(x):
+        # with a workaround for https://github.com/numpy/numpy/issues/27029
+        return x * x.dtype.type(2)
+
+    dask_doubler = arr.map_blocks(doubler, dtype=arr.dtype)
+    res = dask_doubler.compute()
+    # test before and after computation, as to confirm we have the correct
+    # shape and dtype and that computing doesn't change them
+    assert shape == dask_doubler.shape
+    assert shape == res.shape
+    assert dtype == dask_doubler.dtype
+    assert dtype == res.dtype
+    np.testing.assert_array_equal(res, np.arange(np.prod(shape)).reshape(shape)*2)
 
 
 class TestCalibrationCoefficientPicker:
