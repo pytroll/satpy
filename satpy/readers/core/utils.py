@@ -32,6 +32,7 @@ import numpy as np
 import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
+from upath import UPath
 
 from satpy import config
 from satpy.readers.core.remote import FSFile
@@ -343,21 +344,33 @@ def unzip_context(filename):
 
 @contextmanager
 def generic_open(filename, *args, **kwargs):
-    """Context manager for opening either a regular file or a bzip2 file.
+    """Context manager for opening either a regular file or a compressed file.
 
-    Returns a file-like object.
+    Yields an open file-like object.
     """
-    if os.fspath(filename).endswith(".bz2"):
-        fp = bz2.open(filename, *args, **kwargs)
-    else:
-        try:
-            fp = filename.open(*args, **kwargs)
-        except AttributeError:
-            fp = open(filename, *args, **kwargs)
-    try:
+    path = _to_upath(filename)
+
+    new_kwargs = kwargs.copy()
+    new_kwargs["compression"] = "infer"
+    with path.open(*args, **new_kwargs) as fp:
         yield fp
-    finally:
-        fp.close()
+
+
+def _to_upath(filename: FSFile | str | os.PathLike | UPath) -> UPath:
+    """Convert to UPath."""
+    if isinstance(filename, UPath):
+        return filename
+
+    if hasattr(filename, "to_upath"):
+        # satpy.readers.core.remote.FSFile instance
+        return filename.to_upath()
+
+    if isinstance(filename, (str, os.PathLike)):
+        return UPath(filename, protocol="file")
+
+    warnings.warn(f"Converting {type(filename)} to UPath.", UserWarning)
+    return UPath(filename)
+
 
 
 def fromfile(filename, dtype, count=1, offset=0):

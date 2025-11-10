@@ -350,7 +350,7 @@ class MultiScene(object):
         """
         if blend_function is None:
             # delay importing blend funcs until now in case they aren't used
-            from ._blend_funcs import stack
+            from .blend_funcs import stack
             blend_function = stack
 
         new_scn = Scene()
@@ -402,7 +402,7 @@ class MultiScene(object):
 
         for scene in scenes_iter:
             delayeds = scene.save_datasets(compute=False, **kwargs)
-            sources, targets, delayeds = split_results(delayeds)
+            sources, targets, delayeds = split_results([delayeds])
             if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination

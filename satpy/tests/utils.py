@@ -30,7 +30,7 @@ from pyresample.geometry import BaseDefinition, SwathDefinition
 from xarray import DataArray
 
 from satpy import Scene
-from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.composites.core import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
@@ -277,10 +277,10 @@ class FakeFileHandler(BaseFileHandler):
             yield is_avail, ds_info
 
 
-class CustomScheduler(object):
+class CustomScheduler:
     """Scheduler raising an exception if data are computed too many times."""
 
-    def __init__(self, max_computes=1):
+    def __init__(self, max_computes: int = 1):
         """Set starting and maximum compute counts."""
         self.max_computes = max_computes
         self.total_computes = 0
@@ -292,6 +292,7 @@ class CustomScheduler(object):
         if self.total_computes > self.max_computes:
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
+
         return dask.get(dsk, keys, **kwargs)
 
 

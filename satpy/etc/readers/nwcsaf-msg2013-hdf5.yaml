@@ -6,7 +6,6 @@ reader:
   status: Defunct
   supports_fsspec: false
   sensors: [seviri]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

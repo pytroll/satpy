@@ -73,11 +73,11 @@ def _get_fake_areas(center, sizes, resolution, code=4326):  # noqa: D417
         for size in sizes]
 
 
-def _get_attrs(lat, lon, height=35_000):
+def _get_attrs(lat, lon, height=35_000_000):
     """Get attributes for datasets in fake scene."""
     return {
         "orbital_parameters": {
-            "satellite_actual_altitude": height,  # in km above surface
+            "satellite_actual_altitude": height,  # in m above surface
             "satellite_actual_longitude": lon,
             "satellite_actual_latitude": lat},
         "units": "m"  # does not apply to orbital parameters, I think!
@@ -205,9 +205,10 @@ class TestForwardParallax:
 
         val = get_surface_parallax_displacement(
                 0, 0, 36_000_000, 0, 10, 10_000)
-        np.testing.assert_allclose(val, 2141.2404451757875)
+        np.testing.assert_allclose(val, 2075.6863144582703)
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionClass:
     """Test that the ParallaxCorrection class is behaving sensibly."""
 
@@ -240,7 +241,7 @@ class TestParallaxCorrectionClass:
                 {"CTH_clear": np.full((large, large), np.nan)},
                 daskify=False,
                 area=fake_area_large,
-                common_attrs=_get_attrs(sat_lat, sat_lon, 35_000))
+            common_attrs=_get_attrs(sat_lat, sat_lon, 35_000_000))
 
         with caplog.at_level(logging.DEBUG):
             new_area = corrector(sc["CTH_clear"])
@@ -273,7 +274,7 @@ class TestParallaxCorrectionClass:
                 {"CTH_constant": np.full((large, large), 10000)},
                 daskify=False,
                 area=fake_area_large,
-                common_attrs=_get_attrs(lat, lon, 35_000))
+            common_attrs=_get_attrs(lat, lon, 35_000_000))
         new_area = corrector(sc["CTH_constant"])
         assert new_area.shape == fake_area_small.shape
         old_lonlats = fake_area_small.get_lonlats()
@@ -322,7 +323,7 @@ class TestParallaxCorrectionClass:
                     ])},
                daskify=daskify,
                area=fake_area_large,
-               common_attrs=_get_attrs(0, 0, 40_000))
+            common_attrs=_get_attrs(0, 0, 40_000_000))
         new_area = corrector(sc["CTH"])
         assert new_area.shape == fake_area_small.shape
         (new_lons, new_lats) = new_area.get_lonlats()
@@ -330,21 +331,19 @@ class TestParallaxCorrectionClass:
 
         np.testing.assert_allclose(
             new_lons,
-            np.array([
-                [np.nan, np.nan, 0.0, 0.1, 0.2],
-                [-0.20078652, -0.10044222, 0.0, 0.1, 0.2],
-                [-0.20068529, -0.10034264, 0.0, 0.1, 0.2],
-                [np.nan, np.nan, np.nan, np.nan, np.nan],
-                [-0.20048537, -0.10038778, 0., 0.10038778, 0.20058219]]),
+            np.array([[np.nan, np.nan, 0., 0.1, 0.2],
+                      [-0.20077639, -0.10043652, 0., 0.1, 0.2],
+                      [-0.20067643, -0.10033821, 0., 0.1, 0.2],
+                      [np.nan, np.nan, np.nan, np.nan, np.nan],
+                      [-0.20047906, -0.10038274, 0., 0.10038274, 0.20057462]]),
             rtol=1e-5)
         np.testing.assert_allclose(
             new_lats,
-            np.array([
-                [np.nan, np.nan, 50.2, 50.2, 50.2],
-                [50.2110675, 50.22493181, 50.1, 50.1, 50.1],
-                [50.09680357, 50.09680346, 50.0, 50.0, 50.0],
-                [np.nan, np.nan, np.nan, np.nan, np.nan],
-                [49.86860622, 49.9097198, 49.90971976, 49.9097198, 49.88231496]]),
+            np.array([[np.nan, np.nan, 50.2, 50.2, 50.2],
+                      [50.20963341, 50.22331809, 50.1, 50.1, 50.1],
+                      [50.09555017, 50.09555005, 50., 50., 50.],
+                      [np.nan, np.nan, np.nan, np.nan, np.nan],
+                      [49.86771297, 49.90828968, 49.90828963, 49.90828968, 49.88124283]]),
             rtol=1e-6)
 
     @pytest.mark.parametrize(("res1", "res2"), [(0.08, 0.3), (0.3, 0.08)])
@@ -375,7 +374,7 @@ class TestParallaxCorrectionClass:
                     {"CTH_clear": np.full(area1.shape, np.nan)},
                     daskify=False,
                     area=area1,
-                    common_attrs=_get_attrs(0, 0, 35_000))
+                common_attrs=_get_attrs(0, 0, 35_000_000))
 
         corrector = ParallaxCorrection(area2)
         new_area = corrector(sc["CTH_clear"])
@@ -397,7 +396,7 @@ class TestParallaxCorrectionClass:
                 {"CTH_constant": np.full((9, 9), 10000)},
                 daskify=False,
                 area=fake_area_large,
-                common_attrs=_get_attrs(0, 0, 35_000))
+            common_attrs=_get_attrs(0, 0, 35_000_000))
 
         corrector = ParallaxCorrection(fake_area_small)
         with pytest.raises(MissingHeightError):
@@ -417,7 +416,7 @@ class TestParallaxCorrectionClass:
                 {"CTH_constant": np.full((9, 9), 10000)},
                 daskify=False,
                 area=fake_area_large,
-                common_attrs=_get_attrs(0, 0, 35_000))
+            common_attrs=_get_attrs(0, 0, 35_000_000))
 
         corrector = ParallaxCorrection(fake_area_small)
 
@@ -435,7 +434,7 @@ class TestParallaxCorrectionClass:
                 {"CTH_constant": np.full((9, 9), 10000)},
                 daskify=False,
                 area=area,
-                common_attrs=_get_attrs(0, 0, 35_000))
+            common_attrs=_get_attrs(0, 0, 35_000_000))
 
         corrector = ParallaxCorrection(area)
         corrector(sc["CTH_constant"])
@@ -475,6 +474,7 @@ class TestParallaxCorrectionClass:
                 fake_area_small.get_lonlats())
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionModifier:
     """Test that the parallax correction modifier works correctly."""
 
@@ -485,11 +485,11 @@ class TestParallaxCorrectionModifier:
         fake_bt = xr.DataArray(
                 np.linspace(220, 230, 25).reshape(5, 5),
                 dims=("y", "x"),
-                attrs={"area": area_small, **_get_attrs(0, 0, 35_000)})
+            attrs={"area": area_small, **_get_attrs(0, 0, 35_000_000)})
         cth_clear = xr.DataArray(
                 np.full((9, 9), np.nan),
                 dims=("y", "x"),
-                attrs={"area": area_large, **_get_attrs(0, 0, 35_000)})
+            attrs={"area": area_large, **_get_attrs(0, 0, 35_000_000)})
         modif = ParallaxCorrectionModifier(
                 name="parallax_corrected_dataset",
                 prerequisites=[fake_bt, cth_clear],
@@ -659,11 +659,11 @@ class TestParallaxCorrectionModifier:
         cloud_location = {
                 "foroyar": {
                     7500: (197, 202, 152, 172),
-                    15000: (239, 244, 165, 184)},
+                    15000: (238, 243, 164, 184)},
                 "ouagadougou": {
                     7500: (159, 164, 140, 160),
                     15000: (163, 168, 141, 161)}}
-        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.name][cth]
+        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.area_id][cth]
         dest_mask[x_lo:x_hi, y_lo:y_hi] = True
 
         modif = ParallaxCorrectionModifier(
@@ -689,8 +689,9 @@ class TestParallaxCorrectionModifier:
         # cloud may shrink.
         assert ((res.attrs["area"].get_lonlats()[1][dest_mask]).mean() <
                 fake_bt.attrs["area"].get_lonlats()[1][cma].mean())
-        # verify that all pixels at the new cloud location are indeed cloudy
-        assert (res.data[dest_mask] < 250).all()
+        # verify that most pixels at the new cloud location are indeed cloudy (calculate mean since some warm
+        # surface pixels nearby a non-square cloud could be included in the square dest_mask
+        assert res.data[dest_mask].mean() < 210
 
 
 _test_yaml_code = """
@@ -704,13 +705,14 @@ modifiers:
 
 composites:
   parallax_corrected_VIS006:
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
       - name: VIS006
         modifiers: [parallax_corrected]
 """
 
 
+@pytest.mark.filterwarnings("ignore:Overlap checking not implemented:UserWarning")
 class TestParallaxCorrectionSceneLoad:
     """Test that scene load interface works as expected."""
 
@@ -784,7 +786,6 @@ class TestParallaxCorrectionSceneLoad:
             assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
 
-    @pytest.mark.xfail(reason="awaiting pyresample fixes")
     def test_no_compute(self, fake_scene, conf_file):
         """Test that no computation occurs."""
         from satpy.tests.utils import CustomScheduler

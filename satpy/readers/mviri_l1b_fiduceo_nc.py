@@ -153,6 +153,7 @@ References:
 """
 
 import abc
+import contextlib
 import functools
 import warnings
 
@@ -186,8 +187,6 @@ OTHER_REFLECTANCES = [
 ]
 HIGH_RESOL = 2250
 
-warnings.filterwarnings("ignore", message="^.*We do not yet support duplicate dimension names, but "
-                                          "we do allow initial construction of the object.*$")
 
 class IRWVCalibrator:
     """Calibrate IR & WV channels."""
@@ -600,18 +599,19 @@ class DatasetAccessor:
 
 def open_dataset(filename):
     """Load dataset from the given file."""
-    nc_raw = xr.open_dataset(
-        filename,
-        chunks={"x": CHUNK_SIZE,
-                "y": CHUNK_SIZE,
-                "x_ir_wv": CHUNK_SIZE,
-                "y_ir_wv": CHUNK_SIZE},
-        # see dataset preprocessor for why decoding is disabled
-        decode_cf=False,
-        decode_times=False,
-        mask_and_scale=False,
-    )
-    nc_preproc = preprocess_dataset(nc_raw)
+    with ignore_dup_dim_warning():
+        nc_raw = xr.open_dataset(
+            filename,
+            chunks={"x": CHUNK_SIZE,
+                    "y": CHUNK_SIZE,
+                    "x_ir_wv": CHUNK_SIZE,
+                    "y_ir_wv": CHUNK_SIZE},
+            # see dataset preprocessor for why decoding is disabled
+            decode_cf=False,
+            decode_times=False,
+            mask_and_scale=False,
+        )
+        nc_preproc = preprocess_dataset(nc_raw)
     return DatasetAccessor(nc_preproc)
 
 
@@ -881,3 +881,12 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
             sza = self._get_angles("solar_zenith_angle", HIGH_RESOL)
         cal = VISCalibrator(self.calib_coefs[channel], sza)
         return cal.calibrate(ds, calibration)
+
+
+@contextlib.contextmanager
+def ignore_dup_dim_warning():
+    """Ignore the expected warning from xarray when working with duplicate dimensions."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore",
+                                message=".*We do not yet support duplicate dimension names.*")
+        yield

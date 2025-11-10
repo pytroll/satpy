@@ -17,9 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.msi_safe module."""
 import unittest.mock as mock
+import warnings
 from datetime import datetime
 from io import BytesIO, StringIO
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -1447,8 +1449,7 @@ def jp2_builder(process_level, band_name, mask_saturated=True, test_l1b=False):
     tile_xml_fh = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(TILE_XMLS[PROCESS_LEVELS.index(process_level)]),
                                                          filename_info, mock.MagicMock())
     tile_xml_fh.start_time.return_value = tilemd_dt
-    tile_xml_fh.get_dataset.return_value = xr.DataArray([[22.5, 23.8],
-                                                          [22.5, 24.8]],
+    tile_xml_fh.get_dataset.return_value = xr.DataArray(da.from_array([[22.5, 23.8], [22.5, 24.8]]),
                                                         dims=["x", "y"])
     jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), xml_fh, tile_xml_fh)
     return jp2_fh
@@ -1547,7 +1548,10 @@ class TestTileXML:
             dict(xml_tag=angle_tag[0] + "/" + angle_tag[1])
         xml_tile_fh = xml_builder(process_level)[1]
 
-        res = xml_tile_fh.get_dataset(make_alt_dataid(name=angle_name, resolution=60), info)
+        with warnings.catch_warnings():
+            # L1C case includes NaNs in angles that result in NaN during the nanmean calculation
+            warnings.filterwarnings("ignore", message="Mean of empty slice", category=RuntimeWarning)
+            res = xml_tile_fh.get_dataset(make_alt_dataid(name=angle_name, resolution=60), info)
         if res is not None:
             res = res[::200, ::200]
 
@@ -1579,32 +1583,32 @@ class TestMTDXML:
 
     def setup_method(self):
         """Set up the test case."""
-        self.fake_data = xr.DataArray([[[0, 1, 2, 3], [4, 1000, 65534, 65535]]], dims=["band", "x", "y"])
+        self.fake_data = xr.DataArray(da.from_array([[[0, 1, 2, 3], [4, 1000, 65534, 65535]]]), dims=["band", "x", "y"])
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
                              [
                                  ("L1C", True, "B01", ([[[np.nan, -9.99, -9.98, -9.97],
                                                          [-9.96, 0, 645.34, np.inf]]],
-                                                       [[[0.0, 5.60879825, 11.2175965, 16.8263948,],
-                                                         [22.435193, 5608.79825, 367566.985, 367572.593]]],
+                                                       [[[0.0, 5.26972293, 10.5394459, 15.8091688,],
+                                                         [21.0788917, 5269.72293, 345346.023, 345351.292]]],
                                                        [[[np.nan, 1, 2, 3],
                                                          [4, 1000, 65534, np.inf]]])),
                                  ("L1C", False, "B10", ([[[np.nan, -19.99, -19.98, -19.97],
                                                           [-19.96, -10, 635.34, 635.35]]],
-                                                        [[[0.0, 1.09348075, 2.1869615, 3.28044225],
-                                                          [4.373923, 1093.48075, 71660.1675, 71661.2609]]],
+                                                        [[[0., 1.027375, 2.054751, 3.082126],
+                                                          [4.109501, 1027.375264, 67328.010528, 67329.037903]]],
                                                         [[[np.nan, 1, 2, 3],
                                                           [4, 1000, 65534, 65535]]])),
                                  ("oldL1C", True, "B01", ([[[np.nan, 0.01, 0.02, 0.03],
                                                             [0.04, 10, 655.34, np.inf]]],
-                                                          [[[0.0, 5.60879825, 11.2175965, 16.8263948,],
-                                                            [22.435193, 5608.79825, 367566.985, 367572.593]]],
+                                                          [[[0., 5.269723, 10.539446, 15.809169,],
+                                                            [21.078892, 5269.722932, 345346.02264, 345351.292363]]],
                                                           [[[np.nan, 1, 2, 3],
                                                             [4, 1000, 65534, np.inf]]])),
                                  ("L2A", False, "B03", ([[[np.nan, -9.99, -9.98, -9.97],
                                                           [-9.96, 0, 645.34, 645.35]]],
-                                                        [[[0.0, 5.25188783, 10.5037757, 15.7556635,],
-                                                          [21.0075513, 5251.88783, 344177.217, 344182.469]]],
+                                                        [[[0., 5.224829, 10.449658, 15.674487,],
+                                                          [20.899316, 5224.8289, 342403.937147, 342409.161976]]],
                                                         [[[np.nan, 1, 2, 3],
                                                           [4, 1000, 65534, 65535]]])),
                              ])
@@ -1618,7 +1622,7 @@ class TestMTDXML:
 
         results = (res1, res2, res3)
 
-        np.testing.assert_allclose(results, expected)
+        np.testing.assert_allclose(results, expected, rtol=1e-6, atol=1e-5)
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "band_name", "expected"),
                              [
@@ -1647,14 +1651,27 @@ class TestSAFEMSIL1C:
 
     def setup_method(self):
         """Set up the test."""
-        self.fake_data = xr.Dataset({"band_data": xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])})
-        self.fake_data_l1b = xr.Dataset({"band_data": xr.DataArray([[[1000, 1205.5], [3000.4, 2542.]]],
-                                                                   dims=["band", "x", "y"])})
+        self.fake_data = xr.Dataset(
+            {
+                "band_data": xr.DataArray(
+                    da.from_array([[[0, 1], [65534, 65535]]]),
+                    dims=["band", "x", "y"],
+                ),
+            },
+        )
+        self.fake_data_l1b = xr.Dataset(
+            {
+                "band_data": xr.DataArray(
+                    da.from_array([[[1000, 1205.5], [3000.4, 2542.]]]),
+                    dims=["band", "x", "y"],
+                ),
+            },
+        )
 
     @pytest.mark.parametrize(("process_level", "mask_saturated", "dataset_name", "calibration", "expected"),
                              [
                                  ("L2A", False, "B01", "reflectance", [[np.nan, -9.99], [645.34, 645.35]]),
-                                 ("L1C", True, "B02", "radiance", [[np.nan, -59.439197], [3877.121602, np.inf]]),
+                                 ("L1C", True, "B02", "radiance", [[np.nan, -55.845848], [3642.73338, np.inf]]),
                                  ("L2A", True, "B03", "counts", [[np.nan, 1], [65534, np.inf]]),
                                  ("L2A", False, "AOT", "aerosol_thickness", [[np.nan, 0.001], [65.534, 65.535]]),
                                  ("L2A", True, "WVP", "water_vapor", [[np.nan, 0.001], [65.534, np.inf]]),
@@ -1704,13 +1721,13 @@ class TestSAFEMSIL1C:
                              [
                                  ("<U>",
                                   "</U>",
-                                  "Sun-Earth distance in metadata is missing."),
+                                  "Solar correction factor, U, in metadata is missing."),
                                  ("<Solar_Irradiance_List>",
                                   "</Solar_Irradiance_List>",
                                   "No solar irradiance values were found in the metadata."),
                              ])
     def test_missing_esd(self, st_str, en_str, err_str):
-        """Test that missing Earth-Sun distance in the metadata is handled correctly."""
+        """Test that missing Solar Correction factor in the metadata is handled correctly."""
         from satpy.readers.msi_safe import SAFEMSIMDXML
 
         tmp_xml = str(mtd_l1c_xml)
@@ -1725,7 +1742,7 @@ class TestSAFEMSIL1C:
 
         if st_str == "<U>":
             with pytest.raises(ValueError, match=err_str):
-                xml_fh.sun_earth_dist
+                xml_fh.solar_correction_factor
         else:
             with pytest.raises(ValueError, match=err_str):
                 xml_fh.solar_irradiances

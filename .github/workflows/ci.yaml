@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v3
@@ -76,6 +76,7 @@ jobs:
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
+          --only-binary ":all:" \
           --no-deps --pre --upgrade \
           matplotlib \
           numpy \
@@ -122,7 +123,7 @@ jobs:
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Coveralls Parallel
-        uses: AndreMiras/coveralls-python-action@develop
+        uses: coverallsapp/github-action@v2
         with:
           flag-name: run-${{ matrix.test_number }}
           parallel: true
@@ -147,6 +148,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: AndreMiras/coveralls-python-action@develop
+        uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true

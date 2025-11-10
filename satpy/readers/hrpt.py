@@ -18,10 +18,6 @@
 
 """Reading and calibrating hrpt avhrr data.
 
-Todo:
-- AMSU
-- Compare output with AAPP
-
 Reading:
 http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c4/sec4-1.htm#t413-1
 
@@ -49,21 +45,21 @@ logger = logging.getLogger(__name__)
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
 
-dtype = np.dtype([("frame_sync", ">u2", (6, )),
-                  ("id", [("id", ">u2"),
-                          ("spare", ">u2")]),
-                  ("timecode", ">u2", (4, )),
-                  ("telemetry", [("ramp_calibration", ">u2", (5, )),
-                                 ("PRT", ">u2", (3, )),
-                                 ("ch3_patch_temp", ">u2"),
-                                 ("spare", ">u2"), ]),
-                  ("back_scan", ">u2", (10, 3)),
-                  ("space_data", ">u2", (10, 5)),
-                  ("sync", ">u2"),
-                  ("TIP_data", ">u2", (520, )),
-                  ("spare", ">u2", (127, )),
-                  ("image_data", ">u2", (2048, 5)),
-                  ("aux_sync", ">u2", (100, ))])
+scanline_dtype = np.dtype([("frame_sync", ">u2", (6, )),
+                           ("id", [("id", ">u2"),
+                                   ("spare", ">u2")]),
+                           ("timecode", ">u2", (4, )),
+                           ("telemetry", [("ramp_calibration", ">u2", (5, )),
+                                          ("PRT", ">u2", (3, )),
+                                          ("ch3_patch_temp", ">u2"),
+                                          ("spare", ">u2"), ]),
+                           ("back_scan", ">u2", (10, 3)),
+                           ("space_data", ">u2", (10, 5)),
+                           ("sync", ">u2"),
+                           ("TIP_data", ">u2", (520, )),
+                           ("spare", ">u2", (127, )),
+                           ("image_data", ">u2", (2048, 5)),
+                           ("aux_sync", ">u2", (100, ))])
 
 
 def time_seconds(tc_array, year):
@@ -151,9 +147,9 @@ class HRPTFile(BaseFileHandler):
     def read(self):
         """Read the file."""
         with open(self.filename, "rb") as fp_:
-            data = np.memmap(fp_, dtype=dtype, mode="r")
+            data = np.memmap(fp_, dtype=scanline_dtype, mode="r")
         if np.all(np.median(data["frame_sync"], axis=0) > 1024):
-            data = self._data.newbyteorder()
+            data = data.view(data.dtype.newbyteorder())
         return data
 
     @cached_property

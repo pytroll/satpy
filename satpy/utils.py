@@ -346,7 +346,7 @@ def get_satpos(
             the dataset metadata contain the satellite position directly.
 
     Returns:
-        Geodetic longitude, latitude, altitude [km]
+        Geodetic longitude, latitude, altitude [m]
 
     """
     if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
@@ -429,7 +429,7 @@ def _get_satpos_from_platform_name(cth_dataset):
     gc = es.at(ts.from_datetime(
         cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
     (lat, lon) = wgs84.latlon_of(gc)
-    height = wgs84.height_of(gc).to("km")
+    height = wgs84.height_of(gc).to("m")
     return (lon.degrees, lat.degrees, height.value)
 
 
@@ -580,7 +580,7 @@ def check_satpy(readers=None, writers=None, packages=None):
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
-    This is mostly used in :class:`satpy.composites.CompositeBase` to safe
+    This is mostly used in :class:`satpy.composites.core.CompositeBase` to safe
     guard against running :func:`dask.array.map_blocks` with arrays of
     different chunk sizes. Doing so can cause unexpected results or errors.
     However, xarray's ``unify_chunks`` will raise an exception if dimensions

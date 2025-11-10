@@ -224,7 +224,7 @@ class TestGetSatPos:
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
                 (lon, lat, alt),
-                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                (119.39533705010592, -1.1491628298731498, 35803199.86408156),
                 rtol=1e-4,
             )
 
@@ -332,7 +332,7 @@ def test_debug_on(caplog):
     assert "But now it's just got SILLY." in caplog.text
     debug_on(True)
     # test that logging on and deprecation warnings on
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(DeprecationWarning, match="Stop that! It's SILLY."):
         depwarn()
     assert warnings.filters != filts_before
     debug_off()  # other tests assume debugging is off

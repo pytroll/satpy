@@ -14,7 +14,6 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [mtsat2_imager]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
 
 file_types:

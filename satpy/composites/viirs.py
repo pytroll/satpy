@@ -24,13 +24,13 @@ import datetime as dt
 import logging
 import math
 
-import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.composites import CompositeBase, GenericCompositor
 from satpy.dataset import combine_metadata
+
+from .core import CompositeBase, GenericCompositor
 
 LOG = logging.getLogger(__name__)
 
@@ -72,9 +72,14 @@ class HistogramDNB(CompositeBase):
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
-        delayed = dask.delayed(self._run_dnb_normalization)(dnb_data.data, sza_data.data)
+        output_data = da.map_blocks(
+            self._run_dnb_normalization,
+            dnb_data.data.rechunk(dnb_data.shape),
+            sza_data.data.rechunk(sza_data.shape),
+            dtype=dnb_data.dtype,
+            meta=np.ndarray((), dtype=dnb_data.dtype),
+        )
         output_dataset = dnb_data.copy()
-        output_data = da.from_delayed(delayed, dnb_data.shape, dnb_data.dtype)
         output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
 
         info = dnb_data.attrs.copy()
@@ -297,9 +302,16 @@ class ERFDNB(CompositeBase):
         # Update from Curtis Seaman, increase max radiance curve until less
         # than 0.5% is saturated
         if self.saturation_correction:
-            delayed = dask.delayed(self._saturation_correction)(output_dataset.data, unit_factor, min_val, max_val)
-            output_dataset.data = da.from_delayed(delayed, output_dataset.shape, output_dataset.dtype)
-            output_dataset.data = output_dataset.data.rechunk(dnb_data.data.chunks)
+            output_data = da.map_blocks(
+                self._saturation_correction,
+                output_dataset.data.rechunk(output_dataset.shape),
+                unit_factor,
+                min_val,
+                max_val,
+                dtype=output_dataset.dtype,
+                meta=np.ndarray((), dtype=output_dataset.dtype),
+            )
+            output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
