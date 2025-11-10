@@ -16,10 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-A reader for H-SAF blended SEVIRI / LEO MW precipitation files in NetCDF
-format. (H60B and H63)
-"""
+"""Reader for H-SAF precipitation files (H60B and H63). in NetCDF format."""
+
 import datetime as dt
 import gzip
 import logging
@@ -29,6 +27,7 @@ from pathlib import Path
 
 import xarray as xr
 from pyresample import AreaDefinition
+
 from satpy.area import get_area_def
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -38,7 +37,7 @@ LOG = logging.getLogger(__name__)
 def gunzip(source, destination):
     """Unzips an externally compressed HSAF file."""
     with gzip.open(source) as s:
-        with open(destination, 'wb') as d:
+        with open(destination, "wb") as d:
             shutil.copyfileobj(s, d, 10 * 1024 * 1024)
 
 def create_named_empty_file(source):
@@ -60,7 +59,7 @@ class HSAFFileWrapper:
     """Wrapper for a H SAF NetCDF file for handling external compression if an external gzip layer exist."""
 
     def __init__(self, filename):
-        """Opens the nc file and stores the nc data"""
+        """Opens the nc file and stores the nc data."""
         self.filename = filename
         self._tmp_file = None
         self._compressed = Path(self.filename).suffix == ".gz"
@@ -77,7 +76,7 @@ class HSAFFileWrapper:
 
 
     def close(self):
-        """Close the nc file and clean up temp file if needed"""
+        """Close the nc file and clean up temp file if needed."""
         if self.nc_data is not None:
             self.nc_data.close()
             self.nc_data = None
@@ -93,7 +92,7 @@ class HSAFFileWrapper:
                 self._tmp_file = None
 
 def _resolve_area(area_value):
-    """Resolve an area definition from corresponding string value"""
+    """Resolve an area definition from corresponding string value."""
     if isinstance(area_value, AreaDefinition):
         resolved_area = area_value
     elif isinstance(area_value, str):
@@ -123,7 +122,7 @@ class HSAFNCFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Create a wrapper to opens the nc file and store the nc data"""
+        """Create a wrapper to opens the nc file and store the nc data."""
         super().__init__(filename, filename_info, filetype_info)
         self._wrapper = HSAFFileWrapper(filename)
 
@@ -155,7 +154,6 @@ class HSAFNCFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get a dataset from the file."""
-
         # Get the variable
         var_name = dataset_info.get("file_key", dataset_id["name"])
         LOG.debug(f"Getting dataset {var_name} from file {self._wrapper.filename}")

@@ -18,20 +18,21 @@ FILE_TYPE_H63 = "nc_hsaf_h63"
 FILE_PARAMS = {
     FILE_TYPE_H60: {
         "fake_file": "h60_20251105_0000_fdk.nc",
-        "real_file": "/".join(os.path.abspath(__file__).split('/')[0:-1]) + "/data/S-HSAF-h60_20251105_0915_fdk.nc.gz",
+        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/S-HSAF-h60_20251105_0915_fdk.nc.gz",
         "yaml_file": "hsaf_h60_nc.yaml",
     },
     FILE_TYPE_H63: {
         "fake_file": "h63_20251105_0000_fdk.nc",
-        "real_file": "/".join(os.path.abspath(__file__).split('/')[0:-1]) + "/data/S-HSAF-h63_20251014_0915_fdk.nc.gz",
+        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/S-HSAF-h63_20251014_0915_fdk.nc.gz",
         "yaml_file": "hsaf_h63_nc.yaml",
     }
 }
 
 # constants for fake test data
 DEFAULT_SHAPE = (5, 5)
-DEFAULT_RR = np.random.rand(*DEFAULT_SHAPE)
-DEFAULT_QIND = np.random.randint(0, 100, size=DEFAULT_SHAPE)
+rng = np.random.default_rng()
+DEFAULT_RR = rng.random(DEFAULT_SHAPE)
+DEFAULT_QIND = rng.integers(0, 100, size=DEFAULT_SHAPE)
 
 def fake_hsaf_dataset(filename, **kwargs):
     """Mimic a HSAF NetCDF file content."""
@@ -91,7 +92,7 @@ class TestHSAFNCReader:
             file_type["reader"].create_filehandlers(loadables)
 
             datasets = file_type["reader"].load(loadable_ids)
-            dataset_names = {d['name'] for d in datasets.keys()}
+            dataset_names = {d["name"] for d in datasets.keys()}
             assert dataset_names == set(loadable_ids)
 
             # check array shapes and types
@@ -102,7 +103,9 @@ class TestHSAFNCReader:
 
             # check dataset and attrs
             dataset_info = {"file_key": "rr", "units": "mm/h"}
-            data = file_type["reader"].file_handlers[datasets["rr"].file_type][0].get_dataset({"name": "rr"}, dataset_info)
+            data = (
+                file_type["reader"].file_handlers[datasets["rr"].file_type][0].get_dataset({"name": "rr"}, dataset_info)
+            )
 
             assert data.attrs["spacecraft_name"] == "MSG"
             assert data.attrs["platform_name"] == "MSG"
@@ -123,7 +126,6 @@ class TestHSAFNCReader:
                                            reason="Real HSAF file not present")
     def test_real_hsaf_file(self, file_type, loadable_ids):
         """Test the reader with a real HSAF NetCDF file."""
-
         # Select files
         loadables = file_type["reader"].select_files_from_pathnames([file_type["real_file"]])
         assert loadables, "No loadables found for the real file"

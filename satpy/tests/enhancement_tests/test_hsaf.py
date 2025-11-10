@@ -19,7 +19,8 @@
 
 import numpy as np
 import xarray as xr
-from satpy.enhancements.enhancer import get_enhanced_image, Enhancer
+
+from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
 
 
 class TestHSAFEnhancement:
@@ -34,12 +35,8 @@ class TestHSAFEnhancement:
             attrs={"standard_name": "rain_rate", "units": "mm/h"}
         )
 
-    # def test_detect_hsaf(self):
-    #     enh = Enhancer()
-    #     enh.add_sensor_enhancements(["hsaf"])
-    #     enh.enhancement_tree.print_tree()
-
     def test_hsaf_rr_enhancement_colormap_applied(self):
+        """Test application of the enhancement."""
         enh = Enhancer()
         enh.add_sensor_enhancements(["hsaf"])
 
@@ -50,12 +47,12 @@ class TestHSAFEnhancement:
         assert isinstance(enhanced, xr.DataArray)
 
         # Shape must be (4, y, x) because RGBA colormap applied
-        assert enhanced.ndim == 3 and enhanced.shape[0] == 4, (
-            f"Expected RGBA image, got shape {enhanced.shape}"
-        )
+        assert enhanced.ndim == 3, f"Expected 3 dimensions, got {enhanced.ndim}"
+        assert enhanced.shape[0] == 4, f"Expected 4 bands (RGBA), got {enhanced.shape[0]}"
 
         # Check transparency handling (lowest values → alpha=0)
         alpha_channel = enhanced[3, :, :]  # bands-first: 4th band = alpha
         min_alpha = alpha_channel.min().compute().item()
         max_alpha = alpha_channel.max().compute().item()
-        assert min_alpha == 0 and max_alpha == 1, "Alpha channel not correctly mapped"
+        assert min_alpha == 0, "Min. alpha should be mapped to 0"
+        assert max_alpha == 1, "Max. alpha should be mapped to 1"
