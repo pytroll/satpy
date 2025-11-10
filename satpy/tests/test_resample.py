@@ -704,5 +704,5 @@ class TestBucketFraction(unittest.TestCase):
 def test_moved_import_warns(name):
     """Test that imports done directly from satpy.resample sub-package issue a warning."""
     import satpy.resample
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(satpy.resample, name)

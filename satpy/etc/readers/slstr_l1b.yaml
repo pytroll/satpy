@@ -6,7 +6,6 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [slstr]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
   data_identification_keys:
@@ -257,7 +256,7 @@ datasets:
     wavelength: [3.55, 3.74, 3.93]
     resolution: 1000
     view: [nadir, oblique]
-    stripe: f
+    stripe: [f, i]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature

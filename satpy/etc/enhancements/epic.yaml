@@ -3,7 +3,7 @@ enhancements:
     standard_name:   true_color
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs:
         stretch: crude
         min_stretch: [0, 0, 0]

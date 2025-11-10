@@ -49,7 +49,7 @@ class TestEnhancer:
     standard_name: toa_bidirectional_reflectance
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear}
 """])
         assert e.enhancement_tree is not None
@@ -102,6 +102,7 @@ class _CustomImageWriter(ImageWriter):
 
     def save_image(self, img, **kwargs):
         self.img = img
+        return [None]
 
 
 class _BaseCustomEnhancementConfigTests:
@@ -146,7 +147,7 @@ enhancements:
     sensor: test_sensor1
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 200}
 
         """,
@@ -155,21 +156,21 @@ enhancements:
   default:
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
   test1_sensor2_specific:
     name: test1
     sensor: test_sensor2
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 50}
   exact_multisensor_comp:
     name: my_comp
     sensor: [test_sensor1, test_sensor2]
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20}
             """,
     }
@@ -250,7 +251,7 @@ enhancements:
     name: test1
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: linear, cutoffs: [0., 0.]}
 
         """,
@@ -261,7 +262,7 @@ enhancements:
     units: kelvin
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20}
 
         """,
@@ -402,26 +403,26 @@ enhancements:
     reader: reader2
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 75}
   default:
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
   test1_reader2_specific:
     name: test1
     reader: reader2
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 50}
   test1_reader1_specific:
     name: test1
     reader: reader1
     operations:
     - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 200}
             """,
     }

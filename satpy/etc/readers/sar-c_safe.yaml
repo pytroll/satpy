@@ -6,7 +6,6 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [sar-c]
-  default_channels: []
   reader: !!python/name:satpy.readers.sar_c_safe.SAFESARReader
   data_identification_keys:
     name:

@@ -113,7 +113,7 @@ when the satellite zenith angle is small.
 
     >>> from satpy import Scene, MultiScene,  DataQuery
     >>> from functools import partial
-    >>> from satpy.multiscene import stack
+    >>> from satpy.multiscene.blend_funcs import stack
     >>> from satpy.resample import get_area_def
     >>> areaid = get_area_def("myarea")
     >>> geo_scene = Scene(filenames=glob('/data/to/nwcsaf/geo/files/*nc'), reader='nwcsaf-geo')
@@ -182,7 +182,7 @@ together with the :meth:`~satpy.scene.Scene.to_geoviews` method, creation of
 interactive timeseries Bokeh plots is possible.
 
     >>> from satpy import Scene, MultiScene
-    >>> from satpy.multiscene import timeseries
+    >>> from satpy.multiscene.blend_funcs import timeseries
     >>> from glob import glob
     >>> from pyresample.geometry import AreaDefinition
     >>> my_area = AreaDefinition(...)
@@ -323,5 +323,5 @@ Scenes where there is a GLM file without an ABI file starting within at
 most ±30 seconds are skipped.  The ``group_keys`` and ``time_threshold``
 keyword arguments are processed by the :func:`~satpy.readers.core.grouping.group_files`
 function.  The heavy work of blending the two instruments together is
-performed by the :class:`~satpy.composites.BackgroundCompositor` class
+performed by the :class:`~satpy.composites.fill.BackgroundCompositor` class
 through the `"C14_flash_extent_density"` composite.

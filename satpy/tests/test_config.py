@@ -172,7 +172,7 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
 
     composites:
         fake_composite:
-            compositor: !!python/name:satpy.composites.GenericCompositor
+            compositor: !!python/name:satpy.composites.core.GenericCompositor
             prerequisites:
             - 3.9
             - 10.8
@@ -249,7 +249,7 @@ enhancements:
         name: fake_name
         operations:
         - name: stretch
-          method: !!python/name:satpy.enhancements.stretch
+          method: !!python/name:satpy.enhancements.contrast.stretch
           kwargs:
             stretch: crude
             min_stretch: -100.0
@@ -263,7 +263,7 @@ enhancements:
     default:
         operations:
         - name: stretch
-          method: !!python/name:satpy.enhancements.stretch
+          method: !!python/name:satpy.enhancements.contrast.stretch
           kwargs:
             stretch: crude
             min_stretch: -1.0

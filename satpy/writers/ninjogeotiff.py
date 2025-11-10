@@ -67,7 +67,7 @@ Moreover, two keyword arguments are no longer supported because
 their functionality has become redundant.  This applies to
 ``ch_min_measurement_unit`` and ``ch_max_measurement_unit``.
 Instead, pass those values in source units to the
-:func:`~satpy.enhancements.stretch` enhancement with the ``min_stretch``
+:func:`~satpy.enhancements.contrast.stretch` enhancement with the ``min_stretch``
 and ``max_stretch`` arguments.
 
 For images where the pixel value corresponds directly to a physical value,
@@ -439,14 +439,14 @@ class NinJoTagGenerator:
     def get_min_gray_value(self):
         """Calculate minimum gray value."""
         return self.image._scale_to_dtype(
-            self.dataset.min(),
+            self.dataset.min(keep_attrs=False),
             np.uint8,
             self.fill_value).astype(np.uint8)
 
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
         return self.image._scale_to_dtype(
-            self.dataset.max(),
+            self.dataset.max(keep_attrs=False),
             np.uint8,
             self.fill_value).astype(np.uint8)
 

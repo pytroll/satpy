@@ -28,7 +28,7 @@ import shapely
 import xarray as xr
 
 from satpy import config
-from satpy.composites import CompositeBase
+from satpy.composites.core import CompositeBase
 
 LOG = logging.getLogger(__name__)
 

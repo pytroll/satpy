@@ -30,8 +30,8 @@ from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefini
 from xarray import DataArray
 
 from satpy.area import get_area_def
-from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
+from satpy.composites.core import IncompatibleAreas
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
@@ -955,7 +955,7 @@ class Scene:
 
     def resample(
             self,
-            destination: AreaDefinition | CoordinateDefinition | None = None,
+            destination: AreaDefinition | CoordinateDefinition | str | None = None,
             datasets: Iterable | None = None,
             generate: bool = True,
             unload: bool = True,
@@ -967,8 +967,14 @@ class Scene:
 
         Args:
             destination: area definition to
-                resample to. If not specified then the area returned by
-                `Scene.finest_area()` will be used.
+                resample to. If not specified, then the area returned by
+                `Scene.finest_area()` will be used. Inputs can be
+                pyresample geometry objects, or
+                a string containing the name of an area
+                defined in the ``areas.yaml`` file. See :doc:`/resample`
+                for the list of pre-configured areas already available in satpy
+                and :ref:`component_configuration`
+                on how to configure your own ``areas.yaml`` file.
             datasets: Limit datasets to resample to these specified
                 data arrays. By default all currently loaded
                 datasets are resampled.
@@ -1043,7 +1049,7 @@ class Scene:
             scn: Satpy Scene.
             gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to ``geoviews.Image``.
+                Default to :class:`geoviews.Image <geoviews.element.geo.Image>`.
                 See Geoviews documentation for details.
             datasets: Limit included products to these datasets
             vdims:
@@ -1146,7 +1152,7 @@ class Scene:
             epoch: str | None = None,
             include_orig_name: bool = True,
             numeric_name_prefix: str = "CHANNEL_",
-    ) -> xr.Datasaet:
+    ) -> xr.Dataset:
         """Merge all xr.DataArray(s) of a satpy.Scene to a CF-compliant xarray object.
 
         If all Scene DataArrays are on the same area, it returns an xr.Dataset.
@@ -1291,7 +1297,9 @@ class Scene:
             computed with `delayed.compute()` or a two element tuple of
             sources and targets to be passed to :func:`dask.array.store`. If
             `targets` is provided then it is the caller's responsibility to
-            close any objects that have a "close" method.
+            close any objects that have a "close" method. It is recommended to
+            use the utility function
+            :func:`~satpy.writers.core.compute.compute_writer_results`.
 
         """
         from satpy._scene_converters import _get_dataarrays_from_identifiers

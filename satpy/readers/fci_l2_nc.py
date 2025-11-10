@@ -15,6 +15,7 @@
 
 """Reader for the FCI L2 products in NetCDF4 format."""
 
+import datetime as dt
 import logging
 from contextlib import suppress
 
@@ -74,7 +75,7 @@ class FciL2CommonFunctions(object):
                 platform_name: name of the platform
             Only for AMVs product:
                 channel: channel at which the AMVs have been retrieved
-
+                time_parameters: dictionary of time attributes (currently only wind_time)
 
         """
         attributes = {
@@ -87,7 +88,8 @@ class FciL2CommonFunctions(object):
 
         if product_type=="amv":
             attributes["channel"] = self.filename_info["channel"]
-
+            attributes["time_parameters"] = {}
+            attributes["time_parameters"]["wind_time"] = self.wind_time
         return attributes
 
     def _set_attributes(self, variable, dataset_info, product_type="pixel"):
@@ -468,6 +470,22 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
                 "number_of_winds": CHUNK_SIZE
             }
         )
+
+    @property
+    def wind_time(self):
+        """Return wind time as a datetime object.
+
+        This quantity represents the start_time of the second image used
+        for the AMV tracking, and is already present as a wind_time dataset
+        in units of Seconds since 2000-01-01 00:00:00.0.
+        """
+        ref = dt.datetime(2000,1,1,0,0,0)
+        try:
+            secs_since_ref = self.nc["wind_time"].data.item()
+            return ref + dt.timedelta(seconds=secs_since_ref)
+        except KeyError:
+            logger.warning("wind_time dataset not found. Setting wind_time to None.")
+            return None
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the nc_key in dataset_info."""

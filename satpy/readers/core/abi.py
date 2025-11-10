@@ -48,7 +48,7 @@ PLATFORM_NAMES = {
 class NC_ABI_BASE(BaseFileHandler):
     """Base reader for ABI L1B  L2+ NetCDF4 files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
 
@@ -130,6 +130,10 @@ class NC_ABI_BASE(BaseFileHandler):
         data = self._adjust_coords(data, item)
 
         return data
+
+    def __contains__(self, item):
+        """Check if the specified variable exists in this file."""
+        return item in self.nc.variables
 
     def _adjust_data(self, data, item):
         """Adjust data with typing, scaling and filling."""
