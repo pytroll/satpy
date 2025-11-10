@@ -214,7 +214,21 @@ DATASET_UNITS = {
 }
 
 
-class NWCSAFGEOHRWFileHandler(BaseFileHandler):
+def NWCSAFGEOHRWFileHandler(filename, filename_info, filetype_info, merge_channels=False):
+    """Return NWC SAF HRW file handler for a specific version.
+
+    The name mimics the old file handler class name.
+    """
+    with h5py.File(filename, "r") as fid:
+        version = Version(fid.attrs["product_algorithm_version"].astype(str))
+
+    if version < FIRST_V2025_ALGORITHM_VERSION:
+        return NWCSAFHRWPreV2025FileHandler(filename, filename_info, filetype_info, merge_channels=merge_channels)
+    else:
+        return NWCSAFHRWV2025FileHandler(filename, filename_info, filetype_info)
+
+
+class NWCSAFHRWBase(BaseFileHandler):
     """A file handler class for NWC SAF GEO HRW files."""
 
     def __init__(self, filename, filename_info, filetype_info, merge_channels=False):
@@ -231,7 +245,6 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.lats = {}
         # Imaging period, which is set after reading any data, and used to calculate end time
         self.period = None
-        self._algorithm_version = Version(self.h5f.attrs["product_algorithm_version"].astype(str))
 
         # The resolution is given in kilometers, convert to meters
         self.resolution = 1000 * self.h5f.attrs["spatial_resolution"].item()
@@ -243,41 +256,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Form the names for the available datasets."""
-        if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-            return self._pre_v2025_available_datasets()
-        else:
-            return self._post_v2025_available_datasets()
-
-    def _pre_v2025_available_datasets(self):
-        for channel in PRE_V2025_SEVIRI_WIND_CHANNELS:
-            prefix = self._get_channel_prefix(channel)
-            dset = self.h5f[channel]
-            for measurand in dset.dtype.fields.keys():
-                if measurand == "trajectory":
-                    continue
-                ds_info = self._measurand_ds_info(prefix, measurand)
-                yield True, ds_info
-            if self.merge_channels:
-                break
-
-    def _post_v2025_available_datasets(self):
-        for dset in POST_V2025_DATASETS:
-            dset_name = dset
-            if dset == "lon":
-                dset_name = "longitude"
-            elif dset == "lat":
-                dset_name = "latitude"
-            ds_info = {
-                "file_type": self.filetype_info["file_type"],
-                "resolution": self.resolution,
-                "name": dset_name,
-            }
-            yield True, ds_info
-
-    def _get_channel_prefix(self, channel):
-        if self.merge_channels:
-            return ""
-        return channel + "_"
+        raise NotImplementedError
 
     def _measurand_ds_info(self, prefix, measurand):
         ds_info = {
@@ -296,14 +275,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug("Reading %s.", key["name"])
-        if self.merge_channels and self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-            data = self._read_merged_dataset(key)
-        else:
-            data = self._read_dataset(key)
-        data.attrs.update(info)
-
-        return data
+        raise NotImplementedError
 
     def _read_merged_dataset(self, dataset_key):
         """Read a dataset merged from every channel."""
@@ -363,44 +335,10 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
 
     def _read_dataset(self, dataset_key):
         """Read a dataset."""
-        dataset_name = dataset_key["name"]
-        channel, measurand = _get_channel_and_measurand_for_version(
-            self._algorithm_version, dataset_name)
-        self._read_channel_coordinates(channel)
-        self._get_period(channel)
-
-        try:
-            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-                data = self.h5f[channel][measurand]
-                attrs = {"units": DATASET_UNITS[measurand]}
-            else:
-                data = self.h5f[measurand]
-                if data.dtype == np.double:
-                    data = np.where(data == data.attrs["_FillValue"], np.nan, data)
-                attrs = dict(self.h5f[measurand].attrs)
-        except ValueError:
-            logger.warning("Reading %s is not supported.", dataset_name)
-
-        return self._create_xarray(
-            data, dataset_name, attrs, channel)
-
+        raise NotImplementedError
 
     def _read_channel_coordinates(self, channel):
-        if channel not in self.lons:
-            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-                self.lons[channel] = self.h5f[channel]["longitude"]
-                self.lats[channel] = self.h5f[channel]["latitude"]
-            else:
-                self.lons[channel] = self.h5f["lon"]
-                self.lats[channel] = self.h5f["lat"]
-
-    def _get_period(self, channel):
-        if self.period is None:
-            if self._algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
-                self.period = self.h5f[channel].attrs["time_period"].item()
-            else:
-                interval = self.h5f.attrs["sampling_interval"].astype(str).item()
-                self.period = float(interval.split()[0])
+        raise NotImplementedError
 
     @property
     def start_time(self):
@@ -415,16 +353,129 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         return self.start_time + dt.timedelta(minutes=self.period)
 
 
-def _get_channel_and_measurand_for_version(algorithm_version, dataset_name):
-    if algorithm_version < FIRST_V2025_ALGORITHM_VERSION:
+class NWCSAFHRWPreV2025FileHandler(NWCSAFHRWBase):
+    """File handler for NWC SAF HRW files generated with versions oldert than v2025."""
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug("Reading %s.", key["name"])
+        if self.merge_channels:
+            data = self._read_merged_dataset(key)
+        else:
+            data = self._read_dataset(key)
+        data.attrs.update(info)
+
+        return data
+
+    def _read_dataset(self, dataset_key):
+        """Read a dataset."""
+        dataset_name = dataset_key["name"]
+        channel, measurand = self._get_channel_and_measurand(dataset_name)
+        self._read_channel_coordinates(channel)
+        self._get_period(channel)
+
+        try:
+            data = self.h5f[channel][measurand]
+            attrs = {"units": DATASET_UNITS[measurand]}
+        except ValueError:
+            logger.warning("Reading %s is not supported.", dataset_name)
+
+        return self._create_xarray(data, dataset_name, attrs, channel)
+
+    @staticmethod
+    def _get_channel_and_measurand(dataset_name):
         key_parts = dataset_name.split("_")
         channel = "_".join(key_parts[:2])
         measurand = "_".join(key_parts[2:])
-    else:
+
+        return channel, measurand
+
+    def _read_channel_coordinates(self, channel):
+        if channel not in self.lons:
+            self.lons[channel] = self.h5f[channel]["longitude"]
+            self.lats[channel] = self.h5f[channel]["latitude"]
+
+    def available_datasets(self, configured_datasets=None):
+        """Form the names for the available datasets."""
+        for channel in PRE_V2025_SEVIRI_WIND_CHANNELS:
+            prefix = self._get_channel_prefix(channel)
+            dset = self.h5f[channel]
+            for measurand in dset.dtype.fields.keys():
+                if measurand == "trajectory":
+                    continue
+                ds_info = self._measurand_ds_info(prefix, measurand)
+                yield True, ds_info
+            if self.merge_channels:
+                break
+
+    def _get_channel_prefix(self, channel):
+        if self.merge_channels:
+            return ""
+        return channel + "_"
+
+    def _get_period(self, channel):
+        if self.period is None:
+            self.period = self.h5f[channel].attrs["time_period"].item()
+
+
+class NWCSAFHRWV2025FileHandler(NWCSAFHRWBase):
+    """File handler for NWC SAF HRW files generated with versions oldert than v2025."""
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug("Reading %s.", key["name"])
+        data = self._read_dataset(key)
+        data.attrs.update(info)
+
+        return data
+
+    def _read_dataset(self, dataset_key):
+        """Read a dataset."""
+        dataset_name = dataset_key["name"]
+        channel, measurand = self._get_channel_and_measurand(dataset_name)
+        self._read_channel_coordinates(channel)
+        self._get_period(channel)
+
+        try:
+            data = self.h5f[measurand]
+            if data.dtype == np.double:
+                data = np.where(data == data.attrs["_FillValue"], np.nan, data)
+            attrs = dict(self.h5f[measurand].attrs)
+        except ValueError:
+            logger.warning("Reading %s is not supported.", dataset_name)
+
+        return self._create_xarray(data, dataset_name, attrs, channel)
+
+    @staticmethod
+    def _get_channel_and_measurand(dataset_name):
         channel = measurand = dataset_name
         if dataset_name == "longitude":
             channel = measurand = "lon"
         elif dataset_name == "latitude":
             channel = measurand = "lat"
+        return channel, measurand
 
-    return channel, measurand
+    def _read_channel_coordinates(self, channel):
+        if channel not in self.lons:
+            self.lons[channel] = self.h5f["lon"]
+            self.lats[channel] = self.h5f["lat"]
+
+    def available_datasets(self, configured_datasets=None):
+        """Form the names for the available datasets."""
+        for dset in POST_V2025_DATASETS:
+            dset_name = dset
+            if dset == "lon":
+                dset_name = "longitude"
+            elif dset == "lat":
+                dset_name = "latitude"
+            ds_info = {
+                "file_type": self.filetype_info["file_type"],
+                "resolution": self.resolution,
+                "name": dset_name,
+            }
+            yield True, ds_info
+
+    def _get_period(self, channel):
+        if self.period is None:
+            interval = self.h5f.attrs["sampling_interval"].astype(str).item()
+            self.period = float(interval.split()[0])
