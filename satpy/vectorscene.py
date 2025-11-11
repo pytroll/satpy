@@ -27,9 +27,8 @@ Thunderstorms (RDT) or similar products, flash geometries, atmospheric motion
 vectors, or lightning point data.
 """
 
-class VectorScene:
-    """Experimental class to encode vector data."""
+from .scene import BaseScene
 
-    def __init__(self):
-        """Not initialising anything yet."""
-        raise NotImplementedError("VectorScene not implemented yet.")
+
+class VectorScene(BaseScene):
+    """Experimental class to encode vector data."""

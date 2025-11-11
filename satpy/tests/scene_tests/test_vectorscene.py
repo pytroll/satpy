@@ -15,9 +15,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for VectorScene."""
 
-from satpy.vectorscene import VectorScene
-
 
 def test_init():
     """Test VectorScene initialisation."""
+    from satpy.vectorscene import VectorScene
     VectorScene()
+
+def test_load():
+    """Test loading some vector data."""
+    from satpy.vectorscene import VectorScene
+    vs = VectorScene(filenames=["dummy_filename"], reader=["dummy_vector_reader"])
+    vs.load(["dummy_vector_dataset"])
