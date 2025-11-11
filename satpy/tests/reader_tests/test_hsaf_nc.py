@@ -18,13 +18,13 @@ FILE_TYPE_H63 = "nc_hsaf_h63"
 FILE_PARAMS = {
     FILE_TYPE_H60: {
         "fake_file": "h60_20251105_0000_fdk.nc",
-        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/S-HSAF-h60_20251105_0915_fdk.nc.gz",
-        "yaml_file": "hsaf_h60_nc.yaml",
+        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/h60_20251111_1100_fdk.nc.gz",
+        "yaml_file": "hsaf_nc.yaml",
     },
     FILE_TYPE_H63: {
         "fake_file": "h63_20251105_0000_fdk.nc",
-        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/S-HSAF-h63_20251014_0915_fdk.nc.gz",
-        "yaml_file": "hsaf_h63_nc.yaml",
+        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/h63_20251111_1100_fdk.nc.gz",
+        "yaml_file": "hsaf_nc.yaml",
     }
 }
 
@@ -57,7 +57,7 @@ class TestHSAFNCReader:
             # search for the yaml config
             params["reader_configs"] = config_search_paths(os.path.join("readers", params["yaml_file"]))
             # load the reader
-            params["reader"] = load_reader(params["reader_configs"])
+            params["reader"] = load_reader(params["reader_configs"], name = "hsaf_h60_nc")
 
     @pytest.mark.parametrize(
         ("file_type", "expected_loadables"),
@@ -80,8 +80,8 @@ class TestHSAFNCReader:
     @pytest.mark.parametrize(
         ("file_type", "loadable_ids"),
         [
-            (FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"]),
-            (FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"]),
+            (FILE_PARAMS[FILE_TYPE_H60], ["h60_rr", "h60_qind"]),
+            (FILE_PARAMS[FILE_TYPE_H63], ["h63_rr", "h63_qind"]),
         ],
     )
     def test_load_datasets(self, file_type, loadable_ids):
@@ -96,17 +96,12 @@ class TestHSAFNCReader:
             assert dataset_names == set(loadable_ids)
 
             # check array shapes and types
-            assert datasets["rr"].shape == DEFAULT_SHAPE
-            assert datasets["qind"].shape == DEFAULT_SHAPE
-            assert np.issubdtype(datasets["rr"].dtype, np.floating)
-            assert np.issubdtype(datasets["qind"].dtype, np.integer)
+            assert datasets[loadable_ids[0]].shape == DEFAULT_SHAPE
+            assert datasets[loadable_ids[1]].shape == DEFAULT_SHAPE
+            assert np.issubdtype(datasets[loadable_ids[0]].dtype, np.floating)
+            assert np.issubdtype(datasets[loadable_ids[1]].dtype, np.integer)
 
-            # check dataset and attrs
-            dataset_info = {"file_key": "rr", "units": "mm/h"}
-            data = (
-                file_type["reader"].file_handlers[datasets["rr"].file_type][0].get_dataset({"name": "rr"}, dataset_info)
-            )
-
+            data = datasets[loadable_ids[0]]
             assert data.attrs["spacecraft_name"] == "MSG"
             assert data.attrs["platform_name"] == "MSG"
             assert data.attrs["units"] == "mm/h"
@@ -117,8 +112,8 @@ class TestHSAFNCReader:
     @pytest.mark.parametrize(
         ("file_type", "loadable_ids"),
         [
-            (FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"]),
-            (FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"]),
+            (FILE_PARAMS[FILE_TYPE_H60], ["h60_rr", "h60_qind"]),
+            (FILE_PARAMS[FILE_TYPE_H63], ["h63_rr", "h63_qind"]),
         ],
     )
     @pytest.mark.skipif(not os.path.exists(FILE_PARAMS[FILE_TYPE_H60]["real_file"]) or

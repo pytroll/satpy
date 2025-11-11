@@ -16,7 +16,26 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for H-SAF precipitation files (H60B and H63). in NetCDF format."""
+"""Reader for H SAF blended precipitation products in NetCDF format.
+
+These products provide instantaneous precipitation rate estimates derived from
+a blending of geostationary (GEO) infrared and low-Earth-orbit (LEO) microwave
+observations using the H SAF "Rapid Update" algorithm.
+
+Currently, this reader supports the following products:
+  * **H60B** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
+    full Meteosat (0°) disk.
+  * **H63** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
+    Meteosat IODC (Indian Ocean) disk.
+
+Notes:
+    - Externally compressed files with the ``.gz`` suffix are automatically
+      uncompressed to the same directory and deleted on reader close.
+    - The reader relies on area definitions provided in the accompanying YAML
+      configuration file.
+    - Supports ``rain_rate`` and ``q_ind#`` datasets.
+    - Output coverage and resolution correspond to the MSG-SEVIRI grid.
+"""
 
 import datetime as dt
 import gzip
