@@ -647,7 +647,7 @@ class SEVIRICalibrationHandler:
         """Calibrate the given data."""
         if calibration == "counts":
             res = data
-        elif calibration in ["radiance", "reflectance",
+        elif calibration in ["radiance", "radiance_factor", "reflectance",
                              "brightness_temperature"]:
             coefs = self.get_coefs()
             res = self._algo.convert_to_radiance(
@@ -662,7 +662,7 @@ class SEVIRICalibrationHandler:
                 )
             )
 
-        if calibration == "reflectance":
+        if calibration in ["reflectance", "radiance_factor"]:
             solar_irradiance = CALIB[self._scan_params.platform_id][self._scan_params.channel_name]["F"]
             res = self._algo.vis_calibrate(res, solar_irradiance)
         elif calibration == "brightness_temperature":
