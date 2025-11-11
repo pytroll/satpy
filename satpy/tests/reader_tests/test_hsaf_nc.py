@@ -13,6 +13,7 @@ from satpy.readers.core.loading import load_reader
 # the readers file type
 FILE_TYPE_H60 = "nc_hsaf_h60"
 FILE_TYPE_H63 = "nc_hsaf_h63"
+FILE_TYPE_H90 = "nc_hsaf_h90"
 
 # parameters per file type
 FILE_PARAMS = {
@@ -24,6 +25,11 @@ FILE_PARAMS = {
     FILE_TYPE_H63: {
         "fake_file": "h63_20251105_0000_fdk.nc",
         "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/h63_20251111_1100_fdk.nc.gz",
+        "yaml_file": "hsaf_nc.yaml",
+    },
+    FILE_TYPE_H90: {
+        "fake_file": "h90_20251105_0000_fdk.nc",
+        "real_file": "/".join(os.path.abspath(__file__).split("/")[0:-1]) + "/data/h90_20251111_1000_01_fdk.nc.gz",
         "yaml_file": "hsaf_nc.yaml",
     }
 }
@@ -39,6 +45,7 @@ def fake_hsaf_dataset(filename, **kwargs):
     ds = xr.Dataset(
         {
             "rr": (("y", "x"), DEFAULT_RR),
+            "acc_rr": (("y", "x"), DEFAULT_RR),
             "qind": (("y", "x"), DEFAULT_QIND),
         },
         coords={"y": np.arange(DEFAULT_SHAPE[0]),
@@ -64,6 +71,7 @@ class TestHSAFNCReader:
         [
             (FILE_PARAMS[FILE_TYPE_H60], 1),
             (FILE_PARAMS[FILE_TYPE_H63], 1),
+            (FILE_PARAMS[FILE_TYPE_H90], 1),
         ],
     )
     def test_reader_creation(self, file_type, expected_loadables):
@@ -78,13 +86,14 @@ class TestHSAFNCReader:
             assert file_type["reader"].file_handlers, "No file handlers created"
 
     @pytest.mark.parametrize(
-        ("file_type", "loadable_ids"),
+        ("file_type", "loadable_ids", "unit"),
         [
-            (FILE_PARAMS[FILE_TYPE_H60], ["h60_rr", "h60_qind"]),
-            (FILE_PARAMS[FILE_TYPE_H63], ["h63_rr", "h63_qind"]),
+            (FILE_PARAMS[FILE_TYPE_H60], ["h60_rr", "h60_qind"], "mm/h"),
+            (FILE_PARAMS[FILE_TYPE_H63], ["h63_rr", "h63_qind"], "mm/h"),
+            (FILE_PARAMS[FILE_TYPE_H90], ["h90_rr", "h90_qind"], "mm"),
         ],
     )
-    def test_load_datasets(self, file_type, loadable_ids):
+    def test_load_datasets(self, file_type, loadable_ids, unit):
         """Test that datasets can be loaded correctly."""
         with mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as od:
             od.side_effect = fake_hsaf_dataset
@@ -104,7 +113,7 @@ class TestHSAFNCReader:
             data = datasets[loadable_ids[0]]
             assert data.attrs["spacecraft_name"] == "MSG"
             assert data.attrs["platform_name"] == "MSG"
-            assert data.attrs["units"] == "mm/h"
+            assert data.attrs["units"] == unit
             assert data.attrs["start_time"] == dt.datetime(2025, 11, 5, 0, 0)
             assert data.attrs["end_time"] == dt.datetime(2025, 11, 5, 0, 15)
 
@@ -114,6 +123,7 @@ class TestHSAFNCReader:
         [
             (FILE_PARAMS[FILE_TYPE_H60], ["h60_rr", "h60_qind"]),
             (FILE_PARAMS[FILE_TYPE_H63], ["h63_rr", "h63_qind"]),
+            (FILE_PARAMS[FILE_TYPE_H90], ["h90_rr", "h90_qind"]),
         ],
     )
     @pytest.mark.skipif(not os.path.exists(FILE_PARAMS[FILE_TYPE_H60]["real_file"]) or

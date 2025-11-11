@@ -27,6 +27,8 @@ Currently, this reader supports the following products:
     full Meteosat (0°) disk.
   * **H63** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
     Meteosat IODC (Indian Ocean) disk.
+  * **H90** – Accumulated Precipitation at ground by blended MW and IR IODC
+    over the Meteosat IODC (Indian Ocean) disk.
 
 Notes:
     - Externally compressed files with the ``.gz`` suffix are automatically
