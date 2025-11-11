@@ -27,8 +27,8 @@ import pytest
 import satpy
 
 if sys.platform.startswith("win"):
-    IMAGE_FILENAME = r"c:\foo.tif"
-    PATH_TO_IMAGE = r"c:\path\to\image"
+    IMAGE_FILENAME = os.path.join("C:", "foo.tif")
+    PATH_TO_IMAGE = os.path.join("C:", "path", "to", "image")
 else:
     IMAGE_FILENAME = "/foo.tif"
     PATH_TO_IMAGE = "/path/to/image"
