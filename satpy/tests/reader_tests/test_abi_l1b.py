@@ -44,7 +44,6 @@ RAD_SHAPE = {
 RAD_SHAPE[1000] = (RAD_SHAPE[500][0] // 2, RAD_SHAPE[500][1] // 2)
 RAD_SHAPE[2000] = (RAD_SHAPE[500][0] // 4, RAD_SHAPE[500][1] // 4)
 
-
 def _create_fake_rad_dataarray(
     rad: xr.DataArray | None = None,
     resolution: int = 2000,
@@ -146,7 +145,7 @@ def c01_refl(tmp_path) -> xr.DataArray:
 
 
 @pytest.fixture
-def c01_rad(tmp_path) -> xr.DataArray:
+def c01_rad(tmp_path, oscar_compliant_attrs) -> xr.DataArray:
     """Load c01 radiances."""
     with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
@@ -154,7 +153,7 @@ def c01_rad(tmp_path) -> xr.DataArray:
 
 
 @pytest.fixture
-def c01_rad_h5netcdf(tmp_path) -> xr.DataArray:
+def c01_rad_h5netcdf(tmp_path, oscar_compliant_attrs) -> xr.DataArray:
     """Load c01 radiances through h5netcdf."""
     shape = RAD_SHAPE[1000]
     rad_data = (np.arange(shape[0] * shape[1]).reshape(shape) + 1.0) * 50.0
@@ -345,8 +344,12 @@ def test_file_patterns_match(channel, suffix):
 class Test_NC_ABI_L1B:
     """Test the NC_ABI_L1B reader."""
 
-    def test_get_dataset(self, c01_data_arr):
+    def test_get_dataset(self, c01_data_arr, oscar_compliant_attrs):
         """Test the get_dataset method."""
+        sensors = {
+            True: "ABI",
+            False: "abi"
+        }
         exp = {
             "calibration": "radiance",
             "instrument_ID": None,
@@ -371,7 +374,7 @@ class Test_NC_ABI_L1B:
             "scan_mode": "M4",
             "scene_abbr": "C",
             "scene_id": None,
-            "sensor": "abi",
+            "sensor": sensors[oscar_compliant_attrs],
             "timeline_ID": None,
             "suffix": "suffix",
             "units": "W m-2 um-1 sr-1",

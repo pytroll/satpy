@@ -9,7 +9,7 @@ reader:
     `here <https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf>`_.
   status: Beta
   supports_fsspec: true
-  sensors: ['abi']
+  sensors: ['abi', 'ABI']
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'platform_shortname', 'scene_abbr']

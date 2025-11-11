@@ -28,6 +28,7 @@ import xarray as xr
 from trollsift import compose, parse
 from xarray import DataTree
 
+import satpy
 from satpy.readers.mwr_l1b import AWS_EPS_Sterna_MWR_L1BFile
 from satpy.readers.mwr_l1c import AWS_MWR_L1CFile
 
@@ -232,3 +233,10 @@ def aws_mwr_l1c_handler(aws_mwr_l1c_file):
     filetype_info["file_type"] = "aws1_mwr_l1c"
     filetype_info["feed_horn_group_name"] = None
     return AWS_MWR_L1CFile(aws_mwr_l1c_file, filename_info, filetype_info)
+
+
+@pytest.fixture(params=[True, False])
+def oscar_compliant_attrs(request):
+    """Set config switch for OSCAR compliant attributes."""
+    satpy.config.set(oscar_compliant_attributes=request.param)
+    return request.param

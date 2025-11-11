@@ -27,6 +27,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+import satpy
 from satpy._compat import cached_property
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
@@ -111,6 +112,8 @@ class NC_ABI_BASE(BaseFileHandler):
     @property
     def sensor(self):
         """Get sensor name for current file handler."""
+        if satpy.config.get("oscar_compliant_attributes", False):
+            return "ABI"
         return "abi"
 
     def __getitem__(self, item):

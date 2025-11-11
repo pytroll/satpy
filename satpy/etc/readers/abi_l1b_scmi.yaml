@@ -5,7 +5,7 @@ reader:
   description: SCMI NetCDF4 Reader for ABI data
   status: Beta
   supports_fsspec: false
-  sensors: []
+  sensors: ['abi', 'ABI']
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 # Typical filenames from Unidata THREDDS server:
@@ -116,7 +116,6 @@ file_types:
 datasets:
   C01:
     name: C01
-    sensor: abi
     wavelength: [0.450, 0.470, 0.490]
     resolution: 1000
     calibration:
@@ -127,7 +126,6 @@ datasets:
 
   C02:
     name: C02
-    sensor: abi
     wavelength: [0.590, 0.640, 0.690]
     resolution: 500
     calibration:
@@ -138,7 +136,6 @@ datasets:
 
   C03:
     name: C03
-    sensor: abi
     wavelength: [0.8455, 0.865, 0.8845]
     resolution: 1000
     calibration:
@@ -149,7 +146,6 @@ datasets:
 
   C04:
     name: C04
-    sensor: abi
     wavelength: [1.3705, 1.378, 1.3855]
     resolution: 2000
     calibration:
@@ -160,7 +156,6 @@ datasets:
 
   C05:
     name: C05
-    sensor: abi
     wavelength: [1.580, 1.610, 1.640]
     resolution: 1000
     calibration:
@@ -171,7 +166,6 @@ datasets:
 
   C06:
     name: C06
-    sensor: abi
     wavelength: [2.225, 2.250, 2.275]
     resolution: 2000
     calibration:
@@ -182,7 +176,6 @@ datasets:
 
   C07:
     name: C07
-    sensor: abi
     wavelength: [3.80, 3.90, 4.00]
     resolution: 2000
     calibration:
@@ -193,7 +186,6 @@ datasets:
 
   C08:
     name: C08
-    sensor: abi
     wavelength: [5.770, 6.185, 6.600]
     resolution: 2000
     calibration:
@@ -204,7 +196,6 @@ datasets:
 
   C09:
     name: C09
-    sensor: abi
     wavelength: [6.75, 6.95, 7.15]
     resolution: 2000
     calibration:
@@ -215,7 +206,6 @@ datasets:
 
   C10:
     name: C10
-    sensor: abi
     wavelength: [7.24, 7.34, 7.44]
     resolution: 2000
     calibration:
@@ -226,7 +216,6 @@ datasets:
 
   C11:
     name: C11
-    sensor: abi
     wavelength: [8.30, 8.50, 8.70]
     resolution: 2000
     calibration:
@@ -237,7 +226,6 @@ datasets:
 
   C12:
     name: C12
-    sensor: abi
     wavelength: [9.42, 9.61, 9.80]
     resolution: 2000
     calibration:
@@ -248,7 +236,6 @@ datasets:
 
   C13:
     name: C13
-    sensor: abi
     wavelength: [10.10, 10.35, 10.60]
     resolution: 2000
     calibration:
@@ -259,7 +246,6 @@ datasets:
 
   C14:
     name: C14
-    sensor: abi
     wavelength: [10.80, 11.20, 11.60]
     resolution: 2000
     calibration:
@@ -270,7 +256,6 @@ datasets:
 
   C15:
     name: C15
-    sensor: abi
     wavelength: [11.80, 12.30, 12.80]
     resolution: 2000
     calibration:
@@ -281,7 +266,6 @@ datasets:
 
   C16:
     name: C16
-    sensor: abi
     wavelength: [13.00, 13.30, 13.60]
     resolution: 2000
     calibration:
