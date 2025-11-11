@@ -89,8 +89,8 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # remote file with local cached version
         Scene.reset_mock()
-        register.return_value = "data_dir/foo.tif"
-        retrieve.return_value = "data_dir/foo.tif"
+        register.return_value = os.path.join("data_dir", "foo.tif")
+        retrieve.return_value = os.path.join("data_dir",  "foo.tif")
         comp = StaticImageCompositor("name", url=remote_tif, area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader="generic_image",
