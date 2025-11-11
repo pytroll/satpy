@@ -410,6 +410,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             res.attrs.pop("scale_factor")
             res.attrs.pop("warm_scale_factor")
             res.attrs.pop("valid_range")
+            res.attrs.pop("_FillValue")
 
         # remove attributes from original file which don't apply anymore
         res.attrs.pop("long_name")
