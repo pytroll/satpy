@@ -440,18 +440,22 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_dataset_invalid(self):
         """Test handling of invalid calibrations."""
+        from satpy.dataset.dataid import ValueList, default_id_keys_config
+        cal_enum = ValueList("Calibration", " ".join(default_id_keys_config["calibration"]["enum"]))
         # VIS -> BT
         args = dict(key=make_dataid(name="00_7",
                                     calibration="brightness_temperature"),
                     info={})
-        with pytest.raises(ValueError, match="Cannot calibrate VIS channel to 2"):
+        with pytest.raises(ValueError,
+                           match=f"Cannot calibrate VIS channel to {cal_enum.brightness_temperature.value}"):
             self.reader.get_dataset(**args)
 
         # IR -> Reflectance
         args = dict(key=make_dataid(name="10_7",
                                     calibration="reflectance"),
                     info={})
-        with pytest.raises(ValueError, match="Cannot calibrate IR channel to 1"):
+        with pytest.raises(ValueError,
+                           match=f"Cannot calibrate IR channel to {cal_enum.reflectance.value}"):
             self.reader.get_dataset(**args)
 
         # Unsupported calibration
