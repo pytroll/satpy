@@ -29,7 +29,7 @@ from pyresample import geometry
 from satpy.tests.utils import make_dataid
 
 if sys.platform.startswith("win"):
-    pytest.skip("'eccodes' not supported on Windows")
+    pytest.skip("'eccodes' not supported on Windows", allow_module_level=True)
 
 AREA_DEF_MSG_IODC = geometry.AreaDefinition(
     "msg_seviri_iodc_48km",
