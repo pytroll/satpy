@@ -64,7 +64,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         """Test the static compositing."""
         from satpy.composites.aux_data import StaticImageCompositor
 
-        satpy.config.set(data_dir=os.path.join(os.path.sep, "path", "to", "image"))
+        satpy.config.set(data_dir=PATH_TO_IMAGE)
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
@@ -125,4 +125,4 @@ class TestStaticImageCompositor(unittest.TestCase):
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
             assert comp._url is None
-            assert comp._cache_filename == os.path.join(os.path.sep, "path", "to", "image", "foo.tif")
+            assert comp._cache_filename == os.path.join(PATH_TO_IMAGE, "foo.tif")
