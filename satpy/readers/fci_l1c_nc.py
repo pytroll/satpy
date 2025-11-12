@@ -125,6 +125,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import datetime as dt
 import logging
 from functools import cached_property
+from warnings import warn
 
 import dask.array as da
 import numpy as np
@@ -177,12 +178,9 @@ def _get_aux_data_name_from_dsname(dsname):
 
 
 def _get_channel_name_from_dsname(dsname):
-    # FIXME: replace by .removesuffix after we drop support for Python < 3.9
-    if dsname.endswith("_pixel_quality"):
-        channel_name = dsname[:-len("_pixel_quality")]
-    elif dsname.endswith("_index_map"):
-        channel_name = dsname[:-len("_index_map")]
-    elif _get_aux_data_name_from_dsname(dsname) is not None:
+    channel_name = dsname.removesuffix("_pixel_quality")
+    channel_name = channel_name.removesuffix("_index_map")
+    if _get_aux_data_name_from_dsname(dsname) is not None:
         channel_name = dsname[:-len(_get_aux_data_name_from_dsname(dsname)) - 1]
     else:
         channel_name = dsname
@@ -404,7 +402,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
+        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance", "radiance_factor"]:
             res.attrs.pop("add_offset")
             res.attrs.pop("warm_add_offset")
             res.attrs.pop("scale_factor")
@@ -645,12 +643,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
+        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance", "radiance_factor"]:
             data = self.calibrate_counts_to_physical_quantity(data, key)
         elif key["calibration"] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
+                "'brightness_temperature', 'reflectance', 'radiance', 'radiance_factor' or 'counts', got "
                 + key["calibration"] + ".")
 
         return data
@@ -663,7 +661,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         if key["calibration"] == "brightness_temperature":
             data = self.calibrate_rad_to_bt(data, key)
-        elif key["calibration"] == "reflectance":
+        elif key["calibration"] in ["reflectance", "radiance_factor"]:
+            if key["calibration"] == "reflectance":
+                warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                     DeprecationWarning)
             data = self.calibrate_rad_to_refl(data, key)
 
         return data
@@ -735,7 +736,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
-                "cannot produce reflectance for {:s}.".format(measured))
+                "cannot produce radiance_factor for {:s}.".format(measured))
             return radiance * np.float32(np.nan)
         sun_earth_distance = self._compute_sun_earth_distance
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
