@@ -1,0 +1,211 @@
+reader:
+  name: mss_l1_tif
+  short_name: MSS L1 GeoTIFF
+  long_name: Landsat-1/2/3/4/5 MSS L1 data in GeoTIFF format.
+  description: GeoTIFF reader for Landsat-1/2/3/4/5 MSS L1 data.
+  status: Beta
+  supports_fsspec: true
+  sensors: mss
+  default_channels: []
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  data_identification_keys:
+    name:
+      required: true
+    wavelength:
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+        - reflectance
+        - radiance
+        - counts
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+file_types:
+    # Spectral bands
+
+    granule_B1:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B1.TIF']
+        requires: [l1_metadata]
+
+    granule_B2:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B2.TIF']
+        requires: [l1_metadata]
+
+    granule_B3:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B3.TIF']
+        requires: [l1_metadata]
+
+    granule_B4:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B4.TIF']
+        requires: [l1_metadata]
+
+    granule_B5:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B5.TIF']
+        requires: [l1_metadata]
+
+    granule_B6:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B6.TIF']
+        requires: [l1_metadata]
+
+    granule_B7:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_B7.TIF']
+        requires: [l1_metadata]
+
+    # QA Variables
+    granule_qa:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA.TIF', '{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA_PIXEL.TIF']
+        requires: [l1_metadata]
+    granule_qa_radsat:
+        file_reader: !!python/name:satpy.readers.core.landsat.MSSCHReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_QA_RADSAT.TIF']
+        requires: [l1_metadata]
+
+    l1_metadata:
+        file_reader: !!python/name:satpy.readers.core.landsat.LandsatL1MDReader
+        file_patterns: ['{platform_type:1s}{data_type:1s}{spacecraft_id:2s}_{process_level_correction:4s}_{tilepath:3s}{tilerow:3s}_{observation_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection_id:2s}_{collection_category:2s}_MTL.xml']
+
+datasets:
+  B1:
+    name: B1
+    sensor: mss
+    wavelength: [0.5, 0.55, 0.6]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B1
+
+  B2:
+    name: B2
+    sensor: mss
+    wavelength: [0.6, 0.65, 0.7]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B2
+
+  B3:
+    name: B3
+    sensor: mss
+    wavelength: [0.7, 0.75, 0.8]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B3
+
+  B4:
+    name: B4
+    sensor: mss
+    wavelength: [0.5, 0.55, 0.6]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B4
+
+  B5:
+    name: B5
+    sensor: mss
+    wavelength: [0.6, 0.65, 0.7]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B5
+
+  B6:
+    name: B6
+    sensor: mss
+    wavelength: [0.7, 0.75, 0.8]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B6
+
+  B7:
+    name: B7
+    sensor: mss
+    wavelength: [0.8, 0.95, 1.1]
+    resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: "1"
+    file_type: granule_B7
+
+  # QA Variables
+  qa:
+    name: qa
+    sensor: mss
+    resolution: 60
+    file_type: granule_qa
+
+  qa_radsat:
+    name: qa_radsat
+    sensor: mss
+    resolution: 60
+    file_type: granule_qa_radsat

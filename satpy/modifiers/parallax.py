@@ -155,7 +155,7 @@ def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distan
     Returns:
         Parallax shift in cartesian coordinates in meter.
     """
-    sat_xyz = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
+    sat_xyz = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * (sat_alt + EARTH_RADIUS * 1e3)
     cth_xyz = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS*1e3  # km → m
     delta_xyz = cth_xyz - sat_xyz
     sat_distance = np.sqrt((delta_xyz*delta_xyz).sum(axis=-1))
@@ -542,12 +542,12 @@ class ParallaxCorrectionModifier(ModifierBase):
 
 
 def _get_satpos_from_cth(cth_dataset):
-    """Obtain satellite position from CTH dataset, height in meter.
+    """Obtain satellite position from CTH dataset.
 
-    From a CTH dataset, obtain the satellite position lon, lat, altitude/m,
+    From a CTH dataset, obtain the satellite position lon, lat, altitude [m],
     either directly from orbital parameters, or, when missing, from the
     platform name using pyorbital and skyfield.
     """
-    (sat_lon, sat_lat, sat_alt_km) = get_satpos(
+    (sat_lon, sat_lat, sat_alt) = get_satpos(
             cth_dataset, use_tle=True)
-    return (sat_lon, sat_lat, sat_alt_km * 1000)
+    return (sat_lon, sat_lat, sat_alt)
