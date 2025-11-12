@@ -418,7 +418,7 @@ def _get_satpos_from_platform_name(cth_dataset):
 
     Needs pyorbital, skyfield, and astropy to be installed.
     """
-    from pyorbital.orbital import tlefile
+    from pyorbital import tlefile
     from skyfield.api import EarthSatellite, load
     from skyfield.toposlib import wgs84
 
