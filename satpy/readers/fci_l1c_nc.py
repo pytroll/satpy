@@ -666,7 +666,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             data = self.calibrate_rad_to_bt(data, key)
         elif key["calibration"] in ["reflectance", "radiance_factor"]:
             if key["calibration"] == "reflectance":
-                warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                warn("Reflectance is not a correct calibration for FCI channels, please use 'radiance_factor'",
                      DeprecationWarning)
             data = self.calibrate_rad_to_refl(data, key)
 

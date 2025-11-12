@@ -133,6 +133,11 @@ DICT_CALIBRATION = {"radiance": {"dtype": np.float32,
                                                    "units": "%"
                                                    },
                                     },
+                    "radiance_factor": {"dtype": np.float32,
+                                        "attrs_dict": {"calibration": "radiance_factor",
+                                                       "units": "%"
+                                                       },
+                                        },
 
                     "counts": {"dtype": np.uint16,
                                "value_1": 5,
@@ -779,9 +784,10 @@ class ModuleTestFCIL1cNcReader:
     def _get_assert_load(self, res, ch, dict_arg, filenames):
         """Test the value for different channels."""
         self._get_assert_attrs(res, ch, dict_arg["attrs_dict"])
-        if dict_arg["attrs_dict"]["calibration"] in ["radiance", "brightness_temperature", "reflectance"]:
+        if dict_arg["attrs_dict"]["calibration"] in ["radiance", "brightness_temperature",
+                                                     "reflectance", "radiance_factor"]:
             self._get_assert_erased_attrs(res, ch)
-        if dict_arg["attrs_dict"]["calibration"] == "reflectance":
+        if dict_arg["attrs_dict"]["calibration"] in ["reflectance", "radiance_factor"]:
             self._reflectance_test(res[ch], filenames)
         else:
             self._other_calibration_test(res, ch, dict_arg)
@@ -849,7 +855,8 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         files = reader.select_files_from_pathnames(filenames)
         assert len(files) == 0
 
-    @pytest.mark.parametrize("calibration", ["counts", "radiance", "brightness_temperature", "reflectance"])
+    @pytest.mark.parametrize("calibration", ["counts", "radiance", "brightness_temperature",
+                                             "reflectance", "radiance_factor"])
     @pytest.mark.parametrize(("fh_param", "res_type"), [
             (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), "hdfi"),
             (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), "hrfi"),
@@ -862,9 +869,15 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                                         ])
     def test_load_calibration(self, reader_configs, fh_param,
                               caplog, calibration, res_type):
-        """Test loading with counts,radiance,reflectance and bt."""
+        """Test loading with counts, radiance, reflectance, radiance_factor and bt."""
         expected_res_n = {}
-        if calibration == "reflectance":
+        if calibration == "radiance_factor":
+            list_chan = fh_param["channels"]["solar"]
+            list_grid = fh_param["channels"]["solar_grid_type"]
+            expected_res_n["hdfi"] = 8
+            expected_res_n["hrfi"] = 2
+        elif calibration == "reflectance":
+            # WARN: This needs to be removed when reflectance is removed from the possible calibrations
             list_chan = fh_param["channels"]["solar"]
             list_grid = fh_param["channels"]["solar_grid_type"]
             expected_res_n["hdfi"] = 8
@@ -1306,4 +1319,5 @@ class TestFCIL1cNCReaderBadData:
                 reader.load([make_dataid(
                     name="vis_06",
                     calibration="reflectance")], pad_data=False)
-                assert "cannot produce reflectance" in caplog.text
+                assert (("cannot produce reflectance" in caplog.text) or
+                        ("cannot produce radiance_factor" in caplog.text))
