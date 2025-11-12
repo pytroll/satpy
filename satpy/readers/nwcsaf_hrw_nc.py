@@ -101,6 +101,7 @@ Full list of the printed datasets is::
 
 import datetime as dt
 import logging
+from abc import ABCMeta, abstractmethod
 from contextlib import suppress
 
 import dask.array as da
@@ -228,7 +229,7 @@ def NWCSAFGEOHRWFileHandler(filename, filename_info, filetype_info, merge_channe
         return NWCSAFHRWV2025FileHandler(filename, filename_info, filetype_info)
 
 
-class NWCSAFHRWBase(BaseFileHandler):
+class NWCSAFHRWBase(BaseFileHandler, metaclass=ABCMeta):
     """A file handler class for NWC SAF GEO HRW files."""
 
     def __init__(self, filename, filename_info, filetype_info, merge_channels=False):
@@ -254,9 +255,9 @@ class NWCSAFHRWBase(BaseFileHandler):
         with suppress(OSError):
             self.h5f.close()
 
+    @abstractmethod
     def available_datasets(self, configured_datasets=None):
         """Form the names for the available datasets."""
-        raise NotImplementedError
 
     def _measurand_ds_info(self, prefix, measurand):
         ds_info = {
@@ -273,9 +274,9 @@ class NWCSAFHRWBase(BaseFileHandler):
 
         return ds_info
 
+    @abstractmethod
     def get_dataset(self, key, info):
         """Load a dataset."""
-        raise NotImplementedError
 
     def _read_merged_dataset(self, dataset_key):
         """Read a dataset merged from every channel."""
@@ -333,12 +334,9 @@ class NWCSAFHRWBase(BaseFileHandler):
 
         return xr_data
 
+    @abstractmethod
     def _read_dataset(self, dataset_key):
         """Read a dataset."""
-        raise NotImplementedError
-
-    def _read_channel_coordinates(self, channel):
-        raise NotImplementedError
 
     @property
     def start_time(self):
