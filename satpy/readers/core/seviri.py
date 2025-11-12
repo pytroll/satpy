@@ -588,8 +588,10 @@ class SEVIRICalibrationAlgorithm:
         elif cal_type == 2:
             # effective radiances
             return self._erads2bt(data, channel_name)
-        else:
-            raise NotImplementedError("Unknown calibration type")
+        elif cal_type == 0:
+            raise ValueError(f"No calibration coefficients available for {channel_name} "
+                            "(PlannedChanProcessing is zero)")
+        raise NotImplementedError("Unknown calibration type")
 
     def _srads2bt(self, data, channel_name):
         """Convert spectral radiance to brightness temperature."""
