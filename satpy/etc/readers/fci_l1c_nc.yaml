@@ -266,6 +266,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -287,6 +288,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -309,6 +311,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -330,6 +333,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -351,6 +355,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -372,6 +377,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -393,6 +399,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -415,6 +422,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # WARN: to be removed
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
