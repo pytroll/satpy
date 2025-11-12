@@ -405,7 +405,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance", "radiance_factor"]:
+        if key["calibration"] in ["brightness_temperature",
+                                  # 8< v1.0
+                                  "reflectance",
+                                  # >8 v1.0
+                                  "radiance_factor",
+                                  "radiance"]:
             res.attrs.pop("add_offset")
             res.attrs.pop("warm_add_offset")
             res.attrs.pop("scale_factor")
@@ -646,12 +651,21 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance", "radiance_factor"]:
+        if key["calibration"] in ["brightness_temperature",
+                                  # 8< v1.0
+                                  "reflectance",
+                                  # >8 v1.0
+                                  "radiance_factor",
+                                  "radiance"]:
             data = self.calibrate_counts_to_physical_quantity(data, key)
         elif key["calibration"] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance', 'radiance', 'radiance_factor' or 'counts', got "
+                "'brightness_temperature', "
+                # 8< v1.0
+                "'reflectance', "
+                # >8 v1.0
+                "'radiance', 'radiance_factor' or 'counts', got "
                 + key["calibration"] + ".")
 
         return data
@@ -664,10 +678,16 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         if key["calibration"] == "brightness_temperature":
             data = self.calibrate_rad_to_bt(data, key)
-        elif key["calibration"] in ["reflectance", "radiance_factor"]:
+        elif key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
+            # 8< v1.0
             if key["calibration"] == "reflectance":
                 warn("Reflectance is not a correct calibration for FCI channels, please use 'radiance_factor'",
                      DeprecationWarning)
+            # >8 v1.0
             data = self.calibrate_rad_to_refl(data, key)
 
         return data
@@ -739,7 +759,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
-                "cannot produce radiance_factor for {:s}.".format(measured))
+                f"cannot produce {key['calibration'].name} for {measured}.")
             return radiance * np.float32(np.nan)
         sun_earth_distance = self._compute_sun_earth_distance
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi

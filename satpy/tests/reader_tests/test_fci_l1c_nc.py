@@ -128,11 +128,13 @@ DICT_CALIBRATION = {"radiance": {"dtype": np.float32,
                                                 },
                                  },
 
+                    # 8< v1.0
                     "reflectance": {"dtype": np.float32,
                                     "attrs_dict": {"calibration": "reflectance",
                                                    "units": "%"
                                                    },
                                     },
+                    # >8 v1.0
                     "radiance_factor": {"dtype": np.float32,
                                         "attrs_dict": {"calibration": "radiance_factor",
                                                        "units": "%"
@@ -578,8 +580,12 @@ def clear_cache(reader):
 
 def get_list_channel_calibration(calibration):
     """Get the channel's list according the calibration."""
-    if calibration == "reflectance":
+    if calibration == "radiance_factor":
         return LIST_CHANNEL_SOLAR
+    # 8< v1.0
+    elif calibration == "reflectance":
+        return LIST_CHANNEL_SOLAR
+    # >8 v1.0
     elif calibration == "brightness_temperature":
         return LIST_CHANNEL_TERRAN
     else:
@@ -755,8 +761,8 @@ class ModuleTestFCIL1cNcReader:
             assert atr not in res[ch].attrs
 
     @staticmethod
-    def _reflectance_test(tab, filenames):
-        """Test of with the reflectance test."""
+    def _radiance_facter_test(tab, filenames):
+        """Test of with the radiance_factor test."""
         if "IQTI" in filenames:
             numpy.testing.assert_array_almost_equal(tab,
                                                     93.6462, decimal=4)
@@ -785,10 +791,17 @@ class ModuleTestFCIL1cNcReader:
         """Test the value for different channels."""
         self._get_assert_attrs(res, ch, dict_arg["attrs_dict"])
         if dict_arg["attrs_dict"]["calibration"] in ["radiance", "brightness_temperature",
-                                                     "reflectance", "radiance_factor"]:
+                                                     # 8< v1.0
+                                                     "reflectance",
+                                                     # >8 v1.0
+                                                     "radiance_factor"]:
             self._get_assert_erased_attrs(res, ch)
-        if dict_arg["attrs_dict"]["calibration"] in ["reflectance", "radiance_factor"]:
-            self._reflectance_test(res[ch], filenames)
+        if dict_arg["attrs_dict"]["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
+            self._radiance_facter_test(res[ch], filenames)
         else:
             self._other_calibration_test(res, ch, dict_arg)
 
@@ -856,7 +869,10 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         assert len(files) == 0
 
     @pytest.mark.parametrize("calibration", ["counts", "radiance", "brightness_temperature",
-                                             "reflectance", "radiance_factor"])
+                                             # 8< v1.0
+                                             "reflectance",
+                                             # >8 v1.0
+                                             "radiance_factor"])
     @pytest.mark.parametrize(("fh_param", "res_type"), [
             (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), "hdfi"),
             (lazy_fixture("FakeFCIFileHandlerHRFI_fixture"), "hrfi"),
@@ -869,19 +885,20 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                                                         ])
     def test_load_calibration(self, reader_configs, fh_param,
                               caplog, calibration, res_type):
-        """Test loading with counts, radiance, reflectance, radiance_factor and bt."""
+        """Test loading with counts, radiance, radiance_factor and bt."""
         expected_res_n = {}
         if calibration == "radiance_factor":
             list_chan = fh_param["channels"]["solar"]
             list_grid = fh_param["channels"]["solar_grid_type"]
             expected_res_n["hdfi"] = 8
             expected_res_n["hrfi"] = 2
+        # 8< v1.0
         elif calibration == "reflectance":
-            # WARN: This needs to be removed when reflectance is removed from the possible calibrations
             list_chan = fh_param["channels"]["solar"]
             list_grid = fh_param["channels"]["solar_grid_type"]
             expected_res_n["hdfi"] = 8
             expected_res_n["hrfi"] = 2
+        # >8 v1.0
         elif calibration == "brightness_temperature":
             list_chan = fh_param["channels"]["terran"]
             list_grid = fh_param["channels"]["terran_grid_type"]
@@ -943,11 +960,17 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
-        for calibration in ["counts", "radiance", "brightness_temperature", "reflectance"]
+        for calibration in ["counts",
+                            "radiance",
+                            "brightness_temperature",
+                            # 8< v1.0
+                            "reflectance",
+                            # >8 v1.0
+                            "radiance_factor"]
         for channel, resolution in generate_parameters(calibration)
     ])
     def test_load_calibration_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, calibration, caplog):
-        """Test loading with counts,radiance,reflectance and bt for AF files."""
+        """Test loading with counts, radiance, radiance_factor and bt for AF files."""
         expected_res_n = 1
         fh_param = FakeFCIFileHandlerAF_fixture
         type_ter = self._get_type_ter_AF(channel)
@@ -1311,13 +1334,17 @@ class TestFCIL1cNCReaderBadData:
                     calibration="brightness_temperature")], pad_data=False)
                 assert "cannot produce brightness temperature" in caplog.text
 
-    def test_handling_bad_data_vis(self, reader_configs, caplog):
+    @pytest.mark.parametrize("calibration", [
+        # 8< v1.0
+        "reflectance",
+        # >8 v1.0
+        "radiance_factor"])
+    def test_handling_bad_data_vis(self, reader_configs, caplog, calibration):
         """Test handling of bad VIS data."""
         with mocked_basefilehandler(FakeFCIFileHandlerWithBadData):
             reader = _get_reader_with_filehandlers(TEST_FILENAMES["fdhsi"], reader_configs)
             with caplog.at_level(logging.ERROR):
                 reader.load([make_dataid(
                     name="vis_06",
-                    calibration="reflectance")], pad_data=False)
-                assert (("cannot produce reflectance" in caplog.text) or
-                        ("cannot produce radiance_factor" in caplog.text))
+                    calibration=calibration)], pad_data=False)
+                assert f"cannot produce {calibration}" in caplog.text
