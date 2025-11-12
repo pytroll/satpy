@@ -178,9 +178,12 @@ def _get_aux_data_name_from_dsname(dsname):
 
 
 def _get_channel_name_from_dsname(dsname):
-    channel_name = dsname.removesuffix("_pixel_quality")
-    channel_name = channel_name.removesuffix("_index_map")
-    if _get_aux_data_name_from_dsname(dsname) is not None:
+    # FIXME: replace by .removesuffix after we drop support for Python < 3.9
+    if dsname.endswith("_pixel_quality"):
+        channel_name = dsname[:-len("_pixel_quality")]
+    elif dsname.endswith("_index_map"):
+        channel_name = dsname[:-len("_index_map")]
+    elif _get_aux_data_name_from_dsname(dsname) is not None:
         channel_name = dsname[:-len(_get_aux_data_name_from_dsname(dsname)) - 1]
     else:
         channel_name = dsname
