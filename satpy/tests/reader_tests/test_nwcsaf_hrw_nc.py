@@ -21,7 +21,7 @@ import h5py
 import numpy as np
 import pytest
 
-from satpy.readers.nwcsaf_hrw_nc import PRE_V2025_SEVIRI_WIND_CHANNELS
+from satpy.readers.nwcsaf_hrw_nc import POST_V2025_DATASETS, PRE_V2025_SEVIRI_WIND_CHANNELS
 from satpy.tests.utils import RANDOM_GEN
 
 # This is the actual dtype of the trajectory items. We do not support it, so won't add this
@@ -292,6 +292,17 @@ def test_hrw_handler_init_v2025(hrw_v2025_file):
     assert fh.sensor == "fci"
 
 
+def test_available_datasets_v2025(hrw_v2025_file):
+    """Test that dynamic creation of available datasets works."""
+    from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
+
+    fh = NWCSAFGEOHRWFileHandler(hrw_v2025_file, FILENAME_INFO, FILETYPE_INFO)
+
+    avail = fh.available_datasets()
+    avail_dsets = set(d[1]["name"] for d in avail)
+    assert avail_dsets == set(POST_V2025_DATASETS)
+
+
 def test_get_dataset_v2025(hrw_v2025_file):
     """Test reading a dataset from a file in v2025 format."""
     from satpy.readers.nwcsaf_hrw_nc import NWCSAFGEOHRWFileHandler
@@ -315,3 +326,17 @@ def test_hrw_via_scene_v2025(hrw_v2025_file):
     assert "units" in data.attrs
     assert "standard_name" in data.attrs
     assert np.isnan(data[0].compute())
+
+
+@pytest.mark.parametrize("dset", ["longitude", "latitude"])
+def test_lon_and_lat_via_scene_v2025(hrw_v2025_file, dset):
+    """Test reading longitude and latitude datasets v2025 datasets via Scene."""
+    from satpy import Scene
+
+    scn = Scene(reader="nwcsaf-geo", filenames=[hrw_v2025_file])
+    scn.load([dset])
+    data = scn[dset]
+
+    assert data.shape == (NUM_OBS,)
+    assert "units" in data.attrs
+    assert "standard_name" in data.attrs
