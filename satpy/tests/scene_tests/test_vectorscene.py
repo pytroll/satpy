@@ -15,14 +15,49 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for VectorScene."""
 
+import os
+import unittest.mock
+
+from satpy.readers.core.file_handlers import BaseFileHandler
+
+
+class DummyFileHandler(BaseFileHandler):
+    """Dummy file handler for testing vector datasets."""
+
+    def get_dataset(self, data_id, data_info):
+        """Dummy get dataset."""
+        import geopandas
+        return geopandas.GeoDataFrame()
+
+dummy_config = f"""reader:
+    name: fake_l99_dummy
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+    sensors: [dummy_vector_sensor]
+file_types:
+    dummy_vector_filetype:
+        file_reader: !!python/name:{DummyFileHandler.__module__:s}.DummyFileHandler
+        file_patterns: ["grenadines"]
+datasets:
+    dummy:
+        name: dummy_vector_dataset
+        file_type: dummy_vector_filetype
+"""
 
 def test_init():
     """Test VectorScene initialisation."""
     from satpy.vectorscene import VectorScene
     VectorScene()
 
-def test_load():
+def test_load(tmp_path):
     """Test loading some vector data."""
+    import geopandas
+
     from satpy.vectorscene import VectorScene
-    vs = VectorScene(filenames=["dummy_filename"], reader=["dummy_vector_reader"])
-    vs.load(["dummy_vector_dataset"])
+    dummy_reader_path = tmp_path / "dummy_vector_reader.yaml"
+    with dummy_reader_path.open("w") as fp:
+        fp.write(dummy_config)
+    with unittest.mock.patch("satpy.readers.core.loading.configs_for_reader") as srclc:
+        srclc.return_value = [[os.fspath(dummy_reader_path)]]
+        vs = VectorScene(filenames=["grenadines"], reader=["dummy_vector_reader"])
+        vs.load(["dummy_vector_dataset"])
+        assert isinstance(vs["dummy_vector_dataset"], geopandas.GeoDataFrame)

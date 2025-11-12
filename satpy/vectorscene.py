@@ -31,4 +31,14 @@ from .scene import BaseScene
 
 
 class VectorScene(BaseScene):
-    """Experimental class to encode vector data."""
+    """Experimental class to encode vector data.
+
+    The datasets in a VectorScene are not xarray dataarrays but geopandas
+    geodataframes.  Some things work differently.
+
+    The VectorScene is EXPERIMENTAL AND SUBJECT TO CHANGE.
+
+    -----------------------------------------------------
+    -------------    DO  NOT  USE !!!!!!  ---------------
+    -----------------------------------------------------
+    """
