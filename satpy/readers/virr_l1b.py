@@ -51,15 +51,6 @@ from satpy.readers.core.hdf5 import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 
-# PROVIDED BY NIGEL ATKINSON - 2013
-# FY3B_REF_COEFFS = [
-#     0.12640, -1.43200,  #channel1#
-#     0.13530, -1.62360,  #channel2#
-#     0.09193, -2.48207,  #channel6#
-#     0.07480, -0.90980,  #channel7#
-#     0.07590, -0.91080,  #channel8#
-#     0.07460, -0.89520,  #channel9#
-#     0.06300, -0.76280]  #channel10#
 # CMA - 2015 - http://www.nsmc.org.cn/en/NSMC/Contents/100089.html
 FY3B_REF_COEFFS = [
     0.1264, -1.4320,
@@ -123,7 +114,11 @@ class VIRR_L1B(HDF5FileHandler):
         units = self.get(file_key + "/attr/units")
         if units is not None and str(units).lower() != "none":
             data.attrs.update({"units": self.get(file_key + "/attr/units")})
-        elif data.attrs.get("calibration") == "reflectance":
+        elif data.attrs.get("calibration") in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             data.attrs.update({"units": "%"})
         else:
             data.attrs.update({"units": "1"})

@@ -140,10 +140,17 @@ class TestVIRRL1BReader(unittest.TestCase):
             assert datetime.datetime(2018, 12, 25, 21, 47, 28, 254000) == attributes["end_time"]
             assert (19, 20) == datasets[dataset["name"]].shape
             assert ("y", "x") == datasets[dataset["name"]].dims
+            # 8< v1.0
             if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
                 self._band_helper(attributes, "%", "reflectance",
                                   "toa_bidirectional_reflectance", "virr_l1b",
                                   7, 1000)
+            # >8 v1.0
+            # WARN: v1.0 uncomment this
+            # if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
+            #     self._band_helper(attributes, "%", "radiance_factor",
+            #                       "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
+            #                       "virr_l1b", 7, 1000)
             elif dataset["name"] in ["3", "4", "5"]:
                 self._band_helper(attributes, Emissive_units, "brightness_temperature",
                                   "toa_brightness_temperature", "virr_l1b", 3, 1000)
