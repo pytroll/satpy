@@ -64,7 +64,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable = self._filter_dqf(variable)
 
         # convert to satpy standard units
-        if variable.attrs["units"] == "1" and key.get("calibration") == "reflectance":
+        if variable.attrs["units"] == "1" and key.get("calibration") == "radiance_factor":
             variable *= 100.0
             variable.attrs["units"] = "%"
 
