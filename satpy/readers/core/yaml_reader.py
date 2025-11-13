@@ -29,6 +29,7 @@ from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 import yaml
 from pyresample.boundary import AreaDefBoundary, Boundary
@@ -126,7 +127,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     """Base class for all readers that use YAML configuration files.
 
     This class should only be used in rare cases. Its child class
-    `FileYAMLReader` should be used in most cases.
+    `RasterFileYAMLReader` should be used in most cases.
 
     """
 
@@ -704,8 +705,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
                 self.available_ids[ds_id] = ds_info
         self.all_ids = new_ids
 
-    @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim="y", **kwargs):
+    def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", **kwargs):
         """Load only a piece of the dataset."""
         slice_list = []
         failure = True
@@ -723,15 +723,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        if dim not in slice_list[0].dims:
-            return slice_list[0]
-        res = xr.concat(slice_list, dim=dim)
-
-        combined_info = file_handlers[0].combine_info(
-            [p.attrs for p in slice_list])
-
-        res.attrs = combined_info
-        return res
+        return self._combine_projectables(slice_list, file_handlers, dim=dim)
 
     def _load_dataset_data(self, file_handlers, dsid, **kwargs):
         ds_info = self.all_ids[dsid]
@@ -985,6 +977,51 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         return cids
 
 
+class RasterFileYAMLReader(FileYAMLReader):
+    """YAML reader for file handlers with raster data.
+
+    This YAML reader is for file handlers that return raster data, returned as
+    xarray data arrays, contained in a Scene, and described by an
+    AreaDefinition.  This is the case for almost all satpy readers.
+    """
+
+    @staticmethod
+    def _combine_projectables(slice_list, file_handlers, dim):
+        """Combine projectables into a single object."""
+        if dim not in slice_list[0].dims:
+            return slice_list[0]
+        res = xr.concat(slice_list, dim=dim)
+
+        combined_info = file_handlers[0].combine_info(
+            [p.attrs for p in slice_list])
+
+        res.attrs = combined_info
+        return res
+
+
+class VectorFileYAMLReader(FileYAMLReader):
+    """YAML reader for file handlers with vector data.
+
+    This YAML reader is for file handlers that return vector data, returned as
+    geopandas geodataframes, contained in a VectorScene.  This is the case for
+    a small minority of satpy readers.
+    """
+
+    @staticmethod
+    def _combine_projectables(slice_list, file_handlers, dim):
+        """Combine projectables into a single object."""
+        return pd.concat(slice_list)
+
+    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
+        """Loading area not applicable."""
+        return None
+
+    @staticmethod
+    def _assign_coords_from_dataarray(coords, ds):
+        """Assigning coordinates not applicable."""
+        return []
+
+
 def _load_area_def(dsid, file_handlers):
     """Load the area definition of *dsid*."""
     area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
@@ -1140,7 +1177,7 @@ def _get_new_flipped_area_definition(dataset_area_attr, area_extents_to_update, 
     return new_area_def
 
 
-class GEOFlippableFileYAMLReader(FileYAMLReader):
+class GEOFlippableFileYAMLReader(RasterFileYAMLReader):
     """Reader for flippable geostationary data."""
 
     def _load_dataset_with_area(self, dsid, coords, upper_right_corner="native", **kwargs):
@@ -1205,7 +1242,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", pad_data=True):
         """Load only a piece of the dataset."""
         if not pad_data:
-            return FileYAMLReader._load_dataset(dsid, ds_info,
+            return RasterFileYAMLReader._load_dataset(dsid, ds_info,
                                                 file_handlers)
 
         counter, expected_segments, slice_list, failure, projectable = \

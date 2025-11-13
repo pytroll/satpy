@@ -31,7 +31,7 @@ class DummyFileHandler(BaseFileHandler):
 
 dummy_config = f"""reader:
     name: fake_l99_dummy
-    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.VectorFileYAMLReader
     sensors: [dummy_vector_sensor]
 file_types:
     dummy_vector_filetype:
