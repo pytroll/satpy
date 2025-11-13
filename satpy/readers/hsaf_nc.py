@@ -18,13 +18,13 @@
 
 """Reader for H SAF blended precipitation products in NetCDF format.
 
-These products provide instantaneous precipitation rate estimates derived from
-a blending of geostationary (GEO) infrared and low-Earth-orbit (LEO) microwave
-observations using the H SAF "Rapid Update" algorithm.
+These products provide precipitation estimates derived from a blending of
+geostationary (GEO) infrared and low-Earth-orbit (LEO) microwave observations
+using the H SAF "Rapid Update" algorithm.
 
 Currently, this reader supports the following products:
-  * **H60B** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
-    full Meteosat (0°) disk.
+  * **H60/H60B** – Blended GEO/IR and LEO/MW instantaneous precipitation over
+  the full Meteosat (0°) disk.
   * **H63** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
     Meteosat IODC (Indian Ocean) disk.
   * **H90** – Accumulated Precipitation at ground by blended MW and IR IODC
@@ -35,25 +35,32 @@ Notes:
       uncompressed to the same directory and deleted on reader close.
     - The reader relies on area definitions provided in the accompanying YAML
       configuration file.
-    - Supports ``rain_rate`` and ``q_ind#`` datasets.
+    - Supports ``rain_rate`` and ``q_ind`` datasets.
     - Output coverage and resolution correspond to the MSG-SEVIRI grid.
 """
 
 import datetime as dt
 import gzip
 import logging
-import os
 import shutil
+import tempfile
 from pathlib import Path
 
 import xarray as xr
-from pyresample import AreaDefinition
 
 from satpy.area import get_area_def
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
+
+platform_translate = {"MSG1": "Meteosat-8",
+                      "MSG2": "Meteosat-9",
+                      "MSG3": "Meteosat-10",
+                      "MSG4": "Meteosat-11",
+                      }
+
+CHUNK_SIZE = get_legacy_chunk_size()
 
 def gunzip(source, destination):
     """Unzips an externally compressed HSAF file."""
@@ -85,7 +92,7 @@ class HSAFFileWrapper:
             self.filename = str(self._tmp_file)
 
         # Open dataset
-        chunks = get_legacy_chunk_size()
+        chunks = CHUNK_SIZE
         LOG.debug(f"Opening HSAF file {self.filename}")
         self.nc_data = xr.open_dataset(self.filename, decode_cf=True, chunks=chunks)
 
@@ -106,40 +113,25 @@ class HSAFFileWrapper:
             finally:
                 self._tmp_file = None
 
-def _resolve_area(area_value):
-    """Resolve an area definition from corresponding string value."""
-    if isinstance(area_value, AreaDefinition):
-        resolved_area = area_value
-    elif isinstance(area_value, str):
-        try:
-            resolved_area = get_area_def(area_value)
-        except Exception:
-            # if resolution fails, keep the original string (fallback)
-            LOG.warning(f"Area value {area_value} could not be resolved to an AreaDefinition")
-            resolved_area = area_value
-    else:
-        # None or unexpected type, keep as-is
-        LOG.warning(f"Area value {area_value} is neither a str nor an AreaDefinition")
-        resolved_area = area_value
-
-    return resolved_area
-
 
 class HSAFNCFileHandler(BaseFileHandler):
     """Handle H SAF NetCDF files, with optional .gz external compression.
 
     This file handler handles H SAF Instantaneous Rain Rate products which contain:
-    - rr: rain rate in mm/h
+    - rr: rain rate in mm/h (instantaneous) or mm (accumulated)
     - qind: quality index in percent
 
     The data is on a geostationary projection grid.
-    This file handler is tested with H SAF h60, h63 & h40 data in NetCDF format.
+    This file handler is tested with H SAF h60/h60b, h63 & h90 data in NetCDF
+    format.
     """
 
     def __init__(self, filename, filename_info, filetype_info):
         """Create a wrapper to opens the nc file and store the nc data."""
         super().__init__(filename, filename_info, filetype_info)
         self._wrapper = HSAFFileWrapper(filename)
+        self._area_name = None
+        self._lon_0 = None
 
     def close(self):
         """Clean up by closing the dataset."""
@@ -151,15 +143,15 @@ class HSAFNCFileHandler(BaseFileHandler):
             "filename": self.filename,
             "start_time": self.start_time,
             "end_time": self.end_time,
-            "spacecraft_name": self._wrapper.nc_data.attrs["satellite_identifier"],
-            "platform_name": self._wrapper.nc_data.attrs["satellite_identifier"],
+            "spacecraft_name": platform_translate.get(self._wrapper.nc_data.attrs["satellite_identifier"], "N/A"),
+            "platform_name": platform_translate.get(self._wrapper.nc_data.attrs["satellite_identifier"], "N/A"),
         }
 
         return attributes
 
     @staticmethod
     def _standarize_dims(dataset):
-        """Standarize dims to y & x (what Satpy/pyresample expect), if it is needed."""
+        """Standardize dims to y & x (what Satpy/pyresample expect), if it is needed."""
         if "y" not in dataset.dims:
             dataset = dataset.rename({"ny": "y"})
         if "x" not in dataset.dims:
@@ -183,25 +175,18 @@ class HSAFNCFileHandler(BaseFileHandler):
         # Add metadata from YAML
         for key, value in dataset_info.items():
             if key == "area":
-                data.attrs[key] = _resolve_area(value)
+                self._area_name = value
             elif key not in ("file_key",):
                 data.attrs[key] = value
+
+        data.attrs["resolution"] = self.filetype_info["resolution"]
+        self._area_name = self.filetype_info["area"]
+        self._lon_0 = float(self._wrapper.nc_data.attrs["sub_satellite_longitude"].rstrip("f"))
 
         # Add global attributes which are shared across datasets
         data.attrs.update(self._get_global_attributes())
 
         return data
-
-    def combine_info(self, all_infos):
-        """Override super class method to prevent AreaDefinitions being replaced with SwathDefinitions."""
-        # Default combination (times, orbits, etc.)
-        combined_info = super().combine_info(all_infos)
-
-        # If 'area' is already an AreaDefinition, keep it
-        if "area" in all_infos[0] and hasattr(all_infos[0]["area"], "area_id"):
-            combined_info["area"] = all_infos[0]["area"]
-
-        return combined_info
 
     @property
     def end_time(self):
@@ -212,3 +197,18 @@ class HSAFNCFileHandler(BaseFileHandler):
     def start_time(self):
         """Get start time."""
         return self.filename_info["start_time"]
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the band."""
+        area_def = get_area_def(self._area_name)
+
+        if area_def.proj_dict["lon_0"] != self._lon_0:
+            LOG.warning("Subsatellite longitude does not match the `lon_0` value in the AreaDefinition projection"
+                        f" '{self._area_name}'. `lon_0` will now be adapted to the value from the loaded data.")
+
+            pdict_new = area_def.proj_dict.copy()
+            pdict_new["lon_0"] = self._lon_0
+
+            area_def = area_def.copy(projection=pdict_new)
+
+        return area_def

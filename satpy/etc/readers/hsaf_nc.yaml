@@ -3,8 +3,8 @@ reader:
   short_name: Hydrology SAF
   long_name: "H SAF products in NetCDF4 format"
   description: |
-    Reader configuration for H SAF H60, H63 and H90 NetCDF files containing
-    rain rate (rr) and quality index (qind).
+    Reader configuration for H SAF H60/H60B, H63 and H90 NetCDF files
+    containing rain rate (rr and acc_rr) and quality index (qind).
   status: Alpha
   supports_fsspec: false
   sensors: [hsaf]
@@ -21,6 +21,8 @@ file_types:
       - 'S-HSAF-h60_{start_time:%Y%m%d_%H%M}_{suffix}.nc.gz'
       # uncompressed (might still be internally compressed)
       - 'S-HSAF-h60_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
+    area: msg_seviri_fes_3km
+    resolution: 3000
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
   hsaf_h63_nc:
     file_patterns:
@@ -32,6 +34,8 @@ file_types:
       - 'S-HSAF-h63_{start_time:%Y%m%d_%H%M}_{suffix}.nc.gz'
       # uncompressed (might still be internally compressed)
       - 'S-HSAF-h63_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
+    area: msg_seviri_iodc_3km
+    resolution: 3000
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
   hsaf_h90_nc:
     file_patterns:
@@ -43,71 +47,32 @@ file_types:
       - 'S-HSAF-h90_{start_time:%Y%m%d_%H%M}_{suffix}.nc.gz'
       # uncompressed (might still be internally compressed)
       - 'S-HSAF-h90_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
+    area: msg_seviri_iodc_3km
+    resolution: 3000
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
 
 datasets:
-  h60_rr:
-    name: h60_rr
-    file_type: hsaf_h60_nc
-    file_key: rr
-    standard_name: rain_rate
-    long_name: "Instantaneous Rain Rate"
-    units: "mm/h"
-    area: msg_seviri_fes_3km
-    resolution: 3000
-    sensor: hsaf
-
-  h60_qind:
-    name: h60_qind
-    file_type: hsaf_h60_nc
-    file_key: qind
-    standard_name: quality_index
-    long_name: "Pixel Quality Index"
-    units: "percent"
-    area: msg_seviri_fes_3km
-    resolution: 3000
-    sensor: hsaf
-
-  h63_rr:
-    name: h63_rr
-    file_type: hsaf_h63_nc
-    file_key: rr
-    standard_name: rain_rate
-    long_name: "Instantaneous Rain Rate"
-    units: "mm/h"
-    area: msg_seviri_iodc_3km
-    resolution: 3000
-    sensor: hsaf
-
-  h63_qind:
-    name: h63_qind
-    file_type: hsaf_h63_nc
-    file_key: qind
-    standard_name: quality_index
-    long_name: "Pixel Quality Index"
-    units: "percent"
-    area: msg_seviri_iodc_3km
-    resolution: 3000
-    sensor: hsaf
-
-  h90_rr:
-    name: h90_rr
-    file_type: hsaf_h90_nc
+  acc_rr:
+    name: acc_rr
     file_key: acc_rr
+    file_type: [hsaf_h90_nc]
     standard_name: rain_rate
     long_name: "Accumulated Precipitation"
     units: "mm"
-    area: msg_seviri_iodc_3km
-    resolution: 3000
     sensor: hsaf
-
-  h90_qind:
-    name: h90_qind
-    file_type: hsaf_h90_nc
+  rr:
+    name: rr
+    file_key: rr
+    file_type: [hsaf_h60_nc, hsaf_h63_nc]
+    standard_name: rain_rate
+    long_name: "Instantaneous Rain Rate"
+    units: "mm/h"
+    sensor: hsaf
+  qind:
+    name: qind
     file_key: qind
+    file_type: [hsaf_h60_nc, hsaf_h63_nc, hsaf_h90_nc]
     standard_name: quality_index
     long_name: "Pixel Quality Index"
-    units: "percent"
-    area: msg_seviri_iodc_3km
-    resolution: 3000
+    units: "%"
     sensor: hsaf
