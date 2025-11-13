@@ -313,10 +313,14 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         if calib_coeffs is None:
             calib_coeffs = {}
 
-        units = {"reflectance": "%",
-                 "brightness_temperature": "K",
-                 "counts": "",
-                 "radiance": "W*m-2*sr-1*cm ?"}
+        units = {
+            # 8< v1.0
+            "reflectance": "%",
+            # >8 v1.0
+            "radiance_factor": "%",
+            "brightness_temperature": "K",
+            "counts": "",
+            "radiance": "W*m-2*sr-1*cm ?"}
 
         if dataset_id["name"] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
@@ -544,12 +548,25 @@ def _vis_calibrate(data,
                    mask=True):
     """Calibrate visible channel data.
 
-    *calib_type* in count, reflectance, radiance.
+    *calib_type* in count, radiance_factor, radiance.
 
     """
+    # 8< v1.0
+    import warnings
+    if calib_type == "reflectance":
+        warnings.warn("Reflectance is not a correct calibration for AVHRR AAPP L1b, "
+                      "please use 'radiance_factor'",
+                      DeprecationWarning)
+    # >8 v1.0
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
-    if calib_type not in ["counts", "radiance", "reflectance"]:
+    if calib_type not in [
+            "counts",
+            "radiance",
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "radiance_factor"]:
         raise ValueError("Calibration " + calib_type + " unknown!")
 
     channel_data = data["hrpt"][:, :, chn]
@@ -597,9 +614,9 @@ def _vis_calibrate(data,
         # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
         # them to real numbers which are applied to the measured counts. The coefficient is different depending on
         # whether the counts are less than or greater than the high-gain/low-gain transition value (nominally 500).
-        # The slope for visible channels should always be positive (reflectance increases with count). With the
+        # The slope for visible channels should always be positive (radiance_factor increases with count). With the
         # pre-launch coefficients the channel 2, 3a slope is always positive but with the operational coefs the stored
-        # number in the high-reflectance regime overflows the maximum 2147483647, i.e. it is negative when
+        # number in the high-radiance_factor regime overflows the maximum 2147483647, i.e. it is negative when
         # interpreted as a signed integer. So you have to modify it. Also chanel 1 is treated the same way in AAPP.
         slope2 = da.where(slope2 < 0, slope2 + 0.4294967296, slope2)
 
