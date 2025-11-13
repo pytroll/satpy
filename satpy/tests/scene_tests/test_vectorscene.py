@@ -26,8 +26,12 @@ class DummyFileHandler(BaseFileHandler):
 
     def get_dataset(self, data_id, data_info):
         """Dummy get dataset."""
-        import geopandas
-        return geopandas.GeoDataFrame()
+        from geopandas import GeoDataFrame
+        from shapely import Point
+        return GeoDataFrame(
+                {"col1": ["name1", "name2"],
+                 "geometry": [Point(1, 2), Point(2, 1)]},
+                crs="EPSG:4326")
 
 dummy_config = f"""reader:
     name: fake_l99_dummy

@@ -635,6 +635,171 @@ class BaseScene:
                 continue
             yield trunk_node
 
+    def generate_possible_composites(self, unload):
+        """See which composites can be generated and generate them.
+
+        Args:
+            unload (bool): if the dependencies of the composites
+                           should be unloaded after successful generation.
+        """
+        keepables = self._generate_composites_from_loaded_datasets()
+
+        if self.missing_datasets:
+            self._remove_failed_datasets(keepables)
+        if unload:
+            self.unload(keepables=keepables)
+
+    def _generate_composites_from_loaded_datasets(self):
+        """Compute all the composites contained in `requirements`."""
+        trunk_nodes = self._dependency_tree.trunk(limit_nodes_to=self.missing_datasets,
+                                                  limit_children_to=self._datasets.keys())
+        needed_comp_nodes = set(self._filter_loaded_datasets_from_trunk_nodes(trunk_nodes))
+        return self._generate_composites_nodes_from_loaded_datasets(needed_comp_nodes)
+
+    def _generate_composites_nodes_from_loaded_datasets(self, compositor_nodes):
+        """Read (generate) composites."""
+        keepables = set()
+        for node in compositor_nodes:
+            self._generate_composite(node, keepables)
+        return keepables
+
+    def _generate_composite(self, comp_node: CompositorNode, keepables: set):
+        """Collect all composite prereqs and create the specified composite.
+
+        Args:
+            comp_node: Composite Node to generate a Dataset for
+            keepables: `set` to update if any datasets are needed
+                       when generation is continued later. This can
+                       happen if generation is delayed to incompatible
+                       areas which would require resampling first.
+
+        """
+        if self._datasets.contains(comp_node.name):
+            # already loaded
+            return
+
+        compositor = comp_node.compositor
+        prereqs = comp_node.required_nodes
+        optional_prereqs = comp_node.optional_nodes
+
+        try:
+            delayed_prereq = False
+            prereq_datasets = self._get_prereq_datasets(
+                comp_node.name,
+                prereqs,
+                keepables,
+            )
+        except DelayedGeneration:
+            # if we are missing a required dependency that could be generated
+            # later then we need to wait to return until after we've also
+            # processed the optional dependencies
+            delayed_prereq = True
+        except KeyError:
+            # we are missing a hard requirement that will never be available
+            # there is no need to "keep" optional dependencies
+            return
+
+        optional_datasets = self._get_prereq_datasets(
+            comp_node.name,
+            optional_prereqs,
+            keepables,
+            skip=True
+        )
+
+        # we are missing some prerequisites
+        # in the future we may be able to generate this composite (delayed)
+        # so we need to hold on to successfully loaded prerequisites and
+        # optional prerequisites
+        if delayed_prereq:
+            preservable_datasets = set(self._datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            return
+
+        try:
+            composite = compositor(prereq_datasets,
+                                   optional_datasets=optional_datasets,
+                                   **comp_node.name.to_dict())
+            cid = DataID.new_id_from_dataarray(composite)
+            self._datasets[cid] = composite
+
+            # update the node with the computed DataID
+            if comp_node.name in self._wishlist:
+                self._wishlist.remove(comp_node.name)
+                self._wishlist.add(cid)
+            self._dependency_tree.update_node_name(comp_node, cid)
+        except IncompatibleAreas:
+            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
+            preservable_datasets = set(self._datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            # even though it wasn't generated keep a list of what
+            # might be needed in other compositors
+            keepables.add(comp_node.name)
+            return
+
+    def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
+        """Get a composite's prerequisites, generating them if needed.
+
+        Args:
+            comp_id (DataID): DataID for the composite whose
+                                 prerequisites are being collected.
+            prereq_nodes (Sequence[Node]): Prerequisites to collect
+            keepables (set): `set` to update if any prerequisites can't
+                             be loaded at this time (see
+                             `_generate_composite`).
+            skip (bool): If True, consider prerequisites as optional and
+                         only log when they are missing. If False,
+                         prerequisites are considered required and will
+                         raise an exception and log a warning if they can't
+                         be collected. Defaults to False.
+
+        Raises:
+            KeyError: If required (skip=False) prerequisite can't be collected.
+
+        """
+        prereq_datasets = []
+        delayed_gen = False
+        for prereq_node in prereq_nodes:
+            prereq_id = prereq_node.name
+            if prereq_id not in self._datasets and prereq_id not in keepables \
+                    and isinstance(prereq_node, CompositorNode):
+                self._generate_composite(prereq_node, keepables)
+
+            # composite generation may have updated the DataID
+            prereq_id = prereq_node.name
+            if prereq_node is self._dependency_tree.empty_node:
+                # empty sentinel node - no need to load it
+                continue
+            elif prereq_id in self._datasets:
+                prereq_datasets.append(self._datasets[prereq_id])
+            elif isinstance(prereq_node, CompositorNode) and prereq_id in keepables:
+                delayed_gen = True
+                continue
+            elif not skip:
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite for"
+                               " '{}': '{}'".format(comp_id, prereq_id))
+            else:
+                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
+
+        if delayed_gen:
+            keepables.add(comp_id)
+            keepables.update([x.name for x in prereq_nodes])
+            LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
+            if not skip:
+                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
+                raise DelayedGeneration(
+                    "Delayed composite prerequisite for "
+                    "'{}': '{}'".format(comp_id, prereq_id))
+            else:
+                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
+
+        return prereq_datasets
+
 class Scene(BaseScene):
     """The Almighty Scene Class.
 
@@ -1547,168 +1712,3 @@ class Scene(BaseScene):
                          epoch=epoch,
                          include_orig_name=include_orig_name,
                          numeric_name_prefix=numeric_name_prefix)
-
-    def generate_possible_composites(self, unload):
-        """See which composites can be generated and generate them.
-
-        Args:
-            unload (bool): if the dependencies of the composites
-                           should be unloaded after successful generation.
-        """
-        keepables = self._generate_composites_from_loaded_datasets()
-
-        if self.missing_datasets:
-            self._remove_failed_datasets(keepables)
-        if unload:
-            self.unload(keepables=keepables)
-
-    def _generate_composites_from_loaded_datasets(self):
-        """Compute all the composites contained in `requirements`."""
-        trunk_nodes = self._dependency_tree.trunk(limit_nodes_to=self.missing_datasets,
-                                                  limit_children_to=self._datasets.keys())
-        needed_comp_nodes = set(self._filter_loaded_datasets_from_trunk_nodes(trunk_nodes))
-        return self._generate_composites_nodes_from_loaded_datasets(needed_comp_nodes)
-
-    def _generate_composites_nodes_from_loaded_datasets(self, compositor_nodes):
-        """Read (generate) composites."""
-        keepables = set()
-        for node in compositor_nodes:
-            self._generate_composite(node, keepables)
-        return keepables
-
-    def _generate_composite(self, comp_node: CompositorNode, keepables: set):
-        """Collect all composite prereqs and create the specified composite.
-
-        Args:
-            comp_node: Composite Node to generate a Dataset for
-            keepables: `set` to update if any datasets are needed
-                       when generation is continued later. This can
-                       happen if generation is delayed to incompatible
-                       areas which would require resampling first.
-
-        """
-        if self._datasets.contains(comp_node.name):
-            # already loaded
-            return
-
-        compositor = comp_node.compositor
-        prereqs = comp_node.required_nodes
-        optional_prereqs = comp_node.optional_nodes
-
-        try:
-            delayed_prereq = False
-            prereq_datasets = self._get_prereq_datasets(
-                comp_node.name,
-                prereqs,
-                keepables,
-            )
-        except DelayedGeneration:
-            # if we are missing a required dependency that could be generated
-            # later then we need to wait to return until after we've also
-            # processed the optional dependencies
-            delayed_prereq = True
-        except KeyError:
-            # we are missing a hard requirement that will never be available
-            # there is no need to "keep" optional dependencies
-            return
-
-        optional_datasets = self._get_prereq_datasets(
-            comp_node.name,
-            optional_prereqs,
-            keepables,
-            skip=True
-        )
-
-        # we are missing some prerequisites
-        # in the future we may be able to generate this composite (delayed)
-        # so we need to hold on to successfully loaded prerequisites and
-        # optional prerequisites
-        if delayed_prereq:
-            preservable_datasets = set(self._datasets.keys())
-            prereq_ids = set(p.name for p in prereqs)
-            opt_prereq_ids = set(p.name for p in optional_prereqs)
-            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
-            return
-
-        try:
-            composite = compositor(prereq_datasets,
-                                   optional_datasets=optional_datasets,
-                                   **comp_node.name.to_dict())
-            cid = DataID.new_id_from_dataarray(composite)
-            self._datasets[cid] = composite
-
-            # update the node with the computed DataID
-            if comp_node.name in self._wishlist:
-                self._wishlist.remove(comp_node.name)
-                self._wishlist.add(cid)
-            self._dependency_tree.update_node_name(comp_node, cid)
-        except IncompatibleAreas:
-            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
-            preservable_datasets = set(self._datasets.keys())
-            prereq_ids = set(p.name for p in prereqs)
-            opt_prereq_ids = set(p.name for p in optional_prereqs)
-            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
-            # even though it wasn't generated keep a list of what
-            # might be needed in other compositors
-            keepables.add(comp_node.name)
-            return
-
-    def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
-        """Get a composite's prerequisites, generating them if needed.
-
-        Args:
-            comp_id (DataID): DataID for the composite whose
-                                 prerequisites are being collected.
-            prereq_nodes (Sequence[Node]): Prerequisites to collect
-            keepables (set): `set` to update if any prerequisites can't
-                             be loaded at this time (see
-                             `_generate_composite`).
-            skip (bool): If True, consider prerequisites as optional and
-                         only log when they are missing. If False,
-                         prerequisites are considered required and will
-                         raise an exception and log a warning if they can't
-                         be collected. Defaults to False.
-
-        Raises:
-            KeyError: If required (skip=False) prerequisite can't be collected.
-
-        """
-        prereq_datasets = []
-        delayed_gen = False
-        for prereq_node in prereq_nodes:
-            prereq_id = prereq_node.name
-            if prereq_id not in self._datasets and prereq_id not in keepables \
-                    and isinstance(prereq_node, CompositorNode):
-                self._generate_composite(prereq_node, keepables)
-
-            # composite generation may have updated the DataID
-            prereq_id = prereq_node.name
-            if prereq_node is self._dependency_tree.empty_node:
-                # empty sentinel node - no need to load it
-                continue
-            elif prereq_id in self._datasets:
-                prereq_datasets.append(self._datasets[prereq_id])
-            elif isinstance(prereq_node, CompositorNode) and prereq_id in keepables:
-                delayed_gen = True
-                continue
-            elif not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite for"
-                               " '{}': '{}'".format(comp_id, prereq_id))
-            else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
-
-        if delayed_gen:
-            keepables.add(comp_id)
-            keepables.update([x.name for x in prereq_nodes])
-            LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
-            if not skip:
-                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise DelayedGeneration(
-                    "Delayed composite prerequisite for "
-                    "'{}': '{}'".format(comp_id, prereq_id))
-            else:
-                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
-
-        return prereq_datasets
