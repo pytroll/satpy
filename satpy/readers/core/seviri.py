@@ -184,10 +184,12 @@ import datetime as dt
 import warnings
 from collections import namedtuple
 from collections.abc import Iterable, Sequence
+from enum import IntEnum
 
 import dask.array as da
 import numpy as np
 import pyproj
+import xarray as xr
 from numpy.polynomial.chebyshev import Chebyshev
 
 import satpy.readers.core.utils as utils
@@ -558,6 +560,17 @@ class MpefProductHeader(object):
 mpef_product_header = MpefProductHeader().get()
 
 
+
+class IRCalibrationType(IntEnum):
+    """IR calibration types.
+
+    Corresponds to header entry "PlannedChanProcessing".
+    """
+    spectral_radiance = 1
+    effective_radiance = 2
+    not_processed = 0
+
+
 class SEVIRICalibrationAlgorithm:
     """SEVIRI calibration algorithms."""
 
@@ -580,18 +593,17 @@ class SEVIRICalibrationAlgorithm:
 
         return (self._tl15(data, wavenumber) - beta) / alpha
 
-    def ir_calibrate(self, data, channel_name, cal_type):
+    def ir_calibrate(self, data: xr.DataArray, channel_name: str, cal_type: int) -> xr.DataArray:
         """Calibrate to brightness temperature."""
-        if cal_type == 1:
-            # spectral radiances
+        if cal_type == IRCalibrationType.spectral_radiance:
             return self._srads2bt(data, channel_name)
-        elif cal_type == 2:
-            # effective radiances
+        elif cal_type == IRCalibrationType.effective_radiance:
             return self._erads2bt(data, channel_name)
-        elif cal_type == 0:
+        elif cal_type == IRCalibrationType.not_processed:
             raise ValueError(f"No calibration coefficients available for {channel_name} "
                             "(PlannedChanProcessing is zero)")
-        raise NotImplementedError("Unknown calibration type")
+        raise NotImplementedError(f"Unknown calibration type: {cal_type}. "
+                                  f"Supported values are {list(IRCalibrationType)}.")
 
     def _srads2bt(self, data, channel_name):
         """Convert spectral radiance to brightness temperature."""

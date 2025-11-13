@@ -118,19 +118,22 @@ class TestSEVIRICalibrationAlgorithm:
 
     def test_ir_calibrate_spectral_radiance(self, algo):
         """Test conversion from spectral radiance to brightness temperature."""
-        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, cal_type=1)
+        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                                   sev.IRCalibrationType.spectral_radiance)
         xr.testing.assert_allclose(result, TBS_OUTPUT1, rtol=1E-5)
         assert result.dtype == np.float32
 
     def test_ir_calibrate_effective_radiance(self, algo):
         """Test conversion from effective radiance to brightness temperature."""
-        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, cal_type=2)
+        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                                   sev.IRCalibrationType.effective_radiance)
         xr.testing.assert_allclose(result, TBS_OUTPUT2, rtol=1E-5)
 
     def test_ir_calibrate_missing_coefs(self, algo):
         """Test IR calibration with missing coefficients."""
         with pytest.raises(ValueError, match="No calibration coefficients"):
-            algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, cal_type=0)
+            algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                              sev.IRCalibrationType.not_processed)
 
     def test_ir_calibrate_bad_calib_type(self, algo):
         """Test IR calibration with bad calibration type."""
