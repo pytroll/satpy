@@ -166,14 +166,13 @@ References:
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
 
 .. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_msg_seviri_rad2refl_d6cd0c663f.pdf
 
 .. _MSG Level 1.5 Image Data Format Description:
     https://www.eumetsat.int/media/45126
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
-
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_msg_seviri_rad_calib_b4e474a6de.pdf
 .. _Inter-calibration of polar imager solar channels using SEVIRI:
    http://dx.doi.org/10.5194/amt-6-2495-2013
 
@@ -608,7 +607,8 @@ class SEVIRICalibrationAlgorithm:
         """Calibrate to reflectance.
 
         This uses the method described in Conversion from radiances to
-        reflectances for SEVIRI warm channels: https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+        reflectances for SEVIRI warm channels:
+        https://user.eumetsat.int/s3/eup-strapi-media/pdf_msg_seviri_rad2refl_d6cd0c663f.pdf
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return utils.apply_earthsun_distance_correction(reflectance, self._scan_time)
@@ -647,7 +647,10 @@ class SEVIRICalibrationHandler:
         """Calibrate the given data."""
         if calibration == "counts":
             res = data
-        elif calibration in ["radiance", "radiance_factor", "reflectance",
+        elif calibration in ["radiance", "radiance_factor",
+                             # 8< v1.0
+                             "reflectance",
+                             # >8 v1.0
                              "brightness_temperature"]:
             coefs = self.get_coefs()
             res = self._algo.convert_to_radiance(
@@ -662,7 +665,11 @@ class SEVIRICalibrationHandler:
                 )
             )
 
-        if calibration in ["reflectance", "radiance_factor"]:
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             solar_irradiance = CALIB[self._scan_params.platform_id][self._scan_params.channel_name]["F"]
             res = self._algo.vis_calibrate(res, solar_irradiance)
         elif calibration == "brightness_temperature":

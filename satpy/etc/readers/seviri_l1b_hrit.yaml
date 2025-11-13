@@ -213,6 +213,11 @@ datasets:
     resolution: 1000.134348869
     wavelength: [0.5, 0.7, 0.9]
     calibration:
+      # 8< v1.0
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
@@ -229,6 +234,11 @@ datasets:
     resolution: 3000.403165817
     wavelength: [1.5, 1.64, 1.78]
     calibration:
+      # 8< v1.0
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
@@ -341,6 +351,11 @@ datasets:
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
     calibration:
+      # 8< v1.0
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
@@ -357,6 +372,11 @@ datasets:
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
     calibration:
+      # 8< v1.0
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"

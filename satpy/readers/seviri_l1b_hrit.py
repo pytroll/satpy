@@ -682,10 +682,17 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key["calibration"])
+        # 8< v1.0
         if key["calibration"] == "reflectance":
             warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
                  DeprecationWarning)
-        is_calibration = key["calibration"] in ["radiance", "reflectance", "radiance_factor", "brightness_temperature"]
+        # >8 v1.0
+        is_calibration = key["calibration"] in ["radiance",
+                                                # 8< v1.0
+                                                "reflectance",
+                                                # >8 v1.0
+                                                "radiance_factor",
+                                                "brightness_temperature"]
         if is_calibration and self.mask_bad_quality_scan_lines:
             res = self._mask_bad_quality(res)
 
