@@ -844,10 +844,16 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             ("VIS006", "counts", "NOMINAL", False),
             ("VIS006", "radiance", "NOMINAL", False),
             ("VIS006", "radiance", "GSICS", False),
+            # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", False),
+            # >8 v1.0
+            ("VIS006", "radiance_factor", "NOMINAL", False),
             # VIS channel, external coefficients (mode should have no effect)
             ("VIS006", "radiance", "GSICS", True),
+            # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", True),
+            # >8 v1.0
+            ("VIS006", "radiance_factor", "NOMINAL", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", "NOMINAL", False),
             ("IR_108", "radiance", "NOMINAL", False),
@@ -857,14 +863,20 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # IR channel, external coefficients (mode should have no effect)
             ("IR_108", "radiance", "NOMINAL", True),
             ("IR_108", "brightness_temperature", "GSICS", True),
-            # HRV channel, internal coefficiens
+            # HRV channel, internal coefficients
             ("HRV", "counts", "NOMINAL", False),
             ("HRV", "radiance", "NOMINAL", False),
             ("HRV", "radiance", "GSICS", False),
+            # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", False),
+            # >8 v1.0
+            ("HRV", "radiance_factor", "NOMINAL", False),
             # HRV channel, external coefficients (mode should have no effect)
             ("HRV", "radiance", "GSICS", True),
+            # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", True),
+            # >8 v1.0
+            ("HRV", "radiance_factor", "NOMINAL", True),
         ]
     )
     def test_calibrate(
@@ -1302,7 +1314,8 @@ def test_read_physical_seviri_nat_file(full_path):
     scene = scene_from_physical_seviri_nat_file(full_path)
 
     assert scene.sensor_names == {"seviri"}
-    assert len(scene.available_dataset_ids()) == 36
+    # WARN: v1.0 expect 36
+    assert len(scene.available_dataset_ids()) == 40
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
 
     with warnings.catch_warnings():

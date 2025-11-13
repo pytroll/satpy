@@ -8,16 +8,16 @@ reader:
   supports_fsspec: true
   sensors: [seviri]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
-  # file pattern keys to sort files by with 'satpy.utils.group_files'
-  group_keys: ['end_time', 'satid']
+
+  group_keys: ["end_time", "satid"] # file pattern keys to sort files by with 'satpy.utils.group_files'
 
 file_types:
   native_msg:
     file_reader: !!python/name:satpy.readers.seviri_l1b_native.NativeMSGFileHandler
-    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{processing_time:%Y%m%d%H%M%S}-{order_id:s}.nat',
-                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat',
-                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z'
-                    ]
+    file_patterns:
+      - "{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{processing_time:%Y%m%d%H%M%S}-{order_id:s}.nat"
+      - "{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat"
+      - "{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z"
     # Note: the end_time value in the SEVIRI native filenames is officially called Nominal Image Time (SNIT field in
     # the 15_MAIN_PRODUCT_HEADER) marking the time where the product is defined to be valid. This time always matches
     # the scan acquisition end time (SSST in 15_MAIN_PRODUCT_HEADER).
@@ -28,8 +28,13 @@ datasets:
     resolution: 1000.134348869
     wavelength: [0.5, 0.7, 0.9]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -44,8 +49,13 @@ datasets:
     resolution: 3000.403165817
     wavelength: [1.5, 1.64, 1.78]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -156,8 +166,13 @@ datasets:
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -172,8 +187,13 @@ datasets:
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
