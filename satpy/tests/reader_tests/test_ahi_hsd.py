@@ -376,7 +376,7 @@ class TestAHIHSDFileHandler:
                     key,
                     {
                         "units": "%",
-                        "standard_name": "toa_bidirectional_reflectance",
+                        "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
                         "wavelength": 2,
                         "resolution": 1000,
                     })
@@ -498,11 +498,20 @@ class TestAHICalibration(unittest.TestCase):
                                calibration="brightness_temperature")
         np.testing.assert_allclose(bt, bt_exp)
 
+        # 8< v1.0
         # Reflectance
         refl_exp = np.array([[2.92676, 2.214325],
                              [1.50189, 0.]])
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            refl = self.fh.calibrate(data=self.counts, calibration="reflectance")
+        assert np.allclose(refl, refl_exp)
+        # >8 v1.0
+
+        # radiance_factor
+        refl_exp = np.array([[2.92676, 2.214325],
+                             [1.50189, 0.]])
         refl = self.fh.calibrate(data=self.counts,
-                                 calibration="reflectance")
+                                 calibration="radiance_factor")
         assert np.allclose(refl, refl_exp)
 
     def test_updated_calibrate(self):
