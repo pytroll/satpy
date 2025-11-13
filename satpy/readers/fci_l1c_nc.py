@@ -372,10 +372,18 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = data.where((data >= vr[0]) & (data <= vr[1]), nfv)
 
         res = self.calibrate(data, key)
+        cleaned_attrs = self._set_and_cleanup_attributes(res.attrs, attrs, key, info)
+        res.attrs = cleaned_attrs
+        return res
 
-        # pre-calibration units no longer apply
-        attrs.pop("units")
+    def _set_and_cleanup_attributes(self, resattrs, attrs, key, info):
+        """Gather attributes for the result dataset and remove unwanted keys.
 
+        Adds global attributes, handles dataset-specific attributes.
+        Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
+        are not propagated to the calibrated data.
+        """
+        resattrs.update(info)
         # For each channel, the effective_radiance contains in the
         # "ancillary_variables" attribute the value "pixel_quality".  In
         # FileYAMLReader._load_ancillary_variables, satpy will try to load
@@ -396,34 +404,39 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "https://github.com/pytroll/satpy/issues/1171 for why). "
                 f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
 
-        res.attrs.update(key.to_dict())
-        res.attrs.update(info)
-        res.attrs.update(attrs)
+        resattrs.update(key.to_dict())
 
-        res.attrs["platform_name"] = platform_name_translate.get(
+        # pre-calibration units no longer apply
+        attrs.pop("units")
+
+        resattrs.update(attrs)
+
+        resattrs["platform_name"] = platform_name_translate.get(
             self["attr/platform"], self["attr/platform"])
 
         # remove unpacking parameters for calibrated data
         if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
-            res.attrs.pop("add_offset")
-            res.attrs.pop("warm_add_offset")
-            res.attrs.pop("scale_factor")
-            res.attrs.pop("warm_scale_factor")
-            res.attrs.pop("valid_range")
-            res.attrs.pop("_FillValue")
+            resattrs.pop("add_offset")
+            resattrs.pop("warm_add_offset")
+            resattrs.pop("scale_factor")
+            resattrs.pop("warm_scale_factor")
+            resattrs.pop("valid_range")
+            # Some xarray versions can propagate _FillValue too:
+            if "_FillValue" in resattrs.keys():
+                resattrs.pop("_FillValue")
 
         # remove attributes from original file which don't apply anymore
-        res.attrs.pop("long_name")
+        resattrs.pop("long_name")
+
         # Add time_parameter attributes
-        res.attrs["time_parameters"] = {
+        resattrs["time_parameters"] = {
             "nominal_start_time": self.nominal_start_time,
             "nominal_end_time": self.nominal_end_time,
             "observation_start_time": self.observation_start_time,
             "observation_end_time": self.observation_end_time,
         }
-        res.attrs.update(self.orbital_param)
-
-        return res
+        resattrs.update(self.orbital_param)
+        return resattrs
 
     def get_iqt_parameters_lon_lat_alt(self):
         """Compute the orbital parameters for IQT data.
@@ -723,7 +736,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / radiance)
 
         res = nom / denom - b / a
-
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
