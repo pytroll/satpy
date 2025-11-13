@@ -333,11 +333,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         """Load a dataset."""
         logger.debug("Reading {} from {}".format(key["name"], self.filename))
         if "pixel_quality" in key["name"]:
-            return self._get_dataset_quality(key["name"])
+            return self._get_dataset_quality(key, info=info)
         elif "index_map" in key["name"]:
-            return self._get_dataset_index_map(key["name"])
+            return self._get_dataset_index_map(key, info=info)
         elif _get_aux_data_name_from_dsname(key["name"]) is not None:
-            return self._get_dataset_aux_data(key["name"])
+            return self._get_dataset_aux_data(key, info=info)
         elif any(lb in key["name"] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
@@ -376,8 +376,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         res.attrs = cleaned_attrs
         return res
 
-    def _set_calibrated_data_attributes(self, resattrs, attrs, key, info):
-        resattrs.update(info)
+    def _set_calibrated_data_attributes(self, resattrs, attrs, key):
         # For each channel, the effective_radiance contains in the
         # "ancillary_variables" attribute the value "pixel_quality".  In
         # FileYAMLReader._load_ancillary_variables, satpy will try to load
@@ -428,8 +427,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
         are not propagated to the calibrated data.
         """
-        if None not in (attrs, key, info):
-            resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key, info)
+        if info is not None:
+            resattrs.update(info)
+        if None not in (attrs, key):
+            resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
 
         resattrs["platform_name"] = platform_name_translate.get(
             self["attr/platform"], self["attr/platform"])
@@ -503,23 +504,24 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         return orb_param_dict
 
-    def _get_dataset_quality(self, dsname):
+    def _get_dataset_quality(self, key, info=None):
         """Load a quality field for an FCI channel."""
-        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(key["name"]))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
-        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs)
+        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs, key=key, info=info)
         data.attrs = cleaned_attrs
         return data
 
-    def _get_dataset_index_map(self, dsname):
+    def _get_dataset_index_map(self, key, info=None):
         """Load the index map for an FCI channel."""
+        dsname = key["name"]
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
 
         data = data.where(data != data.attrs.get("_FillValue", 65535))
-        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs)
+        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs, info=info)
         data.attrs = cleaned_attrs
         return data
 
@@ -536,10 +538,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _getitem(block, lut):
         return lut[block.astype("uint16")]
 
-    def _get_dataset_aux_data(self, dsname):
+    def _get_dataset_aux_data(self, key, info=None):
         """Get the auxiliary data arrays using the index map."""
+        dsname = key["name"]
         # get index map
-        index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
+        index_map = self._get_dataset_index_map(key)
         # subtract minimum of index variable (index_offset)
         index_map -= np.min(self.get_and_cache_npxr("index"))
 
@@ -552,7 +555,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         # filter out out-of-disk values
         aux = aux.where(index_map >= 0)
 
-        cleaned_attrs = self._set_and_cleanup_attributes(aux.attrs)
+        cleaned_attrs = self._set_and_cleanup_attributes(aux.attrs, key=key, info=info)
         aux.attrs = cleaned_attrs
         return aux
 
