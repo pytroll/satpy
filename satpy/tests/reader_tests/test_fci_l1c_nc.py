@@ -928,6 +928,11 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         res = reader.load([did], pad_data=False)
         assert "_FillValue" not in res["vis_06"].attrs
 
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        did = make_dataid(name="vis_06", calibration="radiance")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" not in res["vis_06"].attrs
+
         # but for counts it should still be there
         did = make_dataid(name="ir_105", calibration="counts")
         res = reader.load([did], pad_data=False)
