@@ -376,58 +376,63 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         res.attrs = cleaned_attrs
         return res
 
+    def _set_calibrated_data_attributes(self, resattrs, attrs, key, info):
+        resattrs.update(info)
+        # For each channel, the effective_radiance contains in the
+        # "ancillary_variables" attribute the value "pixel_quality".  In
+        # FileYAMLReader._load_ancillary_variables, satpy will try to load
+        # "pixel_quality" but is lacking the context from what group to load
+        # it: in the FCI format, each channel group (data/<channel>/measured) has
+        # its own data variable 'pixel_quality'.
+        # Until we can have multiple pixel_quality variables defined (for
+        # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
+        # the ancillary variable to include the channel. See also
+        # https://github.com/pytroll/satpy/issues/1171.
+        if "pixel_quality" in attrs["ancillary_variables"]:
+            attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
+                "pixel_quality", key["name"] + "_pixel_quality")
+        else:
+            raise ValueError(
+                "Unexpected value for attribute ancillary_variables, "
+                "which the FCI file handler intends to rewrite (see "
+                "https://github.com/pytroll/satpy/issues/1171 for why). "
+                f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
+
+        resattrs.update(key.to_dict())
+
+        # pre-calibration units no longer apply
+        attrs.pop("units")
+
+        resattrs.update(attrs)
+
+        # remove unpacking parameters for calibrated data
+        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
+            resattrs.pop("add_offset")
+            resattrs.pop("warm_add_offset")
+            resattrs.pop("scale_factor")
+            resattrs.pop("warm_scale_factor")
+            resattrs.pop("valid_range")
+            # Some xarray versions can propagate _FillValue too:
+            if "_FillValue" in resattrs.keys():
+                resattrs.pop("_FillValue")
+
+        # remove attributes from original file which don't apply anymore
+        resattrs.pop("long_name")
+        return resattrs
+
     def _set_and_cleanup_attributes(self, resattrs, attrs=None, key=None, info=None):
         """Gather attributes for the result dataset and remove unwanted keys.
 
-        Adds global attributes, handles dataset-specific attributes.
+        Adds global attributes to all datasets.
+        For measurand data, adds dataset-specific attributes.
         Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
         are not propagated to the calibrated data.
         """
         if None not in (attrs, key, info):
-            resattrs.update(info)
-            # For each channel, the effective_radiance contains in the
-            # "ancillary_variables" attribute the value "pixel_quality".  In
-            # FileYAMLReader._load_ancillary_variables, satpy will try to load
-            # "pixel_quality" but is lacking the context from what group to load
-            # it: in the FCI format, each channel group (data/<channel>/measured) has
-            # its own data variable 'pixel_quality'.
-            # Until we can have multiple pixel_quality variables defined (for
-            # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
-            # the ancillary variable to include the channel. See also
-            # https://github.com/pytroll/satpy/issues/1171.
-            if "pixel_quality" in attrs["ancillary_variables"]:
-                attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
-                    "pixel_quality", key["name"] + "_pixel_quality")
-            else:
-                raise ValueError(
-                    "Unexpected value for attribute ancillary_variables, "
-                    "which the FCI file handler intends to rewrite (see "
-                    "https://github.com/pytroll/satpy/issues/1171 for why). "
-                    f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
+            resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key, info)
 
-            resattrs.update(key.to_dict())
-
-            # pre-calibration units no longer apply
-            attrs.pop("units")
-
-            resattrs.update(attrs)
-
-            resattrs["platform_name"] = platform_name_translate.get(
-                self["attr/platform"], self["attr/platform"])
-
-            # remove unpacking parameters for calibrated data
-            if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
-                resattrs.pop("add_offset")
-                resattrs.pop("warm_add_offset")
-                resattrs.pop("scale_factor")
-                resattrs.pop("warm_scale_factor")
-                resattrs.pop("valid_range")
-                # Some xarray versions can propagate _FillValue too:
-                if "_FillValue" in resattrs.keys():
-                    resattrs.pop("_FillValue")
-
-            # remove attributes from original file which don't apply anymore
-            resattrs.pop("long_name")
+        resattrs["platform_name"] = platform_name_translate.get(
+            self["attr/platform"], self["attr/platform"])
 
         # Add time_parameter attributes
         resattrs["time_parameters"] = {
@@ -436,6 +441,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             "observation_start_time": self.observation_start_time,
             "observation_end_time": self.observation_end_time,
         }
+
         resattrs.update(self.orbital_param)
         return resattrs
 
