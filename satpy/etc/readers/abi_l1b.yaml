@@ -14,7 +14,7 @@ reader:
     `here <https://www.goes-r.gov/users/docs/PUG-GRB-vol4.pdf>`_.
   status: Nominal
   supports_fsspec: true
-  sensors: ['ABI']
+  sensors: [abi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
