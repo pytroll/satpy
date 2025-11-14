@@ -11,70 +11,70 @@ reader:
 
 navigations:
   vgeoi:
-      description: VIIRS L1B I-band Navigation
-      file_type: vgeoi
-      latitude_key: geolocation_data/latitude
-      longitude_key: geolocation_data/longitude
-      nadir_resolution: [371]
-      rows_per_scan: 32
+    description: VIIRS L1B I-band Navigation
+    file_type: vgeoi
+    latitude_key: geolocation_data/latitude
+    longitude_key: geolocation_data/longitude
+    nadir_resolution: [371]
+    rows_per_scan: 32
   vgeom:
-      description: VIIRS L1B M-band Navigation
-      file_type: vgeom
-      latitude_key: geolocation_data/latitude
-      longitude_key: geolocation_data/longitude
-      nadir_resolution: [742]
-      rows_per_scan: 16
+    description: VIIRS L1B M-band Navigation
+    file_type: vgeom
+    latitude_key: geolocation_data/latitude
+    longitude_key: geolocation_data/longitude
+    nadir_resolution: [742]
+    rows_per_scan: 16
   vgeod:
-      description: VIIRS L1B DNB Navigation
-      file_type: vgeod
-      latitude_key: geolocation_data/latitude
-      longitude_key: geolocation_data/longitude
-      nadir_resolution: [742]
-      rows_per_scan: 16
+    description: VIIRS L1B DNB Navigation
+    file_type: vgeod
+    latitude_key: geolocation_data/latitude
+    longitude_key: geolocation_data/longitude
+    nadir_resolution: [742]
+    rows_per_scan: 16
 
 file_types:
   vgeoi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vgeom:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vgeod:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vl1bi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vl1bm:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vl1bd:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
 
 datasets:
   i_lon:
@@ -150,9 +150,6 @@ datasets:
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -170,9 +167,6 @@ datasets:
       # >8 v1.0
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
-        units: "%"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
