@@ -39,6 +39,7 @@ local_id_keys_config = {"name": {
     "calibration": {
         "enum": [
             "reflectance",
+            "radiance_factor",
             "brightness_temperature",
             "radiance",
             "counts"
@@ -267,6 +268,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
         np.testing.assert_allclose(data.values,
                                    self.base_data * CHANCALIB_FACTORS["S5_nadir"])
 
+    # 8< v1.0
     @mock.patch("satpy.readers.slstr_l1b.xr")
     @mock.patch("satpy.readers.slstr_l1b.da")
     def test_reflectance_calibration(self, da_, xr_):
@@ -277,6 +279,22 @@ class TestSLSTRCalibration(TestSLSTRL1B):
                          "start_time": 0, "end_time": 0,
                          "stripe": "a", "view": "n"}
         ds_id = make_dataid(name="S5", calibration="reflectance", stripe="a", view="nadir")
+        test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
+        data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
+        assert data.units == "%"
+        np.testing.assert_allclose(data.values, self.rad * np.pi)
+    # >8 v1.0
+
+    @mock.patch("satpy.readers.slstr_l1b.xr")
+    @mock.patch("satpy.readers.slstr_l1b.da")
+    def test_radiance_factor_calibration(self, da_, xr_):
+        """Test reflectance calibration."""
+        xr_.open_dataset.return_value = self.fake_dataset
+        da_.map_blocks.return_value = self.rad / 100.
+        filename_info = {"mission_id": "S3A", "dataset_name": "S5",
+                         "start_time": 0, "end_time": 0,
+                         "stripe": "a", "view": "n"}
+        ds_id = make_dataid(name="S5", calibration="radiance_factor", stripe="a", view="nadir")
         test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
         data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
         assert data.units == "%"

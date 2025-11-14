@@ -398,7 +398,7 @@ class TestReadingGacFile:
         """Test getting calibrated channel."""
         scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
                       reader_kwargs=reader_kwargs)
-        scene.load(["1"])
+        scene.load(["1"], calibration="radiance_factor")
         assert scene["1"].shape == (expect.num_lines, 409)
         assert scene["1"].dims == ("y", "x")
         assert scene["1"].start_time == expect.start_time
@@ -406,6 +406,15 @@ class TestReadingGacFile:
         assert scene["1"].units == "%"
         assert "tle" in scene["1"].attrs["orbital_parameters"]
         assert scene["1"].attrs["platform_name"] == expect.platform_name
+
+    # 8< v1.0
+    def test_reflectance_warns(self, stub: Path, reader_kwargs: dict, expect: Expectations):
+        """Test getting calibrated channel."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            scene.load(["1"], calibration="reflectance")
+        # >8 v1.0
 
     def test_get_channel_counts(self, stub: Path, reader_kwargs: dict):
         """Test getting raw channel counts."""

@@ -74,7 +74,7 @@ class TestSCMIFileHandler(unittest.TestCase):
                 "scale_factor": 0.5,
                 "add_offset": -1.,
                 "_FillValue": 20,
-                "standard_name": "toa_bidirectional_reflectance",
+                "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",  # noqa
             },
             coords={
                 "time": time,
@@ -114,17 +114,27 @@ class TestSCMIFileHandler(unittest.TestCase):
         """Test data loading."""
         from satpy.tests.utils import make_dataid
         res = self.reader.get_dataset(
-            make_dataid(name="C05", calibration="reflectance"), {})
+            make_dataid(name="C05", calibration="radiance_factor"), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
         assert "scale_factor" not in res.attrs
         assert "_FillValue" not in res.attrs
-        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert res.attrs["standard_name"] == "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"  # noqa
         assert "orbital_parameters" in res.attrs
         orb_params = res.attrs["orbital_parameters"]
         assert orb_params["projection_longitude"] == -90.0
         assert orb_params["projection_latitude"] == 0.0
         assert orb_params["projection_altitude"] == 35785831.0
+
+    # 8< v1.0
+    def test_load_reflectance_warns(self):
+        """Test that using reflectance as calibration issues a warning."""
+        from satpy.tests.utils import make_dataid
+
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            _ = self.reader.get_dataset(
+                make_dataid(name="C05", calibration="reflectance"), {})
+    # >8 v1.0
 
 
 class TestSCMIFileHandlerArea(unittest.TestCase):

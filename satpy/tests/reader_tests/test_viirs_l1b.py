@@ -244,7 +244,12 @@ class TestVIIRSL1BReaderDay:
                            "M11"])
         assert len(datasets) == (11 if self.has_reflectance_bands else 0)
         for v in datasets.values():
-            assert v.attrs["calibration"] == "reflectance"
+            assert v.attrs["calibration"] in [
+                    # 8< v1.0
+                    "reflectance",
+                    # >8 v1.0
+                    "radiance_factor"
+                    ]
             assert v.attrs["units"] == "%"
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2

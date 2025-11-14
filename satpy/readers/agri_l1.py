@@ -24,6 +24,7 @@ The files read by this reader are described in the official Real Time Data Servi
 """
 
 import logging
+import warnings
 
 from satpy.readers.core.fy4 import FY4Base
 
@@ -42,6 +43,13 @@ class HDF_AGRI_L1(FY4Base):
         """Load a dataset."""
         ds_name = dataset_id["name"]
         logger.debug("Reading in get_dataset %s.", ds_name)
+        # 8< v1.0
+        if "calibration" in dataset_id and  dataset_id["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for AGRI L1 data, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
+
         file_key = ds_info.get("file_key", ds_name)
         if self.PLATFORM_ID == "FY-4B":
             if self.CHANS_ID in file_key:

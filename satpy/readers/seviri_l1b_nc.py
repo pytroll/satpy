@@ -19,6 +19,7 @@
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import numpy as np
 
@@ -174,7 +175,18 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset = dataset.sel(y=slice(None, None, -1))
 
         dataset = self.calibrate(dataset, dataset_id)
-        is_calibration = dataset_id["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
+        is_calibration = dataset_id["calibration"] in ["radiance",
+                                                       # 8< v1.0
+                                                       "reflectance",
+                                                       # >8 v1.0
+                                                       "radiance_factor",
+                                                       "brightness_temperature"]
+
+        # 8< v1.0
+        if dataset_id["calibration"] == "reflectance":
+            warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                 DeprecationWarning)
+        # >8 v1.0
         if (is_calibration and self.mask_bad_quality_scan_lines):
             dataset = self._mask_bad_quality(dataset, dataset_info)
 

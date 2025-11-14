@@ -45,12 +45,19 @@ import datetime as dt
 import logging
 import os
 
+# 8< v1.0
+import warnings
+
 import numpy as np
 import xarray as xr
 from pyresample import geometry
 
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
+
+# >8 v1.0
+
+
 
 CHUNK_SIZE = get_legacy_chunk_size()
 # NetCDF doesn't support multi-threaded reading, trick it by opening
@@ -133,6 +140,12 @@ class SCMIFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug("Reading in get_dataset %s.", key["name"])
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         var_name = info.get("file_key", self.filetype_info.get("file_key"))
         if var_name:
             data = self[var_name]
@@ -149,7 +162,12 @@ class SCMIFileHandler(BaseFileHandler):
         offset = data.attrs.pop("add_offset", 0)
         units = data.attrs.get("units", 1)
         # the '*1' unit is some weird convention added/needed by AWIPS
-        if units in ["1", "*1"] and key["calibration"] == "reflectance":
+        if units in ["1", "*1"] and key["calibration"] in (
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor",
+                ):
             data *= 100
             factor *= 100  # used for valid_min/max
             data.attrs["units"] = "%"

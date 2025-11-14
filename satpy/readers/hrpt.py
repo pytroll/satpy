@@ -159,6 +159,13 @@ class HRPTFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for AVHRR L0, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         attrs = info.copy()
         attrs["platform_name"] = self.platform_name
 

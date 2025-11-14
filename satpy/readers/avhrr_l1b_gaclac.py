@@ -149,6 +149,13 @@ class GACLACFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         self.read_raw_data()
         if key["name"] in ["latitude", "longitude"]:
             # Lats/lons are buffered by the reader
@@ -274,7 +281,12 @@ class GACLACFile(BaseFileHandler):
                 counts = self.reader.get_counts()
                 self.counts = counts
             channels = self.counts
-        elif calibration in ["reflectance", "brightness_temperature"]:
+        elif calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor",
+                "brightness_temperature"]:
             if self.calib_channels is None:
                 self.calib_channels = self.reader.get_calibrated_channels()
             channels = self.calib_channels

@@ -19,6 +19,7 @@
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import numpy as np
 
@@ -152,6 +153,11 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             valid_max = self[var_path + "/attr/valid_max"]
             scale_factor = self[var_path + "/attr/scale_factor"]
             scale_offset = self[var_path + "/attr/add_offset"]
+            # 8< v1.0
+            if dataset_id["calibration"] == "reflectance":
+                warn("Reflectance is not a correct calibration for SGLI channels, please use 'radiance_factor'",
+                     DeprecationWarning)
+            # >8 v1.0
         elif ds_info.get("units") == "K":
             # normal brightness temperature
             # use a special LUT to get the actual values

@@ -670,12 +670,31 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
+        # 8< v1.0
+        import warnings
+        if calibration == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for AHI HSD, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
+
         if calibration == "counts":
             return data
 
-        if calibration in ["radiance", "reflectance", "brightness_temperature"]:
+        if calibration in [
+                "radiance",
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor",
+                "brightness_temperature"]:
             data = self.convert_to_radiance(data)
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"
+                ]:
             data = self._vis_calibrate(data)
         elif calibration == "brightness_temperature":
             data = self._ir_calibrate(data)

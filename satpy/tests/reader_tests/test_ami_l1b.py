@@ -276,13 +276,13 @@ class TestAMIL1bNetCDF:
     def test_get_dataset_vis(self, fake_vis_reader):
         """Test get visible calibrated data."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name="VI006", calibration="reflectance")
+        key = make_dataid(name="VI006", calibration="radiance_factor")
         res = fake_vis_reader.get_dataset(key, {
             "file_key": "image_pixel_values",
-            "standard_name": "toa_bidirectional_reflectance",
+            "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
             "units": "%",
         })
-        exp = {"calibration": "reflectance",
+        exp = {"calibration": "radiance_factor",
                "modifiers": (),
                "platform_name": "GEO-KOMPSAT-2A",
                "sensor": "ami",
@@ -308,6 +308,19 @@ class TestAMIL1bNetCDF:
         for key, val in exp.items():
             assert val == res.attrs[key]
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
+
+    # 8< v1.0
+    def test_get_dataset_reflectance_warns(self, fake_vis_reader):
+        """Test get visible calibrated data."""
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name="VI006", calibration="reflectance")
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            _ = fake_vis_reader.get_dataset(key, {
+                "file_key": "image_pixel_values",
+                "standard_name": "toa_bidirectional_reflectance",
+                "units": "%",
+            })
+    # >8 v1.0
 
 
 class TestAMIL1bNetCDFIRCal:

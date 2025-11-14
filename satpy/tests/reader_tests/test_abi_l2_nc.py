@@ -186,7 +186,7 @@ class TestMCMIPReading:
         ("product", "exp_metadata"),
         [
             ("C14", {"calibration": "brightness_temperature", "wavelength": (10.8, 11.2, 11.6), "units": "K"}),
-            ("C01", {"calibration": "reflectance", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
+            ("C01", {"calibration": "radiance_factor", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
         ]
     )
     @mock.patch("satpy.readers.core.abi.xr")

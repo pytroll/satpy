@@ -95,6 +95,7 @@ Gzip-compressed MTSAT files can be decompressed on the fly using
 
 import datetime as dt
 import logging
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -369,6 +370,12 @@ class HRITJMAFileHandler(HRITFileHandler):
     def get_dataset(self, key, info):
         """Get the dataset designated by *key*."""
         res = super(HRITJMAFileHandler, self).get_dataset(key, info)
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
 
         # Filenames of segmented data is identical for MTSAT-1R, MTSAT-2
         # and Himawari-8/9. Make sure we have the correct reader for the data

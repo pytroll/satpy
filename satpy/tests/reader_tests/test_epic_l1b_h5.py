@@ -106,14 +106,24 @@ class TestEPICL1bReader:
         np.testing.assert_allclose(ds["B317"].data, b317_data)
 
     def test_refl_calibration(self, setup_hdf5_file):
-        """Test that data is correctly calibrated into reflectances."""
+        """Test that data is correctly calibrated into radiance_factor."""
         from satpy.tests.utils import make_dsq
 
         test_reader = self._setup_h5(setup_hdf5_file)
 
-        # Test conversion to reflectance
-        ds = test_reader.load([make_dsq(name="B317", calibration="reflectance")])
+        # Test conversion to radiance_factor
+        ds = test_reader.load([make_dsq(name="B317", calibration="radiance_factor")])
         np.testing.assert_allclose(ds["B317"].data, b317_data * CALIB_COEFS["B317"] * 100., rtol=1e-5)
+
+    # 8< v1.0
+    def test_reflectance_warns(self, setup_hdf5_file):
+        """Test that ascing for reflectance as calibration issues a warning."""
+        from satpy.tests.utils import make_dsq
+
+        test_reader = self._setup_h5(setup_hdf5_file)
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            _ = test_reader.load([make_dsq(name="B317", calibration="reflectance")])
+    # >8 v1.0
 
     def test_bad_calibration(self, setup_hdf5_file):
         """Test that error is raised if a bad calibration is used."""

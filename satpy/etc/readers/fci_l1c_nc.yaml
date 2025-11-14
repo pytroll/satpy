@@ -266,8 +266,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   vis_05:
@@ -284,8 +289,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   vis_06:
@@ -303,8 +313,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   vis_08:
@@ -321,8 +336,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   vis_09:
@@ -339,8 +359,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   nir_13:
@@ -357,8 +382,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   nir_16:
@@ -375,8 +405,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   nir_22:
@@ -394,8 +429,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
 
   ir_38:

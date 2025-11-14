@@ -76,9 +76,9 @@ class MERSIL1B(HDF5FileHandler):
         return self["/attr/Satellite Name"]
 
     def get_refl_mult(self):
-        """Get reflectance multiplier."""
+        """Get radiance_factor multiplier."""
         if self.sensor_name == "mersi-rm":
-            # MERSI-RM has reflectance in the range 0-1, so we need to convert
+            # MERSI-RM has radiance_factor in the range 0-1, so we need to convert
             return 100.
         else:
             return 1.
@@ -130,6 +130,13 @@ class MERSIL1B(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for MERSI L1b, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
         band_index = ds_info.get("band_index")
         data = self[file_key]
@@ -144,7 +151,11 @@ class MERSIL1B(HDF5FileHandler):
         data = self._mask_data(data, dataset_id, attrs)
         data = self._get_dn_corrections(data, band_index, dataset_id, attrs)
 
-        if dataset_id.get("calibration") == "reflectance":
+        if dataset_id.get("calibration") in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             data = self._get_ref_dataset(data, ds_info)
 
         elif dataset_id.get("calibration") == "radiance":
@@ -201,15 +212,15 @@ class MERSIL1B(HDF5FileHandler):
             return data
 
     def _get_ref_dataset(self, data, ds_info):
-        """Get the dataset as reflectance.
+        """Get the dataset as radiance_factor.
 
         For MERSI-1/2/RM, coefficients will be as::
 
-            Reflectance = coeffs_1 + coeffs_2 * DN + coeffs_3 * DN ** 2
+            radiance_factor = coeffs_1 + coeffs_2 * DN + coeffs_3 * DN ** 2
 
-        For MERSI-LL, the DN value is in radiance and the reflectance could be calculated by::
+        For MERSI-LL, the DN value is in radiance and the radiance_factor could be calculated by::
 
-            Reflectance = Rad * pi / E0 * 100
+            radiance_factor = Rad * pi / E0 * 100
 
         Here E0 represents the solar irradiance of the specific band and is the coefficient.
 
@@ -228,7 +239,7 @@ class MERSIL1B(HDF5FileHandler):
 
         For MERSI-2/RM VIS bands, this could be calculated by::
 
-            Rad = Reflectance / 100 * E0 / pi
+            Rad = radiance_factor / 100 * E0 / pi
 
         For MERSI-2, E0 is in the attribute "Solar_Irradiance".
         For MERSI-RM, E0 is in the calibration dataset "Solar_Irradiance".

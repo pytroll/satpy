@@ -120,8 +120,13 @@ datasets:
     wavelength: [0.450, 0.470, 0.490]
     resolution: 1000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: c01
 
@@ -131,8 +136,13 @@ datasets:
     wavelength: [0.590, 0.640, 0.690]
     resolution: 500
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: c02
 
@@ -142,8 +152,13 @@ datasets:
     wavelength: [0.8455, 0.865, 0.8845]
     resolution: 1000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: c03
 
@@ -153,8 +168,13 @@ datasets:
     wavelength: [1.3705, 1.378, 1.3855]
     resolution: 2000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: c04
 
@@ -164,8 +184,13 @@ datasets:
     wavelength: [1.580, 1.610, 1.640]
     resolution: 1000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: c05
 
@@ -175,8 +200,13 @@ datasets:
     wavelength: [2.225, 2.250, 2.275]
     resolution: 2000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: c06
 
