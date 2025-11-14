@@ -30,7 +30,7 @@ from satpy.readers.core.yaml_reader import load_yaml_configs as load_yaml_reader
 LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
-PENDING_OLD_READER_NAMES = {}
+PENDING_OLD_READER_NAMES: dict[str, str] = {}
 OLD_READER_NAMES: dict[str, str] = {
     "slstr_l2": "ghrsst_l2",
     "fci_l1c_fdhsi": "fci_l1c_nc",
