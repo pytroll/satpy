@@ -41,7 +41,7 @@ import pandas as pd
 import xarray as xr
 
 from satpy.readers.core.netcdf import NetCDF4FileHandler
-from satpy.readers.core.yaml_reader import FileYAMLReader
+from satpy.readers.core.yaml_reader import RasterFileYAMLReader
 
 LOG = logging.getLogger(__name__)
 
@@ -234,7 +234,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         return data
 
 
-class NUCAPSReader(FileYAMLReader):
+class NUCAPSReader(RasterFileYAMLReader):
     """Reader for NUCAPS NetCDF4 files."""
 
     def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):  # noqa: D417

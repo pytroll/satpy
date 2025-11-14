@@ -5,7 +5,7 @@ reader:
   description: Generic OMPS EDR reader
   status: Beta
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [omps]
 
 file_types:
