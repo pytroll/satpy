@@ -218,10 +218,16 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             # VIS channel, internal coefficients
             ("VIS006", "counts", False),
             ("VIS006", "radiance", False),
+            # 8< v1.0
             ("VIS006", "reflectance", False),
+            # >8 v1.0
+            ("VIS006", "radiance_factor", False),
             # VIS channel, external coefficients
             ("VIS006", "radiance", True),
+            # 8< v1.0
             ("VIS006", "reflectance", True),
+            # >8 v1.0
+            ("VIS006", "radiance_factor", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", False),
             ("IR_108", "radiance", False),
@@ -287,8 +293,12 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
     @pytest.mark.parametrize(
         ("channel", "calibration", "mask_bad_quality_scan_lines"),
         [
+            # 8< v1.0
             ("VIS006", "reflectance", True),
             ("VIS006", "reflectance", False),
+            # >8 v1.0
+            ("VIS006", "radiance_factor", True),
+            ("VIS006", "radiance_factor", False),
             ("IR_108", "brightness_temperature", True)
          ]
     )
