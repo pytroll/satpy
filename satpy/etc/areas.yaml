@@ -13,6 +13,7 @@
 # Full disk
 
 msg_seviri_fes_3km:
+  old_name: ["met09globeFull", "seviri_0deg"]
   description:
     MSG SEVIRI Full Earth Scanning service area definition
     with 3 km resolution
@@ -81,6 +82,7 @@ msg_seviri_rss_1km:
     upper_right_xy: [5566247.740968115,  5571248.412732527]
 
 msg_seviri_iodc_3km:
+  old_name: seviri_iodc
   description:
     MSG SEVIRI Indian Ocean Data Coverage service area definition
     with 3 km resolution
@@ -319,8 +321,9 @@ himawari_ahi_fes_2km:
 
 # Regional
 
-EuropeCanary:
-  description: Northern disk MSG image 0 degrees
+EuropeCanary_geos_3km:
+  old_name: EuropeCanary
+  description: Northern disk MSG image 0 degrees with 3km SSP resolution
   projection:
     proj: geos
     lon_0: 0.0
@@ -334,8 +337,9 @@ EuropeCanary:
     lower_left_xy: [-4823148.089050828, 1969764.6783588605]
     upper_right_xy: [4178061.408400173, 5570248.477339261]
 
-EastEurope:
-  description: Eastern part of Northern disk MSG image 0 degrees
+EastEurope_geos_3km:
+  old_name: EastEurope
+  description: Eastern part of Northern disk MSG image 0 degrees with 3km SSP resolution
   projection:
     proj: geos
     lon_0: 0.0
@@ -349,8 +353,9 @@ EastEurope:
     lower_left_xy: [654112.8864287604, 2989901.7547366405]
     upper_right_xy: [4553111.804127298, 5390224.287390241]
 
-AfHorn_geos:
-  description: Eastern disk MSG image 0 degrees
+AfHorn_geos_3km:
+  old_name: AfHorn_geos
+  description: Eastern disk MSG image 0 degrees with 3km SSP resolution
   projection:
     proj: geos
     lon_0: 0.0
@@ -364,8 +369,9 @@ AfHorn_geos:
     lower_left_xy: [2263804.1886089267, -1327678.4008740226]
     upper_right_xy: [5564247.671007627, 3472966.6644331776]
 
-SouthAmerica_geos:
-  description: Lower West part of Southern disk MSG image 0 degrees
+SouthAmerica_geos_3km:
+  old_name: SouthAmerica_geos
+  description: Lower West part of Southern disk MSG image 0 degrees with 3km SSP resolution
   projection:
     proj: geos
     lon_0: 0.0
@@ -771,7 +777,8 @@ laea_bb:
     proj: laea
   optimize_projection: True
 
-SouthAmerica_flat:
+SouthAmerica_eqc_5.2km:
+  old_name: SouthAmerica_flat
   description: South America flat
   projection:
     proj: eqc
@@ -785,7 +792,8 @@ SouthAmerica_flat:
     upper_right_xy: [-556597.4539663679, 1535833.8895192828]
     units: m
 
-south_america:
+SouthAmerica_eqc_6.8km:
+  old_name: south_america
   description: south_america, platecarree
   projection:
     proj: eqc
@@ -798,7 +806,8 @@ south_america:
     upper_right_xy: [-556597.4539663679, 1335833.8895192828]
     units: m
 
-maspalomas:
+maspalomas_merc_1km:
+  old_name: maspalomas
   description: Western Africa and Canary Islands
   projection:
     proj: merc
@@ -811,7 +820,8 @@ maspalomas:
     lower_left_xy: [-1200000.0, 2900000.0]
     upper_right_xy: [900000.0, 4000000.0]
 
-eurol:
+eurol_stere_3km:
+  old_name: eurol
   description: Euro 3.0km area - Europe
   projection:
     proj: stere
@@ -826,7 +836,8 @@ eurol:
     lower_left_xy: [-3780000.0, -7644000.0]
     upper_right_xy: [3900000.0, -1500000.0]
 
-eurol1:
+eurol1_stere_0.8km:
+  old_name: eurol1
   description: Euro 3.0km area - Europe
   projection:
     proj: stere
@@ -841,7 +852,8 @@ eurol1:
     lower_left_xy: [-3780000.0, -7644000.0]
     upper_right_xy: [3900000.0, -1500000.0]
 
-euron1:
+euron1_stere_1km:
+  old_name: euron1
   description: Northern Europe - 1km
   projection:
     proj: stere
@@ -856,7 +868,8 @@ euron1:
     lower_left_xy: [-1000000.0, -4500000.0]
     upper_right_xy: [2072000.0, -1428000.0]
 
-arctic_europe_1km:
+ArcticEurope_laea_1km:
+  old_name: arctic_europe_1km
   description: Arctic and Europe
   projection:
     proj: laea
@@ -871,7 +884,8 @@ arctic_europe_1km:
     lower_left_xy: [-3100000.0, -7100000.0]
     upper_right_xy: [6000000.0, 2000000.0]
 
-arctic_europe_9km:
+ArcticEurope_laea_9km:
+  old_name: arctic_europe_9km
   description: Arctic and Europe
   projection:
     proj: laea
@@ -886,7 +900,8 @@ arctic_europe_9km:
     lower_left_xy: [-3100000.0, -7100000.0]
     upper_right_xy: [6000000.0, 2000000.0]
 
-ease_sh:
+AntarcticEaseSH_laea_25km:
+  old_name: ease_sh
   description: Antarctic EASE grid
   projection:
     proj: laea
@@ -902,7 +917,8 @@ ease_sh:
     upper_right_xy: [5326849.0625, 5326849.0625]
     units: m
 
-ease_nh:
+ArcticEaseNH_laea_25km:
+  old_name: ease_nh
   description: Arctic EASE grid
   projection:
     proj: laea
@@ -918,7 +934,8 @@ ease_nh:
     upper_right_xy: [5326849.0625, 5326849.0625]
     units: m
 
-barents_sea:
+BarentsSea_stere_1km:
+  old_name: barents_sea
   description: Barents and Greenland seas
   projection:
     proj: stere
@@ -933,7 +950,8 @@ barents_sea:
     lower_left_xy: [-1600000.0, -2000000.0]
     upper_right_xy: [1400000.0, -300000.0]
 
-antarctica:
+antarctica_laea_1km:
+  old_name: antarctica
   description: Antarctica - 1km
   projection:
     proj: laea
@@ -948,8 +966,9 @@ antarctica:
     lower_left_xy: [-2858899.2042342643, -2858899.204234264]
     upper_right_xy: [2858899.204234264, 2858899.2042342643]
 
-arctica:
-  description: arctica - 1km
+arctica_laea_0.5km:
+  old_name: arctica
+  description: Arctica with 0.5km resolution
   projection:
     proj: laea
     a: 6370997.0
@@ -963,7 +982,8 @@ arctica:
     lower_left_xy: [-1458899.2042342643, -1458899.2042342639]
     upper_right_xy: [1458899.2042342639, 1458899.2042342643]
 
-euroasia:
+euroasia_laea_1km:
+  old_name: euroasia
   description: Euroasia - Global 1km USGS Landuse database
   projection:
     proj: laea
@@ -978,8 +998,9 @@ euroasia:
     lower_left_xy: [-3000000.0, -4999000.0]
     upper_right_xy: [9999000.0, 8000000.0]
 
-euroasia_10km:
-  description: Euroasia - Global 1km USGS Landuse database
+euroasia_laea_10km:
+  old_name: euroasia_10km
+  description: Euroasia - Global 10km USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -993,10 +1014,9 @@ euroasia_10km:
     lower_left_xy: [-3000000.0, -4999000.0]
     upper_right_xy: [9999000.0, 8000000.0]
 
-euroasia_asia:
-  description:
-    Euroasia - optimised for Asia -
-    Global 1km USGS Landuse database
+euroasia_asia_laea_1km:
+  old_name: euroasia_asia
+  description: Euroasia - optimised for Asia - Global 1km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1010,8 +1030,9 @@ euroasia_asia:
     lower_left_xy: [-8000000.0, -5499000.0]
     upper_right_xy: [4999000.0, 6500000.0]
 
-euroasia_asia_10km:
-  description: Euroasia - optimised for Asia - Global 1km USGS Landuse database
+euroasia_asia_laea_10km:
+  old_name: euroasia_asia_10km
+  description: Euroasia - optimised for Asia - Global 10km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1025,8 +1046,9 @@ euroasia_asia_10km:
     lower_left_xy: [-8000000.0, -5499000.0]
     upper_right_xy: [4999000.0, 6500000.0]
 
-australia_pacific:
-  description: Austalia/Pacific - Global 1km USGS Landuse database
+australia_pacific_laea_1km:
+  old_name: australia_pacific
+  description: Austalia/Pacific - Global 1km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1040,8 +1062,9 @@ australia_pacific:
     lower_left_xy: [-5000000.0, -3944890.0]
     upper_right_xy: [4299000.0, 4054110.0]
 
-australia_pacific_10km:
-  description: Austalia/Pacific - Global 1km USGS Landuse database
+australia_pacific_laea_10km:
+  old_name: australia_pacific_10km
+  description: Austalia/Pacific - Global 10km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1055,8 +1078,9 @@ australia_pacific_10km:
     lower_left_xy: [-5000000.0, -3944890.0]
     upper_right_xy: [4299000.0, 4054110.0]
 
-africa:
-  description: Africa - Global 1km USGS Landuse database
+africa_laea_1km:
+  old_name: africa
+  description: Africa - Global 1km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1070,8 +1094,9 @@ africa:
     lower_left_xy: [-4458000.0, -4795000.0]
     upper_right_xy: [3891000.0, 4480000.0]
 
-africa_10km:
-  description: Africa - Global 1km USGS Landuse database
+africa_laea_10km:
+  old_name: africa_10km
+  description: Africa - Global 10km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1085,8 +1110,9 @@ africa_10km:
     lower_left_xy: [-4458000.0, -4795000.0]
     upper_right_xy: [3891000.0, 4480000.0]
 
-southamerica_laea:
-  description: South America - Global 1km USGS Landuse database
+southamerica_laea_1km:
+  old_name: southamerica_laea
+  description: South America - Global 1km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1100,8 +1126,9 @@ southamerica_laea:
     lower_left_xy: [-3000000.0, -4899000.0]
     upper_right_xy: [2999000.0, 3100000.0]
 
-southamerica_10km:
-  description: South America - Global 1km USGS Landuse database
+southamerica_laea_10km:
+  old_name: southamerica_1km
+  description: South America - Global 1km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1115,8 +1142,9 @@ southamerica_10km:
     lower_left_xy: [-3000000.0, -4899000.0]
     upper_right_xy: [2999000.0, 3100000.0]
 
-northamerica:
-  description: North America - Global 1km USGS Landuse database
+northamerica_laea_1km:
+  old_name: northamerica
+  description: North America - Global 1km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1130,8 +1158,9 @@ northamerica:
     lower_left_xy: [-4487000.0, -4515000.0]
     upper_right_xy: [4735000.0, 4480000.0]
 
-northamerica_10km:
-  description: North America - Global 1km USGS Landuse database
+northamerica_laea_10km:
+  old_name: northamerica_10km
+  description: North America - Global 10km resolution USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1145,8 +1174,9 @@ northamerica_10km:
     lower_left_xy: [-4487000.0, -4515000.0]
     upper_right_xy: [4735000.0, 4480000.0]
 
-moll:
-  description: moll
+global_moll_10km:
+  old_name: moll
+  description: Globe in Mollweide projection
   projection:
     proj: moll
     lat_0: 0.0
@@ -1159,8 +1189,9 @@ moll:
     lower_left_xy: [-18040095.696147293, -9020047.848073646]
     upper_right_xy: [18040095.696147293, 9020047.848073646]
 
-robinson:
-  description: robinson
+greenland_robin_1km:
+  old_name: robinson
+  description: Greenland in Robinson projection
   projection:
     proj: robin
     lat_0: 70.0
@@ -1208,51 +1239,6 @@ met09globe:  # obsolete platform number
     lower_left_xy: [-5432229.931711678, -5429229.528545862]
     upper_right_xy: [5429229.528545862, 5432229.931711678]
 
-met09globeFull:  # superseded by msg_seviri_fes_3km
-  description: Full disk MSG image 0 degrees
-  projection:
-    proj: geos
-    lon_0: 0.0
-    a: 6378169.0
-    b: 6356583.8
-    h: 35785831.0
-  shape:
-    height: 3712
-    width: 3712
-  area_extent:
-    lower_left_xy: [-5570248.477339261, -5567248.074173444]
-    upper_right_xy: [5567248.074173444, 5570248.477339261]
-
-seviri_0deg:  # superseded by msg_seviri_fes_3km
-  description: Full disk MSG image 0 degrees
-  projection:
-    proj: geos
-    lon_0: 0.0
-    a: 6378169.0
-    b: 6356583.8
-    h: 35785831.0
-  shape:
-    height: 3712
-    width: 3712
-  area_extent:
-    lower_left_xy: [-5570248.686685662, -5567248.28340708]
-    upper_right_xy: [5567248.28340708, 5570248.686685662]
-
-seviri_iodc:  # superseded by msg_seviri_iodc_3km
-  description: Full disk MSG image 41.5 degrees
-  projection:
-    proj: geos
-    lon_0: 41.5
-    a: 6378169.0
-    b: 6356583.8
-    h: 35785831.0
-  shape:
-    height: 3712
-    width: 3712
-  area_extent:
-    lower_left_xy: [-5570248.686685662, -5567248.28340708]
-    upper_right_xy: [5567248.28340708, 5570248.686685662]
-
 msg_resample_area:
   description: Full disk MSG image 20.75 degrees
   projection:
@@ -1269,7 +1255,8 @@ msg_resample_area:
     upper_right_xy: [5567248.074173444, 5570248.477339261]
 
 # Global lat / lon gridded areas
-EPSG_4326_36000x18000:
+EPSG_4326_0.01deg:
+  old_name: EPSG_4326_36000x18000
   description: Global equal latitude/longitude grid at 0.01 degree resolution
   projection:
     EPSG:4326
@@ -1280,7 +1267,8 @@ EPSG_4326_36000x18000:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
 
-EPSG_4326_7200x3600:
+EPSG_4326_0.05deg:
+  old_name: EPSG_4326_7200x3600
   description: Global equal latitude/longitude grid at 0.05 degree resolution
   projection:
     EPSG:4326
@@ -1291,7 +1279,8 @@ EPSG_4326_7200x3600:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
 
-EPSG_4326_3600x1800:
+EPSG_4326_0.1deg:
+  old_name: EPSG_4326_3600x1800
   description: Global equal latitude/longitude grid at 0.1 degree resolution
   projection:
     EPSG:4326
@@ -1302,7 +1291,8 @@ EPSG_4326_3600x1800:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
 
-EPSG_4326_1440x720:
+EPSG_4326_0.25deg:
+  old_name: EPSG_4326_1440x720
   description: Global equal latitude/longitude grid at 0.25 degree resolution
   projection:
     EPSG:4326
@@ -1313,7 +1303,8 @@ EPSG_4326_1440x720:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
 
-EPSG_4326_720x360:
+EPSG_4326_0.5deg:
+  old_name: EPSG_4326_720x360
   description: Global equal latitude/longitude grid at 0.5 degree resolution
   projection:
     EPSG:4326
@@ -1324,7 +1315,8 @@ EPSG_4326_720x360:
     lower_left_xy: [-180.0, -90.0]
     upper_right_xy: [180.0, 90.0]
 
-EPSG_4326_360x180:
+EPSG_4326_1.0deg:
+  old_name: EPSG_4326_360x180
   description: Global equal latitude/longitude grid at 1 degree resolution
   projection:
     EPSG:4326
