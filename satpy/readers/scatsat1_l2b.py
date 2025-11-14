@@ -19,54 +19,55 @@
 
 import datetime as dt
 
-import h5py
-
-from satpy.dataset import Dataset
-from satpy.readers.core.file_handlers import BaseFileHandler
+import xarray as xr
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 
-class SCATSAT1L2BFileHandler(BaseFileHandler):
+class SCATSAT1L2BFileHandler(HDF5FileHandler):
     """File handler for ScatSat level 2 files, as distributed by Eumetsat in HDF5 format."""
 
-    def __init__(self, filename, filename_info, filetype_info):
-        """Initialize the file handler."""
-        super(SCATSAT1L2BFileHandler, self).__init__(filename, filename_info, filetype_info)
-        self.h5f = h5py.File(self.filename, "r")
-        h5data = self.h5f["science_data"]
+    @property
+    def start_time(self):
+        """Time for first observation."""
+        return dt.datetime.strptime(self["science_data/attr/Range Beginning Date"],
+                                    "%Y-%jT%H:%M:%S.%f")
 
-        self.filename_info["start_time"] = dt.datetime.strptime(
-            h5data.attrs["Range Beginning Date"], "%Y-%jT%H:%M:%S.%f")
-        self.filename_info["end_time"] = dt.datetime.strptime(
-            h5data.attrs["Range Ending Date"], "%Y-%jT%H:%M:%S.%f")
+    @property
+    def end_time(self):
+        """Time for final observation."""
+        return dt.datetime.strptime(self["science_data/attr/Range Ending Date"],
+                                    "%Y-%jT%H:%M:%S.%f")
 
-        self.lons = None
-        self.lats = None
+    @property
+    def platform_name(self):
+        """Get the Platform ShortName."""
+        return self["science_data/attr/Satellite Name"]
 
-        self.wind_speed_scale = float(h5data.attrs["Wind Speed Selection Scale"])
-        self.wind_direction_scale = float(h5data.attrs["Wind Direction Selection Scale"])
-        self.latitude_scale = float(h5data.attrs["Latitude Scale"])
-        self.longitude_scale = float(h5data.attrs["Longitude Scale"])
+    def get_dataset(self, ds_id, ds_info):
+        """Get output data and metadata of specified dataset."""
+        var_path = ds_info["file_key"]
+        data = self[var_path]
 
-    def get_dataset(self, key, info):
-        """Get the dataset."""
-        h5data = self.h5f["science_data"]
-        stdname = info.get("standard_name")
+        _attrs = data.attrs
+        _attrs.pop('CLASS', None)
+        _attrs.pop('IMAGE_MINMAXRANGE', None)
+        _attrs.pop('IMAGE_SUBCLASS', None)
+        data = data.where(data != ds_info.get("fill_value", 65535))
+        if "Longitude" in var_path:
+            data = data * float(self["science_data/attr/Longitude Scale"])
+            data = xr.where(data > 180, data - 360., data)
+        elif "Latitude" in var_path:
+            data = data * float(self["science_data/attr/Latitude Scale"])
+        elif "Wind_speed_selection" in var_path:
+            data = data * float(self["science_data/attr/Wind Speed Selection Scale"])
+        elif "Wind_direction_selection" in var_path:
+            data = data * float(self["science_data/attr/Wind Direction Selection Scale"])
+        data.attrs.update(_attrs)
 
-        if stdname in ["latitude", "longitude"]:
+        if self.filename_info['cell_spacing'] == '25km':
+            data.attrs.update({'resolution': 25000})
+        elif self.filename_info['cell_spacing'] == '12km':
+            data.attrs.update({'resolution': 12500})
 
-            if self.lons is None or self.lats is None:
-                self.lons = h5data["Longitude"][:]*self.longitude_scale
-                self.lats = h5data["Latitude"][:]*self.latitude_scale
-
-            if info["standard_name"] == "longitude":
-                return Dataset(self.lons, id=key, **info)
-            else:
-                return Dataset(self.lats, id=key, **info)
-
-        if stdname in ["wind_speed"]:
-            windspeed = h5data["Wind_speed_selection"][:, :] * self.wind_speed_scale
-            return Dataset(windspeed, id=key, **info)
-
-        if stdname in ["wind_direction"]:
-            wind_direction = h5data["Wind_direction_selection"][:, :] * self.wind_direction_scale
-            return Dataset(wind_direction, id=key, **info)
+        data.attrs.update(ds_info)
+        return data
