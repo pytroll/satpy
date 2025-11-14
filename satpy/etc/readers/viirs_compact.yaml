@@ -41,11 +41,16 @@ datasets:
   M01:
     name: M01
     sensor: viirs
-    wavelength: [0.402,0.412,0.422]
+    wavelength: [0.402, 0.412, 0.422]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -56,11 +61,16 @@ datasets:
   M02:
     name: M02
     sensor: viirs
-    wavelength: [0.436,0.445,0.454]
+    wavelength: [0.436, 0.445, 0.454]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -71,11 +81,16 @@ datasets:
   M03:
     name: M03
     sensor: viirs
-    wavelength: [0.478,0.488,0.498]
+    wavelength: [0.478, 0.488, 0.498]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -86,11 +101,16 @@ datasets:
   M04:
     name: M04
     sensor: viirs
-    wavelength: [0.545,0.555,0.565]
+    wavelength: [0.545, 0.555, 0.565]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -101,11 +121,16 @@ datasets:
   M05:
     name: M05
     sensor: viirs
-    wavelength: [0.662,0.672,0.682]
+    wavelength: [0.662, 0.672, 0.682]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -116,11 +141,16 @@ datasets:
   M06:
     name: M06
     sensor: viirs
-    wavelength: [0.739,0.746,0.754]
+    wavelength: [0.739, 0.746, 0.754]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -131,11 +161,16 @@ datasets:
   M07:
     name: M07
     sensor: viirs
-    wavelength: [0.846,0.865,0.885]
+    wavelength: [0.846, 0.865, 0.885]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -146,11 +181,16 @@ datasets:
   M08:
     name: M08
     sensor: viirs
-    wavelength: [1.230,1.240,1.250]
+    wavelength: [1.230, 1.240, 1.250]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -162,10 +202,15 @@ datasets:
     name: M09
     sensor: viirs
     resolution: 742
-    wavelength: [1.371,1.378,1.386]
+    wavelength: [1.371, 1.378, 1.386]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -176,11 +221,16 @@ datasets:
   M10:
     name: M10
     sensor: viirs
-    wavelength: [1.580,1.610,1.640]
+    wavelength: [1.580, 1.610, 1.640]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -192,10 +242,15 @@ datasets:
     name: M11
     sensor: viirs
     resolution: 742
-    wavelength: [2.225,2.250,2.275]
+    wavelength: [2.225, 2.250, 2.275]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -206,7 +261,7 @@ datasets:
   M12:
     name: M12
     sensor: viirs
-    wavelength: [3.610,3.700,3.790]
+    wavelength: [3.610, 3.700, 3.790]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -221,7 +276,7 @@ datasets:
   M13:
     name: M13
     sensor: viirs
-    wavelength: [3.973,4.050,4.128]
+    wavelength: [3.973, 4.050, 4.128]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -237,7 +292,7 @@ datasets:
     name: M14
     sensor: viirs
     resolution: 742
-    wavelength: [8.400,8.550,8.700]
+    wavelength: [8.400, 8.550, 8.700]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -252,7 +307,7 @@ datasets:
     name: M15
     sensor: viirs
     resolution: 742
-    wavelength: [10.263,10.763,11.263]
+    wavelength: [10.263, 10.763, 11.263]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -266,7 +321,7 @@ datasets:
   M16:
     name: M16
     sensor: viirs
-    wavelength: [11.538,12.013,12.489]
+    wavelength: [11.538, 12.013, 12.489]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -281,7 +336,7 @@ datasets:
   DNB:
     name: DNB
     sensor: viirs
-    wavelength: [0.500,0.700,0.900]
+    wavelength: [0.500, 0.700, 0.900]
     resolution: 743
     calibration:
       radiance:
@@ -388,7 +443,13 @@ datasets:
 file_types:
   compact_m:
     file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactFileHandler
-    file_patterns: ['SVMC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5']
+    file_patterns:
+      [
+        "SVMC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5",
+      ]
   compact_dnb:
     file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactFileHandler
-    file_patterns: ['SVDNBC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5']
+    file_patterns:
+      [
+        "SVDNBC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5",
+      ]

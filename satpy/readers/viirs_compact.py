@@ -248,7 +248,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         unit = "W m-2 sr-1 μm-1"
         if dataset_key["calibration"] == "counts":
             raise NotImplementedError("Can't get counts from this data")
-        if dataset_key["calibration"] in ["reflectance", "brightness_temperature"]:
+        if dataset_key["calibration"] in ["radiance_factor",
+                                          # 8< v1.0
+                                          "reflectance",
+                                          # >8 v1.0
+                                          "brightness_temperature"]:
             # do calibrate
             try:
                 # First guess: VIS or NIR data
@@ -276,7 +280,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         elif dataset_key["calibration"] != "radiance":
             raise ValueError("Calibration parameter should be radiance, "
-                             "reflectance or brightness_temperature")
+                             # 8< v1.0
+                             "reflectance, "
+                             # >8 v1.0
+                             "radiance_factor or brightness_temperature")
         rads = rads.clip(min=0)
         rads.attrs = self.mda
         rads.attrs["units"] = unit
