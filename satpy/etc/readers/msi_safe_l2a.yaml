@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [msi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   data_identification_keys:
     name:
       required: true

@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: ['slstr', 'avhrr/3', 'viirs']
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     GHRSST_OSISAF:

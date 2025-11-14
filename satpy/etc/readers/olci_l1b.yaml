@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: true
   sensors: [olci]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     esa_l1b:

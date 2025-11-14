@@ -5,7 +5,7 @@ reader:
   description: Generic NASA VIIRS L1B Reader
   status: Nominal
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [viirs]
   default_datasets:
 

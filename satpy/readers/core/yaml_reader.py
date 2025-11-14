@@ -463,9 +463,9 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
     This class uses the idea of per-file "file handler" objects to read file
     contents and determine what is available in the file. This differs from
     the base :class:`AbstractYAMLReader` which does not depend on individual
-    file handler objects. In almost all cases this class should be used over
-    its base class and can be used as a reader by itself and requires no
-    subclassing.
+    file handler objects. In almost all cases, readers should use the subclass
+    :class:`RasterFileYAMLReader` or its subclasses, which can be used as a
+    reader by itself and require no subclassing.
 
     """
 
@@ -976,6 +976,11 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
 
         return cids
 
+    @staticmethod
+    @abstractmethod
+    def _combine_projectables(slice_list, file_handlers, dim):
+        """Combine projectables into a single object."""
+        raise NotImplementedError()
 
 class RasterFileYAMLReader(FileYAMLReader):
     """YAML reader for file handlers with raster data.

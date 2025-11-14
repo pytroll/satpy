@@ -6,7 +6,7 @@ reader:
     Reader for the S-NPP and JPSS-1 Advanced Technology Microwave Sounder Level 1B files in NetCDF4.
   status: Beta
   sensors: [atms]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   supports_fsspec: false
 
   data_identification_keys:

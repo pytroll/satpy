@@ -12,7 +12,7 @@ reader:
   supports_fsspec: false
   sensors: [seviri]
   doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 # CMSAF naming convention:
 #   https://www.cmsaf.eu/EN/Products/NamingConvention/Naming_Convention_node.html

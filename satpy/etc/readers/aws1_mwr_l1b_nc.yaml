@@ -3,7 +3,7 @@ reader:
   short_name: AWS1 MWR L1B
   long_name: AWS1 MWR L1B Radiance (NetCDF4)
   description: Reader for the ESA AWS (Arctic Weather Satellite) Microwave Radiometer (MWR) level-1b files in netCDF4.
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [mwr,]
   status: Beta
   supports_fsspec: false

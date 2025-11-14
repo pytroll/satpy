@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [sen2_msi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
   l1c_safe_granule:

@@ -3,7 +3,7 @@ reader:
   short_name: MWS L1B RAD NetCDF4
   long_name: EPS-SG MWS L1B Radiance (NetCDF4)
   description: Reader for the EPS-SG l1b MWS (Microwave Sounder) level-1 files in netCDF4.
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [mws,]
   status: Beta
 
