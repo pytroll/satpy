@@ -1247,7 +1247,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     def _load_dataset(self, dsid, ds_info, file_handlers, dim="y", pad_data=True):
         """Load only a piece of the dataset."""
         if not pad_data:
-            return RasterFileYAMLReader._load_dataset(dsid, ds_info,
+            return super()._load_dataset(dsid, ds_info,
                                                 file_handlers)
 
         counter, expected_segments, slice_list, failure, projectable = \
