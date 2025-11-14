@@ -104,7 +104,7 @@ class PSPRayleighReflectance(ModifierBase):
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
                     atmosphere, aerosol_type, vis.attrs["name"])
-        corrector = Rayleigh(vis.attrs["platform_name"], vis.attrs["sensor"],
+        corrector = Rayleigh(vis.attrs["platform_name"], vis.attrs["sensor"].lower(),
                              atmosphere=atmosphere,
                              aerosol_type=aerosol_type)
 
@@ -159,7 +159,7 @@ class PSPAtmosphericalCorrection(ModifierBase):
 
         logger.info("Correction for limb cooling")
         corrector = AtmosphericalCorrection(band.attrs["platform_name"],
-                                            band.attrs["sensor"])
+                                            band.attrs["sensor"].lower())
 
         atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
                                  corrector=corrector,

@@ -192,7 +192,7 @@ def _load_config(composite_configs):
     sensor_modifiers = {}
 
     dep_id_keys = None
-    sensor_deps = sensor_name.split("/")[:-1]
+    sensor_deps = conf.get("dependencies", sensor_name.split("/")[:-1])
     if sensor_deps:
         # get dependent
         for sensor_dep in sensor_deps:
@@ -246,6 +246,10 @@ def _update_cached_wrapper(wrapper, cached_func):
     return wrapper
 
 
+def sensor_to_filename(sensor_name: str) -> str:
+    """Get filename tag for the given sensor."""
+    return sensor_name.lower().replace("-", "").replace(" ", "_").replace("/", "-")
+
 @_lru_cache_with_config_path
 def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict], dict[str, dict], dict]:
     """Load compositor, modifier, and DataID key information from configuration files for the specified sensor.
@@ -268,7 +272,7 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
                 DataID key -> key properties
 
     """
-    config_filename = sensor_name + ".yaml"
+    config_filename = sensor_to_filename(sensor_name) + ".yaml"
     logger.debug("Looking for composites config file %s", config_filename)
     paths = get_entry_points_config_dirs("satpy.composites")
     composite_configs = config_search_paths(
