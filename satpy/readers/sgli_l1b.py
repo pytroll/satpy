@@ -124,7 +124,11 @@ class HDF5SGLI(BaseFileHandler):
         attrs = dataset.attrs
         if calibration == "counts":
             return dataset
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             calibrated = (dataset * attrs["Slope_reflectance"] + attrs["Offset_reflectance"]) * 100
         elif calibration == "radiance":
             calibrated = dataset * attrs["Slope"] + attrs["Offset"]
