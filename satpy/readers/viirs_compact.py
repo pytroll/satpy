@@ -32,6 +32,7 @@ For more information on this format, the reader can refer to the
 import datetime as dt
 import logging
 from contextlib import suppress
+from warnings import warn
 
 import dask.array as da
 import h5py
@@ -261,6 +262,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 dse = h5attrs["EarthSunDistanceNormalised"]
                 rads *= 100 * np.pi * a_vis / b_vis * (dse**2)
                 unit = "%"
+                # 8< v1.0
+                if dataset_key["calibration"] == "reflectance":
+                    warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                         DeprecationWarning)
+                # >8 v1.0
             except KeyError:
                 # Maybe it's IR data?
                 try:

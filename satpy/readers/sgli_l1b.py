@@ -30,6 +30,7 @@ https://gportal.jaxa.jp/gpr/assets/mng_upload/GCOM-C/SGLI_Level1_Product_Format_
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import dask.array as da
 import h5py
@@ -132,6 +133,11 @@ class HDF5SGLI(BaseFileHandler):
             calibrated = (dataset * attrs["Slope_reflectance"] + attrs["Offset_reflectance"]) * 100
         elif calibration == "radiance":
             calibrated = dataset * attrs["Slope"] + attrs["Offset"]
+        # 8< v1.0
+        if calibration == "reflectance":
+            warn("Reflectance is not a correct calibration for SGLI channels, please use 'radiance_factor'",
+                 DeprecationWarning)
+        # >8 v1.0
         missing, _ = self.get_missing_and_saturated(attrs)
         return calibrated.where(dataset < missing)
 

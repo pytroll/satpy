@@ -42,6 +42,7 @@ For more information:
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import dask.array as da
 import numpy as np
@@ -111,6 +112,11 @@ class VIRR_L1B(HDF5FileHandler):
         data.attrs.update({"platform_name": self["/attr/Satellite Name"],
                            "sensor": self["/attr/Sensor Identification Code"].lower()})
         data.attrs.update(ds_info)
+        self._fix_units(data, dataset_id, file_key)
+        return data
+
+    def _fix_units(self, data, dataset_id, file_key):
+        """Fix units."""
         units = self.get(file_key + "/attr/units")
         if units is not None and str(units).lower() != "none":
             data.attrs.update({"units": self.get(file_key + "/attr/units")})
@@ -120,9 +126,13 @@ class VIRR_L1B(HDF5FileHandler):
                 # >8 v1.0
                 "radiance_factor"]:
             data.attrs.update({"units": "%"})
+            # 8< v1.0
+            if dataset_id["calibration"] == "reflectance":
+                warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                     DeprecationWarning)
+            # >8 v1.0
         else:
             data.attrs.update({"units": "1"})
-        return data
 
     def _calibrate_reflective(self, data, band_index):
         if self.platform_id == "FY3B":

@@ -216,6 +216,11 @@ class NCSLSTR1B(BaseFileHandler):
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
             radiances *= np.pi * 100
             units = "%"
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                 DeprecationWarning)
+        # >8 v1.0
 
         info = info.copy()
         info.update(radiances.attrs)
