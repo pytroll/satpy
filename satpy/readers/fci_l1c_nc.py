@@ -401,7 +401,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         # pre-calibration units no longer apply
         attrs.pop("units")
-
         resattrs.update(attrs)
 
         # remove unpacking parameters for calibrated data
@@ -412,8 +411,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             resattrs.pop("warm_scale_factor")
             resattrs.pop("valid_range")
             # Some xarray versions can propagate _FillValue too:
-            if "_FillValue" in resattrs.keys():
-                resattrs.pop("_FillValue")
+            resattrs.pop("_FillValue", None)
 
         # remove attributes from original file which don't apply anymore
         resattrs.pop("long_name")
