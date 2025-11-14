@@ -199,7 +199,7 @@ class DummyReader(BaseFileHandler):
 
 
 class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
-    """Test units from FileYAMLReader with multiple readers."""
+    """Test units from RasterFileYAMLReader with multiple readers."""
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
@@ -226,7 +226,7 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
                                           "file_type": "ftype2"}}}
 
         self.config = res_dict
-        self.reader = yr.FileYAMLReader(self.config,
+        self.reader = yr.RasterFileYAMLReader(self.config,
                                         filter_parameters={
                                             "start_time": dt.datetime(2000, 1, 1),
                                             "end_time": dt.datetime(2000, 1, 2)})
@@ -274,12 +274,12 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 
 
 class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
-    """Test units from FileYAMLReader with custom id_keys."""
+    """Test units from RasterFileYAMLReader with custom id_keys."""
 
     def setUp(self):
         """Set up the test case."""
         self.config = MHS_YAML_READER_DICT
-        self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
+        self.reader = yr.RasterFileYAMLReader(MHS_YAML_READER_DICT,
                                         filter_parameters={
                                             "start_time": dt.datetime(2000, 1, 1),
                                             "end_time": dt.datetime(2000, 1, 2),
@@ -294,7 +294,7 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
 
 
 class TestFileFileYAMLReader(unittest.TestCase):
-    """Test units from FileYAMLReader."""
+    """Test units from RasterFileYAMLReader."""
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
@@ -320,7 +320,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                           "file_type": "ftype2"}}}
 
         self.config = res_dict
-        self.reader = yr.FileYAMLReader(res_dict,
+        self.reader = yr.RasterFileYAMLReader(res_dict,
                                         filter_parameters={
                                             "start_time": dt.datetime(2000, 1, 1),
                                             "end_time": dt.datetime(2000, 1, 2),
@@ -330,7 +330,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Test that we get an exception when config files are passed to inti."""
         with pytest.raises(ValueError,
                            match="Passing config files to create a Reader is deprecated.*"):
-            yr.FileYAMLReader("/path/to/some/file.yaml")
+            yr.RasterFileYAMLReader("/path/to/some/file.yaml")
 
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
@@ -555,7 +555,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
 
 class TestFileYAMLReaderLoading(unittest.TestCase):
-    """Tests for FileYAMLReader.load."""
+    """Tests for RasterFileYAMLReader.load."""
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
@@ -572,7 +572,7 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
                                  }}
 
         self.config = res_dict
-        self.reader = yr.FileYAMLReader(res_dict,
+        self.reader = yr.RasterFileYAMLReader(res_dict,
                                         filter_parameters={
                                             "start_time": dt.datetime(2000, 1, 1),
                                             "end_time": dt.datetime(2000, 1, 2),
@@ -625,7 +625,7 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
 
 
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
-    """Test units from FileYAMLReader with multiple file types."""
+    """Test units from RasterFileYAMLReader with multiple file types."""
 
     def setUp(self):
         """Prepare a reader instance with a fake config."""
@@ -667,7 +667,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                                           "file_type": ["ftype1", "ftype3"]}}}
 
         self.config = res_dict
-        self.reader = yr.FileYAMLReader(self.config)
+        self.reader = yr.RasterFileYAMLReader(self.config)
 
     def test_update_ds_ids_from_file_handlers(self):
         """Test updating existing dataset IDs with information from the file."""
@@ -733,8 +733,8 @@ def file_type_matches(self, ds_ftype):
 class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     """Test GEOFlippableFileYAMLReader."""
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_single_areas(self, ldwa):
         """Test _load_dataset_with_area() for single area definitions."""
         from pyresample.geometry import AreaDefinition
@@ -840,8 +840,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs["area"].area_extent, original_area_extent)
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_stacked_areas(self, ldwa):
         """Test _load_dataset_with_area() for stacked area definitions."""
         from pyresample.geometry import AreaDefinition, StackedAreaDefinition
@@ -902,8 +902,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.coords["x"], np.arange(3))
         np.testing.assert_equal(res.coords["time"], np.flip(np.arange(4)))
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_swath_def_data(self, ldwa):
         """Test _load_dataset_with_area() for swath definition data."""
         from pyresample.geometry import SwathDefinition
@@ -934,8 +934,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, "NE")
         np.testing.assert_equal(res.values, original_array)
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_data_without_area(self, ldwa):
         """Test _load_dataset_with_area() for data wihtout area information."""
         from satpy.readers.core.yaml_reader import GEOFlippableFileYAMLReader
@@ -995,8 +995,8 @@ def _create_mocked_basic_fh():
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "create_filehandlers")
     def test_get_expected_segments(self, cfh):
         """Test that expected segments can come from the filename."""
         from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
@@ -1037,8 +1037,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         es = created_fhs["ft1"][0].filename_info["segment"]
         assert es == 5
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "create_filehandlers")
     def test_segments_sorting(self, cfh):
         """Test that segment filehandlers are sorted by segment number."""
         from satpy.readers.core.yaml_reader import GEOSegmentYAMLReader
@@ -1059,8 +1059,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         reader.create_filehandlers(["fake.nc"])
         assert [fh.filename_info["segment"] for fh in reader.file_handlers["ft1"]] == [1, 2, 3]
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch("satpy.readers.core.yaml_reader.FileYAMLReader._load_dataset")
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
+    @patch("satpy.readers.core.yaml_reader.RasterFileYAMLReader._load_dataset")
     @patch("satpy.readers.core.yaml_reader.xr")
     @patch("satpy.readers.core.yaml_reader._find_missing_segments")
     def test_load_dataset(self, mss, xr, parent_load_dataset):
@@ -1152,7 +1152,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         parent_load_dataset.assert_called_once_with(dataid, ds_info,
                                                     file_handlers)
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.core.yaml_reader._load_area_def")
     @patch("satpy.readers.core.yaml_reader._stack_area_defs")
     @patch("satpy.readers.core.yaml_reader.GEOSegmentYAMLReader._pad_earlier_segments_area")
@@ -1173,7 +1173,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         reader._load_area_def(dataid, file_handlers, pad_data=False)
         parent_load_area_def.assert_called_once_with(dataid, file_handlers)
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.core.yaml_reader.AreaDefinition")
     def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area()."""
@@ -1194,7 +1194,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
-    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.RasterFileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.core.yaml_reader.AreaDefinition")
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
