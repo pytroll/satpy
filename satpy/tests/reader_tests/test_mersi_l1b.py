@@ -671,6 +671,7 @@ class TestMERSIRML1B(MERSIL1BTester):
     def test_500m_resolution(self):
         """Test loading data when all resolutions are available."""
         from satpy.readers.core.loading import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = self.filenames_500m
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -679,13 +680,17 @@ class TestMERSIRML1B(MERSIL1BTester):
         # Make sure we have some files
         assert reader.file_handlers
 
-        res = reader.load(["1", "2", "4", "7"])
+        ds_ids = []
+        for band_name in ["1", "2", "4"]:
+            ds_ids.append(make_dataid(name=band_name, calibration="radiance_factor"))
+        ds_ids.append(make_dataid(name="7"))
+        res = reader.load(ds_ids)
         assert len(res) == 4
-        assert res["4"].shape == (2 * 10, 4096)
-        assert res["1"].attrs["calibration"] == "reflectance"
+        assert res["1"].shape == (2 * 10, 4096)
+        assert res["1"].attrs["calibration"] == "radiance_factor"
         assert res["1"].attrs["units"] == "%"
         assert res["2"].shape == (2 * 10, 4096)
-        assert res["2"].attrs["calibration"] == "reflectance"
+        assert res["2"].attrs["calibration"] == "radiance_factor"
         assert res["2"].attrs["units"] == "%"
         assert res["7"].shape == (20, 2048 * 2)
         assert res["7"].attrs["calibration"] == "brightness_temperature"
@@ -713,3 +718,17 @@ class TestMERSIRML1B(MERSIL1BTester):
             assert res[band_name].shape == (20, 4096)
             assert res[band_name].attrs["calibration"] == "radiance"
             assert res[band_name].attrs["units"] == "mW/ (m2 cm-1 sr)"
+
+    # 8< v1.0
+    def test_reflectance_warns(self):
+        """Test that loading reflectances issue a warning."""
+        from satpy.readers.core.loading import load_reader
+        from satpy.tests.utils import make_dataid
+        filenames = self.filenames_500m
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(files)
+
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            _ = reader.load([make_dataid(name="1", calibration="reflectance")])
+    # >8 v1.0
