@@ -4,7 +4,7 @@ reader:
   long_name: Sentinel-2 A and B MSI L1C data in SAFE format
   description: SAFE Reader for MSI L1C data (Sentinel-2)
   status: Nominal
-  supports_fsspec: false
+  supports_fsspec: true
   sensors: [sen2_msi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
