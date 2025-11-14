@@ -18,6 +18,8 @@
 import os
 import unittest.mock
 
+import pytest
+
 from satpy.readers.core.file_handlers import BaseFileHandler
 
 
@@ -65,3 +67,24 @@ def test_load(tmp_path):
         vs = VectorScene(filenames=["grenadines"], reader=["dummy_vector_reader"])
         vs.load(["dummy_vector_dataset"])
         assert isinstance(vs["dummy_vector_dataset"], geopandas.GeoDataFrame)
+
+@pytest.fixture
+def dummy_vector_scene():
+    """Return a dummy vector scene with one dataset."""
+    from geopandas import GeoDataFrame
+    from shapely import Point
+
+    from satpy.vectorscene import VectorScene
+    vs = VectorScene()
+    vs["dummy_vector_dataset"] = GeoDataFrame(
+                {"col1": ["name1", "name2"],
+                 "geometry": [Point(1, 2), Point(2, 1)]},
+                crs="EPSG:4326")
+    return vs
+
+def test_save(dummy_vector_scene, tmp_path):
+    """Test saving a dummy vector scene."""
+    dummy_vector_scene.save_dataset(
+            "dummy_vector_dataset",
+            writer="feature",
+            filename=os.fspath(tmp_path / "feature.sqlite"))

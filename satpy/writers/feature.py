@@ -23,4 +23,4 @@ class feature(Writer):
         elif extension == ".json":
             kwargs = {"driver": "GeoJSON"}
 
-        dataset.data.to_file(filename, **kwargs)
+        dataset.to_file(filename, **kwargs)
