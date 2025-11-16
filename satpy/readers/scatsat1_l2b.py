@@ -20,6 +20,7 @@
 import datetime as dt
 
 import xarray as xr
+
 from satpy.readers.core.hdf5 import HDF5FileHandler
 
 
@@ -59,10 +60,10 @@ class SCATSAT1L2BFileHandler(HDF5FileHandler):
         elif "Wind_direction_selection" in var_path:
             data = data * float(self["science_data/attr/Wind Direction Selection Scale"])
 
-        if self.filename_info['cell_spacing'] == '25km':
-            data.attrs.update({'resolution': 25000})
-        elif self.filename_info['cell_spacing'] == '12km':
-            data.attrs.update({'resolution': 12500})
+        if self.filename_info["cell_spacing"] == "25km":
+            data.attrs.update({"resolution": 25000})
+        elif self.filename_info["cell_spacing"] == "12km":
+            data.attrs.update({"resolution": 12500})
 
         data.attrs.update({"platform_name": self.platform_name})
         data.attrs.update(ds_info)
