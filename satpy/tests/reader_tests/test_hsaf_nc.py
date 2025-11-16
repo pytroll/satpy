@@ -1,6 +1,8 @@
 """Tests for the H-SAF NC reader."""
 import datetime as dt
+import io
 import os
+from collections import namedtuple
 from unittest import mock
 
 import numpy as np
@@ -34,6 +36,12 @@ FILE_PARAMS = {
         "yaml_file": "hsaf_nc.yaml",
     }
 }
+
+# Avoid too many arguments for test_load_datasets
+LoadDatasetsParams = namedtuple(
+    "LoadDatasetsParams",
+    ["file_type", "loadable_ids", "unit", "resolution", "area_name"]
+)
 
 # constants for fake test data
 DEFAULT_SHAPE = (5, 5)
@@ -78,48 +86,55 @@ class TestHSAFNCReader:
     )
     def test_reader_creation(self, file_type, expected_loadables):
         """Test that the reader can create file handlers."""
-        with mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as od:
-            od.side_effect = fake_hsaf_dataset
+        with mock.patch("satpy.readers.hsaf_nc.generic_open") as mock_generic_open, \
+                mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as mock_open_dataset:
+
+            mock_generic_open.return_value.__enter__.return_value = io.BytesIO(b"fake data")
+            mock_open_dataset.side_effect = fake_hsaf_dataset
 
             loadables = file_type["reader"].select_files_from_pathnames([file_type["fake_file"]])
-            file_type["reader"].create_filehandlers(loadables)
+            file_handlers = file_type["reader"].create_filehandlers(loadables)
 
-            assert len(loadables) == expected_loadables
+            assert len(file_handlers) == expected_loadables
             assert file_type["reader"].file_handlers, "No file handlers created"
 
     @pytest.mark.parametrize(
-        ("file_type", "loadable_ids", "unit", "resolution", "area_name"),
+        "params",
         [
-            (FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"], "mm/h", 3000, "msg_seviri_fes_3km"),
-            (FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"], "mm/h", 3000, "msg_seviri_iodc_3km"),
-            (FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km"),
+            LoadDatasetsParams(FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"], "mm/h", 3000, "msg_seviri_fes_3km"),
+            LoadDatasetsParams(FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"], "mm/h", 3000, "msg_seviri_iodc_3km"),
+            LoadDatasetsParams(FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km"),
         ],
     )
-    def test_load_datasets(self, file_type, loadable_ids, unit, resolution, area_name):
+    def test_load_datasets(self, params):
         """Test that datasets can be loaded correctly."""
-        with mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as od:
-            od.side_effect = fake_hsaf_dataset
-            loadables = file_type["reader"].select_files_from_pathnames([file_type["fake_file"]])
-            file_type["reader"].create_filehandlers(loadables)
+        with mock.patch("satpy.readers.hsaf_nc.generic_open") as mock_generic_open, \
+                mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as mock_open_dataset:
 
-            datasets = file_type["reader"].load(loadable_ids)
+            mock_generic_open.return_value.__enter__.return_value = io.BytesIO(b"fake data")
+            mock_open_dataset.side_effect = fake_hsaf_dataset
+
+            loadables = params.file_type["reader"].select_files_from_pathnames([params.file_type["fake_file"]])
+            params.file_type["reader"].create_filehandlers(loadables)
+
+            datasets = params.file_type["reader"].load(params.loadable_ids)
             dataset_names = {d["name"] for d in datasets.keys()}
-            assert dataset_names == set(loadable_ids)
+            assert dataset_names == set(params.loadable_ids)
 
             # check array shapes and types
-            assert datasets[loadable_ids[0]].shape == DEFAULT_SHAPE
-            assert datasets[loadable_ids[1]].shape == DEFAULT_SHAPE
-            assert np.issubdtype(datasets[loadable_ids[0]].dtype, np.floating)
-            assert np.issubdtype(datasets[loadable_ids[1]].dtype, np.integer)
+            assert datasets[params.loadable_ids[0]].shape == DEFAULT_SHAPE
+            assert datasets[params.loadable_ids[1]].shape == DEFAULT_SHAPE
+            assert np.issubdtype(datasets[params.loadable_ids[0]].dtype, np.floating)
+            assert np.issubdtype(datasets[params.loadable_ids[1]].dtype, np.integer)
 
-            data = datasets[loadable_ids[0]]
+            data = datasets[params.loadable_ids[0]]
             assert data.attrs["spacecraft_name"] == "Meteosat-8"
             assert data.attrs["platform_name"] == "Meteosat-8"
-            assert data.attrs["units"] == unit
-            assert data.attrs["resolution"] == resolution
+            assert data.attrs["units"] == params.unit
+            assert data.attrs["resolution"] == params.resolution
             assert data.attrs["start_time"] == dt.datetime(2025, 11, 5, 0, 0)
             assert data.attrs["end_time"] == dt.datetime(2025, 11, 5, 0, 15)
-            assert data.attrs["area"].area_id == area_name
+            assert data.attrs["area"].area_id == params.area_name
             assert data.dims == ("y", "x")
 
 
@@ -152,8 +167,12 @@ class TestHSAFNCReader:
 
     def test_get_area_def(self):
         """Test that the loaded dataset has a AreaDefinition and overwrite of lon_0 of the area works correctly."""
-        with mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as od:
-            od.side_effect = fake_hsaf_dataset
+        with mock.patch("satpy.readers.hsaf_nc.generic_open") as mock_generic_open, \
+                mock.patch("satpy.readers.hsaf_nc.xr.open_dataset") as mock_open_dataset:
+
+            mock_generic_open.return_value.__enter__.return_value = io.BytesIO(b"fake data")
+            mock_open_dataset.side_effect = fake_hsaf_dataset
+
             file_type = FILE_PARAMS[FILE_TYPE_H63]
             loadables = file_type["reader"].select_files_from_pathnames([file_type["fake_file"]])
             file_type["reader"].create_filehandlers(loadables)

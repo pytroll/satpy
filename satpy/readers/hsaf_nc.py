@@ -24,32 +24,30 @@ using the H SAF "Rapid Update" algorithm.
 
 Currently, this reader supports the following products:
   * **H60/H60B** – Blended GEO/IR and LEO/MW instantaneous precipitation over
-  the full Meteosat (0°) disk.
+    the full Meteosat (0°) disk.
   * **H63** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
     Meteosat IODC (Indian Ocean) disk.
   * **H90** – Accumulated Precipitation at ground by blended MW and IR IODC
     over the Meteosat IODC (Indian Ocean) disk.
 
 Notes:
-    - Externally compressed files with the ``.gz`` suffix are automatically
-      uncompressed to the same directory and deleted on reader close.
-    - The reader relies on area definitions provided in the accompanying YAML
-      configuration file.
-    - Supports ``rain_rate`` and ``q_ind`` datasets.
-    - Output coverage and resolution correspond to the MSG-SEVIRI grid.
+  * Externally compressed files (.gz) and uncompressed files are handled
+    transparently via Satpys ``generic_open``, without creating temporary
+    decompressed files on disk.
+  * The reader uses area definitions specified in the associated YAML
+    configuration file to determine projection, coverage, and resolution.
+  * Provides access to the ``rain_rate`` and ``q_ind`` datasets (including
+    accumulated variants where available).
 """
 
 import datetime as dt
-import gzip
 import logging
-import shutil
-import tempfile
-from pathlib import Path
 
 import xarray as xr
 
 from satpy.area import get_area_def
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import generic_open
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -61,58 +59,6 @@ platform_translate = {"MSG1": "Meteosat-8",
                       }
 
 CHUNK_SIZE = get_legacy_chunk_size()
-
-def gunzip(source, destination):
-    """Unzips an externally compressed HSAF file."""
-    with gzip.open(source) as s:
-        with open(destination, "wb") as d:
-            shutil.copyfileobj(s, d, 10 * 1024 * 1024)
-
-def create_named_empty_file(source):
-    """Create an empty file."""
-    # Use delete=False for cross-platform safety
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".nc")
-    tmp.close()  # we only needed the filename
-    LOG.debug(f"Created temporary file {Path(tmp.name)} from {source}")
-    return Path(tmp.name)
-
-
-class HSAFFileWrapper:
-    """Wrapper for a H SAF NetCDF file for handling external compression if an external gzip layer exist."""
-
-    def __init__(self, filename):
-        """Opens the nc file and stores the nc data."""
-        self.filename = filename
-        self._tmp_file = None
-        self._compressed = Path(self.filename).suffix == ".gz"
-
-        if self._compressed:
-            self._tmp_file = create_named_empty_file(self.filename)
-            gunzip(self.filename, self._tmp_file)
-            self.filename = str(self._tmp_file)
-
-        # Open dataset
-        chunks = CHUNK_SIZE
-        LOG.debug(f"Opening HSAF file {self.filename}")
-        self.nc_data = xr.open_dataset(self.filename, decode_cf=True, chunks=chunks)
-
-
-    def close(self):
-        """Close the nc file and clean up temp file if needed."""
-        if self.nc_data is not None:
-            self.nc_data.close()
-            self.nc_data = None
-            LOG.debug("Closed NetCDF dataset")
-
-        if self._compressed and self._tmp_file is not None:
-            try:
-                self._tmp_file.unlink(missing_ok=True)
-                LOG.debug(f"Deleted temporary file {self._tmp_file}")
-            except Exception as e:
-                LOG.warning(f"Failed to delete temp file {self._tmp_file}: {e}")
-            finally:
-                self._tmp_file = None
-
 
 class HSAFNCFileHandler(BaseFileHandler):
     """Handle H SAF NetCDF files, with optional .gz external compression.
@@ -129,13 +75,10 @@ class HSAFNCFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Create a wrapper to opens the nc file and store the nc data."""
         super().__init__(filename, filename_info, filetype_info)
-        self._wrapper = HSAFFileWrapper(filename)
         self._area_name = None
         self._lon_0 = None
-
-    def close(self):
-        """Clean up by closing the dataset."""
-        self._wrapper.close()
+        with generic_open(filename, mode="rb", compression="infer") as fp:
+            self._nc_data = xr.open_dataset(fp, chunks="auto", engine="h5netcdf").compute()
 
     def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets."""
@@ -143,8 +86,8 @@ class HSAFNCFileHandler(BaseFileHandler):
             "filename": self.filename,
             "start_time": self.start_time,
             "end_time": self.end_time,
-            "spacecraft_name": platform_translate.get(self._wrapper.nc_data.attrs["satellite_identifier"], "N/A"),
-            "platform_name": platform_translate.get(self._wrapper.nc_data.attrs["satellite_identifier"], "N/A"),
+            "spacecraft_name": platform_translate.get(self._nc_data.attrs["satellite_identifier"], "N/A"),
+            "platform_name": platform_translate.get(self._nc_data.attrs["satellite_identifier"], "N/A"),
         }
 
         return attributes
@@ -163,8 +106,8 @@ class HSAFNCFileHandler(BaseFileHandler):
         """Get a dataset from the file."""
         # Get the variable
         var_name = dataset_info.get("file_key", dataset_id["name"])
-        LOG.debug(f"Getting dataset {var_name} from file {self._wrapper.filename}")
-        data = self._wrapper.nc_data[var_name]
+        LOG.debug(f"Getting dataset {var_name} from file {self.filename}")
+        data = self._nc_data[var_name]
 
         data = self._standarize_dims(data)
 
@@ -181,7 +124,7 @@ class HSAFNCFileHandler(BaseFileHandler):
 
         data.attrs["resolution"] = self.filetype_info["resolution"]
         self._area_name = self.filetype_info["area"]
-        self._lon_0 = float(self._wrapper.nc_data.attrs["sub_satellite_longitude"].rstrip("f"))
+        self._lon_0 = float(self._nc_data.attrs["sub_satellite_longitude"].rstrip("f"))
 
         # Add global attributes which are shared across datasets
         data.attrs.update(self._get_global_attributes())
