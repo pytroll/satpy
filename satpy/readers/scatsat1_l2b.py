@@ -48,10 +48,6 @@ class SCATSAT1L2BFileHandler(HDF5FileHandler):
         var_path = ds_info["file_key"]
         data = self[var_path]
 
-        _attrs = data.attrs
-        _attrs.pop('CLASS', None)
-        _attrs.pop('IMAGE_MINMAXRANGE', None)
-        _attrs.pop('IMAGE_SUBCLASS', None)
         data = data.where(data != ds_info.get("fill_value", 65535))
         if "Longitude" in var_path:
             data = data * float(self["science_data/attr/Longitude Scale"])
@@ -62,12 +58,12 @@ class SCATSAT1L2BFileHandler(HDF5FileHandler):
             data = data * float(self["science_data/attr/Wind Speed Selection Scale"])
         elif "Wind_direction_selection" in var_path:
             data = data * float(self["science_data/attr/Wind Direction Selection Scale"])
-        data.attrs.update(_attrs)
 
         if self.filename_info['cell_spacing'] == '25km':
             data.attrs.update({'resolution': 25000})
         elif self.filename_info['cell_spacing'] == '12km':
             data.attrs.update({'resolution': 12500})
 
+        data.attrs.update({"platform_name": self.platform_name})
         data.attrs.update(ds_info)
         return data

@@ -39,6 +39,7 @@ datasets:
 
   wind_direction:
     name: wind_direction
+    sensor: Scatterometer
     coordinates: [longitude, latitude]
     file_type: scatsat
     file_key: "science_data/Wind_direction_selection"
