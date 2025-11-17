@@ -206,7 +206,7 @@ References:
 .. _EUMETSAT Product Navigator:
     https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www.eumetsat.int/media/45126
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05105_msg_img_data_e7c8b315e6.pdf
 .. _fsspec:
     https://filesystem-spec.readthedocs.io
 """
