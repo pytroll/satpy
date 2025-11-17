@@ -1039,7 +1039,7 @@ class AttributeComposer:
         return {
             key: value
             for key in keys
-            if (value := data.attrs[key])
+            if (value := data.attrs.get(key))
         }
 
 
