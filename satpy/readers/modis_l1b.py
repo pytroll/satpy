@@ -178,7 +178,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         return index
 
     def _fill_saturated(self, array, valid_max):
-        """Replace saturation-related values with max reflectance.
+        """Replace saturation-related values with max radiance_factor.
 
         If the file handler was created with ``mask_saturated`` set to
         ``True`` then all invalid/fill values are set to NaN. If ``False``
@@ -223,7 +223,11 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             projectable = calibrate_bt(array, var_attrs, index, key["name"])
             info.setdefault("units", "K")
             info.setdefault("standard_name", "toa_brightness_temperature")
-        elif key["calibration"] == "reflectance":
+        elif key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             projectable = calibrate_refl(array, var_attrs, index)
             info.setdefault("units", "%")
             info.setdefault("standard_name",
@@ -254,6 +258,13 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for MODIS L1b, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         if key["name"] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
@@ -279,7 +290,7 @@ def calibrate_refl(array, attributes, index):
     """Calibration for reflective channels."""
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
-    # convert to reflectance and convert from 1 to %
+    # convert to radiance_factor and convert from 1 to %
     array = (array - offset)
     array = array * (scale * 100)  # avoid extra dask tasks by combining scalars
     return array

@@ -186,7 +186,7 @@ class TestModisL1b:
         scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file)
         dataset_name = "1"
         with dask.config.set({"array.chunk-size": "1 MiB"}):
-            scene.load([dataset_name])
+            scene.load([dataset_name], calibration="radiance_factor")
         dataset = scene[dataset_name]
         assert dataset[0, 0] == 300.0
         assert dataset.shape == _shape_for_resolution(1000)
@@ -200,7 +200,7 @@ class TestModisL1b:
                       reader_kwargs={"mask_saturated": mask_saturated})
         dataset_name = "2"
         with dask.config.set({"array.chunk-size": "1 MiB"}):
-            scene.load([dataset_name])
+            scene.load([dataset_name], calibration="radiance_factor")
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs["resolution"] == 1000
@@ -218,3 +218,13 @@ class TestModisL1b:
             # albedos are converted to %
             assert data[-1, -2] >= 32767 * 100.0  # saturation
             assert data[-1, -3] >= 32767 * 100.0  # can't aggregate
+
+    # 8< v1.0
+    def test_reflectance_warns(self, modis_l1b_nasa_mod021km_file):
+        """Test asking for reflectance issues a warning."""
+        scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file)
+        dataset_name = "1"
+        with dask.config.set({"array.chunk-size": "1 MiB"}):
+            with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+                scene.load([dataset_name], calibration="reflectance")
+    # >8 v1.0
