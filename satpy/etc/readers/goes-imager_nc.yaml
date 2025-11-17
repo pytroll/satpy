@@ -89,7 +89,13 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      # 8< v1.0
       reflectance:
+        comment: Angle of incident radiation and annual variation of the earth-sun distance is not taken into account. A value of 100% corresponds to the radiance of a perfectly reflecting diffuse surface illuminated at normal incidence when the sun is at its annual-average distance from the Earth.
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         comment: Angle of incident radiation and annual variation of the earth-sun distance is not taken into account. A value of 100% corresponds to the radiance of a perfectly reflecting diffuse surface illuminated at normal incidence when the sun is at its annual-average distance from the Earth.
         units: "%"
     coordinates:
