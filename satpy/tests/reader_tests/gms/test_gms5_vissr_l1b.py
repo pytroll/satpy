@@ -548,11 +548,13 @@ class TestFileHandler:
         assert file_handler.start_time == start_time_exp
         assert file_handler.end_time == end_time_exp
 
+    # 8< v1.0
     def test_reflectance_warns(self, file_handler):
         """Test getting the dataset."""
         with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
             _ = file_handler.get_dataset(
                 make_dataid(name="VIS", calibration="reflectance", resolution=1250), {})
+    # >8 v1.0
 
 
 class TestCorruptFile:
