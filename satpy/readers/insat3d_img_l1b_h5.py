@@ -135,6 +135,13 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get a data array."""
+        # 8< v1.0
+        import warnings
+        if ds_id.get("calibration") == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for INSAT3D L1b, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         resolution = ds_id["resolution"]
         ds = self.datatree[str(resolution)]
         if ds_id["name"] in ["longitude", "latitude"]:
@@ -146,7 +153,11 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
             calibration = ""
         elif ds_id["calibration"] == "radiance":
             calibration = "_RADIANCE"
-        elif ds_id["calibration"] == "reflectance":
+        elif ds_id["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             calibration = "_ALBEDO"
         elif ds_id["calibration"] == "brightness_temperature":
             calibration = "_TEMP"
