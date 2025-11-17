@@ -389,6 +389,13 @@ class HRITGOESFileHandler(HRITFileHandler):
 
     def get_dataset(self, key, info):
         """Get the data  from the files."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for GOES Imager, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         logger.debug("Getting raw data")
         res = super(HRITGOESFileHandler, self).get_dataset(key, info)
 
@@ -430,7 +437,11 @@ class HRITGOESFileHandler(HRITFileHandler):
         tic = dt.datetime.now()
         if calibration == "counts":
             return data
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             res = self._calibrate(data)
         elif calibration == "brightness_temperature":
             res = self._calibrate(data)
