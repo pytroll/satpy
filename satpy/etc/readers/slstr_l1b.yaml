@@ -17,10 +17,13 @@ reader:
       transitive: false
     calibration:
       enum:
-          - reflectance
-          - brightness_temperature
-          - radiance
-          - counts
+        # 8< v1.0
+        - reflectance
+        # >8 v1.0
+        - radiance_factor
+        - brightness_temperature
+        - radiance
+        - counts
       transitive: true
     view:
       enum:
@@ -55,21 +58,36 @@ reader:
         - f
 
 file_types:
-    esa_l1b_refl:
-        file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_{stripe:1s}{view:1s}.nc']
-    esa_l1b_tir:
-        file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}{view:1s}.nc']
-    esa_angles:
-        file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRAngles
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_t{view:1s}.nc']
-    esa_geo:
-        file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRGeo
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_{stripe:1s}{view:1s}.nc']
-    esa_l1b_flag:
-        file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_{stripe:1s}{view:1s}.nc']
+  esa_l1b_refl:
+    file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
+    file_patterns:
+      [
+        "{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_{stripe:1s}{view:1s}.nc",
+      ]
+  esa_l1b_tir:
+    file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
+    file_patterns:
+      [
+        "{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}{view:1s}.nc",
+      ]
+  esa_angles:
+    file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRAngles
+    file_patterns:
+      [
+        "{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_t{view:1s}.nc",
+      ]
+  esa_geo:
+    file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRGeo
+    file_patterns:
+      [
+        "{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_{stripe:1s}{view:1s}.nc",
+      ]
+  esa_l1b_flag:
+    file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
+    file_patterns:
+      [
+        "{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_{stripe:1s}{view:1s}.nc",
+      ]
 
 datasets:
   longitude:
@@ -106,13 +124,18 @@ datasets:
   S1:
     name: S1
     sensor: slstr
-    wavelength: [0.545,0.555,0.565]
+    wavelength: [0.545, 0.555, 0.565]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -128,8 +151,13 @@ datasets:
     view: [nadir, oblique]
     stripe: [a, b]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -145,8 +173,13 @@ datasets:
     view: [nadir, oblique]
     stripe: [a, b]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -164,8 +197,13 @@ datasets:
     view: [nadir, oblique]
     stripe: [a, b]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -181,8 +219,13 @@ datasets:
     view: [nadir, oblique]
     stripe: [a, b]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -198,8 +241,13 @@ datasets:
     view: [nadir, oblique]
     stripe: [a, b]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -278,7 +326,6 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_tir
 
-
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: slstr
@@ -319,8 +366,8 @@ datasets:
     file_type: esa_angles
     file_key: sat_azimuth_t{view:1s}
 
-# CloudFlags are all bitfields. They are available in nadir (default) and oblique view for
-# each of the a,b,c,i stripes.
+  # CloudFlags are all bitfields. They are available in nadir (default) and oblique view for
+  # each of the a,b,c,i stripes.
   cloud:
     name: cloud
     sensor: slstr
@@ -340,7 +387,6 @@ datasets:
     stripe: [a, b, i, f]
     file_type: esa_l1b_flag
     file_key: confidence_{stripe:1s}{view:1s}
-
 
   pointing:
     name: pointing

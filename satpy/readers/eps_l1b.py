@@ -46,8 +46,8 @@ def radiance_to_bt(arr, wc_, a__, b__):
     return a__ + b__ * (C2 * wc_ / (da.log(1 + (C1 * (wc_ ** 3) / arr))))
 
 
-def radiance_to_refl(arr, solar_flux):
-    """Convert to reflectances in %."""
+def radiance_to_radiance_factor(arr, solar_flux):
+    """Convert to radiance_factor in %."""
     return arr * np.pi * 100.0 / solar_flux
 
 
@@ -143,9 +143,13 @@ class EPSAVHRRFile(BaseFileHandler):
 
     sensors = {"AVHR": "avhrr-3"}
 
-    units = {"reflectance": "%",
-             "brightness_temperature": "K",
-             "radiance":  "W m^-2 sr^-1"}
+    units = {
+        # 8< v1.0
+        "reflectance": "%",
+        # >8 v1.0
+        "radiance_factor": "%",
+        "brightness_temperature": "K",
+        "radiance":  "W m^-2 sr^-1"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
@@ -279,6 +283,13 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for AVHRR L1b EPS, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         if self.sections is None:
             self._read_all()
 
@@ -335,7 +346,13 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def _get_calibrated_dataarray(self, key):
         """Get a calibrated dataarray."""
-        if key["calibration"] not in ["reflectance", "brightness_temperature", "radiance"]:
+        if key["calibration"] not in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor",
+                "brightness_temperature",
+                "radiance"]:
             raise ValueError("calibration type " + str(key["calibration"]) +
                              " is not supported!")
 
@@ -347,8 +364,13 @@ class EPSAVHRRFile(BaseFileHandler):
         array = self["SCENE_RADIANCES"][:, radiance_indices[channel_name], :]
 
         if channel_name in ["1", "2", "3A"]:
-            if key["calibration"] == "reflectance":
-                array = radiance_to_refl(array,
+            if key["calibration"] in [
+                    # 8< v1.0
+                    "reflectance",
+                    # >8 v1.0
+                    "radiance_factor",
+                    ]:
+                array = radiance_to_radiance_factor(array,
                                          self[f"CH{channel_name}_SOLAR_FILTERED_IRRADIANCE"])
             if channel_name == "3A":
                 mask = self.three_a_mask[:, np.newaxis]

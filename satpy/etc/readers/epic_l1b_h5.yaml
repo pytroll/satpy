@@ -23,8 +23,13 @@ datasets:
     name: B317
     wavelength: [0.3174, 0.3175, 0.3176]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -36,8 +41,13 @@ datasets:
     name: B325
     wavelength: [0.3249, 0.325, 0.3251]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -49,8 +59,13 @@ datasets:
     name: B340
     wavelength: [0.3397, 0.340, 0.3403]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -62,8 +77,13 @@ datasets:
     name: B388
     wavelength: [0.3877, 0.388, 0.3883]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -75,8 +95,13 @@ datasets:
     name: B443
     wavelength: [0.442, 0.443, 0.444]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -88,8 +113,13 @@ datasets:
     name: B551
     wavelength: [0.550, 0.551, 0.552]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -101,8 +131,13 @@ datasets:
     name: B680
     wavelength: [0.678, 0.680, 0.682]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -114,8 +149,13 @@ datasets:
     name: B688
     wavelength: [0.6773, 0.6875, 0.6777]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -127,8 +167,13 @@ datasets:
     name: B764
     wavelength: [0.7638, 0.764, 0.7642]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -140,8 +185,13 @@ datasets:
     name: B780
     wavelength: [0.7792, 0.7795, 0.7798]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts

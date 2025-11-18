@@ -136,7 +136,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         refl = self.reader._calibrate_vis(radiance=rad,
                                           k=self.coefs["00_7"]["k"])
         assert np.allclose(refl.data, refl_expected.data, atol=1e-06), \
-            "Incorrect conversion from radiance to reflectance"
+            "Incorrect conversion from radiance to radiance_factor"
 
     def test_calibrate_ir(self):
         """Test IR calibration."""
@@ -358,7 +358,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
         # Mock file access to return a fake dataset. Choose a medium count value
         # (100) to avoid elements being masked due to invalid
-        # radiance/reflectance/BT
+        # radiance/radiance_factor/BT
         nrows = ncols = 300
         self.counts = 100 * 32 * np.ones((1, nrows, ncols))  # emulate 10-bit
         self.lon = np.zeros((nrows, ncols))  # Dummy
@@ -422,12 +422,12 @@ class GOESNCFileHandlerTest(unittest.TestCase):
     def test_get_dataset_masks(self):
         """Test whether data and coordinates are masked consistently."""
         # Requires that no element has been masked due to invalid
-        # radiance/reflectance/BT (see setUp()).
+        # radiance/radiance_factor/BT (see setUp()).
         lon = self.reader.get_dataset(key=make_dataid(name="longitude"),
                                       info={})
         lon_mask = lon.to_masked_array().mask
         for ch in self.channels:
-            for calib in ("counts", "radiance", "reflectance",
+            for calib in ("counts", "radiance", "radiance_factor",
                           "brightness_temperature"):
                 try:
                     data = self.reader.get_dataset(
@@ -440,18 +440,22 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_dataset_invalid(self):
         """Test handling of invalid calibrations."""
+        from satpy.dataset.dataid import ValueList, default_id_keys_config
+        cal_enum = ValueList("Calibration", " ".join(default_id_keys_config["calibration"]["enum"]))
         # VIS -> BT
         args = dict(key=make_dataid(name="00_7",
                                     calibration="brightness_temperature"),
                     info={})
-        with pytest.raises(ValueError, match="Cannot calibrate VIS channel to 2"):
+        with pytest.raises(ValueError,
+                           match=f"Cannot calibrate VIS channel to {cal_enum.brightness_temperature.value}"):
             self.reader.get_dataset(**args)
 
-        # IR -> Reflectance
+        # IR -> radiance_factor
         args = dict(key=make_dataid(name="10_7",
-                                    calibration="reflectance"),
+                                    calibration="radiance_factor"),
                     info={})
-        with pytest.raises(ValueError, match="Cannot calibrate IR channel to 1"):
+        with pytest.raises(ValueError,
+                           match=f"Cannot calibrate IR channel to {cal_enum.radiance_factor.value}"):
             self.reader.get_dataset(**args)
 
         # Unsupported calibration
@@ -460,12 +464,18 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                      calibration="invalid"),
                      info={})
 
+    def test_reflectance_warns(self):
+        """Test that asking for reflectance calibration issues a warning."""
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            _ = self.reader.get_dataset(key=make_dataid(name="00_7", calibration="reflectance"),
+                                        info={})
+
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
         for ch in self.channels:
             if is_vis_channel(ch):
                 calibs = {"radiance": "_viscounts2radiance",
-                          "reflectance": "_calibrate_vis"}
+                          "radiance_factor": "_calibrate_vis"}
             else:
                 calibs = {"radiance": "_ircounts2radiance",
                           "brightness_temperature": "_calibrate_ir"}

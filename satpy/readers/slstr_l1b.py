@@ -203,7 +203,11 @@ class NCSLSTR1B(BaseFileHandler):
             variable = self.nc["{}_radiance_{}{}".format(self.channel, self.stripe, self.view[0])]
         radiances = self._apply_radiance_adjustment(variable)
         units = variable.attrs["units"]
-        if key["calibration"] == "reflectance":
+        if key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             # TODO take into account sun-earth distance
             solar_flux = self.cal[re.sub("_[^_]*$", "", key["name"]) + "_solar_irradiances"]
             d_index = self.indices["detector_{}{}".format(self.stripe, self.view[0])]
@@ -212,6 +216,11 @@ class NCSLSTR1B(BaseFileHandler):
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
             radiances *= np.pi * 100
             units = "%"
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                 DeprecationWarning)
+        # >8 v1.0
 
         info = info.copy()
         info.update(radiances.attrs)

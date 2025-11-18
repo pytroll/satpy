@@ -19,42 +19,42 @@ datasets:
   CMIP_C01:                          # Cloud Moisture Image Products Channel 1
     name: C01
     wavelength: [0.450, 0.470, 0.490]
-    calibration: reflectance
+    calibration: radiance_factor
     file_key: CMI
     file_type: [abi_l2_cmip_c01, abi_l2_mcmip]
 
   CMIP_C02:                           # Cloud Moisture Image Products Channel 2
     name: C02
     wavelength: [0.590, 0.640, 0.690]
-    calibration: reflectance
+    calibration: radiance_factor
     file_key: CMI
     file_type: [abi_l2_cmip_c02, abi_l2_mcmip]
 
   CMIP_C03:                          # Cloud Moisture Image Products Channel 3
     name: C03
     wavelength: [0.8455, 0.865, 0.8845]
-    calibration: reflectance
+    calibration: radiance_factor
     file_key: CMI
     file_type: [abi_l2_cmip_c03, abi_l2_mcmip]
 
   CMIP_C04:                          # Cloud Moisture Image Products Channel 4
     name: C04
     wavelength: [1.3705, 1.378, 1.3855]
-    calibration: reflectance
+    calibration: radiance_factor
     file_key: CMI
     file_type: [abi_l2_cmip_c04, abi_l2_mcmip]
 
   CMIP_C05:                          # Cloud Moisture Image Products Channel 5
     name: C05
     wavelength: [1.580, 1.610, 1.640]
-    calibration: reflectance
+    calibration: radiance_factor
     file_key: CMI
     file_type: [abi_l2_cmip_c05, abi_l2_mcmip]
 
   CMIP_C06:                          # Cloud Moisture Image Products Channel 6
     name: C06
     wavelength: [2.225, 2.250, 2.275]
-    calibration: reflectance
+    calibration: radiance_factor
     file_key: CMI
     file_type: [abi_l2_cmip_c06, abi_l2_mcmip]
 

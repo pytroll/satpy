@@ -186,6 +186,9 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
+        # 8< v1.0
+        _warn_if_reflectance(dataset_id)
+        # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
         data = self.nc[file_key]
         # hold on to attributes for later
@@ -210,14 +213,24 @@ class AMIL1bNetCDF(BaseFileHandler):
         gain = self.nc.attrs["DN_to_Radiance_Gain"]
         offset = self.nc.attrs["DN_to_Radiance_Offset"]
 
-        if dataset_id["calibration"] in ("radiance", "reflectance", "brightness_temperature"):
+        if dataset_id["calibration"] in (
+                "radiance",
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor",
+                "brightness_temperature"):
             data = gain * data + offset
             data = self._clip_negative_radiance(data, gain, offset)
             if self.calib_mode == "GSICS":
                 data = self._apply_gsics_rad_correction(data)
             elif isinstance(self.user_calibration, dict):
                 data = self._apply_user_rad_correction(data)
-        if dataset_id["calibration"] == "reflectance":
+        if dataset_id["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             # depends on the radiance calibration above
             rad_to_alb = self.nc.attrs["Radiance_to_Albedo_c"]
             if ds_info.get("units") == "%":
@@ -298,3 +311,12 @@ class AMIL1bNetCDF(BaseFileHandler):
                                                              self.user_calibration)
         data = apply_rad_correction(data, rad_slope, rad_offset)
         return data
+
+# 8< v1.0
+def _warn_if_reflectance(dataset_id):
+    import warnings
+    if dataset_id["calibration"] == "reflectance":
+        warnings.warn("Reflectance is not a correct calibration for AMI L1, "
+                      "please use 'radiance_factor'",
+                      DeprecationWarning)
+# >8 v1.0

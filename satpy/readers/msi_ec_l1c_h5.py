@@ -53,6 +53,13 @@ class MSIECL1CFileHandler(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
+        # 8< v1.0
+        import warnings
+        if dataset_id.get("calibration") == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for MSI EarthCare L1c, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
         data = self[file_key]
 
@@ -71,7 +78,7 @@ class MSIECL1CFileHandler(HDF5FileHandler):
             ds_fill = ds_info["fill_value"]
             data = data.where(data != ds_fill)
 
-        # VIS/SWIR data can have radiance or reflectance calibration.
+        # VIS/SWIR data can have radiance or radiance_factor calibration.
         if "calibration" in ds_info:
             cal_type = ds_info["calibration"].name
             data = self._calibrate(data, band_index, cal_type)
@@ -84,7 +91,11 @@ class MSIECL1CFileHandler(HDF5FileHandler):
 
     def _calibrate(self, chan_data, band_index, cal_type):
         """Calibrate the data."""
-        if cal_type == "reflectance":
+        if cal_type in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             sol_irrad = self["ScienceData/solar_spectral_irradiance"]
             chan_data.data = chan_data.data * 100. * np.pi / sol_irrad[band_index].data.reshape((1, sol_irrad.shape[1]))
             return chan_data

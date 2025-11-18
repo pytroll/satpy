@@ -11,9 +11,10 @@ reader:
   group_keys: ["start_time", "satid"]
 
 file_types:
-    seviri_l1b_nc:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{start_time:%Y%m%d%H%M%S}.nc']
+  seviri_l1b_nc:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler
+    file_patterns:
+      - "W_XX-EUMETSAT-Darmstadt,VIS+IR+HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{start_time:%Y%m%d%H%M%S}.nc"
 
 datasets:
   HRV:
@@ -21,8 +22,13 @@ datasets:
     resolution: 1000.134348869
     wavelength: [0.5, 0.7, 0.9]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -31,15 +37,20 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch12'
+    nc_key: "ch12"
 
   IR_016:
     name: IR_016
     resolution: 3000.403165817
     wavelength: [1.5, 1.64, 1.78]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -48,7 +59,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch3'
+    nc_key: "ch3"
 
   IR_039:
     name: IR_039
@@ -65,7 +76,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch4'
+    nc_key: "ch4"
 
   IR_087:
     name: IR_087
@@ -82,7 +93,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch7'
+    nc_key: "ch7"
 
   IR_097:
     name: IR_097
@@ -99,7 +110,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch8'
+    nc_key: "ch8"
 
   IR_108:
     name: IR_108
@@ -116,7 +127,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch9'
+    nc_key: "ch9"
 
   IR_120:
     name: IR_120
@@ -133,7 +144,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch10'
+    nc_key: "ch10"
 
   IR_134:
     name: IR_134
@@ -150,15 +161,20 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch11'
+    nc_key: "ch11"
 
   VIS006:
     name: VIS006
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -167,16 +183,20 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch1'
-
+    nc_key: "ch1"
 
   VIS008:
     name: VIS008
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
@@ -185,7 +205,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch2'
+    nc_key: "ch2"
 
   WV_062:
     name: WV_062
@@ -202,7 +222,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch5'
+    nc_key: "ch5"
 
   WV_073:
     name: WV_073
@@ -219,4 +239,4 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch6'
+    nc_key: "ch6"

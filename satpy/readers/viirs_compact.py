@@ -32,6 +32,7 @@ For more information on this format, the reader can refer to the
 import datetime as dt
 import logging
 from contextlib import suppress
+from warnings import warn
 
 import dask.array as da
 import h5py
@@ -248,7 +249,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         unit = "W m-2 sr-1 μm-1"
         if dataset_key["calibration"] == "counts":
             raise NotImplementedError("Can't get counts from this data")
-        if dataset_key["calibration"] in ["reflectance", "brightness_temperature"]:
+        if dataset_key["calibration"] in ["radiance_factor",
+                                          # 8< v1.0
+                                          "reflectance",
+                                          # >8 v1.0
+                                          "brightness_temperature"]:
             # do calibrate
             try:
                 # First guess: VIS or NIR data
@@ -257,6 +262,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 dse = h5attrs["EarthSunDistanceNormalised"]
                 rads *= 100 * np.pi * a_vis / b_vis * (dse**2)
                 unit = "%"
+                # 8< v1.0
+                if dataset_key["calibration"] == "reflectance":
+                    warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                         DeprecationWarning)
+                # >8 v1.0
             except KeyError:
                 # Maybe it's IR data?
                 try:
@@ -276,7 +286,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         elif dataset_key["calibration"] != "radiance":
             raise ValueError("Calibration parameter should be radiance, "
-                             "reflectance or brightness_temperature")
+                             # 8< v1.0
+                             "reflectance, "
+                             # >8 v1.0
+                             "radiance_factor or brightness_temperature")
         rads = rads.clip(min=0)
         rads.attrs = self.mda
         rads.attrs["units"] = unit

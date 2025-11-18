@@ -50,8 +50,13 @@ datasets:
       counts:
         standard_name: counts
         units: 1
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: gms5_vissr_vis
 

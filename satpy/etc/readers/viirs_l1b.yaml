@@ -11,70 +11,70 @@ reader:
 
 navigations:
   vgeoi:
-      description: VIIRS L1B I-band Navigation
-      file_type: vgeoi
-      latitude_key: geolocation_data/latitude
-      longitude_key: geolocation_data/longitude
-      nadir_resolution: [371]
-      rows_per_scan: 32
+    description: VIIRS L1B I-band Navigation
+    file_type: vgeoi
+    latitude_key: geolocation_data/latitude
+    longitude_key: geolocation_data/longitude
+    nadir_resolution: [371]
+    rows_per_scan: 32
   vgeom:
-      description: VIIRS L1B M-band Navigation
-      file_type: vgeom
-      latitude_key: geolocation_data/latitude
-      longitude_key: geolocation_data/longitude
-      nadir_resolution: [742]
-      rows_per_scan: 16
+    description: VIIRS L1B M-band Navigation
+    file_type: vgeom
+    latitude_key: geolocation_data/latitude
+    longitude_key: geolocation_data/longitude
+    nadir_resolution: [742]
+    rows_per_scan: 16
   vgeod:
-      description: VIIRS L1B DNB Navigation
-      file_type: vgeod
-      latitude_key: geolocation_data/latitude
-      longitude_key: geolocation_data/longitude
-      nadir_resolution: [742]
-      rows_per_scan: 16
+    description: VIIRS L1B DNB Navigation
+    file_type: vgeod
+    latitude_key: geolocation_data/latitude
+    longitude_key: geolocation_data/longitude
+    nadir_resolution: [742]
+    rows_per_scan: 16
 
 file_types:
   vgeoi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vgeom:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vgeod:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vl1bi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vl1bm:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
   vl1bd:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
-    - 'VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
-    - 'V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
-    - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
-    - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc'
+      - "VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc"
+      - "V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc"
+      - "V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc"
+      - "V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}.nc"
 
 datasets:
   i_lon:
@@ -124,8 +124,13 @@ datasets:
     wavelength: [0.600, 0.640, 0.680]
     resolution: 371
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -137,8 +142,13 @@ datasets:
     wavelength: [0.845, 0.865, 0.884]
     resolution: 371
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -150,8 +160,13 @@ datasets:
     wavelength: [1.580, 1.610, 1.640]
     resolution: 371
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -221,8 +236,13 @@ datasets:
     wavelength: [0.402, 0.412, 0.422]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -234,8 +254,13 @@ datasets:
     wavelength: [0.436, 0.445, 0.454]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -247,8 +272,13 @@ datasets:
     wavelength: [0.478, 0.488, 0.498]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -260,8 +290,13 @@ datasets:
     wavelength: [0.545, 0.555, 0.565]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -273,8 +308,13 @@ datasets:
     wavelength: [0.662, 0.672, 0.682]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -286,8 +326,13 @@ datasets:
     wavelength: [0.739, 0.746, 0.754]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -299,8 +344,13 @@ datasets:
     wavelength: [0.846, 0.865, 0.885]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -312,8 +362,13 @@ datasets:
     wavelength: [1.230, 1.240, 1.250]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -325,8 +380,13 @@ datasets:
     wavelength: [1.371, 1.378, 1.386]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -338,8 +398,13 @@ datasets:
     wavelength: [1.580, 1.610, 1.640]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -351,8 +416,13 @@ datasets:
     wavelength: [2.225, 2.250, 2.275]
     resolution: 742
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
