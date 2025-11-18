@@ -1,0 +1,18 @@
+reader:
+    description: FY-4A AGRI Level 2 NetCDF reader
+    name: agri_l2
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [agri]
+
+file_types:
+    agri_l2:
+        # Ex: FY4A-_AGRI--_N_DISK_1047E_L2-_ACI-_MULT_NOM_20200701060000_20200701061459_1000M_V0001.NC
+        #     FY4A-_AGRI--_N_DISK_1047E_L2-_CTH-_MULT_NOM_20190807060000_20190807061459_4000M_V0001.NC
+        #     FY4A-_AGRI--_N_DISK_1047E_L2-_LSE-_MULT_NOM_20200701060000_20200701061459_012KM_V0001.NC
+        #     FY4A-_AGRI--_N_DISK_1047E_L2-_AMV-_C009_NUL_20200701060000_20200701061459_064KM_V0001.NC
+
+        file_reader: !!python/name:satpy.readers.agri_l2.AGRIL2FileHandler
+        file_patterns: ['{platform_shortname:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L2-_{dataset_name:s}-_{channel:s}_NUL_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{resolution:s}_{version:s}.NC',
+                        '{platform_shortname:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L2-_{dataset_name:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{resolution:s}_{version:s}.NC']
+
+datasets: {}
