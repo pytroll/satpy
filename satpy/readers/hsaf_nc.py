@@ -64,7 +64,7 @@ class HSAFNCFileHandler(BaseFileHandler):
     """Handle H SAF NetCDF files, with optional .gz external compression.
 
     This file handler handles H SAF Instantaneous Rain Rate products which contain:
-    - rr: rain rate in mm/h (instantaneous) or mm (accumulated)
+    - rr or acc_rr: rain rate in mm/h (instantaneous) or mm (accumulated)
     - qind: quality index in percent
 
     The data is on a geostationary projection grid.
@@ -73,12 +73,24 @@ class HSAFNCFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Create a wrapper to opens the nc file and store the nc data."""
+        """Opens the nc file and store the nc data."""
         super().__init__(filename, filename_info, filetype_info)
         self._area_name = None
         self._lon_0 = None
-        with generic_open(filename, mode="rb", compression="infer") as fp:
-            self._nc_data = xr.open_dataset(fp, chunks="auto", engine="h5netcdf").compute()
+        # use generic_open contextmanager to handle compression transparently
+        self._cm = generic_open(filename, mode="rb", compression="infer")
+        # manually enter the context manager
+        fp = self._cm.__enter__()
+        # lazily load nc file through h5netcdf without forcing read
+        self._nc_data = xr.open_dataset(fp, engine="h5netcdf", chunks="auto")
+
+    def __del__(self):
+        """Instruct the context manager to clean up and close the file."""
+        try:
+            if hasattr(self, "_cm") and self._cm:
+                self._cm.__exit__(None, None, None)
+        except (AttributeError, RuntimeError, OSError, ValueError):
+            LOG.warning(f"An error occurred while cleaning up the file {self.filename}")
 
     def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets."""
