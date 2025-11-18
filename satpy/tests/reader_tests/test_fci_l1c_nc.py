@@ -1058,7 +1058,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
             # Verify that attributes are propagated/inserted
             for attr_key in REQUIRED_ATTR_KEYS:
-                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys()
+                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys(), f"Missing attribute: {attr_key}"
             assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
@@ -1086,7 +1086,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
             # Verify that attributes are propagated/inserted
             for attr_key in REQUIRED_ATTR_KEYS:
-                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys()
+                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys(), f"Missing attribute: {attr_key}"
             assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
