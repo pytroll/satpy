@@ -96,8 +96,6 @@ class HSAFNCFileHandler(BaseFileHandler):
         """Create a dictionary of global attributes to be added to all datasets."""
         attributes = {
             "filename": self.filename,
-            "start_time": self.start_time,
-            "end_time": self.end_time,
             "spacecraft_name": platform_translate.get(self._nc_data.attrs["satellite_identifier"], "N/A"),
             "platform_name": platform_translate.get(self._nc_data.attrs["satellite_identifier"], "N/A"),
         }
