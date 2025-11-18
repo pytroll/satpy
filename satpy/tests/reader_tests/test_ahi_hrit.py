@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import warnings
 from pathlib import Path
 from unittest import mock
 
@@ -427,10 +426,10 @@ def test_calibrate(tmp_path, calibration):
     exp_counts = np.arange(49658, 49658 + 200, 1, dtype=">u2").astype(np.float32)
     exp = {
         "counts": exp_counts,
-        "reflectance": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
         # 8< v1.0
-        "radiance_factor": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
+        "reflectance": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
         # >8 v1.0
+        "radiance_factor": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
         "brightness_temperature": np.interp(exp_counts, [0, 1023, 65535], [329.98, 130.02, 130.02]),
     }
     res_np = res.data.compute()
@@ -486,14 +485,10 @@ def test_get_dataset(tmp_path):
     )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
-    key = make_dataid(name="VIS", calibration="reflectance")
+    key = make_dataid(name="VIS", calibration="radiance_factor")
     with mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
             mock.patch.object(reader, "calibrate", wraps=reader.calibrate) as calibrate:
-        # 8< v1.0
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Reflectance is not a correct calibration.*")
-            # >8 v1.0
-            res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
+        res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
         mask_space.assert_called()
         calibrate.assert_called()
 
@@ -515,12 +510,8 @@ def test_sensor_mismatch(tmp_path, caplog):
     create_fake_ahi_hrit(hrit_path)
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
-    key = make_dataid(name="VIS", calibration="reflectance")
-    # 8< v1.0
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="Reflectance is not a correct calibration.*")
-        # >8 v1.0
-        reader.get_dataset(key, {"units": "%", "sensor": "jami"})
+    key = make_dataid(name="VIS", calibration="radiance_factor")
+    reader.get_dataset(key, {"units": "%", "sensor": "jami"})
     assert "Sensor-Platform mismatch" in caplog.text
 
 
