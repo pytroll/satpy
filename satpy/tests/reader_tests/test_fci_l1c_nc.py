@@ -188,6 +188,14 @@ TEST_FILENAMES = {"fdhsi": [
                  ],
 }
 
+REQUIRED_ATTR_KEYS = {
+    "time_parameters",
+    "orbital_parameters",
+    "file_type",
+    "name",
+    "sensor",
+    "resolution",
+}
 
 def resolutions_AF_products(channel):
     """Get the resolutions of the African products."""
@@ -1049,13 +1057,9 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 3)
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
             # Verify that attributes are propagated/inserted
+            for attr_key in REQUIRED_ATTR_KEYS:
+                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys()
             assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
-            assert "time_parameters" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "orbital_parameters" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "file_type" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "name" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "sensor" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "resolution" in res[f"{ch}_{calibration}"].attrs.keys()
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
@@ -1081,13 +1085,9 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 3)
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
             # Verify that attributes are propagated/inserted
+            for attr_key in REQUIRED_ATTR_KEYS:
+                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys()
             assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
-            assert "time_parameters" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "orbital_parameters" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "file_type" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "name" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "sensor" in res[f"{ch}_{calibration}"].attrs.keys()
-            assert "resolution" in res[f"{ch}_{calibration}"].attrs.keys()
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
