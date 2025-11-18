@@ -119,8 +119,8 @@ class FY4Base(HDF5FileHandler):
         return lut[block]
 
     @cached_property
-    def reflectance_coeffs(self):
-        """Retrieve the reflectance calibration coefficients from the HDF file."""
+    def radiance_factor_coeffs(self):
+        """Retrieve the radiance_factor calibration coefficients from the HDF file."""
         # using the corresponding SCALE and OFFSET
         if self.PLATFORM_ID == "FY-4A":
             cal_coef = "CALIBRATION_COEF(SCALE+OFFSET)"
@@ -132,6 +132,13 @@ class FY4Base(HDF5FileHandler):
 
     def calibrate(self, data, ds_info, ds_name, file_key):
         """Calibrate the data."""
+        # 8< v1.0
+        import warnings
+        if ds_info.get("calibration") == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for FY4, "
+                          "please use 'radiance_factor'",
+                          DeprecationWarning)
+        # >8 v1.0
         # Check if calibration is present, if not assume dataset is an angle
         calibration = ds_info.get("calibration")
         # Return raw data in case of counts or no calibration
@@ -139,9 +146,13 @@ class FY4Base(HDF5FileHandler):
             data.attrs["units"] = ds_info["units"]
             ds_info["valid_range"] = data.attrs["valid_range"]
             ds_info["fill_value"] = data.attrs["FillValue"].item()
-        elif calibration == "reflectance":
+        elif calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
             channel_index = int(file_key[-2:]) - 1
-            data = self.calibrate_to_reflectance(data, channel_index, ds_info)
+            data = self.calibrate_to_radiance_factor(data, channel_index, ds_info)
         elif calibration == "brightness_temperature":
             data = self.calibrate_to_bt(data, ds_info, ds_name)
         elif calibration == "radiance":
@@ -154,14 +165,14 @@ class FY4Base(HDF5FileHandler):
             data.attrs["_FillValue"] = data.attrs["FillValue"].item()
         return data
 
-    def calibrate_to_reflectance(self, data, channel_index, ds_info):
-        """Calibrate to reflectance [%]."""
-        logger.debug("Calibrating to reflectances")
+    def calibrate_to_radiance_factor(self, data, channel_index, ds_info):
+        """Calibrate to radiance_factor [%]."""
+        logger.debug("Calibrating to radiance_factor")
         # using the corresponding SCALE and OFFSET
         if self.sensor != "AGRI" and self.sensor != "GHI":
             raise ValueError(f"Unsupported sensor type: {self.sensor}")
 
-        coeffs = self.reflectance_coeffs
+        coeffs = self.radiance_factor_coeffs
         num_channel = coeffs.shape[0]
 
         if self.sensor == "AGRI" and num_channel == 1:

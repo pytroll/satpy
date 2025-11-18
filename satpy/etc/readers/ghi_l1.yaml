@@ -35,8 +35,13 @@ datasets:
         500: {file_type: ghi_l1_0500m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -52,8 +57,13 @@ datasets:
         1000: {file_type: ghi_l1_1000m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -69,8 +79,13 @@ datasets:
         1000: {file_type: ghi_l1_1000m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -86,8 +101,13 @@ datasets:
         1000: {file_type: ghi_l1_1000m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -103,8 +123,13 @@ datasets:
         1000: {file_type: ghi_l1_1000m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -120,8 +145,13 @@ datasets:
         1000: {file_type: ghi_l1_1000m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
