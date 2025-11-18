@@ -169,13 +169,19 @@ class TestMSUGSABReader:
             self.reader.load(ds_ids)
 
     def test_vis_cal(self):
-        """Test that we can retrieve VIS data as both radiance and reflectance."""
+        """Test that we can retrieve VIS data as both radiance and radiance_factor."""
         ds_ids = [make_dataid(name="C01", calibration="radiance")]
         res = self.reader.load(ds_ids)
         rad = res["C01"].data
-        ds_ids = [make_dataid(name="C01", calibration="reflectance")]
+        ds_ids = [make_dataid(name="C01", calibration="radiance_factor")]
         res = self.reader.load(ds_ids)
         refl = res["C01"].data
 
         # Check the RAD->REFL conversion
         np.testing.assert_allclose(100 * np.pi * rad / float(SOLCONST), refl)
+
+    def test_reflectance_warns(self):
+        """Test that a warning is issued if reflectance is requested."""
+        ds_ids = [make_dataid(name="C01", calibration="reflectance")]
+        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            _ = self.reader.load(ds_ids)
