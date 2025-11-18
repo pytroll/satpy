@@ -32,9 +32,6 @@ datasets:
       radiance_factor:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: mW.cm-2.sr-1.micron-1

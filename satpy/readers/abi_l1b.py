@@ -23,15 +23,11 @@ The files read by this reader are described in the official PUG document:
 
 """
 import logging
-# 8< v1.0
-import warnings
-# >8 v1.0
 
 import numpy as np
 
 import satpy
 from satpy.readers.core.abi import NC_ABI_BASE
-
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +46,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         """Load a dataset."""
         logger.debug("Reading in get_dataset %s.", key["name"])
         # 8< v1.0
+        import warnings
         if key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for ABI L1b, "
                           "please use 'radiance_factor'",

@@ -44,7 +44,7 @@ class HDF_AGRI_L1(FY4Base):
         ds_name = dataset_id["name"]
         logger.debug("Reading in get_dataset %s.", ds_name)
         # 8< v1.0
-        if "calibration" in dataset_id and  dataset_id["calibration"] == "reflectance":
+        if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for AGRI L1 data, "
                           "please use 'radiance_factor'",
                           DeprecationWarning)
