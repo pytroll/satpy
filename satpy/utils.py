@@ -36,9 +36,8 @@ import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
+from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
-
-from satpy._compat import ArrayLike, DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
