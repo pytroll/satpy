@@ -3,7 +3,7 @@ fail_fast: false
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: 'v0.13.3'
+    rev: 'v0.14.3'
     hooks:
       - id: ruff-check
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -29,7 +29,7 @@ repos:
           - types-requests
         args: ["--python-version", "3.10", "--ignore-missing-imports"]
   - repo: https://github.com/pycqa/isort
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: isort
         language_version: python3

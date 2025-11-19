@@ -43,37 +43,41 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_chunk_size_limit()
 
-SENSOR = {"NOAA-19": "avhrr-3",
-          "NOAA-18": "avhrr-3",
-          "NOAA-15": "avhrr-3",
-          "Metop-A": "avhrr-3",
-          "Metop-B": "avhrr-3",
-          "Metop-C": "avhrr-3",
-          "EOS-Aqua": "modis",
-          "EOS-Terra": "modis",
-          "Suomi-NPP": "viirs",
-          "NOAA-20": "viirs",
-          "NOAA-21": "viirs",
-          "NOAA-22": "viirs",
-          "NOAA-23": "viirs",
-          "JPSS-1": "viirs",
-          "Metop-SG-A1": "metimage",
-          "Metop-SG-A2": "metimage",
-          "Metop-SG-A3": "metimage",
-          "GOES-16": "abi",
-          "GOES-17": "abi",
-          "Himawari-8": "ahi",
-          "Himawari-9": "ahi",
-          }
+SENSOR = {
+    "NOAA-19": "avhrr-3",
+    "NOAA-18": "avhrr-3",
+    "NOAA-15": "avhrr-3",
+    "Metop-A": "avhrr-3",
+    "Metop-B": "avhrr-3",
+    "Metop-C": "avhrr-3",
+    "EOS-Aqua": "modis",
+    "EOS-Terra": "modis",
+    "Suomi-NPP": "viirs",
+    "NOAA-20": "viirs",
+    "NOAA-21": "viirs",
+    "NOAA-22": "viirs",
+    "NOAA-23": "viirs",
+    "JPSS-1": "viirs",
+    "Metop-SG-A1": "metimage",
+    "Metop-SG-A2": "metimage",
+    "Metop-SG-A3": "metimage",
+    "GOES-16": "abi",
+    "GOES-17": "abi",
+    "Himawari-8": "ahi",
+    "Himawari-9": "ahi",
+    "Meteosat-12": "fci",
+}
 
 
-PLATFORM_NAMES = {"MSG1": "Meteosat-8",
-                  "MSG2": "Meteosat-9",
-                  "MSG3": "Meteosat-10",
-                  "MSG4": "Meteosat-11",
-                  "GOES16": "GOES-16",
-                  "GOES17": "GOES-17",
-                  }
+PLATFORM_NAMES = {
+    "MSG1": "Meteosat-8",
+    "MSG2": "Meteosat-9",
+    "MSG3": "Meteosat-10",
+    "MSG4": "Meteosat-11",
+    "MTI1": "Meteosat-12",
+    "GOES16": "GOES-16",
+    "GOES17": "GOES-17",
+}
 
 
 class NcNWCSAF(BaseFileHandler):
@@ -132,7 +136,7 @@ class NcNWCSAF(BaseFileHandler):
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
-        if self.pps and var.dims[0] == "time":
+        if var.dims[0] == "time":
             data = var[0, :, :]
             data.attrs = var.attrs
             var = data
@@ -334,7 +338,8 @@ class NcNWCSAF(BaseFileHandler):
 
         crs, area_extent = self._get_projection()
         crs, area_extent = self._ensure_crs_extents_in_meters(crs, area_extent)
-        nlines, ncols = self.nc[dsid["name"]].shape
+        variable = self.remove_timedim(self.nc[dsid["name"]])
+        nlines, ncols = variable.shape
         area = AreaDefinition("some_area_name",
                               "On-the-fly area",
                               "geosmsg",

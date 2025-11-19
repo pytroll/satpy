@@ -22,7 +22,6 @@ import numpy as np
 import pytest
 
 from satpy import Scene
-from satpy.tests.utils import xfail_h5py_unstable_numpy2
 
 FNAME = "G4_SEV4_L20_HR_SOL_TH_20190606_130000_V000.hdf"
 
@@ -121,7 +120,6 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     return filename
 
 
-@pytest.mark.xfail(xfail_h5py_unstable_numpy2(), reason="h5py doesn't include numpy 2 fix")
 @pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux", "Solar Radiance", "Thermal Radiance"])
 @pytest.mark.parametrize("area", [None, "msg_seviri_iodc_9km"])
 def test_dataset_load(gerb_l2_hr_h5_dummy_file, name, area):

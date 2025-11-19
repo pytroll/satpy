@@ -27,8 +27,7 @@ from typing import Optional
 import dask.array as da
 import numpy as np
 import xarray as xr
-
-from satpy._compat import ArrayLike
+from numpy.typing import ArrayLike
 
 from .wrappers import exclude_alpha, using_map_blocks
 
