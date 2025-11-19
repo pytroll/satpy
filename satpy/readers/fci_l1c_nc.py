@@ -333,11 +333,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         """Load a dataset."""
         logger.debug("Reading {} from {}".format(key["name"], self.filename))
         if "pixel_quality" in key["name"]:
-            return self._get_dataset_quality(key["name"])
+            return self._get_dataset_quality(key, info=info)
         elif "index_map" in key["name"]:
-            return self._get_dataset_index_map(key["name"])
+            return self._get_dataset_index_map(key, info=info)
         elif _get_aux_data_name_from_dsname(key["name"]) is not None:
-            return self._get_dataset_aux_data(key["name"])
+            return self._get_dataset_aux_data(key, info=info)
         elif any(lb in key["name"] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
@@ -372,10 +372,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = data.where((data >= vr[0]) & (data <= vr[1]), nfv)
 
         res = self.calibrate(data, key)
+        cleaned_attrs = self._set_and_cleanup_attributes(res.attrs, attrs, key, info)
+        res.attrs = cleaned_attrs
+        return res
 
-        # pre-calibration units no longer apply
-        attrs.pop("units")
-
+    def _set_calibrated_data_attributes(self, resattrs, attrs, key):
         # For each channel, the effective_radiance contains in the
         # "ancillary_variables" attribute the value "pixel_quality".  In
         # FileYAMLReader._load_ancillary_variables, satpy will try to load
@@ -396,33 +397,52 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "https://github.com/pytroll/satpy/issues/1171 for why). "
                 f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
 
-        res.attrs.update(key.to_dict())
-        res.attrs.update(info)
-        res.attrs.update(attrs)
+        resattrs.update(key.to_dict())
 
-        res.attrs["platform_name"] = platform_name_translate.get(
-            self["attr/platform"], self["attr/platform"])
+        # pre-calibration units no longer apply
+        attrs.pop("units")
+        resattrs.update(attrs)
 
         # remove unpacking parameters for calibrated data
         if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
-            res.attrs.pop("add_offset")
-            res.attrs.pop("warm_add_offset")
-            res.attrs.pop("scale_factor")
-            res.attrs.pop("warm_scale_factor")
-            res.attrs.pop("valid_range")
+            resattrs.pop("add_offset")
+            resattrs.pop("warm_add_offset")
+            resattrs.pop("scale_factor")
+            resattrs.pop("warm_scale_factor")
+            resattrs.pop("valid_range")
+            # Some xarray versions can propagate _FillValue too:
+            resattrs.pop("_FillValue", None)
 
         # remove attributes from original file which don't apply anymore
-        res.attrs.pop("long_name")
+        resattrs.pop("long_name")
+        return resattrs
+
+    def _set_and_cleanup_attributes(self, resattrs, attrs=None, key=None, info=None):
+        """Gather attributes for the result dataset and remove unwanted keys.
+
+        Adds global attributes to all datasets.
+        For measurand data, adds dataset-specific attributes.
+        Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
+        are not propagated to the calibrated data.
+        """
+        if info is not None:
+            resattrs.update(info)
+        if None not in (attrs, key):
+            resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
+
+        resattrs["platform_name"] = platform_name_translate.get(
+            self["attr/platform"], self["attr/platform"])
+
         # Add time_parameter attributes
-        res.attrs["time_parameters"] = {
+        resattrs["time_parameters"] = {
             "nominal_start_time": self.nominal_start_time,
             "nominal_end_time": self.nominal_end_time,
             "observation_start_time": self.observation_start_time,
             "observation_end_time": self.observation_end_time,
         }
-        res.attrs.update(self.orbital_param)
 
-        return res
+        resattrs.update(self.orbital_param)
+        return resattrs
 
     def get_iqt_parameters_lon_lat_alt(self):
         """Compute the orbital parameters for IQT data.
@@ -482,20 +502,25 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         return orb_param_dict
 
-    def _get_dataset_quality(self, dsname):
+    def _get_dataset_quality(self, key, info=None):
         """Load a quality field for an FCI channel."""
-        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(key["name"]))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
+        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs, key=key, info=info)
+        data.attrs = cleaned_attrs
         return data
 
-    def _get_dataset_index_map(self, dsname):
+    def _get_dataset_index_map(self, key, info=None):
         """Load the index map for an FCI channel."""
+        dsname = key["name"]
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
 
         data = data.where(data != data.attrs.get("_FillValue", 65535))
+        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs, info=info)
+        data.attrs = cleaned_attrs
         return data
 
     def _get_aux_data_lut_vector(self, aux_data_name):
@@ -511,10 +536,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _getitem(block, lut):
         return lut[block.astype("uint16")]
 
-    def _get_dataset_aux_data(self, dsname):
+    def _get_dataset_aux_data(self, key, info=None):
         """Get the auxiliary data arrays using the index map."""
+        dsname = key["name"]
         # get index map
-        index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
+        index_map = self._get_dataset_index_map(key)
         # subtract minimum of index variable (index_offset)
         index_map -= np.min(self.get_and_cache_npxr("index"))
 
@@ -527,6 +553,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         # filter out out-of-disk values
         aux = aux.where(index_map >= 0)
 
+        cleaned_attrs = self._set_and_cleanup_attributes(aux.attrs, key=key, info=info)
+        aux.attrs = cleaned_attrs
         return aux
 
     def calc_area_extent(self, key):
@@ -722,7 +750,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / radiance)
 
         res = nom / denom - b / a
-
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
