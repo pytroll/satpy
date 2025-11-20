@@ -73,22 +73,18 @@ class HSAFNCFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Opens the nc file and store the nc data."""
+        """Open the nc file and store the nc data."""
         super().__init__(filename, filename_info, filetype_info)
         self._area_name = None
         self._lon_0 = None
-        # use generic_open contextmanager to handle compression transparently
         self._cm = generic_open(filename, mode="rb", compression="infer")
-        # manually enter the context manager
         fp = self._cm.__enter__()
-        # lazily load nc file through h5netcdf without forcing read
         self._nc_data = xr.open_dataset(fp, engine="h5netcdf", chunks="auto")
 
     def __del__(self):
         """Instruct the context manager to clean up and close the file."""
         try:
-            if hasattr(self, "_cm") and self._cm:
-                self._cm.__exit__(None, None, None)
+            self._cm.__exit__(None, None, None)
         except (AttributeError, RuntimeError, OSError, ValueError):
             LOG.warning(f"An error occurred while cleaning up the file {self.filename}")
 
@@ -96,8 +92,9 @@ class HSAFNCFileHandler(BaseFileHandler):
         """Create a dictionary of global attributes to be added to all datasets."""
         attributes = {
             "filename": self.filename,
-            "spacecraft_name": platform_translate.get(self._nc_data.attrs["satellite_identifier"], "N/A"),
-            "platform_name": platform_translate.get(self._nc_data.attrs["satellite_identifier"], "N/A"),
+            "platform_name": platform_translate.get(
+                self._nc_data.attrs["satellite_identifier"], self._nc_data.attrs["satellite_identifier"]
+            ),
         }
 
         return attributes
@@ -121,22 +118,18 @@ class HSAFNCFileHandler(BaseFileHandler):
 
         data = self._standarize_dims(data)
 
-        # Handle missing values
         if "missing_value" in data.attrs:
             data = data.where(data != data.attrs["missing_value"])
 
         # Add metadata from YAML
         for key, value in dataset_info.items():
-            if key == "area":
-                self._area_name = value
-            elif key not in ("file_key",):
+            if key not in ("file_key",):
                 data.attrs[key] = value
 
         data.attrs["resolution"] = self.filetype_info["resolution"]
         self._area_name = self.filetype_info["area"]
         self._lon_0 = float(self._nc_data.attrs["sub_satellite_longitude"].rstrip("f"))
 
-        # Add global attributes which are shared across datasets
         data.attrs.update(self._get_global_attributes())
 
         return data

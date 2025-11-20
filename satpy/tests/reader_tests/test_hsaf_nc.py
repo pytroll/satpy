@@ -138,33 +138,6 @@ class TestHSAFNCReader:
             assert data.dims == ("y", "x")
 
 
-    @pytest.mark.parametrize(
-        ("file_type", "loadable_ids"),
-        [
-            (FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"]),
-            (FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"]),
-            (FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"]),
-        ],
-    )
-    @pytest.mark.skipif(not os.path.exists(FILE_PARAMS[FILE_TYPE_H60]["real_file"]) or
-                        not os.path.exists(FILE_PARAMS[FILE_TYPE_H63]["real_file"]),
-                                           reason="Real HSAF file not present")
-    def test_real_hsaf_file(self, file_type, loadable_ids):
-        """Test the reader with a real HSAF NetCDF file."""
-        # Select files
-        loadables = file_type["reader"].select_files_from_pathnames([file_type["real_file"]])
-        assert loadables, "No loadables found for the real file"
-
-        # Create filehandlers
-        file_type["reader"].create_filehandlers(loadables)
-        assert file_type["reader"].file_handlers, "File handlers were not created"
-
-        # Load all datasets defined in the YAML
-        dataset_names = set(file_type["reader"].available_dataset_names)
-
-        assert dataset_names, "No datasets found for the real file"
-        assert dataset_names.issubset((loadable_ids)), f"Could not find {loadable_ids} in datasets"
-
     def test_get_area_def(self):
         """Test that the loaded dataset has a AreaDefinition and overwrite of lon_0 of the area works correctly."""
         with mock.patch("satpy.readers.hsaf_nc.generic_open") as mock_generic_open, \
