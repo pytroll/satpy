@@ -23,6 +23,7 @@ file_types:
       - 'S-HSAF-h60_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
     area: msg_seviri_fes_3km
     resolution: 3000
+    end_time_delta_min: 15
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
   hsaf_h63_nc:
     file_patterns:
@@ -36,6 +37,7 @@ file_types:
       - 'S-HSAF-h63_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
     area: msg_seviri_iodc_3km
     resolution: 3000
+    end_time_delta_min: 15
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
   hsaf_h90_nc:
     file_patterns:
@@ -49,6 +51,7 @@ file_types:
       - 'S-HSAF-h90_{start_time:%Y%m%d_%H%M}_{suffix}.nc'
     area: msg_seviri_iodc_3km
     resolution: 3000
+    end_time_delta_min: 15
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
 
 datasets:

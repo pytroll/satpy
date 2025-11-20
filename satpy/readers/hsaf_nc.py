@@ -144,7 +144,7 @@ class HSAFNCFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get end time."""
-        return self.start_time + dt.timedelta(minutes=15)
+        return self.start_time + dt.timedelta(minutes=self.filetype_info["end_time_delta_min"])
 
     @property
     def start_time(self):
