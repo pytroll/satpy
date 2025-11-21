@@ -227,176 +227,132 @@ class TestSunZenithReducer:
             SunZenithReducer(name="sza_reduction_test_invalid", modifiers=tuple(), max_sza=None)
 
 
-class TestNIRReflectance(unittest.TestCase):
+class TestNIRReflectance:
     """Test NIR reflectance compositor."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up the test case for the NIRReflectance compositor."""
-        self.get_lonlats = mock.MagicMock()
-        self.lons, self.lats = 1, 2
-        self.get_lonlats.return_value = (self.lons, self.lats)
-        area = mock.MagicMock(get_lonlats=self.get_lonlats)
+        self.area = area = AreaDefinition(
+            "test", "", "",
+            {"proj": "merc"},
+            2,
+            2,
+            (-2000, -2000, 2000, 2000),
+        )
+        self.area_hr = AreaDefinition(
+            "test", "", "",
+            {"proj": "merc"},
+            4,
+            4,
+            (-2000, -2000, 2000, 2000),
+        )
 
-        self.start_time = 1
+        self.start_time = dt.datetime(2020, 1, 1, 12, 0, 0)
         self.metadata = {"platform_name": "Meteosat-11",
                          "sensor": "seviri",
                          "name": "IR_039",
                          "area": area,
                          "start_time": self.start_time}
 
-        nir_arr = RANDOM_GEN.random((2, 2))
+        self.nir_arr = nir_arr = np.array([[283.15, 285.15], [287.15, 289.15]], dtype=np.float32)
         self.nir = xr.DataArray(da.from_array(nir_arr), dims=["y", "x"])
         self.nir.attrs.update(self.metadata)
 
-        ir_arr = 100 * RANDOM_GEN.random((2, 2))
-        self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"])
-        self.ir_.attrs["area"] = area
+        ir_arr = np.array([[273.15, 275.15], [277.15, 279.15]], dtype=np.float32)
+        self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"], attrs={"area": area})
 
-        self.sunz_arr = 100 * RANDOM_GEN.random((2, 2))
-        self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"])
-        self.sunz.attrs["standard_name"] = "solar_zenith_angle"
-        self.sunz.attrs["area"] = area
-        self.da_sunz = da.from_array(self.sunz_arr)
+        self.sunz_arr = np.array([[1.0, 20.0], [87.0, 89.0]], dtype=np.float32)
+        self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                                 attrs={"standard_name": "solar_zenith_angle", "area": area})
 
-        refl_arr = RANDOM_GEN.random((2, 2))
-        self.refl = da.from_array(refl_arr)
-        self.refl_with_co2 = da.from_array(RANDOM_GEN.random((2, 2)))
-        self.refl_from_tbs = mock.MagicMock()
-        self.refl_from_tbs.side_effect = self.fake_refl_from_tbs
+        co2_arr = np.array([[240.0, 241.0], [242.0, 243.0]], dtype=np.float32)
+        self.co2 = xr.DataArray(
+            da.from_array(co2_arr),
+            dims=("y", "x"),
+            attrs={
+                "area": self.area,
+                "start_time": self.start_time,
+                "wavelength": (12.0, 13.0, 14.0),
+                "units": "K",
+            })
 
-    def fake_refl_from_tbs(self, sun_zenith, da_nir, da_tb11, tb_ir_co2=None):
-        """Fake refl_from_tbs."""
-        del sun_zenith, da_nir, da_tb11
-        if tb_ir_co2 is not None:
-            return self.refl_with_co2
-        return self.refl
 
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_provide_sunz_no_co2(self, calculator, apply_modifier_info, sza):
-        """Test NIR reflectance compositor provided only sunz."""
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        sza.return_value = self.da_sunz
+    @pytest.mark.parametrize(
+        ("include_sunz", "include_co2", "exp_res"),
+        [
+            (False, False, np.array([[4.3689156, 4.762686], [5.1886106, 5.6510105]], dtype=np.float32)),
+            (True, False, np.array([[3.9977279, 4.6561675], [384.3708, np.nan]], dtype=np.float32)),
+            (False, True, np.array([[5.170569, 5.6666946], [6.205907, 6.79378]], dtype=np.float32)),
+        ]
+    )
+    def test_basic_call(self, include_sunz, include_co2, exp_res):
+        """Test NIR reflectance compositor with various optional inputs."""
         from satpy.modifiers.spectral import NIRReflectance
 
+        opt_datasets = []
+        if include_sunz:
+            opt_datasets.append(self.sunz)
+        if include_co2:
+            opt_datasets.append(self.co2)
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
+        res = comp([self.nir, self.ir_], optional_datasets=opt_datasets, **info)
+        res_da = res.data
+        res_np = res.data.compute()
+        assert res_np.dtype == res_da.dtype
+        assert res_np.dtype == self.nir.dtype
 
+        assert comp.sun_zenith_threshold == 85.0
+        assert comp.masking_limit == 88.0
         assert self.metadata.items() <= res.attrs.items()
         assert res.attrs["units"] == "%"
-        assert res.attrs["sun_zenith_threshold"] is not None
-        assert np.allclose(res.data, self.refl * 100).compute()
+        assert res.attrs["sun_zenith_threshold"] == 85.0
+        assert res.attrs["sun_zenith_masking_limit"] == 88.0
+        np.testing.assert_allclose(res_np, exp_res, atol=1e-6)
 
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_no_sunz_no_co2(self, calculator, apply_modifier_info, sza):
-        """Test NIR reflectance compositor with minimal parameters."""
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        sza.return_value = self.da_sunz
-        from satpy.modifiers.spectral import NIRReflectance
-
-        comp = NIRReflectance(name="test")
-        info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=[], **info)
-
-        # due to copying of DataArrays, self.get_lonlats is not the same as the one that was called
-        # we must used the area from the final result DataArray
-        res.attrs["area"].get_lonlats.assert_called_with(chunks=((2,), (2,)), dtype=self.nir.dtype)
-        sza.assert_called_with(self.start_time, self.lons, self.lats)
-        self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
-        assert np.allclose(res.data, self.refl * 100).compute()
-
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_no_sunz_with_co2(self, calculator, apply_modifier_info, sza):
-        """Test NIR reflectance compositor provided extra co2 info."""
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        from satpy.modifiers.spectral import NIRReflectance
-        sza.return_value = self.da_sunz
-
-        comp = NIRReflectance(name="test")
-        info = {"modifiers": None}
-        co2_arr = RANDOM_GEN.random((2, 2))
-        co2 = xr.DataArray(da.from_array(co2_arr), dims=["y", "x"])
-        co2.attrs["wavelength"] = [12.0, 13.0, 14.0]
-        co2.attrs["units"] = "K"
-        res = comp([self.nir, self.ir_], optional_datasets=[co2], **info)
-
-        self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=co2.data)
-        assert np.allclose(res.data, self.refl_with_co2 * 100).compute()
-
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_provide_sunz_and_threshold(self, calculator, apply_modifier_info, sza):
+    @pytest.mark.parametrize(
+        "comp_kwargs",
+        [
+            {"sunz_threshold": 84.0},
+            {"masking_limit": None},
+        ]
+    )
+    def test_provide_sunz_threshold_and_masking_limit(self, comp_kwargs):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        from satpy.modifiers.spectral import NIRReflectance
-        sza.return_value = self.da_sunz
+        from satpy.modifiers.spectral import Calculator, NIRReflectance
 
-        comp = NIRReflectance(name="test", sunz_threshold=84.0)
+        comp = NIRReflectance(name="test", **comp_kwargs)
+        exp_call_kwargs = {
+            "sunz_threshold": comp_kwargs.get("sunz_threshold", NIRReflectance.TERMINATOR_LIMIT),
+            "masking_limit": comp_kwargs.get("masking_limit", NIRReflectance.MASKING_LIMIT),
+        }
         info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
-        assert res.attrs["sun_zenith_threshold"] == 84.0
-        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039",
-                                      sunz_threshold=84.0, masking_limit=NIRReflectance.MASKING_LIMIT)
+        with mock.patch("satpy.modifiers.spectral.Calculator", wraps=Calculator) as calculator:
+            res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_sunz_threshold_default_value_is_not_none(self, calculator, apply_modifier_info, sza):
-        """Check that sun_zenith_threshold is not None."""
+        assert res.attrs["sun_zenith_threshold"] == exp_call_kwargs["sunz_threshold"]
+        assert res.attrs["sun_zenith_masking_limit"] == exp_call_kwargs["masking_limit"]
+        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039", **exp_call_kwargs)
+
+    def test_nir_multiple_resolutions(self):
+        """Check that multiple resolutions in the optional datasets produce an IncompatibleArea."""
+        from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers.spectral import NIRReflectance
+
+        # make sunz that is twice as many pixels
+        sunz_arr = np.array([
+            [1.0, 2.0, 3.0, 4.0],
+            [3.0, 4.0, 5.0, 6.0],
+        ], dtype=np.float32)
+        sunz = xr.DataArray(da.from_array(sunz_arr), dims=["y", "x"])
+        sunz.attrs["standard_name"] = "solar_zenith_angle"
+        sunz.attrs["area"] = self.area_hr
 
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
-
-        assert comp.sun_zenith_threshold is not None
-
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_provide_masking_limit(self, calculator, apply_modifier_info, sza):
-        """Test NIR reflectance compositor provided sunz and a sunz threshold."""
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        from satpy.modifiers.spectral import NIRReflectance
-        sza.return_value = self.da_sunz
-
-        comp = NIRReflectance(name="test", masking_limit=None)
-        info = {"modifiers": None}
-        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
-
-        assert res.attrs["sun_zenith_masking_limit"] is None
-        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039",
-                                      sunz_threshold=NIRReflectance.TERMINATOR_LIMIT, masking_limit=None)
-
-    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
-    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
-    @mock.patch("satpy.modifiers.spectral.Calculator")
-    def test_masking_limit_default_value_is_not_none(self, calculator, apply_modifier_info, sza):
-        """Check that sun_zenith_threshold is not None."""
-        from satpy.modifiers.spectral import NIRReflectance
-
-        comp = NIRReflectance(name="test")
-        info = {"modifiers": None}
-        calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=self.refl_from_tbs)
-        comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
-
-        assert comp.masking_limit is not None
+        with pytest.raises(IncompatibleAreas):
+            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
 
 
 class TestNIREmissivePartFromReflectance(unittest.TestCase):

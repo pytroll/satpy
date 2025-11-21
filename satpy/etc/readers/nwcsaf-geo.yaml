@@ -6,7 +6,6 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [seviri, abi, ahi]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
@@ -67,6 +66,10 @@ file_types:
     nc_nwcsaf_asii_gw:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
         file_patterns: ['S_NWC_ASII-GW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
+    nc_nwcsaf_asii_ice:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_ASII-ICE_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_geo_hrw:
         file_reader: !!python/name:satpy.readers.nwcsaf_hrw_nc.NWCSAFGEOHRWFileHandler
@@ -179,6 +182,18 @@ datasets:
     file_type: nc_nwcsaf_ct
 
 # ---- CTTH products ------------
+
+  # v2025 onwards
+  ctth_hfeet:
+    name: ctth_hfeet
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
+  # v2025 onwards
+  ctth_hfeet_pal:
+    name: ctth_hfeet_pal
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
 
   ctth_alti:
     name: ctth_alti
@@ -752,6 +767,18 @@ datasets:
 
 # ----ASII-GW product ------------
 
+  # v2025 onwards
+  asiigw_ir_prob:
+    name: asiigw_ir_prob
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  # v2025 onwards
+  asiigw_ir_prob_pal:
+    name: asiigw_ir_prob_pal
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
   # v2021 onwards
   asiigw_wv_prob:
     name: asiigw_wv_prob
@@ -790,3 +817,20 @@ datasets:
     name: asiigw_quality
     resolution: 3000
     file_type: nc_nwcsaf_asii_gw
+
+# ----ASII-ICE products------------
+
+  asiiice_haic_mask:
+    name: asiiice_haic_mask
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_ice
+
+  asiiice_sc_mask:
+    name: asiiice_sc_mask
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_ice
+
+  asiiice_quality:
+    name: asiiice_quality
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_ice

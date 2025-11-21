@@ -9,7 +9,7 @@ dependencies = [
     "platformdirs",
     "dask[array]>=0.17.1",
     "donfig",
-    "numpy>=1.21",
+    "numpy>=2.0",
     "packaging",
     "pillow",
     "pooch",
@@ -22,9 +22,10 @@ dependencies = [
     "trollsift",
     "xarray>=0.14.1",
     "zarr",
+    "universal_pathlib",
 ]
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "GPLv3" }
 classifiers = [
     "Development Status :: 5 - Production/Stable",

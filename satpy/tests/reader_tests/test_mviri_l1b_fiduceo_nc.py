@@ -291,7 +291,7 @@ def fixture_fake_dataset(time_fake_dataset):
 
     cov = da.from_array([[1, 2], [3, 4]])
 
-    with ignore_dup_dim_warning():
+    with ignore_dup_dim_warning(), xr.set_options(keep_attrs=False):
         ds = xr.Dataset(
             data_vars={
                 "count_vis": (("y", "x"), count_vis),

@@ -36,9 +36,8 @@ import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
+from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
-
-from satpy._compat import ArrayLike, DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -346,7 +345,7 @@ def get_satpos(
             the dataset metadata contain the satellite position directly.
 
     Returns:
-        Geodetic longitude, latitude, altitude [km]
+        Geodetic longitude, latitude, altitude [m]
 
     """
     if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
@@ -418,7 +417,7 @@ def _get_satpos_from_platform_name(cth_dataset):
 
     Needs pyorbital, skyfield, and astropy to be installed.
     """
-    from pyorbital.orbital import tlefile
+    from pyorbital import tlefile
     from skyfield.api import EarthSatellite, load
     from skyfield.toposlib import wgs84
 
@@ -429,7 +428,7 @@ def _get_satpos_from_platform_name(cth_dataset):
     gc = es.at(ts.from_datetime(
         cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
     (lat, lon) = wgs84.latlon_of(gc)
-    height = wgs84.height_of(gc).to("km")
+    height = wgs84.height_of(gc).to("m")
     return (lon.degrees, lat.degrees, height.value)
 
 

@@ -19,6 +19,7 @@ The following people have made contributions to this project:
 - Guido della Bruna - meteoswiss
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
+- [Tristan Cantat-Gaudin](https://github.com/tristancantatgaudin)
 - [Manuel Carranza (manucarran)](https://github.com/manucarran)
 - [Guido Cioni (guidocioni)](https://github.com/guidocioni)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
@@ -109,3 +110,4 @@ The following people have made contributions to this project:
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
 - [Tom Kelly (twak)](https://twak.org)
+- [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
