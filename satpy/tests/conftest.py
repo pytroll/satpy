@@ -21,7 +21,6 @@ This module is executed automatically by pytest.
 
 """
 import os
-from unittest import mock
 
 import pytest
 
@@ -60,7 +59,7 @@ def include_test_etc():
 
 @pytest.fixture(autouse=True, scope="session")
 def _forbid_pyspectral_downloads():
-    with mock.patch("pyspectral.utils.requests") as mock_requests:
-        mock_requests.get.side_effect = RuntimeError(
-            "Pyspectral is attempting a download during tests. Mock pyspectral as necessary to avoid this.")
+    from pyspectral.testing import forbid_pyspectral_downloads
+
+    with forbid_pyspectral_downloads():
         yield
