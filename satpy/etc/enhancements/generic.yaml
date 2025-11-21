@@ -3,9 +3,15 @@
 enhancements:
   default:
     operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.contrast.stretch
-      kwargs: {stretch: linear}
+      - name: warn_no_predefined
+        method: !!python/name:satpy.enhancements.contrast.warn_if_float_debug_otherwise
+        kwargs:
+          # Satpy 1.0+
+          # msg: "No YAML enhancement found for {name!r}. Falling back to a dynamic linear stretch in case of floating point data, or no enhancement otherwise. See https://satpy.readthedocs.io/en/stable/enhancements.html for documentation on defining an enhancement."
+          msg: "No YAML enhancement found for {name!r}. Falling back to a dynamic linear stretch in case. In Satpy 1.0, non-floating data will no longer be scaled by this enhancement (ex. integer category products). See https://satpy.readthedocs.io/en/stable/enhancements.html for documentation on defining an enhancement."
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch_if_floating
+        kwargs: {stretch: linear}
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
     operations:
