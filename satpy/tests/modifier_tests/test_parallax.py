@@ -32,7 +32,6 @@ from pyresample import create_area_def
 
 import satpy.resample
 from satpy.enhancements.enhancer import get_enhanced_image
-from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -439,7 +438,6 @@ class TestParallaxCorrectionClass:
         corrector = ParallaxCorrection(area)
         corrector(sc["CTH_constant"])
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_correct_area_no_orbital_parameters(self, caplog, fake_tle):
         """Test ParallaxCorrection when CTH has no orbital parameters.
 
@@ -766,7 +764,6 @@ class TestParallaxCorrectionSceneLoad:
                 "area": area})
         return sc
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_double_load(self, fake_scene, conf_file, fake_tle):
         """Test that loading corrected and uncorrected works correctly.
 
@@ -786,16 +783,17 @@ class TestParallaxCorrectionSceneLoad:
             assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
 
-    def test_no_compute(self, fake_scene, conf_file):
+    def test_no_compute(self, fake_scene, conf_file, fake_tle):
         """Test that no computation occurs."""
         from satpy.tests.utils import CustomScheduler
         with unittest.mock.patch(
                 "satpy.composites.config_loader.config_search_paths") as sccc, \
-             dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+             dask.config.set(scheduler=CustomScheduler(max_computes=0)), \
+             unittest.mock.patch("pyorbital.tlefile.read") as plr:
             sccc.return_value = [os.fspath(conf_file)]
+            plr.return_value = fake_tle
             fake_scene.load(["parallax_corrected_VIS006"])
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_enhanced_image(self, fake_scene, conf_file, fake_tle):
         """Test that image enhancement is the same."""
         with unittest.mock.patch(

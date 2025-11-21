@@ -9,7 +9,7 @@ dependencies = [
     "platformdirs",
     "dask[array]>=0.17.1",
     "donfig",
-    "numpy>=1.21",
+    "numpy>=2.0",
     "packaging",
     "pillow",
     "pooch",
