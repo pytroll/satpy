@@ -87,7 +87,7 @@ class TestHSAFNCReader:
             params["filepath"] = fake_hsaf_dataset(params["fake_file"], params["platform"])
 
 
-    def tearDown(self):
+    def teardown_method(self):
         """Remove the previously created test file and reader."""
         for params in FILE_PARAMS.values():
             del params["reader"]

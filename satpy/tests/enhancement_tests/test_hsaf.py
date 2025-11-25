@@ -32,7 +32,7 @@ class TestHSAFEnhancement:
             np.array([[0.0, 0.1, 0.2], [5.0, 10.0, 20.0]]),
             dims=("y", "x"),
             name="rr",
-            attrs={"standard_name": "rain_rate", "units": "mm/h"}
+            attrs={"standard_name": "instantaneous_rain_rate", "units": "mm/h"}
         )
 
     def test_hsaf_rr_enhancement_colormap_applied(self):
