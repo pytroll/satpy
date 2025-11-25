@@ -1,6 +1,6 @@
 enhancements:
   rr:
-    standard_name: rain_rate
+    standard_name: instantaneous_rain_rate
     operations:
       - name: colorize
         method: !!python/name:satpy.enhancements.colormap.colorize

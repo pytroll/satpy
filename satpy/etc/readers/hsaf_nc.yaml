@@ -59,7 +59,7 @@ datasets:
     name: acc_rr
     file_key: acc_rr
     file_type: [hsaf_h90_nc]
-    standard_name: rain_rate
+    standard_name: accumulated_rain_rate
     long_name: "Accumulated Precipitation"
     units: "mm"
     sensor: hsaf
@@ -67,7 +67,7 @@ datasets:
     name: rr
     file_key: rr
     file_type: [hsaf_h60_nc, hsaf_h63_nc]
-    standard_name: rain_rate
+    standard_name: instantaneous_rain_rate
     long_name: "Instantaneous Rain Rate"
     units: "mm/h"
     sensor: hsaf
