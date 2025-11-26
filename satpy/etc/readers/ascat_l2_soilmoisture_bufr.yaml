@@ -7,7 +7,7 @@ reader:
   status: Defunct
   supports_fsspec: false
   sensors: [scatterometer]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   default_datasets:
 
 file_types:
