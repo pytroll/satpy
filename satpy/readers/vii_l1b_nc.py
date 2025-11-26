@@ -143,5 +143,5 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             array containing the calibrated reflectance values.
 
         """
-        refl_values = (np.pi / isi) * angle_factor * radiance * 100.0
+        refl_values = (np.pi / isi) * radiance * 100.0
         return refl_values
