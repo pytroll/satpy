@@ -99,7 +99,8 @@ def insat_filename(tmp_path_factory):
             _create_channels(channels, h5f, resolution)
             _create_lonlats(h5f, resolution)
 
-    return filename
+    yield filename
+    os.unlink(filename)
 
 
 def mask_array(array):
