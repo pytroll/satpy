@@ -1,5 +1,6 @@
 """Tests for the CAMEL L3 netCDF reader."""
 
+import os
 import datetime as dt
 
 import numpy as np
@@ -62,19 +63,25 @@ def camel_l3_filehandler(fname):
 @pytest.fixture(scope="session")
 def camel_filename(tmp_path_factory):
     """Create a fake camel l3 file."""
-    return _make_ds(global_attrs, tmp_path_factory)
+    fname = _make_ds(global_attrs, tmp_path_factory)
+    yield fname
+    os.unlink(fname)
 
 
 @pytest.fixture(scope="session")
 def camel_filename_bad1(tmp_path_factory):
     """Create a fake camel l3 file."""
-    return _make_ds(bad_attrs1, tmp_path_factory)
+    fname = _make_ds(bad_attrs1, tmp_path_factory)
+    yield fname
+    os.unlink(fname)
 
 
 @pytest.fixture(scope="session")
 def camel_filename_bad2(tmp_path_factory):
     """Create a fake camel l3 file."""
-    return _make_ds(bad_attrs2, tmp_path_factory)
+    fname = _make_ds(bad_attrs2, tmp_path_factory)
+    yield fname
+    os.unlink(fname)
 
 
 def test_startend(camel_filename):

@@ -1,5 +1,6 @@
 """Tests for the Himawari L2 netCDF reader."""
 
+import os
 import datetime as dt
 
 import numpy as np
@@ -50,7 +51,8 @@ def himl2_filename(tmp_path_factory):
                             "Longitude": (["Rows", "Columns"], lon_data)},
                     attrs=global_attrs)
     ds.to_netcdf(fname)
-    return fname
+    yield fname
+    os.unlink(fname)
 
 
 @pytest.fixture(scope="session")
@@ -63,7 +65,8 @@ def himl2_filename_bad(tmp_path_factory):
                     attrs=badarea_attrs)
     ds.to_netcdf(fname)
 
-    return fname
+    yield fname
+    os.unlink(fname)
 
 
 def test_startend(himl2_filename):
