@@ -118,9 +118,8 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
                                 [963.20401882, 1048.95086402, 1270.95546218]])
         assert np.allclose(bt, expected_bt)
 
-        angle_factor = 0.4
         isi = 2.0
-        refl = self.reader._calibrate_refl(radiance, angle_factor, isi)
+        refl = self.reader._calibrate_refl(radiance, isi)
         expected_refl = np.array([[157.07963268, 314.15926536, 785.3981634],
                                   [1099.55742876, 1570.79632679, 3141.59265359]])
         assert np.allclose(refl, expected_refl)
