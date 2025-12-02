@@ -42,6 +42,14 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
     """
 
+    # TODO: Only keep final format once operational data is available
+    DATETIME_FORMATS = [
+        "%Y%m%d%H%M%S.%f",        # e.g. 20250924121530.123456
+        "%Y-%m-%dT%H:%M:%S.%f",   # e.g. 2025-09-24T12:15:30.123456
+        "%Y-%m-%d %H:%M:%S",      # e.g. 2025-09-24 12:15:30
+        "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
+    ]
+
     def __init__(self, filename, filename_info, filetype_info, orthorect=False):
         """Prepare the class for dataset reading."""
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
@@ -210,44 +218,24 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
         return attributes
 
+    def _parse_datetime(self, datetime_str):
+        """Parse datetime string using multiple format attempts."""
+        for fmt in self.DATETIME_FORMATS:
+            try:
+                return dt.datetime.strptime(datetime_str, fmt)
+            except ValueError:
+                continue
+        raise ValueError(f"Unrecognized datetime format: {datetime_str}")
+
     @property
     def start_time(self):
         """Get observation start time."""
-        raw = self["/attr/sensing_start_time_utc"]
-        formats = [
-            "%Y%m%d%H%M%S.%f",        # e.g. 20250924121530.123456
-            "%Y-%m-%dT%H:%M:%S.%f",   # e.g. 2025-09-24T12:15:30.123456
-            "%Y-%m-%d %H:%M:%S",      # e.g. 2025-09-24 12:15:30
-            "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
-        ]
-
-        for fmt in formats:
-            try:
-                return dt.datetime.strptime(raw, fmt)
-            except ValueError:
-                continue
-
-        raise ValueError(f"Unrecognized datetime format: {raw}")
+        return self._parse_datetime(self["/attr/sensing_start_time_utc"])
 
     @property
     def end_time(self):
         """Get observation end time."""
-        raw = self["/attr/sensing_end_time_utc"]
-        formats = [
-            "%Y%m%d%H%M%S.%f",        # e.g. 20250924121530.123456
-            "%Y-%m-%dT%H:%M:%S.%f",   # e.g. 2025-09-24T12:15:30.123456
-            "%Y-%m-%d %H:%M:%S",      # e.g. 2025-09-24 12:15:30
-            "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
-        ]
-
-        for fmt in formats:
-            try:
-                return dt.datetime.strptime(raw, fmt)
-            except ValueError:
-                continue  # try next format
-
-        # if none worked, raise an explicit error
-        raise ValueError(f"Unrecognized datetime format: {raw}")
+        return self._parse_datetime(self["/attr/sensing_end_time_utc"])
 
     @property
     def spacecraft_name(self):
