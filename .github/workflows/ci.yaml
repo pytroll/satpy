@@ -18,10 +18,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
         experimental: [false]
         include:
-          - python-version: "3.12"
+          - python-version: "3.13"
             os: "ubuntu-latest"
             experimental: true
 
@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v3

@@ -163,10 +163,11 @@ def _repeat_by_factor(data, block_info=None):
 
 def _rechunk_if_nonfactor_chunks(dask_arr, y_size, x_size):
     new_chunks = list(dask_arr.chunks)
+    need_rechunk = False
     for dim_idx, agg_size in enumerate([y_size, x_size]):
         if dask_arr.shape[dim_idx] % agg_size != 0:
             raise ValueError("Aggregation requires arrays with shapes divisible by the factor.")
-        need_rechunk = _check_chunking(new_chunks, dask_arr, dim_idx, agg_size)
+        need_rechunk |= _check_chunking(new_chunks, dask_arr, dim_idx, agg_size)
     if need_rechunk:
         warnings.warn(
             "Array chunk size is not divisible by aggregation factor. "

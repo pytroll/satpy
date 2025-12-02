@@ -28,7 +28,6 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.utils import (
     angle2xyz,
     datetime64_to_pydatetime,
@@ -202,7 +201,6 @@ class TestGetSatPos:
         with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
             get_satpos(data_arr)
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield does not support numpy 2 yet")
     def test_get_satpos_from_satname(self, caplog):
         """Test getting satellite position from satellite name only."""
         import pyorbital.tlefile
@@ -224,7 +222,7 @@ class TestGetSatPos:
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
                 (lon, lat, alt),
-                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                (119.39533705010592, -1.1491628298731498, 35803199.86408156),
                 rtol=1e-4,
             )
 
