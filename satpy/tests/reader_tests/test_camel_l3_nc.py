@@ -1,7 +1,7 @@
 """Tests for the CAMEL L3 netCDF reader."""
 
-import os
 import datetime as dt
+import os
 
 import numpy as np
 import pytest

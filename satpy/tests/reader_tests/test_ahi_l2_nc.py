@@ -1,7 +1,7 @@
 """Tests for the Himawari L2 netCDF reader."""
 
-import os
 import datetime as dt
+import os
 
 import numpy as np
 import pytest
