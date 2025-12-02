@@ -1,0 +1,311 @@
+reader:
+  name: amsr2_l1r
+  short_name: AMSR2 L1R
+  long_name: GCOM-W1 AMSR2 Level 1R
+  description: GCOM-W1 AMSR2 L1R HDF5 reader
+  status: Nominal
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  sensors: [amsr2]
+  default_channels: []
+
+datasets:
+  # 6.9 GHz channels
+  btemp_6.9h:
+    name: 'btemp_6.9h'
+    wavelength: [6.9, 6.9, 6.9]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,6.9GHz,H)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  btemp_6.9v:
+    name: 'btemp_6.9v'
+    wavelength: [6.9, 6.9, 6.9]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,6.9GHz,V)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  # 7.3 GHz channels
+  btemp_7.3h:
+    name: 'btemp_7.3h'
+    wavelength: [7.3, 7.3, 7.3]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,7.3GHz,H)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  btemp_7.3v:
+    name: 'btemp_7.3v'
+    wavelength: [7.3, 7.3, 7.3]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,7.3GHz,V)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  # 10.7 GHz channels
+  btemp_10.7h:
+    name: 'btemp_10.7h'
+    wavelength: [10.7, 10.7, 10.7]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,10.7GHz,H)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  btemp_10.7v:
+    name: 'btemp_10.7v'
+    wavelength: [10.7, 10.7, 10.7]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,10.7GHz,V)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  # 18.7 GHz channels
+  btemp_18.7h:
+    name: 'btemp_18.7h'
+    wavelength: [18.7, 18.7, 18.7]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,18.7GHz,H)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  btemp_18.7v:
+    name: 'btemp_18.7v'
+    wavelength: [18.7, 18.7, 18.7]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,18.7GHz,V)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  # 23.8 GHz channels
+  btemp_23.8h:
+    name: 'btemp_23.8h'
+    wavelength: [23.8, 23.8, 23.8]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,23.8GHz,H)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  btemp_23.8v:
+    name: 'btemp_23.8v'
+    wavelength: [23.8, 23.8, 23.8]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,23.8GHz,V)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  # 36.5 GHz channels
+  btemp_36.5h:
+    name: 'btemp_36.5h'
+    wavelength: [36.5, 36.5, 36.5]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,36.5GHz,H)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  btemp_36.5v:
+    name: 'btemp_36.5v'
+    wavelength: [36.5, 36.5, 36.5]
+    calibration: brightness_temperature
+    resolution: 10000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (res06,36.5GHz,V)"
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+
+  # angles
+  earth_azimuth_angle:
+    name: 'earth_azimuth_angle'
+    resolution: 10000
+    standard_name: earth_azimuth_angle
+    file_type: amsr2_l1r
+    file_key: "Earth Azimuth"
+    units: degree
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  earth_incidence_angle:
+    name: 'earth_incidence_angle'
+    resolution: 10000
+    standard_name: earth_incidence_angle
+    file_type: amsr2_l1r
+    file_key: "Earth Incidence"
+    units: degree
+    coordinates:
+      - longitude_10km
+      - latitude_10km
+
+  # 89.0 GHz channels - These have a higher resolution
+  btemp_89.0ah:
+    name: 'btemp_89.0ah'
+    wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
+    resolution: 5000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (original,89GHz-A,H)"
+    coordinates:
+      - longitude_89a
+      - latitude_89a
+
+  btemp_89.0av:
+    name: 'btemp_89.0av'
+    wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
+    resolution: 5000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (original,89GHz-A,V)"
+    coordinates:
+      - longitude_89a
+      - latitude_89a
+
+  btemp_89.0bh:
+    name: 'btemp_89.0bh'
+    wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
+    resolution: 5000
+    standard_name: toa_brightness_temperature
+    polarization: H
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (original,89GHz-B,H)"
+    coordinates:
+      - longitude_89b
+      - latitude_89b
+
+  btemp_89.0bv:
+    name: 'btemp_89.0bv'
+    wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
+    resolution: 5000
+    standard_name: toa_brightness_temperature
+    polarization: V
+    file_type: amsr2_l1r
+    file_key: "Brightness Temperature (original,89GHz-B,V)"
+    coordinates:
+      - longitude_89b
+      - latitude_89b
+
+  # We also need to define the coordinate datasets themselves.
+  latitude_10km:
+    name: latitude_10km
+    resolution: 10000
+    file_type: amsr2_l1r
+    standard_name: latitude
+    units: degree
+    # Based on the gdalinfo output, we assume a single set of lat/lon for all 10km channels.
+    file_key: 'Latitude of Observation Point for 89A'
+    fill_value: -9999.0
+
+  longitude_10km:
+    name: longitude_10km
+    resolution: 10000
+    file_type: amsr2_l1r
+    standard_name: longitude
+    units: degree
+    file_key: 'Longitude of Observation Point for 89A'
+    fill_value: -9999.0
+
+  latitude_89a:
+    name: 'latitude_89a'
+    resolution: 5000
+    file_type: amsr2_l1r
+    standard_name: latitude
+    units: degree
+    file_key: 'Latitude of Observation Point for 89A'
+    fill_value: -9999.0
+
+  longitude_89a:
+    name: 'longitude_89a'
+    resolution: 5000
+    file_type: amsr2_l1r
+    standard_name: longitude
+    units: degree
+    file_key: 'Longitude of Observation Point for 89A'
+    fill_value: -9999.0
+
+  latitude_89b:
+    name: 'latitude_89b'
+    resolution: 5000
+    file_type: amsr2_l1r
+    standard_name: latitude
+    units: degree
+    file_key: 'Latitude of Observation Point for 89B'
+    fill_value: -9999.0
+
+  longitude_89b:
+    name: 'longitude_89b'
+    resolution: 5000
+    file_type: amsr2_l1r
+    standard_name: longitude
+    units: degree
+    file_key: 'Longitude of Observation Point for 89B'
+    fill_value: -9999.0
+
+file_types:
+  amsr2_l1r:
+    file_reader: !!python/name:satpy.readers.amsr2_l1r.AMSR2L1RFileHandler
+    file_patterns: ['GW1AM2_{start_time:%Y%m%d%H%M}_{path_number:3d}{orbit_direction:1s}_L1SGRTBR_{product_version:7d}.h5']
