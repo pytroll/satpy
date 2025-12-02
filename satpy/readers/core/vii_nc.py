@@ -42,7 +42,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
     """
 
-    # In the futurem, only final format will be defined once operational data is available
+    # In the future, only final format will be defined once operational data is available
     DATETIME_FORMATS = [
         "%Y%m%d%H%M%S.%f",        # e.g. 20250924121530.123456
         "%Y-%m-%dT%H:%M:%S.%f",   # e.g. 2025-09-24T12:15:30.123456
