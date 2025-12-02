@@ -52,9 +52,6 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
         # (the values in the product file are on tie points and in degrees,
         # therefore interpolation and conversion to radians are required)
-        solar_zenith_angle = self["data/measurement_data/solar_zenith"]
-        solar_zenith_angle_on_pixels = self._perform_interpolation(solar_zenith_angle)
-        solar_zenith_angle_on_pixels_radians = np.radians(solar_zenith_angle_on_pixels)
 
     def _perform_calibration(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
