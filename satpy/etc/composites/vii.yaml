@@ -130,12 +130,6 @@ composites:
       prerequisites:
         - true_color_uncorrected
 
-  night_10695:
-    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
-    prerequisites:
-      - name: 'vii_10690'
-    standard_name: night_10695
-
   night_ir_alpha:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     standard_name: night_ir_alpha
