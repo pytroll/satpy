@@ -71,9 +71,10 @@ def himl2_filename_bad(tmp_path_factory):
 
 def test_startend(himl2_filename):
     """Test start and end times are set correctly."""
-    fh = ahil2_filehandler(himl2_filename)
-    assert fh.start_time == start_time
-    assert fh.end_time == end_time
+    with open(himl2_filename, "rb") as fd:
+        fh = ahil2_filehandler(fd)
+        assert fh.start_time == start_time
+        assert fh.end_time == end_time
 
 
 def test_ahi_l2_area_def(himl2_filename, caplog):
@@ -83,40 +84,44 @@ def test_ahi_l2_area_def(himl2_filename, caplog):
     ps = "+a=6378137 +h=35785863 +lon_0=140.7 +no_defs +proj=geos +rf=298.257024882273 +type=crs +units=m +x_0=0 +y_0=0"
 
     # Check case where input data is correct size.
-    fh = ahil2_filehandler(himl2_filename)
-    clmk_id = make_dataid(name="cloudmask")
-    area_def = fh.get_area_def(clmk_id)
-    assert area_def.width == dimensions["Columns"]
-    assert area_def.height == dimensions["Rows"]
-    assert np.allclose(area_def.area_extent, exp_ext)
+    with open(himl2_filename, "rb") as fd:
+        fh = ahil2_filehandler(fd)
+        clmk_id = make_dataid(name="cloudmask")
+        area_def = fh.get_area_def(clmk_id)
+        assert area_def.width == dimensions["Columns"]
+        assert area_def.height == dimensions["Rows"]
+        assert np.allclose(area_def.area_extent, exp_ext)
 
-    expected_crs = CRS(ps)
-    assert area_def.crs == expected_crs
+        expected_crs = CRS(ps)
+        assert area_def.crs == expected_crs
 
     # Check case where input data is incorrect size.
-    fh = ahil2_filehandler(himl2_filename)
-    fh.nlines = 3000
-    with pytest.raises(ValueError, match="Input L2 file is not a full disk Himawari scene..*"):
-        fh.get_area_def(clmk_id)
+    with open(himl2_filename, "rb") as fd:
+        fh = ahil2_filehandler(fd)
+        fh.nlines = 3000
+        with pytest.raises(ValueError, match="Input L2 file is not a full disk Himawari scene..*"):
+            fh.get_area_def(clmk_id)
 
 
 def test_bad_area_name(himl2_filename_bad):
     """Check case where area name is not correct."""
     global_attrs["cdm_data_type"] = "bad_area"
     with pytest.raises(ValueError, match="File is not a full disk scene"):
-        ahil2_filehandler(himl2_filename_bad)
+        with open(himl2_filename_bad, "rb") as fd:
+            ahil2_filehandler(fd)
     global_attrs["cdm_data_type"] = "Full Disk"
 
 
 def test_load_data(himl2_filename):
     """Test that data is loaded successfully."""
-    fh = ahil2_filehandler(himl2_filename)
-    clmk_id = make_dataid(name="cloudmask")
-    clmk = fh.get_dataset(clmk_id, {"file_key": "CloudMask"})
-    np.testing.assert_allclose(clmk.data, clmk_data)
-    assert clmk.dtype == np.uint16
-    assert clmk.attrs["sensor"] == "ahi"
-    assert clmk.attrs["platform_name"] == "Himawari-9"
-    assert clmk.attrs["platform_shortname"] == "h09"
-    assert isinstance(clmk.attrs["start_time"], dt.datetime)
-    assert isinstance(clmk.attrs["end_time"], dt.datetime)
+    with open(himl2_filename, "rb") as fd:
+        fh = ahil2_filehandler(fd)
+        clmk_id = make_dataid(name="cloudmask")
+        clmk = fh.get_dataset(clmk_id, {"file_key": "CloudMask"})
+        np.testing.assert_allclose(clmk.data, clmk_data)
+        assert clmk.dtype == np.uint16
+        assert clmk.attrs["sensor"] == "ahi"
+        assert clmk.attrs["platform_name"] == "Himawari-9"
+        assert clmk.attrs["platform_shortname"] == "h09"
+        assert isinstance(clmk.attrs["start_time"], dt.datetime)
+        assert isinstance(clmk.attrs["end_time"], dt.datetime)
