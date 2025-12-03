@@ -160,7 +160,7 @@ class Test_NC_ABI_L2_get_dataset:
                      "scan_mode": "M3",
                      "scene_abbr": "C",
                      "scene_id": None,
-                     "sensor": "abi",
+                     "sensor": "ABI",
                      "timeline_ID": None,
                      }
         exp_attrs.update(var_attrs)
@@ -222,7 +222,7 @@ class TestMCMIPReading:
             "scan_mode": "M6",
             "scene_abbr": "F",
             "scene_id": None,
-            "sensor": "abi",
+            "sensor": "ABI",
             "timeline_ID": None,
             "start_time": dt.datetime(2017, 9, 20, 17, 30, 40, 800000),
             "end_time": dt.datetime(2017, 9, 20, 17, 41, 17, 500000),
