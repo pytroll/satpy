@@ -42,7 +42,7 @@ def ahil2_filehandler(fname, platform="h09"):
     return fh
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def himl2_filename(tmp_path_factory):
     """Create a fake himawari l2 file."""
     fname = f'{tmp_path_factory.mktemp("data")}/AHI-CMSK_v1r1_h09_s202308240540213_e202308240549407_c202308240557548.nc'
@@ -55,7 +55,7 @@ def himl2_filename(tmp_path_factory):
     os.unlink(fname)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def himl2_filename_bad(tmp_path_factory):
     """Create a fake himawari l2 file."""
     fname = f'{tmp_path_factory.mktemp("data")}/AHI-CMSK_v1r1_h09_s202308240540213_e202308240549407_c202308240557548.nc'
