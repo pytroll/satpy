@@ -88,7 +88,7 @@ global_attrs = {"Observed_Altitude(km)": 35778.490219,
                 }
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def insat_filename(tmp_path_factory):
     """Create a fake insat 3d l1b file."""
     filename = tmp_path_factory.mktemp("data") / "3DIMG_25OCT2022_0400_L1B_STD_V01R00.h5"
