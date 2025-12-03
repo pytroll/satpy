@@ -5,7 +5,7 @@ reader:
   description: MAIA Reader
   status: Nominal
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [viirs, avhrr]
 
 file_types:
