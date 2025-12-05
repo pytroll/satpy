@@ -65,6 +65,7 @@ def camel_filename(tmp_path_factory):
     """Create a fake camel l3 file."""
     fname = _make_ds(global_attrs, tmp_path_factory)
     yield fname
+    print("xr.backends.file_manager.FILE_CACHE:", list(xr.backends.file_manager.FILE_CACHE.items()))
     os.unlink(fname)
 
 
@@ -73,6 +74,7 @@ def camel_filename_bad1(tmp_path_factory):
     """Create a fake camel l3 file."""
     fname = _make_ds(bad_attrs1, tmp_path_factory)
     yield fname
+    print("xr.backends.file_manager.FILE_CACHE:", list(xr.backends.file_manager.FILE_CACHE.items()))
     os.unlink(fname)
 
 
@@ -81,6 +83,7 @@ def camel_filename_bad2(tmp_path_factory):
     """Create a fake camel l3 file."""
     fname = _make_ds(bad_attrs2, tmp_path_factory)
     yield fname
+    print("xr.backends.file_manager.FILE_CACHE:", list(xr.backends.file_manager.FILE_CACHE.items()))
     os.unlink(fname)
 
 
