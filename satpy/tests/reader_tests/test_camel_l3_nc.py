@@ -60,7 +60,7 @@ def camel_l3_filehandler(fname):
     return fh
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def camel_filename(tmp_path_factory):
     """Create a fake camel l3 file."""
     fname = _make_ds(global_attrs, tmp_path_factory)
@@ -68,7 +68,7 @@ def camel_filename(tmp_path_factory):
     os.unlink(fname)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def camel_filename_bad1(tmp_path_factory):
     """Create a fake camel l3 file."""
     fname = _make_ds(bad_attrs1, tmp_path_factory)
@@ -76,7 +76,7 @@ def camel_filename_bad1(tmp_path_factory):
     os.unlink(fname)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def camel_filename_bad2(tmp_path_factory):
     """Create a fake camel l3 file."""
     fname = _make_ds(bad_attrs2, tmp_path_factory)
