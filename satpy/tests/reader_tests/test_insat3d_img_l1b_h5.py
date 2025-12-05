@@ -101,7 +101,13 @@ def insat_filename(tmp_path_factory):
 
     yield filename
     import xarray as xr
-    print("xr.backends.file_manager.FILE_CACHE:", list(xr.backends.file_manager.FILE_CACHE.items()))
+
+    # clean xarray cache
+    for key in xr.backends.file_manager.FILE_CACHE:
+        if os.fspath(filename) in key[1]:
+            ds = xr.backends.file_manager.FILE_CACHE.pop(key)
+            ds.close()
+
     os.unlink(filename)
 
 

@@ -52,7 +52,6 @@ def himl2_filename(tmp_path_factory):
                     attrs=global_attrs)
     ds.to_netcdf(fname)
     yield fname
-    print("xr.backends.file_manager.FILE_CACHE:", list(xr.backends.file_manager.FILE_CACHE.items()))
     os.unlink(fname)
 
 
@@ -67,7 +66,6 @@ def himl2_filename_bad(tmp_path_factory):
     ds.to_netcdf(fname)
 
     yield fname
-    print("xr.backends.file_manager.FILE_CACHE:", list(xr.backends.file_manager.FILE_CACHE.items()))
     os.unlink(fname)
 
 
