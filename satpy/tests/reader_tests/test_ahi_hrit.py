@@ -228,6 +228,7 @@ def test_header_parsing(tmp_path, channel, is_vis, shape):
 
     # Check platform
     assert reader.platform == HIMAWARI8
+    hrit_path.unlink()
 
 
 @pytest.mark.parametrize(
@@ -267,6 +268,7 @@ def test_check_areas(tmp_path, extra_filename_info, area_id):
     filename_info.update(extra_filename_info)
     reader = HRITJMAFileHandler(hrit_path, filename_info, {})
     assert reader.area_id == area_id
+    hrit_path.unlink()
 
 
 @pytest.mark.parametrize(("proj_name", "platform"), list(PLATFORMS.items()) + [("MERCATOR(0.0)", UNKNOWN_PLATFORM)])
@@ -282,6 +284,7 @@ def test_get_platform(tmp_path, proj_name, platform, caplog):
 
     if proj_name == "invalid":
         assert "Unable to determine platform" in caplog.text
+    hrit_path.unlink()
 
 
 @pytest.mark.parametrize(
@@ -484,6 +487,7 @@ def test_sensor_mismatch(tmp_path, caplog):
     key = make_dataid(name="VIS", calibration="reflectance")
     reader.get_dataset(key, {"units": "%", "sensor": "jami"})
     assert "Sensor-Platform mismatch" in caplog.text
+    hrit_path.unlink()
 
 
 @pytest.mark.parametrize("projection_name", ["GEOS(140.70)", "GEOS(145.00)"])
@@ -500,6 +504,7 @@ def test_get_acq_time(tmp_path, projection_name):
     np.testing.assert_allclose(reader.acq_time.astype(np.int64),
                                acq_time_exp.astype(np.int64),
                                atol=45000000)
+    hrit_path.unlink()
 
 
 @pytest.mark.parametrize("projection_name", ["GEOS(140.70)", "GEOS(145.00)"])
@@ -517,6 +522,7 @@ def test_start_time_from_aqc_time(tmp_path, projection_name, use_acq_time):
         assert reader.end_time == dt.datetime(1970, 1, 1, 3, 3, 20, 16000)
     else:
         assert reader.start_time == start_time
+    hrit_path.unlink()
 
 
 @pytest.mark.parametrize(
