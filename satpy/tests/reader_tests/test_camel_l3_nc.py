@@ -86,10 +86,9 @@ def camel_filename_bad2(tmp_path_factory):
 
 def test_startend(camel_filename):
     """Test start and end times are set correctly."""
-    with open(camel_filename, "rb") as fd:
-        fh = camel_l3_filehandler(fd)
-        assert fh.start_time == start_time
-        assert fh.end_time == end_time
+    fh = camel_l3_filehandler(camel_filename)
+    assert fh.start_time == start_time
+    assert fh.end_time == end_time
 
 
 def test_camel_l3_area_def(camel_filename, caplog):
@@ -97,50 +96,45 @@ def test_camel_l3_area_def(camel_filename, caplog):
     from pyproj.crs import CRS
 
     # Check case where input data is correct size.
-    with open(camel_filename, "rb") as fd:
-        fh = camel_l3_filehandler(fd)
-        ndvi_id = make_dataid(name="aster_ndvi")
-        area_def = fh.get_area_def(ndvi_id)
-        assert area_def.width == dimensions["longitude"]
-        assert area_def.height == dimensions["latitude"]
-        assert np.allclose(area_def.area_extent, exp_ext)
+    fh = camel_l3_filehandler(camel_filename)
+    ndvi_id = make_dataid(name="aster_ndvi")
+    area_def = fh.get_area_def(ndvi_id)
+    assert area_def.width == dimensions["longitude"]
+    assert area_def.height == dimensions["latitude"]
+    assert np.allclose(area_def.area_extent, exp_ext)
 
-        assert area_def.crs == CRS.from_epsg(4326)
+    assert area_def.crs == CRS.from_epsg(4326)
 
 
 def test_bad_longitude(camel_filename_bad1):
     """Check case where longitude grid is not correct."""
     with pytest.raises(ValueError, match="Only 0.05 degree grid data is supported."):
-        with open(camel_filename_bad1, "rb") as fd:
-            camel_l3_filehandler(fd)
+        camel_l3_filehandler(camel_filename_bad1)
 
 
 def test_bad_latitude(camel_filename_bad2):
     """Check case where latitude grid is not correct."""
     with pytest.raises(ValueError, match="Only 0.05 degree grid data is supported."):
-        with open(camel_filename_bad2, "rb") as fd:
-            camel_l3_filehandler(fd)
+        camel_l3_filehandler(camel_filename_bad2)
 
 
 def test_load_ndvi_data(camel_filename):
     """Test that data is loaded successfully."""
-    with open(camel_filename, "rb") as fd:
-        fh = camel_l3_filehandler(fd)
-        ndvi_id = make_dataid(name="aster_ndvi")
-        ndvi = fh.get_dataset(ndvi_id, {"file_key": "aster_ndvi"})
-        assert np.allclose(ndvi.data, ndvi_data)
+    fh = camel_l3_filehandler(camel_filename)
+    ndvi_id = make_dataid(name="aster_ndvi")
+    ndvi = fh.get_dataset(ndvi_id, {"file_key": "aster_ndvi"})
+    assert np.allclose(ndvi.data, ndvi_data)
 
 
 def test_load_emis_data(camel_filename):
     """Test that data is loaded successfully."""
-    with open(camel_filename, "rb") as fd:
-        fh = camel_l3_filehandler(fd)
-        emis_id = make_dataid(name="camel_emis")
+    fh = camel_l3_filehandler(camel_filename)
+    emis_id = make_dataid(name="camel_emis")
 
-        # This is correct data
-        emis = fh.get_dataset(emis_id, {"file_key": "camel_emis", "band_id": 2})
-        assert np.allclose(emis.data, emis_data[:, :, 2])
+    # This is correct data
+    emis = fh.get_dataset(emis_id, {"file_key": "camel_emis", "band_id": 2})
+    assert np.allclose(emis.data, emis_data[:, :, 2])
 
-        # This will fail as we are requesting a band too high data
-        with pytest.raises(ValueError, match="Band id requested is larger than dataset."):
-            fh.get_dataset(emis_id, {"file_key": "camel_emis", "band_id": 12})
+    # This will fail as we are requesting a band too high data
+    with pytest.raises(ValueError, match="Band id requested is larger than dataset."):
+        fh.get_dataset(emis_id, {"file_key": "camel_emis", "band_id": 12})

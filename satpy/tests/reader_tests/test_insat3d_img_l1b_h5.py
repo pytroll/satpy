@@ -136,10 +136,9 @@ def _create_lonlats(h5f, resolution):
 
 def test_insat3d_backend_has_1km_channels(insat_filename):
     """Test the insat3d backend."""
-    with open(insat_filename, "rb") as fd:
-        res = open_dataset(fd, resolution=1000)
-        assert res["IMG_VIS"].shape == shape_1km
-        assert res["IMG_SWIR"].shape == shape_1km
+    res = open_dataset(insat_filename, resolution=1000)
+    assert res["IMG_VIS"].shape == shape_1km
+    assert res["IMG_SWIR"].shape == shape_1km
 
 
 @pytest.mark.parametrize(("resolution", "name", "shape", "expected_values", "expected_name", "expected_units"),
@@ -161,62 +160,55 @@ def test_insat3d_backend_has_1km_channels(insat_filename):
 def test_insat3d_has_calibrated_arrays(insat_filename,
                                        resolution, name, shape, expected_values, expected_name, expected_units):
     """Check that calibration happens as expected."""
-    with open(insat_filename, "rb") as fd:
-        res = open_dataset(fd, resolution=resolution)
-        assert res[name].shape == shape
-        np.testing.assert_allclose(res[name], expected_values)
-        assert res[name].attrs["units"] == expected_units
-        assert res[name].attrs["long_name"] == expected_name
+    res = open_dataset(insat_filename, resolution=resolution)
+    assert res[name].shape == shape
+    np.testing.assert_allclose(res[name], expected_values)
+    assert res[name].attrs["units"] == expected_units
+    assert res[name].attrs["long_name"] == expected_name
 
 
 def test_insat3d_has_dask_arrays(insat_filename):
     """Test that the backend uses dask."""
-    with open(insat_filename, "rb") as fd:
-        res = open_dataset(fd, resolution=1000)
-        assert isinstance(res["IMG_VIS_RADIANCE"].data, da.Array)
-        assert res["IMG_VIS"].chunks is not None
+    res = open_dataset(insat_filename, resolution=1000)
+    assert isinstance(res["IMG_VIS_RADIANCE"].data, da.Array)
+    assert res["IMG_VIS"].chunks is not None
 
 
 def test_insat3d_only_has_3_resolutions(insat_filename):
     """Test that we only accept 1000, 4000, 8000."""
     with pytest.raises(ValueError, match="Resolution 1024 not available. Available resolutions: 1000, 4000, 8000"):
-        with open(insat_filename, "rb") as fd:
-            _ = open_dataset(fd, resolution=1024)
+        _ = open_dataset(insat_filename, resolution=1024)
 
 
 @pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
 def test_insat3d_returns_lonlat(insat_filename, resolution):
     """Test that lons and lats are loaded."""
-    with open(insat_filename, "rb") as fd:
-        res = open_dataset(fd, resolution=resolution)
-        expected = values_by_resolution[resolution].squeeze() / 100.0
-        assert isinstance(res["Latitude"].data, da.Array)
-        np.testing.assert_allclose(res["Latitude"], expected)
-        assert isinstance(res["Longitude"].data, da.Array)
-        np.testing.assert_allclose(res["Longitude"], expected)
+    res = open_dataset(insat_filename, resolution=resolution)
+    expected = values_by_resolution[resolution].squeeze() / 100.0
+    assert isinstance(res["Latitude"].data, da.Array)
+    np.testing.assert_allclose(res["Latitude"], expected)
+    assert isinstance(res["Longitude"].data, da.Array)
+    np.testing.assert_allclose(res["Longitude"], expected)
 
 
 @pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
 def test_insat3d_has_global_attributes(insat_filename, resolution):
     """Test that the backend supports global attributes."""
-    with open(insat_filename, "rb") as fd:
-        res = open_dataset(fd, resolution=resolution)
-        assert res.attrs.keys() >= global_attrs.keys()
+    res = open_dataset(insat_filename, resolution=resolution)
+    assert res.attrs.keys() >= global_attrs.keys()
 
 
 @pytest.mark.parametrize("resolution", [1000, 4000, 8000, ])
 def test_insat3d_opens_datatree(insat_filename, resolution):
     """Test that a datatree is produced."""
-    with open(insat_filename, "rb") as fd:
-        res = open_datatree(fd)
-        assert str(resolution) in res.keys()
+    res = open_datatree(insat_filename)
+    assert str(resolution) in res.keys()
 
 
 def test_insat3d_datatree_has_global_attributes(insat_filename):
     """Test that the backend supports global attributes in the datatree."""
-    with open(insat_filename, "rb") as fd:
-        res = open_datatree(fd)
-        assert res.attrs.keys() >= global_attrs.keys()
+    res = open_datatree(insat_filename)
+    assert res.attrs.keys() >= global_attrs.keys()
 
 
 @pytest.mark.parametrize(("calibration", "expected_values"),
@@ -277,9 +269,8 @@ def insat_filehandler(insat_filename):
     """Instantiate a Filehandler."""
     fileinfo = {}
     filetype = None
-    with open(insat_filename, "rb") as fd:
-        fh = Insat3DIMGL1BH5FileHandler(fd, fileinfo, filetype)
-        yield fh
+    fh = Insat3DIMGL1BH5FileHandler(insat_filename, fileinfo, filetype)
+    return fh
 
 
 def test_filehandler_returns_area(insat_filehandler):
