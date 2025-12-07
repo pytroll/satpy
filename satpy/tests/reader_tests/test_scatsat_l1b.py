@@ -182,9 +182,9 @@ class TestSCATSAT1L2BReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         available_ids = r.available_dataset_ids
         expected_keys = {
-                        DataID(default_id_keys_config, name='longitude', resolution=12500, modifiers=()),
-                        DataID(default_id_keys_config, name='latitude', resolution=12500, modifiers=()),
-                        DataID(default_id_keys_config, name='wind_speed', resolution=12500, modifiers=()),
-                        DataID(default_id_keys_config, name='wind_direction', resolution=12500, modifiers=())
+                        DataID(default_id_keys_config, name="longitude", resolution=12500, modifiers=()),
+                        DataID(default_id_keys_config, name="latitude", resolution=12500, modifiers=()),
+                        DataID(default_id_keys_config, name="wind_speed", resolution=12500, modifiers=()),
+                        DataID(default_id_keys_config, name="wind_direction", resolution=12500, modifiers=())
         }
         assert set(available_ids) == expected_keys
