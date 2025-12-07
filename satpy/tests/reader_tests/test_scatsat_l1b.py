@@ -172,8 +172,8 @@ class TestSCATSAT1L2BReader(unittest.TestCase):
 
     def test_available_dataset_ids(self):
         """Test available_dataset_ids method."""
-        from satpy.readers.core.loading import load_reader
         from satpy.dataset.dataid import DataID, default_id_keys_config
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "E06SCTL2B2025139_13087_13088_SN_12km_2025-139T07-55-10_v1.0.4.h5",
