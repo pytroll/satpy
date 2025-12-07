@@ -169,3 +169,24 @@ class TestSCATSAT1L2BReader(unittest.TestCase):
         assert res["wind_speed"].platform_name == "EOS-06          "
         assert res["wind_speed"].start_time == dt.datetime(2025, 5, 19, 4, 52, 21, 469000)
         assert res["wind_speed"].end_time == dt.datetime(2025, 5, 19, 5, 42, 1, 23000)
+
+    def test_available_dataset_ids(self):
+        """Test available_dataset_ids method."""
+        from satpy.readers.core.loading import load_reader
+        from satpy.dataset.dataid import DataID, default_id_keys_config
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            "E06SCTL2B2025139_13087_13088_SN_12km_2025-139T07-55-10_v1.0.4.h5",
+        ])
+        assert len(loadables) == 1
+        r.create_filehandlers(loadables)
+        available_ids = r.available_dataset_ids
+        print(type(available_ids), available_ids)
+        expected_keys = {
+                        DataID(default_id_keys_config, name='longitude', resolution=12500, modifiers=()),
+                        DataID(default_id_keys_config, name='latitude', resolution=12500, modifiers=()),
+                        DataID(default_id_keys_config, name='wind_speed', resolution=12500, modifiers=()),
+                        DataID(default_id_keys_config, name='wind_direction', resolution=12500, modifiers=())
+        }
+        print(set(available_ids))
+        assert set(available_ids) == expected_keys
