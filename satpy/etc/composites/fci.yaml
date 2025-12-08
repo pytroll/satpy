@@ -571,15 +571,15 @@ composites:
   volcanic_emissions:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
-      prerequisites:
-      - wv_63
-      - wv_73
-    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
-      prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - wv_63
+          - wv_73
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - ir_105
+          - ir_87
       - ir_105
-      - ir_87
-    - ir_105
     standard_name: volcanic_emissions
 
   day_severe_storms:
@@ -615,3 +615,17 @@ composites:
           - name: nir_16
           - name: vis_06
     standard_name: day_severe_storms_tropical
+
+  24h_microphysics_dust:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - ir_123
+          - ir_105
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - ir_105
+          - ir_87
+      - ir_105
+    standard_name: 24h_microphysics_dust
