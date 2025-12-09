@@ -17,6 +17,7 @@ datasets:
     resolution:
       12500: {file_type: scatsat_12km}
       25000: {file_type: scatsat_25km}
+      50000: {file_type: scatsat_50km}
     standard_name: longitude
     units: degrees_east
     coordinates: [longitude, latitude]
@@ -29,6 +30,7 @@ datasets:
     resolution:
       12500: {file_type: scatsat_12km}
       25000: {file_type: scatsat_25km}
+      50000: {file_type: scatsat_50km}
     standard_name: latitude
     units: degrees_north
     coordinates: [longitude, latitude]
@@ -41,6 +43,7 @@ datasets:
     resolution:
       12500: {file_type: scatsat_12km}
       25000: {file_type: scatsat_25km}
+      50000: {file_type: scatsat_50km}
     file_type: scatsat
     file_key: "science_data/Wind_speed_selection"
     standard_name: wind_speed
@@ -53,6 +56,7 @@ datasets:
     resolution:
       12500: {file_type: scatsat_12km}
       25000: {file_type: scatsat_25km}
+      50000: {file_type: scatsat_50km}
     file_type: scatsat
     file_key: "science_data/Wind_direction_selection"
     standard_name: wind_direction
@@ -61,9 +65,11 @@ datasets:
 file_types:
   scatsat_12km:
     file_reader: !!python/name:satpy.readers.scatsat1_l2b.SCATSAT1L2BFileHandler
-    file_patterns: ['S1L2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_12km_{prod_date}T{prod_time}_{version}.h5',
-                    'E06SCTL2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_12km_{prod_date}T{prod_time}_{version}.h5']
+    file_patterns: ['E06SCTL2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_12km_{prod_date}T{prod_time}_{version}.h5']
   scatsat_25km:
     file_reader: !!python/name:satpy.readers.scatsat1_l2b.SCATSAT1L2BFileHandler
     file_patterns: ['S1L2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_25km_{prod_date}T{prod_time}_{version}.h5',
                     'E06SCTL2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_25km_{prod_date}T{prod_time}_{version}.h5']
+  scatsat_50km:
+    file_reader: !!python/name:satpy.readers.scatsat1_l2b.SCATSAT1L2BFileHandler
+    file_patterns: ['S1L2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_50km_{prod_date}T{prod_time}_{version}.h5']
