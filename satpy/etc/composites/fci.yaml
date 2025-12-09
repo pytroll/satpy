@@ -431,7 +431,7 @@ composites:
       - cloud_phase
       - night_ir105
 
-  fire_temperature:
+  fire_temperature: &fire
     standard_name: fire_temperature_fci
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     description: >
@@ -449,6 +449,10 @@ composites:
       - name: ir_38
       - name: nir_22
       - name: nir_16
+
+  fire_temperature_fci_contrast_tuned:
+    <<: *fire
+    standard_name: fire_temperature_fci_contrast_tuned
 
   fire_temperature_38refl:
     standard_name: fire_temperature_fci_38refl
