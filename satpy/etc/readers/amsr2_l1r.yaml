@@ -309,3 +309,4 @@ file_types:
   amsr2_l1r:
     file_reader: !!python/name:satpy.readers.amsr2_l1r.AMSR2L1RFileHandler
     file_patterns: ['GW1AM2_{start_time:%Y%m%d%H%M}_{path_number:3d}{orbit_direction:1s}_L1SGRTBR_{product_version:7d}.h5']
+    
