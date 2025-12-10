@@ -51,7 +51,7 @@ class TestVIIRSComposites:
         dnb = np.zeros(area.shape) + 0.25
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
-        dnb = da.from_array(dnb, chunks=25)
+        dnb = da.from_array(dnb, chunks=2)
         c01 = xr.DataArray(dnb,
                            dims=("y", "x"),
                            attrs={"name": "DNB", "area": area,
@@ -65,7 +65,7 @@ class TestVIIRSComposites:
         sza = np.zeros(area.shape) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
-        sza = da.from_array(sza, chunks=25)
+        sza = da.from_array(sza, chunks=2)
         c02 = xr.DataArray(sza,
                            dims=("y", "x"),
                            attrs={"name": "solar_zenith_angle", "area": area,
@@ -78,7 +78,7 @@ class TestVIIRSComposites:
         lza = np.zeros(area.shape) + 70.0
         lza[:, 3] += 20.0
         lza[:, 4:] += 45.0
-        lza = da.from_array(lza, chunks=25)
+        lza = da.from_array(lza, chunks=2)
         c03 = xr.DataArray(lza,
                            dims=("y", "x"),
                            attrs={"name": "lunar_zenith_angle", "area": area,
@@ -185,7 +185,7 @@ class TestVIIRSComposites:
         dnb[4:, :] += 0.5
         if dnb_units == "W cm-2 sr-1":
             dnb /= 10000.0
-        dnb = da.from_array(dnb, chunks=25)
+        dnb = da.from_array(dnb, chunks=2)
         c01 = xr.DataArray(dnb,
                            dims=("y", "x"),
                            attrs={"name": "DNB", "area": area, "units": dnb_units})

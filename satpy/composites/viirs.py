@@ -230,8 +230,7 @@ class ERFDNB(CompositeBase):
                                                 False)
         super(ERFDNB, self).__init__(*args, **kwargs)
 
-    def _saturation_correction(self, dnb_data, unit_factor, min_val,
-                               max_val):
+    def _saturation_correction(self, dnb_data, min_val, max_val, unit_factor):
         saturation_pct = float(np.count_nonzero(dnb_data >
                                                 max_val)) / dnb_data.size
         LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
@@ -305,9 +304,9 @@ class ERFDNB(CompositeBase):
             output_data = da.map_blocks(
                 self._saturation_correction,
                 output_dataset.data.rechunk(output_dataset.shape),
+                min_val.rechunk(output_dataset.shape),
+                max_val.rechunk(output_dataset.shape),
                 unit_factor,
-                min_val,
-                max_val,
                 dtype=output_dataset.dtype,
                 meta=np.ndarray((), dtype=output_dataset.dtype),
             )
