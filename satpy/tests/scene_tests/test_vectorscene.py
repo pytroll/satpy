@@ -18,6 +18,7 @@
 import os
 import unittest.mock
 
+import numpy as np
 import pytest
 
 from satpy.readers.core.file_handlers import BaseFileHandler
@@ -88,3 +89,18 @@ def test_save(dummy_vector_scene, tmp_path):
             "dummy_vector_dataset",
             writer="feature",
             filename=os.fspath(tmp_path / "feature.sqlite"))
+
+def test_resample_reproject(dummy_vector_scene):
+    """Test "resampling" with simple reprojecting."""
+    from satpy.area import get_area_def
+
+    #ar = get_area_def("africa_laea_1km")
+    ar = get_area_def("africa")
+    nvs = dummy_vector_scene.resample(ar)
+    assert nvs["dummy_vector_dataset"].crs == ar.crs
+    np.testing.assert_array_almost_equal(
+            nvs["dummy_vector_dataset"]["geometry"].x,
+            np.array([-2102365.17553776, -1994129.64781314]))
+    np.testing.assert_array_almost_equal(
+            nvs["dummy_vector_dataset"]["geometry"].y,
+            np.array([-307504.13559868, -422689.60607102]))
