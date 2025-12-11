@@ -84,7 +84,7 @@ def _setup_custom_reader_config(base_dir):
         comp_file.write("""
 reader:
   name: "fake"
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   data_files:
     - url: {}
       known_hash: null

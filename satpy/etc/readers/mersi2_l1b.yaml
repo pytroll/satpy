@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [mersi-2]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
   mersi2_l1b_1000:
