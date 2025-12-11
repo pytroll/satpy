@@ -43,7 +43,9 @@ def lookup(img, **kwargs):
 def _lookup_table(band_data, luts=None, index=-1):
     # NaN/null values will become 0
     lut = luts[:, index] if len(luts.shape) == 2 else luts
-    band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
+    band_data = band_data.clip(0, lut.size - 1)
+    # Convert to uint8, with NaN/null values changed into 0
+    band_data = np.nan_to_num(band_data).astype(np.uint8)
     return lut[band_data]
 
 
