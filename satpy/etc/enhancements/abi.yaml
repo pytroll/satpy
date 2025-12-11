@@ -1,7 +1,7 @@
 enhancements:
   cimss_true_color:
     standard_name: cimss_true_color
-    sensor: abi
+    sensor: ABI
     operations:
       - name: linear_stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
@@ -35,7 +35,7 @@ enhancements:
 
   true_color_with_night_fires:
     standard_name: true_color_with_night_fires
-    sensor: abi
+    sensor: ABI
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
@@ -77,7 +77,7 @@ enhancements:
   ash_abi:
     ## RGB Ash recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
     standard_name: ash
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -89,7 +89,7 @@ enhancements:
   dust_abi:
     ## RGB Dust recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
     standard_name: dust
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -105,7 +105,7 @@ enhancements:
   convection_abi:
     ## RGB Convection recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
     standard_name: convection
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -142,7 +142,7 @@ enhancements:
   night_microphysics_abi:
     ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
     standard_name: night_microphysics
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -154,7 +154,7 @@ enhancements:
   night_microphysics_tropical_abi:
     ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
     standard_name: night_microphysics_tropical
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -170,7 +170,7 @@ enhancements:
   land_cloud_fire:
     ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
     standard_name: land_cloud_fire
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -179,7 +179,7 @@ enhancements:
   land_cloud:
     ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
     standard_name: land_cloud
-    sensor: abi
+    sensor: ABI
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -191,7 +191,7 @@ enhancements:
   # IR with white clouds
   highlighted_brightness_temperature:
     standard_name: highlighted_toa_brightness_temperature
-    sensor: abi
+    sensor: ABI
     operations:
       - name: btemp_threshold
         method: !!python/name:satpy.enhancements.contrast.btemp_threshold
@@ -308,7 +308,7 @@ enhancements:
     ## RGB Recipe: https://rammb2.cira.colostate.edu/wp-content/uploads/2024/11/GOES-BlowingSnowRGB1_QuickGuide_24April2024.pdf
     ## Modified to match recommendations from RGB Workshop 2025
     standard_name: day_blowing_snow
-    sensor: abi
+    sensor: ABI
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
@@ -323,7 +323,7 @@ enhancements:
   day_cloud_type:
     # Recipe PDF: http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_Day_Cloud_Type_RGB.pdf
     standard_name: day_cloud_type
-    sensor: abi
+    sensor: ABI
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
