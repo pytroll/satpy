@@ -216,13 +216,8 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
                     assert equal
 
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
-    def test_start_end_time_additional_formats(self, pgi_):
+    def test_start_end_time_additional_formats(self):
         """Test parsing additional datetime formats."""
-        interp_longitude = xr.DataArray(np.ones((10, 100)))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
-        pgi_.return_value = (interp_longitude, interp_latitude)
-
         time_cases = [
             (
                 "2017-09-20T17:30:40.888000",
@@ -238,11 +233,6 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             ),
         ]
 
-        filetype_info = {
-            "cached_longitude": "data/measurement_data/longitude",
-            "cached_latitude": "data/measurement_data/latitude",
-        }
-
         for start_str, expected_start, end_str, expected_end in time_cases:
             with Dataset(self.test_file_name, "r+") as nc:
                 nc.sensing_start_time_utc = start_str
@@ -251,11 +241,28 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             reader = ViiNCBaseFileHandler(
                 filename=self.test_file_name,
                 filename_info=self.filename_info,
-                filetype_info=filetype_info,
+                filetype_info={},
             )
 
             assert reader.start_time == expected_start
             assert reader.end_time == expected_end
+
+    def test_bad_start_end_time(self):
+        """Test parsing a bad datetime format."""
+        with Dataset(self.test_file_name, "r+") as nc:
+            nc.sensing_start_time_utc = "201709201730"
+            nc.sensing_end_time_utc = "201709201740"
+
+        reader = ViiNCBaseFileHandler(
+            filename=self.test_file_name,
+            filename_info=self.filename_info,
+            filetype_info={},
+        )
+
+        with pytest.raises(ValueError, match="Unrecognized datetime format"):
+            reader.start_time
+        with pytest.raises(ValueError, match="Unrecognized datetime format"):
+            reader.end_time
 
     @mock.patch("satpy.readers.core.vii_nc.tie_points_interpolation")
     @mock.patch("satpy.readers.core.vii_nc.tie_points_geo_interpolation")
