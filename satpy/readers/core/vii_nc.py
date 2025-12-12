@@ -42,6 +42,14 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
     """
 
+    # In the future, only final format will be defined once operational data is available
+    DATETIME_FORMATS = [
+        "%Y%m%d%H%M%S.%f",        # e.g. 20250924121530.123456
+        "%Y-%m-%dT%H:%M:%S.%f",   # e.g. 2025-09-24T12:15:30.123456
+        "%Y-%m-%d %H:%M:%S",      # e.g. 2025-09-24 12:15:30
+        "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
+    ]
+
     def __init__(self, filename, filename_info, filetype_info, orthorect=False):
         """Prepare the class for dataset reading."""
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
@@ -210,23 +218,24 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
         return attributes
 
+    def _parse_datetime(self, datetime_str):
+        """Parse datetime string using multiple format attempts."""
+        for fmt in self.DATETIME_FORMATS:
+            try:
+                return dt.datetime.strptime(datetime_str, fmt)
+            except ValueError:
+                continue
+        raise ValueError(f"Unrecognized datetime format: {datetime_str}")
+
     @property
     def start_time(self):
         """Get observation start time."""
-        try:
-            start_time = dt.datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y%m%d%H%M%S.%f")
-        except ValueError:
-            start_time = dt.datetime.strptime(self["/attr/sensing_start_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
-        return start_time
+        return self._parse_datetime(self["/attr/sensing_start_time_utc"])
 
     @property
     def end_time(self):
         """Get observation end time."""
-        try:
-            end_time = dt.datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y%m%d%H%M%S.%f")
-        except ValueError:
-            end_time = dt.datetime.strptime(self["/attr/sensing_end_time_utc"], "%Y-%m-%d %H:%M:%S.%f")
-        return end_time
+        return self._parse_datetime(self["/attr/sensing_end_time_utc"])
 
     @property
     def spacecraft_name(self):
