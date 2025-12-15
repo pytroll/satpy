@@ -52,10 +52,6 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
         # (the values in the product file are on tie points and in degrees,
         # therefore interpolation and conversion to radians are required)
-        solar_zenith_angle = self["data/measurement_data/solar_zenith"]
-        solar_zenith_angle_on_pixels = self._perform_interpolation(solar_zenith_angle)
-        solar_zenith_angle_on_pixels_radians = np.radians(solar_zenith_angle_on_pixels)
-        self.angle_factor = 1.0 / (np.cos(solar_zenith_angle_on_pixels_radians))
 
     def _perform_calibration(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
@@ -83,7 +79,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             chan_index = dataset_info["chan_solar_index"]
             isi = self._integrated_solar_irradiance[chan_index]
             # Perform the calibration
-            calibrated_variable = self._calibrate_refl(variable, self.angle_factor.data, isi)
+            calibrated_variable = self._calibrate_refl(variable, isi)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == "radiance":
             calibrated_variable = variable
@@ -131,17 +127,16 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         return bt_values
 
     @staticmethod
-    def _calibrate_refl(radiance: np.ndarray, angle_factor: np.ndarray, isi: float) -> np.ndarray:
+    def _calibrate_refl(radiance: np.ndarray, isi: float) -> np.ndarray:
         """Perform the calibration to reflectance.
 
         Args:
             radiance: numpy ndarray containing the radiance values.
-            angle_factor: numpy ndarray containing the inverse of cosine of solar zenith angle [-].
             isi: integrated solar irradiance [W/(m2 * μm)].
 
         Returns:
             array containing the calibrated reflectance values.
 
         """
-        refl_values = (np.pi / isi) * angle_factor * radiance * 100.0
+        refl_values = (np.pi / isi) * radiance * 100.0
         return refl_values
