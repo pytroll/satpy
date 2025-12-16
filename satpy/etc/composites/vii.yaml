@@ -5,22 +5,9 @@ modifiers:
     prerequisites:
       - name: 'vii_10690'
     optional_prerequisites:
-      - solar_zenith
+      - solar_zenith_angle
       - name: 'vii_13345'
     sunz_threshold: 85.0
-
-  rayleigh_corrected:
-    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
-    atmosphere: us-standard
-    aerosol_type: rayleigh_only
-    prerequisites:
-      - wavelength: 0.67
-        modifiers: [ sunz_corrected ]
-    optional_prerequisites:
-      - observation_azimuth
-      - observation_zenith
-      - solar_azimuth
-      - solar_zenith
 
 composites:
   true_color_uncorrected:
