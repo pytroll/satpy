@@ -21,10 +21,15 @@ import os
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from zipfile import ZipFile
 
 import numpy as np
 import pytest
 import yaml
+from pytest_lazy_fixtures import lf
+from upath import UPath
+
+from satpy.readers.core.remote import FSFile
 
 geotiepoints = pytest.importorskip("geotiepoints", "1.7.5")
 
@@ -43,10 +48,15 @@ START_TIME = datetime(2019, 2, 1, 2, 46, 55)
 END_TIME = datetime(2019, 2, 1, 2, 47, 20)
 
 @pytest.fixture(scope="module")
-def granule_directory(tmp_path_factory):
+def data_directory(tmp_path_factory):
   """Create a granule directory."""
-  data_dir = tmp_path_factory.mktemp("data")
-  gdir = data_dir / f"S1A_IW_GRDH_1SDV_{dirname_suffix}.SAFE"
+  return tmp_path_factory.mktemp("data")
+
+
+@pytest.fixture(scope="module")
+def granule_directory(data_directory):
+  """Create a granule directory."""
+  gdir = data_directory / f"S1A_IW_GRDH_1SDV_{dirname_suffix}.SAFE"
   os.mkdir(gdir)
   return gdir
 
@@ -60,6 +70,29 @@ def annotation_file(granule_directory):
   with open(annotation_file, "wb") as fd:
       fd.write(annotation_xml)
   return annotation_file
+
+
+@pytest.fixture(scope="module")
+def zipped_annotation_file(annotation_file, data_directory):
+  """Create a zipped annotation file."""
+  zip_file = data_directory / "annotation.zip"
+  with ZipFile(zip_file, mode="w") as archive:
+    basename = os.path.join(*os.path.normpath(annotation_file).split(os.path.sep)[-3:])
+    archive.write(annotation_file, basename)
+  fname = f"zip://{basename}::file://{zip_file.as_posix()}"
+  return fname
+
+
+@pytest.fixture(scope="module")
+def upath_annotation_file(zipped_annotation_file):
+  """Create a upath of a zipped annotation file."""
+  return UPath(zipped_annotation_file)
+
+
+@pytest.fixture(scope="module")
+def fs_annotation_file(upath_annotation_file):
+  """Create an FSFile of a zipped annotation file."""
+  return FSFile(upath_annotation_file)
 
 
 @pytest.fixture(scope="module")
@@ -161,13 +194,35 @@ def measurement_file(granule_directory):
 
 
 @pytest.fixture(scope="module")
-def measurement_filehandler(measurement_file, noise_filehandler, calibration_filehandler):
+def zipped_measurement_file(measurement_file, data_directory):
+  """Create a zipped measurement file."""
+  zip_file = data_directory / "measurement.zip"
+  with ZipFile(zip_file, mode="w") as archive:
+    basename = os.path.join(*os.path.normpath(measurement_file).split(os.path.sep)[-3:])
+    archive.write(measurement_file, basename)
+  return f"zip://{basename}::file://{zip_file.as_posix()}"
+
+
+@pytest.fixture(scope="module")
+def upath_measurement_file(zipped_measurement_file):
+  """Create a upath of a zipped measurement file."""
+  return UPath(zipped_measurement_file)
+
+
+@pytest.fixture(scope="module")
+def fsfile_measurement_file(upath_measurement_file):
+  """Create an FSFile of a zipped measurement file."""
+  return FSFile(upath_measurement_file)
+
+
+@pytest.fixture(scope="module", params=("measurement_file", "upath_measurement_file", "fsfile_measurement_file"))
+def measurement_filehandler(request, noise_filehandler, calibration_filehandler):
   """Create a measurement filehandler."""
   filename_info = {"mission_id": "S1A", "dataset_name": "foo", "start_time": START_TIME, "end_time": END_TIME,
                    "polarization": "vv"}
   filetype_info = None
   from satpy.readers.sar_c_safe import SAFEGRD
-  filehandler =  SAFEGRD(measurement_file,
+  filehandler =  SAFEGRD(request.getfixturevalue(request.param),
                          filename_info,
                          filetype_info,
                          calibration_filehandler,
@@ -782,8 +837,16 @@ class TestSAFEXMLCalibration:
         assert type(res) is np.float32
 
 
-def test_incidence_angle(annotation_filehandler):
+@pytest.mark.parametrize(("annotation_file_thing"), [
+  lf("annotation_file"),
+  lf("zipped_annotation_file"),
+  lf("upath_annotation_file"),
+  lf("fs_annotation_file")
+])
+def test_incidence_angle(annotation_file_thing):
   """Test reading the incidence angle in an annotation file."""
+  filename_info = dict(start_time=START_TIME, end_time=END_TIME, polarization="vv")
+  annotation_filehandler = SAFEXMLAnnotation(annotation_file_thing, filename_info, None)
   query = DataQuery(name="incidence_angle", polarization="vv")
   res = annotation_filehandler.get_dataset(query, {})
   np.testing.assert_allclose(res, 19.18318046)
