@@ -105,6 +105,7 @@ composites:
       day_night: day_only
       prerequisites:
         - true_color
+        - solar_zenith_angle
 
   true_color_daytime_uncorrected:
       description: >
@@ -116,6 +117,7 @@ composites:
       day_night: day_only
       prerequisites:
         - true_color_uncorrected
+        - solar_zenith_angle
 
   night_ir_alpha:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
