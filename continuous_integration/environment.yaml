@@ -28,7 +28,7 @@ dependencies:
   - h5py
   - h5netcdf
   - gdal
-  - rasterio=1.4.3
+  - rasterio
   - bottleneck
   - rioxarray
   - defusedxml

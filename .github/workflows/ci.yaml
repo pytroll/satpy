@@ -97,4 +97,4 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest -n auto satpy/tests/writer_tests/test_core/test_base.py
+          pytest -n auto satpy/tests/writer_tests/test_core/test_base.py::TestBaseWriter::test_save_dataset_static_filename
