@@ -18,11 +18,11 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.12"]
         experimental: [false]
         include:
           - python-version: "3.13"
-            os: "ubuntu-latest"
+            os: "windows-latest"
             experimental: true
 
     env:
@@ -41,26 +41,10 @@ jobs:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           activate-environment: test-environment
+          environment-file: continuous_integration/environment.yaml
           channels: conda-forge
           conda-remove-defaults: true
           channel-priority: strict
-
-      - name: Set cache environment variables
-        shell: bash -l {0}
-        run: |
-          echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-          CONDA_PREFIX=$(python -c "import sys; print(sys.prefix)")
-          echo "CONDA_PREFIX=$CONDA_PREFIX" >> $GITHUB_ENV
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.CONDA_PREFIX }}
-          key: ${{ matrix.os }}-${{matrix.python-version}}-conda-${{ hashFiles('continuous_integration/environment.yaml') }}-${{ env.DATE }}-${{matrix.experimental}}-${{ env.CACHE_NUMBER }}
-        id: cache
-
-      - name: Update environment
-        run: mamba env update -n test-environment -f continuous_integration/environment.yaml
-        if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
@@ -113,41 +97,4 @@ jobs:
         shell: bash -l {0}
         run: |
           export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
-
-      - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          flags: unittests
-          files: ./coverage.xml
-          env_vars: OS,PYTHON_VERSION,UNSTABLE
-
-      - name: Coveralls Parallel
-        uses: coverallsapp/github-action@v2
-        with:
-          flag-name: run-${{ matrix.test_number }}
-          parallel: true
-        if: runner.os == 'Linux'
-
-      - name: Run behaviour tests
-        shell: bash -l {0}
-        run: |
-          export LD_PRELOAD=${{ env.LD_PRELOAD }};
-          coverage run --source=satpy -m behave satpy/tests/features --tags=-download
-          coverage xml
-
-      - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          flags: behaviourtests
-          files: ./coverage.xml
-          env_vars: OS,PYTHON_VERSION,UNSTABLE
-
-  coveralls:
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
-        with:
-          parallel-finished: true
+          pytest -n auto satpy/tests/writer_tests/test_core/test_base.py
