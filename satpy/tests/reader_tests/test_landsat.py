@@ -105,7 +105,7 @@ class BaseLandsatTest:
     ftype_info = {"file_type": "granule_B4"}
 
     spectral_name: str
-    thermal_name: str
+    thermal_name: str | None
     sza_rad_name: str | None
 
     reader: str
@@ -115,7 +115,7 @@ class BaseLandsatTest:
     zone: int
     date_time: datetime
     calibration_spectral_params: list
-    calibration_thermal_params: list
+    calibration_thermal_params: list | None
     calibration_dict: dict
     extent: tuple
     pan_extent: tuple | None
