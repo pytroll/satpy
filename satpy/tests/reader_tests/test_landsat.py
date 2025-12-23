@@ -106,7 +106,7 @@ class BaseLandsatTest:
 
     spectral_name: str
     thermal_name: str
-    sza_rad_name: str
+    sza_rad_name: str | None
 
     reader: str
     CH_reader_class: object
@@ -118,7 +118,7 @@ class BaseLandsatTest:
     calibration_thermal_params: list
     calibration_dict: dict
     extent: tuple
-    pan_extent: tuple
+    pan_extent: tuple | None
     platform_name: str
     earth_sun_distance: float
 
@@ -495,8 +495,11 @@ class BaseMSSTest:
 
     additional_filename: str
     additional_name: str
-    spectral_band_wavelengths: dict
+    spectral_band_wavelengths: list
     additional_band_wavelengths: list
+
+    thermal_name = None
+    calibration_thermal_params = None
 
     def thermal_file(self):
         """No thermal band in MSS."""
