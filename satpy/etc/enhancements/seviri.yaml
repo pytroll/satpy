@@ -59,3 +59,13 @@ enhancements:
         stretch: crude
         min_stretch: [0, ]
         max_stretch: [255, ]
+
+  24h_microphysics_ash:
+    standard_name: 24h_microphysics_ash
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-4, -4, 243]
+          max_stretch: [2, 5, 303]
