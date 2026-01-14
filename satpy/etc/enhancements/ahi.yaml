@@ -40,6 +40,7 @@ enhancements:
         kwargs:
           gamma: [1.0, 1.0, 1.0]
 
+  24h_microphysics_ash:
     standard_name: 24h_microphysics_ash
     operations:
       - name: stretch
@@ -48,3 +49,7 @@ enhancements:
           stretch: crude
           min_stretch: [-7.5, -1.6, 243.6]
           max_stretch: [3.0, 4.9, 303.2]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1.0, 1.2, 1.0]
