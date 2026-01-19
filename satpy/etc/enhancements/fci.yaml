@@ -176,3 +176,17 @@ enhancements:
         method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.0, 1.0, 1.0]
+
+  cloud_type_chmi:
+    standard_name: cloud_type_chmi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0.4, 2.5, 0]
+        max_stretch: [70, 100, 85]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
+      kwargs:
+        gamma: [4.0, 1.0, 0.85]
