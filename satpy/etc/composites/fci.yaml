@@ -399,14 +399,14 @@ composites:
     references:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
       Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: nir_13
-        modifiers: [ sunz_corrected, sunz_reduced ]
+        modifiers: [sunz_corrected, sunz_reduced]
       - name: vis_06
-        modifiers: [ sunz_corrected, sunz_reduced ]
+        modifiers: [sunz_corrected, sunz_reduced]
       - name: nir_16
-        modifiers: [ sunz_corrected, sunz_reduced ]
+        modifiers: [sunz_corrected, sunz_reduced]
     standard_name: cloud_type_chmi
 
   cloud_type_with_night_ir105:
