@@ -402,11 +402,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: nir_13
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: vis_06
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: nir_16
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: day_cloud_type_chmi
 
   cloud_type_with_night_ir105:
