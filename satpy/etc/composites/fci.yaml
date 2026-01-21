@@ -393,7 +393,7 @@ composites:
         modifiers: [sunz_corrected, sunz_reduced]
     standard_name: cimss_cloud_type
 
-  cloud_type_chmi:
+  day_cloud_type_chmi:
     description: >
       Equal to cimss_cloud_type recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
     references:
@@ -407,7 +407,7 @@ composites:
         modifiers: [sunz_corrected, sunz_reduced]
       - name: nir_16
         modifiers: [sunz_corrected, sunz_reduced]
-    standard_name: cloud_type_chmi
+    standard_name: day_cloud_type_chmi
 
   cloud_type_with_night_ir105:
     description: >

@@ -177,8 +177,8 @@ enhancements:
         kwargs:
           gamma: [1.0, 1.0, 1.0]
 
-  cloud_type_chmi:
-    standard_name: cloud_type_chmi
+  day_cloud_type_chmi:
+    standard_name: day_cloud_type_chmi
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
