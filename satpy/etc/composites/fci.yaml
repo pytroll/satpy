@@ -395,10 +395,10 @@ composites:
 
   day_cloud_type_chmi:
     description: >
-      Equal to cimss_cloud_type recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+      Equal to cimss_cloud_type recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
     references:
-      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
-      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+      EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/CloudTypeRGB.pdf
+      EUMETRAIN extended Guide: https://resources.eumetrain.org/data/7/736/index.htm
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: nir_13
