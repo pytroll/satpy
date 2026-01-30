@@ -159,7 +159,7 @@ object.
 
     import gc
 
-    chanel_data = scene["ir_105"].compute()
+    channel_data = scene["ir_105"].compute()
 
     # Delete original scene to release memory. Run garbage collector to prevent
     # occasional segmentation faults, see
