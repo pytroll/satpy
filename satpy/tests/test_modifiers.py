@@ -284,9 +284,9 @@ class TestNIRReflectance:
             (False, True, np.array([[5.0192585, 5.5059953], [6.0353055, 6.6126623]], dtype=np.float32)),
         ]
     )
-    def test_basic_call(self, include_sunz, include_co2, exp_res):
+    def test_basic_call(self, tmp_path, include_sunz, include_co2, exp_res):
         """Test NIR reflectance compositor with various optional inputs."""
-        from pyspectral.testing import mock_pyspectral_downloads
+        from pyspectral.testing import mock_tb_conversion
 
         from satpy.modifiers.spectral import NIRReflectance
 
@@ -297,7 +297,7 @@ class TestNIRReflectance:
             opt_datasets.append(self.co2)
         comp = NIRReflectance(name="test")
         info = {"modifiers": None}
-        with mock_pyspectral_downloads(central_wavelengths={"IR_039": 3.9}):
+        with mock_tb_conversion(tb2rad_dir=tmp_path, central_wavelengths={"IR_039": 3.9}):
             res = comp([self.nir, self.ir_], optional_datasets=opt_datasets, **info)
         res_da = res.data
         res_np = res.data.compute()
@@ -319,10 +319,10 @@ class TestNIRReflectance:
             {"masking_limit": None},
         ]
     )
-    def test_provide_sunz_threshold_and_masking_limit(self, comp_kwargs):
+    def test_provide_sunz_threshold_and_masking_limit(self, tmp_path, comp_kwargs):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
         from pyspectral.near_infrared_reflectance import Calculator
-        from pyspectral.testing import mock_pyspectral_downloads
+        from pyspectral.testing import mock_tb_conversion
 
         from satpy.modifiers.spectral import NIRReflectance
 
@@ -333,7 +333,7 @@ class TestNIRReflectance:
         }
         info = {"modifiers": None}
 
-        with mock_pyspectral_downloads(central_wavelengths={"IR_039": 3.9}), \
+        with mock_tb_conversion(tb2rad_dir=tmp_path, central_wavelengths={"IR_039": 3.9}), \
                 mock.patch("satpy.modifiers.spectral.Calculator", wraps=Calculator) as calculator:
             res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
@@ -501,10 +501,11 @@ class TestPSPRayleighReflectance:
             ("B01", (0.45, 0.47, 0.49), 1000, "rayleigh_only", -95, -70, -1),
         ]
     )
-    def test_rayleigh_corrector(self, name, wavelength, resolution, aerosol_type, reduce_lim_low, reduce_lim_high,
-                                reduce_strength, dtype):
+    def test_rayleigh_corrector(
+            self, tmp_path, name, wavelength, resolution, aerosol_type,
+            reduce_lim_low, reduce_lim_high, reduce_strength, dtype):
         """Test PSPRayleighReflectance with fake data."""
-        from pyspectral.testing import mock_pyspectral_downloads
+        from pyspectral.testing import mock_rayleigh
 
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
 
@@ -519,7 +520,7 @@ class TestPSPRayleighReflectance:
         assert ray_cor.attrs["reduce_strength"] == reduce_strength
 
         input_band, red_band, *_ = self._create_test_data(name, wavelength, resolution)
-        with mock_pyspectral_downloads():
+        with mock_rayleigh(rayleigh_dir=tmp_path):
             res = ray_cor([input_band.astype(dtype), red_band.astype(dtype)])
 
         assert isinstance(res, xr.DataArray)
@@ -531,16 +532,16 @@ class TestPSPRayleighReflectance:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("as_optionals", [False, True])
-    def test_rayleigh_with_angles(self, as_optionals, dtype):
+    def test_rayleigh_with_angles(self, tmp_path, as_optionals, dtype):
         """Test PSPRayleighReflectance with angles provided."""
-        from pyspectral.testing import mock_pyspectral_downloads
+        from pyspectral.testing import mock_rayleigh
 
         from satpy.modifiers.atmosphere import PSPRayleighReflectance
 
         aerosol_type = "rayleigh_only"
         ray_cor = PSPRayleighReflectance(name="B01", atmosphere="us-standard", aerosol_types=aerosol_type)
         prereqs, opt_prereqs = self._get_angles_prereqs_and_opts(as_optionals, dtype)
-        with mock.patch("satpy.modifiers.atmosphere.get_angles") as get_angles, mock_pyspectral_downloads():
+        with mock.patch("satpy.modifiers.atmosphere.get_angles") as get_angles, mock_rayleigh(rayleigh_dir=tmp_path):
             res = ray_cor(prereqs, opt_prereqs)
         get_angles.assert_not_called()
 
