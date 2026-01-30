@@ -28,16 +28,16 @@ For more information about FCI, see `EUMETSAT`_.
 To download data to be used with this reader, see `MTG data store guide`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
-.. note::
+Supported Data Variants
+=======================
 
-    This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
-    In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
-    contains the masked full-dic of a single channel see `AF PUG`_.
-    Experimental support for special scans, e.g. with coverage "xx", is also given.
+This reader currently supports Full Disk High Spectral Resolution Imagery
+(FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
+In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
+contains the masked full-dic of a single channel see `AF PUG`_.
+Experimental support for special scans, e.g. with coverage "xx", is also given.
 
-    This reader supports data from both IDPF-I and IQT-I processing facilities.
-
+This reader supports data from both IDPF-I and IQT-I processing facilities.
 
 .. note::
 
@@ -47,6 +47,32 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
     If needed, the desired resolution can be explicitly requested using e.g.:
     ``scn.load(['vis_06'], resolution=1000)``.
 
+Compressed Data
+---------------
+
+For reading compressed data, a decompression library is
+needed. Either install the FCIDECOMP library (see `PUG`_), or the
+``hdf5plugin`` package with::
+
+    pip install hdf5plugin
+
+or::
+
+    conda install hdf5plugin -c conda-forge
+
+.. note::
+
+    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
+    at the top of your script.
+
+Here's a common error when trying to read compressed data without one of
+these plugins::
+
+    RuntimeError: NetCDF: Filter error: undefined filter encountered
+
+
+Geolocation
+===========
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -76,6 +102,21 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
+Image Orientation
+-----------------
+
+FCI scans south to north so that the native image orientation is "upside down"
+(south up). By default Satpy preserves that orientation. You can flip the
+image using the ``upper_right_corner`` keyword argument when loading datasets
+(see :ref:`faq` for details).
+
+.. code-block:: python
+
+    scene.load(my_channels, upper_right_corner="NE")
+
+
+Calibration
+===========
 
 The reading routine supports channel data in counts, radiances, and (depending
 on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on
@@ -84,7 +125,10 @@ Radiance datasets are returned in units of radiance per unit wavenumber (mW m-2 
 converted to units of radiance per unit wavelength (W m-2 um-1 sr-1) by multiplying with the
 `radiance_unit_conversion_coefficient` dataset attribute.
 
-For each channel, it also supports a number of auxiliary datasets, such as the pixel quality,
+Auxiliary Datasets
+==================
+
+For each channel, the reader also supports a number of auxiliary datasets, such as the pixel quality,
 the index map and the related geometric and acquisition parameters: time,
 subsatellite latitude, subsatellite longitude, platform altitude, subsolar latitude, subsolar longitude,
 earth-sun distance, sun-satellite distance,  swath number, and swath direction.
@@ -99,20 +143,32 @@ All auxiliary data can be obtained by prepending the channel name such as
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
     `DataID`.
 
-.. note::
+Memory Footprint
+================
 
-    For reading compressed data, a decompression library is
-    needed. Either install the FCIDECOMP library (see `PUG`_), or the
-    ``hdf5plugin`` package with::
+The FCI L1C reader has been optimized to load multiple channels as fast as
+possible. This involves a lot of caching, which takes some extra time for Scene
+creation and also increases the amount of memory allocated by the Scene itself,
+even without loading any datasets.
 
-        pip install hdf5plugin
+The penalty is largest for single channel workflows. In this case it can help
+to compute the data as soon as possible and delete the corresponding scene
+object.
 
-    or::
+.. code-block:: python
 
-        conda install hdf5plugin -c conda-forge
+    import gc
 
-    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
-    at the top of your script.
+    chanel_data = scene["ir_105"].compute()
+
+    # Delete original scene to release memory. Run garbage collector to prevent
+    # occasional segmentation faults, see
+    # https://github.com/pytroll/satpy/issues/3144
+    del scene
+    gc.collect()
+
+The number of dask workers also has an impact on the memory footprint, see :ref:`faq`.
+
 
 .. _AF PUG: https://user.eumetsat.int/resources/user-guides/mtg-africa-data-service-guide  # noqa: E501
 .. _PUG: https://user.eumetsat.int/resources/user-guides/mtg-fci-level-1c-data-guide  # noqa: E501
