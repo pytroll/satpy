@@ -127,7 +127,7 @@ class HRPTFile(BaseFileHandler):
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: "counts" for i in AVHRR_CHANNEL_NAMES}
 
-        self.year = filename_info.get("start_time", dt.datetime.now(dt.timezone.utc)).year
+        self.year = filename_info["start_time"].year
 
     @cached_property
     def times(self):
