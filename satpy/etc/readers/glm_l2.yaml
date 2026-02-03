@@ -9,7 +9,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [glm]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
 
