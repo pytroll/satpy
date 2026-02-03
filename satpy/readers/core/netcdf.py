@@ -332,14 +332,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             val = v
         else:
             try:
-                val = v[:]
-                val = xr.DataArray(val, dims=v.dimensions,
-                                   attrs=self.accessor.get_object_attrs(v),
-                                   name=v.name)
-            except (ValueError, IndexError):
-                # Handle scalars
-                val = v.__array__().item()
-                val = xr.DataArray(val, dims=(), attrs={}, name=var_name)
+                val = get_data_as_xarray(v)
             except AttributeError:
                 # Handle strings
                 val = v
