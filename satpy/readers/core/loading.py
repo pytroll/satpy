@@ -63,7 +63,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
             # WARN: This is very confusing, but it seems to work: The reader_kwargs, when passed without a reader key,
-            # are pud into a dictionary where keys are individual letters of the reader name, and the value is the
+            # are put into a dictionary where keys are individual letters of the reader name, and the value is the
             # reader kwargs; however, notice the `reader[idx]` part in the call here, as idx is 0 and thus the first
             # letter of the reader is used to index `reader_kwargs_without_filter`, thus retrieving the correct
             # reader_kwargs.
