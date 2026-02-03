@@ -4,7 +4,6 @@ import logging
 from contextlib import suppress
 
 import dask.array as da
-import netCDF4
 import numpy as np
 import xarray as xr
 
@@ -121,6 +120,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault("chunks", CHUNK_SIZE)
         self._xarray_kwargs.setdefault("mask_and_scale", auto_maskandscale)
+        self._xarray_kwargs["engine"] = self.accessor.engine
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -336,7 +336,7 @@ class NetCDF4FileHandler(BaseFileHandler):
                 val = xr.DataArray(val, dims=v.dimensions,
                                    attrs=self.accessor.get_object_attrs(v),
                                    name=v.name)
-            except IndexError:
+            except (ValueError, IndexError):
                 # Handle scalars
                 val = v.__array__().item()
                 val = xr.DataArray(val, dims=(), attrs={}, name=var_name)
@@ -412,16 +412,19 @@ class NetCDF4Accessor:
 
     def create_file_handle(self, filename):
         """Create a file handle."""
+        import netCDF4
         return netCDF4.Dataset(filename, "r")
 
     @staticmethod
     def is_variable(obj):
         """Check if obj is a variable."""
+        import netCDF4
         return isinstance(obj, netCDF4.Variable)
 
     @staticmethod
     def is_group(obj):
         """Check if obj is a group."""
+        import netCDF4
         return isinstance(obj, netCDF4.Group)
 
     @staticmethod
