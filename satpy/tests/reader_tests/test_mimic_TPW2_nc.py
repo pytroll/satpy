@@ -19,15 +19,13 @@
 
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
-import datetime as dt
 import os
-import unittest
-from unittest import mock
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
+import pytest
 import xarray as xr
-
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (9001, 18000)
@@ -35,96 +33,63 @@ DEFAULT_LAT = np.linspace(-90, 90, DEFAULT_FILE_SHAPE[0], dtype=DEFAULT_FILE_DTY
 DEFAULT_LON = np.linspace(-180, 180, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
-file_content_units = dict()
 
 
-class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler."""
+@pytest.fixture(scope="session")
+def mimic_file(session_tmp_path: Path) -> Path:
+    """Mimic a real data file."""
+    filename = session_tmp_path / "comp20190619.130000.nc"
+    dt_s = datetime(2019, 6, 19, 13, 0)
+    dt_e = datetime(2019, 6, 19, 13, 0)
 
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        from xarray import DataArray
-        dt_s = filename_info.get("start_time", dt.datetime(2019, 6, 19, 13, 0))
-        dt_e = filename_info.get("end_time", dt.datetime(2019, 6, 19, 13, 0))
+    dt = xr.DataTree()
+    dt.attrs["start_time"] = dt_s.strftime("%Y%m%d.%H%M%S")
+    dt.attrs["end_time"] = dt_e.strftime("%Y%m%d.%H%M%S")
+    dt.attrs["platform_shortname"] = "aggregated microwave"
+    dt.attrs["sensor"] ="mimic"
 
-        if filetype_info["file_type"] == "mimicTPW2_comp":
-            file_content = {
-                "/attr/start_time": dt_s.strftime("%Y%m%d.%H%M%S"),
-                "/attr/end_time": dt_e.strftime("%Y%m%d.%H%M%S"),
-                "/attr/platform_shortname": "aggregated microwave",
-                "/attr/sensor": "mimic",
-            }
-            file_content["latArr"] = DEFAULT_LAT
-            file_content["latArr/shape"] = (DEFAULT_FILE_SHAPE[0],)
-            file_content["latArr/attr/units"] = "degress_north"
+    dt["latArr"] = xr.DataArray(DEFAULT_LAT,
+                                attrs={"units": "degress_north"},
+                                 dims=("lat",))
 
-            file_content["lonArr"] = DEFAULT_LON
-            file_content["lonArr/shape"] = (DEFAULT_FILE_SHAPE[1],)
-            file_content["lonArr/attr/units"] = "degrees_east"
+    dt["lonArr"] = xr.DataArray(DEFAULT_LON,
+                                 attrs={"units": "degress_east"},
+                                 dims=("lon",))
 
-            file_content["tpwGrid"] = DEFAULT_FILE_DATA
-            file_content["tpwGrid/shape"] = DEFAULT_FILE_SHAPE
-            file_content_units["tpwGrid"] = "mm"
+    dt["tpwGrid"] = xr.DataArray(DEFAULT_FILE_DATA,
+                                 attrs=dict(units="mm"),
+                                 dims=("y", "x"))
 
-            file_content["/dimension/lat"] = DEFAULT_FILE_SHAPE[0]
-            file_content["/dimension/lon"] = DEFAULT_FILE_SHAPE[1]
-
-            # convert to xarrays
-            for key, val in file_content.items():
-                if key == "lonArr" or key == "latArr":
-                    file_content[key] = DataArray(val)
-                elif isinstance(val, np.ndarray):
-                    if val.ndim > 1:
-                        file_content[key] = DataArray(val, dims=("y", "x"), attrs={"units": file_content_units[key]})
-                    else:
-                        file_content[key] = DataArray(val)
-        else:
-            msg = "Wrong Test Reader for file_type {}".format(filetype_info["file_type"])
-            raise AssertionError(msg)
-
-        return file_content
+    dt.to_netcdf(filename)
+    return filename
 
 
-class TestMimicTPW2Reader(unittest.TestCase):
+class TestMimicTPW2Reader:
     """Test Mimic Reader."""
 
     yaml_file = "mimicTPW2_comp.yaml"
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.mimic_TPW2_nc import MimicTPW2FileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(MimicTPW2FileHandler, "__bases__", (FakeNetCDF4FileHandlerMimic,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
 
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler."""
-        self.p.stop()
-
-    def test_init(self):
+    def test_init(self, mimic_file):
         """Test basic initialization of this reader."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "comp20190619.130000.nc",
-        ])
+        loadables = r.select_files_from_pathnames([mimic_file])
         assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
         assert r.file_handlers
 
-    def test_load_mimic(self):
+    def test_load_mimic(self, mimic_file):
         """Load Mimic data."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch("satpy.readers.mimic_TPW2_nc.netCDF4.Variable", xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                "comp20190619.130000.nc",
-            ])
-            r.create_filehandlers(loadables)
+        loadables = r.select_files_from_pathnames([mimic_file])
+        r.create_filehandlers(loadables)
         ds = r.load(["tpwGrid"])
         assert len(ds) == 1
         for d in ds.values():
