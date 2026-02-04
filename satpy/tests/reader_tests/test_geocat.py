@@ -18,13 +18,11 @@
 """Module for testing the satpy.readers.geocat module."""
 
 import os
-import unittest
-from unittest import mock
+from pathlib import Path
 
 import numpy as np
-
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
+import pytest
+from xarray import DataArray, DataTree
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -37,127 +35,130 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler."""
-
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        file_content = {
-            "/attr/Platform_Name": filename_info["platform_shortname"],
-            "/attr/Element_Resolution": 2.,
-            "/attr/Line_Resolution": 2.,
-            "/attr/Subsatellite_Longitude": -70.2 if "GOES" in filename_info["platform_shortname"] else 140.65,
-            "pixel_longitude": DEFAULT_LON_DATA,
-            "pixel_longitude/attr/scale_factor": 1.,
-            "pixel_longitude/attr/add_offset": 0.,
-            "pixel_longitude/shape": DEFAULT_FILE_SHAPE,
-            "pixel_longitude/attr/_FillValue": np.nan,
-            "pixel_latitude": DEFAULT_LAT_DATA,
-            "pixel_latitude/attr/scale_factor": 1.,
-            "pixel_latitude/attr/add_offset": 0.,
-            "pixel_latitude/shape": DEFAULT_FILE_SHAPE,
-            "pixel_latitude/attr/_FillValue": np.nan,
-        }
-        sensor = {
-            "HIMAWARI-8": "himawari8",
-            "GOES-17": "goesr",
-            "GOES-16": "goesr",
-            "GOES-13": "goes",
-            "GOES-14": "goes",
-            "GOES-15": "goes",
-        }[filename_info["platform_shortname"]]
-        file_content["/attr/Sensor_Name"] = sensor
-
-        if filename_info["platform_shortname"] == "HIMAWARI-8":
-            file_content["pixel_longitude"] = DEFAULT_LON_DATA + 130.
-
-        file_content["variable1"] = DEFAULT_FILE_DATA.astype(np.float32)
-        file_content["variable1/attr/_FillValue"] = -1
-        file_content["variable1/attr/scale_factor"] = 1.
-        file_content["variable1/attr/add_offset"] = 0.
-        file_content["variable1/attr/units"] = "1"
-        file_content["variable1/shape"] = DEFAULT_FILE_SHAPE
-
-        # data with fill values
-        file_content["variable2"] = np.ma.masked_array(
-            DEFAULT_FILE_DATA.astype(np.float32),
-            mask=np.zeros_like(DEFAULT_FILE_DATA))
-        file_content["variable2"].mask[::5, ::5] = True
-        file_content["variable2/attr/_FillValue"] = -1
-        file_content["variable2/attr/scale_factor"] = 1.
-        file_content["variable2/attr/add_offset"] = 0.
-        file_content["variable2/attr/units"] = "1"
-        file_content["variable2/shape"] = DEFAULT_FILE_SHAPE
-
-        # category
-        file_content["variable3"] = DEFAULT_FILE_DATA.astype(np.byte)
-        file_content["variable3/attr/_FillValue"] = -128
-        file_content["variable3/attr/flag_meanings"] = "clear water supercooled mixed ice unknown"
-        file_content["variable3/attr/flag_values"] = [0, 1, 2, 3, 4, 5]
-        file_content["variable3/attr/units"] = "1"
-        file_content["variable3/shape"] = DEFAULT_FILE_SHAPE
-
-        attrs = ("_FillValue", "flag_meanings", "flag_values", "units")
-        convert_file_content_to_data_array(
-            file_content, attrs=attrs,
-            dims=("z", "lines", "elements"))
-        return file_content
+@pytest.fixture(scope="session")
+def g13_file(session_tmp_path: Path) -> Path:
+    """Create a GOES 13 geocat file."""
+    platform_shortname = "GOES-13"
+    filename = session_tmp_path / "geocatL2.GOES-13.2015143.234500.nc"
+    return _create_geocat_file(filename, platform_shortname)
 
 
-class TestGEOCATReader(unittest.TestCase):
+@pytest.fixture(scope="session")
+def h8_file(session_tmp_path: Path) -> Path:
+    """Create a HIMAWARI 8 geocat file."""
+    platform_shortname = "HIMAWARI-8"
+    filename = session_tmp_path / "geocatL2.HIMAWARI-8.2017092.210730.R304.R20.nc"
+    return _create_geocat_file(filename, platform_shortname)
+
+
+@pytest.fixture(scope="session")
+def g17_file(session_tmp_path: Path) -> Path:
+    """Create a GOES 17 geocat file."""
+    filename = session_tmp_path / "geocatL2.GOES-17.CONUS.2020041.163130.hdf"
+    return _create_geocat_file(filename, platform_shortname="GOES-17")
+
+
+def _create_geocat_file(filename, platform_shortname):
+    """Create a geocat file."""
+    dt = DataTree()
+    dt.attrs["Platform_Name"] = platform_shortname
+    dt.attrs["Element_Resolution"] = 2.
+    dt.attrs["Line_Resolution"] = 2.
+    dt.attrs["Subsatellite_Longitude"] = -70.2 if "GOES" in platform_shortname else 140.65
+
+    lons = DEFAULT_LON_DATA
+
+    sensor = {
+        "HIMAWARI-8": "himawari8",
+        "GOES-17": "goesr",
+        "GOES-16": "goesr",
+        "GOES-13": "goes",
+        "GOES-14": "goes",
+        "GOES-15": "goes",
+    }[platform_shortname]
+    dt.attrs["Sensor_Name"] = sensor
+
+    if platform_shortname == "HIMAWARI-8":
+        lons += 130
+
+    dt["pixel_longitude"] = DataArray(lons.astype(float),
+                                      attrs={"scale_factor": 1.,
+                                             "add_offset": 0.,
+                                             "_FillValue": np.nan},
+                                      dims=("lines", "elements"))
+    dt["pixel_latitude"] = DataArray(DEFAULT_LAT_DATA.astype(float),
+                                     attrs={"scale_factor": 1.,
+                                            "add_offset": 0.,
+                                            "_FillValue": np.nan},
+                                     dims=("lines", "elements"))
+
+    dt["variable1"] = DataArray(DEFAULT_FILE_DATA.astype(np.float32),
+                                attrs={"_FillValue": -1,
+                                       "scale_factor": 1.,
+                                       "add_offset": 0.,
+                                       "units": "1"},
+                                dims=("lines", "elements"))
+
+    # data with fill values
+    data = np.ma.masked_array(
+        DEFAULT_FILE_DATA.astype(np.float32),
+        mask=np.zeros_like(DEFAULT_FILE_DATA))
+    data.mask[::5, ::5] = True
+    dt["variable2"] = DataArray(data,
+                                attrs={"_FillValue": -1,
+                                       "scale_factor": 1.,
+                                       "add_offset": 0.,
+                                       "units": "1"},
+                                dims=("lines", "elements"))
+
+    # category
+    data = DEFAULT_FILE_DATA.astype(np.byte)
+    dt["variable3"] = DataArray(data,
+                                attrs={"_FillValue": -128,
+                                       "flag_meanings": "clear water supercooled mixed ice unknown",
+                                       "flag_values": [0, 1, 2, 3, 4, 5],
+                                       "units": "1"},
+                                dims=("lines", "elements"))
+    dt.to_netcdf(filename)
+    return filename
+
+
+class TestGEOCATReader:
     """Test GEOCAT Reader."""
 
     yaml_file = "geocat.yaml"
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.geocat import GEOCATFileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(GEOCATFileHandler, "__bases__", (FakeNetCDF4FileHandler2,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
 
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler."""
-        self.p.stop()
-
-    def test_init(self):
+    def test_init(self, g13_file):
         """Test basic init with no extra parameters."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "geocatL2.GOES-13.2015143.234500.nc",
-        ])
+        loadables = r.select_files_from_pathnames([g13_file])
         assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
         assert r.file_handlers
 
-    def test_init_with_kwargs(self):
+    def test_init_with_kwargs(self, g13_file):
         """Test basic init with extra parameters."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs, xarray_kwargs={"decode_times": True})
-        loadables = r.select_files_from_pathnames([
-            "geocatL2.GOES-13.2015143.234500.nc",
-        ])
+        loadables = r.select_files_from_pathnames([g13_file])
         assert len(loadables) == 1
         r.create_filehandlers(loadables, fh_kwargs={"xarray_kwargs": {"decode_times": True}})
         # make sure we have some files
         assert r.file_handlers
 
-    def test_load_all_old_goes(self):
+    def test_load_all_old_goes(self, g13_file):
         """Test loading all test datasets from old GOES files."""
-        import xarray as xr
-
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch("satpy.readers.geocat.netCDF4.Variable", xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                "geocatL2.GOES-13.2015143.234500.nc",
-            ])
-            r.create_filehandlers(loadables)
+        loadables = r.select_files_from_pathnames([g13_file])
+        r.create_filehandlers(loadables)
         datasets = r.load(["variable1",
                            "variable2",
                            "variable3"])
@@ -167,18 +168,14 @@ class TestGEOCATReader(unittest.TestCase):
             assert v.attrs["units"] == "1"
         assert datasets["variable3"].attrs.get("flag_meanings") is not None
 
-    def test_load_all_himawari8(self):
+    def test_load_all_himawari8(self, h8_file):
         """Test loading all test datasets from H8 NetCDF file."""
-        import xarray as xr
         from pyresample.geometry import AreaDefinition
 
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch("satpy.readers.geocat.netCDF4.Variable", xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                "geocatL2.HIMAWARI-8.2017092.210730.R304.R20.nc",
-            ])
-            r.create_filehandlers(loadables)
+        loadables = r.select_files_from_pathnames([h8_file])
+        r.create_filehandlers(loadables)
         datasets = r.load(["variable1",
                            "variable2",
                            "variable3"])
@@ -189,18 +186,14 @@ class TestGEOCATReader(unittest.TestCase):
         assert datasets["variable3"].attrs.get("flag_meanings") is not None
         assert isinstance(datasets["variable1"].attrs["area"], AreaDefinition)
 
-    def test_load_all_goes17_hdf4(self):
+    def test_load_all_goes17_hdf4(self, g17_file):
         """Test loading all test datasets from GOES-17 HDF4 file."""
-        import xarray as xr
         from pyresample.geometry import AreaDefinition
 
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        with mock.patch("satpy.readers.geocat.netCDF4.Variable", xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                "geocatL2.GOES-17.CONUS.2020041.163130.hdf",
-            ])
-            r.create_filehandlers(loadables)
+        loadables = r.select_files_from_pathnames([g17_file])
+        r.create_filehandlers(loadables)
         datasets = r.load(["variable1",
                            "variable2",
                            "variable3"])
