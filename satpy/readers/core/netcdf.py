@@ -4,6 +4,7 @@ import logging
 from contextlib import suppress
 
 import dask.array as da
+import netCDF4
 import numpy as np
 import xarray as xr
 
@@ -405,19 +406,19 @@ class NetCDF4Accessor:
 
     def create_file_handle(self, filename):
         """Create a file handle."""
-        import netCDF4
+        # import netCDF4
         return netCDF4.Dataset(filename, "r")
 
     @staticmethod
     def is_variable(obj):
         """Check if obj is a variable."""
-        import netCDF4
+        # import netCDF4
         return isinstance(obj, netCDF4.Variable)
 
     @staticmethod
     def is_group(obj):
         """Check if obj is a group."""
-        import netCDF4
+        # import netCDF4
         return isinstance(obj, netCDF4.Group)
 
     @staticmethod
