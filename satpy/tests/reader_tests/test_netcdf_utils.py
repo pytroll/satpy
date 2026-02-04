@@ -66,19 +66,11 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 
-@pytest.fixture
-def netcdf_file(tmp_path):
+@pytest.fixture(scope="session")
+def netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file."""
-    filename = tmp_path / "test.nc"
-    from multiprocessing import Process
-    p = Process(target=_create_netcdf_file, args=(filename, ))
-    p.start()
-    p.join()
-    return filename
-
-
-def _create_netcdf_file(filename):
     from netCDF4 import Dataset
+    filename = tmp_path_factory.mktemp("data") / "test.nc"
     with closing(Dataset(filename, "w")) as nc:
         # Create dimensions
         nc.createDimension("rows", 10)
