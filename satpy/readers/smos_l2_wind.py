@@ -147,7 +147,11 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
             # As this is data over open sea these has no values.
             data = data.where((data.y > -90.0) & (data.y < 90.0), drop=True)
         elif len(data.dims) == 1 and "y" in data.dims:
-            data = data.where((data.y > 0) & (data.y < len(data.y) - 1), drop=True)
+            if ds_id["name"] == "lat":
+                data = data.where((data > -90.0) & (data < 90.0), drop=True)
+            else:
+                # Is there such a case?
+                data = data.where((data.y > 0) & (data.y < len(data.y) - 1), drop=True)
         return data
 
     def _create_area_extent(self, width, height):
