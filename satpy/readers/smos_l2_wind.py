@@ -30,7 +30,7 @@ import logging
 import numpy as np
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         # Iterate over dataset contents
         for var_name, val in self.file_content.items():
             # Only evaluate variables
-            if not isinstance(val, netCDF4.Variable):
+            if not self.accessor.is_variable(val):
                 continue
             if (var_name in handled_variables):
                 logger.debug("Already handled, skipping: %s", var_name)
