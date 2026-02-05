@@ -189,7 +189,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         return (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
 
     def get_area_def(self, dsid):
-        """Define AreaDefinition with a note."""
+        """Define AreaDefinition."""
         width = self["lon/shape"][0]
         height = self["lat/shape"][0] - 2
         area_extent = self._create_area_extent(width, height)
