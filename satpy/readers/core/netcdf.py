@@ -48,24 +48,24 @@ class NetCDF4FileHandler(BaseFileHandler):
         wrapper["group/subgroup/var_name/shape"]
 
     If your file has many small data variables that are frequently accessed,
-    you may choose to cache some of them.  You can do this by passing a number,
+    you may choose to cache some of them. You can do this by passing a number,
     any variable smaller than this number in bytes will be read into RAM.
     Warning, this part of the API is provisional and subject to change.
 
-    You may get an additional speedup by passing ``cache_handle=True``.  This
+    You may get an additional speedup by passing ``cache_handle=True``. This
     will keep the netCDF4 dataset handles open throughout the lifetime of the
     object, and instead of using `xarray.open_dataset` to open every data
-    variable, a dask array will be created "manually".  This may be useful if
-    you have a dataset distributed over many files, such as for FCI.  Note
-    that the coordinates will be missing in this case.  If you use this option,
+    variable, a dask array will be created "manually". This may be useful if
+    you have a dataset distributed over many files, such as for FCI. Note
+    that the coordinates will be missing in this case. If you use this option,
     ``xarray_kwargs`` will have no effect.
 
     Args:
-        filename (str): File to read
-        filename_info (dict): Dictionary with filename information
-        filetype_info (dict): Dictionary with filetype information
-        auto_maskandscale (bool): Apply mask and scale factors
-        xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
+        filename (str): File to read.
+        filename_info (dict): Dictionary with filename information.
+        filetype_info (dict): Dictionary with filetype information.
+        auto_maskandscale (bool): Apply mask and scale factors.
+        xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`.
         cache_var_size (int): Cache variables smaller than this size.
         cache_handle (bool): Keep files open for lifetime of filehandler.
         engine (str or list of str): The engine to use for reading, either "netcdf4" or "h5netcdf". As a list, will try
