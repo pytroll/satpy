@@ -57,34 +57,45 @@ def _get_shared_global_attrs(filename):
 
 def _create_two_res_gaasp_dataset(filename):
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
-    lon_var_hi = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_hi_rez_FOVs"),
-                              attrs={"standard_name": "longitude"})
-    lat_var_hi = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_hi_rez_FOVs"),
-                              attrs={"standard_name": "latitude"})
-    lon_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              attrs={"standard_name": "longitude"})
-    lat_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              attrs={"standard_name": "latitude"})
-    swath_var1 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_hi_rez_FOVs"),
-                              coords={"some_longitude_hi": lon_var_hi, "some_latitude_hi": lat_var_hi},
-                              attrs={"_FillValue": -9999.,
-                                     "scale_factor": 0.5, "add_offset": 2.0})
-    swath_var2 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              coords={"some_longitude_lo": lon_var_lo, "some_latitude_lo": lat_var_lo},
-                              attrs={"_FillValue": -9999.})
-    swath_int_var = xr.DataArray(da.zeros((10, 10), dtype=np.uint16),
-                                 dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                                 attrs={"_FillValue": 100, "comment": "Some comment"})
-    not_xy_dim_var = xr.DataArray(da.zeros((10, 5), dtype=np.float32),
-                                  dims=("Number_of_Scans", "Time_Dimension"))
-    time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
-                            dims=("Time_Dimension",))
+    lon_var_hi = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_hi_rez_FOVs"),
+        attrs={"standard_name": "longitude"},
+    )
+    lat_var_hi = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_hi_rez_FOVs"),
+        attrs={"standard_name": "latitude"},
+    )
+    lon_var_lo = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"standard_name": "longitude"},
+    )
+    lat_var_lo = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"standard_name": "latitude"},
+    )
+    swath_var1 = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_hi_rez_FOVs"),
+        coords={"some_longitude_hi": lon_var_hi, "some_latitude_hi": lat_var_hi},
+        attrs={"_FillValue": -9999.0, "scale_factor": 0.5, "add_offset": 2.0},
+    )
+    swath_var2 = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        coords={"some_longitude_lo": lon_var_lo, "some_latitude_lo": lat_var_lo},
+        attrs={"_FillValue": -9999.0},
+    )
+    swath_int_var = xr.DataArray(
+        da.zeros((10, 10), dtype=np.uint16),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"_FillValue": 100, "comment": "Some comment"},
+    )
+    not_xy_dim_var = xr.DataArray(da.zeros((10, 5), dtype=np.float32), dims=("Number_of_Scans", "Time_Dimension"))
+    time_var = xr.DataArray(da.zeros((5,), dtype=np.float32), dims=("Time_Dimension",))
     ds_vars = {
         "swath_var_hi": swath_var1,
         "swath_var_low": swath_var2,
@@ -103,19 +114,19 @@ def _create_two_res_gaasp_dataset(filename):
 
 def _create_gridded_gaasp_dataset(filename):
     """Represent files with gridded products."""
-    grid_var = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                            dims=("Number_of_Y_Dimension", "Number_of_X_Dimension"),
-                            attrs={
-                                "_FillValue": -9999.,
-                                "scale_factor": 0.5, "add_offset": 2.0
-                            })
-    latency_var = xr.DataArray(da.zeros((10, 10), dtype=np.timedelta64),
-                               dims=("Number_of_Y_Dimension", "Number_of_X_Dimension"),
-                               attrs={
-                                   "_FillValue": -9999,
-                               })
-    time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
-                            dims=("Time_Dimension",))
+    grid_var = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Y_Dimension", "Number_of_X_Dimension"),
+        attrs={"_FillValue": -9999.0, "scale_factor": 0.5, "add_offset": 2.0},
+    )
+    latency_var = xr.DataArray(
+        da.zeros((10, 10), dtype=np.timedelta64),
+        dims=("Number_of_Y_Dimension", "Number_of_X_Dimension"),
+        attrs={
+            "_FillValue": -9999,
+        },
+    )
+    time_var = xr.DataArray(da.zeros((5,), dtype=np.float32), dims=("Time_Dimension",))
     ds_vars = {
         "grid_var": grid_var,
         "latency_var": latency_var,
@@ -127,24 +138,28 @@ def _create_gridded_gaasp_dataset(filename):
 
 def _create_one_res_gaasp_dataset(filename):
     """Represent files with one resolution of variables in them (ex. SOIL)."""
-    lon_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              attrs={"standard_name": "longitude"})
-    lat_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              attrs={"standard_name": "latitude"})
-    swath_var2 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              coords={"some_longitude_lo": lon_var_lo, "some_latitude_lo": lat_var_lo},
-                              attrs={
-                                  "_FillValue": -9999.,
-                                  "scale_factor": 0.5, "add_offset": 2.0
-                              })
-    swath_int_var = xr.DataArray(da.zeros((10, 10), dtype=np.uint16),
-                                 dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                                 attrs={"_FillValue": 100, "comment": "Some comment"})
-    time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
-                            dims=("Time_Dimension",))
+    lon_var_lo = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"standard_name": "longitude"},
+    )
+    lat_var_lo = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"standard_name": "latitude"},
+    )
+    swath_var2 = xr.DataArray(
+        da.zeros((10, 10), dtype=np.float32),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        coords={"some_longitude_lo": lon_var_lo, "some_latitude_lo": lat_var_lo},
+        attrs={"_FillValue": -9999.0, "scale_factor": 0.5, "add_offset": 2.0},
+    )
+    swath_int_var = xr.DataArray(
+        da.zeros((10, 10), dtype=np.uint16),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"_FillValue": 100, "comment": "Some comment"},
+    )
+    time_var = xr.DataArray(da.zeros((5,), dtype=np.float32), dims=("Time_Dimension",))
     ds_vars = {
         "swath_var": swath_var2,
         "swath_var_int": swath_int_var,
@@ -169,18 +184,20 @@ def _fake_ocean_wind_speed_dataset(filename, **kwargs):
     """Create a Dataset similar to reading an actual OCEAN file with wind speed data."""
     ds = _create_two_res_gaasp_dataset(filename)
     wspd_data = da.arange(10 * 10, dtype=np.float32).reshape((10, 10))
-    wspd_data_arr = xr.DataArray(wspd_data,
-                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-                              coords={"some_longitude_lo": ds["some_longitude_lo"],
-                                      "some_latitude_lo": ds["some_latitude_lo"]},
-                              attrs={"_FillValue": -9999.})
+    wspd_data_arr = xr.DataArray(
+        wspd_data,
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        coords={"some_longitude_lo": ds["some_longitude_lo"], "some_latitude_lo": ds["some_latitude_lo"]},
+        attrs={"_FillValue": -9999.0},
+    )
     ds["WSPD"] = wspd_data_arr
     wspd_qc_data = np.zeros((10, 10), dtype=np.int32).reshape((10, 10))
     wspd_qc_data[-1, -1] = 1
     wspd_qc_data_arr = xr.DataArray(
         da.from_array(wspd_qc_data),
         dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
-        attrs={"_FillValue": -9999, "units": "1"})
+        attrs={"_FillValue": -9999, "units": "1"},
+    )
     ds["WSPD_QC"] = wspd_qc_data_arr
     return ds
 
@@ -193,6 +210,7 @@ class TestGAASPReader:
     def setup_method(self):
         """Wrap pygrib to read fake data."""
         from satpy._config import config_search_paths
+
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     @pytest.mark.parametrize(
@@ -206,11 +224,12 @@ class TestGAASPReader:
             ([SEAICE_SH_FILENAME], 1),
             ([SNOW_FILENAME], 1),
             ([SOIL_FILENAME], 1),
-        ]
+        ],
     )
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
         from satpy.readers.core.loading import load_reader
+
         with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
@@ -223,25 +242,33 @@ class TestGAASPReader:
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
         [
-            (EXAMPLE_FILENAMES, ["swath_var_hi", "swath_var_low",
-                                 "swath_var_low_int", "swath_var",
-                                 "swath_var_int",
-                                 "grid_var_NH", "grid_var_SH",
-                                 "latency_var_NH", "latency_var_SH"]),
-            ([MBT_FILENAME], ["swath_var_hi", "swath_var_low",
-                              "swath_var_low_int"]),
-            ([PRECIP_FILENAME], ["swath_var_hi", "swath_var_low",
-                                 "swath_var_low_int"]),
-            ([OCEAN_FILENAME], ["swath_var_hi", "swath_var_low",
-                                "swath_var_low_int"]),
+            (
+                EXAMPLE_FILENAMES,
+                [
+                    "swath_var_hi",
+                    "swath_var_low",
+                    "swath_var_low_int",
+                    "swath_var",
+                    "swath_var_int",
+                    "grid_var_NH",
+                    "grid_var_SH",
+                    "latency_var_NH",
+                    "latency_var_SH",
+                ],
+            ),
+            ([MBT_FILENAME], ["swath_var_hi", "swath_var_low", "swath_var_low_int"]),
+            ([PRECIP_FILENAME], ["swath_var_hi", "swath_var_low", "swath_var_low_int"]),
+            ([OCEAN_FILENAME], ["swath_var_hi", "swath_var_low", "swath_var_low_int"]),
             ([SEAICE_NH_FILENAME], ["grid_var_NH", "latency_var_NH"]),
             ([SEAICE_SH_FILENAME], ["grid_var_SH", "latency_var_SH"]),
             ([SNOW_FILENAME], ["swath_var", "swath_var_int"]),
             ([SOIL_FILENAME], ["swath_var", "swath_var_int"]),
-        ])
+        ],
+    )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers.core.loading import load_reader
+
         with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
@@ -255,6 +282,7 @@ class TestGAASPReader:
     @staticmethod
     def _check_area(data_id, data_arr):
         from pyresample.geometry import AreaDefinition, SwathDefinition
+
         area = data_arr.attrs["area"]
         if "grid_var" in data_id["name"] or "latency_var" in data_id["name"]:
             assert isinstance(area, AreaDefinition)
@@ -285,11 +313,20 @@ class TestGAASPReader:
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
         [
-            (EXAMPLE_FILENAMES, ["swath_var_hi", "swath_var_low",
-                                 "swath_var_low_int", "swath_var",
-                                 "swath_var_int",
-                                 "grid_var_NH", "grid_var_SH",
-                                 "latency_var_NH", "latency_var_SH"]),
+            (
+                EXAMPLE_FILENAMES,
+                [
+                    "swath_var_hi",
+                    "swath_var_low",
+                    "swath_var_low_int",
+                    "swath_var",
+                    "swath_var_int",
+                    "grid_var_NH",
+                    "grid_var_SH",
+                    "latency_var_NH",
+                    "latency_var_SH",
+                ],
+            ),
             ([MBT_FILENAME], ["swath_var_hi", "swath_var_low", "swath_var_low_int"]),
             ([PRECIP_FILENAME], ["swath_var_hi", "swath_var_low", "swath_var_low_int"]),
             ([OCEAN_FILENAME], ["swath_var_hi", "swath_var_low", "swath_var_low_int"]),
@@ -297,10 +334,12 @@ class TestGAASPReader:
             ([SEAICE_SH_FILENAME], ["grid_var_SH", "latency_var_SH"]),
             ([SNOW_FILENAME], ["swath_var", "swath_var_int"]),
             ([SOIL_FILENAME], ["swath_var", "swath_var_int"]),
-        ])
+        ],
+    )
     def test_basic_load(self, filenames, loadable_ids):
         """Test that variables are loaded properly."""
         from satpy.readers.core.loading import load_reader
+
         with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
