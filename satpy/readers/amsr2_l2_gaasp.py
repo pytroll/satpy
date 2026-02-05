@@ -149,7 +149,8 @@ class GAASPFileHandler(BaseFileHandler):
         add_offset = attrs.pop("add_offset", 0.)
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
-            data_arr = data_arr * scale_factor + add_offset
+            new_dtype = np.float32 if np.issubdtype(data_arr.dtype, np.integer) else data_arr.dtype.type
+            data_arr = data_arr * new_dtype(scale_factor) + new_dtype(add_offset)
         return data_arr, attrs
 
     @staticmethod

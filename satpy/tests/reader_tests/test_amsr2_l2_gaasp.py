@@ -16,10 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'amsr2_l2_gaasp' reader."""
+from __future__ import annotations
 
 import datetime as dt
 import os
-from unittest import mock
+from pathlib import Path
 
 import dask.array as da
 import numpy as np
@@ -120,9 +121,10 @@ def _create_gridded_gaasp_dataset(filename):
         attrs={"_FillValue": -9999.0, "scale_factor": 0.5, "add_offset": 2.0},
     )
     latency_var = xr.DataArray(
-        da.zeros((10, 10), dtype=np.timedelta64),
+        da.zeros((10, 10), dtype=np.int32),
         dims=("Number_of_Y_Dimension", "Number_of_X_Dimension"),
         attrs={
+            "units": "seconds",
             "_FillValue": -9999,
         },
     )
@@ -171,16 +173,19 @@ def _create_one_res_gaasp_dataset(filename):
     return xr.Dataset(ds_vars, attrs=attrs)
 
 
-def fake_open_dataset(filename, **kwargs):
+def _create_fake_gaasp_file(fake_path: Path, **kwargs):
     """Create a Dataset similar to reading an actual file with xarray.open_dataset."""
+    filename = fake_path.name
     if filename in [MBT_FILENAME, PRECIP_FILENAME, OCEAN_FILENAME]:
-        return _create_two_res_gaasp_dataset(filename)
-    if filename in [SEAICE_NH_FILENAME, SEAICE_SH_FILENAME]:
-        return _create_gridded_gaasp_dataset(filename)
-    return _create_one_res_gaasp_dataset(filename)
+        ds = _create_two_res_gaasp_dataset(filename)
+    elif filename in [SEAICE_NH_FILENAME, SEAICE_SH_FILENAME]:
+        ds = _create_gridded_gaasp_dataset(filename)
+    else:
+        ds = _create_one_res_gaasp_dataset(filename)
+    ds.to_netcdf(fake_path, )
 
 
-def _fake_ocean_wind_speed_dataset(filename, **kwargs):
+def _create_fake_ocean_wind_speed_file(filename, **kwargs):
     """Create a Dataset similar to reading an actual OCEAN file with wind speed data."""
     ds = _create_two_res_gaasp_dataset(filename)
     wspd_data = da.arange(10 * 10, dtype=np.float32).reshape((10, 10))
@@ -199,7 +204,7 @@ def _fake_ocean_wind_speed_dataset(filename, **kwargs):
         attrs={"_FillValue": -9999, "units": "1"},
     )
     ds["WSPD_QC"] = wspd_qc_data_arr
-    return ds
+    ds.to_netcdf(filename)
 
 
 class TestGAASPReader:
@@ -226,18 +231,19 @@ class TestGAASPReader:
             ([SOIL_FILENAME], 1),
         ],
     )
-    def test_reader_creation(self, filenames, expected_loadables):
+    def test_reader_creation(self, tmp_path, filenames, expected_loadables):
         """Test basic initialization."""
         from satpy.readers.core.loading import load_reader
 
-        with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            assert len(loadables) == expected_loadables
-            r.create_filehandlers(loadables)
-            # make sure we have some files
-            assert r.file_handlers
+        filenames = [tmp_path / filename for filename in filenames]
+        for fn in filenames:
+            _create_fake_gaasp_file(fn)
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames(filenames)
+        assert len(loadables) == expected_loadables
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        assert r.file_handlers
 
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
@@ -265,19 +271,20 @@ class TestGAASPReader:
             ([SOIL_FILENAME], ["swath_var", "swath_var_int"]),
         ],
     )
-    def test_available_datasets(self, filenames, expected_datasets):
+    def test_available_datasets(self, tmp_path, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers.core.loading import load_reader
 
-        with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables)
-            avails = list(r.available_dataset_names)
-            for var_name in expected_datasets:
-                assert var_name in avails
-            assert "not_xy_dim_var" not in expected_datasets
+        filenames = [tmp_path / filename for filename in filenames]
+        for fn in filenames:
+            _create_fake_gaasp_file(fn)
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames(filenames)
+        r.create_filehandlers(loadables)
+        avails = list(r.available_dataset_names)
+        for var_name in expected_datasets:
+            assert var_name in avails
+        assert "not_xy_dim_var" not in expected_datasets
 
     @staticmethod
     def _check_area(data_id, data_arr):
@@ -336,41 +343,41 @@ class TestGAASPReader:
             ([SOIL_FILENAME], ["swath_var", "swath_var_int"]),
         ],
     )
-    def test_basic_load(self, filenames, loadable_ids):
+    def test_basic_load(self, tmp_path, filenames, loadable_ids):
         """Test that variables are loaded properly."""
         from satpy.readers.core.loading import load_reader
 
-        with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables)
-            loaded_data_arrs = r.load(loadable_ids)
-            assert loaded_data_arrs
-            for data_id, data_arr in loaded_data_arrs.items():
-                self._check_area(data_id, data_arr)
-                self._check_fill(data_id, data_arr)
-                self._check_attrs(data_arr)
-
-    @pytest.mark.parametrize("filter_wspd", [False, True])
-    def test_wind_speed_filtering(self, filter_wspd):
-        """Test that wind speed can be filtered."""
-        from satpy.readers.core.loading import load_reader
-
-        with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
-            od.side_effect = _fake_ocean_wind_speed_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames([OCEAN_FILENAME])
-            r.create_filehandlers(loadables, fh_kwargs={"filter_wind_speed": filter_wspd})
-            loaded_data_arrs = r.load(["WSPD"])
-            assert loaded_data_arrs
-            data_arr = loaded_data_arrs["WSPD"]
-            data_id = data_arr.attrs["_satpy_id"]
+        filenames = [tmp_path / filename for filename in filenames]
+        for fn in filenames:
+            _create_fake_gaasp_file(fn)
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames(filenames)
+        r.create_filehandlers(loadables)
+        loaded_data_arrs = r.load(loadable_ids)
+        assert loaded_data_arrs
+        for data_id, data_arr in loaded_data_arrs.items():
             self._check_area(data_id, data_arr)
             self._check_fill(data_id, data_arr)
             self._check_attrs(data_arr)
-            has_nan = np.isnan(data_arr.data.compute()[-1, -1])
-            if filter_wspd:
-                assert has_nan
-            else:
-                assert not has_nan
+
+    @pytest.mark.parametrize("filter_wspd", [False, True])
+    def test_wind_speed_filtering(self, tmp_path, filter_wspd):
+        """Test that wind speed can be filtered."""
+        from satpy.readers.core.loading import load_reader
+
+        _create_fake_ocean_wind_speed_file(tmp_path / OCEAN_FILENAME)
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([tmp_path / OCEAN_FILENAME])
+        r.create_filehandlers(loadables, fh_kwargs={"filter_wind_speed": filter_wspd})
+        loaded_data_arrs = r.load(["WSPD"])
+        assert loaded_data_arrs
+        data_arr = loaded_data_arrs["WSPD"]
+        data_id = data_arr.attrs["_satpy_id"]
+        self._check_area(data_id, data_arr)
+        self._check_fill(data_id, data_arr)
+        self._check_attrs(data_arr)
+        has_nan = np.isnan(data_arr.data.compute()[-1, -1])
+        if filter_wspd:
+            assert has_nan
+        else:
+            assert not has_nan
