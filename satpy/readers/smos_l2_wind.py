@@ -136,7 +136,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        if  dataset_id["name"] == "lon":
+        if dataset_id["name"] == "lon":
             lon = self.centered_lon
             return lon.rename(dict(lon="x"))
         elif dataset_id["name"] == "lat":
