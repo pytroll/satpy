@@ -22,6 +22,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import final
 
 import numpy as np
 import pytest
@@ -64,17 +65,19 @@ def mimic_file(session_tmp_path: Path) -> Path:
     return filename
 
 
+@final
 class TestMimicTPW2Reader:
     """Test Mimic Reader."""
 
-    yaml_file = "mimicTPW2_comp.yaml"
+    yaml_file: str = "mimicTPW2_comp.yaml"
+    reader_configs = None
 
     def setup_method(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
-    def test_init(self, mimic_file):
+    def test_init(self, mimic_file: Path):
         """Test basic initialization of this reader."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
