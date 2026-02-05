@@ -42,7 +42,10 @@ Some variables can be filtered based on Quality Control (QC) variables in the
 data files. At the time of writing the only supported filtering is the "WSPD"
 variable from the "OCEAN" files using the "WSPD_QC" variable. Where the QC
 variable is non-zero the WSPD data is set to NaN. By default no filtering is
-applied.
+applied. To enable filtering pass the keyword arguments to the ``Scene``::
+
+    scn = Scene(reader="amsr2_l2_gaasp", filenames=[...],
+                reader_kwargs={"filter_wind_speed": True})
 
 Note that many variables in the GAASP data files already have additional
 quality filtering applied by the algorithm.
