@@ -34,7 +34,7 @@ Supported Data Variants
 This reader currently supports Full Disk High Spectral Resolution Imagery
 (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
 In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
-contains the masked full-dic of a single channel see `AF PUG`_.
+contains the masked full-disc of a single channel see `AF PUG`_.
 Experimental support for special scans, e.g. with coverage "xx", is also given.
 
 This reader supports data from both IDPF-I and IQT-I processing facilities.
@@ -159,7 +159,7 @@ object.
 
     import gc
 
-    chanel_data = scene["ir_105"].compute()
+    channel_data = scene["ir_105"].compute()
 
     # Delete original scene to release memory. Run garbage collector to prevent
     # occasional segmentation faults, see
