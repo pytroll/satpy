@@ -35,6 +35,18 @@ southern hemisphere or both depending on what files are provided to Satpy, this
 reader appends a `_NH` and `_SH` suffix to all variable names that are
 dynamically discovered from the provided files.
 
+Data Quality Filtering
+^^^^^^^^^^^^^^^^^^^^^^
+
+Some variables can be filtered based on Quality Control (QC) variables in the
+data files. At the time of writing the only supported filtering is the "WSPD"
+variable from the "OCEAN" files using the "WSPD_QC" variable. Where the QC
+variable is non-zero the WSPD data is set to NaN. By default no filtering is
+applied.
+
+Note that many variables in the GAASP data files already have additional
+quality filtering applied by the algorithm.
+
 """
 
 import datetime as dt
@@ -73,6 +85,11 @@ class GAASPFileHandler(BaseFileHandler):
         "Number_of_hi_rez_FOVs": 5000,
         "Number_of_low_rez_FOVs": 10000,
     }
+
+    def __init__(self, filename, filename_info, filetype_info, filter_wind_speed=False):
+        """Initialize file reading and store filter keyword arguments."""
+        super().__init__(filename, filename_info, filetype_info)
+        self.filter_wind_speed = filter_wind_speed
 
     @cached_property
     def nc(self):
@@ -165,6 +182,10 @@ class GAASPFileHandler(BaseFileHandler):
         attrs = data_arr.attrs.copy()
         data_arr, attrs = self._scale_data(data_arr, attrs)
         data_arr, attrs = self._fill_data(data_arr, attrs)
+
+        if orig_var_name == "WSPD" and self.filter_wind_speed:
+            wspd_qc = self.nc["WSPD_QC"]
+            data_arr = data_arr.where(wspd_qc == 0)
 
         attrs.update({
             "platform_name": self.platform_name,

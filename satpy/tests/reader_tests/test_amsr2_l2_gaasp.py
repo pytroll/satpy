@@ -165,6 +165,26 @@ def fake_open_dataset(filename, **kwargs):
     return _create_one_res_gaasp_dataset(filename)
 
 
+def _fake_ocean_wind_speed_dataset(filename, **kwargs):
+    """Create a Dataset similar to reading an actual OCEAN file with wind speed data."""
+    ds = _create_two_res_gaasp_dataset(filename)
+    wspd_data = da.arange(10 * 10, dtype=np.float32).reshape((10, 10))
+    wspd_data_arr = xr.DataArray(wspd_data,
+                              dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+                              coords={"some_longitude_lo": ds["some_longitude_lo"],
+                                      "some_latitude_lo": ds["some_latitude_lo"]},
+                              attrs={"_FillValue": -9999.})
+    ds["WSPD"] = wspd_data_arr
+    wspd_qc_data = np.zeros((10, 10), dtype=np.int32).reshape((10, 10))
+    wspd_qc_data[-1, -1] = 1
+    wspd_qc_data_arr = xr.DataArray(
+        da.from_array(wspd_qc_data),
+        dims=("Number_of_Scans", "Number_of_low_rez_FOVs"),
+        attrs={"_FillValue": -9999, "units": "1"})
+    ds["WSPD_QC"] = wspd_qc_data_arr
+    return ds
+
+
 class TestGAASPReader:
     """Tests for the GAASP reader."""
 
@@ -292,3 +312,26 @@ class TestGAASPReader:
                 self._check_area(data_id, data_arr)
                 self._check_fill(data_id, data_arr)
                 self._check_attrs(data_arr)
+
+    @pytest.mark.parametrize("filter_wspd", [False, True])
+    def test_wind_speed_filtering(self, filter_wspd):
+        """Test that wind speed can be filtered."""
+        from satpy.readers.core.loading import load_reader
+
+        with mock.patch("satpy.readers.amsr2_l2_gaasp.xr.open_dataset") as od:
+            od.side_effect = _fake_ocean_wind_speed_dataset
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([OCEAN_FILENAME])
+            r.create_filehandlers(loadables, fh_kwargs={"filter_wind_speed": filter_wspd})
+            loaded_data_arrs = r.load(["WSPD"])
+            assert loaded_data_arrs
+            data_arr = loaded_data_arrs["WSPD"]
+            data_id = data_arr.attrs["_satpy_id"]
+            self._check_area(data_id, data_arr)
+            self._check_fill(data_id, data_arr)
+            self._check_attrs(data_arr)
+            has_nan = np.isnan(data_arr.data.compute()[-1, -1])
+            if filter_wspd:
+                assert has_nan
+            else:
+                assert not has_nan
