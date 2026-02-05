@@ -135,12 +135,12 @@ class TestSMOSL2WINDReader:
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         smos_l2_wind_fh = SMOSL2WINDFileHandler(smos_l2_file,
                                                 {}, filetype_info={"file_type": "smos_l2_wind"})
-        data = DataArray(np.arange(0., 360., 0.25), dims=("lon"))
-        adjusted = smos_l2_wind_fh._adjust_lon_coord(data)
-        expected = DataArray(np.concatenate((np.arange(0, 180., 0.25),
-                                             np.arange(-180.0, 0, 0.25))),
-                             dims=("lon"))
-        assert adjusted.data.tolist() == expected.data.tolist()
+        lon = DataArray(np.arange(0., 360., 0.25), dims=("lon"))
+        data = DataArray(np.empty_like(lon.data), dims=("lon"), coords=dict(lon=lon))
+        adjusted = smos_l2_wind_fh._normalize_lon_coord(data)
+        expected = np.concatenate((np.arange(0, 180., 0.25),
+                                   np.arange(-180.0, 0, 0.25)))
+        assert adjusted.lon.data.tolist() == expected.tolist()
 
     def test_roll_dataset(self, smos_l2_file):
         """Load roll of dataset along the lon coordinate."""
@@ -149,8 +149,9 @@ class TestSMOSL2WINDReader:
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         smos_l2_wind_fh = SMOSL2WINDFileHandler(smos_l2_file,
                                                 {}, filetype_info={"file_type": "smos_l2_wind"})
-        data = DataArray(np.arange(0., 360., 0.25), dims=("lon"))
-        data = smos_l2_wind_fh._adjust_lon_coord(data)
+        lon = DataArray(np.arange(0., 360., 0.25), dims=("lon"))
+        data = DataArray(np.empty_like(lon.data), dims=("lon"), coords=dict(lon=lon))
+        data = smos_l2_wind_fh._normalize_lon_coord(data)
         adjusted = smos_l2_wind_fh._roll_dataset_lon_coord(data)
         expected = np.arange(-180., 180., 0.25)
-        assert adjusted.data.tolist() == expected.tolist()
+        assert adjusted.lon.data.tolist() == expected.tolist()

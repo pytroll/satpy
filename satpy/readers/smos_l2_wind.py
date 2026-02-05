@@ -26,6 +26,7 @@ SMOS_WIND_DS_PDD_20191107_signed.pdf
 
 import datetime as dt
 import logging
+from functools import cached_property
 
 import numpy as np
 from pyresample.geometry import AreaDefinition
@@ -102,16 +103,16 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         except KeyError:
             return data
 
-    def _adjust_lon_coord(self, data):
+    def _normalize_lon_coord(self, data):
         """Adjust lon coordinate to -180 .. 180 ( not 0 .. 360)."""
-        data = data.assign_coords(lon=(((data.lon + 180) % 360) - 180))
-        return data.where(data < 180., data - 360.)
+        if "lon" in data.dims:
+            return data.assign_coords(lon=self.normalized_lon)
+        return data
 
     def _rename_coords(self, data):
-        """Rename coords."""
+        """Rename coordinates."""
         rename_dict = {}
         if "lon" in data.dims:
-            data = self._adjust_lon_coord(data)
             rename_dict["lon"] = "x"
         if "lat" in data.dims:
             rename_dict["lat"] = "y"
@@ -133,33 +134,54 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
             data = data.roll(lon=720, roll_coords=True)
         return data
 
-    def get_dataset(self, ds_id, ds_info):
+    def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        data = self[ds_id["name"]]
+        if  dataset_id["name"] == "lon":
+            lon = self.centered_lon
+            return lon.rename(dict(lon="x"))
+        elif dataset_id["name"] == "lat":
+            lat = self.trimmed_lat
+            return lat.rename(dict(lat="y"))
+
+        data = self[dataset_id["name"]]
         data.attrs = self.get_metadata(data, ds_info)
         data = self._remove_time_coordinate(data)
+        data = self._normalize_lon_coord(data)
         data = self._roll_dataset_lon_coord(data)
         data = self._rename_coords(data)
         data = self._mask_dataset(data)
         if len(data.dims) >= 2 and all([dim in data.dims for dim in ["x", "y"]]):
             # Remove the first and last row as these values extends beyond +-90 latitude
-            # if the dataset contains the y dimmension.
+            # if the dataset contains the y dimension.
             # As this is data over open sea these has no values.
             data = data.where((data.y > -90.0) & (data.y < 90.0), drop=True)
-        elif len(data.dims) == 1 and "y" in data.dims:
-            if ds_id["name"] == "lat":
-                data = data.where((data > -90.0) & (data < 90.0), drop=True)
-            else:
-                # Is there such a case?
-                data = data.where((data.y > 0) & (data.y < len(data.y) - 1), drop=True)
         return data
+
+
+    @cached_property
+    def normalized_lon(self):
+        """Normalize longitudes.
+
+        That means constrain them to the [-180, 180[ interval.
+        """
+        lon = (((self["lon"]+ 180) % 360) - 180)
+        return lon.assign_coords(lon=lon)
+
+    @cached_property
+    def centered_lon(self):
+        """Center the longitudes around 0° east."""
+        return self.normalized_lon.roll(lon=720, roll_coords=True)
+
+    @cached_property
+    def trimmed_lat(self):
+        """Trim the latitudes to remove the problematic -90 and 90° north."""
+        lat = self["lat"]
+        return lat.where((lat > -90.0) & (lat < 90.0), drop=True)
 
     def _create_area_extent(self, width, height):
         """Create area extent."""
         # Creating a meshgrid, not needed actually, but makes it easy to find extremes
-        _lon = self._adjust_lon_coord(self["lon"])
-        _lon = self._roll_dataset_lon_coord(_lon)
-        latlon = np.meshgrid(_lon, self["lat"][1:self["lat/shape"][0] - 1])
+        latlon = np.meshgrid(self.centered_lon.data, self.trimmed_lat.data)
         lower_left_x = latlon[0][height - 1][0] - 0.125
         lower_left_y = latlon[1][height - 1][0] + 0.125
         upper_right_y = latlon[1][1][width - 1] - 0.125
@@ -167,7 +189,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         return (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
 
     def get_area_def(self, dsid):
-        """Define AreaDefintion."""
+        """Define AreaDefinition with a note."""
         width = self["lon/shape"][0]
         height = self["lat/shape"][0] - 2
         area_extent = self._create_area_extent(width, height)
