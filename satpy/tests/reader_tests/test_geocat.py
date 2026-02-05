@@ -35,26 +35,26 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-@pytest.fixture(scope="session")
-def g13_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def g13_file(module_tmp_path: Path) -> Path:
     """Create a GOES 13 geocat file."""
     platform_shortname = "GOES-13"
-    filename = session_tmp_path / "geocatL2.GOES-13.2015143.234500.nc"
+    filename = module_tmp_path / "geocatL2.GOES-13.2015143.234500.nc"
     return _create_geocat_file(filename, platform_shortname)
 
 
-@pytest.fixture(scope="session")
-def h8_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def h8_file(module_tmp_path: Path) -> Path:
     """Create a HIMAWARI 8 geocat file."""
     platform_shortname = "HIMAWARI-8"
-    filename = session_tmp_path / "geocatL2.HIMAWARI-8.2017092.210730.R304.R20.nc"
+    filename = module_tmp_path / "geocatL2.HIMAWARI-8.2017092.210730.R304.R20.nc"
     return _create_geocat_file(filename, platform_shortname)
 
 
-@pytest.fixture(scope="session")
-def g17_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def g17_file(module_tmp_path: Path) -> Path:
     """Create a GOES 17 geocat file."""
-    filename = session_tmp_path / "geocatL2.GOES-17.CONUS.2020041.163130.hdf"
+    filename = module_tmp_path / "geocatL2.GOES-17.CONUS.2020041.163130.hdf"
     return _create_geocat_file(filename, platform_shortname="GOES-17")
 
 

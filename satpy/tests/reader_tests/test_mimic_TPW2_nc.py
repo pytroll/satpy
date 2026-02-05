@@ -36,10 +36,10 @@ DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 
-@pytest.fixture(scope="session")
-def mimic_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def mimic_file(module_tmp_path: Path) -> Path:
     """Mimic a real data file."""
-    filename = session_tmp_path / "comp20190619.130000.nc"
+    filename = module_tmp_path / "comp20190619.130000.nc"
     dt_s = datetime(2019, 6, 19, 13, 0)
     dt_e = datetime(2019, 6, 19, 13, 0)
 

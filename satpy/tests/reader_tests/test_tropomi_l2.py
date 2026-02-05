@@ -63,10 +63,10 @@ def tropomi_base_data() -> xr.DataTree:
     return ds
 
 
-@pytest.fixture(scope="session")
-def tropomi_no2_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def tropomi_no2_file(module_tmp_path: Path) -> Path:
     """Create a NO2 tropomi file."""
-    fn = session_tmp_path / "S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc"
+    fn = module_tmp_path / "S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc"
     ds = tropomi_base_data()
     ds["/PRODUCT/nitrogen_dioxide_total_column"] = xr.DataArray(DEFAULT_FILE_DATA, dims=("scanline", "ground_pixel"))
     ds["/PRODUCT/nitrogen_dioxide_total_column"].attrs["_FillValue"] = -999.0
@@ -75,10 +75,10 @@ def tropomi_no2_file(session_tmp_path: Path) -> Path:
     return fn
 
 
-@pytest.fixture(scope="session")
-def tropomi_so2_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def tropomi_so2_file(module_tmp_path: Path) -> Path:
     """Create a SO2 tropomi file."""
-    fn = session_tmp_path / "S5P_OFFL_L2__SO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc"
+    fn = module_tmp_path / "S5P_OFFL_L2__SO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc"
     ds = tropomi_base_data()
     ds["/PRODUCT/sulfurdioxide_total_vertical_column"] = xr.DataArray(DEFAULT_FILE_DATA,
                                                                       dims=("scanline", "ground_pixel"))

@@ -37,3 +37,9 @@ def pytest_unconfigure(config):
 def session_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Generate a single temp path to use for the entire session."""
     return tmp_path_factory.mktemp("data")
+
+
+@pytest.fixture(scope="module")
+def module_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Generate a single temp path to use for the entire session."""
+    return tmp_path_factory.mktemp("data")

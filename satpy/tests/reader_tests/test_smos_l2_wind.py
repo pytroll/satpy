@@ -26,10 +26,10 @@ import pytest
 import xarray as xr
 
 
-@pytest.fixture(scope="session")
-def smos_l2_file(session_tmp_path):
+@pytest.fixture(scope="module")
+def smos_l2_file(module_tmp_path):
     """Create a real dummy file for testing."""
-    filename = session_tmp_path / "SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc"
+    filename = module_tmp_path / "SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc"
     file_content = xr.DataTree()
 
 

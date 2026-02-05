@@ -41,10 +41,10 @@ date_variables = ["timeAwayGridPrior", "timeAwayGridSubseq"]
 ubyte_variables = ["satGridPrior", "satGridSubseq"]
 
 
-@pytest.fixture(scope="session")
-def mimic_file(session_tmp_path: Path) -> Path:
+@pytest.fixture(scope="module")
+def mimic_file(module_tmp_path: Path) -> Path:
     """Mimic a real data file."""
-    filename = session_tmp_path / "comp20190619.130000.nc"
+    filename = module_tmp_path / "comp20190619.130000.nc"
     file_type = "mimicTPW2_comp"
     dt_s = DEFAULT_DATE
     dt_e = DEFAULT_DATE
