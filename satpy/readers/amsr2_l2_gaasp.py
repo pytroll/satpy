@@ -186,10 +186,7 @@ class GAASPFileHandler(BaseFileHandler):
         attrs = data_arr.attrs.copy()
         data_arr, attrs = self._scale_data(data_arr, attrs)
         data_arr, attrs = self._fill_data(data_arr, attrs)
-
-        if orig_var_name == "WSPD" and self.filter_wind_speed:
-            wspd_qc = self.nc["WSPD_QC"]
-            data_arr = data_arr.where(wspd_qc == 0)
+        data_arr = self._filter_by_qc(orig_var_name, data_arr)
 
         attrs.update({
             "platform_name": self.platform_name,
@@ -204,6 +201,13 @@ class GAASPFileHandler(BaseFileHandler):
         data_arr = data_arr.reset_coords(drop=True)
         data_arr.attrs = attrs
         return data_arr
+
+    def _filter_by_qc(self, orig_var_name: str, data_arr: xr.DataArray) -> xr.DataArray:
+        if orig_var_name == "WSPD" and self.filter_wind_speed:
+            wspd_qc = self.nc["WSPD_QC"]
+            data_arr = data_arr.where(wspd_qc == 0)
+        return data_arr
+
 
     def _available_if_this_file_type(self, configured_datasets):
         for is_avail, ds_info in (configured_datasets or []):
