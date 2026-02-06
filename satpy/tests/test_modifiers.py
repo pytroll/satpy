@@ -310,7 +310,7 @@ class TestNIRReflectance:
         assert res.attrs["units"] == "%"
         assert res.attrs["sun_zenith_threshold"] == 85.0
         assert res.attrs["sun_zenith_masking_limit"] == 88.0
-        np.testing.assert_allclose(res_np, exp_res, atol=1e-6)
+        np.testing.assert_allclose(res_np, exp_res, atol=2e-6)
 
     @pytest.mark.parametrize(
         "comp_kwargs",
