@@ -203,10 +203,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
+        kwargs.setdefault("cache_var_size", 0)
+        kwargs.setdefault("cache_handle", True)
         super().__init__(filename, filename_info,
                          filetype_info,
-                         cache_var_size=0,
-                         cache_handle=True)
+                         **kwargs)
         logger.debug("Reading: {}".format(self.filename))
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))
