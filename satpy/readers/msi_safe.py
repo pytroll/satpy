@@ -49,6 +49,7 @@ from pyresample import geometry
 
 from satpy._compat import cached_property
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class SAFEMSIL1C(BaseFileHandler):
         return proj
 
     def _read_from_file(self, key):
-        proj = xr.open_dataset(self.filename, engine="rasterio", chunks=CHUNK_SIZE)["band_data"]
+        proj = xr.open_dataset(open_file_or_filename(self.filename), engine="rasterio", chunks=CHUNK_SIZE)["band_data"]
         proj = proj.squeeze("band")
         if key["calibration"] == "reflectance":
             return self._mda.calibrate_to_reflectances(proj, self._channel)
@@ -145,7 +146,7 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
         super().__init__(filename, filename_info, filetype_info)
         self._start_time = filename_info["observation_time"]
         self._end_time = filename_info["observation_time"]
-        self.root = ET.parse(self.filename)
+        self.root = ET.parse(open_file_or_filename(self.filename))
         self.tile = filename_info["dtile_number"]
         self.process_level = filename_info["process_level"]
         self.platform_name = PLATFORMS[filename_info["fmission_id"]]
