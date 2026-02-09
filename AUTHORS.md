@@ -46,6 +46,7 @@ The following people have made contributions to this project:
 - [Mario Hros (k3a)](https://github.com/k3a)
 - [Lloyd Hughes (system123)](https://github.com/system123)
 - [Sara Hörnquist (shornqui)](https://github.com/shornqui)
+- [Salim Messaad (SalimMessaad1)](https://github.com/SalimMessaad1)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Jactry Zeng](https://github.com/jactry)
