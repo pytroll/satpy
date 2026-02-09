@@ -280,25 +280,54 @@ def _apply_palette_to_image(img):
     return img
 
 
-def add_bands(data, bands):
-    """Add bands so that they match *bands*."""
+def add_bands(data: xr.DataArray, bands: Sequence | xr.DataArray) -> xr.DataArray:
+    """Add image bands so that input data is compatible with the provided ``bands``.
+
+    This function will add additional copies of input data arrays to allow the
+    number of elements in the "bands" dimension to be more compatible with
+    the desired number of bands from the ``bands`` argument. This does not
+    always mean producing the exact number of bands. For example, if the
+    input data is an "L" image with an alpha channel (``["L", "A"]``) and the
+    desired bands are ``["R", "G", "B"]`` then the result will be
+    ``["R", "G", "B", "A"]`` where the R, G, and B data are copies of the original
+    L band data and the A channel is copied from the input.
+
+    If an alpha channel needs to be added to match the desired set of bands then
+    a fully opaque alpha channel is created.
+
+
+    Args:
+        data: Input xarray DataArray with a "bands" dimension and coordinate.
+            The DataArray should also have a "mode" attribute in ``.attrs``
+            with the image mode of the data. So if the "bands" coordinate
+            variable is ``["R", "G", "B"]`` then ``.attrs["mode"]`` will
+            be ``"RGB"``.
+        bands: The bands that the result should be compatible with. If taken
+            from another data DataArray via ``.coords["bands"]`` then this
+            will be a ``DataArray``. Otherwise an sequence supporting
+            ``__contains__`` should be provided. Elements of this argument
+            should be individual string characters, one for each band.
+
+    """
+    desired_bands = bands.values.tolist() if isinstance(bands, xr.DataArray) else bands
     # Add R, G and B bands, remove L band
-    bands = bands.compute()
-    data = _check_mode_p(data, bands)
-    data = _check_mode_l(data, bands)
+    data = _check_mode_p(data, desired_bands)
+    data = _check_mode_l(data, desired_bands)
     # Add alpha band
-    data = _check_alpha_band(data, bands)
+    data = _check_alpha_band(data, desired_bands)
     return data
 
 
-def _check_mode_p(data, bands):
-    if "P" in data["bands"].data or "P" in bands.data:
+def _check_mode_p(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
+    if "P" in data["bands"].data or "P" in bands:
         raise NotImplementedError("Cannot mix datasets of mode P with other datasets at the moment.")
     return data
 
 
-def _check_mode_l(data, bands):
-    if "L" in data["bands"].data and "R" in bands.data:
+def _check_mode_l(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
+    new_data: tuple[xr.DataArray, ...]
+
+    if "L" in data["bands"].data and "R" in bands:
         lum = data.sel(bands="L")
         # Keep 'A' if it was present
         if "A" in data["bands"]:
@@ -316,21 +345,23 @@ def _check_mode_l(data, bands):
     return data
 
 
-def _check_alpha_band(data, bands):
-    if "A" not in data["bands"].data and "A" in bands.data:
+def _check_alpha_band(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
+    if "A" not in data["bands"].data and "A" in bands:
         new_data = [data.sel(bands=band) for band in data["bands"].data]
         # Create alpha band based on a copy of the first "real" band
         alpha = new_data[0].copy()
-        alpha.data = da.ones((data.sizes["y"],
-                              data.sizes["x"]),
-                             dtype=new_data[0].dtype,
-                             chunks=new_data[0].chunks)
+        # TODO: This will be all 1s as floats, but this is not accurate for integer data. Right?
+        alpha.data = da.ones(
+            (data.sizes["y"], data.sizes["x"]),
+            dtype=new_data[0].dtype,
+            chunks=new_data[0].chunks,
+        )
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"
         new_data.append(alpha)
-        new_data = xr.concat(new_data, dim="bands")
-        new_data.attrs["mode"] = data.attrs["mode"] + "A"
-        data = new_data
+        new_data_arr = xr.concat(new_data, dim="bands")
+        new_data_arr.attrs["mode"] = data.attrs["mode"] + "A"
+        data = new_data_arr
     return data
 
 
