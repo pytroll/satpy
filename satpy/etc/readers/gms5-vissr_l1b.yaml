@@ -11,7 +11,7 @@ reader:
   status: Alpha
   supports_fsspec: true
   sensors: [gms5-vissr]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     gms5_vissr_vis:

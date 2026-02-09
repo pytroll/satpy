@@ -14,7 +14,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [jami]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     hrit_vis:

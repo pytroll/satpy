@@ -7,7 +7,7 @@
   status: Beta
   supports_fsspec: false
   sensors: [vii]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
  file_types:
   # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Cloud Mask files in NetCDF4 format

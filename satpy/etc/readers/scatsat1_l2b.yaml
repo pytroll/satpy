@@ -3,7 +3,7 @@ reader:
   short_name: Scatsat-1 l2b
   long_name: Scatsat-1 Level 2b Wind field data in HDF5 format
   description: Generic Eumetsat Scatsat-1 L2B Wind field Reader
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   status: defunct
   supports_fsspec: false
   sensors: [scatterometer]
