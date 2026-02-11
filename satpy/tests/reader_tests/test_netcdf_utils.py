@@ -18,7 +18,6 @@
 """Module for testing the satpy.readers.core.netcdf module."""
 
 import os
-from contextlib import closing
 
 import numpy as np
 import pytest
@@ -66,12 +65,12 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file."""
     from netCDF4 import Dataset
     filename = tmp_path_factory.mktemp("data") / "test.nc"
-    with closing(Dataset(filename, "w")) as nc:
+    with Dataset(filename, "w") as nc:
         # Create dimensions
         nc.createDimension("rows", 10)
         nc.createDimension("cols", 100)
