@@ -492,10 +492,9 @@ datasets:
             - mws_lon
             - mws_lat
 
-
 file_types:
     mws_l1b_nc:
         # EPS-SG_MWS-1B-RAD.nc
-        # W_XX-EUMETSAT-Darmstadt,SAT,SGA1-MWS-1B-RAD_C_EUMT_20210609095009_G_D_20070912084321_20070912102225_T_N____.nc
+        # W_XX-EUMETSAT-Darmstadt,SAT,SGA1-MWS-1B-RAD_C_EUMT_20260210085718_G_O_20260210084159_20260210084459_C_N_T__.nc
         file_reader: !!python/name:satpy.readers.mws_l1b.MWSL1BFile
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{platform_shortname}-MWS-1B-RAD_C_EUMT_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_N____.nc']
+        file_patterns: ['W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWS-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_{mission_type:1s}_{environment:1s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}_T__.nc']
