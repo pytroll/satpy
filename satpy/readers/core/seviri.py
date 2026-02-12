@@ -166,13 +166,13 @@ References:
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
 
 .. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_msg_seviri_rad2refl_d6cd0c663f.pdf
 
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www.eumetsat.int/media/45126
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05105_msg_img_data_e7c8b315e6.pdf
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_msg_seviri_rad_calib_b4e474a6de.pdf
 
 .. _Inter-calibration of polar imager solar channels using SEVIRI:
    http://dx.doi.org/10.5194/amt-6-2495-2013
@@ -608,7 +608,7 @@ class SEVIRICalibrationAlgorithm:
         """Calibrate to reflectance.
 
         This uses the method described in Conversion from radiances to
-        reflectances for SEVIRI warm channels: https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+        reflectances for SEVIRI warm channels: https://user.eumetsat.int/s3/eup-strapi-media/pdf_msg_seviri_rad2refl_d6cd0c663f.pdf
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return utils.apply_earthsun_distance_correction(reflectance, self._scan_time)
