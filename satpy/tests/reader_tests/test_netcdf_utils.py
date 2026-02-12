@@ -81,10 +81,12 @@ def netcdf_file(tmp_path_factory):
         ds1_f = g1.createVariable("ds1_f", np.float32,
                                   dimensions=("rows", "cols"))
         ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
+        ds1_f.set_auto_scale(True)
+
         ds1_i = g1.createVariable("ds1_i", np.int32,
                                   dimensions=("rows", "cols"))
-        ds1_f.set_auto_scale(True)
         ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
+
         ds2_f = nc.createVariable("ds2_f", np.float32,
                                   dimensions=("rows", "cols"))
         ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
