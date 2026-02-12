@@ -89,26 +89,26 @@ class HistogramDNB(CompositeBase):
         output_dataset.attrs = info
         return output_dataset
 
-    def _run_dnb_normalization(self, dnb_data_np: np.ndarray, sza_data_np: np.ndarray) -> np.ndarray:
+    def _run_dnb_normalization(self, dnb_data: np.ndarray, sza_data: np.ndarray) -> np.ndarray:
         """Scale the DNB data using a histogram equalization method.
 
         Args:
-            dnb_data_np: Day/Night Band data numpy array
-            sza_data_np: Solar Zenith Angle data numpy array
+            dnb_data: Day/Night Band data numpy array
+            sza_data: Solar Zenith Angle data numpy array
 
         """
         # convert dask arrays to DataArray objects
-        dnb_data = xr.DataArray(dnb_data_np, dims=("y", "x"))
-        sza_data = xr.DataArray(sza_data_np, dims=("y", "x"))
+        dnb_data_arr = xr.DataArray(dnb_data, dims=("y", "x"))
+        sza_data_arr = xr.DataArray(sza_data, dims=("y", "x"))
 
-        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
-        output_dataset = dnb_data.where(good_mask)
+        good_mask = ~(dnb_data_arr.isnull() | sza_data_arr.isnull())
+        output_data_arr = dnb_data_arr.where(good_mask)
         # we only need the numpy array
-        output_dataset_np = output_dataset.values.copy()
-        dnb_data_np = dnb_data.values
-        sza_data_np = sza_data.values
-        self._normalize_dnb_for_mask(dnb_data_np, sza_data_np, good_mask, output_dataset_np)
-        return output_dataset_np
+        output_data = output_data_arr.values.copy()
+        dnb_data = dnb_data_arr.values
+        sza_data = sza_data_arr.values
+        self._normalize_dnb_for_mask(dnb_data, sza_data, good_mask, output_data)
+        return output_data
 
     def _normalize_dnb_for_mask(self, dnb_data, sza_data, good_mask, output_dataset):
         day_mask, mixed_mask, night_mask = make_day_night_masks(

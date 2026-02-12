@@ -350,7 +350,9 @@ def _check_alpha_band(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
         new_data = [data.sel(bands=band) for band in data["bands"].data]
         # Create alpha band based on a copy of the first "real" band
         alpha = new_data[0].copy()
-        # TODO: This will be all 1s as floats, but this is not accurate for integer data. Right?
+        # WARN: This will be all 1s as floats, but this is not accurate for
+        # integer data. Integer data needing an alpha channel is not currently
+        # supported.
         alpha.data = da.ones(
             (data.sizes["y"], data.sizes["x"]),
             dtype=new_data[0].dtype,
