@@ -107,12 +107,12 @@ if _ancpath is not None and _data_dir is None:
 config = Config("satpy", defaults=[_CONFIG_DEFAULTS], paths=_CONFIG_PATHS)
 
 
-def get_config_path_safe():
+def get_config_path_safe() -> list[str]:
     """Get 'config_path' and check for proper 'list' type."""
     config_path = config.get("config_path")
     if not isinstance(config_path, list):
-        raise ValueError("Satpy config option 'config_path' must be a "
-                         "list, not '{}'".format(type(config_path)))
+        raise ValueError("Satpy config option 'config_path' must be a " +
+                         f"list, not '{type(config_path)}'.")
     return config_path
 
 
@@ -155,7 +155,7 @@ def _entry_point_module(entry_point):
         return entry_point.value.split(":")[0].strip()
 
 
-def config_search_paths(filename, search_dirs=None, **kwargs):
+def config_search_paths(filename: str, search_dirs: list[str]|None = None, **kwargs) -> list[str]:
     """Get series of configuration base paths where Satpy configs are located."""
     if search_dirs is None:
         search_dirs = get_config_path_safe()[::-1]

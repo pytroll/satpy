@@ -38,7 +38,7 @@ import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         # Iterate over dataset contents
         for var_name, val in self.file_content.items():
             # Only evaluate variables
-            if isinstance(val, netCDF4.Variable):
+            if self.accessor.is_variable(val):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
