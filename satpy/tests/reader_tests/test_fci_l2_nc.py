@@ -222,7 +222,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         with pytest.raises(NotImplementedError):
             self.fh.get_area_def(None)
 
-    def test_emumerations(self):
+    def test_enumerations(self):
         """Test the conversion of enumerated type information into flag_values and flag_meanings."""
         dataset = self.fh.get_dataset(make_dataid(name="test_enum", resolution=2000),
                                       {"name": "quality_flag",
@@ -234,6 +234,17 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         assert attributes["flag_values"] == [0,1]
         assert "flag_meanings" in attributes
         assert attributes["flag_meanings"] == ["False","True"]
+        assert dataset.dtype == np.uint8
+
+    def test_enum_with_fill_value_remains_int(self):
+        """Test that enum with a fill value (such as cloud type) remains uint8."""
+        dataset = self.fh.get_dataset(make_dataid(name="test_enum", resolution=2000),
+                                      {"name": "quality_flag",
+                                       "nc_key": "quality_flag",
+                                       "file_type": "test_file_type",
+                                       "import_enum_information": True,
+                                       "fill_value": -127})
+        assert dataset.dtype == np.int8
 
     def test_units_from_file(self):
         """Test units extraction from NetCDF file."""
