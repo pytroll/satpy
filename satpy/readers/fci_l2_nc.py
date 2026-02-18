@@ -233,7 +233,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if dataset_info["file_type"] == "nc_fci_test_clm":
             variable = self._decode_clm_test_data(variable, dataset_info)
 
-        if "fill_value" in dataset_info:
+        if "fill_value" in dataset_info and np.issubdtype(variable.dtype, np.inexact):
             variable = self._mask_data(variable, dataset_info["fill_value"])
 
         variable = self._set_attributes(variable, dataset_info)
