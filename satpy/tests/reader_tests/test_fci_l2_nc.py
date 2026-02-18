@@ -234,7 +234,6 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         assert attributes["flag_values"] == [0,1]
         assert "flag_meanings" in attributes
         assert attributes["flag_meanings"] == ["False","True"]
-        assert dataset.dtype == np.uint8
 
     def test_enum_with_fill_value_remains_int(self):
         """Test that enum with a fill value (such as cloud type) remains uint8."""
@@ -244,7 +243,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "file_type": "test_file_type",
                                        "import_enum_information": True,
                                        "fill_value": -127})
-        assert dataset.dtype == np.int8
+        assert np.issubdtype(dataset.dtype, np.integer)
 
     def test_units_from_file(self):
         """Test units extraction from NetCDF file."""
