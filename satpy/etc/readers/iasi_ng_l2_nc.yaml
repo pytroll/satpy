@@ -4,7 +4,7 @@ reader:
   long_name: IASI-NG Level-2 NetCDF Reader
   description: Reader for IASI-NG Level-2 NetCDF files
   sensors: [iasi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   status: Alpha
   supports_fsspec: false
 

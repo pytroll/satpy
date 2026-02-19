@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: true
   sensors: [mersi-ll]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
   mersi_ll_l1b_1000:

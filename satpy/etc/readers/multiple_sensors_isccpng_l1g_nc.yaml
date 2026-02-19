@@ -4,7 +4,7 @@ reader:
   long_name: ISCCP NG Level 1g NetCDF4
   description: https://cimss.ssec.wisc.edu/isccp-ng/
   sensors: [seviri, abi, ahi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   group_keys: ["start_time", "satid"]
 
 file_types:

@@ -6,7 +6,7 @@ reader:
     Reader for EUMETSAT EPS-SG Micro-Wave Imager Level 1B Radiance files in NetCDF4.
   status: Beta
   sensors: [mwi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
   data_identification_keys:
     name:

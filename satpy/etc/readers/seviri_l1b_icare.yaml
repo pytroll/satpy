@@ -12,7 +12,7 @@ reader:
   status: Defunct
   supports_fsspec: false
   sensors: [seviri]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     ICARE_HRV:

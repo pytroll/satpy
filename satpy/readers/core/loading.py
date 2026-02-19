@@ -89,8 +89,8 @@ def _get_reader_instance(reader, reader_configs, idx, reader_kwargs):
             reader_configs,
             **reader_kwargs[None if reader is None else reader[idx]])
     except (KeyError, IOError) as err:
-        LOG.info("Cannot use %s", str(reader_configs))
-        LOG.debug(str(err))
+        LOG.warning("Cannot use %s", str(reader_configs))
+        LOG.exception(str(err))
     except yaml.constructor.ConstructorError as err:
         _log_yaml_error(reader_configs, err)
 

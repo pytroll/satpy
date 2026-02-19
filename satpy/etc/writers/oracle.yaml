@@ -1,0 +1,4 @@
+writer:
+  name: oracle
+  description: Write features to Oracle spatial database
+  writer: !!python/name:satpy.writers.oracle.oracle

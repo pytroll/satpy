@@ -11,7 +11,7 @@ reader:
   status: Beta
   supports_fsspec: true
   sensors: [osisaf]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     osi_sea_ice_conc:

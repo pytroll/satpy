@@ -6,7 +6,7 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [seviri, abi, ahi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     nc_nwcsaf_cma:

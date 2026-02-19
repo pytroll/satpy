@@ -9,7 +9,7 @@ reader:
     from the EUMETSAT Data Store under ID EO:EUM:DAT:0576.
   status: Alpha
   supports_fsspec: True
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [iasi]
   default_datasets:
 
