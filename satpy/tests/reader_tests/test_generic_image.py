@@ -73,7 +73,7 @@ def test_image_l(tmp_path, random_image_channel_l):
                         attrs={"name": "test_l", "start_time": DATA_DATE})
     dset["bands"] = ["L"]
     fname = tmp_path / "test_l.png"
-    _save_image(dset, fname, "simple_image")
+    _save_image(dset, fname, "simple_image", 255)
 
     return fname
 
@@ -162,7 +162,7 @@ def test_png_scene_l_mode(test_image_l):
     with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
         scn = Scene(reader="generic_image", filenames=[test_image_l])
     scn.load(["image"])
-    _assert_image_common(scn, 1, None, None, np.float32)
+    _assert_image_common(scn, 1, None, None, np.uint8)
     assert "area" not in scn["image"].attrs
 
 
@@ -182,11 +182,21 @@ def test_png_scene_la_mode(test_image_la):
     """Test reading a PNG image with LA mode via satpy.Scene()."""
     with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
         scn = Scene(reader="generic_image", filenames=[test_image_la])
-    scn.load(["image"])
+    scn.load(["image"], nodata_handling="fill_value")
     data = da.compute(scn["image"].data)
     assert np.sum(np.isnan(data)) == 100
     assert "area" not in scn["image"].attrs
     _assert_image_common(scn, 1, DATA_DATE, DATA_DATE, np.float32)
+
+
+def test_png_scene_la_mode_set_fill(test_image_la):
+    """Test reading a PNG image with L mode via satpy.Scene() setting input fill value."""
+    with pytest.warns(NotGeoreferencedWarning, match=r"Dataset has no geotransform"):
+        scn = Scene(reader="generic_image", filenames=[test_image_la],
+                    reader_kwargs={"set_fill_value": 255, "nodata_handling": "fill_value"})
+    scn.load(["image"])
+    _assert_image_common(scn, 1, DATA_DATE, DATA_DATE, np.uint8)
+    assert "area" not in scn["image"].attrs
 
 
 def test_geotiff_scene_rgb(test_image_rgb):
@@ -202,6 +212,15 @@ def test_geotiff_scene_rgba(test_image_rgba):
     scn = Scene(reader="generic_image", filenames=[test_image_rgba])
     scn.load(["image"])
     _assert_image_common(scn, 3, None, None, np.float32)
+    assert scn["image"].area == AREA_DEFINITION
+
+
+def test_png_scene_rgba_mode_set_fill(test_image_rgba):
+    """Test reading an image in RGBA mode via satpy.Scene() setting input fill value."""
+    scn = Scene(reader="generic_image", filenames=[test_image_rgba],
+                reader_kwargs={"set_fill_value": 255, "nodata_handling": "fill_value"})
+    scn.load(["image"])
+    _assert_image_common(scn, 3, None, None, np.uint8)
     assert scn["image"].area == AREA_DEFINITION
 
 
@@ -252,6 +271,8 @@ class FakeGenericImageFileHandler(GenericImageFileHandler):
         super(GenericImageFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = file_content
         self.dataset_name = None
+        self.nodata_handling = kwargs.pop("nodata_handling", None)
+        self.set_fill_value = kwargs.pop("set_fill_value", None)
         self.file_content.update(kwargs)
 
 
