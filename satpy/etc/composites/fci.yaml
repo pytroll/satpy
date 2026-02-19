@@ -575,15 +575,15 @@ composites:
   volcanic_emissions:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
-      prerequisites:
-      - wv_63
-      - wv_73
-    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
-      prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - wv_63
+          - wv_73
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - ir_105
+          - ir_87
       - ir_105
-      - ir_87
-    - ir_105
     standard_name: volcanic_emissions
 
   day_severe_storms:
@@ -619,3 +619,24 @@ composites:
           - name: nir_16
           - name: vis_06
     standard_name: day_severe_storms_tropical
+
+  24h_microphysics_dust: &24h_microphysics
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - ir_123
+          - ir_105
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - ir_105
+          - ir_87
+      - ir_105
+    standard_name: 24h_microphysics_dust
+
+  24h_microphysics_ash:
+    << : *24h_microphysics
+    standard_name: 24h_microphysics_ash
+    description: >
+      Official WMO 24-hour microphysics ash RGB.  Source:
+      https://wmoomm.sharepoint.com/:b:/s/wmocpdb/EexzMK-JLutNlqR77aiIr8UB2uQvHGE8WfFCq23P03obhQ?e=S9nzet
