@@ -41,7 +41,6 @@ import warnings
 from collections import defaultdict
 from datetime import timezone as tz
 from functools import cached_property
-from pathlib import Path
 from threading import Lock
 
 import defusedxml.ElementTree as ET
@@ -52,6 +51,7 @@ import xarray as xr
 from dask import array as da
 from geotiepoints.geointerpolator import lonlat2xyz, xyz2lonlat
 from geotiepoints.interpolator import MultipleSplineInterpolator
+from upath import UPath
 from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
@@ -112,7 +112,7 @@ class SAFEXML(BaseFileHandler):
         self._end_time = filename_info["end_time"].replace(tzinfo=tz.utc)
         self._polarization = filename_info["polarization"]
         if isinstance(self.filename, str):
-            self.filename = Path(self.filename)
+            self.filename = UPath(self.filename)
         with self.filename.open() as fd:
             self.root = ET.parse(fd)
         self._image_shape = image_shape
