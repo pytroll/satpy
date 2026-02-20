@@ -111,7 +111,7 @@ class NC_ABI_BASE(BaseFileHandler):
     @property
     def sensor(self):
         """Get sensor name for current file handler."""
-        return "abi"
+        return "ABI"
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.

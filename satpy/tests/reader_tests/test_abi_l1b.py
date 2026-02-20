@@ -371,7 +371,7 @@ class Test_NC_ABI_L1B:
             "scan_mode": "M4",
             "scene_abbr": "C",
             "scene_id": None,
-            "sensor": "abi",
+            "sensor": "ABI",
             "timeline_ID": None,
             "suffix": "suffix",
             "units": "W m-2 um-1 sr-1",
