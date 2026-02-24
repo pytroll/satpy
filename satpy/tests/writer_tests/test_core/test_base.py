@@ -68,7 +68,7 @@ class TestBaseWriter:
 
     def test_save_dataset_static_filename(self):
         """Test saving a dataset with a static filename specified."""
-        self.scn.save_datasets(base_dir=self.base_dir, filename="geotiff.tif")
+        self.scn.save_datasets(datasets=["test"], base_dir=self.base_dir, filename="geotiff.tif")
         assert os.path.isfile(os.path.join(self.base_dir, "geotiff.tif"))
 
     @pytest.mark.parametrize(
