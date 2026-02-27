@@ -176,3 +176,16 @@ enhancements:
         method: !!python/name:satpy.enhancements.contrast.gamma
         kwargs:
           gamma: [1.0, 1.0, 1.0]
+
+  day_cloud_phase_chmi:
+    standard_name: day_cloud_phase_chmi
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [75, 65, 100]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
+      kwargs: {gamma: [1.0, 1.0, 1.2]}
