@@ -337,6 +337,27 @@ class TestNativeResampler:
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
+    @mock.patch("pyresample.bilinear.XArrayBilinearResampler")
+    def test_precompute_forwards_bilinear_options(self, xr_resampler):
+        """Test that precompute forwards bilinear options to pyresample."""
+        from satpy.resample.kdtree import BilinearResampler
+
+        _, source_area, _, _, target_area = get_test_data()
+        resampler = BilinearResampler(source_area, target_area)
+        resampler.precompute()
+        assert xr_resampler.call_args.kwargs["reduce_data"] is True
+        assert xr_resampler.call_args.kwargs["limit_output"] is True
+
+        xr_resampler.reset_mock()
+        resampler = BilinearResampler(source_area, target_area)
+        resampler.precompute(reduce_data=False)
+        assert xr_resampler.call_args.kwargs["reduce_data"] is False
+
+        xr_resampler.reset_mock()
+        resampler = BilinearResampler(source_area, target_area)
+        resampler.precompute(limit_output=False)
+        assert xr_resampler.call_args.kwargs["limit_output"] is False
+
     @mock.patch("satpy.resample.kdtree._move_existing_caches")
     @mock.patch("satpy.resample.kdtree.BilinearResampler._create_cache_filename")
     @mock.patch("pyresample.bilinear.XArrayBilinearResampler")
