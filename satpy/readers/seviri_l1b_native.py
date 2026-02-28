@@ -177,7 +177,8 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  calib_mode="nominal", fill_disk=False, ext_calib_coefs=None,
-                 include_raw_metadata=False, mda_max_array_size=100):
+                 include_raw_metadata=False, mda_max_array_size=100,
+                 include_scanline_acq_time=True):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -188,6 +189,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.fill_disk = fill_disk
         self.include_raw_metadata = include_raw_metadata
         self.mda_max_array_size = mda_max_array_size
+        self.include_scanline_acq_time = include_scanline_acq_time
 
         # Declare required variables.
         self.header = {}
@@ -583,7 +585,8 @@ class NativeMSGFileHandler(BaseFileHandler):
             return None
 
         dataset = self.calibrate(xarr, dataset_id)
-        self._add_scanline_acq_time(dataset, dataset_id)
+        if self.include_scanline_acq_time:
+            self._add_scanline_acq_time(dataset, dataset_id)
         self._update_attrs(dataset, dataset_info)
 
         if self.fill_disk and not (dataset_id["name"] != "HRV" and self.mda["is_full_disk"]):
