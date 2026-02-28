@@ -935,6 +935,7 @@ class TestNativeMSGDataset:
             fh.ext_calib_coefs = {}
             fh.include_raw_metadata = False
             fh.mda_max_array_size = 100
+            fh.include_scanline_acq_time = True
         return fh
 
     @staticmethod
@@ -1006,6 +1007,24 @@ class TestNativeMSGDataset:
         assert file_handler.start_time == dt.datetime(2006, 1, 1, 12, 15, 0)
         assert file_handler.end_time == dt.datetime(2006, 1, 1, 12, 30, 0)
         assert_attrs_equal(xarr.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_get_dataset_without_scanline_acq_time(self, file_handler):
+        """Test optional skip of scanline acquisition-time coordinate."""
+        dataset_id = make_dataid(
+            name="VIS006",
+            resolution=3000,
+            calibration="counts"
+        )
+        dataset_info = {
+            "units": "1",
+            "wavelength": (1, 2, 3),
+            "standard_name": "counts"
+        }
+        file_handler.include_scanline_acq_time = False
+        with mock.patch.object(file_handler, "_add_scanline_acq_time") as mocked_add:
+            xarr = file_handler.get_dataset(dataset_id, dataset_info)
+        mocked_add.assert_not_called()
+        assert "acq_time" not in xarr.coords
 
     def test_time(self, file_handler):
         """Test start/end nominal/observation time handling."""
