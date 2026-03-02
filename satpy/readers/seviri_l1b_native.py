@@ -683,23 +683,27 @@ class NativeMSGFileHandler(BaseFileHandler):
         acq_time = get_cds_time(days=tline["Days"], msecs=tline["Milliseconds"])
         add_scanline_acq_time(dataset, acq_time)
 
+    @cached_property
+    def _acq_time_hrv(self):
+        tline = self._dask_array["hrv"]["acq_time"].compute()
+        return tline.reshape(self.mda["hrv_number_of_lines"])
+
+    @cached_property
+    def _acq_time_visir(self):
+        return self._dask_array["visir"]["acq_time"].compute()
+
     def _get_acq_time_hrv(self):
         """Get raw acquisition time for HRV channel."""
-        tline = self._dask_array["hrv"]["acq_time"]
-        tline0 = tline[:, 0]
-        tline1 = tline[:, 1]
-        tline2 = tline[:, 2]
-        return da.stack((tline0, tline1, tline2), axis=1).reshape(
-            self.mda["hrv_number_of_lines"]).compute()
+        return self._acq_time_hrv
 
     def _get_acq_time_visir(self, dataset_id):
         """Get raw acquisition time for VIS/IR channels."""
         # Check if there is only 1 channel in the list as a change
         # is needed in the array assignment, i.e. channel id is not present
         if len(self.mda["channel_list"]) == 1:
-            return self._dask_array["visir"]["acq_time"].compute()
+            return self._acq_time_visir
         i = self.mda["channel_list"].index(dataset_id["name"])
-        return self._dask_array["visir"]["acq_time"][:, i].compute()
+        return self._acq_time_visir[:, i]
 
     def _update_attrs(self, dataset, dataset_info):
         """Update dataset attributes."""
