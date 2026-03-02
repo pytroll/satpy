@@ -173,6 +173,13 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     See :mod:`satpy.readers.core.seviri`.
 
+    **Scanline acquisition time**
+
+    By default, datasets include the ``acq_time`` coordinate (mean acquisition
+    time per scanline). For native files this requires additional work and can
+    slow down loading. If not needed, disable it with
+    ``reader_kwargs={'include_scanline_acq_time': False}``.
+
     """
 
     def __init__(self, filename, filename_info, filetype_info,
