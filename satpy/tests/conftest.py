@@ -55,3 +55,11 @@ def include_test_etc():
     """Tell Satpy to use the config 'etc' directory from the tests directory."""
     with satpy.config.set(config_path=[TEST_ETC_DIR]):
         yield TEST_ETC_DIR
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _forbid_pyspectral_downloads():
+    from pyspectral.testing import forbid_pyspectral_downloads
+
+    with forbid_pyspectral_downloads():
+        yield
