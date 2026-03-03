@@ -101,6 +101,7 @@ class GAASPFileHandler(BaseFileHandler):
                   self.y_dims + self.x_dims + self.time_dims}
         nc = xr.open_dataset(self.filename,
                              decode_cf=True,
+                             decode_timedelta=False,
                              mask_and_scale=False,
                              chunks=chunks)
 
@@ -170,12 +171,13 @@ class GAASPFileHandler(BaseFileHandler):
         is_int = np.issubdtype(data_arr.dtype, np.integer)
         has_flag_comment = "comment" in attrs
         if is_int and has_flag_comment:
-            # category product
+            # category or timedelta product
             fill_out = fill_value
             attrs["_FillValue"] = fill_out
         else:
             fill_out = self._nan_for_dtype(data_arr.dtype)
         if fill_value is not None:
+            data_arr.data.compute().astype("float32")
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
         return data_arr, attrs
 
