@@ -301,6 +301,9 @@ class TestGAASPReader:
         if "int" in data_id["name"]:
             assert data_arr.attrs["_FillValue"] == 100
             assert np.issubdtype(data_arr.dtype, np.integer)
+        elif data_id["name"].startswith("latency"):
+            assert data_arr.attrs["_FillValue"] == -9999
+            assert np.issubdtype(data_arr.dtype, np.integer)
         else:
             assert "_FillValue" not in data_arr.attrs
             if np.issubdtype(data_arr.dtype, np.floating):
