@@ -339,47 +339,47 @@ datasets:
     file_key: data/measurement_data/solar_azimuth
     coordinates: [lat_tie_points, lon_tie_points]
 
-  observation_zenith_tie_points:
-    name: observation_zenith_tie_points
-    standard_name: sensor_zenith_angle
+  satellite_zenith_angle_tie_points:
+    name: satellite_zenith_angle_tie_points
+    standard_name: satellite_zenith_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_zenith
     coordinates: [lat_tie_points, lon_tie_points]
 
-  observation_azimuth_tie_points:
-    name: observation_azimuth_tie_points
-    standard_name: sensor_azimuth_angle
+  satellite_azimuth_angle_tie_points:
+    name: satellite_azimuth_angle_tie_points
+    standard_name: satellite_azimuth_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_azimuth
     coordinates: [lat_tie_points, lon_tie_points]
 
-  solar_zenith:
-    name: solar_zenith
+  solar_zenith_angle:
+    name: solar_zenith_angle
     standard_name: solar_zenith_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/solar_zenith
     interpolate: True
     coordinates: [lat_pixels, lon_pixels]
 
-  solar_azimuth:
-    name: solar_azimuth
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/solar_azimuth
     interpolate: True
     coordinates: [lat_pixels, lon_pixels]
 
-  observation_zenith:
-    name: observation_zenith
-    standard_name: sensor_zenith_angle
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    standard_name: satellite_zenith_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_zenith
     interpolate: True
     coordinates: [lat_pixels, lon_pixels]
 
-  observation_azimuth:
-    name: observation_azimuth
-    standard_name: sensor_azimuth_angle
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    standard_name: satellite_azimuth_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_azimuth
     interpolate: True
