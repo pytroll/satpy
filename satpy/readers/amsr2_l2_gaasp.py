@@ -164,14 +164,13 @@ class GAASPFileHandler(BaseFileHandler):
             return np.timedelta64("NaT")
         if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64("NaT")
-        return np.float32(np.nan)
+        return np.nan
 
     def _fill_data(self, data_arr, attrs):
         fill_value = attrs.pop("_FillValue", None)
         is_int = np.issubdtype(data_arr.dtype, np.integer)
         has_flag_comment = "comment" in attrs
-        is_timedelta = attrs.get("units", "") in ("seconds",)
-        if is_int and (has_flag_comment or is_timedelta):
+        if is_int and has_flag_comment:
             # category or timedelta product
             fill_out = fill_value
             attrs["_FillValue"] = fill_out
