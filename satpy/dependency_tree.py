@@ -550,7 +550,7 @@ class DependencyTree(Tree):
             return preferred
         # Explicit-tag requests fall back to the first candidate; plain-name requests
         # return None so that normal name-based lookup can proceed.
-        return candidates[0] if required_tags else None
+        return candidates[0] if (required_tags and candidates) else None
 
     def _find_tag_candidates(self, standard_name, required_tags):
         """Return compositors whose standard_name matches and that carry all required_tags."""

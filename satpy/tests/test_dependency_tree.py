@@ -139,6 +139,13 @@ class TestGetCompositorByTag:
             "comp1_crefl",
             id="preferred_tags_for_plain_name",
         ),
+        pytest.param(
+            {"comp1": []},
+            ["wmo"],
+            "comp1",
+            "comp1",
+            id="preferred_tag_unavailable_falls_back_to_plain",
+        ),
     ])
     def test_get_compositor_by_tag(self, compositors_spec, preferred_tags, query, expected_name):
         """Test compositor resolution using tag syntax and preferred_composite_tags config."""
@@ -154,6 +161,23 @@ class TestGetCompositorByTag:
             result = tree.get_compositor(DataQuery(name=query))
 
         assert result.attrs["name"] == expected_name
+
+    def test_get_compositor_raises_when_explicit_tag_not_found(self):
+        """Test that requesting a tagged variant that doesn't exist raises KeyError."""
+        comp = FakeCompositor(name="comp1", prerequisites=[], standard_name="comp1", tags=[])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1"): comp})}
+        tree = DependencyTree({}, compositors, {})
+
+        with pytest.raises(KeyError):
+            tree.get_compositor(DataQuery(name="comp1:wmo"))
+
+    def test_get_compositor_by_tag_skips_non_string_name(self):
+        """Test that a non-string name returns None instead of raising TypeError.
+
+        Without the isinstance guard, name.split(":") on None would crash.
+        """
+        tree = DependencyTree({}, {}, {})
+        assert tree._get_compositor_by_tag({"name": None}) is None
 
 
 class TestMissingDependencies(unittest.TestCase):
