@@ -19,10 +19,13 @@
 
 from __future__ import annotations
 
+import builtins
+import warnings
 from typing import Container, Iterable, Optional
 
 import numpy as np
 
+import satpy
 from satpy import DataID, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
@@ -492,14 +495,80 @@ class DependencyTree(Tree):
         return dep_key.from_dict(orig_dict)
 
     def get_compositor(self, key):
-        """Get a compositor."""
-        for sensor_name in sorted(self.compositors):
-            try:
-                return self.compositors[sensor_name][key]
-            except KeyError:
-                continue
+        """Get a compositor.
 
-        raise KeyError("Could not find compositor '{}'".format(key))
+        Resolves in order:
+        1. Tag-based: explicit ``name:tag`` syntax or ``preferred_composite_tags`` config.
+        2. Normal name-based lookup in the compositor registry.
+
+        If the compositor has a ``warnings`` attribute dict, those warnings are emitted here.
+        """
+        compositor = self._get_compositor_by_tag(key)
+        if compositor is None:
+            for sensor_name in sorted(self.compositors):
+                try:
+                    compositor = self.compositors[sensor_name][key]
+                    break
+                except KeyError:
+                    continue
+
+        if compositor is None:
+            raise KeyError("Could not find compositor '{}'".format(key))
+
+        self._emit_compositor_warnings(compositor)
+        return compositor
+
+    @staticmethod
+    def _emit_compositor_warnings(compositor):
+        for category_name, message in compositor.attrs.get("warnings", {}).items():
+            category = getattr(builtins, category_name, UserWarning)
+            warnings.warn(message, category, stacklevel=4)
+
+    def _get_compositor_by_tag(self, key):
+        """Find a compositor by tag syntax (``'name:tag1:tag2'``) or ``preferred_composite_tags`` config.
+
+        For explicit tag syntax the returned compositor must carry all listed tags; among
+        multiple matches the ``preferred_composite_tags`` config is used as a tiebreaker,
+        falling back to the first candidate in alphabetical sensor order.
+
+        For plain names (no colon) each entry in ``preferred_composite_tags`` is tried in
+        order; ``None`` is returned when none match so that normal name-based lookup can
+        proceed.
+        """
+        try:
+            name = key["name"]
+        except (KeyError, TypeError):
+            return None
+        if not isinstance(name, str):
+            return None
+
+        parts = name.split(":")
+        standard_name, required_tags = parts[0], set(parts[1:])
+        candidates = self._find_tag_candidates(standard_name, required_tags)
+        preferred = self._pick_preferred_candidate(candidates)
+        if preferred is not None:
+            return preferred
+        # Explicit-tag requests fall back to the first candidate; plain-name requests
+        # return None so that normal name-based lookup can proceed.
+        return candidates[0] if required_tags else None
+
+    def _find_tag_candidates(self, standard_name, required_tags):
+        """Return compositors whose standard_name matches and that carry all required_tags."""
+        return [
+            comp
+            for sensor_name in sorted(self.compositors)
+            for comp in self.compositors[sensor_name].values()
+            if comp.attrs.get("standard_name") == standard_name
+            and required_tags.issubset(set(comp.attrs.get("tags", [])))
+        ]
+
+    def _pick_preferred_candidate(self, candidates):
+        """Return the first candidate that matches any preferred_composite_tags entry, in order."""
+        for tag in satpy.config.get("preferred_composite_tags", []):
+            for comp in candidates:
+                if tag in comp.attrs.get("tags", []):
+                    return comp
+        return None
 
     def get_modifier(self, comp_id):
         """Get a modifer."""

@@ -96,6 +96,94 @@ class TestDependencyTree(unittest.TestCase):
         assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
 
 
+class TestGetCompositorByTag:
+    """Test tag-based compositor resolution via 'name:tag' syntax."""
+
+    def test_get_compositor_finds_tagged_variant(self):
+        """Test that 'name:tag' in get_compositor finds a compositor with matching standard_name and tag."""
+        from satpy.dataset import DataQuery, DatasetDict
+        from satpy.tests.utils import FakeCompositor, make_cid
+
+        comp_wmo = FakeCompositor(name="comp1_wmo", prerequisites=[], standard_name="comp1", tags=["wmo"])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo"): comp_wmo})}
+
+        tree = DependencyTree({}, compositors, {})
+        result = tree.get_compositor(DataQuery(name="comp1:wmo"))
+        assert result is comp_wmo
+
+
+    def test_get_compositor_finds_multi_tag_variant(self):
+        """Test that 'name:tag1:tag2' finds a compositor carrying all listed tags."""
+        from satpy.dataset import DataQuery, DatasetDict
+        from satpy.tests.utils import FakeCompositor, make_cid
+
+        comp = FakeCompositor(name="comp1_wmo_pyspectral", prerequisites=[],
+                              standard_name="comp1", tags=["wmo", "pyspectral"])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo_pyspectral"): comp})}
+
+        tree = DependencyTree({}, compositors, {})
+        result = tree.get_compositor(DataQuery(name="comp1:wmo:pyspectral"))
+        assert result is comp
+
+    def test_single_tag_request_matches_multi_tag_compositor(self):
+        """Test that 'name:tag' matches a compositor that carries that tag plus others."""
+        from satpy.dataset import DataQuery, DatasetDict
+        from satpy.tests.utils import FakeCompositor, make_cid
+
+        comp = FakeCompositor(name="comp1_wmo_pyspectral", prerequisites=[],
+                              standard_name="comp1", tags=["wmo", "pyspectral"])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo_pyspectral"): comp})}
+
+        tree = DependencyTree({}, compositors, {})
+        result = tree.get_compositor(DataQuery(name="comp1:wmo"))
+        assert result is comp
+
+    def test_explicit_tag_respects_preferred_tags_as_tiebreaker(self):
+        """Test that preferred_composite_tags breaks ties among compositors all matching an explicit tag.
+
+        When 'true_color:wmo' is requested and both true_color_wmo (tags=[wmo]) and
+        true_color_wmo_pyspectral (tags=[wmo, pyspectral]) are available, the compositor
+        whose extra tags include the preferred tag should win.
+        """
+        import satpy
+        from satpy.dataset import DataQuery, DatasetDict
+        from satpy.tests.utils import FakeCompositor, make_cid
+
+        comp_wmo = FakeCompositor(name="comp1_wmo", prerequisites=[],
+                                  standard_name="comp1", tags=["wmo"])
+        comp_wmo_pyspectral = FakeCompositor(name="comp1_wmo_pyspectral", prerequisites=[],
+                                             standard_name="comp1", tags=["wmo", "pyspectral"])
+        compositors = {"fake_sensor": DatasetDict({
+            make_cid(name="comp1_wmo"): comp_wmo,
+            make_cid(name="comp1_wmo_pyspectral"): comp_wmo_pyspectral,
+        })}
+        tree = DependencyTree({}, compositors, {})
+
+        with satpy.config.set(preferred_composite_tags=["pyspectral"]):
+            result = tree.get_compositor(DataQuery(name="comp1:wmo"))
+
+        assert result is comp_wmo_pyspectral
+
+    def test_preferred_tags_selects_first_matching_compositor(self):
+        """Test that preferred_composite_tags config selects the first matching tagged compositor."""
+        import satpy
+        from satpy.dataset import DataQuery, DatasetDict
+        from satpy.tests.utils import FakeCompositor, make_cid
+
+        comp_wmo = FakeCompositor(name="comp1_wmo", prerequisites=[], standard_name="comp1", tags=["wmo"])
+        comp_crefl = FakeCompositor(name="comp1_crefl", prerequisites=[], standard_name="comp1", tags=["crefl"])
+        compositors = {"fake_sensor": DatasetDict({
+            make_cid(name="comp1_wmo"): comp_wmo,
+            make_cid(name="comp1_crefl"): comp_crefl,
+        })}
+        tree = DependencyTree({}, compositors, {})
+
+        with satpy.config.set(preferred_composite_tags=["crefl", "wmo"]):
+            result = tree.get_compositor(DataQuery(name="comp1"))
+
+        assert result is comp_crefl
+
+
 class TestMissingDependencies(unittest.TestCase):
     """Test the MissingDependencies exception."""
 
