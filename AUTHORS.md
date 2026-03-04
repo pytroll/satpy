@@ -36,6 +36,7 @@ The following people have made contributions to this project:
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
+- [Alexander Halbig (alexhalbig)](https://github.com/alexhalbig) - Deutscher Wetterdienst
 - [Ulrich Hamann](https://github.com/)
 - [Mitch Herbertson (mherbertson)](https://github.com/mherbertson)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
@@ -110,3 +111,4 @@ The following people have made contributions to this project:
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
 - [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
+- [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)

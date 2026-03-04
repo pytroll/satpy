@@ -118,11 +118,10 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
                                 [963.20401882, 1048.95086402, 1270.95546218]])
         assert np.allclose(bt, expected_bt)
 
-        angle_factor = 0.4
         isi = 2.0
-        refl = self.reader._calibrate_refl(radiance, angle_factor, isi)
-        expected_refl = np.array([[62.8318531, 125.6637061, 314.1592654],
-                                  [439.8229715, 628.3185307, 1256.637061]])
+        refl = self.reader._calibrate_refl(radiance, isi)
+        expected_refl = np.array([[157.07963268, 314.15926536, 785.3981634],
+                                  [1099.55742876, 1570.79632679, 3141.59265359]])
         assert np.allclose(refl, expected_refl)
 
     def test_functions(self):
@@ -164,5 +163,5 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
                                                                {"calibration": "reflectance",
                                                                 "wavelength": [0.658, 0.668, 0.678],
                                                                 "chan_solar_index": 2})
-        expected_values = np.full((600, 72), 173.3181982)
+        expected_values = np.full((600, 72), 157.07963268)
         assert np.allclose(calibrated_variable.values, expected_values)
