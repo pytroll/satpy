@@ -619,3 +619,95 @@ composites:
           - name: nir_16
           - name: vis_06
     standard_name: day_severe_storms_tropical
+
+  _vis_06_crude:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    description: Special version of vis_06 for use in vis_with_ir_cloud_overlay
+    standard_name: vis-crude
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected]
+
+  _ir105:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    description: Special version of ir_105 for use in vis_with_ir_cloud_overlay
+    standard_name: ir-crude
+    prerequisites:
+      - name: ir_105
+
+  _vis_with_ir:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    standard_name: image_ready
+    lim_low: 85.0
+    lim_high: 88.0
+    prerequisites:
+      - _vis_06_crude
+      - _ir105
+
+  vis_with_ir_cloud_overlay:
+    compositor: !!python/name:satpy.composites.mask.MaskingCompositor
+    standard_name: image_ready
+    prerequisites:
+    - _vis_with_ir
+    - cloud_type
+    conditions:
+      - method: equal
+        value: Not processed (no or corrupt data)
+        transparency: 100
+      - method: equal
+        value: Cloud free land (no cloud, snow or ice)
+        transparency: 100
+      - method: equal
+        value: Cloud free sea (no cloud, snow or ice)
+        transparency: 100
+      - method: equal
+        value: Land with snow or ice
+        transparency: 100
+      - method: equal
+        value: Sea with snow or ice
+        transparency: 100
+      - method: equal
+        value: Cloud very low opaque
+        transparency: 0
+      - method: equal
+        value: Cloud low opaque
+        transparency: 0
+      - method: equal
+        value: Cloud medium opaque
+        transparency: 0
+      - method: equal
+        value: Cloud high opaque
+        transparency: 0
+      - method: equal
+        value: Cloud very high opaque
+        transparency: 0
+      - method: equal
+        value: Cloud semi-transparent high thin
+        transparency: 50
+      - method: equal
+        value: Cloud semi-transparent high mean thick
+        transparency: 50
+      - method: equal
+        value: Cloud semi-transparent high thick
+        transparency: 50
+      - method: equal
+        value: Cloud semi-transparent high above low medium cloud
+        transparency: 50
+      - method: equal
+        value: Cloud fractional
+        transparency: 50
+      - method: equal
+        value: Dust contaminated
+        transparency: 100
+      - method: equal
+        value: Dust opaque
+        transparency: 100
+      - method: equal
+        value: Ash contaminated
+        transparency: 100
+      - method: equal
+        value: Ash opaque
+        transparency: 100
+      - method: equal
+        value: Undefined by Cloud Mask
+        transparency: 100
