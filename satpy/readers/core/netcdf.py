@@ -4,7 +4,6 @@ import logging
 from contextlib import suppress
 
 import dask.array as da
-import netCDF4
 import numpy as np
 import xarray as xr
 
@@ -49,24 +48,24 @@ class NetCDF4FileHandler(BaseFileHandler):
         wrapper["group/subgroup/var_name/shape"]
 
     If your file has many small data variables that are frequently accessed,
-    you may choose to cache some of them.  You can do this by passing a number,
+    you may choose to cache some of them. You can do this by passing a number,
     any variable smaller than this number in bytes will be read into RAM.
     Warning, this part of the API is provisional and subject to change.
 
-    You may get an additional speedup by passing ``cache_handle=True``.  This
+    You may get an additional speedup by passing ``cache_handle=True``. This
     will keep the netCDF4 dataset handles open throughout the lifetime of the
     object, and instead of using `xarray.open_dataset` to open every data
-    variable, a dask array will be created "manually".  This may be useful if
-    you have a dataset distributed over many files, such as for FCI.  Note
-    that the coordinates will be missing in this case.  If you use this option,
+    variable, a dask array will be created "manually". This may be useful if
+    you have a dataset distributed over many files, such as for FCI. Note
+    that the coordinates will be missing in this case. If you use this option,
     ``xarray_kwargs`` will have no effect.
 
     Args:
-        filename (str): File to read
-        filename_info (dict): Dictionary with filename information
-        filetype_info (dict): Dictionary with filetype information
-        auto_maskandscale (bool): Apply mask and scale factors
-        xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
+        filename (str): File to read.
+        filename_info (dict): Dictionary with filename information.
+        filetype_info (dict): Dictionary with filetype information.
+        auto_maskandscale (bool): Apply mask and scale factors.
+        xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`.
         cache_var_size (int): Cache variables smaller than this size.
         cache_handle (bool): Keep files open for lifetime of filehandler.
         engine (str or list of str): The engine to use for reading, either "netcdf4" or "h5netcdf". As a list, will try
@@ -121,6 +120,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault("chunks", CHUNK_SIZE)
         self._xarray_kwargs.setdefault("mask_and_scale", auto_maskandscale)
+        self._xarray_kwargs["engine"] = self.accessor.engine
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -332,14 +332,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             val = v
         else:
             try:
-                val = v[:]
-                val = xr.DataArray(val, dims=v.dimensions,
-                                   attrs=self.accessor.get_object_attrs(v),
-                                   name=v.name)
-            except IndexError:
-                # Handle scalars
-                val = v.__array__().item()
-                val = xr.DataArray(val, dims=(), attrs={}, name=var_name)
+                val = get_data_as_xarray(v)
             except AttributeError:
                 # Handle strings
                 val = v
@@ -398,9 +391,11 @@ def get_accessor_and_filehandle_from_engines(filename, *engines):
     """Choose an accessor from the first possible engine, and return in along with the file handle."""
     for engine in engines:
         try:
+            LOG.info(f"Trying reading nc file with {engine} engine…")
             return get_accessor_and_filehandle_from_engine(filename, engine)
         except Exception as err:
-            LOG.warning(str(err))
+            LOG.warning(f"Cannot use {engine} engine to read nc file.")
+            LOG.debug(f"The error is: {str(err)}")
             continue
     else:
         raise RuntimeError("Could not work out an appropriate engine to open netCDF4 files")
@@ -412,16 +407,19 @@ class NetCDF4Accessor:
 
     def create_file_handle(self, filename):
         """Create a file handle."""
+        import netCDF4
         return netCDF4.Dataset(filename, "r")
 
     @staticmethod
     def is_variable(obj):
         """Check if obj is a variable."""
+        import netCDF4
         return isinstance(obj, netCDF4.Variable)
 
     @staticmethod
     def is_group(obj):
         """Check if obj is a group."""
+        import netCDF4
         return isinstance(obj, netCDF4.Group)
 
     @staticmethod
