@@ -18,7 +18,6 @@
 """Unittesting the native msg reader."""
 
 import datetime as dt
-import unittest
 
 import numpy as np
 import pytest
@@ -50,10 +49,6 @@ RADIANCES_OUTPUT = xr.DataArray(
 
 GAIN = 0.20503567620766011
 OFFSET = -10.456819486590666
-
-CAL_TYPE1 = 1
-CAL_TYPE2 = 2
-CAL_TYPEBAD = -1
 CHANNEL_NAME = "IR_108"
 PLATFORM_ID = 323  # Met-10
 
@@ -104,40 +99,50 @@ VIS008_REFLECTANCE = xr.DataArray(
 )
 
 
-class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
+class TestSEVIRICalibrationAlgorithm:
     """Unit Tests for SEVIRI calibration algorithm."""
 
-    def setUp(self):
+    @pytest.fixture
+    def algo(self):
         """Set up the SEVIRI Calibration algorithm for testing."""
-        self.algo = sev.SEVIRICalibrationAlgorithm(
+        return sev.SEVIRICalibrationAlgorithm(
             platform_id=PLATFORM_ID,
             scan_time=dt.datetime(2020, 8, 15, 13, 0, 40)
         )
 
-    def test_convert_to_radiance(self):
+    def test_convert_to_radiance(self, algo):
         """Test the conversion from counts to radiances."""
-        result = self.algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
+        result = algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
         xr.testing.assert_allclose(result, RADIANCES_OUTPUT)
         assert result.dtype == np.float32
 
-    def test_ir_calibrate(self):
-        """Test conversion from radiance to brightness temperature."""
-        result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
-                                        CHANNEL_NAME, CAL_TYPE1)
+    def test_ir_calibrate_spectral_radiance(self, algo):
+        """Test conversion from spectral radiance to brightness temperature."""
+        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                                   sev.IRCalibrationType.spectral_radiance)
         xr.testing.assert_allclose(result, TBS_OUTPUT1, rtol=1E-5)
         assert result.dtype == np.float32
 
-        result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
-                                        CHANNEL_NAME, CAL_TYPE2)
+    def test_ir_calibrate_effective_radiance(self, algo):
+        """Test conversion from effective radiance to brightness temperature."""
+        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                                   sev.IRCalibrationType.effective_radiance)
         xr.testing.assert_allclose(result, TBS_OUTPUT2, rtol=1E-5)
 
-        with pytest.raises(NotImplementedError):
-            self.algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, CAL_TYPEBAD)
+    def test_ir_calibrate_missing_coefs(self, algo):
+        """Test IR calibration with missing coefficients."""
+        with pytest.raises(ValueError, match="No calibration coefficients"):
+            algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                              sev.IRCalibrationType.not_processed)
 
-    def test_vis_calibrate(self):
+    def test_ir_calibrate_bad_calib_type(self, algo):
+        """Test IR calibration with bad calibration type."""
+        with pytest.raises(NotImplementedError):
+            algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, cal_type=-1)
+
+    def test_vis_calibrate(self, algo):
         """Test conversion from radiance to reflectance."""
-        result = self.algo.vis_calibrate(VIS008_RADIANCE,
-                                         VIS008_SOLAR_IRRADIANCE)
+        result = algo.vis_calibrate(VIS008_RADIANCE, VIS008_SOLAR_IRRADIANCE)
         xr.testing.assert_allclose(result, VIS008_REFLECTANCE)
         assert result.sun_earth_distance_correction_applied
         assert result.dtype == np.float32
