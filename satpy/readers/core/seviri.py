@@ -166,13 +166,13 @@ References:
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
 
 .. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_msg_seviri_rad2refl_d6cd0c663f.pdf
 
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www.eumetsat.int/media/45126
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05105_msg_img_data_e7c8b315e6.pdf
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_msg_seviri_rad_calib_b4e474a6de.pdf
 
 .. _Inter-calibration of polar imager solar channels using SEVIRI:
    http://dx.doi.org/10.5194/amt-6-2495-2013
@@ -184,10 +184,12 @@ import datetime as dt
 import warnings
 from collections import namedtuple
 from collections.abc import Iterable, Sequence
+from enum import IntEnum
 
 import dask.array as da
 import numpy as np
 import pyproj
+import xarray as xr
 from numpy.polynomial.chebyshev import Chebyshev
 
 import satpy.readers.core.utils as utils
@@ -558,6 +560,17 @@ class MpefProductHeader(object):
 mpef_product_header = MpefProductHeader().get()
 
 
+
+class IRCalibrationType(IntEnum):
+    """IR calibration types.
+
+    Corresponds to header entry "PlannedChanProcessing".
+    """
+    spectral_radiance = 1
+    effective_radiance = 2
+    not_processed = 0
+
+
 class SEVIRICalibrationAlgorithm:
     """SEVIRI calibration algorithms."""
 
@@ -580,16 +593,17 @@ class SEVIRICalibrationAlgorithm:
 
         return (self._tl15(data, wavenumber) - beta) / alpha
 
-    def ir_calibrate(self, data, channel_name, cal_type):
+    def ir_calibrate(self, data: xr.DataArray, channel_name: str, cal_type: int) -> xr.DataArray:
         """Calibrate to brightness temperature."""
-        if cal_type == 1:
-            # spectral radiances
+        if cal_type == IRCalibrationType.spectral_radiance:
             return self._srads2bt(data, channel_name)
-        elif cal_type == 2:
-            # effective radiances
+        elif cal_type == IRCalibrationType.effective_radiance:
             return self._erads2bt(data, channel_name)
-        else:
-            raise NotImplementedError("Unknown calibration type")
+        elif cal_type == IRCalibrationType.not_processed:
+            raise ValueError(f"No calibration coefficients available for {channel_name} "
+                            "(PlannedChanProcessing is zero)")
+        raise NotImplementedError(f"Unknown calibration type: {cal_type}. "
+                                  f"Supported values are {list(IRCalibrationType)}.")
 
     def _srads2bt(self, data, channel_name):
         """Convert spectral radiance to brightness temperature."""
@@ -608,7 +622,7 @@ class SEVIRICalibrationAlgorithm:
         """Calibrate to reflectance.
 
         This uses the method described in Conversion from radiances to
-        reflectances for SEVIRI warm channels: https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+        reflectances for SEVIRI warm channels: https://user.eumetsat.int/s3/eup-strapi-media/pdf_msg_seviri_rad2refl_d6cd0c663f.pdf
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return utils.apply_earthsun_distance_correction(reflectance, self._scan_time)
