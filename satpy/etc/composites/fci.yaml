@@ -420,6 +420,19 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: cloud_phase
 
+  day_cloud_phase_chmi:
+    description: >
+      Equal to cloud_phase recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+    - name: nir_16
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: nir_22
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: vis_06
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: day_cloud_phase_chmi
+
   cloud_phase_with_night_ir105:
     description: >
       Combines the cloud_phase during daytime with the simple 10.5µm night_ir105 layer during nighttime
