@@ -393,6 +393,22 @@ composites:
         modifiers: [sunz_corrected, sunz_reduced]
     standard_name: cimss_cloud_type
 
+  day_cloud_type_chmi:
+    description: >
+      Equal to cimss_cloud_type recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/CloudTypeRGB.pdf
+      EUMETRAIN extended Guide: https://resources.eumetrain.org/data/7/736/index.htm
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: nir_13
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: vis_06
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: nir_16
+        modifiers: [effective_solar_pathlength_corrected]
+    standard_name: day_cloud_type_chmi
+
   cloud_type_with_night_ir105:
     description: >
       Combines the cloud_type during daytime with the simple 10.5µm night_ir105 layer during nighttime

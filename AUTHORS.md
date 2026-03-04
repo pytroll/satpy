@@ -93,6 +93,7 @@ The following people have made contributions to this project:
 - [Michael Schmutz (Graenni)](https://github.com/Graenni) - Meteotest AG
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
+- Martin Setvak - CHMI
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
