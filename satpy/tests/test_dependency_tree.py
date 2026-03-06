@@ -18,8 +18,12 @@
 import os
 import unittest
 
+import pytest
+
+import satpy
+from satpy.dataset import DataQuery, DatasetDict
 from satpy.dependency_tree import DependencyTree
-from satpy.tests.utils import make_cid, make_dataid
+from satpy.tests.utils import FakeCompositor, make_cid, make_dataid
 
 
 class TestDependencyTree(unittest.TestCase):
@@ -94,6 +98,86 @@ class TestDependencyTree(unittest.TestCase):
         """Test that dependency tree instantiation preserves the uniqueness of the empty node."""
         new_dependency_tree = DependencyTree(None, None, None)
         assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
+
+
+class TestGetCompositorByTag:
+    """Test tag-based compositor resolution via 'name:tag' syntax."""
+
+    @pytest.mark.parametrize(("compositors_spec", "preferred_tags", "query", "expected_name"), [
+        pytest.param(
+            {"comp1_wmo": ["wmo"]},
+            [],
+            "comp1:wmo",
+            "comp1_wmo",
+            id="single_explicit_tag",
+        ),
+        pytest.param(
+            {"comp1_wmo_pyspectral": ["wmo", "pyspectral"]},
+            [],
+            "comp1:wmo:pyspectral",
+            "comp1_wmo_pyspectral",
+            id="multi_explicit_tags",
+        ),
+        pytest.param(
+            {"comp1_wmo_pyspectral": ["wmo", "pyspectral"]},
+            [],
+            "comp1:wmo",
+            "comp1_wmo_pyspectral",
+            id="single_tag_matches_multi_tag_compositor",
+        ),
+        pytest.param(
+            {"comp1_wmo": ["wmo"], "comp1_wmo_pyspectral": ["wmo", "pyspectral"]},
+            ["pyspectral"],
+            "comp1:wmo",
+            "comp1_wmo_pyspectral",
+            id="preferred_tags_tiebreaker_for_explicit_tag",
+        ),
+        pytest.param(
+            {"comp1_wmo": ["wmo"], "comp1_crefl": ["crefl"]},
+            ["crefl", "wmo"],
+            "comp1",
+            "comp1_crefl",
+            id="preferred_tags_for_plain_name",
+        ),
+        pytest.param(
+            {"comp1": []},
+            ["wmo"],
+            "comp1",
+            "comp1",
+            id="preferred_tag_unavailable_falls_back_to_plain",
+        ),
+    ])
+    def test_get_compositor_by_tag(self, compositors_spec, preferred_tags, query, expected_name):
+        """Test compositor resolution using tag syntax and preferred_composite_tags config."""
+        compositors = {
+            "fake_sensor": DatasetDict({
+                make_cid(name=name): FakeCompositor(name=name, prerequisites=[], standard_name="comp1", tags=tags)
+                for name, tags in compositors_spec.items()
+            })
+        }
+        tree = DependencyTree({}, compositors, {})
+
+        with satpy.config.set(preferred_composite_tags=preferred_tags):
+            result = tree.get_compositor(DataQuery(name=query))
+
+        assert result.attrs["name"] == expected_name
+
+    def test_get_compositor_raises_when_explicit_tag_not_found(self):
+        """Test that requesting a tagged variant that doesn't exist raises KeyError."""
+        comp = FakeCompositor(name="comp1", prerequisites=[], standard_name="comp1", tags=[])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1"): comp})}
+        tree = DependencyTree({}, compositors, {})
+
+        with pytest.raises(KeyError):
+            tree.get_compositor(DataQuery(name="comp1:wmo"))
+
+    def test_get_compositor_by_tag_skips_non_string_name(self):
+        """Test that a non-string name returns None instead of raising TypeError.
+
+        Without the isinstance guard, name.split(":") on None would crash.
+        """
+        tree = DependencyTree({}, {}, {})
+        assert tree._get_compositor_by_tag({"name": None}) is None
 
 
 class TestMissingDependencies(unittest.TestCase):
