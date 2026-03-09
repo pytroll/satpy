@@ -85,3 +85,13 @@ composites:
     reference_time: end_time
     prerequisites:
       - flash_time
+
+  acc_flash_geometry:
+    description: Accumulated Flash Geometry product developed by ESSL
+    compositor: !!python/name:satpy.composites.lightning.FlashGeometry
+    standard_name: acc_flash_geometry
+    prerequisites:
+      - flash_id
+      - group_time
+      - latitude
+      - longitude

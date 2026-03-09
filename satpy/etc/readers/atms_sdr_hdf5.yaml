@@ -8,7 +8,7 @@ reader:
     https://www.nesdis.noaa.gov/about/documents-reports/jpss-technical-documents/jpss-science-documents
   status: Beta
   sensors: [atms]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   supports_fsspec: false
 
   data_identification_keys:

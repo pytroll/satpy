@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: []
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 # Typical filenames from Unidata THREDDS server:
 # Server: http://thredds-test.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/CONUS/Channel02/current/catalog.xml
