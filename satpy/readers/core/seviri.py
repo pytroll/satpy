@@ -134,6 +134,15 @@ The SEVIRI L1.5 readers provide the following metadata:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
+  Computing this coordinate can add a performance penalty for some readers.
+  For ``seviri_l1b_native`` it can be disabled with:
+
+  .. code-block:: python
+
+      scene = satpy.Scene(filenames,
+                          reader='seviri_l1b_native',
+                          reader_kwargs={'include_scanline_acq_time': False})
+
 * HRIT and Native readers can add raw metadata from the file header, such
   as calibration coefficients, to dataset attributes. Use the reader keyword
   argument ``include_raw_metadata``. Here's an example for extracting
