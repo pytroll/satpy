@@ -31,17 +31,34 @@ from satpy.tests.utils import make_cid, spy_decorator
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
 
+@pytest.fixture(scope="module")
+def fake_area():
+    """Create a fake area for test data."""
+    from pyresample.geometry import AreaDefinition
+
+    return AreaDefinition(
+        "test",
+        "test",
+        "test",
+        "EPSG:4326",
+        200,
+        100,
+        (-2000, -1000, 2000, 1000),
+    )
+
 
 class TestSceneSaving:
     """Test the Scene's saving method."""
 
-    def test_save_datasets_default(self, tmp_path):
+    def test_save_datasets_default(self, tmp_path, fake_area):
         """Save a dataset using 'save_datasets'."""
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
+                   "area": fake_area,
+            }
         )
         scn = Scene()
         scn["test"] = ds1
@@ -51,10 +68,12 @@ class TestSceneSaving:
     def test_save_datasets_by_ext(self, tmp_path):
         """Save a dataset using 'save_datasets' with 'filename'."""
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
+                   "area": fake_area,
+            }
         )
         scn = Scene()
         scn["test"] = ds1
@@ -94,13 +113,15 @@ class TestSceneSaving:
                       scn.save_datasets,
                       datasets=["no_exist"])
 
-    def test_save_dataset_default(self, tmp_path):
+    def test_save_dataset_default(self, tmp_path, fake_area):
         """Save a dataset using 'save_dataset'."""
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
-                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0)}
+                   "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
+                   "area": fake_area,
+            }
         )
         scn = Scene()
         scn["test"] = ds1

@@ -18,7 +18,6 @@
 """Unittesting the EUMETSAT L2 BUFR reader."""
 
 import sys
-import unittest
 from datetime import datetime
 from unittest import mock
 
@@ -28,6 +27,9 @@ import pytest
 from pyresample import geometry
 
 from satpy.tests.utils import make_dataid
+
+if sys.platform.startswith("win"):
+    pytest.skip("'eccodes' not supported on Windows", allow_module_level=True)
 
 AREA_DEF_MSG_IODC = geometry.AreaDefinition(
     "msg_seviri_iodc_48km",
@@ -167,7 +169,6 @@ TEST_FILES = list(TEST_DATA.keys())
 class L2BufrData:
     """Mock L2 BUFR data."""
 
-    @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def __init__(self, filename, test_data, with_adef=False, rect_lon="default"):
         """Initialize by mocking test data for testing the L2 BUFR reader."""
         import eccodes as ec

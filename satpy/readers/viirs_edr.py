@@ -348,7 +348,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
     def _get_veg_index_good_mask(self) -> da.Array:
         # each mask array should be TRUE when pixels are UNACCEPTABLE
         qf1 = self.nc["QF1 Surface Reflectance"]
-        has_sun_glint = (qf1 & 0b11000000) > 0
+        # has_sun_glint = (qf1 & 0b11000000) > 0
         is_cloudy = (qf1 & 0b00001100) > 0  # mask everything but "confident clear"
         cloud_quality = (qf1 & 0b00000011) < 0b10
 
@@ -363,7 +363,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
         adjacent_to_cloud = (qf7 & 0b00000010) > 0
 
         bad_mask = (
-                has_sun_glint |
+                # has_sun_glint |
                 is_cloudy |
                 cloud_quality |
                 has_snow_or_ice |

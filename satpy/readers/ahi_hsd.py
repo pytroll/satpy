@@ -63,6 +63,7 @@ import datetime as dt
 import logging
 import os
 import warnings
+import weakref
 
 import dask.array as da
 import numpy as np
@@ -357,6 +358,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
+        # Register cleanup to be called when garbage collected
+        weakref.finalize(self, self._cleanup)
+
         self.is_zipped = False
         self._unzipped = unzip_file(self.filename, prefix=str(filename_info["segment"]).zfill(2))
         # Assume file is not zipped
@@ -402,8 +406,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.user_calibration = user_calibration
         self._round_actual_position = round_actual_position
 
-    def __del__(self):
-        """Delete the object."""
+    def _cleanup(self):
+        """Delete unzipped file."""
         if self.is_zipped and os.path.exists(self.filename):
             os.remove(self.filename)
 

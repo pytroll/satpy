@@ -16,38 +16,72 @@
 """Utilities for writers."""
 from __future__ import annotations
 
+import os
+import warnings
+from collections.abc import Iterable
+from typing import Any
+
 import dask
+import numpy as np
 from dask import array as da
+from dask.delayed import Delayed
 
 
-def split_results(results):
+def split_results(
+        results: Iterable[list[da.Array | Delayed] | tuple[list[da.Array], list[Any]]],
+) -> tuple[list[da.Array], list[Any], list[da.Array | Delayed]]:
     """Split results.
 
-    Get sources, targets and delayed objects to separate lists from a list of
-    results collected from (multiple) writer(s).
+    Get sources, targets, and objects to be computed into separate lists from a list of
+    results collected from one or more writers. This function will treat dask
+    Arrays and Delayed objects with no targets as dask collections to be
+    computed. Otherwise dask Arrays can be supplied with an associated target
+    array-like file object and will be passed to :func:`dask.array.store`.
+
+    We assume that the provided input is a list containing any combination of:
+
+    1. List of dask Arrays (to be computed, not stored).
+    2. List of Delayed objects.
+    3. A two-element tuple where the first element is a collection of dask
+       Arrays and the second is a collection of array-like file objects of
+       the same size.
+    4. A list made up of the above.
+
     """
-    from dask.delayed import Delayed
-
-    def flatten(results):
-        out = []
-        if isinstance(results, (list, tuple)):
-            for itm in results:
-                out.extend(flatten(itm))
-            return out
-        return [results]
-
     sources = []
     targets = []
-    delayeds = []
+    delayeds_or_arrays: list[da.Array | Delayed] = []
 
-    for res in flatten(results):
-        if isinstance(res, da.Array):
-            sources.append(res)
-        elif isinstance(res, Delayed):
-            delayeds.append(res)
+    for result in results:
+        if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], list):
+            sources.extend(result[0])
+            targets.extend(result[1])
+        elif isinstance(result, list):
+            delayeds_or_arrays.extend(result)
         else:
-            targets.append(res)
-    return sources, targets, delayeds
+            # Satpy 1.0 error message:
+            # raise ValueError(f"Unexpected result from Satpy writer: {result!r}")
+            # Satpy <1.0 warning:
+            warnings.warn(f"Unexpected result from Satpy writer: {result!r}. "
+                          "This form of result is no longer supported and will be removed in Satpy 1.0. "
+                          "See docstring for expected values and https://github.com/pytroll/satpy/pull/3215 "
+                          "for details.",
+                          stacklevel=2)
+            flat_results = _flatten(result)
+            sources.extend([res for res in flat_results if isinstance(res, da.Array)])
+            targets.extend([res for res in flat_results if not isinstance(res, (da.Array, Delayed))])
+            delayeds_or_arrays.extend([res for res in flat_results if isinstance(res, Delayed)])
+    return sources, targets, delayeds_or_arrays
+
+
+def _flatten(results):
+    # Remove in Satpy 1.0
+    out = []
+    if isinstance(results, (list, tuple)):
+        for itm in results:
+            out.extend(_flatten(itm))
+        return out
+    return [results]
 
 
 def group_results_by_output_file(sources, targets):
@@ -113,32 +147,52 @@ def group_results_by_output_file(sources, targets):
     return list(ofs.values())
 
 
-def compute_writer_results(results):
-    """Compute all the given dask graphs `results` so that the files are saved.
+def compute_writer_results(
+        results: Iterable[list[da.Array | Delayed] | tuple[list[da.Array], list[Any]]],
+) -> list[np.ndarray | str | os.PathLike | None]:
+    """Compute all the given dask graphs ``results`` so that the files are saved.
 
     Args:
-        results (Iterable): Iterable of dask graphs resulting from calls to
-                            `scn.save_datasets(..., compute=False)`
-    """
-    if not results:
-        return
+        results: Iterable of dask collections resulting from calls to
+            ``scn.save_datasets(..., compute=False)``. The iterable passed
+            should always **contain** the results of the writer/save_datasets
+            call, not be the results themselves. Each collection of results from
+            a writer should be either a list of dask containers to be computed
+            (ex. Array or Delayed) or a 2-element tuple where the first element
+            is a list of dask Array objects and the second element is a list of
+            target file-like objects supporting ``__setitem__`` syntax. In the
+            case of the 2-element tuple, these lists will be passed to
+            :func:`dask.array.store` to write the Arrays to the targets.
 
-    sources, targets, delayeds = split_results(results)
+    Returns:
+        A list of the computed results. These are typically string or Path
+        filenames that were created or None if the ``store`` function
+        (see above) was called. If the dask collection to be computed
+        is an array then the computed array will be in the returned list.
+
+    """
+    computed_results: list[np.ndarray | str | os.PathLike | None] = []
+    if not results:
+        return computed_results
+
+    sources, targets, delayeds_or_arrays = split_results(results)
 
     # one or more writers have targets that we need to close in the future
     if targets:
-        delayeds.append(da.store(sources, targets, compute=False))
+        delayeds_or_arrays.append(da.store(sources, targets, compute=False))
 
-    if delayeds:
+    if delayeds_or_arrays:
         # replace Delayed's graph optimization function with the Array function
         # since a Delayed object here is only from the writer but the rest of
         # the tasks are dask array operations we want to fully optimize all
         # array operations. At the time of writing Array optimizations seem to
         # include the optimizations done for Delayed objects alone.
         with dask.config.set(delayed_optimization=dask.config.get("array_optimize", da.optimize)):
-            da.compute(delayeds)
+            computed_results.extend(da.compute(delayeds_or_arrays))
 
     if targets:
         for target in targets:
             if hasattr(target, "close"):
                 target.close()
+
+    return computed_results

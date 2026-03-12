@@ -17,8 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.acspo module."""
 
+from __future__ import annotations
+
 import datetime as dt
 import os
+from typing import Any
 from unittest import mock
 
 import numpy as np
@@ -27,29 +30,29 @@ import pytest
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
-DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
-DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
-                              dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
-DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
-DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
-DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler."""
 
-    def get_test_content(self, filename, filename_info, filetype_info):
+    def get_test_content(self, filename: str, filename_info: dict, filetype_info: dict) -> dict:
         """Mimic reader input file content."""
+        DEFAULT_FILE_DTYPE = np.uint16
+        DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                                      dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+        DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+        DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
+        DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+        DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
+
         date = filename_info.get("start_time", dt.datetime(2016, 1, 1, 12, 0, 0))
         sat, inst = {
             "VIIRS_NPP": ("NPP", "VIIRS"),
             "VIIRS_N20": ("N20", "VIIRS"),
         }[filename_info["sensor_id"]]
 
-        file_content = {
+        file_content: dict[str, Any] = {
             "/attr/platform": sat,
             "/attr/sensor": inst,
             "/attr/spatial_resolution": "742 m at nadir",
@@ -91,9 +94,11 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content[k + "/attr/_FillValue"] = 65534
             file_content[k + "/shape"] = (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1])
 
-        file_content["l2p_flags"] = np.zeros(
+        l2p_flags_data = np.zeros(
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
             dtype=np.int16)
+        l2p_flags_data[0, -1, -1] = np.int16(np.uint16(0b1100000000000000))  # cloud
+        file_content["l2p_flags"] = l2p_flags_data
 
         convert_file_content_to_data_array(file_content, dims=("time", "nj", "ni"))
         return file_content
@@ -135,21 +140,41 @@ class TestACSPOReader:
         # make sure we have some files
         assert r.file_handlers
 
-    def test_load_every_dataset(self):
+    @pytest.mark.parametrize(
+        ("var_name", "cloud_clearable", "cloud_clear"),
+        [
+            ("sst", True, False),
+            ("sst", True, True),
+            ("satellite_zenith_angle", False, False),
+            ("satellite_zenith_angle", False, True),
+            ("sea_ice_fraction", False, False),
+            ("wind_speed", False, False),
+        ])
+    def test_load_every_dataset(self, var_name, cloud_clearable, cloud_clear):
         """Test loading all datasets."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "20170401174600-STAR-L2P_GHRSST-SSTskin-VIIRS_NPP-ACSPO_V2.40-v02.0-fv01.0.nc",
         ])
-        r.create_filehandlers(loadables)
-        datasets = r.load(["sst",
-                           "satellite_zenith_angle",
-                           "sea_ice_fraction",
-                           "wind_speed"])
-        assert len(datasets) == 4
-        for d in datasets.values():
-            assert d.shape == DEFAULT_FILE_SHAPE
-            assert d.dims == ("y", "x")
-            assert d.attrs["sensor"] == "viirs"
-            assert d.attrs["rows_per_scan"] == 16
+        fh_kwargs = {}
+        if cloud_clear:
+            fh_kwargs["filters"] = ["cloud_clear"]
+        r.create_filehandlers(loadables, fh_kwargs=fh_kwargs)
+        datasets = r.load([var_name])
+        assert len(datasets) == 1
+        d = datasets[var_name]
+        assert d.shape == DEFAULT_FILE_SHAPE
+        assert d.dims == ("y", "x")
+        assert d.attrs["sensor"] == "viirs"
+        assert d.attrs["rows_per_scan"] == 16
+        dask_data = d.data
+        np_data = dask_data.compute()
+        assert dask_data.dtype == np.float32
+        assert np_data.dtype == np.float32
+
+        exp_data = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1], dtype=np.uint16).reshape(DEFAULT_FILE_SHAPE)
+        exp_data = exp_data * np.float32(1.1) + 0.1
+        if cloud_clearable and cloud_clear:
+            exp_data[-1, -1] = np.nan
+        np.testing.assert_array_equal(np_data, exp_data, strict=True)

@@ -21,7 +21,9 @@ import datetime as dt
 import os
 import tempfile
 import warnings
+from contextlib import nullcontext
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -76,7 +78,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        scn["test-array"] = xr.DataArray([1, 2, 3],
+        scn["test-array"] = xr.DataArray(da.from_array([1.0, 2.0, 3.0]),
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
                                                     prerequisites=[make_dsq(name="hej")]))
@@ -101,7 +103,7 @@ class TestCFWriter:
                         "+a=6378137.0 +b=6356752.31414 +sweep=x "
                         "+units=m +no_defs")
             coords["crs"] = CRS.from_string(proj_str)
-        scn["test-array"] = xr.DataArray([[1, 2, 3]],
+        scn["test-array"] = xr.DataArray(da.from_array([[1.0, 2.0, 3.0]]),
                                          dims=("y", "x"),
                                          coords=coords,
                                          attrs=dict(start_time=start_time,
@@ -122,7 +124,7 @@ class TestCFWriter:
     def test_save_dataset_a_digit(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit."""
         scn = Scene()
-        scn["1"] = xr.DataArray([1, 2, 3])
+        scn["1"] = xr.DataArray(da.from_array([1.0, 2.0, 3.0]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer="cf")
             with xr.open_dataset(filename) as f:
@@ -131,7 +133,7 @@ class TestCFWriter:
     def test_save_dataset_a_digit_prefix(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix."""
         scn = Scene()
-        scn["1"] = xr.DataArray([1, 2, 3])
+        scn["1"] = xr.DataArray(da.from_array([1.0, 2.0, 3.0]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer="cf", numeric_name_prefix="TEST")
             with xr.open_dataset(filename) as f:
@@ -140,7 +142,7 @@ class TestCFWriter:
     def test_save_dataset_a_digit_prefix_include_attr(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
         scn = Scene()
-        scn["1"] = xr.DataArray([1, 2, 3])
+        scn["1"] = xr.DataArray(da.from_array([1.0, 2.0, 3.0]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="TEST")
             with xr.open_dataset(filename) as f:
@@ -150,7 +152,7 @@ class TestCFWriter:
     def test_save_dataset_a_digit_no_prefix_include_attr(self):
         """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
         scn = Scene()
-        scn["1"] = xr.DataArray([1, 2, 3])
+        scn["1"] = xr.DataArray(da.from_array([1.0, 2.0, 3.0]))
         with TempFile() as filename:
             with pytest.warns(UserWarning, match=r"Invalid NetCDF dataset name"):
                 scn.save_datasets(filename=filename, writer="cf", include_orig_name=True, numeric_name_prefix="")
@@ -164,12 +166,13 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        da = xr.DataArray([1, 2, 3],
-                          attrs=dict(start_time=start_time,
-                          end_time=end_time,
-                          prerequisites=[make_dataid(name="hej")]))
-        scn["test-array-1"] = da
-        scn["test-array-2"] = da.copy()
+        data_arr = xr.DataArray(
+            da.from_array([1.0, 2.0, 3.0]),
+            attrs=dict(start_time=start_time,
+                       end_time=end_time,
+                       prerequisites=[make_dataid(name="hej")]))
+        scn["test-array-1"] = data_arr
+        scn["test-array-2"] = data_arr.copy()
         scn["test-array-1"].attrs["ancillary_variables"] = [scn["test-array-2"]]
         scn["test-array-2"].attrs["ancillary_variables"] = [scn["test-array-1"]]
         with TempFile() as filename:
@@ -183,13 +186,13 @@ class TestCFWriter:
         tstart = dt.datetime(2019, 4, 1, 12, 0)
         tend = dt.datetime(2019, 4, 1, 12, 15)
 
-        data_visir = [[1, 2], [3, 4]]
+        data_visir = da.from_array([[1.0, 2.0], [3.0, 4.0]])
         y_visir = [1, 2]
         x_visir = [1, 2]
         time_vis006 = [1, 2]
         time_ir_108 = [3, 4]
 
-        data_hrv = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        data_hrv = da.from_array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
         y_hrv = [1, 2, 3]
         x_hrv = [1, 2, 3]
         time_hrv = [1, 2, 3]
@@ -240,7 +243,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        test_array = np.array([[1, 2], [3, 4]])
+        test_array = da.from_array(np.array([[1.0, 2.0], [3.0, 4.0]]))
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
                                          coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
@@ -256,7 +259,7 @@ class TestCFWriter:
     def test_time_coordinate_on_a_swath(self):
         """Test that time dimension is not added on swath data with time already as a coordinate."""
         scn = Scene()
-        test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+        test_array = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
         times = np.array(["2018-05-30T10:05:00", "2018-05-30T10:05:01",
                           "2018-05-30T10:05:02", "2018-05-30T10:05:03"], dtype="datetime64[ns]")
         scn["test-array"] = xr.DataArray(test_array,
@@ -274,7 +277,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
+        test_array = np.array([[1.0, 2.0], [3.0, 4.0]]).reshape(2, 2, 1)
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y", "time"],
                                          coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
@@ -308,11 +311,11 @@ class TestCFWriter:
         """Test minimum bounds."""
         scn = Scene()
         start_timeA = dt.datetime(2018, 5, 30, 10, 0)  # expected to be used
-        end_timeA = dt.datetime(2018, 5, 30, 10, 20)
+        end_timeA = dt.datetime(2018, 5, 30, 10, 15)
         start_timeB = dt.datetime(2018, 5, 30, 10, 3)
-        end_timeB = dt.datetime(2018, 5, 30, 10, 15)  # expected to be used
-        test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
-        test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
+        end_timeB = dt.datetime(2018, 5, 30, 10, 20)  # expected to be used
+        test_arrayA = np.array([[1.0, 2.0], [3.0, 4.0]]).reshape(2, 2, 1)
+        test_arrayB = np.array([[1.0, 2.0], [3.0, 5.0]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
                                           coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
@@ -335,8 +338,8 @@ class TestCFWriter:
         scn = Scene()
         start_timeA = dt.datetime(2018, 5, 30, 10, 0)
         end_timeA = dt.datetime(2018, 5, 30, 10, 15)
-        test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
-        test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
+        test_arrayA = np.array([[1.0, 2.0], [3.0, 4.0]]).reshape(2, 2, 1)
+        test_arrayB = np.array([[1.0, 2.0], [3.0, 5.0]]).reshape(2, 2, 1)
         scn["test-arrayA"] = xr.DataArray(test_arrayA,
                                           dims=["x", "y", "time"],
                                           coords={"time": [np.datetime64("2018-05-30T10:05:00", "ns")]},
@@ -357,7 +360,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        test_array = np.array([[1, 2], [3, 4]])
+        test_array = np.array([[1.0, 2.0], [3.0, 4.0]])
         scn["test-array"] = xr.DataArray(test_array,
                                          dims=["x", "y"],
                                          coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
@@ -374,7 +377,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        scn["test-array"] = xr.DataArray([1, 2, 3],
+        scn["test-array"] = xr.DataArray([1.0, 2.0, 3.0],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
@@ -425,7 +428,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        scn["test-array"] = xr.DataArray([[1, 2, 3]],
+        scn["test-array"] = xr.DataArray([[1.0, 2.0, 3.0]],
                                          dims=("y", "x"),
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
@@ -441,7 +444,7 @@ class TestCFWriter:
         scn = Scene()
         start_time = dt.datetime(2018, 5, 30, 10, 0)
         end_time = dt.datetime(2018, 5, 30, 10, 15)
-        scn["test-array"] = xr.DataArray([[1, 2, 3]],
+        scn["test-array"] = xr.DataArray([[1.0, 2.0, 3.0]],
                                          dims=("y", "x"),
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
@@ -468,7 +471,7 @@ class TestNetcdfEncodingKwargs:
             "start_time": dt.datetime(2018, 5, 30, 10, 0),
             "end_time": dt.datetime(2018, 5, 30, 10, 15)
         }
-        scn["test-array"] = xr.DataArray([1., 2, 3], attrs=attrs)
+        scn["test-array"] = xr.DataArray([1.0, 2.0, 3.0], attrs=attrs)
         return scn
 
     @pytest.fixture(params=[True, False])
@@ -526,22 +529,33 @@ class TestNetcdfEncodingKwargs:
             assert f["test-array"].attrs["scale_factor"] == expected["scale_factor"]
             assert f["test-array"].attrs["_FillValue"] == expected["fill_value"]
             assert f["test-array"].dtype == expected["dtype"]
-            assert f["test-array"].encoding["complevel"] == expected["complevel"]
+            if "complevel" in f["test-array"].encoding:
+                # netcdf4 engine and h5netcdf engine (when not 0)
+                assert f["test-array"].encoding["complevel"] == expected["complevel"]
+            else:
+                assert expected["complevel"] == 0, "No compression option found when compression was non-zero"
+
 
     @pytest.mark.parametrize(
         "versions",
         [
-            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development"},
-            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version"}
+            {"netCDF4": "1.5.0", "libnetcdf": "4.9.1-development",
+             "warning_msg": "Backend version mismatch"},
+            {"netCDF4": "1.6.0", "libnetcdf": "invalid-version",
+             "warning_msg": "Unable to parse netcdf-c"},
         ]
     )
     def test_warning_if_backends_dont_match(self, scene, filename, monkeypatch, versions):
         """Test warning if backends don't match."""
         import netCDF4
+        invalid_catch = nullcontext()
+        if "invalid" in versions["libnetcdf"]:
+            invalid_catch = pytest.warns(UserWarning, match="invalid-version")
         with monkeypatch.context() as m:
             m.setattr(netCDF4, "__version__", versions["netCDF4"])
             m.setattr(netCDF4, "__netcdf4libversion__", versions["libnetcdf"])
-            with pytest.warns(UserWarning, match=r"Backend version mismatch"):
+            with pytest.warns(UserWarning, match="Backend version mismatch"), \
+                    invalid_catch:
                 scene.save_datasets(filename=filename, writer="cf")
 
     def test_no_warning_if_backends_match(self, scene, filename, monkeypatch):

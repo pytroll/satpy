@@ -33,7 +33,7 @@ import yaml
 from yaml import UnsafeLoader
 
 from satpy import Scene
-from satpy.pyresample import get_area_def
+from satpy.area import get_area_def
 from satpy.utils import debug_on
 
 debug_on()

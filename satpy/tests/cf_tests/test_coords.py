@@ -118,7 +118,7 @@ class TestCFtime:
         ds = add_time_bounds_dimension(ds)
 
         assert "bnds_1d" in ds.dims
-        assert ds.dims["bnds_1d"] == 2
+        assert ds.sizes["bnds_1d"] == 2
         assert "time_bnds" in list(ds.data_vars)
         assert "bounds" in ds["time"].attrs
         assert "standard_name" in ds["time"].attrs
@@ -159,7 +159,8 @@ class TestCFcoords:
             "lat": xr.DataArray(data=lat, dims=("y", "x"))
         }
 
-        datasets = add_coordinates_attrs_coords(datasets)
+        with pytest.warns(UserWarning, match="""Coordinate \"not_exist\" referenced"""):
+            datasets = add_coordinates_attrs_coords(datasets)
 
         # Check that link has been established correctly and 'coordinate' atrribute has been dropped
         assert "lon" in datasets["var1"].coords

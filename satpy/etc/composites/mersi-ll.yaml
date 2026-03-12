@@ -3,13 +3,13 @@ sensor_name: visir/mersi-ll
 composites:
 
   ash:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: '7'
           - name: '6'
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: '6'
           - name: '5'
@@ -17,7 +17,7 @@ composites:
     standard_name: ash
 
   cloudtop:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '2'
       - name: '6'
@@ -25,13 +25,13 @@ composites:
     standard_name: cloudtop
 
   night_fog:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - name: '7'
       - name: '6'
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - name: '6'
       - name: '2'
@@ -39,13 +39,13 @@ composites:
     standard_name: night_fog
 
   fog:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - name: '7'
       - name: '6'
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - name: '6'
       - name: '5'

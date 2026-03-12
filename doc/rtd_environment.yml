@@ -29,11 +29,12 @@ dependencies:
   - sphinx_rtd_theme
   - sphinx-autodoc-typehints
   - trollsift
+  - universal_pathlib
   - xarray
   - zarr
   - xarray-datatree
   - geoviews
   - pip:
-    - graphviz
-    - pytest-lazy-fixtures
-    - ..  # relative path to the satpy project
+      - graphviz
+      - pytest-lazy-fixtures
+      - .. # relative path to the satpy project

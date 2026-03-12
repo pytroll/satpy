@@ -188,6 +188,14 @@ TEST_FILENAMES = {"fdhsi": [
                  ],
 }
 
+REQUIRED_ATTR_KEYS = {
+    "time_parameters",
+    "orbital_parameters",
+    "file_type",
+    "name",
+    "sensor",
+    "resolution",
+}
 
 def resolutions_AF_products(channel):
     """Get the resolutions of the African products."""
@@ -301,7 +309,8 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
         "add_offset": -10,
         "long_name": "Effective Radiance",
         "units": "mW.m-2.sr-1.(cm-1)-1",
-        "ancillary_variables": "pixel_quality"
+        "ancillary_variables": "pixel_quality",
+        "_FillValue": 65535
     }
     if "38" in ch_path:
         fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
@@ -911,6 +920,32 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         numpy.testing.assert_array_equal(res2["ir_38"][-1, :], 5)  # smallest positive radiance
         assert res["ir_38"].dtype == res2["ir_38"].dtype == np.dtype("float32")
 
+    @pytest.mark.parametrize("fh_param", [lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")])
+    def test_drop_fill_value(self, reader_configs, fh_param):
+        """Test that _FillValue attribute is dropped for floats.
+
+        See https://github.com/pytroll/satpy/issues/3058.
+        """
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        did = make_dataid(name="ir_105", calibration="brightness_temperature")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" not in res["ir_105"].attrs
+
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        did = make_dataid(name="vis_06", calibration="reflectance")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" not in res["vis_06"].attrs
+
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        did = make_dataid(name="vis_06", calibration="radiance")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" not in res["vis_06"].attrs
+
+        # but for counts it should still be there
+        did = make_dataid(name="ir_105", calibration="counts")
+        res = reader.load([did], pad_data=False)
+        assert "_FillValue" in res["ir_105"].attrs
+
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
         for calibration in ["counts", "radiance", "brightness_temperature", "reflectance"]
@@ -1021,6 +1056,10 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             elif calibration == "pixel_quality":
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 3)
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
+            # Verify that attributes are propagated/inserted
+            for attr_key in REQUIRED_ATTR_KEYS:
+                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys(), f"Missing attribute: {attr_key}"
+            assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
 
     @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
         (calibration, channel, resolution)
@@ -1045,6 +1084,10 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             elif calibration == "pixel_quality":
                 numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 3)
                 assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
+            # Verify that attributes are propagated/inserted
+            for attr_key in REQUIRED_ATTR_KEYS:
+                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys(), f"Missing attribute: {attr_key}"
+            assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
@@ -1071,6 +1114,14 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
                 numpy.testing.assert_array_equal(res[aux][1, 1], np.nan)
             else:
                 numpy.testing.assert_array_equal(res[aux][1, 1], 10)
+            # Verify that attributes are propagated/inserted
+            assert res[aux].attrs["platform_name"] == "Meteosat-12"
+            assert "time_parameters" in res[aux].attrs.keys()
+            assert "orbital_parameters" in res[aux].attrs.keys()
+            assert "file_type" in res[aux].attrs.keys()
+            assert "name" in res[aux].attrs.keys()
+            assert "sensor" in res[aux].attrs.keys()
+            assert "resolution" in res[aux].attrs.keys()
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),

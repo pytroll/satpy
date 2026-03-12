@@ -28,16 +28,16 @@ For more information about FCI, see `EUMETSAT`_.
 To download data to be used with this reader, see `MTG data store guide`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
-.. note::
+Supported Data Variants
+=======================
 
-    This reader currently supports Full Disk High Spectral Resolution Imagery
-    (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
-    In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
-    contains the masked full-dic of a single channel see `AF PUG`_.
-    Experimental support for special scans, e.g. with coverage "xx", is also given.
+This reader currently supports Full Disk High Spectral Resolution Imagery
+(FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
+In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
+contains the masked full-disc of a single channel see `AF PUG`_.
+Experimental support for special scans, e.g. with coverage "xx", is also given.
 
-    This reader supports data from both IDPF-I and IQT-I processing facilities.
-
+This reader supports data from both IDPF-I and IQT-I processing facilities.
 
 .. note::
 
@@ -47,6 +47,32 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
     If needed, the desired resolution can be explicitly requested using e.g.:
     ``scn.load(['vis_06'], resolution=1000)``.
 
+Compressed Data
+---------------
+
+For reading compressed data, a decompression library is
+needed. Either install the FCIDECOMP library (see `PUG`_), or the
+``hdf5plugin`` package with::
+
+    pip install hdf5plugin
+
+or::
+
+    conda install hdf5plugin -c conda-forge
+
+.. note::
+
+    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
+    at the top of your script.
+
+Here's a common error when trying to read compressed data without one of
+these plugins::
+
+    RuntimeError: NetCDF: Filter error: undefined filter encountered
+
+
+Geolocation
+===========
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -76,6 +102,21 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
+Image Orientation
+-----------------
+
+FCI scans south to north so that the native image orientation is "upside down"
+(south up). By default Satpy preserves that orientation. You can flip the
+image using the ``upper_right_corner`` keyword argument when loading datasets
+(see :ref:`faq` for details).
+
+.. code-block:: python
+
+    scene.load(my_channels, upper_right_corner="NE")
+
+
+Calibration
+===========
 
 The reading routine supports channel data in counts, radiances, and (depending
 on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on
@@ -84,7 +125,10 @@ Radiance datasets are returned in units of radiance per unit wavenumber (mW m-2 
 converted to units of radiance per unit wavelength (W m-2 um-1 sr-1) by multiplying with the
 `radiance_unit_conversion_coefficient` dataset attribute.
 
-For each channel, it also supports a number of auxiliary datasets, such as the pixel quality,
+Auxiliary Datasets
+==================
+
+For each channel, the reader also supports a number of auxiliary datasets, such as the pixel quality,
 the index map and the related geometric and acquisition parameters: time,
 subsatellite latitude, subsatellite longitude, platform altitude, subsolar latitude, subsolar longitude,
 earth-sun distance, sun-satellite distance,  swath number, and swath direction.
@@ -99,20 +143,32 @@ All auxiliary data can be obtained by prepending the channel name such as
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
     `DataID`.
 
-.. note::
+Memory Footprint
+================
 
-    For reading compressed data, a decompression library is
-    needed. Either install the FCIDECOMP library (see `PUG`_), or the
-    ``hdf5plugin`` package with::
+The FCI L1C reader has been optimized to load multiple channels as fast as
+possible. This involves a lot of caching, which takes some extra time for Scene
+creation and also increases the amount of memory allocated by the Scene itself,
+even without loading any datasets.
 
-        pip install hdf5plugin
+The penalty is largest for single channel workflows. In this case it can help
+to compute the data as soon as possible and delete the corresponding scene
+object.
 
-    or::
+.. code-block:: python
 
-        conda install hdf5plugin -c conda-forge
+    import gc
 
-    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
-    at the top of your script.
+    channel_data = scene["ir_105"].compute()
+
+    # Delete original scene to release memory. Run garbage collector to prevent
+    # occasional segmentation faults, see
+    # https://github.com/pytroll/satpy/issues/3144
+    del scene
+    gc.collect()
+
+The number of dask workers also has an impact on the memory footprint, see :ref:`faq`.
+
 
 .. _AF PUG: https://user.eumetsat.int/resources/user-guides/mtg-africa-data-service-guide  # noqa: E501
 .. _PUG: https://user.eumetsat.int/resources/user-guides/mtg-fci-level-1c-data-guide  # noqa: E501
@@ -333,11 +389,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         """Load a dataset."""
         logger.debug("Reading {} from {}".format(key["name"], self.filename))
         if "pixel_quality" in key["name"]:
-            return self._get_dataset_quality(key["name"])
+            return self._get_dataset_quality(key, info=info)
         elif "index_map" in key["name"]:
-            return self._get_dataset_index_map(key["name"])
+            return self._get_dataset_index_map(key, info=info)
         elif _get_aux_data_name_from_dsname(key["name"]) is not None:
-            return self._get_dataset_aux_data(key["name"])
+            return self._get_dataset_aux_data(key, info=info)
         elif any(lb in key["name"] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
@@ -361,7 +417,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = _ensure_dataarray(data)
 
         fv = attrs.pop(
-            "FillValue",
+            "_FillValue",
             default_fillvals.get(data.dtype.str[1:], np.float32(np.nan)))
         vr = attrs.get("valid_range", [np.float32(-np.inf), np.float32(np.inf)])
         if key["calibration"] == "counts":
@@ -372,10 +428,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = data.where((data >= vr[0]) & (data <= vr[1]), nfv)
 
         res = self.calibrate(data, key)
+        cleaned_attrs = self._set_and_cleanup_attributes(res.attrs, attrs, key, info)
+        res.attrs = cleaned_attrs
+        return res
 
-        # pre-calibration units no longer apply
-        attrs.pop("units")
-
+    def _set_calibrated_data_attributes(self, resattrs, attrs, key):
         # For each channel, the effective_radiance contains in the
         # "ancillary_variables" attribute the value "pixel_quality".  In
         # FileYAMLReader._load_ancillary_variables, satpy will try to load
@@ -396,33 +453,52 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "https://github.com/pytroll/satpy/issues/1171 for why). "
                 f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
 
-        res.attrs.update(key.to_dict())
-        res.attrs.update(info)
-        res.attrs.update(attrs)
+        resattrs.update(key.to_dict())
 
-        res.attrs["platform_name"] = platform_name_translate.get(
-            self["attr/platform"], self["attr/platform"])
+        # pre-calibration units no longer apply
+        attrs.pop("units")
+        resattrs.update(attrs)
 
         # remove unpacking parameters for calibrated data
         if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
-            res.attrs.pop("add_offset")
-            res.attrs.pop("warm_add_offset")
-            res.attrs.pop("scale_factor")
-            res.attrs.pop("warm_scale_factor")
-            res.attrs.pop("valid_range")
+            resattrs.pop("add_offset")
+            resattrs.pop("warm_add_offset")
+            resattrs.pop("scale_factor")
+            resattrs.pop("warm_scale_factor")
+            resattrs.pop("valid_range")
+            # Some xarray versions can propagate _FillValue too:
+            resattrs.pop("_FillValue", None)
 
         # remove attributes from original file which don't apply anymore
-        res.attrs.pop("long_name")
+        resattrs.pop("long_name")
+        return resattrs
+
+    def _set_and_cleanup_attributes(self, resattrs, attrs=None, key=None, info=None):
+        """Gather attributes for the result dataset and remove unwanted keys.
+
+        Adds global attributes to all datasets.
+        For measurand data, adds dataset-specific attributes.
+        Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
+        are not propagated to the calibrated data.
+        """
+        if info is not None:
+            resattrs.update(info)
+        if None not in (attrs, key):
+            resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
+
+        resattrs["platform_name"] = platform_name_translate.get(
+            self["attr/platform"], self["attr/platform"])
+
         # Add time_parameter attributes
-        res.attrs["time_parameters"] = {
+        resattrs["time_parameters"] = {
             "nominal_start_time": self.nominal_start_time,
             "nominal_end_time": self.nominal_end_time,
             "observation_start_time": self.observation_start_time,
             "observation_end_time": self.observation_end_time,
         }
-        res.attrs.update(self.orbital_param)
 
-        return res
+        resattrs.update(self.orbital_param)
+        return resattrs
 
     def get_iqt_parameters_lon_lat_alt(self):
         """Compute the orbital parameters for IQT data.
@@ -482,20 +558,25 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         return orb_param_dict
 
-    def _get_dataset_quality(self, dsname):
+    def _get_dataset_quality(self, key, info=None):
         """Load a quality field for an FCI channel."""
-        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(key["name"]))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
+        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs, key=key, info=info)
+        data.attrs = cleaned_attrs
         return data
 
-    def _get_dataset_index_map(self, dsname):
+    def _get_dataset_index_map(self, key, info=None):
         """Load the index map for an FCI channel."""
+        dsname = key["name"]
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
 
         data = data.where(data != data.attrs.get("_FillValue", 65535))
+        cleaned_attrs = self._set_and_cleanup_attributes(data.attrs, info=info)
+        data.attrs = cleaned_attrs
         return data
 
     def _get_aux_data_lut_vector(self, aux_data_name):
@@ -511,10 +592,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _getitem(block, lut):
         return lut[block.astype("uint16")]
 
-    def _get_dataset_aux_data(self, dsname):
+    def _get_dataset_aux_data(self, key, info=None):
         """Get the auxiliary data arrays using the index map."""
+        dsname = key["name"]
         # get index map
-        index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
+        index_map = self._get_dataset_index_map(key)
         # subtract minimum of index variable (index_offset)
         index_map -= np.min(self.get_and_cache_npxr("index"))
 
@@ -527,6 +609,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         # filter out out-of-disk values
         aux = aux.where(index_map >= 0)
 
+        cleaned_attrs = self._set_and_cleanup_attributes(aux.attrs, key=key, info=info)
+        aux.attrs = cleaned_attrs
         return aux
 
     def calc_area_extent(self, key):
@@ -708,7 +792,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2").astype(np.float32)
 
         for v in (vc, a, b, c1, c2):
-            if v == v.attrs.get("FillValue",
+            if v == v.attrs.get("_FillValue",
                                 default_fillvals.get(v.dtype.str[1:])):
                 logger.error(
                     "{:s} set to fill value, cannot produce "
@@ -722,7 +806,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / radiance)
 
         res = nom / denom - b / a
-
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
@@ -732,7 +815,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance").astype(np.float32)
 
         if cesi == cesi.attrs.get(
-                "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
+                "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))

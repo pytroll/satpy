@@ -88,7 +88,7 @@ global_attrs = {"Observed_Altitude(km)": 35778.490219,
                 }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def insat_filename(tmp_path_factory):
     """Create a fake insat 3d l1b file."""
     filename = tmp_path_factory.mktemp("data") / "3DIMG_25OCT2022_0400_L1B_STD_V01R00.h5"
@@ -99,7 +99,16 @@ def insat_filename(tmp_path_factory):
             _create_channels(channels, h5f, resolution)
             _create_lonlats(h5f, resolution)
 
-    return filename
+    yield filename
+    import xarray as xr
+
+    # clean xarray cache
+    for key in xr.backends.file_manager.FILE_CACHE:
+        if os.fspath(filename) in key[1]:
+            ds = xr.backends.file_manager.FILE_CACHE.pop(key)
+            ds.close()
+
+    os.unlink(filename)
 
 
 def mask_array(array):
@@ -263,7 +272,7 @@ def test_filehandler_returns_coords(insat_filehandler):
     np.testing.assert_allclose(darr, values_1km.squeeze() / 100)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def insat_filehandler(insat_filename):
     """Instantiate a Filehandler."""
     fileinfo = {}

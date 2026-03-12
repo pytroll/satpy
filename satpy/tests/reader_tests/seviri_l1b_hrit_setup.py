@@ -29,15 +29,16 @@ from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = {"spectral_channel_id": 1}
-    instance.mda.setdefault("number_of_bits_per_pixel", 10)
+    mda = {"spectral_channel_id": 1}
+    mda.setdefault("number_of_bits_per_pixel", 10)
 
-    instance.mda["projection_parameters"] = {"a": 6378169.00,
+    mda["projection_parameters"] = {"a": 6378169.00,
                                              "b": 6356583.80,
                                              "h": 35785831.00,
                                              "SSP_longitude": 0.0}
-    instance.mda["orbital_parameters"] = {}
-    instance.mda["total_header_length"] = 12
+    mda["orbital_parameters"] = {}
+    mda["total_header_length"] = 12
+    return mda
 
 
 def get_new_read_prologue(prologue):
@@ -60,7 +61,7 @@ def get_fake_file_handler(observation_start_time, nlines, ncols, projection_long
     m = mock.mock_open()
     with mock.patch("satpy.readers.seviri_l1b_hrit.np.fromfile") as fromfile, \
             mock.patch("satpy.readers.core.hrit.open", m, create=True) as newopen, \
-            mock.patch("satpy.readers.core.utils.open", m, create=True) as utilopen, \
+            mock.patch("satpy.readers.core.utils.generic_open", m, create=True) as genopen, \
             mock.patch("satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES"), \
             mock.patch.object(HRITMSGFileHandler, "_get_hd", new=new_get_hd), \
             mock.patch.object(HRITMSGPrologueFileHandler, "read_prologue",
@@ -75,7 +76,7 @@ def get_fake_file_handler(observation_start_time, nlines, ncols, projection_long
         # The size of the return value hereafter was chosen arbitrarily with the expectation
         # that it would return sufficiently many bytes for testing the fake-opening of HRIT
         # files.
-        utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
+        genopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
         prologue = HRITMSGPrologueFileHandler(
             filename="dummy_prologue_filename",
             filename_info=filename_info,

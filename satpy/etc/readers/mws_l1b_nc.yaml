@@ -6,7 +6,6 @@ reader:
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [mws,]
   status: Beta
-  default_channels: []
 
   data_identification_keys:
     name:

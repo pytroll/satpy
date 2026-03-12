@@ -21,7 +21,7 @@ import typing
 
 import xarray as xr
 
-from satpy.composites import enhance2dataset
+from satpy.composites.core import enhance2dataset
 from satpy.dataset import DataID
 
 if typing.TYPE_CHECKING:
@@ -56,7 +56,7 @@ def to_geoviews(
             scn: Satpy Scene.
             gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-                Default to ``geoviews.Image``.
+                Default to :class:`geoviews.Image <geoviews.element.geo.Image>`.
                 See Geoviews documentation for details.
             datasets: Limit included products to these datasets
             vdims:

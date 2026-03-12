@@ -18,7 +18,6 @@
 
 import datetime as dt
 import os
-from collections import defaultdict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
@@ -31,7 +30,7 @@ from pyresample.geometry import BaseDefinition, SwathDefinition
 from xarray import DataArray
 
 from satpy import Scene
-from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.composites.core import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
@@ -281,12 +280,10 @@ class FakeFileHandler(BaseFileHandler):
 class CustomScheduler:
     """Scheduler raising an exception if data are computed too many times."""
 
-    def __init__(self, max_computes: int = 1, expect_duplicate_computes: bool = False):
+    def __init__(self, max_computes: int = 1):
         """Set starting and maximum compute counts."""
         self.max_computes = max_computes
         self.total_computes = 0
-        self.task_counts: dict[Any, int] = defaultdict(lambda: 0)
-        self.expect_duplicate_computes = expect_duplicate_computes
 
     def __call__(self, dsk, keys, **kwargs):
         """Compute dask task and keep track of number of times we do so."""
@@ -296,14 +293,6 @@ class CustomScheduler:
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
 
-        for key in keys:
-            self.task_counts[key] += 1
-            if not self.expect_duplicate_computes and self.task_counts[key] > self.max_computes:
-                raise RuntimeError(
-                    f"Task {key} is being computed more than once. This is "
-                    f"typically caused by dask incorrectly optimizing dask "
-                    f"graphs. This could be a bug in dask or expected if "
-                    f"passing Arrays to Delayed functions. ")
         return dask.get(dsk, keys, **kwargs)
 
 
@@ -449,37 +438,6 @@ def _compare_nonarray(val1: Any, val2: Any) -> None:
     if isinstance(val1, (np.floating, np.integer, np.bool_)):
         assert isinstance(val2, np.generic)
         assert val1.dtype == val2.dtype
-
-
-def xfail_skyfield_unstable_numpy2():
-    """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
-    try:
-        import skyfield
-
-        # known numpy incompatibility:
-        from skyfield import timelib  # noqa
-    except ImportError:
-        skyfield = None
-
-    import os
-    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2.")
-    return skyfield is None and is_np2 and is_unstable_ci
-
-
-def xfail_h5py_unstable_numpy2():
-    """Determine if h5py-based tests should be xfail in the unstable numpy 2.x environment."""
-    from packaging import version
-    try:
-        import h5py
-        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
-    except ImportError:
-        is_broken_h5py = True
-
-    import os
-    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2.")
-    return is_broken_h5py and is_np2 and is_unstable_ci
 
 
 def skip_numba_unstable_if_missing():

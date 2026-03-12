@@ -112,6 +112,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
                                                   hour=18, minute=30, second=50)
         }
+        self.filename_info = filename_info
 
         # Create a reader
         self.reader = ViiNCBaseFileHandler(
@@ -214,6 +215,54 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                     except (TypeError, ValueError):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
                     assert equal
+
+    def test_start_end_time_additional_formats(self):
+        """Test parsing additional datetime formats."""
+        time_cases = [
+            (
+                "2017-09-20T17:30:40.888000",
+                datetime.datetime(2017, 9, 20, 17, 30, 40, 888000),
+                "2017-09-20T17:41:17.555000",
+                datetime.datetime(2017, 9, 20, 17, 41, 17, 555000),
+            ),
+            (
+                "2017-09-20 17:30:40",
+                datetime.datetime(2017, 9, 20, 17, 30, 40),
+                "2017-09-20 17:41:17",
+                datetime.datetime(2017, 9, 20, 17, 41, 17),
+            ),
+        ]
+
+        for start_str, expected_start, end_str, expected_end in time_cases:
+            with Dataset(self.test_file_name, "r+") as nc:
+                nc.sensing_start_time_utc = start_str
+                nc.sensing_end_time_utc = end_str
+
+            reader = ViiNCBaseFileHandler(
+                filename=self.test_file_name,
+                filename_info=self.filename_info,
+                filetype_info={},
+            )
+
+            assert reader.start_time == expected_start
+            assert reader.end_time == expected_end
+
+    def test_bad_start_end_time(self):
+        """Test parsing a bad datetime format."""
+        with Dataset(self.test_file_name, "r+") as nc:
+            nc.sensing_start_time_utc = "201709201730"
+            nc.sensing_end_time_utc = "201709201740"
+
+        reader = ViiNCBaseFileHandler(
+            filename=self.test_file_name,
+            filename_info=self.filename_info,
+            filetype_info={},
+        )
+
+        with pytest.raises(ValueError, match="Unrecognized datetime format"):
+            reader.start_time
+        with pytest.raises(ValueError, match="Unrecognized datetime format"):
+            reader.end_time
 
     @mock.patch("satpy.readers.core.vii_nc.tie_points_interpolation")
     @mock.patch("satpy.readers.core.vii_nc.tie_points_geo_interpolation")

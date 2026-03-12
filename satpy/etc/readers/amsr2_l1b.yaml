@@ -8,7 +8,6 @@ reader:
   # could this be a python hook ?
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [amsr2]
-  default_channels: []
 
 datasets:
   btemp_10.7v:

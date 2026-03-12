@@ -19,6 +19,7 @@ The following people have made contributions to this project:
 - Guido della Bruna - meteoswiss
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
+- [Tristan Cantat-Gaudin](https://github.com/tristancantatgaudin)
 - [Manuel Carranza (manucarran)](https://github.com/manucarran)
 - [Guido Cioni (guidocioni)](https://github.com/guidocioni)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
@@ -27,6 +28,7 @@ The following people have made contributions to this project:
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
+- [Sven-Erik Enno (seenno)](https://github.com/seenno)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Florian Fichtner (fwfichtner)](https://github.com/fwfichtner)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
@@ -34,6 +36,7 @@ The following people have made contributions to this project:
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
+- [Alexander Halbig (alexhalbig)](https://github.com/alexhalbig) - Deutscher Wetterdienst
 - [Ulrich Hamann](https://github.com/)
 - [Mitch Herbertson (mherbertson)](https://github.com/mherbertson)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
@@ -90,6 +93,7 @@ The following people have made contributions to this project:
 - [Michael Schmutz (Graenni)](https://github.com/Graenni) - Meteotest AG
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
+- Martin Setvak - CHMI
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
@@ -105,10 +109,7 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
-- [Sven-Erik Enno (seenno)](https://github.com/seenno)
-- [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
-- [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
-- [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
-- [Sara Hörnquist (shornqui)](https://github.com/shornqui)
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
+- [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
+- [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)

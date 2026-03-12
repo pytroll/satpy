@@ -218,6 +218,7 @@ def test_image_small_mid_atlantic_L_no_quantity(test_area_tiny_eqc_sphere):
     arr = xr.DataArray(
         _get_fake_da(0, 273, test_area_tiny_eqc_sphere.shape + (1,)),
         dims=("y", "x", "bands"),
+        coords={"bands": ["L"]},
         attrs={
             "name": "test-small-mid-atlantic",
             "start_time": datetime.datetime(1985, 8, 13, 13, 0),

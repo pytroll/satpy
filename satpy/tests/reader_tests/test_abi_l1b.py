@@ -238,7 +238,7 @@ def _create_reader_for_data(
     dataset.to_netcdf(
         data_path,
         encoding={
-            "Rad": {"chunksizes": [226, 226]},
+            "Rad": {"chunksizes": (226, 226)},
         },
     )
     from satpy.readers.core.loading import load_readers
