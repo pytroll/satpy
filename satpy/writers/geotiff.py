@@ -162,6 +162,7 @@ class GeoTIFFWriter(ImageWriter):
             colormap_tag: str | None = None,
             driver: str | None = None,
             tiled: bool = True,
+            dynamic_fields: set[str] = set(),
             **kwargs
     ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save the image to the given ``filename`` in geotiff_ format.
@@ -244,11 +245,15 @@ class GeoTIFFWriter(ImageWriter):
             include_scale_offset: Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
+            dynamic_fields: set of strings of fields that are calculated
+                dynamically to enter the filename.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
         """
-        filename = filename or self.get_filename(**img.data.attrs)
+        filename = filename or self.get_filename(**img.data.attrs,
+                                                 **self._get_dynamic_fields(img.data,
+                                                                            dynamic_fields))
 
         gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
