@@ -393,6 +393,22 @@ composites:
         modifiers: [sunz_corrected, sunz_reduced]
     standard_name: cimss_cloud_type
 
+  day_cloud_type_chmi:
+    description: >
+      Equal to cimss_cloud_type recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/CloudTypeRGB.pdf
+      EUMETRAIN extended Guide: https://resources.eumetrain.org/data/7/736/index.htm
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: nir_13
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: vis_06
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: nir_16
+        modifiers: [effective_solar_pathlength_corrected]
+    standard_name: day_cloud_type_chmi
+
   cloud_type_with_night_ir105:
     description: >
       Combines the cloud_type during daytime with the simple 10.5µm night_ir105 layer during nighttime
@@ -420,6 +436,19 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: cloud_phase
 
+  day_cloud_phase_chmi:
+    description: >
+      Equal to cloud_phase recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+    - name: nir_16
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: nir_22
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: vis_06
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: day_cloud_phase_chmi
+
   cloud_phase_with_night_ir105:
     description: >
       Combines the cloud_phase during daytime with the simple 10.5µm night_ir105 layer during nighttime
@@ -431,7 +460,7 @@ composites:
       - cloud_phase
       - night_ir105
 
-  fire_temperature:
+  fire_temperature: &fire
     standard_name: fire_temperature_fci
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     description: >
@@ -449,6 +478,10 @@ composites:
       - name: ir_38
       - name: nir_22
       - name: nir_16
+
+  fire_temperature_fci_contrast_tuned:
+    <<: *fire
+    standard_name: fire_temperature_fci_contrast_tuned
 
   fire_temperature_38refl:
     standard_name: fire_temperature_fci_38refl
@@ -636,3 +669,95 @@ composites:
     description: >
       Official WMO 24-hour microphysics ash RGB.  Source:
       https://wmoomm.sharepoint.com/:b:/s/wmocpdb/EexzMK-JLutNlqR77aiIr8UB2uQvHGE8WfFCq23P03obhQ?e=S9nzet
+
+  _vis_06_crude:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    description: Special version of vis_06 for use in vis_with_ir_cloud_overlay
+    standard_name: vis-crude
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected]
+
+  _ir105:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    description: Special version of ir_105 for use in vis_with_ir_cloud_overlay
+    standard_name: ir-crude
+    prerequisites:
+      - name: ir_105
+
+  _vis_with_ir:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    standard_name: image_ready
+    lim_low: 85.0
+    lim_high: 88.0
+    prerequisites:
+      - _vis_06_crude
+      - _ir105
+
+  vis_with_ir_cloud_overlay:
+    compositor: !!python/name:satpy.composites.mask.MaskingCompositor
+    standard_name: image_ready
+    prerequisites:
+    - _vis_with_ir
+    - cloud_type
+    conditions:
+      - method: equal
+        value: Not processed (no or corrupt data)
+        transparency: 100
+      - method: equal
+        value: Cloud free land (no cloud, snow or ice)
+        transparency: 100
+      - method: equal
+        value: Cloud free sea (no cloud, snow or ice)
+        transparency: 100
+      - method: equal
+        value: Land with snow or ice
+        transparency: 100
+      - method: equal
+        value: Sea with snow or ice
+        transparency: 100
+      - method: equal
+        value: Cloud very low opaque
+        transparency: 0
+      - method: equal
+        value: Cloud low opaque
+        transparency: 0
+      - method: equal
+        value: Cloud medium opaque
+        transparency: 0
+      - method: equal
+        value: Cloud high opaque
+        transparency: 0
+      - method: equal
+        value: Cloud very high opaque
+        transparency: 0
+      - method: equal
+        value: Cloud semi-transparent high thin
+        transparency: 50
+      - method: equal
+        value: Cloud semi-transparent high mean thick
+        transparency: 50
+      - method: equal
+        value: Cloud semi-transparent high thick
+        transparency: 50
+      - method: equal
+        value: Cloud semi-transparent high above low medium cloud
+        transparency: 50
+      - method: equal
+        value: Cloud fractional
+        transparency: 50
+      - method: equal
+        value: Dust contaminated
+        transparency: 100
+      - method: equal
+        value: Dust opaque
+        transparency: 100
+      - method: equal
+        value: Ash contaminated
+        transparency: 100
+      - method: equal
+        value: Ash opaque
+        transparency: 100
+      - method: equal
+        value: Undefined by Cloud Mask
+        transparency: 100
