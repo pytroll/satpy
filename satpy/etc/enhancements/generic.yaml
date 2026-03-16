@@ -1468,3 +1468,25 @@ enhancements:
       method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [1.5, 1.2, 1.2]
+
+  vis-crude:
+    description: stretching vis between 0 and 100
+    standard_name: vis-crude
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: 0
+        max_stretch: 100
+
+  ir-crude:
+    description: IR white clouds, stretched between 215 and 300
+    standard_name: ir-crude
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: 300
+        max_stretch: 215

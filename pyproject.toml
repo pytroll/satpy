@@ -186,3 +186,4 @@ filterwarnings = [
     # remove once pyresample https://github.com/pytroll/pyresample/pull/546 is merged
     "ignore:The `frequency` argument is pending deprecation:PendingDeprecationWarning",
 ]
+tmp_path_retention_count = "1"

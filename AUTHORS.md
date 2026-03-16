@@ -36,6 +36,7 @@ The following people have made contributions to this project:
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
+- [Alexander Halbig (alexhalbig)](https://github.com/alexhalbig) - Deutscher Wetterdienst
 - [Ulrich Hamann](https://github.com/)
 - [Mitch Herbertson (mherbertson)](https://github.com/mherbertson)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
@@ -92,6 +93,7 @@ The following people have made contributions to this project:
 - [Michael Schmutz (Graenni)](https://github.com/Graenni) - Meteotest AG
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
+- Martin Setvak - CHMI
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
@@ -112,3 +114,4 @@ The following people have made contributions to this project:
 - [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
 - [Albert Brotzer](https://github.com/albertbrotzer)
 - [Alexandra Melzer](https://github.com/armelzer)
+- [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
