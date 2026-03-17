@@ -112,4 +112,6 @@ The following people have made contributions to this project:
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
 - [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
+- [Albert Brotzer](https://github.com/albertbrotzer)
+- [Alexandra Melzer](https://github.com/armelzer)
 - [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
