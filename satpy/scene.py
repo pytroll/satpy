@@ -1631,6 +1631,7 @@ class Scene:
                                    optional_datasets=optional_datasets,
                                    **comp_node.name.to_dict())
             cid = DataID.new_id_from_dataarray(composite)
+            cid = self._apply_requested_name(comp_node.name, composite, cid)
             self._datasets[cid] = composite
 
             # update the node with the computed DataID
@@ -1648,6 +1649,25 @@ class Scene:
             # might be needed in other compositors
             keepables.add(comp_node.name)
             return
+
+    @staticmethod
+    def _apply_requested_name(requested_id, composite, cid):
+        """Rename the composite DataArray to the requested name when the compositor overwrote it.
+
+        Compositors write their YAML key name into the output DataArray's ``name`` attr,
+        overwriting the name that was passed in via ``**comp_node.name.to_dict()``.  When this
+        happens we restore the requested name (which may include a tag suffix such as
+        ``"true_color:high_res"``) and preserve the YAML key name in
+        ``attrs["_satpy_compositor_name"]`` so that enhancement lookups can still match entries
+        written for the YAML key.
+        """
+        requested_name = requested_id.get("name")
+        yaml_name = cid.get("name")
+        if requested_name is None or requested_name == yaml_name:
+            return cid
+        composite.attrs["_satpy_compositor_name"] = yaml_name
+        composite.attrs["name"] = requested_name
+        return DataID.new_id_from_dataarray(composite)
 
     def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
         """Get a composite's prerequisites, generating them if needed.

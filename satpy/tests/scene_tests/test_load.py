@@ -84,7 +84,7 @@ class TestSceneAllAvailableDatasets:
         num_reader_ds = 21 + 6
         assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        assert len(id_list) == num_reader_ds + 33
+        assert len(id_list) == num_reader_ds + 34
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
@@ -94,8 +94,8 @@ class TestSceneAllAvailableDatasets:
         assert len(id_list) == 2
         id_list = scene.all_dataset_ids(composites=True)
         # ds1 and ds2 => 2
-        # composites that use these two datasets => 11
-        assert len(id_list) == 2 + 11
+        # composites that use these two datasets => 12
+        assert len(id_list) == 2 + 12
 
     def test_available_datasets_one_reader(self):
         """Test the available datasets for one reader."""
@@ -104,8 +104,8 @@ class TestSceneAllAvailableDatasets:
         id_list = scene.available_dataset_ids()
         assert len(id_list) == 1
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16, static_image, comp26
-        assert len(id_list) == 6
+        # ds1, comp1, comp1_wmo, comp14, comp16, static_image, comp26
+        assert len(id_list) == 7
 
     def test_available_composite_ids_missing_available(self):
         """Test available_composite_ids when a composites dep is missing."""
@@ -316,6 +316,20 @@ class TestLoadingComposites:
             assert loaded_ids[0]["name"] == exp_id_or_name
         else:
             assert loaded_ids[0] == exp_id_or_name
+
+    def test_load_composite_by_tag_syntax(self):
+        """Check that loading with tag syntax stores the dataset under the requested name and makes it accessible.
+
+        The compositor's self.attrs['name'] (the YAML key, e.g. 'comp1_wmo') overwrites the
+        requested name in the output attrs — exactly as GenericCompositor does.
+        _generate_composite must restore the requested name ('comp1:wmo') and preserve the
+        original YAML key in _satpy_compositor_name for enhancement lookups.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp1:wmo"])
+        assert not scene.missing_datasets
+        data = scene["comp1:wmo"]
+        assert data.attrs["_satpy_compositor_name"] == "comp1_wmo"
 
     def test_load_multiple_resolutions(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
