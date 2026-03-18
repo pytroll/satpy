@@ -736,16 +736,22 @@ def scene_with_time_coords():
     sc["ir"].coords["time"].attrs["units"] = "seconds since 2222-02-22T22:22:22"
     return sc
 
-def test_resample_time_coordinate(scene_with_time_coords):
+@pytest.mark.parametrize("reduce_data", [True, False])
+def test_resample_time_coordinate(scene_with_time_coords, reduce_data):
     """Test that resampling retains the time coordinate."""
     from pyresample import create_area_def
 
     ar2 = create_area_def("test", 4087, shape=(4, 4), resolution=1200, center=(100, 100))
-    ls = scene_with_time_coords.resample(ar2, resampler="nearest")
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest",
+                                         reduce_data=reduce_data)
     assert "time" not in ls["ir"].coords  # drop by default
-    ls = scene_with_time_coords.resample(ar2, resampler="nearest", resample_coords=False)
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest",
+                                         resample_coords=False,
+                                         reduce_data=reduce_data)
     assert "time" not in ls["ir"].coords
-    ls = scene_with_time_coords.resample(ar2, resampler="nearest", resample_coords=True)
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest",
+                                         resample_coords=True,
+                                         reduce_data=reduce_data)
     assert "time" in ls["ir"].coords
     assert ls["ir"].coords["time"].sizes == ls["ir"].sizes
     assert ls["ir"].coords["time"].dtype == scene_with_time_coords["ir"].coords["time"].dtype
