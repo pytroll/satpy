@@ -84,11 +84,23 @@ class EnhancementDecisionTree(DecisionTree):
         return enhancement_section
 
     def find_match(self, **query_dict):
-        """Find a match."""
+        """Find a match, preferring the YAML compositor key name when available.
+
+        When a dataset was loaded via tag syntax (e.g. ``"true_color:wmo"``), its
+        ``_satpy_compositor_name`` attribute carries the YAML key name of the compositor
+        that generated it (e.g. ``"true_color_wmo"``).  Enhancement entries are written
+        against YAML key names, so we try a lookup with that name first before falling
+        back to the requested name stored in ``name``.
+        """
+        compositor_name = query_dict.get("_satpy_compositor_name")
+        if compositor_name:
+            try:
+                return super().find_match(**{**query_dict, "name": compositor_name})
+            except KeyError:
+                pass
         try:
-            return super(EnhancementDecisionTree, self).find_match(**query_dict)
+            return super().find_match(**query_dict)
         except KeyError:
-            # give a more understandable error message
             raise KeyError("No enhancement configuration found for %s" %
                            (query_dict.get("uid", None),))
 

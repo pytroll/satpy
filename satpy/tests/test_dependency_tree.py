@@ -180,6 +180,35 @@ class TestGetCompositorByTag:
         assert tree._get_compositor_by_tag({"name": None}) is None
 
 
+class TestFindCompositorNodeNaming:
+    """Test that compositor nodes are named after the requested dataset key."""
+
+    def test_tag_request_names_node_after_request(self):
+        """Check that a tag-syntax request resolves to a node named after the requested key, not the YAML key."""
+        comp = FakeCompositor(name="comp1_wmo", prerequisites=[], standard_name="comp1", tags=["wmo"])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo"): comp})}
+        tree = DependencyTree({}, compositors, {})
+
+        requested = {DataQuery(name="comp1:wmo")}
+        tree.populate_with_keys(requested)
+
+        resolved_name = next(iter(requested))
+        assert resolved_name["name"] == "comp1:wmo"
+
+    def test_preferred_tag_resolution_names_node_after_plain_request(self):
+        """Check that a plain request resolved via preferred_composite_tags is named after the plain request."""
+        comp_wmo = FakeCompositor(name="comp1_wmo", prerequisites=[], standard_name="comp1", tags=["wmo"])
+        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo"): comp_wmo})}
+        tree = DependencyTree({}, compositors, {})
+
+        requested = {DataQuery(name="comp1")}
+        with satpy.config.set(preferred_composite_tags=["wmo"]):
+            tree.populate_with_keys(requested)
+
+        resolved_name = next(iter(requested))
+        assert resolved_name["name"] == "comp1"
+
+
 class TestMissingDependencies(unittest.TestCase):
     """Test the MissingDependencies exception."""
 

@@ -446,6 +446,7 @@ class DependencyTree(Tree):
 
         root = CompositorNode(compositor)
         composite_id = root.name
+        root.name = self._composite_id_with_requested_name(composite_id, dataset_key)
 
         prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
 
@@ -464,6 +465,25 @@ class DependencyTree(Tree):
         root.add_optional_nodes(optionals)
 
         return root
+
+    @staticmethod
+    def _composite_id_with_requested_name(composite_id, dataset_key):
+        """Return a DataID matching composite_id but with the name taken from dataset_key.
+
+        This ensures the node in the dependency tree (and eventually the entry in
+        scene._datasets) uses the name the caller actually requested, including any
+        tag suffix such as "true_color:high_res", rather than the compositor's
+        own YAML key name.
+        """
+        try:
+            requested_name = dataset_key["name"]
+        except (KeyError, TypeError):
+            return composite_id
+        if not isinstance(requested_name, str) or requested_name == composite_id["name"]:
+            return composite_id
+        new_id_dict = composite_id.to_dict()
+        new_id_dict["name"] = requested_name
+        return composite_id.from_dict(new_id_dict)
 
     def _create_implicit_dependency_subtree(self, dataset_key, query):
         new_prereq = dataset_key.create_less_modified_query()

@@ -558,12 +558,39 @@ Append ``:<tag>`` to the composite name when calling :meth:`~satpy.scene.Scene.l
 
 .. code-block:: python
 
-    scene.load(["true_color:wmo"])   # loads true_color_wmo
+    scene.load(["true_color:wmo"])
+
+    # The dataset is stored and accessible using the same tag syntax:
+    data = scene["true_color:wmo"]
 
 This syntax is interpreted as: "find a compositor with
 ``standard_name='true_color'`` that has ``'wmo'`` in its ``tags``".  It never
 performs a plain string match, so ``true_color:wmo`` will not accidentally
 resolve to a compositor named ``true_color`` or ``true_color_wmo``.
+
+Accessing tag-loaded datasets
+""""""""""""""""""""""""""""""
+
+The dataset is stored in the Scene under the *requested* name (including the
+tag suffix) rather than the compositor's internal YAML key.  Use the same
+tag syntax to retrieve it:
+
+.. code-block:: python
+
+    scene.load(["true_color:wmo"])
+    data = scene["true_color:wmo"]
+
+The compositor's YAML key name (e.g. ``"true_color_wmo"``) is preserved in
+``data.attrs["_satpy_compositor_name"]`` and is used automatically for
+enhancement lookups (see below).
+
+This also means that :attr:`~satpy.scene.Scene.missing_datasets` is empty
+after a successful load, and that writing the scene with any writer will use
+``"true_color:wmo"`` as the dataset name.
+
+The same rule applies when a tagged variant is selected automatically via
+``preferred_composite_tags``: the dataset is stored under the plain requested
+name (e.g. ``"true_color"``), not under the compositor's YAML key name.
 
 Multiple tags can be combined with additional colons.  All listed tags must be
 present on the compositor (AND semantics):
@@ -616,12 +643,26 @@ Or as a YAML configuration key:
 Enhancements for tagged variants
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No extra configuration is needed on the enhancement side.  The enhancement
-decision tree already matches by composite ``name`` (the YAML key) *before*
-it falls back to ``standard_name``.  A composite named ``true_color_wmo`` will
-therefore automatically pick up an enhancement entry keyed ``true_color_wmo``
-if one exists, and fall back to the ``standard_name: true_color`` entry
-otherwise.
+No extra configuration is needed on the enhancement side.  When a dataset is
+loaded via tag syntax, its ``attrs["_satpy_compositor_name"]`` carries the
+compositor's YAML key name (e.g. ``"true_color_wmo"``).  The enhancement
+lookup tries that name first before falling back to the requested name and
+then to ``standard_name``.
+
+This means an enhancement entry written for ``true_color_wmo`` is picked up
+automatically when loading ``"true_color:wmo"``, and enhancements written
+against ``standard_name: true_color`` serve as a fallback for all variants.
+
+.. code-block:: yaml
+
+    # In an enhancement YAML file:
+    true_color_wmo:          # matched via _satpy_compositor_name
+      name: true_color_wmo
+      operations: [...]
+
+    true_color_default:      # fallback for any true_color variant
+      standard_name: true_color
+      operations: [...]
 
 Deprecating a composite
 ------------------------
