@@ -454,7 +454,7 @@ class MSSCHReader(BaseLandsatL1Reader):
     def _get_matched_dataset_info(self, ds_info):
         if ds_info.get("name") == "B4":
             return self._get_modified_wavelength_info(ds_info)
-        return True, ds_info
+        return ds_info
 
     def _get_modified_wavelength_info(self, ds_info):
         # Modify the dataset's wavelength dynamically
