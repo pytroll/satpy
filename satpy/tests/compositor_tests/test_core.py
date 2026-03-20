@@ -206,6 +206,13 @@ def single_band_compositor():
     return SingleBandCompositor(name="test")
 
 
+@pytest.fixture
+def generic_compositor():
+    """A minimal GenericCompositor."""
+    from satpy.composites.core import GenericCompositor
+    return GenericCompositor(name="test")
+
+
 def test_call_single_band_compositor(single_band_compositor, simple_dataset):
     """Test calling the compositor."""
     # Dataset with extra attributes
@@ -236,6 +243,13 @@ def test_single_band_compositor_retain_time_coordinate(
         single_band_compositor, dataset_with_time_coordinate):
     """Test that a SingleBandCompositor retains the time coordinate."""
     res = single_band_compositor([dataset_with_time_coordinate])
+    assert "time" in res.coords
+
+
+def test_generic_compositor_retain_time_coordinate(
+        generic_compositor, dataset_with_time_coordinate):
+    """Test that a SingleBandCompositor retains the time coordinate."""
+    res = generic_compositor([dataset_with_time_coordinate]*3)
     assert "time" in res.coords
 
 
@@ -361,7 +375,7 @@ class TestGenericCompositor(unittest.TestCase):
         assert res.attrs["resolution"] == 333
 
     def test_deprecation_warning(self):
-        """Test deprecation warning for dcprecated composite recipes."""
+        """Test deprecation warning for deprecated composite recipes."""
         warning_message = "foo is a deprecated composite. Use composite bar instead."
         self.comp.attrs["deprecation_warning"] = warning_message
         with pytest.warns(UserWarning, match=warning_message):
