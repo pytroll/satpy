@@ -228,7 +228,7 @@ class BaseLandsatTest:
             {"standard_name": "test_data", "units": "test_units"},
         )
 
-    def test_loading_badfil(self, spectral_file, mda_file):
+    def test_loading_badfile(self, spectral_file, mda_file):
         """Test loading a Landsat Scene with bad channel requests."""
         good_mda = self.MD_reader_class(mda_file, self.filename_info, {})
         rdr = self.CH_reader_class(spectral_file, self.filename_info, self.ftype_info, good_mda)
