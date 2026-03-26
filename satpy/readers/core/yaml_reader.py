@@ -47,6 +47,7 @@ from satpy.aux_download import DataDownloadMixin
 from satpy.coords import add_crs_xy_coords
 from satpy.dataset import DataID, DataQuery, get_key
 from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
@@ -483,6 +484,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         self.file_handlers = {}
         self.available_ids = {}
         self.register_data_files()
+        self.attribute_composer = AttributeComposer(self.name)
 
     @property
     def sensor_names(self):
@@ -737,10 +739,8 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         ds_info = self.all_ids[dsid]
         proj = self._load_dataset(dsid, ds_info, file_handlers, **kwargs)
         # FIXME: areas could be concatenated here
-        # Update the metadata
-        proj.attrs["start_time"] = file_handlers[0].start_time
-        proj.attrs["end_time"] = file_handlers[-1].end_time
-        proj.attrs["reader"] = self.name
+        attrs = self.attribute_composer.get_attrs(proj, file_handlers)
+        proj.attrs.update(attrs)
         return proj
 
     def _preferred_filetype(self, filetypes):
@@ -983,6 +983,64 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
             cids.append(self.get_dataset_key(cid))
 
         return cids
+
+
+# 8< v1.0
+LEGACY_SENSORS = {
+    "ABI": "abi"
+}
+LEGACY_PLATFORMS: dict[str, str] = {}
+
+from functools import wraps  # noqa: E402
+
+import satpy  # noqa: E402
+
+
+def with_legacy_attributes(func):
+    """Adds option to get legacy attributes back."""
+    @wraps(func)
+    def translate_attrs(*args, **kwargs):
+        attrs = func(*args, **kwargs)
+        if not satpy.config.get("oscar_compliant_attributes", False):
+            _make_legacy_attrs(attrs)
+        return attrs
+    return translate_attrs
+
+def _make_legacy_attrs(attrs: dict) -> None:
+    sensor = attrs.get("sensor")
+    if sensor and sensor in LEGACY_SENSORS:
+        attrs["sensor"] = LEGACY_SENSORS[sensor]
+    platform = attrs.get("platform")
+    if platform and platform in LEGACY_PLATFORMS:
+        attrs["platform_name"] = LEGACY_PLATFORMS[platform]
+# >8 v1.0
+
+class AttributeComposer:
+    """Compose dataset attributes."""
+
+    def __init__(self, reader_name: str) -> None:
+        """Initialize the composer."""
+        self.reader_name = reader_name
+
+    def get_attrs(self, data: xr.DataArray, file_handlers: list[BaseFileHandler]) -> dict:
+        """Get dataset attributes."""
+        attrs = {
+            "start_time": file_handlers[0].start_time,
+            "end_time": file_handlers[-1].end_time,
+            "reader": self.reader_name,
+        }
+        return attrs | self._get_platform_sensor(data)
+
+    # 8< v1.0
+    @with_legacy_attributes
+    # >8 v1.0
+    def _get_platform_sensor(self, data: xr.DataArray) -> dict:
+        keys = ["platform_name", "sensor"]
+        return {
+            key: value
+            for key in keys
+            if (value := data.attrs.get(key))
+        }
 
 
 def _load_area_def(dsid, file_handlers):
