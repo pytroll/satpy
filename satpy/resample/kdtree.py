@@ -214,7 +214,7 @@ class BilinearResampler(PRBaseResampler):
         self.resampler = None
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
-                   reduce_data=True, cache_dir=False, **kwargs):
+                   reduce_data=True, limit_output=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
         try:
             from pyresample.bilinear import XArrayBilinearResampler
@@ -229,7 +229,9 @@ class BilinearResampler(PRBaseResampler):
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=32,
-                          epsilon=epsilon)
+                          epsilon=epsilon,
+                          reduce_data=reduce_data,
+                          limit_output=limit_output)
 
             self.resampler = XArrayBilinearResampler(**kwargs)
             try:
