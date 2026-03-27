@@ -155,7 +155,7 @@ def _entry_point_module(entry_point):
         return entry_point.value.split(":")[0].strip()
 
 
-def config_search_paths(filename: str, search_dirs: list[str]|None = None, **kwargs) -> list[str]:
+def config_search_paths(filename: str, search_dirs: list[str] | None = None, **kwargs) -> list[str]:
     """Get series of configuration base paths where Satpy configs are located."""
     if search_dirs is None:
         search_dirs = get_config_path_safe()[::-1]
