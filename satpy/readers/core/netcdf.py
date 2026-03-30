@@ -245,7 +245,7 @@ class NetCDF4FileHandler(BaseFileHandler):
                 in self.file_content.items()
                 if self.accessor.is_variable(var)
                 and isinstance(var.dtype, np.dtype)  # vlen may be str
-                and var.size * var.dtype.itemsize < cache_var_size]
+                and np.prod(var.shape) * var.dtype.itemsize < cache_var_size]
 
     def __getitem__(self, key):
         """Get item for given key."""
