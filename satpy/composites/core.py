@@ -530,7 +530,11 @@ def check_times(projectables):
     timed_projectables = [proj for proj in projectables if "time" in
                           proj.coords]
     if len(timed_projectables) > 0:
-        return xr.concat(timed_projectables, dim="dummy").mean("dummy")
+        with xr.set_options(keep_attrs=True):
+            concat = xr.concat(
+                    [x.coords["time"] for x in timed_projectables],
+                    dim="dummy").mean("dummy")
+        return concat
 
 
 def _verify_times(projectables):

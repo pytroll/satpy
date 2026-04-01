@@ -307,9 +307,10 @@ def test_single_band_compositor_retain_time_coordinate(
 
 def test_generic_compositor_retain_time_coordinate(
         generic_compositor, datasets_rgb_with_time):
-    """Test that a SingleBandCompositor retains the time coordinate."""
+    """Test that a GenericCompositor retains the time coordinate."""
     res = generic_compositor(datasets_rgb_with_time)
     assert "time" in res.coords
+    assert res.coords["time"].attrs["units"] == datasets_rgb_with_time[0].coords["time"].attrs["units"]
 
 
 class TestGenericCompositor(unittest.TestCase):
