@@ -193,10 +193,57 @@ def simple_dataset():
 
 
 @pytest.fixture
-def dataset_with_time_coordinate(simple_dataset):
+def dataset_with_1d_time_coordinate(simple_dataset):
     """An xarray DataArray with time dimensions."""
     return simple_dataset.assign_coords(
+            {"time": (("y", ), np.ones((2,), dtype="uint16"))})
+
+@pytest.fixture
+def dataset_with_2d_time_coordinate(simple_dataset):
+    """An xarray DataArray with 2D time dimensions."""
+    return simple_dataset.assign_coords(
             {"time": (("y", "x"), np.ones((2, 2), dtype="uint16"))})
+
+@pytest.fixture
+def datasets_rgb_with_identical_1d_time_coordinate(dataset_with_1d_time_coordinate):
+    """List of three xarray DataArray with same 1d time dimensions."""
+    return [dataset_with_1d_time_coordinate]*3
+
+@pytest.fixture
+def datasets_rgb_with_identical_2d_time_coordinate(dataset_with_2d_time_coordinate):
+    """List of three xarray DataArray with same 1d time dimensions."""
+    return [dataset_with_2d_time_coordinate]*3
+
+@pytest.fixture
+def datasets_rgb_with_non_identical_1d_time_coordinate(simple_dataset):
+    """List of three xarray DataArray with differing 1d time dimensions."""
+    r = simple_dataset.assign_coords(
+            {"time": (("y", ), np.array([100, 200], dtype="uint16"))})
+    g = simple_dataset.assign_coords(
+            {"time": (("y", ), np.array([101, 201], dtype="uint16"))})
+    b = simple_dataset.assign_coords(
+            {"time": (("y", ), np.array([102, 202], dtype="uint16"))})
+    return [r, g, b]
+
+@pytest.fixture
+def datasets_rgb_with_non_identical_2d_time_coordinate(simple_dataset):
+    """List of three xarray DataArray with differing 2d time dimensions."""
+    r = simple_dataset.assign_coords(
+            {"time": (("y", "x"), np.array([[100, 200], [101, 201]], dtype="uint16"))})
+    g = simple_dataset.assign_coords(
+            {"time": (("y", "x"), np.array([[101, 201], [103, 201]], dtype="uint16"))})
+    b = simple_dataset.assign_coords(
+            {"time": (("y", "x"), np.array([[102, 202], [103, 203]], dtype="uint16"))})
+    return [r, g, b]
+
+
+@pytest.fixture(params=["datasets_rgb_with_identical_1d_time_coordinate",
+                        "datasets_rgb_with_non_identical_1d_time_coordinate",
+                        "datasets_rgb_with_identical_2d_time_coordinate",
+                        "datasets_rgb_with_non_identical_2d_time_coordinate"])
+def datasets_rgb_with_time(request):
+    """Return one of several RGB datasets with time coordinates."""
+    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture
@@ -240,16 +287,16 @@ def test_call_single_band_compositor(single_band_compositor, simple_dataset):
 
 
 def test_single_band_compositor_retain_time_coordinate(
-        single_band_compositor, dataset_with_time_coordinate):
+        single_band_compositor, dataset_with_1d_time_coordinate):
     """Test that a SingleBandCompositor retains the time coordinate."""
-    res = single_band_compositor([dataset_with_time_coordinate])
+    res = single_band_compositor([dataset_with_1d_time_coordinate])
     assert "time" in res.coords
 
 
 def test_generic_compositor_retain_time_coordinate(
-        generic_compositor, dataset_with_time_coordinate):
+        generic_compositor, datasets_rgb_with_time):
     """Test that a SingleBandCompositor retains the time coordinate."""
-    res = generic_compositor([dataset_with_time_coordinate]*3)
+    res = generic_compositor(datasets_rgb_with_time)
     assert "time" in res.coords
 
 

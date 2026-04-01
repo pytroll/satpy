@@ -428,7 +428,7 @@ class GenericCompositor(CompositeBase):
             data = xr.concat(projectables, "bands", coords="minimal")
             data["bands"] = list(mode)
         except ValueError as e:
-            LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
+            LOG.exception("Original exception for incompatible areas: {}".format(str(e)))
             raise IncompatibleAreas("Areas do not match.")
 
         return data
