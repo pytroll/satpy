@@ -196,13 +196,19 @@ def simple_dataset():
 def dataset_with_1d_time_coordinate(simple_dataset):
     """An xarray DataArray with time dimensions."""
     return simple_dataset.assign_coords(
-            {"time": (("y", ), np.ones((2,), dtype="uint16"))})
+            {"time": xr.DataArray(
+                np.array([1, 1], dtype=np.float32),
+                dims=("y",),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
 
 @pytest.fixture
 def dataset_with_2d_time_coordinate(simple_dataset):
     """An xarray DataArray with 2D time dimensions."""
     return simple_dataset.assign_coords(
-            {"time": (("y", "x"), np.ones((2, 2), dtype="uint16"))})
+            {"time": xr.DataArray(
+                np.array([[1, 1], [1, 1]], dtype=np.float32),
+                dims=("y", "x"),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
 
 @pytest.fixture
 def datasets_rgb_with_identical_1d_time_coordinate(dataset_with_1d_time_coordinate):
@@ -218,22 +224,28 @@ def datasets_rgb_with_identical_2d_time_coordinate(dataset_with_2d_time_coordina
 def datasets_rgb_with_non_identical_1d_time_coordinate(simple_dataset):
     """List of three xarray DataArray with differing 1d time dimensions."""
     r = simple_dataset.assign_coords(
-            {"time": (("y", ), np.array([100, 200], dtype="uint16"))})
-    g = simple_dataset.assign_coords(
-            {"time": (("y", ), np.array([101, 201], dtype="uint16"))})
-    b = simple_dataset.assign_coords(
-            {"time": (("y", ), np.array([102, 202], dtype="uint16"))})
+            {"time": xr.DataArray(
+                np.array([100, 200], dtype=np.float32),
+                dims=("y", ),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
+    g = r.copy()
+    g[:] = [100.1, 200.1]
+    b = r.copy()
+    b[:] = [100.2, 200.2]
     return [r, g, b]
 
 @pytest.fixture
 def datasets_rgb_with_non_identical_2d_time_coordinate(simple_dataset):
     """List of three xarray DataArray with differing 2d time dimensions."""
     r = simple_dataset.assign_coords(
-            {"time": (("y", "x"), np.array([[100, 200], [101, 201]], dtype="uint16"))})
-    g = simple_dataset.assign_coords(
-            {"time": (("y", "x"), np.array([[101, 201], [103, 201]], dtype="uint16"))})
-    b = simple_dataset.assign_coords(
-            {"time": (("y", "x"), np.array([[102, 202], [103, 203]], dtype="uint16"))})
+            {"time": xr.DataArray(
+                np.array([[100, 200], [101, 201]], dtype=np.float32),
+                dims=("y", "x"),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
+    g = r.copy()
+    g[:] = [[100.1, 200.1], [101.1, 201.1]]
+    b = r.copy()
+    b[:] = [[100.2, 200.2], [101.2, 201.2]]
     return [r, g, b]
 
 
