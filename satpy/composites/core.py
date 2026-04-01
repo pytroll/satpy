@@ -23,7 +23,6 @@ import warnings
 from typing import Optional, Sequence
 
 import dask.array as da
-import numpy as np
 import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
@@ -34,8 +33,6 @@ LOG = logging.getLogger(__name__)
 
 NEGLIGIBLE_COORDS = ["time"]
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
-
-TIME_COMPATIBILITY_TOLERANCE = np.timedelta64(1, "s")
 
 
 class IncompatibleAreas(Exception):
@@ -483,17 +480,14 @@ class GenericCompositor(CompositeBase):
         return mode
 
     def _check_datasets_and_data(self, datasets, mode):
+        time = check_times(datasets)
         datasets = self.match_data_arrays(datasets)
         data = self._concat_datasets(datasets, mode)
         # Skip masking if user wants it or a specific alpha channel is given.
         if self.common_channel_mask and mode[-1] != "A":
             data = data.where(data.notnull().all(dim="bands"))
-        # if inputs have a time coordinate that may differ slightly between
-        # themselves then find the mid time and use that as the single
-        # time coordinate value
-        time = check_times(datasets)
-        if time is not None and "time" in data.dims:
-            data["time"] = [time]
+        if time is not None:
+            data.coords["time"] = time
 
         return datasets, data
 
@@ -519,38 +513,42 @@ class GenericCompositor(CompositeBase):
 
 
 def check_times(projectables):
-    """Check that *projectables* have compatible times."""
-    times = []
-    for proj in projectables:
-        status = _collect_time_from_proj(times, proj)
-        if not status:
-            break
-    else:
-        return _get_average_time(times)
+    """Get a combined time coordinate between projectables.
+
+    Returns the arithmetic mean between the available time coordinates,
+    provided they have a common dimensionality and units.  If no projectables
+    have time coordinates, return None.  Time coordinates should be CF-encoded,
+    i.e. have a numeric dtype and a units attribute.
+
+    .. versionchanged:: 0.61
+
+      This function was changed completely in satpy 0.61.  The previous
+      behaviour was poorly defined, poorly implemented, and poorly tested.  It
+      probably returned a scalar, sometimes.
+    """
+    _verify_times(projectables)
+    timed_projectables = [proj for proj in projectables if "time" in
+                          proj.coords]
+    if len(timed_projectables) > 0:
+        return xr.concat(timed_projectables, dim="dummy").mean("dummy")
 
 
-def _collect_time_from_proj(times, proj):
-    status = False
-    try:
-        if proj["time"].size and proj["time"][0] != 0:
-            times.append(proj["time"][0].values)
-            status = True
-    except KeyError:
-        # the datasets don't have times
-        pass
-    except IndexError:
-        # time is a scalar
-        if proj["time"].values != 0:
-            times.append(proj["time"].values)
-            status = True
-    return status
+def _verify_times(projectables):
+    """Verify that the times can be combined.
 
-
-def _get_average_time(times):
-    # Is there a more gracious way to handle this ?
-    if np.max(times) - np.min(times) > TIME_COMPATIBILITY_TOLERANCE:
-        raise IncompatibleTimes("Times do not match.")
-    return (np.max(times) - np.min(times)) / 2 + np.min(times)
+    Times can be combined if they have consistent units and dimensions.
+    """
+    times = [p.coords["time"] for p in projectables if "time" in p.coords]
+    for time in times:
+        if "units" not in time.attrs:
+            raise ValueError("Time coordinate lacks units attribute")
+        if time.attrs["units"] != times[0].attrs["units"]:
+            raise IncompatibleTimes("Time coordinates have inconsistent units.  "
+                                    "Conversions not implemented.")
+        if time.dims != times[0].dims:
+            raise IncompatibleTimes(
+                "Time coordinates have inconsistent dimensionality.  Only "
+                "consistent dimensionality is implemented.")
 
 
 class RGBCompositor(GenericCompositor):

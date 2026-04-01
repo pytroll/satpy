@@ -399,6 +399,7 @@ class TestGenericCompositor(unittest.TestCase):
         # masking shouldn't have been called
         projectables = [self.all_valid, self.first_invalid, self.second_invalid]
         match_data_arrays.return_value = projectables
+        check_times.return_value = None
         res = self.comp2(projectables)
         match_data_arrays.assert_called_once()
         match_data_arrays.reset_mock()
