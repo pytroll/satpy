@@ -662,3 +662,30 @@ def test_flatten_dict():
                 "b_d_e": 1,
                 "b_d_f_g": [1, 2]}
     assert flatten_dict(d) == expected
+
+
+class TestFakeCompositor:
+    """Test that FakeCompositor metadata priority is consistent with real compositors."""
+
+    def test_yaml_name_wins_over_kwargs_name(self):
+        """FakeCompositor output attrs['name'] must equal self.attrs['name'], not the kwargs name.
+
+        Real compositors (GenericCompositor) do new_attrs.update(self.attrs) last, so
+        self.attrs["name"] (the YAML key) always overwrites any name passed as a kwarg.
+        FakeCompositor must follow the same rule.
+        """
+        from unittest.mock import MagicMock
+
+        from satpy.tests.utils import FakeCompositor
+
+        area = MagicMock()
+        comp = FakeCompositor(name="comp1_wmo", prerequisites=["prereq"], standard_name="comp1")
+        prereq = xr.DataArray(
+            da.zeros((4, 5)),
+            dims=["y", "x"],
+            attrs={"area": area},
+        )
+        result = comp([prereq], name="comp1:wmo")
+        assert result.attrs["name"] == "comp1_wmo", (
+            "FakeCompositor must use self.attrs['name'] (the YAML key), not the kwargs name"
+        )
