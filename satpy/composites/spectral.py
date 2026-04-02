@@ -17,6 +17,8 @@
 
 import logging
 
+import numpy as np
+
 from satpy.composites.core import GenericCompositor
 from satpy.dataset import combine_metadata
 
@@ -110,7 +112,7 @@ class NDVIHybridGreen(SpectralBlender):
     """Construct a NDVI-weighted hybrid green channel.
 
     This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
-    factor `f` that depends on the pixel-level Normalized Differece Vegetation Index (NDVI). The higher the NDVI, the
+    factor `f` that depends on the pixel-level Normalized Difference Vegetation Index (NDVI). The higher the NDVI, the
     smaller the contribution from the nir channel will be, following a liner (default) or non-linear relationship
     between the two ranges `[ndvi_min, ndvi_max]` and `limits`.
 
@@ -163,7 +165,7 @@ class NDVIHybridGreen(SpectralBlender):
 
         ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
 
-        ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
+        ndvi = np.nan_to_num(ndvi.clip(self.ndvi_min, self.ndvi_max), nan=self.ndvi_min)
 
         # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
         if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
@@ -181,7 +183,7 @@ class NDVIHybridGreen(SpectralBlender):
         """Introduce non-linearity by applying strength factor.
 
         The method introduces non-linearity to the ndvi for a non-linear scaling from ndvi to blend fraction in
-        `_compute_blend_fraction`. This can be used for a slower or faster transision to higher/lower fractions
+        `_compute_blend_fraction`. This can be used for a slower or faster transition to higher/lower fractions
         at the ndvi extremes. If strength equals 1.0, this operation has no effect on the ndvi.
         """
         ndvi = ndvi ** self.strength / (ndvi ** self.strength + (1 - ndvi) ** self.strength)
