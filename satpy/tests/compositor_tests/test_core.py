@@ -223,15 +223,30 @@ def datasets_rgb_with_identical_2d_time_coordinate(dataset_with_2d_time_coordina
 @pytest.fixture
 def datasets_rgb_with_non_identical_1d_time_coordinate(simple_dataset):
     """List of three xarray DataArray with differing 1d time dimensions."""
-    r = simple_dataset.assign_coords(
-            {"time": xr.DataArray(
-                np.array([100, 200], dtype=np.float32),
+    r = xr.DataArray(
+        da.array([[0, 1], [0, 1]]),
+        dims=("y", "x"),
+        coords={
+            "time": xr.DataArray(
+                da.array([100, 200], dtype=np.float32),
                 dims=("y", ),
                 attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
-    g = r.copy()
-    g[:] = [100.1, 200.1]
-    b = r.copy()
-    b[:] = [100.2, 200.2]
+    g = xr.DataArray(
+        da.array([[1, 0], [1, 0]]),
+        dims=("y", "x"),
+        coords={
+            "time": xr.DataArray(
+                da.array([100.1, 200.1], dtype=np.float32),
+                dims=("y", ),
+                attrs=r.coords["time"].attrs.copy())})
+    b = xr.DataArray(
+        da.array([[0, 1], [1, 1]]),
+        dims=("y", "x"),
+        coords={
+            "time": xr.DataArray(
+                da.array([100.2, 200.2], dtype=np.float32),
+                dims=("y", ),
+                attrs=r.coords["time"].attrs.copy())})
     return [r, g, b]
 
 @pytest.fixture
@@ -239,13 +254,13 @@ def datasets_rgb_with_non_identical_2d_time_coordinate(simple_dataset):
     """List of three xarray DataArray with differing 2d time dimensions."""
     r = simple_dataset.assign_coords(
             {"time": xr.DataArray(
-                np.array([[100, 200], [101, 201]], dtype=np.float32),
+                da.array([[100, 200], [101, 201]], dtype=np.float32),
                 dims=("y", "x"),
                 attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
     g = r.copy()
-    g[:] = [[100.1, 200.1], [101.1, 201.1]]
+    g[:] = da.array([[100.1, 200.1], [101.1, 201.1]])
     b = r.copy()
-    b[:] = [[100.2, 200.2], [101.2, 201.2]]
+    b[:] = da.array([[100.2, 200.2], [101.2, 201.2]])
     return [r, g, b]
 
 
@@ -308,7 +323,8 @@ def test_single_band_compositor_retain_time_coordinate(
 def test_generic_compositor_retain_time_coordinate(
         generic_compositor, datasets_rgb_with_time):
     """Test that a GenericCompositor retains the time coordinate."""
-    res = generic_compositor(datasets_rgb_with_time)
+    with assert_maximum_dask_computes(0):
+        res = generic_compositor(datasets_rgb_with_time)
     assert "time" in res.coords
     assert res.coords["time"].attrs["units"] == datasets_rgb_with_time[0].coords["time"].attrs["units"]
 
