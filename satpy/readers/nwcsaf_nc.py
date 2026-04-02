@@ -405,6 +405,29 @@ class NcNWCSAF(BaseFileHandler):
         except TypeError:
             proj_str = self.nc.attrs["gdal_projection"].decode()
 
+        crs, area_extent = self._get_crs_and_extent_from_proj_str(proj_str)
+
+        return crs, area_extent
+
+    def _get_crs_and_extent_from_proj_str(self, proj_str):
+        if "v2025" in self.sw_version:
+            proj_str, scale = self._get_v2025_proj_str_and_scale(proj_str)
+        else:
+            proj_str, scale = self._get_legacy_proj_str_and_scale(proj_str)
+
+        area_extent = (float(self.nc.attrs["gdal_xgeo_up_left"]) / scale,
+                    float(self.nc.attrs["gdal_ygeo_low_right"]) / scale,
+                    float(self.nc.attrs["gdal_xgeo_low_right"]) / scale,
+                    float(self.nc.attrs["gdal_ygeo_up_left"]) / scale)
+
+        crs = CRS.from_string(proj_str)
+
+        return crs, area_extent
+
+    def _get_v2025_proj_str_and_scale(self, proj_str):
+        return "", 1.0
+
+    def _get_legacy_proj_str_and_scale(self, proj_str):
         # Check the a/b/h units
         radius_a = proj_str.split("+a=")[-1].split()[0]
         if float(radius_a) > 10e3:
@@ -416,14 +439,7 @@ class NcNWCSAF(BaseFileHandler):
 
         if "units" not in proj_str:
             proj_str = proj_str + " +units=" + units
-
-        area_extent = (float(self.nc.attrs["gdal_xgeo_up_left"]) / scale,
-                       float(self.nc.attrs["gdal_ygeo_low_right"]) / scale,
-                       float(self.nc.attrs["gdal_xgeo_low_right"]) / scale,
-                       float(self.nc.attrs["gdal_ygeo_up_left"]) / scale)
-
-        crs = CRS.from_string(proj_str)
-        return crs, area_extent
+        return proj_str, scale
 
 
 def remove_empties(variable):
