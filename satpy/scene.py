@@ -915,6 +915,7 @@ class Scene:
         for cv in orig_dataset.coords:
             if orig_dataset.coords[cv].dims == orig_dataset.dims:
                 LOG.debug(f"resampling coordinate {cv:s}")
+                orig_dataset.coords[cv].attrs["area"] = orig_dataset.attrs["area"]
                 res = self._reduce_and_resample(orig_dataset.coords[cv],
                                                 orig_dataset.attrs["area"],
                                                 destination_area, reduce_data,
