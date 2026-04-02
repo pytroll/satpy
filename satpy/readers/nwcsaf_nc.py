@@ -442,7 +442,7 @@ class NcNWCSAF(BaseFileHandler):
             else:
                 scaled_proj_str += elt + " "
         proj_str = scaled_proj_str.strip()
-        return proj_str, 1.0
+        return proj_str, 1.0 / V2025_PERSPECTIVE_POINT_HEIGHT
 
     def _get_legacy_proj_str_and_scale(self, proj_str):
         # Check the a/b/h units

@@ -43,10 +43,10 @@ PROJ = {
 PROJ_V2025 = {
     "gdal_projection": \
         f"+proj=geos +a=6378137.0 +b=6356751.999 +lon_0=0.000000 +h={V2025_PERSPECTIVE_POINT_HEIGHT:.1f}",
-    "gdal_xgeo_up_left": -5568000.0,
-    "gdal_ygeo_up_left": 5480000.0,
-    "gdal_xgeo_low_right": 1856000.2,
-    "gdal_ygeo_low_right": 3623999.9,
+    "gdal_xgeo_up_left": -0.1555898,
+    "gdal_ygeo_up_left": 0.1531308,
+    "gdal_xgeo_low_right": 0.05186328,
+    "gdal_ygeo_low_right": 0.1012675,
 }
 
 dimensions_v2021 = {
@@ -602,10 +602,11 @@ def _check_filehandler_area_def(file_handler, dsid, version="v2021"):
 
     if version == "v2025":
         expected_crs = CRS(PROJ_V2025["gdal_projection"])
-        correct_extent = (PROJ_V2025["gdal_xgeo_up_left"],
-                          PROJ_V2025["gdal_ygeo_low_right"],
-                          PROJ_V2025["gdal_xgeo_low_right"],
-                          PROJ_V2025["gdal_ygeo_up_left"])
+        correct_extent = (
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_xgeo_up_left"]), 3),
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_ygeo_low_right"]), 3),
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_xgeo_low_right"]), 3),
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_ygeo_up_left"]), 3))
     else:
         expected_crs = CRS(PROJ["gdal_projection"])
         correct_extent = (PROJ["gdal_xgeo_up_left"],
