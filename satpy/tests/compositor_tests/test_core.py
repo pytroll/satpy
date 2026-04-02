@@ -400,9 +400,8 @@ class TestGenericCompositor(unittest.TestCase):
 
     @mock.patch("satpy.composites.core.GenericCompositor._get_sensors")
     @mock.patch("satpy.composites.core.combine_metadata")
-    @mock.patch("satpy.composites.core.check_times")
     @mock.patch("satpy.composites.core.GenericCompositor.match_data_arrays")
-    def test_call_with_mock(self, match_data_arrays, check_times, combine_metadata, get_sensors):
+    def test_call_with_mock(self, match_data_arrays, combine_metadata, get_sensors):
         """Test calling generic compositor."""
         from satpy.composites.core import IncompatibleAreas
         combine_metadata.return_value = dict()
@@ -416,7 +415,6 @@ class TestGenericCompositor(unittest.TestCase):
         # masking shouldn't have been called
         projectables = [self.all_valid, self.first_invalid, self.second_invalid]
         match_data_arrays.return_value = projectables
-        check_times.return_value = None
         res = self.comp2(projectables)
         match_data_arrays.assert_called_once()
         match_data_arrays.reset_mock()

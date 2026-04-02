@@ -524,8 +524,9 @@ class GenericCompositor(CompositeBase):
         i.e. have a numeric dtype and a units attribute.
         """
         _verify_times(projectables)
-        timed_projectables = [proj for proj in projectables if "time" in
-                              proj.coords]
+        timed_projectables = [proj for proj in projectables
+                              if hasattr(proj, "coords")
+                              and "time" in proj.coords]
         if len(timed_projectables) > 0:
             with xr.set_options(keep_attrs=True):
                 # when the time coordinates are different, can't use xarray to
@@ -545,7 +546,8 @@ def _verify_times(projectables):
 
     Times can be combined if they have consistent units and dimensions.
     """
-    times = [p.coords["time"] for p in projectables if "time" in p.coords]
+    times = [p.coords["time"] for p in projectables
+             if hasattr(p, "coords") and "time" in p.coords]
     for time in times:
         if "units" not in time.attrs:
             raise ValueError("Time coordinate lacks units attribute")
