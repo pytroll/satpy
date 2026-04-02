@@ -42,6 +42,7 @@ def data_with_time():
                 dims=("y", "x"),
                 attrs={"units": "seconds since 1900-01-01 00:00:00"})})
 
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
@@ -249,6 +250,8 @@ class TestDayNightCompositor(unittest.TestCase):
             data_b.coords["time"] = data_a.coords["time"].copy()+0.1
         res = comp((data_a, data_b, self.sza))
         assert "time" in res.coords
+        np.testing.assert_array_equal(res.coords["bands"], ["R", "G", "B"])
+
 
 class TestFillingCompositor:
     """Test case for the filling compositor."""
