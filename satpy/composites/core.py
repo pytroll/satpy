@@ -121,7 +121,8 @@ class CompositeBase:
         elif origin.get(key) is not None:
             destination[key] = origin[key]
 
-    def match_data_arrays(self, data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
+    def match_data_arrays(self, data_arrays: Sequence[xr.DataArray],
+                          drop_coordinates: bool=True) -> list[xr.DataArray]:
         """Match data arrays so that they can be used together in a composite.
 
         For the purpose of this method, "can be used together" means:
@@ -130,12 +131,13 @@ class CompositeBase:
         - Either all arrays should have an area, or none should.
         - If all have an area, the areas should be all the same.
 
-        In addition, negligible non-dimensional coordinates are dropped (see
+        In addition, negligible non-dimensional coordinates can be dropped (see
         :meth:`drop_coordinates`) and dask chunks are unified (see
         :func:`satpy.utils.unify_chunks`).
 
         Args:
             data_arrays: Arrays to be checked
+            drop_coordinates: Drop non-dimensional coordinates.
 
         Returns:
             Arrays with negligible non-dimensional coordinates removed.
@@ -147,7 +149,7 @@ class CompositeBase:
                 If some, but not all data arrays lack an area attribute.
         """
         self.check_geolocation(data_arrays)
-        new_arrays = self.drop_coordinates(data_arrays)
+        new_arrays = self.drop_coordinates(data_arrays) if drop_coordinates else data_arrays
         new_arrays = self.align_geo_coordinates(new_arrays)
         new_arrays = list(unify_chunks(*new_arrays))
         return new_arrays
