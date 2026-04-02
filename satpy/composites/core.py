@@ -482,7 +482,7 @@ class GenericCompositor(CompositeBase):
         return mode
 
     def _check_datasets_and_data(self, datasets, mode):
-        time = check_times(datasets)
+        time = self.combine_times(datasets)
         datasets = self.match_data_arrays(datasets)
         data = self._concat_datasets(datasets, mode)
         # Skip masking if user wants it or a specific alpha channel is given.
@@ -514,29 +514,24 @@ class GenericCompositor(CompositeBase):
         return new_attrs
 
 
-def check_times(projectables):
-    """Get a combined time coordinate between projectables.
+    @staticmethod
+    def combine_times(projectables):
+        """Get a combined time coordinate between projectables.
 
-    Returns the arithmetic mean between the available time coordinates,
-    provided they have a common dimensionality and units.  If no projectables
-    have time coordinates, return None.  Time coordinates should be CF-encoded,
-    i.e. have a numeric dtype and a units attribute.
-
-    .. versionchanged:: 0.61
-
-      This function was changed completely in satpy 0.61.  The previous
-      behaviour was poorly defined, poorly implemented, and poorly tested.  It
-      probably returned a scalar, sometimes.
-    """
-    _verify_times(projectables)
-    timed_projectables = [proj for proj in projectables if "time" in
-                          proj.coords]
-    if len(timed_projectables) > 0:
-        with xr.set_options(keep_attrs=True):
-            concat = xr.concat(
-                    [x.coords["time"] for x in timed_projectables],
-                    dim="dummy").mean("dummy")
-        return concat
+        Returns the arithmetic mean between the available time coordinates,
+        provided they have a common dimensionality and units.  If no projectables
+        have time coordinates, return None.  Time coordinates should be CF-encoded,
+        i.e. have a numeric dtype and a units attribute.
+        """
+        _verify_times(projectables)
+        timed_projectables = [proj for proj in projectables if "time" in
+                              proj.coords]
+        if len(timed_projectables) > 0:
+            with xr.set_options(keep_attrs=True):
+                concat = xr.concat(
+                        [x.coords["time"] for x in timed_projectables],
+                        dim="dummy").mean("dummy")
+            return concat
 
 
 def _verify_times(projectables):
