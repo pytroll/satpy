@@ -41,7 +41,7 @@ PROJ = {
 }
 
 PROJ_V2025 = {
-    "gdal_projection": \
+    "gdal_projection":
         f"+proj=geos +a=6378137.0 +b=6356751.999 +lon_0=0.000000 +h={V2025_PERSPECTIVE_POINT_HEIGHT:.1f}",
     "gdal_xgeo_up_left": -0.1555898,
     "gdal_ygeo_up_left": 0.1531308,
