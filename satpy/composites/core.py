@@ -528,10 +528,16 @@ class GenericCompositor(CompositeBase):
                               proj.coords]
         if len(timed_projectables) > 0:
             with xr.set_options(keep_attrs=True):
-                concat = xr.concat(
-                        [x.coords["time"] for x in timed_projectables],
-                        dim="dummy").mean("dummy")
-            return concat
+                # when the time coordinates are different, can't use xarray to
+                # sum them without this leading to expensive computations!
+                da_new_time = sum([x.coords["time"].data for x in timed_projectables]) / len(timed_projectables)
+                first = timed_projectables[0].coords["time"]
+                xr_new_time = xr.DataArray(
+                        da_new_time,
+                        dims=first.dims,
+                        attrs=first.attrs,
+                        coords={k:v for (k, v) in first.coords.items() if k!="time"})
+            return xr_new_time.assign_coords(time=(first.dims, da_new_time))
 
 
 def _verify_times(projectables):
