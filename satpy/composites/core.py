@@ -489,7 +489,7 @@ class GenericCompositor(CompositeBase):
         if self.common_channel_mask and mode[-1] != "A":
             data = data.where(data.notnull().all(dim="bands"))
         if time is not None:
-            data.coords["time"] = time
+            data = data.assign_coords({"time": time})
 
         return datasets, data
 
@@ -536,8 +536,8 @@ class GenericCompositor(CompositeBase):
                 xr_new_time = xr.DataArray(
                         da_new_time,
                         dims=first.dims,
-                        attrs=first.attrs,
-                        coords={k:v for (k, v) in first.coords.items() if k!="time"})
+                        attrs=first.attrs.copy(),
+                        coords={"y": first.coords["y"], "x": first.coords["x"]})
             return xr_new_time.assign_coords(time=(first.dims, da_new_time))
 
 
