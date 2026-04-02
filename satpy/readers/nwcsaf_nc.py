@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_chunk_size_limit()
 
+V2025_PERSPECTIVE_POINT_HEIGHT = 35786400.0
+
 SENSOR = {
     "NOAA-19": "avhrr-3",
     "NOAA-18": "avhrr-3",
@@ -415,17 +417,32 @@ class NcNWCSAF(BaseFileHandler):
         else:
             proj_str, scale = self._get_legacy_proj_str_and_scale(proj_str)
 
-        area_extent = (float(self.nc.attrs["gdal_xgeo_up_left"]) / scale,
-                    float(self.nc.attrs["gdal_ygeo_low_right"]) / scale,
-                    float(self.nc.attrs["gdal_xgeo_low_right"]) / scale,
-                    float(self.nc.attrs["gdal_ygeo_up_left"]) / scale)
+        area_extent = (
+            round(float(self.nc.attrs["gdal_xgeo_up_left"]) / scale, 3),
+            round(float(self.nc.attrs["gdal_ygeo_low_right"]) / scale, 3),
+            round(float(self.nc.attrs["gdal_xgeo_low_right"]) / scale, 3),
+            round(float(self.nc.attrs["gdal_ygeo_up_left"]) / scale, 3))
 
         crs = CRS.from_string(proj_str)
 
         return crs, area_extent
 
     def _get_v2025_proj_str_and_scale(self, proj_str):
-        return "", 1.0
+        scaled_proj_str = ""
+        for elt in proj_str.split():
+            if elt.startswith("+h="):
+                height = round(V2025_PERSPECTIVE_POINT_HEIGHT * float(elt.split("=")[-1]), 3)
+                scaled_proj_str += f"+h={height} "
+            elif elt.startswith("+a="):
+                radius_a = round(V2025_PERSPECTIVE_POINT_HEIGHT * float(elt.split("=")[-1]), 3)
+                scaled_proj_str += f"+a={radius_a} "
+            elif elt.startswith("+b="):
+                radius_b = round(V2025_PERSPECTIVE_POINT_HEIGHT * float(elt.split("=")[-1]), 3)
+                scaled_proj_str += f"+b={radius_b} "
+            else:
+                scaled_proj_str += elt + " "
+        proj_str = scaled_proj_str.strip()
+        return proj_str, 1.0
 
     def _get_legacy_proj_str_and_scale(self, proj_str):
         # Check the a/b/h units
