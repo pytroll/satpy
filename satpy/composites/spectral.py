@@ -165,7 +165,8 @@ class NDVIHybridGreen(SpectralBlender):
 
         ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
 
-        ndvi = np.nan_to_num(ndvi.clip(self.ndvi_min, self.ndvi_max), nan=self.ndvi_min)
+        ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
+        ndvi.data = np.nan_to_num(ndvi.data)
 
         # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
         if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
