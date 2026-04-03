@@ -418,10 +418,10 @@ class NcNWCSAF(BaseFileHandler):
             proj_str, scale = self._get_legacy_proj_str_and_scale(proj_str)
 
         area_extent = (
-            round(float(self.nc.attrs["gdal_xgeo_up_left"]) / scale, 3),
-            round(float(self.nc.attrs["gdal_ygeo_low_right"]) / scale, 3),
-            round(float(self.nc.attrs["gdal_xgeo_low_right"]) / scale, 3),
-            round(float(self.nc.attrs["gdal_ygeo_up_left"]) / scale, 3))
+            round(float(self.nc.attrs["gdal_xgeo_up_left"]) * scale, 3),
+            round(float(self.nc.attrs["gdal_ygeo_low_right"]) * scale, 3),
+            round(float(self.nc.attrs["gdal_xgeo_low_right"]) * scale, 3),
+            round(float(self.nc.attrs["gdal_ygeo_up_left"]) * scale, 3))
 
         crs = CRS.from_string(proj_str)
 
@@ -442,7 +442,7 @@ class NcNWCSAF(BaseFileHandler):
             else:
                 scaled_proj_str += elt + " "
         proj_str = scaled_proj_str.strip()
-        return proj_str, 1.0 / V2025_PERSPECTIVE_POINT_HEIGHT
+        return proj_str, V2025_PERSPECTIVE_POINT_HEIGHT
 
     def _get_legacy_proj_str_and_scale(self, proj_str):
         # Check the a/b/h units
@@ -452,7 +452,7 @@ class NcNWCSAF(BaseFileHandler):
             scale = 1.0
         else:
             units = "km"
-            scale = 1e3
+            scale = 1e-3
 
         if "units" not in proj_str:
             proj_str = proj_str + " +units=" + units
