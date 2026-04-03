@@ -412,10 +412,11 @@ class NcNWCSAF(BaseFileHandler):
         return crs, area_extent
 
     def _get_crs_and_extent_from_proj_str(self, proj_str):
+        scale = 1.0
         if "v2025" in self.sw_version:
             proj_str, scale = self._get_v2025_proj_str_and_scale(proj_str)
-        else:
-            proj_str, scale = self._get_legacy_proj_str_and_scale(proj_str)
+
+        proj_str, scale = self._check_units(proj_str, scale)
 
         area_extent = (
             round(float(self.nc.attrs["gdal_xgeo_up_left"]) * scale, 3),
@@ -444,18 +445,18 @@ class NcNWCSAF(BaseFileHandler):
         proj_str = scaled_proj_str.strip()
         return proj_str, V2025_PERSPECTIVE_POINT_HEIGHT
 
-    def _get_legacy_proj_str_and_scale(self, proj_str):
+    def _check_units(self, proj_str, scale):
         # Check the a/b/h units
         radius_a = proj_str.split("+a=")[-1].split()[0]
         if float(radius_a) > 10e3:
             units = "m"
-            scale = 1.0
         else:
             units = "km"
-            scale = 1e-3
+            scale *= 1e-3
 
         if "units" not in proj_str:
             proj_str = proj_str + " +units=" + units
+
         return proj_str, scale
 
 
