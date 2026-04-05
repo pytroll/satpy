@@ -5,7 +5,7 @@ reader:
   description: AAPP l1c Reader for AMSU-B data
   status: Beta
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [amsub,]
 
   data_identification_keys:
