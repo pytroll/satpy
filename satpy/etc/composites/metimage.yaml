@@ -64,6 +64,21 @@ composites:
         modifiers: [ nir_reflectance ]
     standard_name: snow
 
+  snow_age:
+    compositor: !!python/name:satpy.composites.viirs.SnowAge
+    prerequisites:
+    - name: vii_865
+      modifiers: [sunz_corrected]
+    - name: vii_1240
+      modifiers: [sunz_corrected]
+    - name: vii_1375
+      modifiers: [sunz_corrected]
+    - name: vii_1630
+      modifiers: [sunz_corrected]
+    - name: vii_2250
+      modifiers: [sunz_corrected]
+    standard_name: snow_age
+
   convection:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
