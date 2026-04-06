@@ -48,7 +48,7 @@ datasets:
     standard_name: latitude
 
 # --- Measurement data ---
-  vii_443:
+  vii_4:
     name: vii_443
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_443
@@ -62,7 +62,7 @@ datasets:
     chan_solar_index: 0
     wavelength: [0.428, 0.443, 0.458]
 
-  vii_555:
+  vii_8:
     name: vii_555
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_555
@@ -76,7 +76,7 @@ datasets:
     chan_solar_index: 1
     wavelength: [0.545, 0.555, 0.565]
 
-  vii_668:
+  vii_12:
     name: vii_668
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_668
@@ -90,7 +90,7 @@ datasets:
     chan_solar_index: 2
     wavelength: [0.658, 0.668, 0.678]
 
-  vii_752:
+  vii_15:
     name: vii_752
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_752
@@ -104,7 +104,7 @@ datasets:
     chan_solar_index: 3
     wavelength: [0.7465, 0.7515, 0.7565]
 
-  vii_763:
+  vii_16:
     name: vii_763
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_763
@@ -113,7 +113,7 @@ datasets:
     chan_solar_index: 4
     wavelength: [0.75695, 0.7627, 0.76845]
 
-  vii_865:
+  vii_17:
     name: vii_865
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_865
@@ -127,7 +127,7 @@ datasets:
     chan_solar_index: 5
     wavelength: [0.855, 0.865, 0.875]
 
-  vii_914:
+  vii_20:
     name: vii_914
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_914
@@ -141,7 +141,7 @@ datasets:
     chan_solar_index: 6
     wavelength: [0.904, 0.914, 0.924]
 
-  vii_1240:
+  vii_22:
     name: vii_1240
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1240
@@ -155,7 +155,7 @@ datasets:
     chan_solar_index: 7
     wavelength: [1.230, 1.240, 1.250]
 
-  vii_1375:
+  vii_23:
     name: vii_1375
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1375
@@ -169,7 +169,7 @@ datasets:
     chan_solar_index: 8
     wavelength: [1.355, 1.375, 1.395]
 
-  vii_1630:
+  vii_24:
     name: vii_1630
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1630
@@ -183,7 +183,7 @@ datasets:
     chan_solar_index: 9
     wavelength: [1.620, 1.630, 1.640]
 
-  vii_2250:
+  vii_25:
     name: vii_2250
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_2250
@@ -197,7 +197,7 @@ datasets:
     chan_solar_index: 10
     wavelength: [2.225, 2.250, 2.275]
 
-  vii_3740:
+  vii_26:
     name: vii_3740
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_3740
@@ -211,7 +211,7 @@ datasets:
     chan_thermal_index: 0
     wavelength: [3.650, 3.740, 3.830]
 
-  vii_3959:
+  vii_28:
     name: vii_3959
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_3959
@@ -225,7 +225,7 @@ datasets:
     chan_thermal_index: 1
     wavelength: [3.929, 3.959, 3.989]
 
-  vii_4050:
+  vii_30:
     name: vii_4050
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_4050
@@ -239,7 +239,7 @@ datasets:
     chan_thermal_index: 2
     wavelength: [4.020, 4.050, 4.080]
 
-  vii_6725:
+  vii_33:
     name: vii_6725
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_6725
@@ -253,7 +253,7 @@ datasets:
     chan_thermal_index: 3
     wavelength: [6.540, 6.725, 6.910]
 
-  vii_7325:
+  vii_34:
     name: vii_7325
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_7325
@@ -267,7 +267,7 @@ datasets:
     chan_thermal_index: 4
     wavelength: [7.180, 7.325, 7.470]
 
-  vii_8540:
+  vii_35:
     name: vii_8540
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_8540
@@ -281,7 +281,7 @@ datasets:
     chan_thermal_index: 5
     wavelength: [8.395, 8.540, 8.685]
 
-  vii_10690:
+  vii_37:
     name: vii_10690
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_10690
@@ -295,7 +295,7 @@ datasets:
     chan_thermal_index: 6
     wavelength: [10.440, 10.690, 10.940]
 
-  vii_12020:
+  vii_39:
     name: vii_12020
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_12020
@@ -309,7 +309,7 @@ datasets:
     chan_thermal_index: 7
     wavelength: [11.770, 12.020, 12.270]
 
-  vii_13345:
+  vii_40:
     name: vii_13345
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_13345
