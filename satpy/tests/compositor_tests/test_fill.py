@@ -35,10 +35,22 @@ from satpy.tests.utils import CustomScheduler
 def data_with_time():
     """Return fake data array with time coordinate."""
     return xr.DataArray(
-            np.array([[1, 2, 3], [4, 3, 2]]),
+            da.array([[1, 2, 3], [4, 3, 2]]),
             dims=("y", "x"),
             coords={"time": xr.DataArray(
-                np.array([[0, 1, 2], [3, 4, 5]]),
+                da.array([[0, 1, 2], [3, 4, 5]]),
+                dims=("y", "x"),
+                attrs={"units": "seconds since 1900-01-01 00:00:00"})})
+
+
+@pytest.fixture
+def data_with_different_time():
+    """Return fake data array with a different time coordinate."""
+    return xr.DataArray(
+            da.array([[1, 2, 3], [4, 3, 2]]),
+            dims=("y", "x"),
+            coords={"time": xr.DataArray(
+                da.array([[0, 1, 2.1], [3, 4, 5]]),
                 dims=("y", "x"),
                 attrs={"units": "seconds since 1900-01-01 00:00:00"})})
 
@@ -269,11 +281,13 @@ class TestFillingCompositor:
         np.testing.assert_allclose(res.sel(bands="G").data, filler.data)
         np.testing.assert_allclose(res.sel(bands="B").data, blue.data)
 
-    def test_fill_retains_time_coordinate(self, data_with_time):
+    def test_fill_retains_time_coordinate(self, data_with_time,
+                                          data_with_different_time):
         """Test that time coordinate is retained."""
         from satpy.composites.fill import FillingCompositor
-        comp = FillingCompositor(name="fill_test")
-        res = comp([data_with_time]*4)
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = FillingCompositor(name="fill_test")
+            res = comp([data_with_time]*2 + [data_with_different_time]*2)
         assert "time" in res.coords
 
 
@@ -297,11 +311,13 @@ class TestMultiFiller(unittest.TestCase):
         assert res.attrs["units"] == "K"
 
 
-def test_filler_retains_time_coordinate(data_with_time):
+def test_filler_retains_time_coordinate(data_with_time,
+                                        data_with_different_time):
     """Test that Filler retains the time coordinate."""
     from satpy.composites.fill import Filler
-    comp = Filler(name="filler_test")
-    res = comp([data_with_time]*2)
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        comp = Filler(name="filler_test")
+        res = comp([data_with_time, data_with_different_time])
     assert "time" in res.coords
 
 
