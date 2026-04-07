@@ -574,14 +574,22 @@ class GenericCompositor(CompositeBase):
         if len(timed_projectables) > 0:
             with xr.set_options(keep_attrs=True):
                 # when the time coordinates are different, can't use xarray to
-                # sum them without this leading to expensive computations!
-                da_new_time = sum([x.coords["time"].data for x in timed_projectables]) / len(timed_projectables)
+                # sum them without this leading to expensive computations.  At
+                # this point, we should make sure NO time coordinates are
+                # assigned to the time coordinate or things will get messed up
+                # later.
                 first = timed_projectables[0].coords["time"]
+                new_coords = {}
+                if "y" in first.coords:
+                    new_coords["y"] = first.coords["y"].copy()
+                if "x" in first.coords:
+                    new_coords["x"] = first.coords["x"].copy()
+                da_new_time = sum([x.coords["time"].data for x in timed_projectables]) / len(timed_projectables)
                 xr_new_time = xr.DataArray(
                         da_new_time,
                         dims=first.dims,
                         attrs=first.attrs.copy(),
-                        coords={"y": first.coords["y"], "x": first.coords["x"]})
+                        coords=new_coords)
             return xr_new_time.assign_coords(time=(first.dims, da_new_time))
 
 
