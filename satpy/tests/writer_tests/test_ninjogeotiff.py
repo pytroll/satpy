@@ -20,8 +20,10 @@
 import datetime
 import logging
 import os
+from math import prod
 from unittest.mock import Mock
 
+import dask
 import dask.array as da
 import numpy as np
 import pytest
@@ -31,16 +33,7 @@ from trollimage.xrimage import XRImage
 
 from satpy import Scene
 from satpy.enhancements.enhancer import get_enhanced_image
-
-try:
-    from math import prod
-except ImportError:  # Remove when dropping Python < 3.8
-    from functools import reduce
-    from operator import mul
-
-    def prod(iterable):  # type: ignore
-        """Drop-in replacement for math.prod."""
-        return reduce(mul, iterable, 1)
+from satpy.tests.utils import CustomScheduler
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -339,7 +332,7 @@ def test_image_latlon(test_area_epsg4326):
 
 
 @pytest.fixture(scope="module")
-def test_image_with_time_coords(test_image_small_mid_atlantic_L):
+def test_image_with_time_coords_no_dask(test_image_small_mid_atlantic_L):
     """Get test image with time coordinates."""
     time_coor = xr.DataArray(
             np.ones_like(test_image_small_mid_atlantic_L.data.sel(bands="L")),
@@ -347,6 +340,18 @@ def test_image_with_time_coords(test_image_small_mid_atlantic_L):
             attrs={"units": "seconds since 1985-08-13 13:00:00"})
     test_image_small_mid_atlantic_L.data.coords["time"] = time_coor
     return test_image_small_mid_atlantic_L
+
+
+@pytest.fixture(scope="module")
+def test_image_with_time_coords_dask(test_image_small_mid_atlantic_L):
+    """Get test image with time coordinates."""
+    time_coor = xr.DataArray(
+            da.ones_like(test_image_small_mid_atlantic_L.data.sel(bands="L")),
+            dims=("y", "x"),
+            attrs={"units": "seconds since 1985-08-13 13:00:00"})
+    test_image_small_mid_atlantic_L.data.coords["time"] = time_coor
+    return test_image_small_mid_atlantic_L
+
 
 @pytest.fixture(scope="module")
 def ntg1(test_image_small_mid_atlantic_L):
@@ -994,7 +999,7 @@ def test_str_ids(test_image_small_arctic_P):
         SatelliteNameID="trollsat")
 
 
-def test_write_mean_time(test_image_with_time_coords, tmp_path):
+def test_write_mean_time(test_image_with_time_coords_no_dask, tmp_path):
     """Test that mean time is written to GeoTIFF."""
     import rasterio
 
@@ -1002,7 +1007,7 @@ def test_write_mean_time(test_image_with_time_coords, tmp_path):
     fn = os.fspath(tmp_path / "test-{mean_time:%Y%m%d%H%M%S}.tif")
     ngtw = NinJoGeoTIFFWriter(filename=fn)
     ngtw.save_dataset(
-        test_image_with_time_coords.data,
+        test_image_with_time_coords_no_dask.data,
         blockxsize=128,
         blockysize=128,
         compress="lzw",
@@ -1014,6 +1019,36 @@ def test_write_mean_time(test_image_with_time_coords, tmp_path):
         ChannelID="trollchannel",
         DataType="GORN",
         DataSource="dowsing rod")
+    with rasterio.open(fn.replace("{mean_time:%Y%m%d%H%M%S}",
+                                  "19850813130001")) as src:
+        tgs = src.tags()
+    assert tgs["ninjo_DateID"] == "492786000"
+    assert tgs["ninjo_ValidDateID"] == "492786001"
+
+
+def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
+    """Test that mean time is written to GeoTIFF."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test-{mean_time:%Y%m%d%H%M%S}.tif")
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        ngtw = NinJoGeoTIFFWriter(filename=fn)
+        res = ngtw.save_dataset(
+            test_image_with_time_coords_dask.data,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            dynamic_fields={"mean_time"},
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID="trollsat",
+            ChannelID="trollchannel",
+            DataType="GORN",
+            DataSource="dowsing rod",
+            compute=False)
+    res.compute()
     with rasterio.open(fn.replace("{mean_time:%Y%m%d%H%M%S}",
                                   "19850813130001")) as src:
         tgs = src.tags()

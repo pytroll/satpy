@@ -20,9 +20,14 @@
 
 import datetime as dt
 
+import dask
+import dask.array as da
+import numpy as np
 import pytest
+import xarray as xr
 
 import satpy.cf.decoding
+from satpy.tests.utils import CustomScheduler
 
 
 class TestDecodeAttrs:
@@ -64,3 +69,17 @@ class TestDecodeAttrs:
         """Test that decoding doesn't modify the original attributes."""
         satpy.cf.decoding.decode_attrs(attrs)
         assert isinstance(attrs["my_dict"], str)
+
+    def test_lazy_decode(self):
+        """Test that lazy decoding is lazy."""
+        xrda = xr.DataArray(
+                da.array([1, 2, 3]), dims=("y",),
+                attrs={"units": "seconds since 1950-05-01 01:00:00"})
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            res = satpy.cf.decoding.lazy_decode_cf_time(xrda)
+        resc = res.compute()
+        np.testing.assert_array_equal(
+            resc.values,
+            np.array(["1950-05-01T01:00:01", "1950-05-01T01:00:02",
+                      "1950-05-01T01:00:03"], dtype="M8[s]"))

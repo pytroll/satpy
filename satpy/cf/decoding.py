@@ -21,6 +21,9 @@
 import copy
 import datetime as dt
 import json
+import re
+
+import numpy as np
 
 
 def decode_attrs(attrs):
@@ -74,3 +77,40 @@ def _str2datetime(string):
         return dt.datetime.fromisoformat(string)
     except (TypeError, ValueError):
         return None
+
+
+def lazy_decode_cf_time(xrda_encoded):
+    """Lazily decode CF-encoded time in limited situations.
+
+    This is a restricted alternative to xarray.coding.times.decode_cf_datetime
+    that avoids dask computations on the values to be decoded.  It is
+    restricted to standard calendars (proleptic gregorian).
+
+    Args:
+        xrda_encoded (array-like):
+            Xarray data array with units attribute.  The units attribute should
+            be a string describing the time units using "x since timestamp",
+            UDUNITS-style.
+    """
+    # An early iteration of this function was written with the
+    # assistance of GPT-5.4.
+
+    m = re.match(r"(\w+)\s+since\s+(.+)", xrda_encoded.attrs["units"])
+    unit, ref_str = m.groups()
+    ref = np.datetime64(ref_str)
+
+    unit_map = {
+        "days": "timedelta64[D]",
+        "day": "timedelta64[D]",
+        "hours": "timedelta64[h]",
+        "hour": "timedelta64[h]",
+        "minutes": "timedelta64[m]",
+        "minute": "timedelta64[m]",
+        "seconds": "timedelta64[s]",
+        "second": "timedelta64[s]",
+        "milliseconds": "timedelta64[ms]",
+        "microseconds": "timedelta64[us]",
+        "nanoseconds": "timedelta64[ns]",
+    }
+
+    return ref + xrda_encoded.astype(unit_map[unit])
