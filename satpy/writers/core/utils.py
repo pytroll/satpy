@@ -15,7 +15,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities shared between writers."""
 
-from xarray.coding.times import decode_cf_datetime
+import xarray as xr
+
+from satpy.cf.decoding import lazy_decode_cf_time
 
 
 def get_mean_time(dataset):
@@ -39,6 +41,6 @@ def get_mean_time(dataset):
             "for a supported reader and, if applicable, `resample_coords=True` "
             "to `Scene.resample`.")
 
-    tm = dataset.coords["time"].mean()
-    tm_decoded = decode_cf_datetime(tm, dataset.coords["time"].attrs["units"])
-    return tm_decoded.astype("M8[us]").item()
+    with xr.set_options(keep_attrs=True):
+        tm = dataset.coords["time"].mean()
+    return lazy_decode_cf_time(tm)

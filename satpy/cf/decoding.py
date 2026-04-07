@@ -21,7 +21,6 @@
 import copy
 import datetime as dt
 import json
-import re
 
 import numpy as np
 
@@ -95,8 +94,7 @@ def lazy_decode_cf_time(xrda_encoded):
     # An early iteration of this function was written with the
     # assistance of GPT-5.4.
 
-    m = re.match(r"(\w+)\s+since\s+(.+)", xrda_encoded.attrs["units"])
-    unit, ref_str = m.groups()
+    (unit, ref_str) = xrda_encoded.attrs["units"].split(" since ")
     ref = np.datetime64(ref_str)
 
     unit_map = {
@@ -113,4 +111,4 @@ def lazy_decode_cf_time(xrda_encoded):
         "nanoseconds": "timedelta64[ns]",
     }
 
-    return ref + xrda_encoded.astype(unit_map[unit])
+    return ref + xrda_encoded.astype(unit_map[unit.lower()])

@@ -443,8 +443,7 @@ class NinJoTagGenerator:
         image.
         """
         mean_time = get_mean_time(self.dataset)
-        delta = mean_time.replace(tzinfo=datetime.timezone.utc) - self._epoch
-        return int(delta.total_seconds())
+        return (mean_time - np.datetime64(self._epoch)).astype("m8[s]").astype("int64")
 
     def get_earth_radius_large(self):
         """Return the Earth semi-major axis in metre."""

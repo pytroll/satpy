@@ -34,6 +34,7 @@ from trollimage.xrimage import XRImage
 from satpy import Scene
 from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.tests.utils import CustomScheduler
+from satpy.writers.core.compute import compute_writer_results
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -1031,7 +1032,9 @@ def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
     import rasterio
 
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
-    fn = os.fspath(tmp_path / "test-{mean_time:%Y%m%d%H%M%S}.tif")
+
+    # actual mean time in filename not supported
+    fn = os.fspath(tmp_path / "test-no-mean-time-in-filename.tif")
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
         ngtw = NinJoGeoTIFFWriter(filename=fn)
         res = ngtw.save_dataset(
@@ -1048,9 +1051,8 @@ def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
             DataType="GORN",
             DataSource="dowsing rod",
             compute=False)
-    res.compute()
-    with rasterio.open(fn.replace("{mean_time:%Y%m%d%H%M%S}",
-                                  "19850813130001")) as src:
+    compute_writer_results([res])
+    with rasterio.open(fn) as src:
         tgs = src.tags()
     assert tgs["ninjo_DateID"] == "492786000"
     assert tgs["ninjo_ValidDateID"] == "492786001"
