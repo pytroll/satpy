@@ -314,6 +314,7 @@ class TestCO2Corrector:
         corrector = CO2Corrector(name="co2_corrector")
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            corrector([fake_ir_039_dask_with_time,
-                       fake_ir_108_dask_with_time,
-                       fake_ir_134_dask_with_time])
+            res = corrector([fake_ir_039_dask_with_time,
+                             fake_ir_108_dask_with_time,
+                             fake_ir_134_dask_with_time])
+        assert "time" in res.coords
