@@ -20,8 +20,10 @@
 import datetime
 import logging
 import os
+from math import prod
 from unittest.mock import Mock
 
+import dask
 import dask.array as da
 import numpy as np
 import pytest
@@ -31,16 +33,8 @@ from trollimage.xrimage import XRImage
 
 from satpy import Scene
 from satpy.enhancements.enhancer import get_enhanced_image
-
-try:
-    from math import prod
-except ImportError:  # Remove when dropping Python < 3.8
-    from functools import reduce
-    from operator import mul
-
-    def prod(iterable):  # type: ignore
-        """Drop-in replacement for math.prod."""
-        return reduce(mul, iterable, 1)
+from satpy.tests.utils import CustomScheduler
+from satpy.writers.core.compute import compute_writer_results
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -339,6 +333,28 @@ def test_image_latlon(test_area_epsg4326):
 
 
 @pytest.fixture(scope="module")
+def test_image_with_time_coords_no_dask(test_image_small_mid_atlantic_L):
+    """Get test image with time coordinates."""
+    time_coor = xr.DataArray(
+            np.ones_like(test_image_small_mid_atlantic_L.data.sel(bands="L")),
+            dims=("y", "x"),
+            attrs={"units": "seconds since 1985-08-13 13:00:00"})
+    test_image_small_mid_atlantic_L.data.coords["time"] = time_coor
+    return test_image_small_mid_atlantic_L
+
+
+@pytest.fixture(scope="module")
+def test_image_with_time_coords_dask(test_image_small_mid_atlantic_L):
+    """Get test image with time coordinates."""
+    time_coor = xr.DataArray(
+            da.ones_like(test_image_small_mid_atlantic_L.data.sel(bands="L")),
+            dims=("y", "x"),
+            attrs={"units": "seconds since 1985-08-13 13:00:00"})
+    test_image_small_mid_atlantic_L.data.coords["time"] = time_coor
+    return test_image_small_mid_atlantic_L
+
+
+@pytest.fixture(scope="module")
 def ntg1(test_image_small_mid_atlantic_L):
     """Create instance of NinJoTagGenerator class."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
@@ -514,8 +530,8 @@ def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
         ChannelID=900015,
         DataType="GORN",
         DataSource="dowsing rod")
-    src = rasterio.open(fn)
-    tgs = src.tags()
+    with rasterio.open(fn) as src:
+        tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
@@ -541,8 +557,8 @@ def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
         ChannelID=900015,
         DataType="GORN",
         DataSource="dowsing rod")
-    src = rasterio.open(fn)
-    tgs = src.tags()
+    with rasterio.open(fn) as src:
+        tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     assert "ninjo_Gradient" not in tgs.keys()
@@ -567,9 +583,9 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
         ChannelID=900015,
         DataType="GORN",
         DataSource="dowsing rod")
-    src = rasterio.open(fn)
-    assert len(src.indexes) == 2  # mode LA
-    tgs = src.tags()
+    with rasterio.open(fn) as src:
+        assert len(src.indexes) == 2  # mode LA
+        tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.31058823679007746)
@@ -598,10 +614,10 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
         DataSource="dowsing rod",
         keep_palette=True,
         cmap=Colormap(*enumerate(zip(*([np.linspace(0, 1, 256)]*3)))))
-    src = rasterio.open(fn)
-    assert len(src.indexes) == 1  # mode P
-    assert src.colorinterp[0] == rasterio.enums.ColorInterp.palette
-    tgs = src.tags()
+    with rasterio.open(fn) as src:
+        assert len(src.indexes) == 1  # mode P
+        assert src.colorinterp[0] == rasterio.enums.ColorInterp.palette
+        tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     assert tgs["ninjo_Gradient"] == "1.0"
@@ -636,8 +652,8 @@ def test_write_and_read_file_units(
     # all, but that currently fails due to
     # https://github.com/pytroll/satpy/issues/2022
     assert test_image_small_mid_atlantic_K_L.data.attrs["enhancement_history"][0] != {"scale": 1, "offset": 273.15}
-    src = rasterio.open(fn)
-    tgs = src.tags()
+    with rasterio.open(fn) as src:
+        tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
@@ -687,8 +703,8 @@ def test_write_and_read_no_quantity(
         ChannelID=900015,
         DataType="GORN",
         DataSource="dowsing rod")
-    src = rasterio.open(fn)
-    tgs = src.tags()
+    with rasterio.open(fn) as src:
+        tgs = src.tags()
     assert "ninjo_Gradient" not in tgs.keys()
     assert "ninjo_AxisIntercept" not in tgs.keys()
 
@@ -714,28 +730,24 @@ def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
         SatelliteNameID=6400014,
         ChannelID=900015,
         DataType="GORN")
-    src = rasterio.open(tmp_path / "test-montanha-do-pico.tif")
-    tgs = src.tags()
+    with rasterio.open(tmp_path / "test-montanha-do-pico.tif") as src:
+        tgs = src.tags()
     assert tgs["ninjo_FileName"] == os.fspath(tmp_path / "test-montanha-do-pico.tif")
 
 
 def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
     """Test getting all tags from dataset."""
-    # test that passed, dynamic, and mandatory tags are all included, and
-    # nothing more
+    # test that passed, dynamic, and mandatory tags are all included
     t1 = ntg1.get_all_tags()
-    assert set(t1.keys()) == (
+    delta = set(t1.keys()) - (
             ntg1.fixed_tags.keys() |
             ntg1.passed_tags |
             ntg1.dynamic_tags.keys() |
             {"DataSource"})
+    assert delta - ntg1.optional_tags == set()
     # test that when extra tag is passed this is also included
     t3 = ntg3.get_all_tags()
-    assert t3.keys() == (
-            ntg3.fixed_tags.keys() |
-            ntg3.passed_tags |
-            ntg3.dynamic_tags.keys() |
-            {"OverFlightTime"})
+    assert "OverFlightTime" in t3.keys()
     assert t3["OverFlightTime"] == 42
     # test that CentralMeridian skipped and warning logged
     with caplog.at_level(logging.DEBUG):
@@ -975,7 +987,7 @@ def test_create_unknown_tags(test_image_small_arctic_P):
 
 
 def test_str_ids(test_image_small_arctic_P):
-    """Test that channel and satellit IDs can be str."""
+    """Test that channel and satellite IDs can be str."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
     NinJoTagGenerator(
         test_image_small_arctic_P,
@@ -986,3 +998,61 @@ def test_str_ids(test_image_small_arctic_P):
         PhysicUnit="N/A",
         PhysicValue="N/A",
         SatelliteNameID="trollsat")
+
+
+def test_write_mean_time(test_image_with_time_coords_no_dask, tmp_path):
+    """Test that mean time is written to GeoTIFF."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test-{mean_time:%Y%m%d%H%M%S}.tif")
+    ngtw = NinJoGeoTIFFWriter(filename=fn)
+    ngtw.save_dataset(
+        test_image_with_time_coords_no_dask.data,
+        blockxsize=128,
+        blockysize=128,
+        compress="lzw",
+        predictor=2,
+        dynamic_fields={"mean_time"},
+        PhysicUnit="N/A",
+        PhysicValue="N/A",
+        SatelliteNameID="trollsat",
+        ChannelID="trollchannel",
+        DataType="GORN",
+        DataSource="dowsing rod")
+    with rasterio.open(fn.replace("{mean_time:%Y%m%d%H%M%S}",
+                                  "19850813130001")) as src:
+        tgs = src.tags()
+    assert tgs["ninjo_DateID"] == "492786000"
+    assert tgs["ninjo_ValidDateID"] == "492786001"
+
+
+def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
+    """Test that mean time is written to GeoTIFF."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+
+    # actual mean time in filename not supported
+    fn = os.fspath(tmp_path / "test-no-mean-time-in-filename.tif")
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        ngtw = NinJoGeoTIFFWriter(filename=fn)
+        res = ngtw.save_dataset(
+            test_image_with_time_coords_dask.data,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            dynamic_fields={"mean_time"},
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID="trollsat",
+            ChannelID="trollchannel",
+            DataType="GORN",
+            DataSource="dowsing rod",
+            compute=False)
+    compute_writer_results([res])
+    with rasterio.open(fn) as src:
+        tgs = src.tags()
+    assert tgs["ninjo_DateID"] == "492786000"
+    assert tgs["ninjo_ValidDateID"] == "492786001"

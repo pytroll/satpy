@@ -188,7 +188,8 @@ class CO2Corrector(ModifierBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Apply correction."""
-        ir_039, ir_108, ir_134 = projectables
+        (ir_039, ir_108, ir_134) = self.match_data_arrays(projectables,
+                                                          drop_coordinates=False)
         logger.info("Applying CO2 correction")
         dt_co2 = (ir_108 - ir_134) / 4.0
         rcorr = ir_108 ** 4 - (ir_108 - dt_co2) ** 4

@@ -47,7 +47,8 @@ class SunZenithCorrectorBase(ModifierBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(list(projectables) + list(info.get("optional_datasets", [])))
+        projectables = self.match_data_arrays(list(projectables) + list(info.get("optional_datasets", [])),
+                                              drop_coordinates=False)
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             logger.debug("Sun zenith correction already applied")
