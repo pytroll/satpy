@@ -174,7 +174,7 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         """Test atmospherical correction."""
         from pyresample.geometry import SwathDefinition
 
-        from satpy.modifiers import PSPAtmosphericalCorrection
+        from satpy.modifiers.atmosphere import PSPAtmosphericalCorrection
 
         # Patch methods
         lons = np.zeros((5, 5))
@@ -203,3 +203,50 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         psp = PSPAtmosphericalCorrection(name="dummy")
         res = psp(projectables=[band])
         res.compute()
+
+
+@pytest.fixture
+def fake_ir_039():
+    """Return fake IR 3.9 µm data."""
+    return xr.DataArray(
+            np.array([
+                [258.85126, 265.5641 , 279.3434 , 288.12598],
+                [280.36703, 286.23367, 289.83792, 279.60886]]),
+            dims=("y", "x"))
+
+
+
+@pytest.fixture
+def fake_ir_108():
+    """Return fake IR 10.8 µm data."""
+    return xr.DataArray(
+            np.array([
+                [251.42664, 244.1881 , 281.82275, 276.40485],
+                [280.53705, 286.7915 , 290.83807, 265.59827]]),
+            dims=("y", "x"))
+
+
+@pytest.fixture
+def fake_ir_134():
+    """Return fake IR 13.4 µm data."""
+    return xr.DataArray(
+            np.array([
+                [238.38925, 231.85939, 254.27702, 251.15706],
+                [256.5422 , 259.16937, 260.9417 , 246.25409]]),
+            dims=("y", "x"))
+
+
+class TestCO2Corrector:
+    """Test the 3.9 µm CO2 corrector."""
+
+    def test_co2_corrector(self, fake_ir_039, fake_ir_108, fake_ir_134):
+        """Test the CO2 corrector."""
+        from satpy.modifiers.atmosphere import CO2Corrector
+
+        corrector = CO2Corrector(name="co2_corrector")
+        res = corrector([fake_ir_039, fake_ir_108, fake_ir_134])
+        np.testing.assert_array_almost_equal(
+                res,
+                np.array([
+                    [261.732083, 267.884717, 285.923655, 293.365848],
+                    [286.013747, 292.709672, 296.845263, 283.557481]]))
