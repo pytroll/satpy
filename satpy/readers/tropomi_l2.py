@@ -36,7 +36,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         """
         for var_name, val in self.file_content.items():
             # Only evaluate variables
-            if isinstance(val, netCDF4.Variable):
+            if self.accessor.is_variable(val):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
