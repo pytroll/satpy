@@ -19,11 +19,14 @@ import datetime as dt
 import unittest
 from unittest import mock
 
+import dask
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
+
+from satpy.tests.utils import CustomScheduler
 
 
 class TestPSPRayleighReflectance:
@@ -215,6 +218,23 @@ def fake_ir_039():
             dims=("y", "x"))
 
 
+@pytest.fixture
+def fake_ir_039_dask_with_time():
+    """Return fake IR 3.9 µm data, daskified with time coordinate."""
+    return xr.DataArray(
+            da.array([
+                [258.85126, 265.5641 , 279.3434 , 288.12598],
+                [280.36703, 286.23367, 289.83792, 279.60886]]),
+            dims=("y", "x"),
+            coords={"time":
+                    xr.DataArray(
+                        da.array([
+                            [0, 1, 2, 3],
+                            [0, 1, 2, 3]]),
+                        dims=("y", "x"),
+                        attrs={"units": "seconds since 1950-05-05 05:00:00"})})
+
+
 
 @pytest.fixture
 def fake_ir_108():
@@ -227,6 +247,23 @@ def fake_ir_108():
 
 
 @pytest.fixture
+def fake_ir_108_dask_with_time():
+    """Return fake IR 10.8 µm data, daskified with time coordinate."""
+    return xr.DataArray(
+            da.array([
+                [251.42664, 244.1881 , 281.82275, 276.40485],
+                [280.53705, 286.7915 , 290.83807, 265.59827]]),
+            dims=("y", "x"),
+            coords={"time":
+                    xr.DataArray(
+                        da.array([
+                            [0, 1, 2, 3.1],
+                            [0, 1, 2.1, 3]]),
+                        dims=("y", "x"),
+                        attrs={"units": "seconds since 1950-05-05 05:00:00"})})
+
+
+@pytest.fixture
 def fake_ir_134():
     """Return fake IR 13.4 µm data."""
     return xr.DataArray(
@@ -234,6 +271,23 @@ def fake_ir_134():
                 [238.38925, 231.85939, 254.27702, 251.15706],
                 [256.5422 , 259.16937, 260.9417 , 246.25409]]),
             dims=("y", "x"))
+
+
+@pytest.fixture
+def fake_ir_134_dask_with_time():
+    """Return fake IR 13.4 µm data, daskified with time coordinate."""
+    return xr.DataArray(
+            da.array([
+                [238.38925, 231.85939, 254.27702, 251.15706],
+                [256.5422 , 259.16937, 260.9417 , 246.25409]]),
+            dims=("y", "x"),
+            coords={"time":
+                    xr.DataArray(
+                        da.array([
+                            [0, 1, 2.1, 3],
+                            [0, 1, 2.1, 3]]),
+                        dims=("y", "x"),
+                        attrs={"units": "seconds since 1950-05-05 05:00:00"})})
 
 
 class TestCO2Corrector:
@@ -250,3 +304,16 @@ class TestCO2Corrector:
                 np.array([
                     [261.732083, 267.884717, 285.923655, 293.365848],
                     [286.013747, 292.709672, 296.845263, 283.557481]]))
+
+    def test_co2_corrector_time_dask(self, fake_ir_039_dask_with_time,
+                                     fake_ir_108_dask_with_time,
+                                     fake_ir_134_dask_with_time):
+        """Test CO2 corrector does not compute with time coordinates."""
+        from satpy.modifiers.atmosphere import CO2Corrector
+
+        corrector = CO2Corrector(name="co2_corrector")
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            corrector([fake_ir_039_dask_with_time,
+                       fake_ir_108_dask_with_time,
+                       fake_ir_134_dask_with_time])
