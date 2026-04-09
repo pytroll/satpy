@@ -70,6 +70,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.dataset.dataid import WavelengthRange
+from satpy.utils import get_one_sensor_from_attrs, normalize_sensor_name
 
 LOG = logging.getLogger(__name__)
 
@@ -282,7 +283,8 @@ def run_crefl(refl,
     :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
 
     """
-    runner_cls = _runner_class_for_sensor(refl.attrs["sensor"])
+    sensor = get_one_sensor_from_attrs(refl.attrs)
+    runner_cls = _runner_class_for_sensor(sensor)
     runner = runner_cls(refl)
     corr_refl = runner(sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation)
     return corr_refl
@@ -384,7 +386,7 @@ _SENSOR_TO_RUNNER = {
 
 def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
     try:
-        return _SENSOR_TO_RUNNER[sensor_name]
+        return _SENSOR_TO_RUNNER[normalize_sensor_name(sensor_name)]
     except KeyError:
         raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {sensor_name}.")
 

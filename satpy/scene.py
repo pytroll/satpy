@@ -36,7 +36,7 @@ from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, data
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers.core.loading import load_readers
-from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
+from satpy.utils import convert_remote_files_to_fsspec, get_sensors_from_attrs, get_storage_options_from_reader_kwargs
 
 LOG = logging.getLogger(__name__)
 
@@ -197,12 +197,7 @@ class Scene:
     def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
-            if "sensor" not in data_arr.attrs:
-                continue
-            if isinstance(data_arr.attrs["sensor"], str):
-                sensor_names.add(data_arr.attrs["sensor"])
-            elif isinstance(data_arr.attrs["sensor"], set):
-                sensor_names.update(data_arr.attrs["sensor"])
+            sensor_names.update(get_sensors_from_attrs(data_arr.attrs))
         return sensor_names
 
     @property
