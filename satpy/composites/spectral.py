@@ -166,7 +166,10 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
 
         ndvi = ndvi.clip(self.ndvi_min, self.ndvi_max)
-        ndvi.data = np.nan_to_num(ndvi.data)
+        # dask nan_to_num does not accept kwargs (see https://github.com/dask/dask/issues/12350)
+        # Second argument maps to `copy` kwarg, third maps to `nan` kwarg.
+        # Copy should remain `True` as dask operations require copies to be made
+        ndvi.data = np.nan_to_num(ndvi.data, True, self.ndvi_min)
 
         # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
         if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
