@@ -48,7 +48,11 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
         self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
         self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
-        self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
+        # Test data has been seen for both variants below...
+        try:
+            self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
+        except:
+            self._integrated_solar_irradiance = self["data/calibration_data/Band_averaged_solar_irradiance"].values
         # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
         # (the values in the product file are on tie points and in degrees,
         # therefore interpolation and conversion to radians are required)
@@ -83,6 +87,19 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == "radiance":
             calibrated_variable = variable
+        elif calibration_name == "counts":
+            # xarray automatically applies scale_factor and add_offset when reading the netCDF.
+            # To get raw counts, reverse this process using the original parameters.
+            scale_factor = variable.encoding.get("scale_factor", variable.attrs.get("scale_factor", 1.0))
+            add_offset = variable.encoding.get("add_offset", variable.attrs.get("add_offset", 0.0))
+
+            calibrated_variable = (variable - add_offset) / scale_factor
+
+            # Cast back to the original integer datatype (e.g., uint16) for strict counts
+            original_dtype = variable.encoding.get("dtype", variable.dtype)
+            calibrated_variable = calibrated_variable.astype(original_dtype)
+
+            calibrated_variable.attrs = variable.attrs
         else:
             raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info["name"]))
 
