@@ -412,10 +412,10 @@ class NcNWCSAF(BaseFileHandler):
         return crs, area_extent
 
     def _get_crs_and_extent_from_proj_str(self, proj_str):
+        scale = 1.0
         if self.sw_version.split(" ")[-1] >= "v2025":
             proj_str, scale = self._get_proj_str_and_scale(proj_str)
-        else:
-            proj_str, scale = self._get_legacy_proj_str_and_scale(proj_str)
+        proj_str, scale = self._check_units(proj_str, scale)
 
         area_extent = (
             round(float(self.nc.attrs["gdal_xgeo_up_left"]) * scale, 3),
