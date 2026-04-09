@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_chunk_size_limit()
 
+V2025_PERSPECTIVE_POINT_HEIGHT = 35786400.0
+
 SENSOR = {
     "NOAA-19": "avhrr-3",
     "NOAA-18": "avhrr-3",
@@ -405,25 +407,56 @@ class NcNWCSAF(BaseFileHandler):
         except TypeError:
             proj_str = self.nc.attrs["gdal_projection"].decode()
 
+        crs, area_extent = self._get_crs_and_extent_from_proj_str(proj_str)
+
+        return crs, area_extent
+
+    def _get_crs_and_extent_from_proj_str(self, proj_str):
+        scale = 1.0
+        if self.sw_version.split(" ")[-1] >= "v2025":
+            proj_str, scale = self._get_proj_str_and_scale(proj_str)
+        proj_str, scale = self._check_units(proj_str, scale)
+
+        area_extent = (
+            round(float(self.nc.attrs["gdal_xgeo_up_left"]) * scale, 3),
+            round(float(self.nc.attrs["gdal_ygeo_low_right"]) * scale, 3),
+            round(float(self.nc.attrs["gdal_xgeo_low_right"]) * scale, 3),
+            round(float(self.nc.attrs["gdal_ygeo_up_left"]) * scale, 3))
+
+        crs = CRS.from_string(proj_str)
+
+        return crs, area_extent
+
+    def _get_proj_str_and_scale(self, proj_str):
+        scaled_proj_str = ""
+        for elt in proj_str.split():
+            if elt.startswith("+h="):
+                height = round(V2025_PERSPECTIVE_POINT_HEIGHT * float(elt.split("=")[-1]), 3)
+                scaled_proj_str += f"+h={height} "
+            elif elt.startswith("+a="):
+                radius_a = round(V2025_PERSPECTIVE_POINT_HEIGHT * float(elt.split("=")[-1]), 3)
+                scaled_proj_str += f"+a={radius_a} "
+            elif elt.startswith("+b="):
+                radius_b = round(V2025_PERSPECTIVE_POINT_HEIGHT * float(elt.split("=")[-1]), 3)
+                scaled_proj_str += f"+b={radius_b} "
+            else:
+                scaled_proj_str += elt + " "
+        proj_str = scaled_proj_str.strip()
+        return proj_str, V2025_PERSPECTIVE_POINT_HEIGHT
+
+    def _check_units(self, proj_str, scale):
         # Check the a/b/h units
         radius_a = proj_str.split("+a=")[-1].split()[0]
         if float(radius_a) > 10e3:
             units = "m"
-            scale = 1.0
         else:
             units = "km"
-            scale = 1e3
+            scale *= 1e-3
 
         if "units" not in proj_str:
             proj_str = proj_str + " +units=" + units
 
-        area_extent = (float(self.nc.attrs["gdal_xgeo_up_left"]) / scale,
-                       float(self.nc.attrs["gdal_ygeo_low_right"]) / scale,
-                       float(self.nc.attrs["gdal_xgeo_low_right"]) / scale,
-                       float(self.nc.attrs["gdal_ygeo_up_left"]) / scale)
-
-        crs = CRS.from_string(proj_str)
-        return crs, area_extent
+        return proj_str, scale
 
 
 def remove_empties(variable):
