@@ -1017,7 +1017,6 @@ def _make_legacy_attrs(attrs: dict) -> None:
 
 def _get_legacy_sensor(sensor: str|set[str]) -> str|set[str]:
     if isinstance(sensor, set):
-        # TODO: Should all readers provide sensor as string?
         return {
             LEGACY_SENSORS.get(s, s)
             for s in sensor
