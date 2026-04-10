@@ -1008,12 +1008,27 @@ def with_legacy_attributes(func):
 
 def _make_legacy_attrs(attrs: dict) -> None:
     sensor = attrs.get("sensor")
-    if sensor and sensor in LEGACY_SENSORS:
-        attrs["sensor"] = LEGACY_SENSORS[sensor]
+    if sensor:
+        attrs["sensor"] = _get_legacy_sensor(sensor)
     platform = attrs.get("platform")
-    if platform and platform in LEGACY_PLATFORMS:
-        attrs["platform_name"] = LEGACY_PLATFORMS[platform]
+    if platform:
+        attrs["platform_name"] = _get_legacy_platform(platform)
+
+
+def _get_legacy_sensor(sensor: str|set[str]) -> str|set[str]:
+    if isinstance(sensor, set):
+        # TODO: Should all readers provide sensor as string?
+        return {
+            LEGACY_SENSORS.get(s, s)
+            for s in sensor
+        }
+    return LEGACY_SENSORS.get(sensor, sensor)
+
+
+def _get_legacy_platform(platform: str) -> str:
+    return LEGACY_PLATFORMS.get(platform, platform)
 # >8 v1.0
+
 
 class AttributeComposer:
     """Compose dataset attributes."""
