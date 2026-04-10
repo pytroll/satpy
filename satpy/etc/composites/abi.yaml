@@ -1,6 +1,4 @@
-sensor_name: ABI
-dependencies:
-  - visir
+sensor_name: visir/abi
 modifiers:
   rayleigh_corrected_crefl:
     modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
