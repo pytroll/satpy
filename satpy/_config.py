@@ -54,7 +54,9 @@ _CONFIG_DEFAULTS = {
     "readers": {
         "clip_negative_radiances": False,
     },
+    # 8< v1.0
     "oscar_compliant_attributes": False,
+    # >8 v1.0
 }
 
 # Satpy main configuration object
