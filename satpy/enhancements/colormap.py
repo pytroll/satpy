@@ -34,7 +34,13 @@ LOG = logging.getLogger(__name__)
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs["luts"], dtype=np.float32) / 255.0
-    return _lookup_table(img.data, luts=luts)
+    # Preserve NaNs
+    nans = np.isfinite(img.data)
+    
+    _lookup_table(img.data, luts=luts)
+    # Replace lost NaNs
+    img.data = img.data.where(nans, np.nan)
+    return
 
 
 @exclude_alpha
