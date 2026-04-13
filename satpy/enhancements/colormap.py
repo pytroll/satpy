@@ -36,7 +36,6 @@ def lookup(img, **kwargs):
     luts = np.array(kwargs["luts"], dtype=np.float32) / 255.0
     # Preserve NaNs
     nans = np.isfinite(img.data)
-    
     _lookup_table(img.data, luts=luts)
     # Replace lost NaNs
     img.data = img.data.where(nans, np.nan)
