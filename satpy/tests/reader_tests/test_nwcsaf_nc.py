@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.nwcsaf_nc import NcNWCSAF, read_nwcsaf_time
+from satpy.readers.nwcsaf_nc import V2025_PERSPECTIVE_POINT_HEIGHT, NcNWCSAF, read_nwcsaf_time
 from satpy.tests.utils import RANDOM_GEN
 
 PROJ_KM = {"gdal_projection": "+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000",
@@ -32,12 +32,22 @@ PROJ_KM = {"gdal_projection": "+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0
 
 NOMINAL_ALTITUDE = 35785863.0
 
-PROJ = {"gdal_projection": f"+proj=geos +a=6378137.000 +b=6356752.300 +lon_0=0.000000 +h={NOMINAL_ALTITUDE:.3f}",
-        "gdal_xgeo_up_left": -5569500.0,
-        "gdal_ygeo_up_left": 5437500.0,
-        "gdal_xgeo_low_right": 5566500.0,
-        "gdal_ygeo_low_right": 2653500.0}
+PROJ = {
+    "gdal_projection": f"+proj=geos +a=6378137.000 +b=6356752.300 +lon_0=0.000000 +h={NOMINAL_ALTITUDE:.3f}",
+    "gdal_xgeo_up_left": -5569500.0,
+    "gdal_ygeo_up_left": 5437500.0,
+    "gdal_xgeo_low_right": 5566500.0,
+    "gdal_ygeo_low_right": 2653500.0,
+}
 
+PROJ_V2025 = {
+    "gdal_projection":
+        f"+proj=geos +a=6378137.0 +b=6356751.999 +lon_0=0.000000 +h={V2025_PERSPECTIVE_POINT_HEIGHT:.1f}",
+    "gdal_xgeo_up_left": -0.1555898,
+    "gdal_ygeo_up_left": 0.1531308,
+    "gdal_xgeo_low_right": 0.05186328,
+    "gdal_ygeo_low_right": 0.1012675,
+}
 
 dimensions_v2021 = {
     "nx": 1530,
@@ -76,6 +86,7 @@ global_attrs_geo_v2025 = {
     "time_coverage_start": "2025-09-23T13:07:53Z",
     "time_coverage_end": "2025-09-23T13:09:29Z",
 }
+global_attrs_geo_v2025.update(PROJ_V2025)
 
 CTTH_PALETTE_MEANINGS = ("0 500 1000 1500")
 
@@ -126,11 +137,16 @@ def _create_nwcsaf_cf_file(filename, attrs, version):
             chunks = (1, 256, 256)
             dimensions = dimensions_v2025
             shape = (1, 928, 1530)
+            nc_file.attrs["source"] = "NWC/GEO version v2025.1"
+            gdal_projection = "+proj=geos +a=0.1782279581 +b=0.1776303847 +lon_0=0.000000 +h=1.000000 +sweep=y"
         else:
             dim_names = ("ny", "nx")
             chunks = (256, 256)
             dimensions = dimensions_v2021
             shape = (928, 1530)
+            gdal_projection = \
+                "+proj=geos +a=6378137.000000 +b=6356752.300000 +lon_0=0.000000 +h=35785863.000000 +sweep=y"
+        nc_file.attrs["gdal_projection"] = gdal_projection
         nc_file.dimensions = dimensions
         var = nc_file.create_variable(var_name, dim_names, np.uint8,
                                       chunks=chunks)
@@ -421,6 +437,11 @@ class TestNcNWCSAFGeo:
         data = nwcsaf_geo_v2025_ct_filehandler.get_dataset(dsid, ds_info)
         assert data.dims == ("y", "x")
 
+    def test_v2025_area_def(self, nwcsaf_geo_v2025_ct_filehandler):
+        """Test that the filehandler can read the area definition from a v2025 file."""
+        dsid = {"name": "ct"}
+        _check_filehandler_area_def(nwcsaf_geo_v2025_ct_filehandler, dsid, version="v2025")
+
 
 class TestNcNWCSAFPPS:
     """Test the NcNWCSAF reader for PPS products."""
@@ -574,16 +595,24 @@ class TestNcNWCSAFFileKeyPrefix:
         np.testing.assert_allclose(res.attrs["palette_meanings"], palette_meanings * COT_SCALE + COT_OFFSET)
 
 
-def _check_filehandler_area_def(file_handler, dsid):
+def _check_filehandler_area_def(file_handler, dsid, version="v2021"):
     from pyproj import CRS
 
     area_definition = file_handler.get_area_def(dsid)
 
-    expected_crs = CRS(PROJ["gdal_projection"])
-    assert area_definition.crs == expected_crs
+    if version == "v2025":
+        expected_crs = CRS(PROJ_V2025["gdal_projection"])
+        correct_extent = (
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_xgeo_up_left"]), 3),
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_ygeo_low_right"]), 3),
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_xgeo_low_right"]), 3),
+            round(V2025_PERSPECTIVE_POINT_HEIGHT * float(PROJ_V2025["gdal_ygeo_up_left"]), 3))
+    else:
+        expected_crs = CRS(PROJ["gdal_projection"])
+        correct_extent = (PROJ["gdal_xgeo_up_left"],
+                          PROJ["gdal_ygeo_low_right"],
+                          PROJ["gdal_xgeo_low_right"],
+                          PROJ["gdal_ygeo_up_left"])
 
-    correct_extent = (PROJ["gdal_xgeo_up_left"],
-                      PROJ["gdal_ygeo_low_right"],
-                      PROJ["gdal_xgeo_low_right"],
-                      PROJ["gdal_ygeo_up_left"])
+    assert area_definition.crs == expected_crs
     assert area_definition.area_extent == correct_extent
