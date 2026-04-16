@@ -77,7 +77,7 @@ def zipped_annotation_file(annotation_file, data_directory):
   """Create a zipped annotation file."""
   zip_file = data_directory / "annotation.zip"
   with ZipFile(zip_file, mode="w") as archive:
-    basename = os.path.join(*os.path.normpath(annotation_file).split(os.path.sep)[-3:])
+    basename = "/".join(*os.path.normpath(annotation_file).split(os.path.sep)[-3:])
     archive.write(annotation_file, basename)
   fname = f"zip://{basename}::file://{zip_file.as_posix()}"
   return fname
@@ -198,7 +198,7 @@ def zipped_measurement_file(measurement_file, data_directory):
   """Create a zipped measurement file."""
   zip_file = data_directory / "measurement.zip"
   with ZipFile(zip_file, mode="w") as archive:
-    basename = os.path.join(*os.path.normpath(measurement_file).split(os.path.sep)[-3:])
+    basename = "/".join(*os.path.normpath(measurement_file).split(os.path.sep)[-3:])
     archive.write(measurement_file, basename)
   return f"zip://{basename}::file://{zip_file.as_posix()}"
 
