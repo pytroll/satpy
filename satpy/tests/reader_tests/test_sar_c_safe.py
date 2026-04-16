@@ -222,7 +222,7 @@ def measurement_filehandler(request, noise_filehandler, calibration_filehandler)
                    "polarization": "vv"}
   filetype_info = None
   from satpy.readers.sar_c_safe import SAFEGRD
-  filehandler =  SAFEGRD(request.getfixturevalue(request.param),
+  filehandler = SAFEGRD(request.getfixturevalue(request.param),
                          filename_info,
                          filetype_info,
                          calibration_filehandler,
