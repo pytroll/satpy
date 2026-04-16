@@ -198,7 +198,7 @@ def zipped_measurement_file(measurement_file, data_directory):
   """Create a zipped measurement file."""
   zip_file = data_directory / "measurement.zip"
   with ZipFile(zip_file, mode="w") as archive:
-    basename = os.path.join(*os.path.normpath(measurement_file).split(os.path.sep)[-3:])
+    basename = str(measurement_file.relative_to(data_directory))
     archive.write(measurement_file, basename)
   return f"zip://{basename}::file://{zip_file.as_posix()}"
 
