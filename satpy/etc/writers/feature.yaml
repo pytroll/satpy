@@ -1,0 +1,5 @@
+writer:
+  name: feature
+  description: Write features to all geodataframe supported formats
+  writer: !!python/name:satpy.writers.feature.feature
+  filename: '{name}.sqlite'
