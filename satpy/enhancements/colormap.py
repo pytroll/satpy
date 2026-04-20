@@ -34,24 +34,23 @@ LOG = logging.getLogger(__name__)
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs["luts"], dtype=np.float32) / 255.0
-    # Preserve NaNs
-    nans = np.isfinite(img.data)
-    _lookup_table(img.data, luts=luts)
-    # Replace lost NaNs
-    img.data = img.data.where(nans, np.nan)
-    return
+    return _lookup_table(img.data, luts=luts)
 
 
 @exclude_alpha
 @on_separate_bands
 @using_map_blocks
 def _lookup_table(band_data, luts=None, index=-1):
+    # Save positions of NaNs
+    nans = np.isfinite(band_data)
     # NaN/null values will become 0
     lut = luts[:, index] if len(luts.shape) == 2 else luts
     band_data = band_data.clip(0, lut.size - 1)
     # Convert to uint8, with NaN/null values changed into 0
     band_data = np.nan_to_num(band_data).astype(np.uint8)
-    return lut[band_data]
+    # Lookup data, but with replaced NaNs from saved positions
+    res = np.where(nans, lut[band_data], np.nan)
+    return res
 
 
 def colorize(img, **kwargs):  # noqa: D417
