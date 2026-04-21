@@ -17,256 +17,138 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.omps_edr module."""
 
-import os
-import unittest
-from unittest import mock
+import datetime
+from pathlib import Path
+from typing import Iterable
 
 import numpy as np
+import pytest
+import xarray as xr
 
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
-
-DEFAULT_FILE_DTYPE = np.uint16
-DEFAULT_FILE_SHAPE = (10, 300)
-DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
-                              dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
-DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
-DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
-DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
+START_TIME1 = datetime.datetime(2025, 1, 1, 0, 0, 0)
+SINGLE_GRAN_SHAPE = (30, 240)
 
 
-class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler."""
-
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        file_content = {}
-        attrs = []
-        if "SO2NRT" in filename:
-            k = "HDFEOS/SWATHS/OMPS Column Amount SO2/Data Fields/ColumnAmountSO2_TRM"
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/ScaleFactor"] = 1.1
-            file_content[k + "/attr/Offset"] = 0.1
-            file_content[k + "/attr/MissingValue"] = -1
-            file_content[k + "/attr/Title"] = "Vertical Column Amount SO2 (TRM)"
-            file_content[k + "/attr/Units"] = "D.U."
-            file_content[k + "/attr/ValidRange"] = (-10, 2000)
-            k = "HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Longitude"
-            file_content[k] = DEFAULT_LON_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/ScaleFactor"] = 1.1
-            file_content[k + "/attr/Offset"] = 0.1
-            file_content[k + "/attr/Units"] = "deg"
-            file_content[k + "/attr/MissingValue"] = -1
-            file_content[k + "/attr/Title"] = "Geodetic Longitude"
-            file_content[k + "/attr/ValidRange"] = (-180, 180)
-            k = "HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Latitude"
-            file_content[k] = DEFAULT_LAT_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/ScaleFactor"] = 1.1
-            file_content[k + "/attr/Offset"] = 0.1
-            file_content[k + "/attr/Units"] = "deg"
-            file_content[k + "/attr/MissingValue"] = -1
-            file_content[k + "/attr/Title"] = "Geodetic Latitude"
-            file_content[k + "/attr/ValidRange"] = (-90, 90)
-        elif "NMSO2" in filename:
-            file_content["GEOLOCATION_DATA/Longitude"] = DEFAULT_LON_DATA
-            file_content["GEOLOCATION_DATA/Longitude/shape"] = DEFAULT_FILE_SHAPE
-            file_content["GEOLOCATION_DATA/Longitude/attr/valid_max"] = 180
-            file_content["GEOLOCATION_DATA/Longitude/attr/valid_min"] = -180
-            file_content["GEOLOCATION_DATA/Longitude/attr/_FillValue"] = -1.26765e+30
-            file_content["GEOLOCATION_DATA/Longitude/attr/long_name"] = "Longitude"
-            file_content["GEOLOCATION_DATA/Longitude/attr/standard_name"] = "longitude"
-            file_content["GEOLOCATION_DATA/Longitude/attr/units"] = "degrees_east"
-            file_content["GEOLOCATION_DATA/Latitude"] = DEFAULT_LAT_DATA
-            file_content["GEOLOCATION_DATA/Latitude/shape"] = DEFAULT_FILE_SHAPE
-            file_content["GEOLOCATION_DATA/Latitude/attr/valid_max"] = 90
-            file_content["GEOLOCATION_DATA/Latitude/attr/valid_min"] = -90
-            file_content["GEOLOCATION_DATA/Latitude/attr/_FillValue"] = -1.26765e+30
-            file_content["GEOLOCATION_DATA/Latitude/attr/long_name"] = "Latitude"
-            file_content["GEOLOCATION_DATA/Latitude/attr/standard_name"] = "latitude"
-            file_content["GEOLOCATION_DATA/Latitude/attr/units"] = "degress_north"
-
-            k = "SCIENCE_DATA/ColumnAmountSO2_TRM"
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/_FillValue"] = -1.26765e+30
-            file_content[k + "/attr/long_name"] = "Column Amount SO2 (TRM)"
-            file_content[k + "/attr/units"] = "DU"
-            file_content[k + "/attr/valid_max"] = 2000
-            file_content[k + "/attr/valid_min"] = -10
-
-            k = "SCIENCE_DATA/ColumnAmountSO2_STL"
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/_FillValue"] = -1.26765e+30
-            file_content[k + "/attr/long_name"] = "Column Amount SO2 (STL)"
-            file_content[k + "/attr/units"] = "DU"
-
-            k = "SCIENCE_DATA/ColumnAmountSO2_TRL"
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/_FillValue"] = -1.26765e+30
-            file_content[k + "/attr/long_name"] = "Column Amount SO2 (TRL)"
-            file_content[k + "/attr/units"] = "DU"
-            file_content[k + "/attr/valid_max"] = 2000
-            file_content[k + "/attr/valid_min"] = -10
-            file_content[k + "/attr/DIMENSION_LIST"] = [10, 10]
-            attrs = ["_FillValue", "long_name", "units", "valid_max", "valid_min", "DIMENSION_LIST"]
-
-            k = "SCIENCE_DATA/ColumnAmountSO2_TRU"
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/long_name"] = "Column Amount SO2 (TRU)"
-            file_content[k + "/attr/units"] = "DU"
-            file_content[k + "/attr/valid_max"] = 2000
-            file_content[k + "/attr/valid_min"] = -10
-
-            # Dataset with out unit
-            k = "SCIENCE_DATA/ColumnAmountSO2_PBL"
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/_FillValue"] = -1.26765e+30
-            file_content[k + "/attr/long_name"] = "Column Amount SO2 (PBL)"
-            file_content[k + "/attr/valid_max"] = 2000
-            file_content[k + "/attr/valid_min"] = -10
-        else:
-            for k in ["Reflectivity331", "UVAerosolIndex"]:
-                k = "SCIENCE_DATA/" + k
-                file_content[k] = DEFAULT_FILE_DATA
-                file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-                file_content[k + "/attr/Units"] = "Unitless"
-                if k == "UVAerosolIndex":
-                    file_content[k + "/attr/ValidRange"] = (-30, 30)
-                    file_content[k + "/attr/Title"] = "UV Aerosol Index"
-                else:
-                    file_content[k + "/attr/ValidRange"] = (-0.15, 1.15)
-                    file_content[k + "/attr/Title"] = "Effective Surface Reflectivity at 331 nm"
-                file_content[k + "/attr/_FillValue"] = -1.
-            file_content["GEOLOCATION_DATA/Longitude"] = DEFAULT_LON_DATA
-            file_content["GEOLOCATION_DATA/Longitude/shape"] = DEFAULT_FILE_SHAPE
-            file_content["GEOLOCATION_DATA/Longitude/attr/ValidRange"] = (-180, 180)
-            file_content["GEOLOCATION_DATA/Longitude/attr/_FillValue"] = -999.
-            file_content["GEOLOCATION_DATA/Longitude/attr/Title"] = "Geodetic Longitude"
-            file_content["GEOLOCATION_DATA/Longitude/attr/Units"] = "deg"
-            file_content["GEOLOCATION_DATA/Latitude"] = DEFAULT_LAT_DATA
-            file_content["GEOLOCATION_DATA/Latitude/shape"] = DEFAULT_FILE_SHAPE
-            file_content["GEOLOCATION_DATA/Latitude/attr/ValidRange"] = (-90, 90)
-            file_content["GEOLOCATION_DATA/Latitude/attr/_FillValue"] = -999.
-            file_content["GEOLOCATION_DATA/Latitude/attr/Title"] = "Geodetic Latitude"
-            file_content["GEOLOCATION_DATA/Latitude/attr/Units"] = "deg"
-
-        convert_file_content_to_data_array(file_content, attrs)
-        return file_content
+def _fake_filename(
+    start_time: datetime.datetime, end_time: datetime.datetime | None = None, prefix: str = "V8TOZ"
+) -> str:
+    stime_str = f"{start_time:%Y%m%d%H%M%S}0"
+    if end_time is None:
+        end_time = start_time + datetime.timedelta(seconds=90)
+    etime_str = f"{end_time:%Y%m%d%H%M%S}0"
+    ctime_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S0")
+    return f"{prefix}-EDR_v4r3_j01_s{stime_str}_e{etime_str}_c{ctime_str}.nc"
 
 
-class TestOMPSEDRReader(unittest.TestCase):
-    """Test OMPS EDR Reader."""
+def create_v8toz_file(tmp_path: Path, start_time: datetime.datetime) -> Path:
+    """Create a fake file for testing."""
+    from netCDF4 import Dataset
 
-    yaml_file = "omps_edr.yaml"
+    end_time = start_time + datetime.timedelta(seconds=90)
+    filename = tmp_path / _fake_filename(start_time, end_time=end_time, prefix="V8TOZ")
+    rng = np.random.default_rng(12345)
 
-    def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler."""
-        from satpy._config import config_search_paths
-        from satpy.readers.omps_edr import EDREOSFileHandler, EDRFileHandler
-        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(EDRFileHandler, "__bases__", (FakeHDF5FileHandler2,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
-        self.p2 = mock.patch.object(EDREOSFileHandler, "__bases__", (EDRFileHandler,))
-        self.fake_handler2 = self.p2.start()
-        self.p2.is_local = True
+    with Dataset(filename, "w") as nc:
+        nc.platform = "NOAA20"
+        nc.platform_name = "J01"
+        nc.instrument = "OMPS"
+        nc.instrument_name = "OMPS"
+        nc.time_coverage_start = start_time.strftime("%Y-%m-%dT%:%M:%SZ")
+        nc.time_coverage_end = end_time.strftime("%Y-%m-%dT%:%M:%SZ")
+        nc.start_orbit_number = 43448
+        nc.end_orbit_number = 43448
 
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler."""
-        self.p2.stop()
-        self.p.stop()
+        shape = SINGLE_GRAN_SHAPE
+        ntimes = nc.createDimension("nTimes", shape[0])
+        nifov = nc.createDimension("nIFOV", shape[1])
+        lon_var = nc.createVariable("Longitude", np.float32, dimensions=(ntimes, nifov), fill_value=-9999.0)
+        lon_var[:] = rng.random(shape).astype(np.float32) * 45.0
+        lat_var = nc.createVariable("Latitude", np.float32, dimensions=(ntimes, nifov), fill_value=-9999.0)
+        lat_var[:] = rng.random(shape).astype(np.float32) * 45.0
 
-    def test_init(self):
-        """Test basic init with no extra parameters."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5",
-            "OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5",
-            "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
-        ])
-        assert len(loadables) == 3
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        assert r.file_handlers
+        amount_o3 = nc.createVariable("ColumnAmountO3", np.float32, dimensions=(ntimes, nifov), fill_value=-9999.0)
+        amount_o3.valid_range = (0, 1000)
+        amount_o3.units = "0.01mm"
+        amount_o3[:] = rng.random(shape).astype(np.float32) * 1000
 
-    def test_basic_load_so2(self):
-        """Test basic load of so2 datasets."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5",
-            "OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5",
-            "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
-        ])
-        assert len(loadables) == 3
-        r.create_filehandlers(loadables)
-        ds = r.load(["so2_trm"])
-        assert len(ds) == 1
-        for d in ds.values():
-            assert d.attrs["resolution"] == 50000
-            assert d.shape == DEFAULT_FILE_SHAPE
-            assert "area" in d.attrs
-            assert d.attrs["area"] is not None
+        aerosol_idx = nc.createVariable("AerosolIndex", np.float32, dimensions=(ntimes, nifov), fill_value=-9999.0)
+        aerosol_idx.valid_range = (-100, 100)
+        aerosol_idx.units = "1"
+        aerosol_idx[:] = rng.random(shape).astype(np.float32) * 200 - 100
 
-        ds = r.load(["tcso2_trm_sampo"])
-        assert len(ds) == 1
-        for d in ds.values():
-            assert d.attrs["resolution"] == 50000
-            assert d.shape == DEFAULT_FILE_SHAPE
+        refl331 = nc.createVariable("Reflectivity331", np.float32, dimensions=(ntimes, nifov), fill_value=-9999.0)
+        refl331.valid_range = (0, 1000)
+        refl331.units = "1"
+        refl331[:] = rng.random(shape).astype(np.float32) * 100
 
-        ds = r.load(["tcso2_stl_sampo"])
-        assert len(ds) == 0
+        err_flag = nc.createVariable("ErrorFlag", np.int32, dimensions=(ntimes, nifov), fill_value=-9999)
+        err_flag.valid_range = (0, 10)
+        err_flag.units = "1"
+        err_data = np.zeros(shape, dtype=np.int32)
+        err_data[0, :10] = np.arange(10, dtype=np.int32)
+        err_flag[:] = rng.integers(0, 10, shape, dtype=np.int32)
 
-        # Dataset without _FillValue
-        ds = r.load(["tcso2_tru_sampo"])
-        assert len(ds) == 1
+    return filename
 
-        # Dataset without unit
-        ds = r.load(["tcso2_pbl_sampo"])
-        assert len(ds) == 0
 
-    def test_basic_load_to3(self):
-        """Test basic load of to3 datasets."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5",
-            "OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5",
-            "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
-        ])
-        assert len(loadables) == 3
-        r.create_filehandlers(loadables)
-        ds = r.load(["reflectivity_331", "uvaerosol_index"])
-        assert len(ds) == 2
-        for d in ds.values():
-            assert d.attrs["resolution"] == 50000
-            assert d.shape == DEFAULT_FILE_SHAPE
-            assert "area" in d.attrs
-            assert d.attrs["area"] is not None
+def omps_reader_gen(file_paths: Iterable[Path]):
+    """Create a reader instance with provided files loaded."""
+    from satpy._config import config_search_paths
+    from satpy.readers.core.loading import load_reader
 
-    @mock.patch("satpy.readers.core.hdf5.HDF5FileHandler._get_reference")
-    @mock.patch("h5py.File")
-    def test_load_so2_DIMENSION_LIST(self, mock_h5py_file, mock_hdf5_utils_get_reference):
-        """Test load of so2 datasets with DIMENSION_LIST."""
-        from satpy.readers.core.loading import load_reader
-        mock_h5py_file.return_value = mock.MagicMock()
-        mock_hdf5_utils_get_reference.return_value = [[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]]
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5",
-        ])
-        r.create_filehandlers(loadables)
+    reader_configs = config_search_paths("readers/omps_edr.yaml")
+    reader = load_reader(reader_configs)
+    loadable_files = reader.select_files_from_pathnames(file_paths)
+    reader.create_filehandlers(loadable_files)
+    return reader
 
-        ds = r.load(["tcso2_trl_sampo"])
-        assert len(ds) == 1
+
+def test_available_datasets(tmp_path):
+    """Test available datasets dynamically generated from file contents."""
+    one_file = create_v8toz_file(tmp_path, START_TIME1)
+    reader = omps_reader_gen([one_file])
+    # make sure we have some files
+    avail_datasets = list(data_id["name"] for data_id in reader.available_dataset_ids)
+    assert "Reflectivity331" in avail_datasets
+    assert "AerosolIndex" in avail_datasets
+    assert "ColumnAmountO3" in avail_datasets
+
+
+@pytest.mark.parametrize(
+    "vars_to_load",
+[
+    ["Reflectivity331", "AerosolIndex", "ColumnAmountO3"],
+    ["Reflectivity331"],
+])
+def test_basic_load(tmp_path, vars_to_load):
+    """Test basic load from multiple files."""
+    one_file = create_v8toz_file(tmp_path, START_TIME1)
+    two_file = create_v8toz_file(tmp_path, START_TIME1 + datetime.timedelta(seconds=90))
+    reader = omps_reader_gen([one_file, two_file])
+    loaded_dict = reader.load(vars_to_load)
+    assert len(loaded_dict) == len(vars_to_load)
+
+    for var_name in vars_to_load:
+        _check_expected_array(loaded_dict[var_name])
+
+
+def _check_expected_array(data_arr: xr.DataArray, num_granules: int = 2, is_filtered: bool = False):
+    from pyresample.geometry import SwathDefinition
+
+    assert data_arr.dims == ("y", "x")
+    assert data_arr.shape == (SINGLE_GRAN_SHAPE[0] * num_granules, SINGLE_GRAN_SHAPE[1])
+    assert data_arr.dtype.type == np.float32
+    assert "units" in data_arr.attrs
+
+    data_np = data_arr.data.compute()
+    assert data_np.dtype == data_arr.dtype
+    if not is_filtered:
+        assert not np.isnan(data_np).any()
+    else:
+        assert not np.isnan(data_np[1:]).any()
+        assert not np.isnan(data_np[0, 10:]).any()
+        assert np.isnan(data_np[0, :2]).all()
+
+    area = data_arr.attrs["area"]
+    assert isinstance(area, SwathDefinition)
+    assert area.shape == (SINGLE_GRAN_SHAPE[0] * num_granules, SINGLE_GRAN_SHAPE[1])

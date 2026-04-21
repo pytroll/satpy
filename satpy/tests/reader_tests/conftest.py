@@ -72,6 +72,7 @@ def make_fake_lsm(geo_size, geo_dims, shape):
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int16")
     return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
 
+
 def make_fake_dem(geo_size, geo_dims, shape):
     """Return fake DEM data array."""
     maxval = 10000
