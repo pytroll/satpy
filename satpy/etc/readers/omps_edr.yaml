@@ -4,7 +4,7 @@ reader:
   long_name: OMPS EDR data in NetCDF4 format
   description: NOAA JPSS OMPS EDR reader
   status: Beta
-  supports_fsspec: false
+  supports_fsspec: true
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [omps]
 

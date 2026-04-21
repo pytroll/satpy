@@ -36,6 +36,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
 
 LOG = logging.getLogger(__name__)
 
@@ -51,7 +52,8 @@ class EDRFileHandler(BaseFileHandler):
         super(EDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         drop_variables = filetype_info.get("drop_variables", None)
-        self.nc = xr.open_dataset(self.filename,
+        f_obj = open_file_or_filename(self.filename)
+        self.nc = xr.open_dataset(f_obj,
                                   decode_cf=filetype_info.get("decode_cf", True),
                                   mask_and_scale=True,
                                   drop_variables=drop_variables,
