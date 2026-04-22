@@ -24,12 +24,23 @@ the NetCDF4 file format.
 Ozone Error Flag Filtering
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Coming soon...
+The Total Ozone files (V8TOZ) include a variable called "ErrorFlag" with
+values marking various conditions. It is possible to filter out any pixels
+not matching certain conditions of this ErrorFlag variable. To specify what
+values should be used/preserved specify ``filter_by_error_flag`` with a list
+of the "ErrorFlag" values.
+
+.. code-block:: python
+
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_by_error_flag": [0, 1]})
+
+By default no filtering is done related to "ErrorFlag". Refer to algorithm
+documentation for more details on the "ErrorFlag" variable.
 
 """
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 import numpy as np
@@ -46,19 +57,25 @@ class EDRFileHandler(BaseFileHandler):
 
     y_dim_name = "nTimes"
     x_dim_name = "nIFOV"
+    error_flag_var_name = "ErrorFlag"
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+    def __init__(
+        self, filename, filename_info, filetype_info, filter_by_error_flag: Sequence[int] | None = None, **kwargs
+    ):
         """Initialize the geo filehandler."""
         super(EDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
+        self.filter_by_error_flag = filter_by_error_flag
+
         drop_variables = filetype_info.get("drop_variables", None)
         f_obj = open_file_or_filename(self.filename)
-        self.nc = xr.open_dataset(f_obj,
-                                  decode_cf=filetype_info.get("decode_cf", True),
-                                  mask_and_scale=True,
-                                  drop_variables=drop_variables,
-                                  chunks=-1,  # do one big chunk given size of the data
-                                  )
+        self.nc = xr.open_dataset(
+            f_obj,
+            decode_cf=filetype_info.get("decode_cf", True),
+            mask_and_scale=True,
+            drop_variables=drop_variables,
+            chunks=-1,  # do one big chunk given size of the data
+        )
 
     @property
     def start_orbit_number(self):
@@ -93,14 +110,16 @@ class EDRFileHandler(BaseFileHandler):
         info = getattr(self.nc[var_path], "attrs", {}).copy()
         info.update(ds_info)
 
-        info.update({
-            "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
-            "orbital_parameters": {
-                "start_orbit": self.start_orbit_number,
-                "end_orbit": self.end_orbit_number,
-            },
-        })
+        info.update(
+            {
+                "platform_name": self.platform_name,
+                "sensor": self.sensor_name,
+                "orbital_parameters": {
+                    "start_orbit": self.start_orbit_number,
+                    "end_orbit": self.end_orbit_number,
+                },
+            }
+        )
         info.update(dataset_id.to_dict())
         return info
 
@@ -115,6 +134,9 @@ class EDRFileHandler(BaseFileHandler):
         return data_arr
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
+        if self.filter_by_error_flag is not None:
+            ef_mask = np.isin(self.nc[self.error_flag_var_name].data, self.filter_by_error_flag)
+            data_arr.data = np.where(ef_mask, data_arr.data, np.nan)
         # xarray auto mask and scale handled any fills from the file
         valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
         if "valid_min" in data_arr.attrs and valid_range is None:
@@ -163,7 +185,7 @@ class EDRFileHandler(BaseFileHandler):
         # keep track of what variables the YAML has configured, so we don't
         # duplicate entries for them in the dynamic portion
         handled_var_names = set()
-        for is_avail, ds_info in (configured_datasets or []):
+        for is_avail, ds_info in configured_datasets or []:
             file_key = ds_info.get("file_key", ds_info["name"])
             # we must add all variables here even if another file handler has
             # claimed the variable. It could be another instance of this file

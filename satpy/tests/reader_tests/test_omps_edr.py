@@ -19,7 +19,7 @@
 
 import datetime
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 import numpy as np
 import pytest
@@ -86,20 +86,23 @@ def create_v8toz_file(tmp_path: Path, start_time: datetime.datetime) -> Path:
         err_flag.units = "1"
         err_data = np.zeros(shape, dtype=np.int32)
         err_data[0, :10] = np.arange(10, dtype=np.int32)
-        err_flag[:] = rng.integers(0, 10, shape, dtype=np.int32)
+        err_flag[:] = err_data
 
     return filename
 
 
-def omps_reader_gen(file_paths: Iterable[Path]):
+def omps_reader_gen(file_paths: Iterable[Path], reader_kwargs: dict[str, Any] | None = None):
     """Create a reader instance with provided files loaded."""
     from satpy._config import config_search_paths
     from satpy.readers.core.loading import load_reader
 
+    if reader_kwargs is None:
+        reader_kwargs = {}
+
     reader_configs = config_search_paths("readers/omps_edr.yaml")
-    reader = load_reader(reader_configs)
+    reader = load_reader(reader_configs, **reader_kwargs)
     loadable_files = reader.select_files_from_pathnames(file_paths)
-    reader.create_filehandlers(loadable_files)
+    reader.create_filehandlers(loadable_files, fh_kwargs=reader_kwargs)
     return reader
 
 
@@ -116,23 +119,34 @@ def test_available_datasets(tmp_path):
 
 @pytest.mark.parametrize(
     "vars_to_load",
-[
-    ["Reflectivity331", "AerosolIndex", "ColumnAmountO3"],
-    ["Reflectivity331"],
-])
-def test_basic_load(tmp_path, vars_to_load):
+    [
+        ["Reflectivity331", "AerosolIndex", "ColumnAmountO3"],
+        ["Reflectivity331"],
+    ],
+)
+@pytest.mark.parametrize(
+    "filter_by_error_flag",
+    [
+        None,
+        [0, 1],
+        [0, 1, 2, 3],
+    ],
+)
+def test_basic_load(tmp_path, vars_to_load, filter_by_error_flag):
     """Test basic load from multiple files."""
     one_file = create_v8toz_file(tmp_path, START_TIME1)
     two_file = create_v8toz_file(tmp_path, START_TIME1 + datetime.timedelta(seconds=90))
-    reader = omps_reader_gen([one_file, two_file])
+    reader = omps_reader_gen([one_file, two_file], reader_kwargs={"filter_by_error_flag": filter_by_error_flag})
     loaded_dict = reader.load(vars_to_load)
     assert len(loaded_dict) == len(vars_to_load)
 
     for var_name in vars_to_load:
-        _check_expected_array(loaded_dict[var_name])
+        _check_expected_array(loaded_dict[var_name], num_granules=2, filter_by_error_flag=filter_by_error_flag)
 
 
-def _check_expected_array(data_arr: xr.DataArray, num_granules: int = 2, is_filtered: bool = False):
+def _check_expected_array(
+    data_arr: xr.DataArray, num_granules: int = 2, filter_by_error_flag: None | Iterable[int] = None
+) -> None:
     from pyresample.geometry import SwathDefinition
 
     assert data_arr.dims == ("y", "x")
@@ -142,12 +156,16 @@ def _check_expected_array(data_arr: xr.DataArray, num_granules: int = 2, is_filt
 
     data_np = data_arr.data.compute()
     assert data_np.dtype == data_arr.dtype
-    if not is_filtered:
+    if filter_by_error_flag is None:
         assert not np.isnan(data_np).any()
     else:
-        assert not np.isnan(data_np[1:]).any()
+        assert not np.isnan(data_np[1:SINGLE_GRAN_SHAPE[0]]).any()
         assert not np.isnan(data_np[0, 10:]).any()
-        assert np.isnan(data_np[0, :2]).all()
+        for filt_val in range(10):
+            if filt_val in filter_by_error_flag:
+                assert not np.isnan(data_np[0, filt_val])
+            else:
+                assert np.isnan(data_np[0, filt_val])
 
     area = data_arr.attrs["area"]
     assert isinstance(area, SwathDefinition)
