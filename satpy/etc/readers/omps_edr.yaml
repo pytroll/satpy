@@ -13,4 +13,5 @@ file_types:
     file_reader: !!python/name:satpy.readers.omps_edr.EDRFileHandler
     file_patterns: ["V8TOZ-EDR_v{alg_version:d}r{alg_revision:d}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc"]
 
+# all datasets are dynamically determined from 2D variables in the file
 datasets: {}
