@@ -53,8 +53,8 @@ def create_v8toz_file(tmp_path: Path, start_time: datetime.datetime) -> Path:
         nc.platform_name = "J01"
         nc.instrument = "OMPS"
         nc.instrument_name = "OMPS"
-        nc.time_coverage_start = start_time.strftime("%Y-%m-%dT%:%M:%SZ")
-        nc.time_coverage_end = end_time.strftime("%Y-%m-%dT%:%M:%SZ")
+        nc.time_coverage_start = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        nc.time_coverage_end = end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         nc.start_orbit_number = 43448
         nc.end_orbit_number = 43448
 
