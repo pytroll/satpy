@@ -394,9 +394,15 @@ composites:
   night_microphysics:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-    - hncc_dnb
-    - M12
-    - M15
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - M16
+          - M15
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - M15
+          - M12
+      - M15
     standard_name: night_microphysics
 
   day_microphysics:
