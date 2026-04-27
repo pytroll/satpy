@@ -17,7 +17,7 @@ AREA_X_OFFSET = 1211
 AREA_Y_OFFSET = 62
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sc_h5_file(tmp_path_factory):
     """Create a fake HSAF SC HDF5 file."""
     filename = tmp_path_factory.mktemp("data") / "h10_20221115_day_merged.H5"

@@ -56,7 +56,7 @@ def _setup_science_data(N_BANDS, N_SCANS, N_COLS):
     return data
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def msi_ec_l1c_dummy_file(tmp_path_factory):
     """Create a fake insat MSI 1C file."""
     filename = tmp_path_factory.mktemp("data") / "ECA_EXAA_MSI_RGR_1C_20250625T005649Z_20250625T024013Z_42043E.h5"
