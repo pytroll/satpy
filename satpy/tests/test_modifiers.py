@@ -73,21 +73,21 @@ def _get_ds1(attrs):
     return ds1
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sunz_ds1():
     """Generate fake dataset for sunz tests."""
     attrs = _shared_sunz_attrs(_sunz_area_def())
     return _get_ds1(attrs)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sunz_ds1_stacked():
     """Generate fake dataset for sunz tests."""
     attrs = _shared_sunz_attrs(_sunz_stacked_area_def())
     return _get_ds1(attrs)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sunz_ds2():
     """Generate larger fake dataset for sunz tests."""
     attrs = _shared_sunz_attrs(_sunz_bigger_area_def())
@@ -97,7 +97,7 @@ def sunz_ds2():
     return ds2
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sunz_sza():
     """Generate fake solar zenith angle data array for testing."""
     sza = xr.DataArray(

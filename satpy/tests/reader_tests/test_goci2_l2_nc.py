@@ -78,7 +78,7 @@ def _create_bad_lon_lat():
     return ds
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def ac_file(tmp_path_factory):
     """Create a fake atmospheric correction product."""
     data = RANDOM_GEN.random((10, 10))

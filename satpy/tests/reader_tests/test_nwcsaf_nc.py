@@ -115,7 +115,7 @@ COT_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
 PAL_ARRAY = RANDOM_GEN.integers(0, 255, size=(250, 3), dtype=np.uint8)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def nwcsaf_geo_ct_filename(tmp_path_factory):
     """Create a CT file and return the filename."""
     return create_nwcsaf_geo_ct_file(tmp_path_factory.mktemp("data"))
@@ -159,7 +159,7 @@ def nwcsaf_geo_ct_filehandler(nwcsaf_geo_ct_filename):
     return NcNWCSAF(nwcsaf_geo_ct_filename, {}, {})
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def nwcsaf_geo_v2025_ct_filename(tmp_path_factory):
     """Create a CT file in the v2025 format and return the filename."""
     return create_nwcsaf_geo_v2025_ct_file(tmp_path_factory.mktemp("data"))
@@ -178,7 +178,7 @@ def nwcsaf_geo_v2025_ct_filehandler(nwcsaf_geo_v2025_ct_filename):
     return NcNWCSAF(nwcsaf_geo_v2025_ct_filename, {}, {})
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def nwcsaf_pps_cmic_filename(tmp_path_factory):
     """Create a CMIC file."""
     attrs = global_attrs.copy()
@@ -189,7 +189,7 @@ def nwcsaf_pps_cmic_filename(tmp_path_factory):
     return filename
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def nwcsaf_pps_ctth_filename(tmp_path_factory):
     """Create a CTTH file."""
     attrs = global_attrs.copy()
@@ -235,7 +235,7 @@ def nwcsaf_pps_ctth_filehandler(nwcsaf_pps_ctth_filename):
     return NcNWCSAF(nwcsaf_pps_ctth_filename, {}, {})
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def nwcsaf_pps_cpp_filename(tmp_path_factory):
     """Create a CPP file."""
     filename = create_cmic_file(tmp_path_factory.mktemp("data"), filetype="cpp")
@@ -291,7 +291,7 @@ def nwcsaf_pps_cpp_filehandler(nwcsaf_pps_cpp_filename):
     return NcNWCSAF(nwcsaf_pps_cpp_filename, {}, {"file_key_prefix": "cpp_"})
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def nwcsaf_old_geo_ct_filename(tmp_path_factory):
     """Create a CT file and return the filename."""
     attrs = global_attrs_geo.copy()
