@@ -406,9 +406,9 @@ class BackgroundCompositor(GenericCompositor):
         # 'mode' is no longer valid after we've remove the 'A'
         # let the base class __call__ determine mode
         attrs.pop("mode", None)
-        if attrs.get("sensor") is None:
+        if attrs.get("_satpy_sensor") is None:
             # sensor can be a set
-            attrs["sensor"] = self._get_sensors([foreground, background])
+            attrs["_satpy_sensor"] = self._get_sensors([foreground, background])
         return attrs
 
     @staticmethod

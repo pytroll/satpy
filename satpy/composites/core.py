@@ -436,7 +436,7 @@ class GenericCompositor(CompositeBase):
     def _get_sensors(self, projectables):
         sensor = set()
         for projectable in projectables:
-            current_sensor = projectable.attrs.get("sensor", None)
+            current_sensor = projectable.attrs.get("_satpy_sensor", None)
             if current_sensor:
                 if isinstance(current_sensor, (str, bytes)):
                     sensor.add(current_sensor)
@@ -512,7 +512,7 @@ class GenericCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         if resolution is not None:
             new_attrs["resolution"] = resolution
-        new_attrs["sensor"] = self._get_sensors(datasets)
+        new_attrs["_satpy_sensor"] = self._get_sensors(datasets)
         new_attrs["mode"] = mode
 
         return new_attrs

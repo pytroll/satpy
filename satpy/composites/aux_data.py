@@ -156,7 +156,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
             img.attrs["area"] = self.area
-        img.attrs["sensor"] = None
+        img.attrs["_satpy_sensor"] = None
         img.attrs["mode"] = "".join(img.bands.data)
         img.attrs.pop("modifiers", None)
         img.attrs.pop("calibration", None)

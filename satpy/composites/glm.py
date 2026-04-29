@@ -97,7 +97,7 @@ class HighlightCompositor(GenericCompositor):
         new_data.attrs["units"] = 1
         new_sensors = self._get_sensors((highlight_layer, background_layer))
         new_data.attrs.update({
-            "sensor": new_sensors,
+            "_satpy_sensor": new_sensors,
         })
 
     def __call__(self, projectables, optional_datasets=None, **attrs):

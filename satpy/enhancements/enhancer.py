@@ -38,12 +38,12 @@ class EnhancementDecisionTree(DecisionTree):
                                 ("name",
                                  "reader",
                                  "platform_name",
-                                 "sensor",
+                                 "_satpy_sensor",
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor"])
+        multival_keys = kwargs.pop("multival_keys", ["_satpy_sensor"])
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
 
@@ -209,8 +209,8 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        if dataset.attrs.get("sensor", None):
-            enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
+        if dataset.attrs.get("_satpy_sensor", None):
+            enhancer.add_sensor_enhancements(dataset.attrs["_satpy_sensor"])
 
         enhancer.apply(img, **dataset.attrs)
 

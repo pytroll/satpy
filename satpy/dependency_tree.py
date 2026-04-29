@@ -514,7 +514,7 @@ class DependencyTree(Tree):
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
-            moptions["sensor"] = sensor_name
+            moptions["_satpy_sensor"] = sensor_name
             compositors[comp_id] = mloader(_satpy_id=comp_id, **moptions)
             return compositors[comp_id]
 

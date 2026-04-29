@@ -940,3 +940,8 @@ def flatten_dict(d, parent_key="", sep="_"):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def oscar_to_satpy(instrument: str) -> str:
+    """Translate OSCAR instrument name to Satpy naming convention."""
+    return instrument.lower().replace("-", "").replace(" ", "_").replace("/", "-")

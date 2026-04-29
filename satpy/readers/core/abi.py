@@ -30,7 +30,7 @@ from pyresample import geometry
 from satpy._compat import cached_property
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
-from satpy.utils import get_dask_chunk_size_in_bytes
+from satpy.utils import get_dask_chunk_size_in_bytes, oscar_to_satpy
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +109,14 @@ class NC_ABI_BASE(BaseFileHandler):
         return nc
 
     @property
+    def instrument(self):
+        """Get OSCAR instrument name for current file handler."""
+        return "ABI"
+
+    @property
     def sensor(self):
-        """Get sensor name for current file handler."""
-        return "abi"
+        """Get satpy internal sensor name for current file handler."""
+        return oscar_to_satpy(self.instrument)
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.

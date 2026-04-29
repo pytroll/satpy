@@ -18,6 +18,7 @@
 """Scene object to hold satellite data."""
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import warnings
@@ -29,6 +30,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
+import satpy
 from satpy.area import get_area_def
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.composites.core import IncompatibleAreas
@@ -197,12 +199,12 @@ class Scene:
     def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
-            if "sensor" not in data_arr.attrs:
+            if "_satpy_sensor" not in data_arr.attrs:
                 continue
-            if isinstance(data_arr.attrs["sensor"], str):
-                sensor_names.add(data_arr.attrs["sensor"])
-            elif isinstance(data_arr.attrs["sensor"], set):
-                sensor_names.update(data_arr.attrs["sensor"])
+            if isinstance(data_arr.attrs["_satpy_sensor"], str):
+                sensor_names.add(data_arr.attrs["_satpy_sensor"])
+            elif isinstance(data_arr.attrs["_satpy_sensor"], set):
+                sensor_names.update(data_arr.attrs["_satpy_sensor"])
         return sensor_names
 
     @property
@@ -828,8 +830,15 @@ class Scene:
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple):
-            return self.slice(key)
-        return self._datasets[key]
+            res = self.slice(key)
+        else:
+            res = self._datasets[key]
+        # 8< v1.0
+        if satpy.config.get("legacy_sensor_attribute"):
+            with contextlib.suppress(KeyError):
+                res.attrs["sensor"] = res.attrs["_satpy_sensor"]
+        # >8 v1.0
+        return res
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""

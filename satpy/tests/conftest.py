@@ -63,3 +63,11 @@ def _forbid_pyspectral_downloads():
 
     with forbid_pyspectral_downloads():
         yield
+
+# 8< v1.0
+@pytest.fixture(scope="session", autouse=True)
+def legacy_sensor_attribute():
+    """Request legacy sensor attribute."""
+    import satpy
+    satpy.config.set(legacy_sensor_attribute=True)
+# >8 v1.0
