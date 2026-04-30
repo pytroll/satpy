@@ -16,6 +16,7 @@
 """Shared objects and base classes for writers."""
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import typing
@@ -23,6 +24,7 @@ import warnings
 
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
+from satpy.utils import serialize_sensors
 from satpy.writers.core.compute import compute_writer_results, split_results
 
 if typing.TYPE_CHECKING:
@@ -136,8 +138,8 @@ class Writer(Plugin, DataDownloadMixin):
 
     @staticmethod
     def _prepare_metadata_for_filename_formatting(attrs):
-        if isinstance(attrs.get("sensor"), set):
-            attrs["sensor"] = "-".join(sorted(attrs["sensor"]))
+        with contextlib.suppress(KeyError):
+            attrs["sensor"] = serialize_sensors(attrs["sensor"])
 
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.

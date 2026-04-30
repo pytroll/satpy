@@ -26,6 +26,7 @@ import xarray as xr
 from satpy.modifiers import ModifierBase
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
 from satpy.modifiers.angles import compute_relative_azimuth, get_angles, get_satellite_zenith_angle
+from satpy.utils import get_one_sensor_from_attrs, get_pyspectral_sensor_name
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,10 @@ class PSPRayleighReflectance(ModifierBase):
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
                     atmosphere, aerosol_type, vis.attrs["name"])
-        corrector = Rayleigh(vis.attrs["platform_name"], vis.attrs["sensor"],
+        sensor = get_pyspectral_sensor_name(
+            get_one_sensor_from_attrs(vis.attrs)
+        )
+        corrector = Rayleigh(vis.attrs["platform_name"], sensor,
                              atmosphere=atmosphere,
                              aerosol_type=aerosol_type)
 
@@ -158,8 +162,11 @@ class PSPAtmosphericalCorrection(ModifierBase):
         satz = satz.data  # get dask array underneath
 
         logger.info("Correction for limb cooling")
+        sensor = get_pyspectral_sensor_name(
+            get_one_sensor_from_attrs(band.attrs)
+        )
         corrector = AtmosphericalCorrection(band.attrs["platform_name"],
-                                            band.attrs["sensor"])
+                                            sensor)
 
         atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
                                  corrector=corrector,
