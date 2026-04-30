@@ -479,3 +479,39 @@ enhancements:
         img = self._get_enhanced_image(data_arr, test_configs_path)
         # no reader available, should use default no specified reader
         np.testing.assert_allclose(img.data.values[0], data_arr.data / 50.0)
+
+
+class TestCompositorNameEnhancementLookup:
+    """Test that _satpy_compositor_name is used to find enhancement entries keyed by the YAML compositor name."""
+
+    YAML_KEY_NAME = "true_color_wmo"
+    REQUESTED_NAME = "true_color:wmo"
+
+    @pytest.fixture
+    def enh_tree(self):
+        """Build an EnhancementDecisionTree with an entry keyed by the YAML compositor name only.
+
+        When passing a dict directly, the 'enhancements' wrapper is NOT stripped (unlike YAML files),
+        so entries must be at the top level.
+        """
+        from satpy.enhancements.enhancer import EnhancementDecisionTree
+        config = {
+            self.YAML_KEY_NAME: {
+                "name": self.YAML_KEY_NAME,
+                "operations": [{"method": lambda img: None, "args": [], "kwargs": {}}],
+            },
+        }
+        return EnhancementDecisionTree(config)
+
+    def test_requested_name_alone_does_not_match_yaml_key_entry(self, enh_tree):
+        """Check that requested tag-syntax name alone cannot match a YAML-key-name enhancement entry."""
+        with pytest.raises(KeyError):
+            enh_tree.find_match(name=self.REQUESTED_NAME)
+
+    def test_find_match_via_compositor_name(self, enh_tree):
+        """Check that enhancement entry for YAML key is found when _satpy_compositor_name is set on the dataset."""
+        result = enh_tree.find_match(
+            name=self.REQUESTED_NAME,
+            _satpy_compositor_name=self.YAML_KEY_NAME,
+        )
+        assert result is not None

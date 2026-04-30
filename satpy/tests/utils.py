@@ -199,7 +199,6 @@ class FakeCompositor(GenericCompositor):
         if len(projectables) != len(self.attrs["prerequisites"]):
             raise ValueError("Not enough prerequisite datasets passed")
 
-        info.update(kwargs)
         if projectables:
             info["area"] = projectables[0].attrs["area"]
             dim_sizes = projectables[0].sizes

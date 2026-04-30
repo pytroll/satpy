@@ -62,6 +62,12 @@ composites:
     compositor: !!python/name:satpy.tests.utils.FakeCompositor
     prerequisites:
       - ds1
+  comp1_wmo:
+    compositor: !!python/name:satpy.tests.utils.FakeCompositor
+    prerequisites:
+      - ds1
+    standard_name: comp1
+    tags: [wmo]
   comp2:
     compositor: !!python/name:satpy.tests.utils.FakeCompositor
     prerequisites:
