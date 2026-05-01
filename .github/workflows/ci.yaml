@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
