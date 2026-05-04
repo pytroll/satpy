@@ -533,6 +533,12 @@ datasets:
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/MoonIllumFraction'
     file_units: '1'
+  moon_phase_angle:
+    name: moon_phase_angle
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/MoonPhaseAngle'
+    file_units: '1'
 
 file_types:
   generic_file:
