@@ -155,7 +155,7 @@ class BaseFileHandler:
         return self.filename_info.get("end_time", self.start_time)
 
     @property
-    def sensor_names(self):
+    def sensor_names(self) -> set:
         """List of sensors represented in this file."""
         raise NotImplementedError
 
