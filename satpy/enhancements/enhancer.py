@@ -24,7 +24,7 @@ from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs
 from satpy.decision_tree import DecisionTree
-from satpy.utils import get_logger, recursive_dict_update
+from satpy.utils import get_logger, get_sensors_from_attrs, normalize_sensor_name, recursive_dict_update
 
 LOG = get_logger(__name__)
 
@@ -122,26 +122,23 @@ class Enhancer:
 
         self.sensor_enhancement_configs = []
 
-    def get_sensor_enhancement_config(self, sensor):
+    def get_sensor_enhancement_config(self, sensors: set[str]):
         """Get the sensor-specific config."""
-        if isinstance(sensor, str):
-            # one single sensor
-            sensor = [sensor]
-
         paths = get_entry_points_config_dirs("satpy.enhancements")
-        for sensor_name in sensor:
-            config_fn = os.path.join("enhancements", sensor_name + ".yaml")
+        for sensor_name in sensors:
+            basename = normalize_sensor_name(sensor_name) + ".yaml"
+            config_fn = os.path.join("enhancements", basename)
             config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:
                 yield config_file
 
-    def add_sensor_enhancements(self, sensor):
+    def add_sensor_enhancements(self, sensors: set[str]):
         """Add sensor-specific enhancements."""
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
-        for config_file in self.get_sensor_enhancement_config(sensor):
+        for config_file in self.get_sensor_enhancement_config(sensors):
             if config_file not in self.sensor_enhancement_configs:
                 self.sensor_enhancement_configs.append(config_file)
                 new_configs.append(config_file)
@@ -209,9 +206,9 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        if dataset.attrs.get("sensor", None):
-            enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
-
+        sensors = get_sensors_from_attrs(dataset.attrs)
+        if sensors:
+            enhancer.add_sensor_enhancements(sensors)
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:

@@ -73,7 +73,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
     def _adjust_attrs(self, data, key):
         data.attrs.update({"platform_name": self.platform_name,
-                          "sensor": self.sensor})
+                          "sensor": {self.sensor}})
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
         data.attrs["orbital_parameters"] = {
