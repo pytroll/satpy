@@ -115,3 +115,4 @@ The following people have made contributions to this project:
 - [Albert Brotzer](https://github.com/albertbrotzer)
 - [Alexandra Melzer](https://github.com/armelzer)
 - [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
+- [Göte Kleringer (Grukank)](https://github.com/Grukank)

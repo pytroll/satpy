@@ -42,16 +42,16 @@ class TestEnhancementsConvolution:
         """Test the lookup enhancement function."""
         from satpy.enhancements.colormap import lookup
         expected = np.array([[
-            [0., 0., 0., 0.333333, 0.705882],
+            [np.nan, 0., 0., 0.333333, 0.705882],
             [1., 1., 1., 1., 1.]]])
         lut = np.arange(256.)
         run_and_check_enhancement(lookup, self.ch1, expected, luts=lut)
 
-        expected = np.array([[[0., 0., 0., 0.333333, 0.705882],
+        expected = np.array([[[np.nan, 0., 0., 0.333333, 0.705882],
                               [1., 1., 1., 1., 1.]],
-                             [[0., 0., 0., 0.333333, 0.705882],
+                             [[np.nan, 0., 0., 0.333333, 0.705882],
                               [1., 1., 1., 1., 1.]],
-                             [[0., 0., 0., 0.333333, 0.705882],
+                             [[np.nan, 0., 0., 0.333333, 0.705882],
                               [1., 1., 1., 1., 1.]]])
         lut = np.arange(256.)
         lut = np.vstack((lut, lut, lut)).T
