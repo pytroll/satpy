@@ -9,7 +9,7 @@ dependencies:
   - donfig
   - platformdirs
   - toolz
-  - Cython
+  - cython
   - numba
   - sphinx
   - cartopy
