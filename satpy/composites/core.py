@@ -28,7 +28,7 @@ import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
-from satpy.utils import get_instruments_from_attrs, unify_chunks
+from satpy.utils import get_instruments_from_attrs, set_instruments_attr, unify_chunks
 
 LOG = logging.getLogger(__name__)
 
@@ -503,7 +503,7 @@ class GenericCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         if resolution is not None:
             new_attrs["resolution"] = resolution
-        new_attrs["instruments"] = self._get_sensors(datasets)
+        set_instruments_attr(new_attrs, self._get_sensors(datasets))
         new_attrs["mode"] = mode
 
         return new_attrs

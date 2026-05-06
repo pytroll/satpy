@@ -24,7 +24,13 @@ from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs
 from satpy.decision_tree import DecisionTree
-from satpy.utils import get_instruments_from_attrs, get_logger, normalize_instrument_name, recursive_dict_update
+from satpy.utils import (
+    get_instruments_from_attrs,
+    get_instruments_key,
+    get_logger,
+    normalize_instrument_name,
+    recursive_dict_update,
+)
 
 LOG = get_logger(__name__)
 
@@ -34,16 +40,17 @@ class EnhancementDecisionTree(DecisionTree):
 
     def __init__(self, *decision_dicts, **kwargs):
         """Init the decision tree."""
+        instr_key = get_instruments_key()
         match_keys = kwargs.pop("match_keys",
                                 ("name",
                                  "reader",
                                  "platform_name",
-                                 "instruments",
+                                 instr_key,
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["instruments"])
+        multival_keys = kwargs.pop("multival_keys", [instr_key])
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
 
