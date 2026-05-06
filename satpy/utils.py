@@ -39,6 +39,8 @@ import yaml
 from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
 
+import satpy
+
 _is_logging_on = False
 TRACE_LEVEL = 5
 
@@ -944,7 +946,8 @@ def flatten_dict(d, parent_key="", sep="_"):
 
 def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
     """Get instrument names from dataset attributes."""
-    return attrs.get("instruments", set())
+    key = get_instruments_key()
+    return attrs.get(key, set())
 
 
 def normalize_instrument_name(instrument: str) -> str:
@@ -973,3 +976,14 @@ def serialize_instruments(instruments: set[str]) -> str:
         instr.replace("-", "").replace(" ", "").replace("/", "").lower()
         for instr in sorted(instruments)
     )
+
+
+def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> None:
+    """Set 'instruments' dataset atrribute."""
+    key = get_instruments_key()
+    attrs[key] = instruments
+
+
+def get_instruments_key():
+    """Get key for instruments in dataset attributes."""
+    return satpy.config.get("instruments_key")

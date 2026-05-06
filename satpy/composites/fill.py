@@ -26,6 +26,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.dataset import combine_metadata
+from satpy.utils import get_instruments_from_attrs, set_instruments_attr
 
 from .core import (
     GenericCompositor,
@@ -406,9 +407,10 @@ class BackgroundCompositor(GenericCompositor):
         # 'mode' is no longer valid after we've remove the 'A'
         # let the base class __call__ determine mode
         attrs.pop("mode", None)
-        if attrs.get("instruments") is None:
+        if not get_instruments_from_attrs(attrs):
             # sensor can be a set
-            attrs["instruments"] = self._get_sensors([foreground, background])
+            instruments = self._get_sensors([foreground, background])
+            set_instruments_attr(attrs, instruments)
         return attrs
 
     @staticmethod
