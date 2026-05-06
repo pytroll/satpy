@@ -947,7 +947,13 @@ def flatten_dict(d, parent_key="", sep="_"):
 def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
     """Get instrument names from dataset attributes."""
     key = get_instruments_key()
-    return attrs.get(key, set())
+    try:
+        instruments = attrs[key]
+        if isinstance(instruments, str):
+            return set([instruments])
+        return instruments
+    except KeyError:
+        return set()
 
 
 def normalize_instrument_name(instrument: str) -> str:
