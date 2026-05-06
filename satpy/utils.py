@@ -942,34 +942,34 @@ def flatten_dict(d, parent_key="", sep="_"):
     return dict(items)
 
 
-def get_sensors_from_attrs(attrs: dict[str,Any]) -> set[str]:
-    """Get sensor names from dataset attributes."""
-    return attrs.get("sensor", set())
+def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
+    """Get instrument names from dataset attributes."""
+    return attrs.get("instruments", set())
 
 
-def normalize_sensor_name(sensor: str) -> str:
-    """Normalize sensor name for internal usage."""
-    return sensor.replace("-", "").replace(" ", "_").replace("/", "-").lower()
+def normalize_instrument_name(instrument: str) -> str:
+    """Normalize instrument name for internal usage."""
+    return instrument.replace("-", "").replace(" ", "_").replace("/", "-").lower()
 
 
-def get_one_sensor_from_attrs(attrs: dict[str,Any]) -> str:
-    """Get a single sensor name from dataset attributes."""
-    sensors = get_sensors_from_attrs(attrs)
-    if not sensors:
-        raise KeyError("No 'sensor' dataset attribute")
-    if len(sensors) > 1:
-        logger.warning(f"More than one sensor in dataset attributes, will use the first value: {sensors}")
-    return list(sensors)[0]
+def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
+    """Get a single instrument name from dataset attributes."""
+    instruments = get_instruments_from_attrs(attrs)
+    if not instruments:
+        raise KeyError("No 'instruments' dataset attribute")
+    if len(instruments) > 1:
+        logger.warning(f"More than one instrument in dataset attributes, will use the first value: {instruments}")
+    return list(instruments)[0]
 
 
-def get_pyspectral_sensor_name(sensor: str) -> str:
-    """Get sensor name expected by pyspectral."""
-    return normalize_sensor_name(sensor)
+def get_pyspectral_instrument_name(instrument: str) -> str:
+    """Get instrument name expected by pyspectral."""
+    return normalize_instrument_name(instrument)
 
 
-def serialize_sensors(sensors: set[str]) -> str:
-    """Serialize a set of sensors."""
+def serialize_instruments(instruments: set[str]) -> str:
+    """Serialize a set of instruments."""
     return "-".join(
-        sensor.replace("-", "").replace(" ", "").replace("/", "").lower()
-        for sensor in sorted(sensors)
+        instr.replace("-", "").replace(" ", "").replace("/", "").lower()
+        for instr in sorted(instruments)
     )

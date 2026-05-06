@@ -24,7 +24,7 @@ import warnings
 
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
-from satpy.utils import serialize_sensors
+from satpy.utils import serialize_instruments
 from satpy.writers.core.compute import compute_writer_results, split_results
 
 if typing.TYPE_CHECKING:
@@ -139,7 +139,7 @@ class Writer(Plugin, DataDownloadMixin):
     @staticmethod
     def _prepare_metadata_for_filename_formatting(attrs):
         with contextlib.suppress(KeyError):
-            attrs["sensor"] = serialize_sensors(attrs["sensor"])
+            attrs["instruments"] = serialize_instruments(attrs["instruments"])
 
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.

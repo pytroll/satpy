@@ -24,7 +24,7 @@ from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs
 from satpy.decision_tree import DecisionTree
-from satpy.utils import get_logger, get_sensors_from_attrs, normalize_sensor_name, recursive_dict_update
+from satpy.utils import get_instruments_from_attrs, get_logger, normalize_instrument_name, recursive_dict_update
 
 LOG = get_logger(__name__)
 
@@ -38,12 +38,12 @@ class EnhancementDecisionTree(DecisionTree):
                                 ("name",
                                  "reader",
                                  "platform_name",
-                                 "sensor",
+                                 "instruments",
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor"])
+        multival_keys = kwargs.pop("multival_keys", ["instruments"])
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
 
@@ -126,7 +126,7 @@ class Enhancer:
         """Get the sensor-specific config."""
         paths = get_entry_points_config_dirs("satpy.enhancements")
         for sensor_name in sensors:
-            basename = normalize_sensor_name(sensor_name) + ".yaml"
+            basename = normalize_instrument_name(sensor_name) + ".yaml"
             config_fn = os.path.join("enhancements", basename)
             config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
@@ -206,7 +206,7 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        sensors = get_sensors_from_attrs(dataset.attrs)
+        sensors = get_instruments_from_attrs(dataset.attrs)
         if sensors:
             enhancer.add_sensor_enhancements(sensors)
         enhancer.apply(img, **dataset.attrs)
