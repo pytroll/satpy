@@ -945,7 +945,12 @@ def flatten_dict(d, parent_key="", sep="_"):
 
 
 def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
-    """Get instrument names from dataset attributes."""
+    """Get instrument names from dataset attributes.
+
+    String type attributes are converted to set. This can be
+    removed once all file handlers provide instruments as a
+    set.
+    """
     key = get_instruments_key()
     try:
         instruments = attrs[key]
