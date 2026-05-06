@@ -72,7 +72,7 @@ for mod_name in MOCK_MODULES:
 
 autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mipp", "netCDF4",
                         "pygac", "pygrib", "pyhdf", "pyninjotiff",
-                        "pyorbital", "pyspectral", "rasterio", "trollimage",
+                        "pyorbital", "pyspectral", "rasterio", "trollimage", "rioxarray",
                         "zarr"]
 autodoc_type_aliases = {
     "ArrayLike": "numpy.typing.ArrayLike",
@@ -87,6 +87,9 @@ nitpick_ignore_regex = [
     ("py:class", r"numpy\.uint8"),
     ("py:class", r"numpy\.uint16"),
     ("py:class", r"numpy\.uint32"),
+    ("py:data", r"typing\.Union"),
+    ("py:class", r"pathlib\._local\.Path"),
+    ("py:class", r"upath\.core\.UPath"),
 ]
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
 

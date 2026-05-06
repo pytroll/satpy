@@ -548,9 +548,10 @@ enhancement functions in Satpy.
    the default, in case the default should change in future versions of
    Satpy.
 
-   The compositors :class:`DayNightCompositor`,
-   :class:`BackgroundCompositor`, :class:`SandwichCompositor` and
-   :class:`LuminanceSharpeningCompositor` enhance their input datasets.
+   The compositors :class:`~satpy.composites.fill.DayNightCompositor`,
+   :class:`~satpy.composites.fill.BackgroundCompositor`,
+   :class:`~satpy.composites.resolution.SandwichCompositor` and
+   :class:`~satpy.composites.resolution.LuminanceSharpeningCompositor` enhance their input datasets.
    Therefore, composites using those compositors should almost certainly
    use ``standard_name: image_ready`` or an equivalent noop enhancement
    to avoid enhancing the data twice.
