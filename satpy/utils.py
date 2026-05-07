@@ -951,14 +951,26 @@ def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
     removed once all file handlers provide instruments as a
     set.
     """
-    key = get_instruments_key()
-    try:
-        instruments = attrs[key]
-        if isinstance(instruments, str):
-            return set([instruments])
-        return instruments
-    except KeyError:
-        return set()
+    legacy = attrs.get("sensor", set())
+    instruments = attrs.get("instruments", legacy)
+    if legacy:
+        warnings.warn(
+            "Satpy will ignore the 'sensor' attribute as of v1.1. "
+            "Use the 'instruments' attribute instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+    if isinstance(instruments, str):
+        warnings.warn(
+            "Converting 'instruments' attribute from string to set. "
+            "This will result in an error in v1.1, when Satpy will require "
+            "set type instruments attributes.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        instruments = set([instruments])
+    return instruments
+
 
 
 def normalize_instrument_name(instrument: str) -> str:
@@ -970,7 +982,7 @@ def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
     """Get a single instrument name from dataset attributes."""
     instruments = get_instruments_from_attrs(attrs)
     if not instruments:
-        raise KeyError("No 'instruments' dataset attribute")
+        raise KeyError("No 'instruments' in dataset attribute")
     if len(instruments) > 1:
         logger.warning(f"More than one instrument in dataset attributes, will use the first value: {instruments}")
     return list(instruments)[0]
