@@ -26,6 +26,7 @@ import dask
 import numpy as np
 from PIL import Image, ImagePalette
 
+import satpy._instruments as instru
 from satpy.dataset import DataID, DataQuery
 from satpy.enhancements.enhancer import get_enhanced_image
 from satpy.writers.core.image import ImageWriter
@@ -53,12 +54,9 @@ def _adjust_kwargs(dataset, kwargs):
     if "start_time" not in kwargs:
         kwargs["start_time"] = dataset.attrs["start_time"]
     if "sensor" not in kwargs:
-        kwargs["sensor"] = dataset.attrs["sensor"]
-    # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
-    # Assume the first value of set as the sensor.
-    if isinstance(kwargs["sensor"], set):
-        LOG.warning("Sensor is set, will use the first value: %s", kwargs["sensor"])
-        kwargs["sensor"] = (list(kwargs["sensor"]))[0]
+        #  MITIFFs needing to handle sensor can only have one sensor
+        # Assume the first value of set as the sensor.
+        kwargs["sensor"] = instru.get_one_instrument_from_attrs(dataset.attrs)
 
 
 class MITIFFWriter(ImageWriter):

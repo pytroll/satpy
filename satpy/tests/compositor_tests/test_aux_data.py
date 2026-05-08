@@ -83,7 +83,7 @@ class TestStaticImageCompositor(unittest.TestCase):
                                       filenames=[IMAGE_FILENAME])
         register.assert_not_called()
         retrieve.assert_not_called()
-        assert res.attrs["sensor"] is None
+        assert res.attrs["sensor"] == set()
         assert "modifiers" not in res.attrs
         assert "calibration" not in res.attrs
 
@@ -95,7 +95,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         res = comp()
         Scene.assert_called_once_with(reader="generic_image",
                                       filenames=[os.path.join("data_dir", "foo.tif")])
-        assert res.attrs["sensor"] is None
+        assert res.attrs["sensor"] == set()
         assert "modifiers" not in res.attrs
         assert "calibration" not in res.attrs
 
