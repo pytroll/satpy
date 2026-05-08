@@ -20,10 +20,13 @@
 import datetime as dt
 import unittest
 
+import dask
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+
+from satpy.tests.utils import CustomScheduler
 
 
 class TestDifferenceCompositor(unittest.TestCase):
@@ -100,6 +103,28 @@ def fake_dataset_pair(fake_area):
     return (ds1, ds2)
 
 
+@pytest.fixture
+def fake_dataset_pair_with_times(fake_area):
+    """Return a fake pair of 2×2 datasets with daskified time coordinates."""
+    ds1 = xr.DataArray(da.full((2, 2), 8, chunks=2, dtype=np.float32),
+                       dims=("y", "x"),
+                       coords={"time": xr.DataArray(
+                           da.array([[1, 2], [3, 4]]),
+                           dims=("y", "x"),
+                           attrs={"area": fake_area,
+                                  "units": (u:="seconds since 1999-08-07 06:45:00")})},
+                       attrs={"area": fake_area, "standard_name": "toa_bidirectional_reflectance"})
+    ds2 = xr.DataArray(da.full((2, 2), 4, chunks=2, dtype=np.float32),
+                       dims=("y", "x"),
+                       coords={"time": xr.DataArray(
+                           da.array([[1.1, 2], [3.1, 4]]),
+                           dims=("y", "x"),
+                           attrs={"area": fake_area,
+                                  "units": u})},
+                       attrs={"area": fake_area, "standard_name": "toa_bidirectional_reflectance"})
+    return (ds1, ds2)
+
+
 @pytest.mark.parametrize("kwargs", [{}, {"standard_name": "channel_ratio", "foo": "bar"}])
 def test_ratio_compositor(fake_dataset_pair, kwargs):
     """Test the ratio compositor."""
@@ -124,3 +149,30 @@ def test_sum_compositor(fake_dataset_pair):
     comp = SumCompositor(name="sum", standard_name="channel_sum")
     res = comp(fake_dataset_pair)
     np.testing.assert_allclose(res.values, 12)
+
+
+def test_difference_compositor_time_dask(fake_dataset_pair_with_times):
+    """Test difference compositor does not compute time coordinates."""
+    from satpy.composites.arithmetic import DifferenceCompositor
+    comp = DifferenceCompositor("diff")
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        res = comp(fake_dataset_pair_with_times)
+    assert "time" in res.coords
+
+
+def test_sum_compositor_time_dask(fake_dataset_pair_with_times):
+    """Test sum compositor does not compute time coordinates."""
+    from satpy.composites.arithmetic import SumCompositor
+    comp = SumCompositor("sum")
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        res = comp(fake_dataset_pair_with_times)
+    assert "time" in res.coords
+
+
+def test_ratio_compositor_time_dask(fake_dataset_pair_with_times):
+    """Test ratio compositor does not compute time coordinates."""
+    from satpy.composites.arithmetic import RatioCompositor
+    comp = RatioCompositor("ratio")
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        res = comp(fake_dataset_pair_with_times)
+    assert "time" in res.coords

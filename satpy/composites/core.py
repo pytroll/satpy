@@ -23,7 +23,6 @@ import warnings
 from typing import Optional, Sequence
 
 import dask.array as da
-import numpy as np
 import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
@@ -34,8 +33,6 @@ LOG = logging.getLogger(__name__)
 
 NEGLIGIBLE_COORDS = ["time"]
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
-
-TIME_COMPATIBILITY_TOLERANCE = np.timedelta64(1, "s")
 
 
 class IncompatibleAreas(Exception):
@@ -124,7 +121,8 @@ class CompositeBase:
         elif origin.get(key) is not None:
             destination[key] = origin[key]
 
-    def match_data_arrays(self, data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
+    def match_data_arrays(self, data_arrays: Sequence[xr.DataArray],
+                          drop_coordinates: bool=True) -> list[xr.DataArray]:
         """Match data arrays so that they can be used together in a composite.
 
         For the purpose of this method, "can be used together" means:
@@ -133,12 +131,14 @@ class CompositeBase:
         - Either all arrays should have an area, or none should.
         - If all have an area, the areas should be all the same.
 
-        In addition, negligible non-dimensional coordinates are dropped (see
+        In addition, negligible non-dimensional coordinates can be dropped (see
         :meth:`drop_coordinates`) and dask chunks are unified (see
         :func:`satpy.utils.unify_chunks`).
 
         Args:
             data_arrays: Arrays to be checked
+            drop_coordinates: If true, drop non-dimensional coordinates.
+                If false, unify them too.
 
         Returns:
             Arrays with negligible non-dimensional coordinates removed.
@@ -150,7 +150,7 @@ class CompositeBase:
                 If some, but not all data arrays lack an area attribute.
         """
         self.check_geolocation(data_arrays)
-        new_arrays = self.drop_coordinates(data_arrays)
+        new_arrays = self.drop_coordinates(data_arrays) if drop_coordinates else self.combine_coordinates(data_arrays)
         new_arrays = self.align_geo_coordinates(new_arrays)
         new_arrays = list(unify_chunks(*new_arrays))
         return new_arrays
@@ -210,6 +210,8 @@ class CompositeBase:
         dimension.  Negligible coordinates are defined in the
         :attr:`NEGLIGIBLE_COORDS` module attribute.
 
+        See also: :meth:`combine_coordinates`.
+
         Args:
             data_arrays: Arrays to be checked
         """
@@ -224,6 +226,47 @@ class CompositeBase:
                 new_arrays.append(ds)
 
         return new_arrays
+
+    def combine_coordinates(self, data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
+        """Combine time coordinates.
+
+        Combine coordinates if they do not correspond to any
+        dimension.  Currently only supports time coordinates.
+
+        See also: :meth:`drop_coordinates`.
+
+        Args:
+            data_arrays: Arrays to be checked
+        """
+        new_time = self.combine_times(data_arrays)
+        return [data.assign_coords({"time": new_time}) if "time" in data.coords else data
+                    for data in data_arrays]
+
+    @staticmethod
+    def combine_times(projectables):
+        """Get a combined time coordinate between projectables.
+
+        Returns the arithmetic mean between the available time coordinates,
+        provided they have a common dimensionality and units.  If no projectables
+        have time coordinates, return None.  Time coordinates should be CF-encoded,
+        i.e. have a numeric dtype and a units attribute.
+        """
+        _verify_times(projectables)
+        timed_projectables = [proj for proj in projectables
+                              if hasattr(proj, "coords")
+                              and "time" in proj.coords]
+        if len(timed_projectables) > 0:
+            with xr.set_options(keep_attrs=True):
+                # when the time coordinates are different, can't use xarray to
+                # sum them without this leading to expensive computations!
+                da_new_time = sum([x.coords["time"].data for x in timed_projectables]) / len(timed_projectables)
+                first = timed_projectables[0].coords["time"]
+                xr_new_time = xr.DataArray(
+                        da_new_time,
+                        dims=first.dims,
+                        attrs=first.attrs,
+                        coords={"y": first.coords["y"], "x": first.coords["x"]})
+            return xr_new_time.assign_coords(time=(first.dims, da_new_time))
 
     @staticmethod
     def align_geo_coordinates(data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
@@ -428,7 +471,7 @@ class GenericCompositor(CompositeBase):
             data = xr.concat(projectables, "bands", coords="minimal")
             data["bands"] = list(mode)
         except ValueError as e:
-            LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
+            LOG.exception("Original exception for incompatible areas: {}".format(str(e)))
             raise IncompatibleAreas("Areas do not match.")
 
         return data
@@ -483,17 +526,14 @@ class GenericCompositor(CompositeBase):
         return mode
 
     def _check_datasets_and_data(self, datasets, mode):
+        time = self.combine_times(datasets)
         datasets = self.match_data_arrays(datasets)
         data = self._concat_datasets(datasets, mode)
         # Skip masking if user wants it or a specific alpha channel is given.
         if self.common_channel_mask and mode[-1] != "A":
             data = data.where(data.notnull().all(dim="bands"))
-        # if inputs have a time coordinate that may differ slightly between
-        # themselves then find the mid time and use that as the single
-        # time coordinate value
-        time = check_times(datasets)
-        if time is not None and "time" in data.dims:
-            data["time"] = [time]
+        if time is not None:
+            data = data.assign_coords({"time": time})
 
         return datasets, data
 
@@ -518,39 +558,58 @@ class GenericCompositor(CompositeBase):
         return new_attrs
 
 
-def check_times(projectables):
-    """Check that *projectables* have compatible times."""
-    times = []
-    for proj in projectables:
-        status = _collect_time_from_proj(times, proj)
-        if not status:
-            break
-    else:
-        return _get_average_time(times)
+    @staticmethod
+    def combine_times(projectables):
+        """Get a combined time coordinate between projectables.
+
+        Returns the arithmetic mean between the available time coordinates,
+        provided they have a common dimensionality and units.  If no projectables
+        have time coordinates, return None.  Time coordinates should be CF-encoded,
+        i.e. have a numeric dtype and a units attribute.
+        """
+        _verify_times(projectables)
+        timed_projectables = [proj for proj in projectables
+                              if hasattr(proj, "coords")
+                              and "time" in proj.coords]
+        if len(timed_projectables) > 0:
+            with xr.set_options(keep_attrs=True):
+                # when the time coordinates are different, can't use xarray to
+                # sum them without this leading to expensive computations.  At
+                # this point, we should make sure NO time coordinates are
+                # assigned to the time coordinate or things will get messed up
+                # later.
+                first = timed_projectables[0].coords["time"]
+                new_coords = {}
+                if "y" in first.coords:
+                    new_coords["y"] = first.coords["y"].copy()
+                if "x" in first.coords:
+                    new_coords["x"] = first.coords["x"].copy()
+                da_new_time = sum([x.coords["time"].data for x in timed_projectables]) / len(timed_projectables)
+                xr_new_time = xr.DataArray(
+                        da_new_time,
+                        dims=first.dims,
+                        attrs=first.attrs.copy(),
+                        coords=new_coords)
+            return xr_new_time.assign_coords(time=(first.dims, da_new_time))
 
 
-def _collect_time_from_proj(times, proj):
-    status = False
-    try:
-        if proj["time"].size and proj["time"][0] != 0:
-            times.append(proj["time"][0].values)
-            status = True
-    except KeyError:
-        # the datasets don't have times
-        pass
-    except IndexError:
-        # time is a scalar
-        if proj["time"].values != 0:
-            times.append(proj["time"].values)
-            status = True
-    return status
+def _verify_times(projectables):
+    """Verify that the times can be combined.
 
-
-def _get_average_time(times):
-    # Is there a more gracious way to handle this ?
-    if np.max(times) - np.min(times) > TIME_COMPATIBILITY_TOLERANCE:
-        raise IncompatibleTimes("Times do not match.")
-    return (np.max(times) - np.min(times)) / 2 + np.min(times)
+    Times can be combined if they have consistent units and dimensions.
+    """
+    times = [p.coords["time"] for p in projectables
+             if hasattr(p, "coords") and "time" in p.coords]
+    for time in times:
+        if "units" not in time.attrs:
+            raise ValueError("Time coordinate lacks units attribute")
+        if time.attrs["units"] != times[0].attrs["units"]:
+            raise IncompatibleTimes("Time coordinates have inconsistent units.  "
+                                    "Conversions not implemented.")
+        if time.dims != times[0].dims:
+            raise IncompatibleTimes(
+                "Time coordinates have inconsistent dimensionality.  Only "
+                "consistent dimensionality is implemented.")
 
 
 class RGBCompositor(GenericCompositor):

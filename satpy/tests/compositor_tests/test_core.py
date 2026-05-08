@@ -184,41 +184,149 @@ class TestInlineComposites(unittest.TestCase):
         assert comps["seviri"][fog_dep_ids[1]].attrs["prerequisites"] == ["IR_108", "IR_087"]
 
 
-class TestSingleBandCompositor(unittest.TestCase):
-    """Test the single-band compositor."""
+@pytest.fixture
+def simple_dataset():
+    """A simple xarray DataArray with dimensions (y, x)."""
+    return xr.DataArray(
+            np.ones((2, 2)),
+            dims=["y", "x"])
 
-    def setUp(self):
-        """Create test data."""
-        from satpy.composites.core import SingleBandCompositor
-        self.comp = SingleBandCompositor(name="test")
 
-        all_valid = np.ones((2, 2))
-        self.all_valid = xr.DataArray(all_valid, dims=["y", "x"])
+@pytest.fixture
+def dataset_with_1d_time_coordinate(simple_dataset):
+    """An xarray DataArray with time dimensions."""
+    return simple_dataset.assign_coords(
+            {"time": xr.DataArray(
+                np.array([1, 1], dtype=np.float32),
+                dims=("y",),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
 
-    def test_call(self):
-        """Test calling the compositor."""
-        # Dataset with extra attributes
-        all_valid = self.all_valid
-        all_valid.attrs["sensor"] = "foo"
-        attrs = {
-            "foo": "bar",
-            "resolution": 333,
-            "units": "K",
-            "sensor": {"fake_sensor1", "fake_sensor2"},
-            "calibration": "BT",
-            "wavelength": 10.8
-        }
-        self.comp.attrs["resolution"] = None
-        res = self.comp([all_valid], **attrs)
-        # Verify attributes
-        assert res.attrs.get("sensor") == "foo"
-        assert "foo" in res.attrs
-        assert res.attrs.get("foo") == "bar"
-        assert "units" in res.attrs
-        assert "calibration" in res.attrs
-        assert "modifiers" not in res.attrs
-        assert res.attrs["wavelength"] == 10.8
-        assert res.attrs["resolution"] == 333
+@pytest.fixture
+def dataset_with_2d_time_coordinate(simple_dataset):
+    """An xarray DataArray with 2D time dimensions."""
+    return simple_dataset.assign_coords(
+            {"time": xr.DataArray(
+                np.array([[1, 1], [1, 1]], dtype=np.float32),
+                dims=("y", "x"),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
+
+@pytest.fixture
+def datasets_rgb_with_identical_1d_time_coordinate(dataset_with_1d_time_coordinate):
+    """List of three xarray DataArray with same 1d time dimensions."""
+    return [dataset_with_1d_time_coordinate]*3
+
+@pytest.fixture
+def datasets_rgb_with_identical_2d_time_coordinate(dataset_with_2d_time_coordinate):
+    """List of three xarray DataArray with same 1d time dimensions."""
+    return [dataset_with_2d_time_coordinate]*3
+
+@pytest.fixture
+def datasets_rgb_with_non_identical_1d_time_coordinate(simple_dataset):
+    """List of three xarray DataArray with differing 1d time dimensions."""
+    r = xr.DataArray(
+        da.array([[0, 1], [0, 1]]),
+        dims=("y", "x"),
+        coords={
+            "time": xr.DataArray(
+                da.array([100, 200], dtype=np.float32),
+                dims=("y", ),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
+    g = xr.DataArray(
+        da.array([[1, 0], [1, 0]]),
+        dims=("y", "x"),
+        coords={
+            "time": xr.DataArray(
+                da.array([100.1, 200.1], dtype=np.float32),
+                dims=("y", ),
+                attrs=r.coords["time"].attrs.copy())})
+    b = xr.DataArray(
+        da.array([[0, 1], [1, 1]]),
+        dims=("y", "x"),
+        coords={
+            "time": xr.DataArray(
+                da.array([100.2, 200.2], dtype=np.float32),
+                dims=("y", ),
+                attrs=r.coords["time"].attrs.copy())})
+    return [r, g, b]
+
+@pytest.fixture
+def datasets_rgb_with_non_identical_2d_time_coordinate(simple_dataset):
+    """List of three xarray DataArray with differing 2d time dimensions."""
+    r = simple_dataset.assign_coords(
+            {"time": xr.DataArray(
+                da.array([[100, 200], [101, 201]], dtype=np.float32),
+                dims=("y", "x"),
+                attrs={"units": "Seconds since 2100-03-04 05:30:00Z"})})
+    g = r.copy()
+    g[:] = da.array([[100.1, 200.1], [101.1, 201.1]])
+    b = r.copy()
+    b[:] = da.array([[100.2, 200.2], [101.2, 201.2]])
+    return [r, g, b]
+
+
+@pytest.fixture(params=["datasets_rgb_with_identical_1d_time_coordinate",
+                        "datasets_rgb_with_non_identical_1d_time_coordinate",
+                        "datasets_rgb_with_identical_2d_time_coordinate",
+                        "datasets_rgb_with_non_identical_2d_time_coordinate"])
+def datasets_rgb_with_time(request):
+    """Return one of several RGB datasets with time coordinates."""
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def single_band_compositor():
+    """A minimal SingleBandCompositor."""
+    from satpy.composites.core import SingleBandCompositor
+    return SingleBandCompositor(name="test")
+
+
+@pytest.fixture
+def generic_compositor():
+    """A minimal GenericCompositor."""
+    from satpy.composites.core import GenericCompositor
+    return GenericCompositor(name="test")
+
+
+def test_call_single_band_compositor(single_band_compositor, simple_dataset):
+    """Test calling the compositor."""
+    # Dataset with extra attributes
+    all_valid = simple_dataset
+    all_valid.attrs["sensor"] = "foo"
+    attrs = {
+        "foo": "bar",
+        "resolution": 333,
+        "units": "K",
+        "sensor": {"fake_sensor1", "fake_sensor2"},
+        "calibration": "BT",
+        "wavelength": 10.8
+    }
+    single_band_compositor.attrs["resolution"] = None
+    res = single_band_compositor([all_valid], **attrs)
+    # Verify attributes
+    assert res.attrs.get("sensor") == "foo"
+    assert "foo" in res.attrs
+    assert res.attrs.get("foo") == "bar"
+    assert "units" in res.attrs
+    assert "calibration" in res.attrs
+    assert "modifiers" not in res.attrs
+    assert res.attrs["wavelength"] == 10.8
+    assert res.attrs["resolution"] == 333
+
+
+def test_single_band_compositor_retain_time_coordinate(
+        single_band_compositor, dataset_with_1d_time_coordinate):
+    """Test that a SingleBandCompositor retains the time coordinate."""
+    res = single_band_compositor([dataset_with_1d_time_coordinate])
+    assert "time" in res.coords
+
+
+def test_generic_compositor_retain_time_coordinate(
+        generic_compositor, datasets_rgb_with_time):
+    """Test that a GenericCompositor retains the time coordinate."""
+    with assert_maximum_dask_computes(0):
+        res = generic_compositor(datasets_rgb_with_time)
+    assert "time" in res.coords
+    assert res.coords["time"].attrs["units"] == datasets_rgb_with_time[0].coords["time"].attrs["units"]
 
 
 class TestGenericCompositor(unittest.TestCase):
@@ -292,9 +400,8 @@ class TestGenericCompositor(unittest.TestCase):
 
     @mock.patch("satpy.composites.core.GenericCompositor._get_sensors")
     @mock.patch("satpy.composites.core.combine_metadata")
-    @mock.patch("satpy.composites.core.check_times")
     @mock.patch("satpy.composites.core.GenericCompositor.match_data_arrays")
-    def test_call_with_mock(self, match_data_arrays, check_times, combine_metadata, get_sensors):
+    def test_call_with_mock(self, match_data_arrays, combine_metadata, get_sensors):
         """Test calling generic compositor."""
         from satpy.composites.core import IncompatibleAreas
         combine_metadata.return_value = dict()
@@ -343,7 +450,7 @@ class TestGenericCompositor(unittest.TestCase):
         assert res.attrs["resolution"] == 333
 
     def test_deprecation_warning(self):
-        """Test deprecation warning for dcprecated composite recipes."""
+        """Test deprecation warning for deprecated composite recipes."""
         warning_message = "foo is a deprecated composite. Use composite bar instead."
         self.comp.attrs["deprecation_warning"] = warning_message
         with pytest.warns(UserWarning, match=warning_message):
