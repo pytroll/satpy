@@ -21,8 +21,8 @@ import logging
 
 import xarray as xr
 
+import satpy._instruments as instru
 from satpy.modifiers import ModifierBase
-from satpy.utils import get_one_instrument_from_attrs, get_pyspectral_instrument_name
 
 try:
     from pyspectral.near_infrared_reflectance import Calculator
@@ -132,8 +132,8 @@ class NIRReflectance(ModifierBase):
         if not Calculator:
             logger.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
-        sensor = get_pyspectral_instrument_name(
-            get_one_instrument_from_attrs(metadata)
+        sensor = instru.get_pyspectral_instrument_name(
+            instru.get_one_instrument_from_attrs(metadata)
         )
         reflectance_3x_calculator = Calculator(metadata["platform_name"], sensor, metadata["name"],
                                                sunz_threshold=self.sun_zenith_threshold,

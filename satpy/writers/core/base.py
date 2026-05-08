@@ -22,9 +22,9 @@ import os
 import typing
 import warnings
 
+import satpy._instruments as instru
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
-from satpy.utils import get_instruments_from_attrs, serialize_instruments, set_instruments_attr
 from satpy.writers.core.compute import compute_writer_results, split_results
 
 if typing.TYPE_CHECKING:
@@ -139,9 +139,9 @@ class Writer(Plugin, DataDownloadMixin):
     @staticmethod
     def _prepare_metadata_for_filename_formatting(attrs):
         with contextlib.suppress(KeyError):
-            instruments = get_instruments_from_attrs(attrs)
-            serialized = serialize_instruments(instruments)
-            set_instruments_attr(attrs, serialized)
+            instruments = instru.get_instruments_from_attrs(attrs)
+            serialized = instru.serialize_instruments(instruments)
+            instru.set_instruments_attr(attrs, serialized)
 
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.

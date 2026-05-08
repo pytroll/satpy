@@ -21,8 +21,8 @@ import logging
 
 import xarray as xr
 
+import satpy._instruments as instru
 from satpy.enhancements.enhancer import get_enhanced_image
-from satpy.utils import set_instruments_attr
 
 from .core import GenericCompositor
 
@@ -97,7 +97,7 @@ class HighlightCompositor(GenericCompositor):
         new_data.attrs = background_layer.attrs.copy()
         new_data.attrs["units"] = 1
         new_sensors = self._get_sensors((highlight_layer, background_layer))
-        set_instruments_attr(new_data.attrs, new_sensors)
+        instru.set_instruments_attr(new_data.attrs, new_sensors)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Create RGBA image with highlighted pixels."""

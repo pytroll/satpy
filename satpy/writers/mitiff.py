@@ -26,9 +26,9 @@ import dask
 import numpy as np
 from PIL import Image, ImagePalette
 
+import satpy._instruments as instru
 from satpy.dataset import DataID, DataQuery
 from satpy.enhancements.enhancer import get_enhanced_image
-from satpy.utils import get_one_instrument_from_attrs
 from satpy.writers.core.image import ImageWriter
 
 if typing.TYPE_CHECKING:
@@ -56,7 +56,7 @@ def _adjust_kwargs(dataset, kwargs):
     if "sensor" not in kwargs:
         #  MITIFFs needing to handle sensor can only have one sensor
         # Assume the first value of set as the sensor.
-        kwargs["sensor"] = get_one_instrument_from_attrs(dataset.attrs)
+        kwargs["sensor"] = instru.get_one_instrument_from_attrs(dataset.attrs)
 
 
 class MITIFFWriter(ImageWriter):

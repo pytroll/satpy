@@ -25,8 +25,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+import satpy._instruments as instru
 from satpy.dataset import combine_metadata
-from satpy.utils import get_instruments_from_attrs, set_instruments_attr
 
 from .core import (
     GenericCompositor,
@@ -407,10 +407,10 @@ class BackgroundCompositor(GenericCompositor):
         # 'mode' is no longer valid after we've remove the 'A'
         # let the base class __call__ determine mode
         attrs.pop("mode", None)
-        if not get_instruments_from_attrs(attrs):
+        if not instru.get_instruments_from_attrs(attrs):
             # sensor can be a set
             instruments = self._get_sensors([foreground, background])
-            set_instruments_attr(attrs, instruments)
+            instru.set_instruments_attr(attrs, instruments)
         return attrs
 
     @staticmethod

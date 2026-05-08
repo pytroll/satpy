@@ -28,20 +28,14 @@ import numpy as np
 import pytest
 import xarray as xr
 
-import satpy
 from satpy.utils import (
     angle2xyz,
     datetime64_to_pydatetime,
-    get_instruments_from_attrs,
     get_legacy_chunk_size,
-    get_one_instrument_from_attrs,
     get_satpos,
     import_error_helper,
     lonlat2xyz,
-    normalize_instrument_name,
     proj_units_to_meters,
-    serialize_instruments,
-    set_instruments_attr,
     xyz2angle,
     xyz2lonlat,
 )
@@ -668,66 +662,3 @@ def test_flatten_dict():
                 "b_d_e": 1,
                 "b_d_f_g": [1, 2]}
     assert flatten_dict(d) == expected
-
-
-class TestInstrumentsUtils:
-    """Test instruments attribute utilities."""
-
-    @pytest.mark.parametrize(
-        ("attrs", "expected"),
-        [
-            ({"instruments": {"myinstr"}}, {"myinstr"}),
-            ({}, set()),
-        ]
-    )
-    def test_get_instruments_from_attrs(self, attrs, expected):
-        """Test getting instruments from dataset attributes."""
-        assert get_instruments_from_attrs(attrs) == expected
-
-    @pytest.mark.parametrize(
-        ("attrs", "expected"),
-        [
-            ({"sensor": "myinstr"}, {"myinstr"}),
-            ({"sensor": {"myinstr"}}, {"myinstr"}),
-            ({"instruments": "myinstr"}, {"myinstr"}),
-        ]
-    )
-    def test_get_instruments_from_attrs_with_warning(self, attrs, expected):
-        """Test deprecation warnings when getting instruments."""
-        with pytest.warns(DeprecationWarning, match="v1.1"):
-            assert get_instruments_from_attrs(attrs) == expected
-
-    def test_normalize_instrument_name(self):
-        """Test instrument name normalization."""
-        instr = "My Instrument-123/1"
-        expected = "my_instrument123-1"
-        assert normalize_instrument_name(instr) == expected
-
-    def test_serialize_instruments(self):
-        """Test instrument set serialization."""
-        instruments = {"My Instrument-123/1", "ABI"}
-        expected = "abi-myinstrument1231"
-        assert serialize_instruments(instruments) == expected
-
-    def test_set_instruments_attr(self):
-        """Test setting instruments attribute."""
-        attrs = {"instruments": {"myinstrument"}}
-        new_instruments = {"i1", "i2"}
-        with satpy.config.set(instruments_key="instruments"):
-            set_instruments_attr(attrs, new_instruments)
-            assert attrs["instruments"] == new_instruments
-
-    def test_get_one_instrument_from_attrs(self):
-        """Test getting a single instrument from dataset attributes."""
-        attrs = {"instruments": {"i1"}}
-        with satpy.config.set(instruments_key="instruments"):
-            assert get_one_instrument_from_attrs(attrs) == "i1"
-
-    def test_get_one_instrument_from_attrs_with_warning(self, caplog):
-        """Test warnings when getting a single instrument."""
-        attrs = {"instruments": {"i1", "i2"}}
-        with satpy.config.set(instruments_key="instruments"):
-            get_one_instrument_from_attrs(attrs)
-            assert "More than one" in caplog.text
-            with pytest.raises(KeyError):
-                get_one_instrument_from_attrs({})

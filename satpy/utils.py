@@ -39,8 +39,6 @@ import yaml
 from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
 
-import satpy
-
 _is_logging_on = False
 TRACE_LEVEL = 5
 
@@ -942,71 +940,3 @@ def flatten_dict(d, parent_key="", sep="_"):
         else:
             items.append((new_key, v))
     return dict(items)
-
-
-def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
-    """Get instrument names from dataset attributes.
-
-    String type attributes are converted to set. This can be
-    removed once all file handlers provide instruments as a
-    set.
-    """
-    legacy = attrs.get("sensor", set())
-    instruments = attrs.get("instruments", legacy)
-    if legacy:
-        warnings.warn(
-            "Satpy will ignore the 'sensor' attribute as of v1.1. "
-            "Use the 'instruments' attribute instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-    if isinstance(instruments, str):
-        warnings.warn(
-            "Converting 'instruments' attribute from string to set. "
-            "This will result in an error in v1.1, when Satpy will require "
-            "set type instruments attributes.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        instruments = set([instruments])
-    return instruments
-
-
-
-def normalize_instrument_name(instrument: str) -> str:
-    """Normalize instrument name for internal usage."""
-    return instrument.replace("-", "").replace(" ", "_").replace("/", "-").lower()
-
-
-def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
-    """Get a single instrument name from dataset attributes."""
-    instruments = get_instruments_from_attrs(attrs)
-    if not instruments:
-        raise KeyError("No 'instruments' in dataset attribute")
-    if len(instruments) > 1:
-        logger.warning(f"More than one instrument in dataset attributes, will use the first value: {instruments}")
-    return list(instruments)[0]
-
-
-def get_pyspectral_instrument_name(instrument: str) -> str:
-    """Get instrument name expected by pyspectral."""
-    return normalize_instrument_name(instrument)
-
-
-def serialize_instruments(instruments: set[str]) -> str:
-    """Serialize a set of instruments."""
-    return "-".join(
-        instr.replace("-", "").replace(" ", "").replace("/", "").lower()
-        for instr in sorted(instruments)
-    )
-
-
-def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> None:
-    """Set 'instruments' dataset atrribute."""
-    key = get_instruments_key()
-    attrs[key] = instruments
-
-
-def get_instruments_key():
-    """Get key for instruments in dataset attributes."""
-    return satpy.config.get("instruments_key")

@@ -22,8 +22,8 @@ import logging
 import os
 
 import satpy
+import satpy._instruments as instru
 from satpy.aux_download import DataDownloadMixin
-from satpy.utils import set_instruments_attr
 
 from .core import GenericCompositor
 
@@ -157,7 +157,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
             img.attrs["area"] = self.area
-        set_instruments_attr(img.attrs, set())
+        instru.set_instruments_attr(img.attrs, set())
         img.attrs["mode"] = "".join(img.bands.data)
         img.attrs.pop("modifiers", None)
         img.attrs.pop("calibration", None)

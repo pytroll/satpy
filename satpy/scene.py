@@ -29,6 +29,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
+import satpy._instruments as instru
 from satpy.area import get_area_def
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.composites.core import IncompatibleAreas
@@ -38,7 +39,6 @@ from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers.core.loading import load_readers
 from satpy.utils import (
     convert_remote_files_to_fsspec,
-    get_instruments_from_attrs,
     get_storage_options_from_reader_kwargs,
 )
 
@@ -201,7 +201,7 @@ class Scene:
     def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
-            sensor_names.update(get_instruments_from_attrs(data_arr.attrs))
+            sensor_names.update(instru.get_instruments_from_attrs(data_arr.attrs))
         return sensor_names
 
     @property
