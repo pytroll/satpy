@@ -40,6 +40,7 @@ References:
 
 
 import logging
+import warnings
 from functools import reduce
 
 import dask.array as da
@@ -226,11 +227,20 @@ class NCOLCI1B(NCOLCIChannelBase):
         else:
             dataset = self.nc[self.channel + "_radiance"]
 
-            if key["calibration"] == "reflectance":
+            if key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "radiance_factor"]:
                 idx = int(key["name"][2:]) - 1
                 sflux = self._get_solar_flux(idx)
                 dataset = dataset / sflux * np.pi * 100
                 dataset.attrs["units"] = "%"
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                 DeprecationWarning)
+        # >8 v1.0
 
         dataset.attrs["platform_name"] = self.platform_name
         dataset.attrs["sensor"] = self.sensor
