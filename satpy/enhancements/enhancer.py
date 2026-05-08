@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from pathlib import Path
 
 import yaml
@@ -43,13 +44,28 @@ class EnhancementDecisionTree(DecisionTree):
                                  "reader",
                                  "platform_name",
                                  "sensor",
+                                 "instruments",
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor"])
+        multival_keys = kwargs.pop("multival_keys", ["sensor", "instruments"])
+        self._check_deprecated_keys(match_keys, multival_keys)
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
+
+    def _check_deprecated_keys(self, match_keys, multival_keys):
+        user_provided_sensor = any(
+            "sensor" in keys
+            for keys in [match_keys, multival_keys]
+        )
+        if user_provided_sensor:
+            warnings.warn(
+                "The 'sensor' attribute will be removed in v1.1. "
+                "Use 'instrument' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
 
     def add_config_to_tree(self, *decision_dict: str | Path | dict) -> None:
         """Add configuration to tree."""

@@ -20,8 +20,10 @@ as well. See :ref:`component_configuration` for more information.
 
 Enhancements can be defined in a ``generic.yaml`` file that is always loaded
 for all data or in an instrument-specific file (e.g. ``seviri.yaml``)
-corresponding to the ``.attrs["sensor"]`` metadata of the ``DataArray`` being
-processed. Generic enhancements are loaded first followed by sensor-specific
+corresponding to the ``.attrs["instruments"]`` metadata of the ``DataArray``
+being processed. For the filename, instruments are normalized using
+:meth:`satpy._instruments.normalize_instrument_name`.
+Generic enhancements are loaded first followed by instrument-specific
 enhancement files.
 
 Enhancement YAML Format
@@ -95,7 +97,7 @@ implementation depends on the following keys:
 1. ``name``
 2. ``reader``
 3. ``platform_name``
-4. ``sensor``
+4. ``instruments``
 5. ``standard_name``
 6. ``units``
 

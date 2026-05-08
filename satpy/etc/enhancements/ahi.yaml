@@ -12,7 +12,7 @@ enhancements:
 
   day_severe_storms:
     standard_name: day_severe_storms
-    sensor: ahi
+    instrument: ahi
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
@@ -27,7 +27,7 @@ enhancements:
 
   night_microphysics_tropical:
     standard_name: night_microphysics_tropical
-    sensor: ahi
+    instrument: ahi
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.contrast.stretch
