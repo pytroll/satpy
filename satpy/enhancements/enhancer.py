@@ -100,9 +100,7 @@ class EnhancementDecisionTree(DecisionTree):
                     DeprecationWarning,
                     stacklevel=3
                 )
-                # Not using set_instruments_attr() here to keep the order.
-                instr_key = instru.get_instruments_key()
-                config_dict[enh_name][instr_key] = enh_config["sensor"]
+                instru.set_instruments_attr(config_dict[enh_name], enh_config["sensor"])
 
     def find_match(self, **query_dict):
         """Find a match."""
