@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import typing
+import warnings
 from collections import namedtuple
 from numbers import Number
 from typing import Optional
@@ -35,6 +36,31 @@ if typing.TYPE_CHECKING:
     from trollimage.xrimage import XRImage
 
 LOG = logging.getLogger(__name__)
+
+
+def warn_if_float_debug_otherwise(img, msg=""):
+    """Perform no enhancement but emit a warning if data is floating point.
+
+    The warning message is specified by the ``msg`` keyword argument
+    and can be a format string. Keyword arguments for the message
+    formatting are taken from the underlying ``DataArray``s ``.attrs``
+    dictionary.
+
+    """
+    formatted_msg = msg.format(**img.data.attrs)
+    if np.issubdtype(img.data.dtype, np.floating):
+        warnings.warn(formatted_msg, UserWarning, stacklevel=2)
+    else:
+        LOG.debug(formatted_msg)
+    return img
+
+
+def stretch_if_floating(img, **kwargs):
+    """Perform a regular linear stretch but warn about no other enhancement."""
+    # if np.issubdtype(img.data.dtype, np.floating):
+    #     return stretch(img, **kwargs)
+    # return img
+    return stretch(img, **kwargs)
 
 
 def stretch(img, **kwargs):

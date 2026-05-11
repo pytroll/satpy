@@ -46,7 +46,9 @@ def test_group_results_by_output_file(tmp_path):
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
     fake_scene = make_fake_scene(
         {
-            "dragon_top_height": (dat := xr.DataArray(dims=("y", "x"), data=da.arange(x * x).reshape((x, x)))),
+            "dragon_top_height": (dat := xr.DataArray(
+                dims=("y", "x"),
+                data=da.arange(float(x * x)).reshape((x, x)))),
             "penguin_bottom_height": dat,
             "kraken_depth": dat,
         },
