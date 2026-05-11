@@ -497,5 +497,6 @@ file_types:
     mws_l1b_nc:
         # EPS-SG_MWS-1B-RAD.nc
         # W_XX-EUMETSAT-Darmstadt,SAT,SGA1-MWS-1B-RAD_C_EUMT_20210609095009_G_D_20070912084321_20070912102225_T_N____.nc
+        # According to: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_Generic_Product_Format_Specification_GPFS_50b5345eb7.pdf
         file_reader: !!python/name:satpy.readers.mws_l1b.MWSL1BFile
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{platform_shortname}-MWS-1B-RAD_C_EUMT_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_T_N____.nc']
+        file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{platform_shortname}-MWS-1B-RAD_C_EUMT_{processing_time:%Y%m%d%H%M%S}_{mission_type}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text}.nc']
