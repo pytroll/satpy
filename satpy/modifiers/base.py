@@ -38,3 +38,8 @@ class ModifierBase(CompositeBase):
     def __call__(self, datasets, optional_datasets=None, **info):
         """Generate a modified copy of the first provided dataset."""
         raise NotImplementedError()
+
+
+def _convert_to_pyspectral(sensor: str) -> str:
+    """Convert sensor name to format expected by pyspectral."""
+    return sensor.lower()
