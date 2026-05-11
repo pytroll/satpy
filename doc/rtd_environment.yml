@@ -13,14 +13,18 @@ dependencies:
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
   - graphviz
+  - matplotlib-base
   - numba
   - numpy
+  - pandas
   - pillow
   - pooch
+  - psutil
   - pyresample
   - pytest
   - python-eccodes
   - python-geotiepoints
+  - py-cpuinfo
   - rasterio
   - rioxarray
   - setuptools
