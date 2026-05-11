@@ -61,7 +61,7 @@ class HDF_AGRI_L1(FY4Base):
         """Adjust the attrs of the data."""
         satname = self.PLATFORM_NAMES.get(self["/attr/Satellite Name"], self["/attr/Satellite Name"])
         data.attrs.update({"platform_name": satname,
-                           "sensor": self["/attr/Sensor Identification Code"].lower(),
+                           "instruments": {self["/attr/Sensor Identification Code"]},
                            "orbital_parameters": {
                                "satellite_nominal_latitude": self["/attr/NOMCenterLat"].item(),
                                "satellite_nominal_longitude": self["/attr/NOMCenterLon"].item(),

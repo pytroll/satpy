@@ -179,7 +179,7 @@ class BaseLandsatReader(BaseFileHandler):
         raise ValueError(f"Requested channel {name} does not match the reader channel {self.channel}")
 
     def _check_oli_tirs_spectral(self, name):
-        if self.sensor != "OLI_TIRS":
+        if self.sensor != {"OLI", "TIRS"}:
             return
         if name not in self.spectral_bands:
             return
@@ -188,7 +188,7 @@ class BaseLandsatReader(BaseFileHandler):
         raise ValueError(f"Requested channel {name} is not available in this granule")
 
     def _check_oli_tirs_thermal(self, name):
-        if self.sensor != "OLI_TIRS":
+        if self.sensor != {"OLI", "TIRS"}:
             return
         if name not in self.thermal_bands:
             return
@@ -212,7 +212,7 @@ class BaseLandsatReader(BaseFileHandler):
         attrs["perc_cloud_cover"] = self._mda.cloud_cover
         # Add platform / sensor attributes
         attrs["platform_name"] = self.platform_name
-        attrs["sensor"] = self.sensor
+        attrs["instruments"] = self.sensor
         # Apply attrs from YAML
         if "standard_name" in info:
             attrs["standard_name"] = info["standard_name"]
@@ -310,7 +310,7 @@ class OLITIRSCHReader(BaseLandsatL1Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "OLI_TIRS"
+        return {"OLI", "TIRS"}
 
 
 class OLITIRSL2CHReader(BaseLandsatL2Reader):
@@ -329,7 +329,7 @@ class OLITIRSL2CHReader(BaseLandsatL2Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "OLI_TIRS"
+        return {"OLI", "TIRS"}
 
 
 class ETMCHReader(BaseLandsatL1Reader):
@@ -348,7 +348,7 @@ class ETMCHReader(BaseLandsatL1Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "ETM+"
+        return {"ETM+"}
 
 
 class ETML2CHReader(BaseLandsatL2Reader):
@@ -367,7 +367,7 @@ class ETML2CHReader(BaseLandsatL2Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "ETM+"
+        return {"ETM+"}
 
 
 class TMCHReader(BaseLandsatL1Reader):
@@ -386,7 +386,7 @@ class TMCHReader(BaseLandsatL1Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "TM"
+        return {"TM"}
 
 
 class TML2CHReader(BaseLandsatL2Reader):
@@ -405,7 +405,7 @@ class TML2CHReader(BaseLandsatL2Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "TM"
+        return {"TM"}
 
 
 class MSSCHReader(BaseLandsatL1Reader):
@@ -427,7 +427,7 @@ class MSSCHReader(BaseLandsatL1Reader):
     @property
     def sensor(self):
         """Sensor name."""
-        return "MSS"
+        return {"MSS"}
 
     def available_datasets(self, configured_datasets=None):
         """Set up wavelength to B4 band."""

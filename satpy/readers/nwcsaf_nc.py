@@ -45,29 +45,30 @@ CHUNK_SIZE = get_chunk_size_limit()
 
 V2025_PERSPECTIVE_POINT_HEIGHT = 35786400.0
 
+
 SENSOR = {
-    "NOAA-19": "avhrr-3",
-    "NOAA-18": "avhrr-3",
-    "NOAA-15": "avhrr-3",
-    "Metop-A": "avhrr-3",
-    "Metop-B": "avhrr-3",
-    "Metop-C": "avhrr-3",
-    "EOS-Aqua": "modis",
-    "EOS-Terra": "modis",
-    "Suomi-NPP": "viirs",
-    "NOAA-20": "viirs",
-    "NOAA-21": "viirs",
-    "NOAA-22": "viirs",
-    "NOAA-23": "viirs",
-    "JPSS-1": "viirs",
-    "Metop-SG-A1": "metimage",
-    "Metop-SG-A2": "metimage",
-    "Metop-SG-A3": "metimage",
-    "GOES-16": "abi",
-    "GOES-17": "abi",
-    "Himawari-8": "ahi",
-    "Himawari-9": "ahi",
-    "Meteosat-12": "fci",
+    "NOAA-19": "AVHRR/3",
+    "NOAA-18": "AVHRR/3",
+    "NOAA-15": "AVHRR/3",
+    "Metop-A": "AVHRR/3",
+    "Metop-B": "AVHRR/3",
+    "Metop-C": "AVHRR/3",
+    "EOS-Aqua": "MODIS",
+    "EOS-Terra": "MODIS",
+    "Suomi-NPP": "VIIRS",
+    "NOAA-20": "VIIRS",
+    "NOAA-21": "VIIRS",
+    "NOAA-22": "VIIRS",
+    "NOAA-23": "VIIRS",
+    "JPSS-1": "VIIRS",
+    "Metop-SG-A1": "METimage",
+    "Metop-SG-A2": "METimage",
+    "Metop-SG-A3": "METimage",
+    "GOES-16": "ABI",
+    "GOES-17": "ABI",
+    "Himawari-8": "AHI",
+    "Himawari-9": "AHI",
+    "Meteosat-12": "FCI",
 }
 
 
@@ -105,7 +106,7 @@ class NcNWCSAF(BaseFileHandler):
 
         self.pps = False
         self.platform_name = None
-        self.sensor = None
+        self.sensor = {}
         self.file_key_prefix = filetype_info.get("file_key_prefix", "")
 
         try:
@@ -134,7 +135,7 @@ class NcNWCSAF(BaseFileHandler):
             self.platform_name = kwargs["platform_name"]
             self.pps = True
 
-        self.sensor = set([SENSOR.get(self.platform_name, "seviri")])
+        self.sensor = set([SENSOR.get(self.platform_name, "SEVIRI")])
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
@@ -227,7 +228,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop("scale_factor", None)
 
         variable.attrs.update({"platform_name": self.platform_name,
-                               "sensor": self.sensor})
+                               "instruments": {self.sensor}})
 
         if not variable.attrs.get("standard_name", "").endswith("status_flag"):
             # TODO: do we really need to add units to everything ?

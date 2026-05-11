@@ -72,7 +72,9 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         """Get the sensor name."""
         # This should have been self["/attr/instrument"]
         # But the sensor name is currently incorrect in the ESA level-1b files
-        return "mwr"
+        # Also, MWR is not a valid WMO acronym. OSCAR lists "MWR (Sterna)", "MWR (AWS)"
+        # etc. But to avoid enhancement/composite duplication we stick to "MWR".
+        return "MWR"
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""
@@ -91,9 +93,8 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         data_array.attrs.update(dataset_info)
 
         data_array.attrs["platform_name"] = self.platform_name
-        data_array.attrs["sensor"] = self.sensor
+        data_array.attrs["instruments"] = {self.sensor}
         return data_array
-
 
     def _get_navigation_data(self, dataset_id, dataset_info):
         """Get the navigation (geolocation) data."""

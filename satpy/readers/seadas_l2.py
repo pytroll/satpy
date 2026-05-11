@@ -44,17 +44,17 @@ class _SEADASL2Base:
         self.apply_quality_flags = apply_quality_flags and self.l2_flags_var_name in self
 
     def _add_satpy_metadata(self, data):
-        data.attrs["sensor"] = self.sensor_names
+        data.attrs["instruments"] = self.sensor_names
         data.attrs["platform_name"] = self._platform_name()
         data.attrs["rows_per_scan"] = self._rows_per_scan()
         return data
 
     def _rows_per_scan(self):
-        if "modis" in self.sensor_names:
+        if "MODIS" in self.sensor_names:
             return 10
-        if "viirs" in self.sensor_names:
+        if "VIIRS" in self.sensor_names:
             return 16
-        if "oci" in self.sensor_names:
+        if "OCI" in self.sensor_names:
             return 0
         raise ValueError(f"Don't know how to read data for sensors: {self.sensor_names}")
 
@@ -81,11 +81,11 @@ class _SEADASL2Base:
     def sensor_names(self):
         """Get sensor for the current file's data."""
         # Example: MODISA or VIIRSN or VIIRSJ1
-        sensor_name = self[self.sensor_attr_name].lower()
-        if sensor_name.startswith("modis"):
-            return {"modis"}
-        if sensor_name.startswith("viirs"):
-            return {"viirs"}
+        sensor_name = self[self.sensor_attr_name]
+        if sensor_name.startswith("MODIS"):
+            return {"MODIS"}
+        if sensor_name.startswith("VIIRS"):
+            return {"VIIRS"}
         # Example: OCI
         return {sensor_name}
 

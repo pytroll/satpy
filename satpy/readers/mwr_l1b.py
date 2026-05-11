@@ -112,8 +112,10 @@ class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
     def sensor(self):
         """Get the sensor name."""
         # This should have been self["/attr/instrument"]
-        # But the sensor name is currently incorrect in the ESA level-1b files
-        return "mwr"
+        # But the sensor name is currently incorrect in the ESA level-1b files.
+        # Also, MWR is not a valid WMO acronym. OSCAR lists "MWR (Sterna)", "MWR (AWS)"
+        # etc. But to avoid enhancement/composite duplication we stick to "MWR".
+        return "MWR"
 
     @property
     def platform_name(self):
@@ -191,7 +193,7 @@ class AWS_EPS_Sterna_MWR_L1BFile(AWS_EPS_Sterna_BaseFileHandler):
                                                   "sub_satellite_longitude_end": self.sub_satellite_longitude_end}
 
         data_array.attrs["platform_name"] = self.platform_name
-        data_array.attrs["sensor"] = self.sensor
+        data_array.attrs["instruments"] = {self.sensor}
         data_array.attrs["orbit_number"] = self.orbit_start
         return data_array
 

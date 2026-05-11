@@ -159,7 +159,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
                                                 satellite_nominal_altitude=float(ds.attrs["Nominal_Altitude(km)"]),
                                                 satellite_actual_altitude=float(ds.attrs["Observed_Altitude(km)"]))
         darr.attrs["platform_name"] = "insat-3d"
-        darr.attrs["sensor"] = "imager"
+        darr.attrs["instruments"] = {"IMAGER (INSAT)"}
         darr = darr.squeeze()
 
         return darr

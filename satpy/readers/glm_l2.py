@@ -49,7 +49,7 @@ class NCGriddedGLML2(NC_ABI_BASE):
     @property
     def sensor(self):
         """Get sensor name for current file handler."""
-        return "glm"
+        return "GLM"
 
     @property
     def start_time(self):
@@ -77,7 +77,7 @@ class NCGriddedGLML2(NC_ABI_BASE):
         logger.debug("Reading in get_dataset %s.", key["name"])
         res = self[key["name"]]
         res.attrs.update({"platform_name": self.platform_name,
-                          "sensor": self.sensor})
+                          "instruments": {self.sensor}})
         res.attrs.update(self.filename_info)
 
         # Add orbital parameters

@@ -77,7 +77,9 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get any available dataset."""
         stdname = info.get("standard_name")
-        return self.nc[stdname].squeeze()
+        data_array = self.nc[stdname].squeeze()
+        data_array.attrs["instruments"] = {self.sensor}
+        return data_array
 
     @property
     def start_time(self):
@@ -92,7 +94,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self.nc.attrs["sensor"].lower()
+        return self.nc.attrs["sensor"]
 
     def __del__(self):
         """Close the tarfile object."""

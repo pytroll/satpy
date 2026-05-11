@@ -69,7 +69,7 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
         """Init filehandler."""
         super(DscovrEpicL1BH5FileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.sensor = "epic"
+        self.sensor = "EPIC"
         self.platform_name = "DSCOVR"
 
     @property
@@ -111,6 +111,6 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
 
     def _update_metadata(self, band):
         band = band.rename({band.dims[0]: "x", band.dims[1]: "y"})
-        band.attrs.update({"platform_name": self.platform_name, "sensor": self.sensor})
+        band.attrs.update({"platform_name": self.platform_name, "instruments": {self.sensor}})
 
         return band

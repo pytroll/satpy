@@ -26,7 +26,10 @@ time_cds_short = [("Days", ">u2"), ("Milliseconds", ">u4")]
 time_cds = time_cds_short + [("Microseconds", ">u2")]
 time_cds_expanded = time_cds + [("Nanoseconds", ">u2")]
 issue_revision = [("Issue", np.uint16), ("Revision", np.uint16)]
-
+WMO_INSTRUMENT_NAMES = {
+    "fci": "FCI",
+    "seviri": "SEVIRI"
+}
 
 def timecds2datetime(tcds):
     """Convert time_cds-variables to datetime-object.

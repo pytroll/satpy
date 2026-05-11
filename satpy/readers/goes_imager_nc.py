@@ -234,8 +234,8 @@ import pyresample.geometry
 import xarray as xr
 
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.goes_imager import ALTITUDE, EQUATOR_RADIUS, INSTRUMENTS, POLE_RADIUS, SPACECRAFTS
 from satpy.readers.core.utils import bbox, get_geostationary_angle_extent
-from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -615,11 +615,11 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={"xc": CHUNK_SIZE, "yc": CHUNK_SIZE})
-        self.sensor = "goes_imager"
         self.nlines = self.nc.sizes["yc"]
         self.ncols = self.nc.sizes["xc"]
         self.platform_name = self._get_platform_name(
             self.nc.attrs["Satellite Sensor"])
+        self.instrument = INSTRUMENTS[self.platform_name]
         self.platform_shortname = self.platform_name.replace("-", "").lower()
         self.gvar_channel = int(self.nc["bands"].item())
         self.sector = self._get_sector(channel=self.gvar_channel,
@@ -942,7 +942,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         # Metadata discovered from the file.
         data.attrs.update(
             {"platform_name": self.platform_name,
-             "sensor": self.sensor,
+             "instruments": {self.instrument},
              "sector": self.sector,
              "orbital_parameters": {"yaw_flip": self.meta["yaw_flip"]}}
         )

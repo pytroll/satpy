@@ -216,7 +216,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         sensors = set()
         for _, ds_info in self.available_datasets():
             try:
-                sensors.add(ds_info["sensor"])
+                sensors.update(ds_info["instruments"])
             except KeyError:
                 continue
         return sensors

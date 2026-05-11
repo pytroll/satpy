@@ -134,12 +134,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Return standard sensor or instrument name for the file's data."""
         try:
             res = self["/attr/instrument_name"]
-            res = [x.strip() for x in res.split(",")]
-            if len(res) == 1:
-                return res[0].lower()
+            return {x.strip() for x in res.split(",")}
         except KeyError:
-            res = ["CrIS", "ATMS", "VIIRS"]
-        return set(name.lower() for name in res)
+            return {"CrIS", "ATMS", "VIIRS"}
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
@@ -172,7 +169,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
-            "sensor": self.sensor_names,
+            "instruments": self.sensor_names,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })

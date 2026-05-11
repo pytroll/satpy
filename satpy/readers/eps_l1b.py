@@ -141,7 +141,7 @@ class EPSAVHRRFile(BaseFileHandler):
                    "M02": "Metop-A",
                    "M03": "Metop-C", }
 
-    sensors = {"AVHR": "avhrr-3"}
+    sensors = {"AVHR": "AVHRR/3"}
 
     units = {"reflectance": "%",
              "brightness_temperature": "K",
@@ -289,7 +289,7 @@ class EPSAVHRRFile(BaseFileHandler):
             return
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["sensor"] = self.sensor_name
+        dataset.attrs["instruments"] = {self.sensor_name}
         if "calibration" in key:
             dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)

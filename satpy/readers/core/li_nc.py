@@ -218,7 +218,7 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         self.processing_level = filetype_info.get("processing_level", "L0")
 
         # This class will only provide support for the LI sensor:
-        self.sensors = {"li"}
+        self.sensors = {"LI"}
 
         # Set of dataset names explicitly provided by this file handler:
         # This set is required to filter the retrieval of datasets later in the
@@ -520,7 +520,7 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         ds_info = {
             "name": ds_name,
             "variable_name": var_name,
-            "sensor": "li",
+            "instruments": self.sensor_names,
             "platform_name": platform_name_translate[platform],
             "file_type": self.filetype_info["file_type"]
         }

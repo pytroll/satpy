@@ -775,7 +775,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs["wavelength"] = info["wavelength"]
         res.attrs["standard_name"] = info["standard_name"]
         res.attrs["platform_name"] = self.platform_name
-        res.attrs["sensor"] = "seviri"
+        res.attrs["instruments"] = {"SEVIRI"}
         res.attrs["nominal_start_time"] = self.nominal_start_time
         res.attrs["nominal_end_time"] = self.nominal_end_time
         res.attrs["time_parameters"] = {

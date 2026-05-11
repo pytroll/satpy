@@ -74,7 +74,7 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         """Update dataset attributes."""
         dataset.attrs.update(self[dataset_info["nc_key"]].attrs)
         dataset.attrs.update(dataset_info)
-        dataset.attrs["sensor"] = "merged"
+        dataset.attrs["instruments"] = {"SeaWiFS", "MERIS", "MODIS", "VIIRS"}
         dataset.attrs["composite_period"] = self.composite_period
         # remove attributes from original file which don't apply anymore
         dataset.attrs.pop("nc_key")

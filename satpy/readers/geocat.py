@@ -81,19 +81,19 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             xarray_kwargs=kwargs["xarray_kwargs"])
 
     sensors = {
-        "goes": "goes_imager",
-        "himawari8": "ahi",
-        "goes16": "abi",  # untested
-        "goesr": "abi",  # untested
+        "goes": "GOES Imager",
+        "himawari8": "AHI",
+        "goes16": "ABI",  # untested
+        "goesr": "ABI",  # untested
     }
     platforms: dict[str, str] = {
     }
     resolutions = {
-        "abi": {
+        "ABI": {
             1: 1002.0086577437705,
             2: 2004.0173154875411,
         },
-        "ahi": {
+        "AHI": {
             1: 999.9999820317674,  # assumption
             2: 1999.999964063535,
             4: 3999.99992812707,
@@ -129,7 +129,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     @property
     def sensor_names(self):
         """Get sensor names."""
-        return [self.get_sensor(self["/attr/Sensor_Name"])]
+        return {self.get_sensor(self["/attr/Sensor_Name"])}
 
     @property
     def start_time(self):
@@ -292,7 +292,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             # CF compliance
             info["units"] = CF_UNITS[u]
 
-        info["sensor"] = self.get_sensor(self["/attr/Sensor_Name"])
+        info["instruments"] = self.sensor_names
         info["platform_name"] = self.get_platform(self["/attr/Platform_Name"])
         info["resolution"] = dataset_id["resolution"]
         if var_name == "pixel_longitude":

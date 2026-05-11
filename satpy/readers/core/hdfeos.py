@@ -262,7 +262,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         """Add metadata that is specific to Satpy."""
         new_attrs = {
             "platform_name": self.metadata_platform_name,
-            "sensor": "modis",
+            "instruments": {"MODIS"},
         }
 
         res = data_id["resolution"]

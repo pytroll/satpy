@@ -46,7 +46,7 @@ def get_resource_string(mod_part, file_part):
 POLO_V = 2
 POLO_H = 3
 
-amsu = "amsu-mhs"
+
 PLATFORMS = {"n18": "NOAA-18",
              "n19": "NOAA-19",
              "np": "NOAA-19",
@@ -65,25 +65,29 @@ PLATFORMS = {"n18": "NOAA-18",
              "f18": "DMSP-F18",
              "gpm": "GPM",
              }
-SENSOR = {"n18": amsu,
-          "n19": amsu,
-          "n20": "atms",
-          "n21": "atms",
-          "n22": "atms",
-          "n23": "atms",
-          "n24": "atms",
-          "np": amsu,
-          "m1": amsu,
-          "m2": amsu,
-          "m3": amsu,
-          "ma1": amsu,
-          "ma2": amsu,
-          "ma3": amsu,
-          "npp": "atms",
-          "jpss": "atms",
-          "f17": "ssmis",
-          "f18": "ssmis",
-          "gpm": "GPI",
+amsua_mhs = {"AMSU-A", "MHS"}
+atms = {"ATMS"}
+ssmis = {"SSMIS"}
+gmi = {"GMI"}
+SENSOR = {"n18": amsua_mhs,
+          "n19": amsua_mhs,
+          "n20": atms,
+          "n21": atms,
+          "n22": atms,
+          "n23": atms,
+          "n24": atms,
+          "np": amsua_mhs,
+          "m1": amsua_mhs,
+          "m2": amsua_mhs,
+          "m3": amsua_mhs,
+          "ma1": amsua_mhs,
+          "ma2": amsua_mhs,
+          "ma3": amsua_mhs,
+          "npp": atms,
+          "jpss": atms,
+          "f17": ssmis,
+          "f18": ssmis,
+          "gpm": gmi,
           }
 
 
@@ -262,7 +266,11 @@ class MiRSL2ncHandler(BaseFileHandler):
     @property
     def sensor_names(self):
         """Return standard sensor names for the file's data."""
-        return list(set(SENSOR.values()))
+        return set(
+            instr
+            for instr_set in SENSOR.values()
+            for instr in instr_set
+        )
 
     @property
     def start_time(self):
@@ -319,7 +327,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         metadata = {}
         metadata.update(ds_info)
         metadata.update({
-            "sensor": self.sensor,
+            "instruments": self.sensor,
             "platform_name": self.platform_name,
             "start_time": self.start_time,
             "end_time": self.end_time,
@@ -415,7 +423,7 @@ class MiRSL2ncHandler(BaseFileHandler):
             data = data.rename(new_name_or_name_dict=ds_info["name"])
             data, ds_info = self.apply_attributes(data, ds_info)
 
-            if self.sensor.lower() == "atms" and self.limb_correction:
+            if self.sensor.lower() == atms and self.limb_correction:
                 sfc_type_mask = self["Sfc_type"]
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,

@@ -48,9 +48,9 @@ LOG = logging.getLogger(__name__)
 
 
 ROWS_PER_SCAN = {
-    "modis": 10,
-    "viirs": 16,
-    "avhrr": None,
+    "MODIS": 10,
+    "VIIRS": 16,
+    "AVHRR": None,
 }
 
 
@@ -81,7 +81,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         res = self["/attr/sensor"]
         if isinstance(res, np.ndarray):
             res = str(res.astype(str))
-        return res.lower()
+        return res
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
@@ -134,7 +134,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": units,
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "instruments": {self.sensor_name},
             "standard_name": standard_name,
             "resolution": resolution,
             "rows_per_scan": rows_per_scan,

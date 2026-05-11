@@ -220,7 +220,7 @@ class MWSL1BFile(NetCDF4FileHandler):
         dataset_attrs.update(dataset_info)
         dataset_attrs.update({
             "platform_name": self.platform_name,
-            "sensor": self.sensor,
+            "instruments": {self.sensor},
             "orbital_parameters": {"sub_satellite_latitude_start": self.sub_satellite_latitude_start,
                                    "sub_satellite_longitude_start": self.sub_satellite_longitude_start,
                                    "sub_satellite_latitude_end": self.sub_satellite_latitude_end,
@@ -267,7 +267,6 @@ class MWSL1BFile(NetCDF4FileHandler):
             "start_time": self.start_time,
             "end_time": self.end_time,
             "spacecraft_name": self.platform_name,
-            "sensor": self.sensor,
             "filename_start_time": self.filename_info["start_time"],
             "filename_end_time": self.filename_info["end_time"],
             "platform_name": self.platform_name,

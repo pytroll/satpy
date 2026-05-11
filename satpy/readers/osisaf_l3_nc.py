@@ -170,7 +170,7 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         ds_info.update({
             "units": ds_info.get("units", file_units),
             "platform_name": self._get_platname(),
-            "sensor": self._get_instname()
+            "instruments": {self._get_instname()}
         })
         ds_info.update(dataset_id.to_dict())
         data.attrs.update(ds_info)

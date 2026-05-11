@@ -285,8 +285,7 @@ class GRIBFileHandler(BaseFileHandler):
             "units": "units",
             "modelName": "modelName",
             "valid_min": "minimum",
-            "valid_max": "maximum",
-            "sensor": "modelName"}
+            "valid_max": "maximum"}
 
         ds_info.update({
             "filename": self.filename,
@@ -294,7 +293,8 @@ class GRIBFileHandler(BaseFileHandler):
             "centreDescription": center_description,
             "start_time": start_time,
             "end_time": end_time,
-            "platform_name": "unknown"})
+            "platform_name": "unknown",
+            "instruments": {msg["modelName"]}})
 
         for key in key_dicts:
             if key_dicts[key] in msg.keys():

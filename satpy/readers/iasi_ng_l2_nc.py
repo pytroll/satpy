@@ -50,7 +50,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs
         )
 
-        self.sensors = {"iasi_ng"}
+        self.sensors = {"IASI-NG"}
 
         self.dataset_infos = None
         self.variable_desc = {}
@@ -108,7 +108,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         ds_infos = {
             "name": ds_name,
-            "sensor": "iasi_ng",
+            "instruments": self.sensors,
             "file_type": self.filetype_info["file_type"],
         }
 

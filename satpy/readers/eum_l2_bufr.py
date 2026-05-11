@@ -34,7 +34,7 @@ import xarray as xr
 
 from satpy.area import get_area_def
 from satpy.readers.core._geos_area import get_geos_area_naming
-from satpy.readers.core.eum import get_service_mode, recarray2dict
+from satpy.readers.core.eum import WMO_INSTRUMENT_NAMES, get_service_mode, recarray2dict
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.seviri import mpef_product_header
 from satpy.utils import get_legacy_chunk_size
@@ -314,7 +314,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
     def _add_attributes(self, xarr, dataset_info):
         """Add dataset attributes to xarray."""
-        xarr.attrs["sensor"] = self.sensor_name.upper()
+        xarr.attrs["instruments"] = {WMO_INSTRUMENT_NAMES[self.sensor_name]}
         xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs["ssp_lon"] = self.ssp_lon
         if ("resolution" not in dataset_info) or (dataset_info["resolution"] is None):

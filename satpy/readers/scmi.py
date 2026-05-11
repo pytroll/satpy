@@ -83,12 +83,12 @@ class SCMIFileHandler(BaseFileHandler):
         is_h8 = "H8" in self.platform_name
         is_h9 = "H9" in self.platform_name
         is_ahi = is_h8 or is_h9
-        return "ahi" if is_ahi else "abi"
+        return "AHI" if is_ahi else "ABI"
 
     @property
     def sensor_names(self):
         """Get the sensor names."""
-        return [self.sensor]
+        return {self.sensor}
 
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`.
@@ -156,7 +156,7 @@ class SCMIFileHandler(BaseFileHandler):
 
         # set up all the attributes that might be useful to the user/satpy
         data.attrs.update({"platform_name": self.platform_name,
-                           "sensor": data.attrs.get("sensor", self.sensor),
+                           "instruments": {data.attrs.get("sensor", self.sensor)},
                            })
         if "satellite_longitude" in self.nc.attrs:
             data.attrs["orbital_parameters"] = {

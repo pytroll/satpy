@@ -89,7 +89,7 @@ class HDF5SGLI(BaseFileHandler):
         dataset = self.prepare_dataset(key, dataset)
 
         dataset.attrs["platform_name"] = "GCOM-C1"
-        dataset.attrs["sensor"] = "sgli"
+        dataset.attrs["instruments"] = {"SGLI"}
         dataset.attrs["units"] = info["units"]
         dataset.attrs["standard_name"] = info["standard_name"]
         return dataset

@@ -64,7 +64,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
     @property
     def sensor_name(self):
         """Sensor name is hardcoded."""
-        sensor = "msu_gsa"
+        sensor = "MSU-GS/A"
         return sensor
 
     @property
@@ -104,7 +104,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
         data.attrs = attrs
         data.attrs.update({
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "instruments": {self.sensor_name},
             "sat_altitude": self.satellite_altitude,
             "sat_latitude": self.satellite_latitude,
             "sat_longitude": self.satellite_longitude,

@@ -158,6 +158,7 @@ import numba
 import numpy as np
 import xarray as xr
 
+import satpy._instruments as instru
 import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms5_vissr_navigation as nav
@@ -285,7 +286,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     def _get_mda(self):
         return {
             "platform": self._mode_block["satellite_name"].decode().strip().upper(),
-            "sensor": "VISSR",
+            "instruments": {"VISSR"},
             "time_parameters": self._get_time_parameters(),
             "orbital_parameters": self._get_orbital_parameters(),
         }
@@ -762,7 +763,7 @@ class AreaDefEstimator:
         name_dict = geos_area.get_geos_area_naming(
             {
                 "platform_name": self.metadata["platform"],
-                "instrument_name": self.metadata["sensor"],
+                "instrument_name": instru.get_one_instrument_from_attrs(self.metadata),
                 "service_name": "western-pacific",
                 "service_desc": "Western Pacific",
                 "resolution": dataset_id["resolution"],

@@ -233,7 +233,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset.attrs.update(self.nc[dataset_info["nc_key"]].attrs)
         dataset.attrs.update(dataset_info)
         dataset.attrs["platform_name"] = "Meteosat-" + SATNUM[self.platform_id]
-        dataset.attrs["sensor"] = "seviri"
+        dataset.attrs["instruments"] = {"SEVIRI"}
         dataset.attrs["orbital_parameters"] = {
             "projection_longitude": self.mda["projection_parameters"]["ssp_longitude"],
             "projection_latitude": 0.,

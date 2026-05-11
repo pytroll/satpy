@@ -105,7 +105,7 @@ class AMIL1bNetCDF(BaseFileHandler):
 
         platform_shortname = self.nc.attrs["satellite_name"]
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
-        self.sensor = "ami"
+        self.sensor = "AMI"
         self.band_name = filetype_info["file_type"].upper()
         self.allow_conditional_pixels = allow_conditional_pixels
         calib_mode_choices = ("FILE", "PYSPECTRAL", "GSICS")
@@ -233,7 +233,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         attrs.update(dataset_id.to_dict())
         attrs["orbital_parameters"] = self.get_orbital_parameters()
         attrs["platform_name"] = self.platform_name
-        attrs["sensor"] = self.sensor
+        attrs["instruments"] = {self.sensor}
         data.attrs = attrs
         return data
 

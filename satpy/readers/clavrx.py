@@ -42,12 +42,12 @@ CF_UNITS = {
 }
 
 SENSORS = {
-    "MODIS": "modis",
-    "VIIRS": "viirs",
-    "AVHRR": "avhrr",
-    "AHI": "ahi",
-    "ABI": "abi",
-    "GOES-RU-IMAGER": "abi",
+    "MODIS": "MODIS",
+    "VIIRS": "VIIRS",
+    "AVHRR": "AVHRR",
+    "AHI": "AHI",
+    "ABI": "ABI",
+    "GOES-RU-IMAGER": "ABI",
 }
 PLATFORMS = {
     "SNPP": "npp",
@@ -301,7 +301,7 @@ class _CLAVRxHelper:
             attr_info["units"] = CF_UNITS[u]
             if u.lower() == "none":
                 attr_info["units"] = "1"
-        attr_info["sensor"] = sensor
+        attr_info["instruments"] = {sensor}
         attr_info["platform_name"] = platform
         rps = _get_rows_per_scan(sensor)
         if rps:

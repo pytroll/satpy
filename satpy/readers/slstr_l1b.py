@@ -260,7 +260,7 @@ class NCSLSTRAngles(BaseFileHandler):
 
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
-        self.sensor = "slstr"
+        self.sensor = "SLSTR"
         self.view = filename_info["view"]
         self._start_time = filename_info["start_time"]
         self._end_time = filename_info["end_time"]
@@ -341,7 +341,7 @@ class NCSLSTRAngles(BaseFileHandler):
                                     dims=["y", "x"], attrs=variable.attrs)
 
         variable.attrs["platform_name"] = self.platform_name
-        variable.attrs["sensor"] = self.sensor
+        variable.attrs["instruments"] = {self.sensor}
 
         if "units" not in variable.attrs:
             variable.attrs["units"] = "degrees"

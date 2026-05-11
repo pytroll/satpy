@@ -74,7 +74,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         _units = variable.attrs["units"] if "units" in variable.attrs else None
         variable.attrs.update({
             "platform_name": self.platform_name,
-            "sensor": self.sensor,
+            "instruments": {self.sensor},
             "units": _units,
             "orbital_parameters": {
                 "satellite_nominal_latitude": float(self.nc["nominal_satellite_subpoint_lat"]),

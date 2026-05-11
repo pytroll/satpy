@@ -109,21 +109,21 @@ class GACLACFile(BaseFileHandler):
             else:
                 self.reader_class = LACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
-            self.sensor = "avhrr-3"
+            self.sensor = "AVHRR/3"
         elif self._is_avhrr2():
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACPODReader
             else:
                 self.reader_class = LACPODReader
             self.chn_dict = AVHRR2_CHANNEL_NAMES
-            self.sensor = "avhrr-2"
+            self.sensor = "AVHRR/2"
         else:
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACPODReader
             else:
                 self.reader_class = LACPODReader
             self.chn_dict = AVHRR_CHANNEL_NAMES
-            self.sensor = "avhrr"
+            self.sensor = "AVHRR"
         self.filename_info = filename_info
 
     def _is_avhrr2(self):
@@ -318,7 +318,7 @@ class GACLACFile(BaseFileHandler):
             res.attrs[attr] = self.reader.meta_data[attr]
         res.attrs["platform_name"] = self.reader.spacecraft_name
         res.attrs["orbit_number"] = self.filename_info.get("orbit_number", None)
-        res.attrs["sensor"] = self.sensor
+        res.attrs["instruments"] = {self.sensor}
         try:
             res.attrs["orbital_parameters"] = {"tle": self.reader.get_tle_lines()}
         except (IndexError, RuntimeError):

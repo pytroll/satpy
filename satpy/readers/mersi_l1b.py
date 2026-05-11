@@ -35,14 +35,13 @@ from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.core.hdf5 import HDF5FileHandler
 
 N_TOT_IR_CHANS_LL = 6
-PLATFORMS_INSTRUMENTS = {"FY-3A": "mersi-1",
-                         "FY-3B": "mersi-1",
-                         "FY-3C": "mersi-1",
-                         "FY-3D": "mersi-2",
-                         "FY-3E": "mersi-ll",
-                         "FY-3F": "mersi-3",
-                         "FY-3G": "mersi-rm"}
-
+PLATFORMS_INSTRUMENTS = {"FY-3A": "MERSI-1",
+                         "FY-3B": "MERSI-1",
+                         "FY-3C": "MERSI-1",
+                         "FY-3D": "MERSI-2",
+                         "FY-3E": "MERSI-LL",
+                         "FY-3F": "MERSI-3",
+                         "FY-3G": "MERSI-RM"}
 
 class MERSIL1B(HDF5FileHandler):
     """MERSI-1/MERSI-2/MERSI-LL/MERSI-RM L1B file reader."""
@@ -77,7 +76,7 @@ class MERSIL1B(HDF5FileHandler):
 
     def get_refl_mult(self):
         """Get reflectance multiplier."""
-        if self.sensor_name == "mersi-rm":
+        if self.sensor_name == "MERSI-RM":
             # MERSI-RM has reflectance in the range 0-1, so we need to convert
             return 100.
         else:
@@ -94,7 +93,7 @@ class MERSIL1B(HDF5FileHandler):
     def _get_coefficients(self, cal_key, cal_index):
         """Get VIS calibration coeffs from calibration datasets."""
         # Only one VIS band for MERSI-LL
-        coeffs = self[cal_key][cal_index] if self.sensor_name != "mersi-ll" else self[cal_key]
+        coeffs = self[cal_key][cal_index] if self.sensor_name != "MERSI-LL" else self[cal_key]
         slope = coeffs.attrs.pop("Slope", None)
         intercept = coeffs.attrs.pop("Intercept", None)
         if slope is not None:
@@ -124,7 +123,7 @@ class MERSIL1B(HDF5FileHandler):
                 slope = slope[band_index]
                 intercept = intercept[band_index]
             # There's a bug in slope for MERSI-1 IR band
-            slope = 0.01 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" else slope
+            slope = 0.01 if self.sensor_name == "MERSI-1" and dataset_id["name"] == "5" else slope
             data = data * slope + intercept
         return data
 
@@ -155,7 +154,7 @@ class MERSIL1B(HDF5FileHandler):
             # to SI units m^-1, mW*m^-3*str^-1.
             wave_number = 1. / (dataset_id["wavelength"][1] / 1e6)
             # MERSI-1 doesn't have additional corrections
-            calibration_index = None if self.sensor_name == "mersi-1" else ds_info["calibration_index"]
+            calibration_index = None if self.sensor_name == "MERSI-1" else ds_info["calibration_index"]
             data = self._get_bt_dataset(data, calibration_index, wave_number)
 
         data.attrs = attrs
@@ -167,7 +166,7 @@ class MERSIL1B(HDF5FileHandler):
 
         data.attrs.update({
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "instruments": {self.sensor_name},
         })
 
         return data
@@ -186,10 +185,10 @@ class MERSIL1B(HDF5FileHandler):
         try:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.
-            valid_range[1] = 25000 if self.sensor_name == "mersi-2" and dataset_id["name"] in ["24", "25"] and \
+            valid_range[1] = 25000 if self.sensor_name == "MERSI-2" and dataset_id["name"] in ["24", "25"] and \
                                       valid_range[1] == 4095 else valid_range[1]
             # Similar bug also found in MERSI-1
-            valid_range[1] = 25000 if self.sensor_name == "mersi-1" and dataset_id["name"] == "5" and \
+            valid_range[1] = 25000 if self.sensor_name == "MERSI-1" and dataset_id["name"] == "5" and \
                                       valid_range[1] == 4095 else valid_range[1]
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
@@ -217,7 +216,7 @@ class MERSIL1B(HDF5FileHandler):
         # Only FY-3A/B stores VIS calibration coefficients in attributes
         coeffs = self._get_coefficients_mersi1(ds_info["calibration_index"]) if self.platform_name in ["FY-3A",
             "FY-3B"] else self._get_coefficients(ds_info["calibration_key"], ds_info.get("calibration_index", None))
-        data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2 if self.sensor_name != "mersi-ll" else \
+        data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2 if self.sensor_name != "MERSI-LL" else \
             data * np.pi / coeffs[0] * 100
 
         data = data * self.get_refl_mult()
@@ -241,10 +240,10 @@ class MERSIL1B(HDF5FileHandler):
         mersi_2_vis = [str(i) for i in range(1, 20)]
         mersi_rm_vis = [str(i) for i in range(1, 6)]
 
-        if self.sensor_name == "mersi-2" and datset_id["name"] in mersi_2_vis:
+        if self.sensor_name == "MERSI-2" and datset_id["name"] in mersi_2_vis:
             E0 = self["/attr/Solar_Irradiance"]
             rad = self._get_ref_dataset(data, ds_info) / 100 * E0[mersi_2_vis.index(datset_id["name"])] / np.pi
-        elif self.sensor_name == "mersi-rm" and datset_id["name"] in mersi_rm_vis:
+        elif self.sensor_name == "MERSI-RM" and datset_id["name"] in mersi_rm_vis:
             E0 = self._get_coefficients("Calibration/Solar_Irradiance", mersi_rm_vis.index(datset_id["name"]))
             rad = self._get_ref_dataset(data, ds_info) / 100 * E0 / np.pi
         else:
@@ -278,14 +277,14 @@ class MERSIL1B(HDF5FileHandler):
         data = data.where(data != 0)
 
         # additional corrections from the file
-        if self.sensor_name == "mersi-1":
+        if self.sensor_name == "MERSI-1":
         # https://img.nsmc.org.cn/PORTAL/NSMC/DATASERVICE/SRF/FY3C/FY3C_MERSI_SRF.rar
             corr_coeff_a = 1.0047
             corr_coeff_b = -0.8549
-        elif self.sensor_name == "mersi-2":
+        elif self.sensor_name == "MERSI-2":
             corr_coeff_a = float(self["/attr/TBB_Trans_Coefficient_A"][calibration_index])
             corr_coeff_b = float(self["/attr/TBB_Trans_Coefficient_B"][calibration_index])
-        elif self.sensor_name == "mersi-ll":
+        elif self.sensor_name == "MERSI-LL":
             # MERSI-LL stores these coefficients differently
             try:
                 coeffs = self["/attr/TBB_Trans_Coefficient"]
@@ -298,7 +297,7 @@ class MERSIL1B(HDF5FileHandler):
             corr_coeff_a = 0
 
         if corr_coeff_a != 0:
-            data = (data - corr_coeff_b) / corr_coeff_a if self.sensor_name != "mersi-1" else \
+            data = (data - corr_coeff_b) / corr_coeff_a if self.sensor_name != "MERSI-1" else \
                 data * corr_coeff_a + corr_coeff_b
         # some bands have 0 counts for the first N columns and
         # seem to be invalid data points
