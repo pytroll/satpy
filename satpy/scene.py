@@ -868,8 +868,6 @@ class Scene:
         If data reduction is enabled, some local caching is perfomed in order to
         avoid recomputation of area intersections.
         """
-        from satpy.resample.base import resample_dataset
-
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
@@ -878,33 +876,58 @@ class Scene:
         reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DataID.from_dataarray(dataset)
-            pres = None
-            if parent_dataset is not None:
-                pres = new_datasets[DataID.from_dataarray(parent_dataset)]
-            if ds_id in new_datasets:
-                replace_anc(new_datasets[ds_id], pres)
-                if ds_id in new_scn._datasets:
-                    new_scn._datasets[ds_id] = new_datasets[ds_id]
+            pres = self._get_new_datasets_from_parent(new_datasets, parent_dataset)
+            if self._replace_anc_for_new_datasets(new_datasets, ds_id, pres, new_scn):
                 continue
-            if dataset.attrs.get("area") is None:
-                if parent_dataset is None:
-                    new_scn._datasets[ds_id] = dataset
-                else:
-                    replace_anc(dataset, pres)
+            if self._update_area(dataset, parent_dataset, new_scn, ds_id, pres):
                 continue
-            LOG.debug("Resampling %s", ds_id)
-            source_area = dataset.attrs["area"]
-            dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
+
+            dataset, source_area = self._reduce_data(dataset, destination_area,
                                                      reduce_data, reductions, resample_kwargs)
-            self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
-            kwargs = resample_kwargs.copy()
-            kwargs["resampler"] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area, **kwargs)
+
+            LOG.debug("Resampling %s", ds_id)
+            res = self._resample_dataset(source_area, destination_area, dataset, resamplers, resample_kwargs)
+
             new_datasets[ds_id] = res
             if ds_id in new_scn._datasets:
                 new_scn._datasets[ds_id] = res
             if parent_dataset is not None:
                 replace_anc(res, pres)
+
+    @classmethod
+    def _get_new_datasets_from_parent(self, new_datasets, parent_dataset):
+        if parent_dataset is not None:
+            return new_datasets[DataID.from_dataarray(parent_dataset)]
+        return None
+
+    @classmethod
+    def _replace_anc_for_new_datasets(self, new_datasets, ds_id, pres, new_scn):
+        if ds_id in new_datasets:
+            replace_anc(new_datasets[ds_id], pres)
+            if ds_id in new_scn._datasets:
+                new_scn._datasets[ds_id] = new_datasets[ds_id]
+            return True
+        return False
+
+    @classmethod
+    def _update_area(self, dataset, parent_dataset, new_scn, ds_id, pres):
+        if dataset.attrs.get("area") is None:
+            if parent_dataset is None:
+                new_scn._datasets[ds_id] = dataset
+            else:
+                replace_anc(dataset, pres)
+            return True
+        return False
+
+    def _resample_dataset(self, source_area, destination_area, dataset, resamplers, resample_kwargs):
+        from satpy.resample.base import resample_dataset
+
+        self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
+        kwargs = resample_kwargs.copy()
+        kwargs["resampler"] = resamplers[source_area]
+        res = resample_dataset(dataset, destination_area, **kwargs)
+
+        return res
 
     def _get_finalized_destination_area(self, destination_area, new_scn):
         if isinstance(destination_area, str):
@@ -927,31 +950,38 @@ class Scene:
             resamplers[source_area] = resampler
             self._resamplers[key] = resampler
 
-    def _reduce_data(self, dataset, source_area, destination_area, reduce_data, reductions, resample_kwargs):
+    def _reduce_data(self, dataset, destination_area, reduce_data, reductions, resample_kwargs):
+        source_area = dataset.attrs["area"]
+        if not reduce_data:
+            LOG.debug("Data reduction disabled by the user")
+            return dataset, source_area
+
         try:
-            if reduce_data:
-                key = source_area
-                try:
-                    (slice_x, slice_y), source_area = reductions[key]
-                except KeyError:
-                    if resample_kwargs.get("resampler") == "gradient_search":
-                        factor = resample_kwargs.get("shape_divisible_by", 2)
-                    else:
-                        factor = None
-                    try:
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area, shape_divisible_by=factor)
-                    except TypeError:
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area)
-                    source_area = source_area[slice_y, slice_x]
-                    reductions[key] = (slice_x, slice_y), source_area
-                dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
-            else:
-                LOG.debug("Data reduction disabled by the user")
+            slice_x, slice_y = self._get_source_dest_slices(source_area, destination_area, reductions, resample_kwargs)
+            source_area = source_area[slice_y, slice_x]
+            reductions[source_area] = (slice_x, slice_y), source_area
+            dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
         except NotImplementedError:
             LOG.info("Not reducing data before resampling.")
+
         return dataset, source_area
+
+    @classmethod
+    def _get_source_dest_slices(self, source_area, destination_area, reductions, resample_kwargs):
+        try:
+            (slice_x, slice_y), source_area = reductions[source_area]
+        except KeyError:
+            if resample_kwargs.get("resampler") == "gradient_search":
+                factor = resample_kwargs.get("shape_divisible_by", 2)
+            else:
+                factor = None
+            try:
+                slice_x, slice_y = source_area.get_area_slices(
+                    destination_area, shape_divisible_by=factor)
+            except TypeError:
+                slice_x, slice_y = source_area.get_area_slices(
+                    destination_area)
+        return slice_x, slice_y
 
     def resample(
             self,
