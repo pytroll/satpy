@@ -97,7 +97,7 @@ implementation depends on the following keys:
 1. ``name``
 2. ``reader``
 3. ``platform_name``
-4. ``instruments``
+4. ``instruments`` (previously ``sensor`` in Satpy <1.0)
 5. ``standard_name``
 6. ``units``
 
