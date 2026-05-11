@@ -40,6 +40,8 @@ from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from
 
 LOG = logging.getLogger(__name__)
 
+BILINEAR_REDUCTION_HALO = 1
+
 
 def _get_area_resolution(area):
     """Attempt to retrieve resolution from AreaDefinition."""
@@ -58,6 +60,13 @@ def _aggregate_data_array(data_array, func, **coarsen_kwargs):
     else:
         out = getattr(res, func)()
     return out
+
+
+def _expand_slice(slc: slice, size: int, padding: int):
+    """Expand a slice by a symmetric padding within array bounds."""
+    start = 0 if slc.start is None else max(0, slc.start - padding)
+    stop = size if slc.stop is None else min(size, slc.stop + padding)
+    return slice(start, stop, slc.step)
 
 
 class DelayedGeneration(KeyError):
@@ -873,6 +882,7 @@ class Scene:
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
+        resampler_kwargs = self._get_resampler_kwargs(resample_kwargs)
 
         resamplers = {}
         reductions = {}
@@ -896,8 +906,8 @@ class Scene:
             source_area = dataset.attrs["area"]
             dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
                                                      reduce_data, reductions, resample_kwargs)
-            self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
-            kwargs = resample_kwargs.copy()
+            self._prepare_resampler(source_area, destination_area, resamplers, resampler_kwargs)
+            kwargs = resampler_kwargs.copy()
             kwargs["resampler"] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area, **kwargs)
             new_datasets[ds_id] = res
@@ -927,6 +937,37 @@ class Scene:
             resamplers[source_area] = resampler
             self._resamplers[key] = resampler
 
+    @staticmethod
+    def _uses_bilinear_resampler(resampler: Any):
+        if resampler == "bilinear":
+            return True
+        try:
+            from satpy.resample.kdtree import BilinearResampler
+        except ImportError:
+            return False
+        if isinstance(resampler, BilinearResampler):
+            return True
+        if isinstance(resampler, type):
+            return issubclass(resampler, BilinearResampler)
+        return False
+
+    def _get_resampler_kwargs(self, resample_kwargs: dict[str, Any]):
+        resampler_kwargs = resample_kwargs.copy()
+        if self._uses_bilinear_resampler(resampler_kwargs.get("resampler")):
+            resampler_kwargs["reduce_data"] = False
+        return resampler_kwargs
+
+    def _get_area_slice_kwargs(self, resample_kwargs: dict[str, Any]):
+        if resample_kwargs.get("resampler") == "gradient_search":
+            return {"shape_divisible_by": resample_kwargs.get("shape_divisible_by", 2)}
+        return {}
+
+    def _pad_reduce_data_slices(self, source_area, slice_x, slice_y, resample_kwargs):
+        if self._uses_bilinear_resampler(resample_kwargs.get("resampler")):
+            slice_x = _expand_slice(slice_x, source_area.width, BILINEAR_REDUCTION_HALO)
+            slice_y = _expand_slice(slice_y, source_area.height, BILINEAR_REDUCTION_HALO)
+        return slice_x, slice_y
+
     def _reduce_data(self, dataset, source_area, destination_area, reduce_data, reductions, resample_kwargs):
         try:
             if reduce_data:
@@ -934,16 +975,10 @@ class Scene:
                 try:
                     (slice_x, slice_y), source_area = reductions[key]
                 except KeyError:
-                    if resample_kwargs.get("resampler") == "gradient_search":
-                        factor = resample_kwargs.get("shape_divisible_by", 2)
-                    else:
-                        factor = None
-                    try:
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area, shape_divisible_by=factor)
-                    except TypeError:
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area)
+                    slice_kwargs = self._get_area_slice_kwargs(resample_kwargs)
+                    slice_x, slice_y = source_area.get_area_slices(destination_area, **slice_kwargs)
+                    slice_x, slice_y = self._pad_reduce_data_slices(
+                        source_area, slice_x, slice_y, resample_kwargs)
                     source_area = source_area[slice_y, slice_x]
                     reductions[key] = (slice_x, slice_y), source_area
                 dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)

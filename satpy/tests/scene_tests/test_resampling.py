@@ -194,6 +194,47 @@ class TestSceneResampling:
             attrs=attrs,
         )
 
+    @staticmethod
+    def _geos_cross_projection_areas():
+        from pyresample.geometry import AreaDefinition
+
+        source_area = AreaDefinition(
+            "src",
+            "src",
+            "src",
+            {
+                "proj": "geos",
+                "a": 6378169.0,
+                "b": 6356583.8,
+                "h": 35785831.0,
+                "lon_0": 0.0,
+                "units": "m",
+            },
+            3712,
+            1392,
+            (5568748.0, 5568748.0, -5568748.0, 1392187.0),
+        )
+        target_area = AreaDefinition(
+            "dst",
+            "dst",
+            "dst",
+            {"proj": "latlong", "datum": "WGS84"},
+            768,
+            768,
+            (7.456086060029671, 43.98125198600542, 33.461915849571966, 59.24271064133026),
+        )
+        return source_area, target_area
+
+    @staticmethod
+    def _geos_cross_projection_data(source_area):
+        y = da.arange(source_area.height, chunks=256)[:, None]
+        x = da.arange(source_area.width, chunks=256)[None, :]
+        return xr.DataArray(
+            (y * 10000 + x).astype(np.float64),
+            dims=("y", "x"),
+            attrs={"area": source_area, "name": "edge"},
+        )
+
     @mock.patch("satpy.resample.base.resample_dataset")
     @pytest.mark.parametrize("datasets", [
         None,
@@ -334,6 +375,64 @@ class TestSceneResampling:
             # get area slices is called again, once per area
             assert get_area_slices.call_count == 2
             assert get_area_slices_big.call_count == 2
+
+    @mock.patch("satpy.resample.base.resample_dataset")
+    def test_resample_bilinear_reduce_data_uses_halo_and_disables_internal_reduce_data(self, rs):
+        """Test bilinear Scene reduction pads the crop and avoids internal reduction."""
+        from pyresample.geometry import AreaDefinition
+
+        rs.side_effect = self._fake_resample_dataset_force_20x20
+        proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                    "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
+        target_area = AreaDefinition("test", "test", "test", proj_str, 4, 4, (-1000., -1500., 1000., 1500.))
+        area_def = AreaDefinition("test", "test", "test", proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock(return_value=(slice(1, 3, None), slice(1, 3, None)))
+
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp19"])
+        scene["comp19"].attrs["area"] = area_def
+
+        scene.resample(target_area, resampler="bilinear", reduce_data=True)
+
+        dataset = rs.call_args.args[0]
+        assert dataset.sizes["y"] == 4
+        assert dataset.sizes["x"] == 4
+        assert dataset.attrs["area"].width == 4
+        assert dataset.attrs["area"].height == 4
+        assert rs.call_args.kwargs["reduce_data"] is False
+
+    def test_resample_bilinear_reduce_data_halo_matches_full_source_on_edge_case(self):
+        """Test bilinear Scene reduction keeps edge pixels with a 1-pixel halo."""
+        from pyresample.bilinear import XArrayBilinearResampler
+
+        source_area, target_area = self._geos_cross_projection_areas()
+        scene = Scene()
+        scene["edge"] = self._geos_cross_projection_data(source_area)
+
+        baseline = scene.resample(target_area, resampler="bilinear", reduce_data=False)["edge"].compute()
+        reduced = scene.resample(target_area, resampler="bilinear", reduce_data=True)["edge"].compute()
+
+        slice_x, slice_y = source_area.get_area_slices(target_area)
+        tight_data = scene["edge"].isel(x=slice_x, y=slice_y)
+        tight_area = source_area[slice_y, slice_x]
+        tight = XArrayBilinearResampler(
+            tight_area,
+            target_area,
+            50000,
+            reduce_data=False,
+        ).resample(tight_data).compute()
+
+        baseline_values = baseline.values
+        reduced_values = reduced.values
+        tight_values = tight.values
+        finite_both = np.isfinite(reduced_values) & np.isfinite(baseline_values)
+        max_abs_diff = np.max(np.abs(reduced_values[finite_both] - baseline_values[finite_both]))
+        tight_lost = np.count_nonzero(np.isfinite(baseline_values) & ~np.isfinite(tight_values))
+        halo_lost = np.count_nonzero(np.isfinite(baseline_values) & ~np.isfinite(reduced_values))
+        np.testing.assert_array_equal(np.isfinite(reduced_values), np.isfinite(baseline_values))
+        assert max_abs_diff < 0.02
+        assert tight_lost > 0
+        assert halo_lost == 0
 
     def test_resample_ancillary(self):
         """Test that the Scene reducing data does not affect final output."""
