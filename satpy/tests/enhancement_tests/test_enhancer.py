@@ -144,7 +144,7 @@ class TestComplexSensorEnhancerConfigs(_BaseCustomEnhancementConfigTests):
 enhancements:
   test1_sensor1_specific:
     name: test1
-    sensor: test_sensor1
+    instruments: test_sensor1
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -160,14 +160,14 @@ enhancements:
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
   test1_sensor2_specific:
     name: test1
-    sensor: test_sensor2
+    instruments: test_sensor2
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 50}
   exact_multisensor_comp:
     name: my_comp
-    sensor: [test_sensor1, test_sensor2]
+    instruments: [test_sensor1, test_sensor2]
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -183,7 +183,7 @@ enhancements:
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "test1",
-                           "sensor": {"test_sensor2", "test_sensor1"},
+                           "instruments": {"test_sensor2", "test_sensor1"},
                            "mode": "L"
                        },
                        dims=["y", "x"])
@@ -206,7 +206,7 @@ enhancements:
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "my_comp",
-                           "sensor": {"test_sensor2", "test_sensor1"},
+                           "instruments": {"test_sensor2", "test_sensor1"},
                            "mode": "L"
                        },
                        dims=["y", "x"])
@@ -227,7 +227,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name=["I", "am", "invalid"], sensor="test_sensor2", mode="L"),
+                       attrs=dict(name=["I", "am", "invalid"], instruments={"test_sensor2"}, mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -282,7 +282,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(sensor="test_empty", mode="L"),
+                       attrs=dict(instruments={"test_empty"}, mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -296,7 +296,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(sensor="test_sensor2", mode="L"),
+                       attrs=dict(instruments={"test_sensor2"}, mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -311,7 +311,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name="test1", sensor="test_sensor", mode="L"),
+                       attrs=dict(name="test1", instruments={"test_sensor"}, mode="L"),
                        dims=["y", "x"])
         img = get_enhanced_image(ds, enhance=False)
         np.testing.assert_allclose(img.data.data.compute().squeeze(), ds.data)
@@ -320,7 +320,7 @@ enhancements:
         """Test turning off enhancements with writer."""
         from xarray import DataArray
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name="test1", sensor="test_sensor", mode="L"),
+                       attrs=dict(name="test1", instruments={"test_sensor"}, mode="L"),
                        dims=["y", "x"])
         writer = _CustomImageWriter(enhance=False)
         writer.save_datasets((ds,), compute=False)
@@ -333,7 +333,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name="test1", sensor="test_sensor", mode="L"),
+                       attrs=dict(name="test1", instruments={"test_sensor"}, mode="L"),
                        dims=["y", "x"])
         enhance = Enhancer()
         writer = _CustomImageWriter(enhance=enhance)
@@ -347,7 +347,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name="test1", sensor="test_sensor", mode="L"),
+                       attrs=dict(name="test1", instruments={"test_sensor"}, mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -359,7 +359,7 @@ enhancements:
                                        1.)
 
         ds = DataArray(da.arange(1, 11., chunks=5).reshape((2, 5)),
-                       attrs=dict(name="test1", sensor="test_sensor", mode="L"),
+                       attrs=dict(name="test1", instruments={"test_sensor"}, mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -376,7 +376,7 @@ enhancements:
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name="test1", units="kelvin",
-                                  sensor="test_sensor", mode="L"),
+                                  instruments={"test_sensor"}, mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -432,7 +432,7 @@ enhancements:
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            "name": "test1",
-                           "sensor": "test_sensor1",
+                           "instruments": {"test_sensor1"},
                            "mode": "L",
                        },
                        dims=["y", "x"])
