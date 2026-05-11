@@ -54,7 +54,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         else:
             shape = self[var_path + "/shape"]
             if shape[0] == 1:
-                # Remove the time dimenstion from dataset
+                # Remove the time dimension from dataset
                 shape = shape[1], shape[2]
 
         file_units = ds_info.get("file_units")
