@@ -111,6 +111,7 @@ The following people have made contributions to this project:
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
+- [Tom Kelly (twak)](https://twak.org)
 - [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
 - [Albert Brotzer](https://github.com/albertbrotzer)
 - [Alexandra Melzer](https://github.com/armelzer)
