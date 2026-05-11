@@ -93,13 +93,16 @@ class EnhancementDecisionTree(DecisionTree):
         for enh_name, enh_config in config_dict.items():
             if "sensor" in enh_config:
                 warnings.warn(
-                    "Renaming the 'sensor' attribute from enhancement YAML file "
-                    "to 'instruments'. This will raise an exception in Satpy "
-                    "v1.1 when the 'sensor' attribute will be removed.",
+                    "Renaming the 'sensor' enhancement attribute to 'instruments'. "
+                    "This will raise an exception in Satpy v1.1 when the 'sensor' "
+                    "attribute will be removed. To silence this warning, change "
+                    "'sensor' to 'instruments' (type list) in your enhancement "
+                    "YAML file.",
                     DeprecationWarning,
                     stacklevel=3
                 )
-                instru.set_instruments_attr(config_dict[enh_name], enh_config["sensor"])
+                instruments = instru.get_instruments_from_attrs(enh_config)
+                instru.set_instruments_attr(config_dict[enh_name], instruments)
 
     def find_match(self, **query_dict):
         """Find a match."""
