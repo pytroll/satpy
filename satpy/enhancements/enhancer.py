@@ -112,7 +112,6 @@ class EnhancementDecisionTree(DecisionTree):
                            (query_dict.get("uid", None),))
 
 
-
 class Enhancer:
     """Helper class to get enhancement information for images."""
 
