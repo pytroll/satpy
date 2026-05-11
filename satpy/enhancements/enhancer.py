@@ -43,29 +43,14 @@ class EnhancementDecisionTree(DecisionTree):
                                 ("name",
                                  "reader",
                                  "platform_name",
-                                 "sensor",
                                  "instruments",
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor", "instruments"])
-        self._check_deprecated_keys(match_keys, multival_keys)
+        multival_keys = kwargs.pop("multival_keys", ["instruments"])
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
-
-    def _check_deprecated_keys(self, match_keys, multival_keys):
-        user_provided_sensor = any(
-            "sensor" in keys
-            for keys in [match_keys, multival_keys]
-        )
-        if user_provided_sensor:
-            warnings.warn(
-                "The 'sensor' attribute will be removed in v1.1. "
-                "Use 'instrument' instead.",
-                DeprecationWarning,
-                stacklevel=2
-            )
 
     def add_config_to_tree(self, *decision_dict: str | Path | dict) -> None:
         """Add configuration to tree."""
@@ -73,6 +58,7 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             config_dict = self._get_config_dict_from_user(config_file)
             recursive_dict_update(conf, config_dict)
+        self._ensure_compat(conf)
         self._build_tree(conf)
 
     def _get_config_dict_from_user(self, config_file: str | Path | dict) -> dict:
@@ -103,6 +89,18 @@ class EnhancementDecisionTree(DecisionTree):
             LOG.debug(f"Adding enhancement configuration from file: {config_file}")
         return enhancement_section
 
+    def _ensure_compat(self, config_dict: dict) -> None:
+        for enh_name, enh_config in config_dict.items():
+            if "sensor" in enh_config:
+                warnings.warn(
+                    "Renaming the 'sensor' attribute from enhancement YAML file "
+                    "to 'instruments'. This will raise an exception in Satpy "
+                    "v1.1 when the 'sensor' attribute will be removed.",
+                    DeprecationWarning,
+                    stacklevel=3
+                )
+                instru.set_instruments_attr(config_dict[enh_name], enh_config["sensor"])
+
     def find_match(self, **query_dict):
         """Find a match."""
         try:
@@ -111,6 +109,7 @@ class EnhancementDecisionTree(DecisionTree):
             # give a more understandable error message
             raise KeyError("No enhancement configuration found for %s" %
                            (query_dict.get("uid", None),))
+
 
 
 class Enhancer:
