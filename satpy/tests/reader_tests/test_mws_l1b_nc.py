@@ -359,7 +359,7 @@ class TestMwsL1bNCFileHandler:
             "start_time": dt.datetime(2000, 1, 2, 3, 4, 5),
             "end_time": dt.datetime(2000, 1, 2, 4, 5, 6),
             "spacecraft_name": "Metop-SG-A1",
-            "sensor": "MWS",
+            "instruments": {"MWS"},
             "filename_start_time": dt.datetime(2000, 1, 1, 1, 0),
             "filename_end_time": dt.datetime(2000, 1, 1, 2, 0),
             "platform_name": "Metop-SG-A1",

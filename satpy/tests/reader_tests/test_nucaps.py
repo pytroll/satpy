@@ -214,7 +214,7 @@ class TestNUCAPSReader(unittest.TestCase):
             # self.assertNotEqual(v.info['resolution'], 0)
             # self.assertEqual(v.info['units'], 'degrees')
             assert v.ndim == 1
-            assert v.attrs["sensor"] == set(["cris", "atms", "viirs"])
+            assert v.attrs["instruments"] == set(["CrIS", "ATMS", "VIIRS"])
             assert isinstance(v.attrs["start_time"], datetime.datetime)
             assert isinstance(v.attrs["end_time"], datetime.datetime)
 
@@ -413,7 +413,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         assert len(datasets) == 5
         for v in datasets.values():
             assert v.ndim == 1
-            assert v.attrs["sensor"] == set(["cris", "atms", "viirs"])
+            assert v.attrs["instruments"] == set(["CrIS", "ATMS", "VIIRS"])
             assert isinstance(v.attrs["start_time"], datetime.datetime)
             assert isinstance(v.attrs["end_time"], datetime.datetime)
 

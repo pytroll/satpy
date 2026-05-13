@@ -267,6 +267,7 @@ class MWSL1BFile(NetCDF4FileHandler):
             "start_time": self.start_time,
             "end_time": self.end_time,
             "spacecraft_name": self.platform_name,
+            "instruments": {self.sensor},
             "filename_start_time": self.filename_info["start_time"],
             "filename_end_time": self.filename_info["end_time"],
             "platform_name": self.platform_name,

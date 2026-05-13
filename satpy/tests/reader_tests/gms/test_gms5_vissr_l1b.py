@@ -519,7 +519,7 @@ class TestFileHandler:
         return {
             "yaml": "info",
             "platform": "GMS-5",
-            "sensor": "VISSR",
+            "instruments": {"VISSR (Himawari-5)"},
             "time_parameters": {
                 "nominal_start_time": dt.datetime(1995, 10, 10),
                 "nominal_end_time": dt.datetime(1995, 10, 10, 0, 25),

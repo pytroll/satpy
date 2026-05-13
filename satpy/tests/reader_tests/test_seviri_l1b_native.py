@@ -1052,7 +1052,7 @@ class TestNativeMSGDataset:
                 },
                 "georef_offset_corrected": True,
                 "platform_name": "MSG-3",
-                "sensor": "seviri",
+                "instruments": {"SEVIRI"},
                 "units": "1",
                 "wavelength": (1, 2, 3),
                 "standard_name": "counts",

@@ -119,7 +119,7 @@ class TestTROPOMIL2Reader:
         assert len(ds) == 1
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "S5P"
-            assert d.attrs["sensor"] == "tropomi"
+            assert d.attrs["instruments"] == {"TROPOMI"}
             assert d.attrs["time_coverage_start"] == dt.datetime(2018, 7, 9, 17, 25, 34)
             assert d.attrs["time_coverage_end"] == dt.datetime(2018, 7, 9, 18, 23, 4)
             assert "area" in d.attrs

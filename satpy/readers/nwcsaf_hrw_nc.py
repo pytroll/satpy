@@ -241,7 +241,7 @@ class NWCSAFHRWBase(BaseFileHandler, metaclass=ABCMeta):
         self.filetype_info = filetype_info
         self.merge_channels = merge_channels
         self.platform_name = PLATFORM_NAMES.get(self.h5f.attrs["satellite_identifier"].astype(str))
-        self.sensor = SENSOR.get(self.platform_name, "seviri")
+        self.sensor = SENSOR.get(self.platform_name, "SEVIRI")
         self.lons = {}
         self.lats = {}
         # Imaging period, which is set after reading any data, and used to calculate end time

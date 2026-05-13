@@ -195,7 +195,7 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
                                                  "projection_latitude": 0.0,
                                                  "projection_altitude": 35785831.00},
                           "platform_name": "Electro",
-                          "sensor": "msu-gs"})
+                          "instruments": {"MSU-GS"}})
         assert dict(output.attrs, **attrs_exp) == output.attrs
 
     def test_calibrate(self, *mocks):

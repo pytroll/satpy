@@ -97,7 +97,7 @@ class TestMimicTPW2Reader:
         assert len(ds) == 1
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "aggregated microwave"
-            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["instruments"] == {"MIMIC"}
             assert "area" in d.attrs
             assert "units" in d.attrs
             assert d.attrs["area"] is not None

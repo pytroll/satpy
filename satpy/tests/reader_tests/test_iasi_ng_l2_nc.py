@@ -309,7 +309,7 @@ class TestIASINGL2NCReader:
 
     def test_sensor_names(self, twv_handler):
         """Test that the handler reports iasi_ng as sensor."""
-        assert twv_handler.sensor_names == {"iasi_ng"}
+        assert twv_handler.sensor_names == {"IASI-NG"}
 
     def test_available_datasets(self, twv_scene):
         """Test the list of available datasets in scene."""

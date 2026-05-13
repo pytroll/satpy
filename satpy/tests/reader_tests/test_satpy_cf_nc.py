@@ -61,7 +61,7 @@ def _create_test_netcdf(filename, resolution=742):
                                                "resolution": resolution})
 
     scene = Scene()
-    scene.attrs["sensor"] = ["viirs"]
+    scene.attrs["instruments"] = {"VIIRS"}
     scene_dict = {
         "lat": lat,
         "lon": lon,
@@ -256,7 +256,7 @@ def datasets(vis006, ir_108, qual_flags, lonlats, prefix_data, swath_data):
 def cf_scene(datasets, common_attrs):
     """Create a cf scene."""
     scene = Scene()
-    scene.attrs["sensor"] = ["avhrr-1", "avhrr-2", "avhrr-3"]
+    scene.attrs["instruments"] = {"AVHRR/1", "AVHRR/2", "AVHRR/3"}
     for key in datasets:
         scene[key] = datasets[key]
         if key != "swath_data":

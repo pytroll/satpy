@@ -120,7 +120,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
-        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["instruments"] == {"AVHRR/3"}
         assert res.attrs["name"] == "1"
         assert res.attrs["calibration"] == "reflectance"
         assert res.attrs["units"] == "%"
@@ -129,7 +129,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
-        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["instruments"] == {"AVHRR/3"}
         assert res.attrs["name"] == "4"
         assert res.attrs["calibration"] == "brightness_temperature"
         assert res.attrs["units"] == "K"
@@ -140,7 +140,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
-        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["instruments"] == {"AVHRR/3"}
         assert res.attrs["name"] == "1"
         assert res.attrs["calibration"] == "radiance"
         assert res.attrs["units"] == "W m^-2 sr^-1"
@@ -151,7 +151,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
-        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["instruments"] == {"AVHRR/3"}
         assert res.attrs["name"] == "longitude"
 
     def test_angles(self):
@@ -160,7 +160,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
-        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["instruments"] == {"AVHRR/3"}
         assert res.attrs["name"] == "solar_zenith_angle"
 
     def test_clould_flags(self):
@@ -169,7 +169,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
-        assert res.attrs["sensor"] == "avhrr-3"
+        assert res.attrs["instruments"] == {"AVHRR/3"}
         assert res.attrs["name"] == "cloud_flags"
 
     @mock.patch("satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__")

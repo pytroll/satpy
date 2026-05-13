@@ -444,7 +444,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         loff = nlines - loff
         name_dict = get_geos_area_naming({
             "platform_name": self.platform_name,
-            "instrument_name": self.instrument,
+            "instrument_name": "goes_imager",
             # Partial scans are padded to full disk
             "service_name": "FD",
             "service_desc": "Full Disk",

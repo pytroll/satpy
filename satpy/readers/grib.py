@@ -285,7 +285,8 @@ class GRIBFileHandler(BaseFileHandler):
             "units": "units",
             "modelName": "modelName",
             "valid_min": "minimum",
-            "valid_max": "maximum"}
+            "valid_max": "maximum",
+            "instruments": "modelName"}
 
         ds_info.update({
             "filename": self.filename,
@@ -293,8 +294,7 @@ class GRIBFileHandler(BaseFileHandler):
             "centreDescription": center_description,
             "start_time": start_time,
             "end_time": end_time,
-            "platform_name": "unknown",
-            "instruments": {msg["modelName"]}})
+            "platform_name": "unknown"})
 
         for key in key_dicts:
             if key_dicts[key] in msg.keys():
@@ -302,6 +302,7 @@ class GRIBFileHandler(BaseFileHandler):
             else:
                 ds_info[key] = "unknown"
 
+        ds_info["instruments"] = {ds_info["instruments"]}
         return ds_info
 
     def get_dataset(self, dataset_id, ds_info):

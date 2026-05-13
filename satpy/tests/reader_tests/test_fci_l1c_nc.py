@@ -193,7 +193,7 @@ REQUIRED_ATTR_KEYS = {
     "orbital_parameters",
     "file_type",
     "name",
-    "sensor",
+    "instruments",
     "resolution",
 }
 
@@ -1120,7 +1120,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             assert "orbital_parameters" in res[aux].attrs.keys()
             assert "file_type" in res[aux].attrs.keys()
             assert "name" in res[aux].attrs.keys()
-            assert "sensor" in res[aux].attrs.keys()
+            assert "instruments" in res[aux].attrs.keys()
             assert "resolution" in res[aux].attrs.keys()
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
@@ -1314,9 +1314,9 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         # in the tests.compositor_tests package
 
         from satpy.composites.config_loader import load_compositor_configs_for_sensors
-        comps, mods = load_compositor_configs_for_sensors(["fci"])
-        assert len(comps["fci"]) > 0
-        assert len(mods["fci"]) > 0
+        comps, mods = load_compositor_configs_for_sensors(["FCI"])
+        assert len(comps["FCI"]) > 0
+        assert len(mods["FCI"]) > 0
 
 
 class TestFCIL1cNCReaderBadData:

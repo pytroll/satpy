@@ -228,7 +228,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop("scale_factor", None)
 
         variable.attrs.update({"platform_name": self.platform_name,
-                               "instruments": {self.sensor}})
+                               "instruments": self.sensor})
 
         if not variable.attrs.get("standard_name", "").endswith("status_flag"):
             # TODO: do we really need to add units to everything ?

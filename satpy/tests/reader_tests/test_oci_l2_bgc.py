@@ -59,7 +59,7 @@ class TestSEADAS:
         data_arr = scene["chlor_a"]
         assert data_arr.dims == ("y", "x")
         assert data_arr.attrs["platform_name"] == "PACE"
-        assert data_arr.attrs["sensor"] == {"oci"}
+        assert data_arr.attrs["instruments"] == {"OCI"}
         assert data_arr.attrs["units"] == "mg m^-3"
         assert data_arr.dtype.type == np.float32
         assert isinstance(data_arr.attrs["area"], SwathDefinition)

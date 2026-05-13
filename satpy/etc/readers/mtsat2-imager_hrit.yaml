@@ -13,7 +13,7 @@ reader:
 
   status: Beta
   supports_fsspec: false
-  sensors: [IMAGER (MTSAT-2)]
+  instruments: [IMAGER (MTSAT-2)]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
 
 file_types:

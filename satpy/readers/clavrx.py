@@ -60,26 +60,26 @@ PLATFORMS = {
     "G18": "GOES-18",
 }
 ROWS_PER_SCAN = {
-    "viirs": 16,
-    "modis": 10,
+    "VIIRS": 16,
+    "MODIS": 10,
 }
 NADIR_RESOLUTION = {
-    "viirs": 742,
-    "modis": 1000,
-    "avhrr": 1050,
-    "ahi": 2000,
-    "abi": 2004,
+    "VIIRS": 742,
+    "MODIS": 1000,
+    "AVHRR": 1050,
+    "AHI": 2000,
+    "ABI": 2004,
 }
 
 CHANNEL_ALIASES = {
-    "abi": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
+    "ABI": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
             "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
             "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865, "modifiers": ("sunz_corrected",)},
             "refl_1_38um_nom": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
             "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
             "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25, "modifiers": ("sunz_corrected",)},
             },
-    "viirs": {"refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+    "VIIRS": {"refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
               "refl_1_38um_nom": {"name": "M09", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
               "refl_1_60um_nom": {"name": "I03", "wavelength": 1.61, "modifiers": ("sunz_corrected",)}
               }

@@ -423,7 +423,7 @@ class MiRSL2ncHandler(BaseFileHandler):
             data = data.rename(new_name_or_name_dict=ds_info["name"])
             data, ds_info = self.apply_attributes(data, ds_info)
 
-            if self.sensor.lower() == atms and self.limb_correction:
+            if self.sensor == {"ATMS"} and self.limb_correction:
                 sfc_type_mask = self["Sfc_type"]
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,

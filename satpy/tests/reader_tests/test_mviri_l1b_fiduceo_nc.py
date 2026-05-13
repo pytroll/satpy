@@ -51,7 +51,7 @@ fill_val = np.uint32(429496729) # FillValue lower than in dataset to be windows-
 attrs_exp: dict = {
     "platform": "MET7",
     "raw_metadata": {"foo": "bar"},
-    "sensor": "MVIRI",
+    "instruments": {"MVIRI"},
     "orbital_parameters": {
         "projection_longitude": 57.0,
         "projection_latitude": 0.0,
@@ -372,7 +372,7 @@ def fixture_file_handler(fake_file, request, projection_longitude):
         fh_class,
         filename=fake_file,
         filename_info={"platform": "MET7",
-                       "sensor": "MVIRI",
+                       "instrument": "MVIRI",
                        "projection_longitude": projection_longitude},
         filetype_info={"foo": "bar"},
         mask_bad_quality=True,

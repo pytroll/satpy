@@ -81,7 +81,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             xarray_kwargs=kwargs["xarray_kwargs"])
 
     sensors = {
-        "goes": "GOES Imager",
+        "goes": "IMAGER (GOES 12-15)",
         "himawari8": "AHI",
         "goes16": "ABI",  # untested
         "goesr": "ABI",  # untested

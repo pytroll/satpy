@@ -173,6 +173,8 @@ class OSISAFL3ReaderTests:
         test_ds = np.where(test_ds > self.maxv, np.nan, test_ds)
         test_ds = test_ds / self.scl + self.add
         np.testing.assert_allclose(res.values, test_ds)
+        if "sensor" in self.fake_dataset.attrs:
+            assert res.attrs["instruments"] == {"AVHRR", "VIIRS"}
 
         with pytest.raises(KeyError):
             test.get_dataset(DataQuery(name="erroneous dataset"), {"standard_name": "erroneous dataset"})
