@@ -50,6 +50,7 @@ _CONFIG_DEFAULTS = {
     "data_dir": _satpy_dirs.user_data_dir,
     "demo_data_dir": ".",
     "download_aux": True,
+    "preferred_composite_tags": [],
     "sensor_angles_position_preference": "actual",
     "readers": {
         "clip_negative_radiances": False,

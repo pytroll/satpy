@@ -1015,3 +1015,48 @@ def test_wavelength_range_cf_roundtrip():
 
     assert WavelengthRange.from_cf(wr.to_cf()) == wr
     assert WavelengthRange.from_cf([str(item) for item in wr]) == wr
+
+
+class TestParseDatasetKey:
+    """Test parse_dataset_key string-to-DataQuery conversion."""
+
+    def test_plain_name_returns_query_with_name_only(self):
+        """A plain name string produces a DataQuery with only the name set."""
+        from satpy.dataset.dataid import parse_dataset_key
+        result = parse_dataset_key("true_color")
+        assert result == DataQuery(name="true_color")
+
+    def test_name_with_tag_returns_query_with_name_and_tag(self):
+        """A 'name:tag' string produces a DataQuery with both name and tag."""
+        from satpy.dataset.dataid import parse_dataset_key
+        result = parse_dataset_key("true_color:wmo")
+        assert result == DataQuery(name="true_color", tag="wmo")
+
+    def test_tag_field_in_minimal_dataid(self):
+        """DataID with minimal keys should accept a tag field."""
+        did = DataID(minimal_default_keys_config, name="true_color", tag="wmo")
+        assert did["tag"] == "wmo"
+
+    def test_dataid_tag_matched_by_dataquery(self):
+        """DataQuery(name='true_color', tag='wmo') should match DataID with same name and tag."""
+        did = DataID(minimal_default_keys_config, name="true_color", tag="wmo")
+        query = DataQuery(name="true_color", tag="wmo")
+        assert query._match_dataid(did)
+
+    def test_untagged_dataid_does_not_match_tagged_query(self):
+        """DataID with no tag should not match a DataQuery specifying a tag (tag is a discriminator)."""
+        untagged = DataID(minimal_default_keys_config, name="true_color")
+        tagged_query = DataQuery(name="true_color", tag="wmo")
+        assert not tagged_query._match_dataid(untagged)
+
+    def test_tagged_dataid_does_not_match_untagged_query(self):
+        """DataID with a tag should not match a DataQuery without a tag (tag is a discriminator)."""
+        tagged = DataID(minimal_default_keys_config, name="true_color", tag="wmo")
+        untagged_query = DataQuery(name="true_color")
+        assert not untagged_query._match_dataid(tagged)
+        """A 'name:tag' string used as a DatasetDict key resolves to the DataID with that name and tag."""
+        from satpy.dataset.data_dict import DatasetDict
+        ds = DatasetDict()
+        did = DataID(minimal_default_keys_config, name="true_color", tag="wmo")
+        ds[did] = "value"
+        assert ds["true_color:wmo"] == "value"
