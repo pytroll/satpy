@@ -1,0 +1,119 @@
+reader:
+  description: L1 reader for OLI/TIRS data (Landsat 8)
+  name: lsa8_l1
+  sensors: [oli, tirs]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    lsa_granule:
+        file_reader: !!python/name:satpy.readers.lsa8_l1.LSA8BandReader
+        file_patterns: ['L{sensor:1s}{satellite:2d}_{processing_level:4s}_{wrs_path:3d}{wrs_row:3d}_{acquisition_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection:2s}_{category:2s}_{channel}.TIF']
+        requires: [lsa_metadata]
+    lsa_metadata:
+        file_reader: !!python/name:satpy.readers.lsa8_l1.LSA8MetaReader
+        file_patterns: ['L{sensor:1s}{satellite:2d}_{processing_level:4s}_{wrs_path:3d}{wrs_row:3d}_{acquisition_date:%Y%m%d}_{processing_date:%Y%m%d}_{collection:2s}_{category:2s}_MTL.txt']
+
+datasets:
+
+  B1:
+    name: B1
+    sensor: OLI
+    wavelength: [0.435, 0.443, 0.451]
+    resolution: 30
+    file_type: lsa_granule
+
+  B2:
+    name: B2
+    sensor: OLI
+    wavelength: [0.452, 0.490, 0.512]
+    resolution: 30
+    file_type: lsa_granule
+
+  B3:
+    name: B3
+    sensor: OLI
+    wavelength: [0.533, 0.560, 0.590]
+    resolution: 30
+    file_type: lsa_granule
+
+  B4:
+    name: B4
+    sensor: OLI
+    wavelength: [0.636, 0.665, 0.673]
+    resolution: 30
+    file_type: lsa_granule
+
+  B5:
+    name: B5
+    sensor: OLI
+    wavelength: [0.851, 0.865, 0.879]
+    resolution: 30
+    file_type: lsa_granule
+
+  B6:
+    name: B6
+    sensor: OLI
+    wavelength: [1.566, 1.610, 1.651]
+    resolution: 20
+    file_type: lsa_granule
+
+  B7:
+    name: B7
+    sensor: OLI
+    wavelength: [2.107, 2.190, 2.294]
+    resolution: 30
+    file_type: lsa_granule
+
+  B8:
+    name: B8
+    sensor: OLI
+    wavelength: [0.503, 0.589, 0.676]
+    resolution: 15
+    file_type: lsa_granule
+
+  B9:
+    name: B9
+    sensor: OLI
+    wavelength: [1.363, 1.375, 1.384]
+    resolution: 30
+    file_type: lsa_granule
+
+  B10:
+    name: B10
+    sensor: TIRS
+    wavelength: [10.60, 10.90, 11.19]
+    resolution: 100
+    file_type: lsa_granule
+
+  B11:
+    name: B11
+    sensor: TIRS
+    wavelength: [11.50, 12.0, 12.51]
+    resolution: 100
+    file_type: lsa_granule
+
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    resolution: [15, 30]
+    file_type: lsa_metadata
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    resolution: [15, 30]
+    file_type: lsa_metadata
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    resolution: [10, 20, 60]
+    file_type: safe_g_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Azimuth
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    resolution: [10, 20, 60]
+    file_type: safe_g_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Zenith
