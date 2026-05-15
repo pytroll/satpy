@@ -102,7 +102,7 @@ class _CompositeConfigHelper:
 
     def _load_config_composites(self, configured_composites):
         for composite_name, composite_info in configured_composites.items():
-            composite_info["name"] = composite_name
+            composite_info.setdefault("name", composite_name)
             self._load_config_composite(composite_info)
 
     def parse_config(self, configured_composites, composite_configs):

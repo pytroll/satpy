@@ -318,18 +318,34 @@ class TestLoadingComposites:
             assert loaded_ids[0] == exp_id_or_name
 
     def test_load_composite_by_tag_syntax(self):
-        """Check that loading with tag syntax stores the dataset under the requested name and makes it accessible.
+        """Check that loading with tag syntax stores the dataset under a DataID with name and tag.
 
-        The compositor's self.attrs['name'] (the YAML key, e.g. 'comp1_wmo') overwrites the
-        requested name in the output attrs — exactly as GenericCompositor does.
-        _generate_composite must restore the requested name ('comp1:wmo') and preserve the
-        original YAML key in _satpy_compositor_name for enhancement lookups.
+        'comp1:wmo' is syntactic sugar for DataQuery(name='comp1', tag='wmo').
+        The dataset should be accessible via scene['comp1:wmo'] and its DataID
+        should have name='comp1' and tag='wmo'.
         """
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         scene.load(["comp1:wmo"])
         assert not scene.missing_datasets
         data = scene["comp1:wmo"]
-        assert data.attrs["_satpy_compositor_name"] == "comp1_wmo"
+        assert data.attrs["_satpy_id"]["name"] == "comp1"
+        assert data.attrs["_satpy_id"]["tag"] == "wmo"
+
+    def test_load_composite_by_preferred_tags(self):
+        """Check that preferred_composite_tags causes a plain load to resolve to the tagged variant.
+
+        With preferred_composite_tags=['wmo'], loading 'comp1' selects the DataID(name='comp1', tag='wmo')
+        compositor.  The resulting dataset is stored under that tagged DataID and is accessible
+        via the tag syntax 'comp1:wmo'.
+        """
+        import satpy
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        with satpy.config.set(preferred_composite_tags=["wmo"]):
+            scene.load(["comp1"])
+        assert not scene.missing_datasets
+        data = scene["comp1:wmo"]
+        assert data.attrs["_satpy_id"]["name"] == "comp1"
+        assert data.attrs["_satpy_id"]["tag"] == "wmo"
 
     def test_load_multiple_resolutions(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""

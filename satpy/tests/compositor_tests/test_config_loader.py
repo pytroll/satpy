@@ -128,3 +128,38 @@ def _create_fake_composite_config_with_tags(yaml_filename, tags):
                 },
             },
         }, comp_file)
+
+
+def test_compositor_keyed_by_name_and_tag_when_yaml_has_tag_field(tmp_path):
+    """When a compositor YAML has explicit 'name' and 'tag' fields, its DataID key uses those."""
+    from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+    comp_dir = tmp_path / "composites"
+    comp_dir.mkdir()
+    _create_composite_config_with_name_and_tag(comp_dir / "fake_sensor.yaml")
+
+    with satpy.config.set(config_path=[tmp_path]):
+        comps, _ = load_compositor_configs_for_sensors(["fake_sensor"])
+
+    key = next(iter(comps["fake_sensor"]))
+    assert key["name"] == "true_color"
+    assert key["tag"] == "wmo"
+
+
+def _create_composite_config_with_name_and_tag(yaml_filename):
+    import yaml
+
+    from satpy.composites.aux_data import StaticImageCompositor
+
+    with open(yaml_filename, "w") as comp_file:
+        yaml.dump({
+            "sensor_name": "fake_sensor",
+            "composites": {
+                "true_color_wmo": {
+                    "compositor": StaticImageCompositor,
+                    "name": "true_color",
+                    "tag": "wmo",
+                    "url": "http://example.com/image.png",
+                },
+            },
+        }, comp_file)

@@ -101,112 +101,66 @@ class TestDependencyTree(unittest.TestCase):
 
 
 class TestGetCompositorByTag:
-    """Test tag-based compositor resolution via 'name:tag' syntax."""
+    """Test compositor resolution via tag syntax and preferred_composite_tags config."""
 
-    @pytest.mark.parametrize(("compositors_spec", "preferred_tags", "query", "expected_name"), [
-        pytest.param(
-            {"comp1_wmo": ["wmo"]},
-            [],
-            "comp1:wmo",
-            "comp1_wmo",
-            id="single_explicit_tag",
-        ),
-        pytest.param(
-            {"comp1_wmo_pyspectral": ["wmo", "pyspectral"]},
-            [],
-            "comp1:wmo:pyspectral",
-            "comp1_wmo_pyspectral",
-            id="multi_explicit_tags",
-        ),
-        pytest.param(
-            {"comp1_wmo_pyspectral": ["wmo", "pyspectral"]},
-            [],
-            "comp1:wmo",
-            "comp1_wmo_pyspectral",
-            id="single_tag_matches_multi_tag_compositor",
-        ),
-        pytest.param(
-            {"comp1_wmo": ["wmo"], "comp1_wmo_pyspectral": ["wmo", "pyspectral"]},
-            ["pyspectral"],
-            "comp1:wmo",
-            "comp1_wmo_pyspectral",
-            id="preferred_tags_tiebreaker_for_explicit_tag",
-        ),
-        pytest.param(
-            {"comp1_wmo": ["wmo"], "comp1_crefl": ["crefl"]},
-            ["crefl", "wmo"],
-            "comp1",
-            "comp1_crefl",
-            id="preferred_tags_for_plain_name",
-        ),
-        pytest.param(
-            {"comp1": []},
-            ["wmo"],
-            "comp1",
-            "comp1",
-            id="preferred_tag_unavailable_falls_back_to_plain",
-        ),
-    ])
-    def test_get_compositor_by_tag(self, compositors_spec, preferred_tags, query, expected_name):
-        """Test compositor resolution using tag syntax and preferred_composite_tags config."""
-        compositors = {
-            "fake_sensor": DatasetDict({
-                make_cid(name=name): FakeCompositor(name=name, prerequisites=[], standard_name="comp1", tags=tags)
-                for name, tags in compositors_spec.items()
-            })
-        }
-        tree = DependencyTree({}, compositors, {})
+    def _make_tree(self, compositors_by_id):
+        """Build a DependencyTree with the given {DataID: FakeCompositor} mapping."""
+        compositors = {"fake_sensor": DatasetDict(compositors_by_id)}
+        return DependencyTree({}, compositors, {})
 
-        with satpy.config.set(preferred_composite_tags=preferred_tags):
-            result = tree.get_compositor(DataQuery(name=query))
+    def test_explicit_tag_query_finds_tagged_compositor(self):
+        """DataQuery with explicit tag finds the matching tagged compositor."""
+        comp = FakeCompositor(name="comp1", tag="wmo", prerequisites=[])
+        tree = self._make_tree({make_cid(name="comp1", tag="wmo"): comp})
 
-        assert result.attrs["name"] == expected_name
+        result = tree.get_compositor(DataQuery(name="comp1", tag="wmo"))
 
-    def test_get_compositor_raises_when_explicit_tag_not_found(self):
-        """Test that requesting a tagged variant that doesn't exist raises KeyError."""
-        comp = FakeCompositor(name="comp1", prerequisites=[], standard_name="comp1", tags=[])
-        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1"): comp})}
-        tree = DependencyTree({}, compositors, {})
+        assert result.attrs["name"] == "comp1"
+        assert result.attrs["tag"] == "wmo"
+
+    def test_explicit_tag_not_found_raises(self):
+        """Requesting a tagged compositor that does not exist raises KeyError."""
+        comp = FakeCompositor(name="comp1", prerequisites=[])
+        tree = self._make_tree({make_cid(name="comp1"): comp})
 
         with pytest.raises(KeyError):
-            tree.get_compositor(DataQuery(name="comp1:wmo"))
+            tree.get_compositor(DataQuery(name="comp1", tag="wmo"))
 
-    def test_get_compositor_by_tag_skips_non_string_name(self):
-        """Test that a non-string name returns None instead of raising TypeError.
+    def test_preferred_tags_for_plain_name(self):
+        """Plain name query resolves to a tagged compositor via preferred_composite_tags."""
+        comp = FakeCompositor(name="comp1", tag="wmo", prerequisites=[])
+        tree = self._make_tree({make_cid(name="comp1", tag="wmo"): comp})
 
-        Without the isinstance guard, name.split(":") on None would crash.
-        """
-        tree = DependencyTree({}, {}, {})
-        assert tree._get_compositor_by_tag({"name": None}) is None
-
-
-class TestFindCompositorNodeNaming:
-    """Test that compositor nodes are named after the requested dataset key."""
-
-    def test_tag_request_names_node_after_request(self):
-        """Check that a tag-syntax request resolves to a node named after the requested key, not the YAML key."""
-        comp = FakeCompositor(name="comp1_wmo", prerequisites=[], standard_name="comp1", tags=["wmo"])
-        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo"): comp})}
-        tree = DependencyTree({}, compositors, {})
-
-        requested = {DataQuery(name="comp1:wmo")}
-        tree.populate_with_keys(requested)
-
-        resolved_name = next(iter(requested))
-        assert resolved_name["name"] == "comp1:wmo"
-
-    def test_preferred_tag_resolution_names_node_after_plain_request(self):
-        """Check that a plain request resolved via preferred_composite_tags is named after the plain request."""
-        comp_wmo = FakeCompositor(name="comp1_wmo", prerequisites=[], standard_name="comp1", tags=["wmo"])
-        compositors = {"fake_sensor": DatasetDict({make_cid(name="comp1_wmo"): comp_wmo})}
-        tree = DependencyTree({}, compositors, {})
-
-        requested = {DataQuery(name="comp1")}
         with satpy.config.set(preferred_composite_tags=["wmo"]):
-            tree.populate_with_keys(requested)
+            result = tree.get_compositor(DataQuery(name="comp1"))
 
-        resolved_name = next(iter(requested))
-        assert resolved_name["name"] == "comp1"
+        assert result.attrs["name"] == "comp1"
+        assert result.attrs["tag"] == "wmo"
+
+    def test_preferred_tags_respects_order(self):
+        """First matching preferred tag wins when multiple tagged variants exist."""
+        comp_crefl = FakeCompositor(name="comp1", tag="crefl", prerequisites=[])
+        comp_wmo = FakeCompositor(name="comp1", tag="wmo", prerequisites=[])
+        tree = self._make_tree({
+            make_cid(name="comp1", tag="crefl"): comp_crefl,
+            make_cid(name="comp1", tag="wmo"): comp_wmo,
+        })
+
+        with satpy.config.set(preferred_composite_tags=["crefl", "wmo"]):
+            result = tree.get_compositor(DataQuery(name="comp1"))
+
+        assert result.attrs["tag"] == "crefl"
+
+    def test_preferred_tag_unavailable_falls_back_to_plain(self):
+        """When no preferred-tag variant exists the plain (untagged) compositor is returned."""
+        comp = FakeCompositor(name="comp1", prerequisites=[])
+        tree = self._make_tree({make_cid(name="comp1"): comp})
+
+        with satpy.config.set(preferred_composite_tags=["wmo"]):
+            result = tree.get_compositor(DataQuery(name="comp1"))
+
+        assert result.attrs["name"] == "comp1"
+        assert result.attrs.get("tag") is None
 
 
 class TestMissingDependencies(unittest.TestCase):
