@@ -3,7 +3,7 @@ reader:
   short_name: AWS1 MWR L1B
   long_name: AWS1 MWR L1B Radiance (NetCDF4)
   description: Reader for the ESA AWS (Arctic Weather Satellite) Microwave Radiometer (MWR) level-1b files in netCDF4.
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [mwr,]
   status: Beta
   supports_fsspec: false
@@ -523,6 +523,86 @@ datasets:
             - longitude
             - latitude
 
+    surface_type_horn1:
+        name: surface_type_horn1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn2:
+        name: surface_type_horn2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn3:
+        name: surface_type_horn3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn4:
+        name: surface_type_horn4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn1:
+        name: terrain_elevation_horn1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn2:
+        name: terrain_elevation_horn2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn3:
+        name: terrain_elevation_horn3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn4:
+        name: terrain_elevation_horn4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
 file_types:
     aws_l1b_nc:
         # W_XX-OHB-Unknown,SAT,1-AWS-1B-RAD_C_OHB_20230707124607_G_D_20220621090100_20220621090618_T_B____.nc
@@ -530,7 +610,6 @@ file_types:
         # W_NO-KSAT-Tromso,SAT,AWS1-MWR-1B-RAD_C_OHB__20250110134851_G_O_20250110114708_20250110132329_C_N____.nc
         file_reader: !!python/name:satpy.readers.mwr_l1b.AWS_EPS_Sterna_MWR_L1BFile
         file_patterns: [
-        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_D_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc',
-        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_G_O_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
+        'W_{country:2s}-{organisation:s}-{location:s},SAT,{platform_name}-MWR-1B-RAD_C_{originator:4s}_{processing_time:%Y%m%d%H%M%S}_{mission_type:1s}_{environment:1s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{disposition_mode:1s}_{processing_mode:1s}____.nc'
         ]
         feed_horn_group_name: n_geo_groups

@@ -5,7 +5,7 @@ reader:
   description: Generic NASA VIIRS L2 Reader
   status: Alpha
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
   sensors: [viirs]
 
 file_types:

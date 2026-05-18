@@ -15,6 +15,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for spectral correction compositors."""
 
+import unittest
+from unittest import mock
+
 import dask
 import dask.array as da
 import numpy as np
@@ -73,16 +76,17 @@ class TestNdviHybridGreenCompositor:
 
     def setup_method(self):
         """Initialize channels."""
-        coord_val = [1.0, 2.0]
+        y_coord_val = [1.0, 2.0, 3.0]
+        x_coord_val = [1.0, 2.0]
         self.c01 = xr.DataArray(
-            da.from_array(np.array([[0.25, 0.30], [0.20, 0.30]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C02"})
+            da.from_array(np.array([[0.25, 0.30], [0.20, 0.30], [0.0, 0.3]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C02"})
         self.c02 = xr.DataArray(
-            da.from_array(np.array([[0.25, 0.30], [0.25, 0.35]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C03"})
+            da.from_array(np.array([[0.25, 0.30], [0.25, 0.35], [0.0, 0.0]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C03"})
         self.c03 = xr.DataArray(
-            da.from_array(np.array([[0.35, 0.35], [0.28, 0.65]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C04"})
+            da.from_array(np.array([[0.35, 0.35], [0.28, 0.65], [0.0, 0.0]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C04"})
 
     def test_ndvi_hybrid_green(self):
         """Test General functionality with linear scaling from ndvi to blend fraction."""
@@ -97,7 +101,10 @@ class TestNdviHybridGreenCompositor:
         assert res.attrs["name"] == "ndvi_hybrid_green"
         assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.values
-        np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
+        np.testing.assert_array_almost_equal(
+            data,
+            np.array([[0.2633, 0.3071], [0.2115, 0.3420], [0.0, 0.255]]),
+            decimal=4)
 
     def test_ndvi_hybrid_green_dtype(self):
         """Test that the datatype is not altered by the compositor."""
@@ -117,7 +124,10 @@ class TestNdviHybridGreenCompositor:
         res_np = res.data.compute()
         assert res.dtype == res_np.dtype
         assert res.dtype == np.float32
-        np.testing.assert_array_almost_equal(res.data, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
+        np.testing.assert_array_almost_equal(
+            res.data,
+            np.array([[0.2646, 0.3075], [0.2120, 0.3471], [0.0, 0.255]]),
+            decimal=4)
 
     def test_invalid_strength(self):
         """Test using invalid `strength` term for non-linear scaling."""
@@ -135,6 +145,45 @@ class TestNdviHybridGreenCompositor:
                                standard_name="toa_bidirectional_reflectance")
 
         c02_bad_shape = self.c02.copy()
-        c02_bad_shape.coords["y"] = [1.1, 2.]
+        c02_bad_shape.coords["y"] = [1.1, 2.0, 3.0]
         res = comp((self.c01, c02_bad_shape, self.c03))
-        assert res.shape == (2, 2)
+        assert res.shape == (3, 2)
+
+
+class TestNaturalEnhCompositor(unittest.TestCase):
+    """Test NaturalEnh compositor."""
+
+    def setUp(self):
+        """Create channel data and set channel weights."""
+        self.ch1 = xr.DataArray([1.0])
+        self.ch2 = xr.DataArray([2.0])
+        self.ch3 = xr.DataArray([3.0])
+        self.ch16_w = 2.0
+        self.ch08_w = 3.0
+        self.ch06_w = 4.0
+
+    @mock.patch("satpy.composites.spectral.NaturalEnh.__repr__")
+    @mock.patch("satpy.composites.spectral.NaturalEnh.match_data_arrays")
+    def test_natural_enh(self, match_data_arrays, repr_):
+        """Test NaturalEnh compositor."""
+        from satpy.composites.spectral import NaturalEnh
+        repr_.return_value = ""
+        projectables = [self.ch1, self.ch2, self.ch3]
+
+        def temp_func(*args):
+            return args[0]
+
+        match_data_arrays.side_effect = temp_func
+        comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
+                          ch06_w=self.ch06_w)
+        assert comp.ch16_w == self.ch16_w
+        assert comp.ch08_w == self.ch08_w
+        assert comp.ch06_w == self.ch06_w
+        res = comp(projectables)
+        assert mock.call(projectables) in match_data_arrays.mock_calls
+        correct = (self.ch16_w * projectables[0] +
+                   self.ch08_w * projectables[1] +
+                   self.ch06_w * projectables[2])
+        assert res[0] == correct
+        assert res[1] == projectables[1]
+        assert res[2] == projectables[2]

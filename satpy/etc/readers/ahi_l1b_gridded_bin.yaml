@@ -9,7 +9,7 @@ reader:
                http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
   status: Nominal
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [ahi]
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time']
@@ -60,7 +60,7 @@ datasets:
   B04:
     name: B04
     sensor: ahi
-    wavelength: [0.83, 0.85, 0.87]
+    wavelength: [0.85, 0.86, 0.87]
     resolution: 0.01
     calibration:
       reflectance:

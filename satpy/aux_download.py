@@ -20,8 +20,6 @@
 import logging
 import os
 
-import pooch
-
 import satpy
 
 logger = logging.getLogger(__name__)
@@ -53,7 +51,7 @@ def register_file(url, filename, component_type=None, known_hash=None):
     Returns:
         Cache key that can be used to retrieve the file later. The cache key
         consists of the ``component_type`` and provided ``filename``. This
-        should be passed to :func:`satpy.aux_download_retrieve` when the
+        should be passed to :func:`satpy.aux_download.retrieve` when the
         file will be used.
 
     """
@@ -105,6 +103,8 @@ def retrieve(cache_key, pooch_kwargs=None):
 
 
     """
+    import pooch
+
     pooch_kwargs = pooch_kwargs or {}
 
     path = satpy.config.get("data_dir")
@@ -121,6 +121,8 @@ def retrieve(cache_key, pooch_kwargs=None):
 
 
 def _retrieve_all_with_pooch(pooch_kwargs):
+    import pooch
+
     if pooch_kwargs is None:
         pooch_kwargs = {}
     path = satpy.config.get("data_dir")
@@ -215,7 +217,8 @@ def _find_registerable_files_readers(readers=None):
     """Load all readers so that files are registered."""
     import yaml
 
-    from satpy.readers import configs_for_reader, load_reader
+    from satpy.readers.core.config import configs_for_reader
+    from satpy.readers.core.loading import load_reader
     for reader_configs in configs_for_reader(reader=readers):
         try:
             load_reader(reader_configs)
@@ -225,7 +228,8 @@ def _find_registerable_files_readers(readers=None):
 
 def _find_registerable_files_writers(writers=None):
     """Load all writers so that files are registered."""
-    from satpy.writers import configs_for_writer, load_writer_configs
+    from satpy.writers.core.config import configs_for_writer, load_writer_configs
+
     for writer_configs in configs_for_writer(writer=writers):
         try:
             load_writer_configs(writer_configs)
@@ -253,7 +257,7 @@ class DataDownloadMixin:
 
     The below code is shown as an example::
 
-        from satpy.readers.yaml_reader import AbstractYAMLReader
+        from satpy.readers.core.yaml_reader import AbstractYAMLReader
         from satpy.aux_download import DataDownloadMixin
 
         class MyReader(AbstractYAMLReader, DataDownloadMixin):

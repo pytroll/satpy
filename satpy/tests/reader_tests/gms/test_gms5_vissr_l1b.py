@@ -10,7 +10,6 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 import satpy.tests.reader_tests.gms.test_gms5_vissr_data as real_world
-from satpy.readers import FSFile
 from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
 
@@ -122,13 +121,18 @@ class TestFileHandler:
         return gzip.open if with_compression else open
 
     @pytest.fixture
-    def vissr_file(self, dataset_id, file_contents, open_function, tmp_path):
+    def vissr_filename(self, tmp_path, with_compression):
+        """Construct the VISSR filename."""
+        return tmp_path / ("vissr_file" + (".gz" if with_compression else ""))
+
+
+    @pytest.fixture
+    def vissr_file(self, dataset_id, file_contents, open_function, vissr_filename):
         """Get test VISSR file."""
-        filename = tmp_path / "vissr_file"
         ch_type = fmt.CHANNEL_TYPES[dataset_id["name"]]
         writer = VissrFileWriter(ch_type, open_function)
-        writer.write(filename, file_contents)
-        return filename
+        writer.write(vissr_filename, file_contents)
+        return vissr_filename
 
     @pytest.fixture
     def file_contents(self, control_block, image_parameters, image_data):
@@ -350,6 +354,8 @@ class TestFileHandler:
     @pytest.fixture
     def vissr_file_like(self, vissr_file, with_compression):
         """Get file-like object for VISSR test file."""
+        from satpy.readers.core.remote import FSFile
+
         if with_compression:
             open_file = fsspec.open(vissr_file, compression="gzip")
             return FSFile(open_file)

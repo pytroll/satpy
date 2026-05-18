@@ -21,6 +21,7 @@ import contextlib
 from typing import Optional
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -38,17 +39,17 @@ def _create_cmip_dataset(data_variable: str = "HT"):
         }
     )
     x__ = xr.DataArray(
-        [0, 1],
+        da.from_array([0, 1]),
         attrs={"scale_factor": 2., "add_offset": -1.},
         dims=("x",),
     )
     y__ = xr.DataArray(
-        [0, 1],
+        da.from_array([0, 1]),
         attrs={"scale_factor": -2., "add_offset": 1.},
         dims=("y",),
     )
 
-    ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
+    ht_da = xr.DataArray(da.from_array(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2))),
                          dims=("y", "x"),
                          attrs={"scale_factor": 0.3052037,
                                 "add_offset": 0.,
@@ -104,25 +105,49 @@ def _create_aod_dataset():
     return ds1
 
 
+def _create_sst_dataset():
+    ds1 = _create_cmip_dataset("SST")
+    ds1["SST"].attrs["units"] = "K"
+    dqf_data = np.zeros_like(ds1["SST"], dtype=np.uint8)
+    dqf_data[-1, -1] = 1
+    dqf = xr.DataArray(da.from_array(dqf_data),
+                       dims=ds1["SST"].dims,
+                       attrs={
+                           "_FillValue": np.uint8(255),
+                           "units": "1",
+                           "flag_meanings": "good_quality_qf degraded_quality_qf "
+                                            "severely_degraded_quality_qf invalid_due_to_unprocessed_qf",
+                           "flag_values": [np.uint8(0), np.uint8(1), np.uint8(2), np.uint8(3)],
+                       })
+    ds1["DQF"] = dqf
+    return ds1
+
+
 class Test_NC_ABI_L2_get_dataset:
     """Test get dataset function of the NC_ABI_L2 reader."""
 
     @pytest.mark.parametrize(
-        ("obs_type", "ds_func", "var_name", "var_attrs"),
+        ("obs_type", "ds_func", "var_name", "var_attrs", "fh_kwargs"),
         [
-            ("ACHA", _create_cmip_dataset, "HT", {"units": "m"}),
-            ("AOD", _create_aod_dataset, "AOD", {"units": "1"}),
+            ("ACHA", _create_cmip_dataset, "HT", {"units": "m"}, {}),
+            ("AOD", _create_aod_dataset, "AOD", {"units": "1"}, {}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {"filters": ["good_quality_qf"]}),
+            ("SST", _create_sst_dataset, "SST", {"units": "K"}, {"filters": []}),
         ]
     )
-    def test_get_dataset(self, obs_type, ds_func, var_name, var_attrs):
+    def test_get_dataset(self, obs_type, ds_func, var_name, var_attrs, fh_kwargs):
         """Test basic L2 load."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name=var_name)
-        with _create_reader_for_fake_data(obs_type, ds_func()) as reader:
+        check_dqf = bool(fh_kwargs.get("filters"))
+        with _create_reader_for_fake_data(obs_type, ds_func(), fh_kwargs=fh_kwargs) as reader:
             res = reader.get_dataset(key, {"file_key": var_name})
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])
+        if check_dqf:
+            exp_data[-1, -1] = np.nan
 
         exp_attrs = {"instrument_ID": None,
                      "modifiers": (),
@@ -164,7 +189,7 @@ class TestMCMIPReading:
             ("C01", {"calibration": "reflectance", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
         ]
     )
-    @mock.patch("satpy.readers.abi_base.xr")
+    @mock.patch("satpy.readers.core.abi.xr")
     def test_mcmip_get_dataset(self, xr_, product, exp_metadata):
         """Test getting channel from MCMIP file."""
         import datetime as dt
@@ -215,7 +240,7 @@ class TestMCMIPReading:
 class Test_NC_ABI_L2_area_fixedgrid:
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_fixedgrid(self, adef):
         """Test the area generation."""
         with _create_reader_for_fake_data("RSR", _create_cmip_dataset()) as reader:
@@ -275,7 +300,7 @@ class Test_NC_ABI_L2_area_latlon:
         )
         self.fake_dataset = fake_dataset
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_latlon(self, adef):
         """Test the area generation."""
         with _create_reader_for_fake_data("RSR", self.fake_dataset) as reader:
@@ -335,7 +360,7 @@ class Test_NC_ABI_L2_area_AOD:
         )
         self.fake_dataset = fake_dataset
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_xy(self, adef):
         """Test the area generation."""
         with _create_reader_for_fake_data("RSR", self.fake_dataset) as reader:
@@ -351,7 +376,12 @@ class Test_NC_ABI_L2_area_AOD:
 
 
 @contextlib.contextmanager
-def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset, filename_info: Optional[dict] = None):
+def _create_reader_for_fake_data(
+        observation_type: str,
+        fake_dataset: xr.Dataset,
+        filename_info: Optional[dict] = None,
+        fh_kwargs: dict | None = None,
+):
     from satpy.readers.abi_l2_nc import NC_ABI_L2
 
     if filename_info is None:
@@ -359,12 +389,15 @@ def _create_reader_for_fake_data(observation_type: str, fake_dataset: xr.Dataset
             "platform_shortname": "G16",
             "scene_abbr": "C", "scan_mode": "M3"
         }
-    reader_args = (
+    fh_args = (
         "filename",
         filename_info,
         {"file_type": "info", "observation_type": observation_type},
     )
-    with mock.patch("satpy.readers.abi_base.xr") as xr_:
+    if fh_kwargs is None:
+        fh_kwargs = {}
+    fh_cls = NC_ABI_L2
+    with mock.patch("satpy.readers.core.abi.xr") as xr_:
         xr_.open_dataset.return_value = fake_dataset
-        reader = NC_ABI_L2(*reader_args)
-        yield reader
+        file_handler = fh_cls(*fh_args, **fh_kwargs)
+        yield file_handler

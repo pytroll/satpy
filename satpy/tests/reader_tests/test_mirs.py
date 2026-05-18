@@ -31,8 +31,8 @@ import xarray as xr
 
 from satpy._config import config_search_paths
 from satpy.dataset import DataID
-from satpy.readers import load_reader
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.core.loading import load_reader
+from satpy.readers.core.yaml_reader import FileYAMLReader
 from satpy.tests.utils import RANDOM_GEN
 
 METOP_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"

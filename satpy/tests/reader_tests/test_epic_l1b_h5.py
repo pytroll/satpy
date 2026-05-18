@@ -69,7 +69,7 @@ class TestEPICL1bReader:
 
     def _setup_h5(self, setup_hdf5_file):
         """Initialise reader for the tests."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         test_reader = load_reader(self.reader_configs)
         loadables = test_reader.select_files_from_pathnames([setup_hdf5_file])
         test_reader.create_filehandlers(loadables)

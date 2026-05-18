@@ -180,7 +180,7 @@ def _load_config(composite_configs):
     conf = {}
     for composite_config in composite_configs:
         with open(composite_config, "r", encoding="utf-8") as conf_file:
-            conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
+            recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
     try:
         sensor_name = conf["sensor_name"]
     except KeyError:
@@ -255,7 +255,7 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
             config files.
 
     Returns:
-        (comps, mods, data_id_keys): Where `comps` is a dictionary:
+        tuple: (comps, mods, data_id_keys), Where `comps` is a dictionary:
 
                 composite ID -> compositor object
 
@@ -285,11 +285,11 @@ def load_compositor_configs_for_sensors(sensor_names: Iterable[str]) -> tuple[di
     """Load compositor and modifier configuration files for the specified sensors.
 
     Args:
-        sensor_names (list of strings): Sensor names that have matching
+        sensor_names: Sensor names that have matching
             ``sensor_name.yaml`` config files.
 
     Returns:
-        (comps, mods): Where `comps` is a dictionary:
+        tuple: (comps, mods), Where `comps` is a dictionary:
 
                 sensor_name -> composite ID -> compositor object
 

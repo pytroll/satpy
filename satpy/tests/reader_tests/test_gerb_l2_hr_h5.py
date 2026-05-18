@@ -22,7 +22,6 @@ import numpy as np
 import pytest
 
 from satpy import Scene
-from satpy.tests.utils import xfail_h5py_unstable_numpy2
 
 FNAME = "G4_SEV4_L20_HR_SOL_TH_20190606_130000_V000.hdf"
 
@@ -44,7 +43,7 @@ def write_h5_null_string_att(loc_id, name, s):
     at.write(np.array(s, dtype=f"|S{len(s)+1}"))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     """Create a dummy HDF5 file for the GERB L2 HR product."""
     filename = tmp_path_factory.mktemp("data") / FNAME
@@ -121,11 +120,12 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     return filename
 
 
-@pytest.mark.xfail(xfail_h5py_unstable_numpy2(), reason="h5py doesn't include numpy 2 fix")
 @pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux", "Solar Radiance", "Thermal Radiance"])
-def test_dataset_load(gerb_l2_hr_h5_dummy_file, name):
+@pytest.mark.parametrize("area", [None, "msg_seviri_iodc_9km"])
+def test_dataset_load(gerb_l2_hr_h5_dummy_file, name, area):
     """Test loading the solar flux component."""
-    scene = Scene(reader="gerb_l2_hr_h5", filenames=[gerb_l2_hr_h5_dummy_file])
+    scene = Scene(reader="gerb_l2_hr_h5", filenames=[gerb_l2_hr_h5_dummy_file],
+                  reader_kwargs={"area": area})
     scene.load([name])
     assert scene[name].shape == (1237, 1237)
     assert np.nanmax((scene[name].to_numpy().flatten() - 0.25)) < 1e-6

@@ -18,15 +18,28 @@
 
 """GERB L2 HR HDF5 reader.
 
+Introduction
+------------
+
 A reader for the Top of Atmosphere outgoing fluxes from the Geostationary Earth Radiation
 Budget instrument aboard the Meteosat Second Generation satellites.
+
+Reader Arguments
+----------------
+
+Some arguments can be provided to the reader to change its behaviour. These are
+provided through the `Scene` instantiation, eg::
+
+  scn = Scene(filenames=filenames, reader="gerb_l2_hr_h5", reader_kwargs={"area": "msg_seviri_fes_9km"})
+
+
 """
 
 import datetime as dt
 import logging
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.resample import get_area_def
+from satpy.area import get_area_def
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -48,7 +61,26 @@ def gerb_get_dataset(ds, ds_info):
 
 
 class GERB_HR_FileHandler(HDF5FileHandler):
-    """File handler for GERB L2 High Resolution H5 files."""
+    """File handler for GERB L2 High Resolution H5 files.
+
+    **Overriding the ``area``**
+
+    By default, the GERB HR reader looks at the attribute "Geolocation/attr/Nominal
+    Satellite Longitude (degrees)" for selecting the area definition. This data is not
+    available for the GERB-like products however, so you may need to override it with the
+    ``area`` argument::
+
+        scene = satpy.Scene(filenames, reader="gerb_l2_hr_h5",
+                                       area="msg_seviri_fes_9km")
+
+    """
+
+    def __init__(self, filename, filename_info, filetype_info, area=None):
+        """Initialize the reader."""
+        super(GERB_HR_FileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.user_area = None
+        if area is not None:
+            self.user_area = area
 
     @property
     def end_time(self):
@@ -74,6 +106,9 @@ class GERB_HR_FileHandler(HDF5FileHandler):
 
     def get_area_def(self, dsid):
         """Area definition for the GERB product."""
+        if self.user_area is not None:
+            return get_area_def(self.user_area)
+
         ssp_lon = self.file_content["Geolocation/attr/Nominal Satellite Longitude (degrees)"]
 
         if abs(ssp_lon) < 1e-6:

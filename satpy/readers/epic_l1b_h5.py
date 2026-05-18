@@ -44,7 +44,7 @@ import logging
 import dask.array as da
 import numpy as np
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.core.hdf5 import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 

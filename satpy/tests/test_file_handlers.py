@@ -25,7 +25,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers.file_handlers import BaseFileHandler, open_dataset
+from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
 from satpy.tests.utils import FakeFileHandler
 
 
@@ -93,7 +93,7 @@ class TestBaseFileHandler(unittest.TestCase):
         exp = {"end_orbit": 2}
         assert res == exp
 
-    @mock.patch("satpy.readers.file_handlers.SwathDefinition")
+    @mock.patch("satpy.readers.core.file_handlers.SwathDefinition")
     def test_combine_area(self, sdef):
         """Combine area."""
         area1 = mock.MagicMock()

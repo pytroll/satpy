@@ -29,8 +29,8 @@ from pyresample.geometry import SwathDefinition
 
 from satpy._compat import cached_property
 from satpy._config import get_config_path
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.xmlformat import XMLFormat
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.xmlformat import XMLFormat
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)

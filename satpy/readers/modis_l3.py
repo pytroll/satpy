@@ -37,7 +37,7 @@ from typing import Iterable
 
 from pyresample import geometry
 
-from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.readers.core.hdfeos import HDFEOSGeoReader
 
 logger = logging.getLogger(__name__)
 

@@ -31,7 +31,7 @@ import dask.array as da
 import numpy as np
 from pyresample import geometry
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 

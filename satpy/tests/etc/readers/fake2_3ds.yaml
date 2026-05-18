@@ -1,7 +1,7 @@
 reader:
   name: fake2_1ds
   description: Fake reader used for easier testing
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [fake_sensor2]
 datasets:
   lons:

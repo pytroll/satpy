@@ -76,8 +76,8 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf4_utils import from_sds
-from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
+from satpy.readers.core.hdf4 import from_sds
+from satpy.readers.core.hdfeos import HDFEOSBaseFileReader, HDFEOSGeoReader
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +280,8 @@ def calibrate_refl(array, attributes, index):
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
     # convert to reflectance and convert from 1 to %
-    array = (array - offset) * scale * 100
+    array = (array - offset)
+    array = array * (scale * 100)  # avoid extra dask tasks by combining scalars
     return array
 
 

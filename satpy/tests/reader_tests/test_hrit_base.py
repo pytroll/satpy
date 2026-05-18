@@ -26,8 +26,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers import FSFile
-from satpy.readers.hrit_base import HRITFileHandler
+from satpy.readers.core.hrit import HRITFileHandler
 from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
@@ -65,16 +64,18 @@ mda_compressed["compression_flag_for_data"] = 1
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
     if os.fspath(instance.filename).endswith(".C_"):
-        instance.mda = mda_compressed.copy()
+        m = mda_compressed.copy()
     else:
-        instance.mda = mda.copy()
+        m = mda.copy()
+    return m
 
 
 def new_get_hd_compressed(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = mda.copy()
-    instance.mda["compression_flag_for_data"] = 1
-    instance.mda["data_field_length"] = 1578312
+    m = mda.copy()
+    m["compression_flag_for_data"] = 1
+    m["data_field_length"] = 1578312
+    return m
 
 
 @pytest.fixture
@@ -194,6 +195,9 @@ class TestHRITFileHandler:
     def test_read_band_FSFile(self, stub_hrit_file):
         """Test reading a single band from an FSFile."""
         import fsspec
+
+        from satpy.readers.core.remote import FSFile
+
         filename = stub_hrit_file
 
         fs_file = fsspec.open(filename)
@@ -212,6 +216,9 @@ class TestHRITFileHandler:
     def test_read_band_gzip_stream(self, stub_gzipped_hrit_file):
         """Test reading a single band from a gzip stream."""
         import fsspec
+
+        from satpy.readers.core.remote import FSFile
+
         filename = stub_gzipped_hrit_file
 
         fs_file = fsspec.open(filename, compression="gzip")
@@ -241,7 +248,7 @@ class TestHRITFileHandlerCompressed:
         """Test reading a single band from a filepath."""
         filename = stub_compressed_hrit_file
 
-        with mock.patch("satpy.readers.hrit_base.decompress", side_effect=fake_decompress) as mock_decompress:
+        with mock.patch("satpy.readers.core.hrit.decompress_buffer", side_effect=fake_decompress) as mock_decompress:
             with mock.patch.object(HRITFileHandler, "_get_hd", side_effect=new_get_hd, autospec=True) as get_hd:
                 self.reader = HRITFileHandler(filename,
                                               {"platform_shortname": "MSG3",

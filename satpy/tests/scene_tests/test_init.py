@@ -97,7 +97,7 @@ class TestScene:
 
     def test_init_with_fsfile(self):
         """Test initialisation with FSFile objects."""
-        from satpy.readers import FSFile
+        from satpy.readers.core.remote import FSFile
 
         # We should not mock _create_reader_instances here, because in
         # https://github.com/pytroll/satpy/issues/1605 satpy fails with
@@ -124,13 +124,13 @@ class TestScene:
 
     def test_create_reader_instances_with_reader_kwargs(self):
         """Test creating a reader instance with reader kwargs."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         reader_kwargs = {"calibration_type": "gsics"}
         filter_parameters = {"area": "euron1"}
         reader_kwargs2 = {"calibration_type": "gsics", "filter_parameters": filter_parameters}
 
         rinit = spy_decorator(FileYAMLReader.create_filehandlers)
-        with mock.patch("satpy.readers.yaml_reader.FileYAMLReader.create_filehandlers", rinit):
+        with mock.patch("satpy.readers.core.yaml_reader.FileYAMLReader.create_filehandlers", rinit):
             scene = Scene(filenames=["fake1_1.txt"],
                           reader="fake1",
                           filter_parameters={"area": "euron1"},
@@ -146,8 +146,8 @@ class TestScene:
 
     def test_create_multiple_reader_different_kwargs(self, include_test_etc):
         """Test passing different kwargs to different readers."""
-        from satpy.readers import load_reader
-        with mock.patch.object(satpy.readers, "load_reader", wraps=load_reader) as lr:
+        from satpy.readers.core.loading import load_reader
+        with mock.patch.object(satpy.readers.core.loading, "load_reader", wraps=load_reader) as lr:
             Scene(filenames={"fake1_1ds": ["fake1_1ds_1.txt"],
                              "fake2_1ds": ["fake2_1ds_1.txt"]},
                   reader_kwargs={

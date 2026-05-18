@@ -23,16 +23,20 @@ import logging
 import numpy as np
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler, open_dataset
-from satpy.readers.seviri_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     SATNUM,
+    CalibParams,
+    NominalCoefficients,
     NoValidOrbitParams,
     OrbitPolynomialFinder,
+    ScanParams,
     SEVIRICalibrationHandler,
     add_scanline_acq_time,
+    create_coef_dict,
     get_cds_time,
     get_satpos,
     mask_bad_quality,
@@ -49,13 +53,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`. Note that there is only one set of
+    See :mod:`satpy.readers.core.seviri`. Note that there is only one set of
     calibration coefficients available in the netCDF files and therefore there
     is no `calib_mode` argument.
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 
@@ -171,7 +175,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
         dataset = self.calibrate(dataset, dataset_id)
         is_calibration = dataset_id["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
-        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
+        if (is_calibration and self.mask_bad_quality_scan_lines):
             dataset = self._mask_bad_quality(dataset, dataset_info)
 
         self._update_attrs(dataset, dataset_info)
@@ -185,32 +189,36 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         if dataset_id["calibration"] == "counts":
             dataset.attrs["_FillValue"] = 0
 
-        calib = SEVIRICalibrationHandler(
-            platform_id=int(self.platform_id),
-            channel_name=channel,
-            coefs=self._get_calib_coefs(dataset, channel),
-            calib_mode="NOMINAL",
-            scan_time=self.observation_start_time
-        )
-
+        calib = self._get_calibration_handler(dataset, channel)
         return calib.calibrate(dataset, calibration)
 
-    def _get_calib_coefs(self, dataset, channel):
-        """Get coefficients for calibration from counts to radiance."""
+    def _get_calibration_handler(self, dataset, channel):
+        calib_params = CalibParams(
+            mode="NOMINAL",
+            internal_coefs=self._get_calib_coefs(dataset, channel),
+            external_coefs=self.ext_calib_coefs,
+            radiance_type=self._get_radiance_type(channel)
+        )
+        scan_params = ScanParams(
+            int(self.platform_id),
+            channel,
+            self.observation_start_time
+        )
+        return SEVIRICalibrationHandler(calib_params, scan_params)
+
+    def _get_radiance_type(self, channel):
         band_idx = list(CHANNEL_NAMES.values()).index(channel)
+        return self.nc["planned_chan_processing"].values[band_idx]
+
+    def _get_calib_coefs(self, dataset, channel):
+        """Get coefficients for calibration from counts to radiance.
+
+        Only nominal calibration coefficients are available in netCDF files.
+        """
         offset = dataset.attrs["add_offset"].astype("float32")
         gain = dataset.attrs["scale_factor"].astype("float32")
-        # Only one calibration available here
-        return {
-            "coefs": {
-                "NOMINAL": {
-                    "gain": gain,
-                    "offset": offset
-                },
-                "EXTERNAL": self.ext_calib_coefs.get(channel, {})
-            },
-            "radiance_type": self.nc["planned_chan_processing"].values[band_idx]
-        }
+        nominal_coefs = NominalCoefficients(channel, gain, offset)
+        return create_coef_dict(nominal_coefs)
 
     def _mask_bad_quality(self, dataset, dataset_info):
         """Mask scanlines with bad quality."""

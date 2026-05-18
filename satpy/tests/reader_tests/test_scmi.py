@@ -162,7 +162,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
                                {"platform_shortname": "G16"},
                                {"filetype": "info"})
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_geos(self, adef):
         """Test the area generation for geos projection."""
         reader = self.create_reader(
@@ -187,7 +187,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_lcc(self, adef):
         """Test the area generation for lcc projection."""
         reader = self.create_reader(
@@ -212,7 +212,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_stere(self, adef):
         """Test the area generation for stere projection."""
         reader = self.create_reader(
@@ -237,7 +237,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_merc(self, adef):
         """Test the area generation for merc projection."""
         reader = self.create_reader(
@@ -261,7 +261,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         assert call_args[5] == reader.nlines
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def_bad(self, adef):
         """Test the area generation for bad projection."""
         reader = self.create_reader(

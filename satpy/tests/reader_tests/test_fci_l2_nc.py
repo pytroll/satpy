@@ -18,6 +18,7 @@
 
 """The fci_cld_l2_nc reader tests package."""
 
+import datetime as dt
 import os
 import unittest
 import uuid
@@ -26,6 +27,7 @@ from unittest import mock
 
 import numpy as np
 import pytest
+import xarray as xr
 from netCDF4 import Dataset
 from pyresample import geometry
 
@@ -85,7 +87,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
             one_layer_dataset = nc.createVariable("test_one_layer", np.float32,
                                                   dimensions=("number_of_rows", "number_of_columns"))
-            one_layer_dataset[:] = np.ones((100, 10))
+            one_layer_dataset[:] = np.arange(1000.0).reshape((100, 10))
             one_layer_dataset.test_attr = "attr"
             one_layer_dataset.units = "test_units"
 
@@ -172,7 +174,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        "fill_value": -999,
                                        "file_type": "test_file_type"})
 
-        np.testing.assert_allclose(dataset.values, np.ones((100, 10)))
+        np.testing.assert_allclose(dataset.values, np.arange(1000).reshape((100, 10)))
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["fill_value"] == -999
 
@@ -494,8 +496,8 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
         self.test_byte_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.test_byte_file, "w") as nc_byte:
             # Create dimensions
-            nc_byte.createDimension("number_of_columns", 1)
-            nc_byte.createDimension("number_of_rows", 1)
+            nc_byte.createDimension("number_of_columns", 2)
+            nc_byte.createDimension("number_of_rows", 2)
 
             # add global attributes
             nc_byte.data_source = "TEST_DATA_SOURCE"
@@ -504,11 +506,11 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             # Add datasets
             x = nc_byte.createVariable("x", np.float32, dimensions=("number_of_columns",))
             x.standard_name = "projection_x_coordinate"
-            x[:] = np.arange(1)
+            x[:] = np.arange(2.0).reshape((2,))
 
             y = nc_byte.createVariable("y", np.float32, dimensions=("number_of_rows",))
             x.standard_name = "projection_y_coordinate"
-            y[:] = np.arange(1)
+            y[:] = np.arange(2.0).reshape((2,))
 
             mtg_geos_projection = nc_byte.createVariable("mtg_geos_projection", int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 0.0
@@ -547,7 +549,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 "extract_byte": 1,
                                                 })
 
-        assert dataset.values == 1
+        np.testing.assert_allclose(dataset.values, 1)
 
         # Value of 0 is expected fto be returned or this test
         dataset = self.byte_reader.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
@@ -558,7 +560,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 "extract_byte": 23,
                                                 })
 
-        assert dataset.values == 0
+        np.testing.assert_allclose(dataset.values, 0)
 
 
 @pytest.fixture(scope="module")
@@ -601,11 +603,16 @@ def amv_file(tmp_path_factory):
 @pytest.fixture(scope="module")
 def amv_filehandler(amv_file):
     """Create an AMV filehandler."""
-    return FciL2NCAMVFileHandler(filename=amv_file,
+    fh = FciL2NCAMVFileHandler(filename=amv_file,
                                  filename_info={"channel":"test_channel"},
                                  filetype_info={}
                                 )
-
+    mock_wind_time_ = xr.DataArray(
+        np.array(8.14275e+08),  # seconds since 2000-01-01
+        name="wind_time"
+    )
+    fh.nc = fh.nc.assign(wind_time=mock_wind_time_)
+    return fh
 
 class TestFciL2NCAMVFileHandler:
     """Test the FciL2NCAMVFileHandler reader."""
@@ -624,7 +631,14 @@ class TestFciL2NCAMVFileHandler:
             "platform_name": "TEST_PLATFORM",
             "channel": "test_channel",
             "ssp_lon": 0.0,
+            "time_parameters": {"wind_time":dt.datetime(2025, 10, 20, 11, 30)}
         }
+        assert global_attributes == expected_global_attributes
+
+        # Drop wind_time dataset and check that wind_time attribute becomes None
+        amv_filehandler.nc = amv_filehandler.nc.drop_vars("wind_time")
+        expected_global_attributes["time_parameters"] = {"wind_time":None}
+        global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
         assert global_attributes == expected_global_attributes
 
     def test_dataset(self, amv_filehandler):

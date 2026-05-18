@@ -28,7 +28,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery, Scene
-from satpy.multiscene import stack, timeseries
+from satpy.multiscene.blend_funcs import stack, timeseries
 from satpy.tests.multiscene_tests.test_utils import (
     DEFAULT_SHAPE,
     _create_test_area,
@@ -412,7 +412,7 @@ class TestTemporalRGB:
 
     def test_nominal(self, nominal_data, expected_result):
         """Test that nominal usage with 3 datasets works."""
-        from satpy.multiscene import temporal_rgb
+        from satpy.multiscene.blend_funcs import temporal_rgb
 
         res = temporal_rgb(nominal_data)
 
@@ -420,10 +420,19 @@ class TestTemporalRGB:
 
     def test_extra_datasets(self, nominal_data, expected_result):
         """Test that only the first three arrays affect the usage."""
-        from satpy.multiscene import temporal_rgb
+        from satpy.multiscene.blend_funcs import temporal_rgb
 
         da4 = xr.DataArray([0, 0, 1], attrs={"start_time": dt.datetime(2023, 5, 22, 12, 0, 0)})
 
         res = temporal_rgb(nominal_data + [da4,])
 
         self._assert_results(res, nominal_data[-1].attrs["start_time"], expected_result)
+
+
+@pytest.mark.parametrize("func", ["stack", "temporal_rgb", "timeseries"])
+def test_blend_funcs_warns(func):
+    """Test that there's a warning when importing from ABI base from the old location."""
+    from satpy import multiscene
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
+        getattr(multiscene, func)

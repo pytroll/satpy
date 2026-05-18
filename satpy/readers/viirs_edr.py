@@ -75,13 +75,14 @@ will only preserve AOD550 values where the quality is 0 ("high") or
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from typing import Any, Iterable
 
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy import DataID
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 LOG = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         row_chunks_i = row_chunks_m * 2
         drop_variables = filetype_info.get("drop_variables", None)
         self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
+                                  decode_cf=filetype_info.get("decode_cf", True),
                                   mask_and_scale=True,
                                   drop_variables=drop_variables,
                                   chunks={
@@ -151,8 +152,22 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         if "valid_min" in data_arr.attrs and valid_range is None:
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
-            return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]))
+            # NOTE: may modify attrs in place
+            fill_value = self._handle_fill_value(data_arr)
+            return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]), fill_value)
         return data_arr
+
+    def _handle_fill_value(self, data_arr: xr.DataArray) -> Any:
+        if "_FillValue" in data_arr.attrs and not np.issubdtype(data_arr.dtype, np.floating):
+            fill_value = data_arr.attrs["_FillValue"]
+            if hasattr(fill_value, "shape"):
+                fill_value = fill_value.item()
+                data_arr.attrs["_FillValue"] = fill_value
+        else:
+            # fill value is being overwritten with NaN
+            data_arr.attrs.pop("_FillValue", None)
+            fill_value = xr.core.dtypes.NA
+        return fill_value
 
     def _sanitize_metadata(self, data_arr: xr.DataArray, info: dict) -> xr.DataArray:
         if "valid_range" in data_arr.attrs:
@@ -333,7 +348,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
     def _get_veg_index_good_mask(self) -> da.Array:
         # each mask array should be TRUE when pixels are UNACCEPTABLE
         qf1 = self.nc["QF1 Surface Reflectance"]
-        has_sun_glint = (qf1 & 0b11000000) > 0
+        # has_sun_glint = (qf1 & 0b11000000) > 0
         is_cloudy = (qf1 & 0b00001100) > 0  # mask everything but "confident clear"
         cloud_quality = (qf1 & 0b00000011) < 0b10
 
@@ -348,7 +363,7 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
         adjacent_to_cloud = (qf7 & 0b00000010) > 0
 
         bad_mask = (
-                has_sun_glint |
+                # has_sun_glint |
                 is_cloudy |
                 cloud_quality |
                 has_snow_or_ice |

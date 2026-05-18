@@ -393,7 +393,7 @@ def _create_header_metadata() -> str:
     return archive_metadata_header
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l1b_nasa_mod021km_file(tmpdir_factory) -> list[str]:
     """Create a single MOD021KM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD021km")
@@ -411,7 +411,7 @@ def modis_l1b_nasa_mod021km_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l1b_imapp_1000m_file(tmpdir_factory) -> list[str]:
     """Create a single MOD021KM file following IMAPP file scheme."""
     filename = generate_imapp_filename("1000m")
@@ -429,7 +429,7 @@ def modis_l1b_imapp_1000m_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l1b_nasa_mod02hkm_file(tmpdir_factory) -> list[str]:
     """Create a single MOD02HKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Hkm")
@@ -459,7 +459,7 @@ def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l1b_nasa_mod03_file(tmpdir_factory) -> list[str]:
     """Create a single MOD03 file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD03")
@@ -473,7 +473,7 @@ def modis_l1b_nasa_mod03_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l1b_imapp_geo_file(tmpdir_factory) -> list[str]:
     """Create a single geo file following standard IMAPP file scheme."""
     filename = generate_imapp_filename("geo")
@@ -487,7 +487,7 @@ def modis_l1b_imapp_geo_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create input files including the 1KM and MOD03 files."""
     return modis_l1b_nasa_mod021km_file + modis_l1b_nasa_mod03_file
@@ -646,7 +646,7 @@ def generate_nasa_l3_tile_filename(prefix: str) -> str:
     now = dt.datetime.now()
     return f"{prefix}.A{now:%Y}001.h34v07.061.{now:%Y%j%H%M%S}.hdf"
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
     """Create a single MOD35 L2 HDF4 file with headers."""
     filename = generate_nasa_l2_filename("MOD35")
@@ -660,7 +660,7 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l3_nasa_mcd12q1_file(tmpdir_factory) -> list[str]:
     """Create a single MOD35 L2 HDF4 file with headers."""
     filename = generate_nasa_l3_tile_filename("MCD12Q1")
@@ -705,7 +705,7 @@ def modis_l3_file(tmpdir_factory, f_prefix, var_name, f_short):
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l3_nasa_mod09_file(tmpdir_factory) -> list[str]:
     """Create a single MOD09 L3 HDF4 file with headers."""
     return modis_l3_file(tmpdir_factory,
@@ -714,7 +714,7 @@ def modis_l3_nasa_mod09_file(tmpdir_factory) -> list[str]:
                          "MOD09")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l3_nasa_mod43_file(tmpdir_factory) -> list[str]:
     """Create a single MVCD43 L3 HDF4 file with headers."""
     return modis_l3_file(tmpdir_factory,
@@ -723,13 +723,13 @@ def modis_l3_nasa_mod43_file(tmpdir_factory) -> list[str]:
                          "MCD43C1")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_nasa_mod35_mod03_files(modis_l2_nasa_mod35_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create a MOD35 L2 HDF4 file and MOD03 L1b geolocation file."""
     return modis_l2_nasa_mod35_file + modis_l1b_nasa_mod03_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
     """Create a single MOD06 L2 HDF4 file with headers."""
     filename = generate_nasa_l2_filename("MOD06")
@@ -745,7 +745,7 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_nasa_mod99_file(tmpdir_factory) -> list[str]:
     """Create an "artificial" MOD99 L2 HDF4 file with headers.
 
@@ -763,7 +763,7 @@ def modis_l2_nasa_mod99_file(tmpdir_factory) -> list[str]:
                             _create_header_metadata())
     return [full_path]
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:
     """Create a single IMAPP snowmask L2 HDF4 file with headers."""
     filename = generate_imapp_filename("snowmask")
@@ -774,13 +774,13 @@ def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_imapp_snowmask_geo_files(modis_l2_imapp_snowmask_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create the IMAPP snowmask and geo HDF4 files."""
     return modis_l2_imapp_snowmask_file + modis_l1b_nasa_mod03_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_imapp_mask_byte1_file(tmpdir_factory) -> list[str]:
     """Create a single IMAPP mask_byte1 L2 HDF4 file with headers."""
     filename = generate_imapp_filename("mask_byte1")
@@ -791,7 +791,7 @@ def modis_l2_imapp_mask_byte1_file(tmpdir_factory) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def modis_l2_imapp_mask_byte1_geo_files(modis_l2_imapp_mask_byte1_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create the IMAPP mask_byte1 and geo HDF4 files."""
     return modis_l2_imapp_mask_byte1_file + modis_l1b_nasa_mod03_file

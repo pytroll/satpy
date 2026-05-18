@@ -6,7 +6,7 @@ reader:
 
     NetCDF4 reader for VGAC from VIIRS.
   sensors: [viirs]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
     vgac_nc:

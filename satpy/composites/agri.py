@@ -19,7 +19,7 @@
 
 import logging
 
-from satpy.composites import GenericCompositor
+from .core import GenericCompositor
 
 LOG = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class SimulatedRed(GenericCompositor):
 
         Args:
             name (str): Name of this composite
-            fractions (iterable): Fractions of each input band to include in the result.
+            fractions (Iterable): Fractions of each input band to include in the result.
 
         """
         self.fractions = fractions

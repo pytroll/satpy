@@ -63,18 +63,18 @@ def make_cf_data_array(dataarray,
     """Make the xr.DataArray CF-compliant.
 
     Args:
-        dataarray (xr.DataArray): The data array to be made CF-compliant.
-        epoch (str, optional): Reference time for encoding of time coordinates.
+        dataarray (xarray.DataArray): The data array to be made CF-compliant.
+        epoch (str, Optional): Reference time for encoding of time coordinates.
             If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
-        flatten_attrs (bool, optional): If True, flatten dict-type attributes. Defaults to False.
-        exclude_attrs (list, optional): List of dataset attributes to be excluded. Defaults to None.
-        include_orig_name (bool, optional): Include the original dataset name in the netcdf variable attributes.
+        flatten_attrs (bool, Optional): If True, flatten dict-type attributes. Defaults to False.
+        exclude_attrs (list, Optional): List of dataset attributes to be excluded. Defaults to None.
+        include_orig_name (bool, Optional): Include the original dataset name in the netcdf variable attributes.
             Defaults to True.
-        numeric_name_prefix (str, optional): Prepend dataset name with this if starting with a digit.
+        numeric_name_prefix (str, Optional): Prepend dataset name with this if starting with a digit.
             Defaults to ``"CHANNEL_"``.
 
     Returns:
-        xr.DataArray: A CF-compliant xr.DataArray.
+        xarray.DataArray: A CF-compliant xr.DataArray.
     """
     dataarray = _preprocess_data_array_name(dataarray=dataarray,
                                             numeric_name_prefix=numeric_name_prefix,

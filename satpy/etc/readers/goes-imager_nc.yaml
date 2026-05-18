@@ -12,8 +12,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [goes_imager]
-  default_channels: []
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 
 file_types:

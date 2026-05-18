@@ -7,7 +7,7 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [iasi]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   default_datasets:
 
 file_types:

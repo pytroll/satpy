@@ -30,8 +30,8 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hrit_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,
@@ -249,7 +249,7 @@ C2 = 1.43877523
 
 
 # Defined in MSG Level 1.5 Image Data Format Description
-# https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+# https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05105_msg_img_data_e7c8b315e6.pdf
 SPACECRAFTS = {19001: "Electro-L N1",
                19002: "Electro-L N2",
                19003: "Electro-L N3"}

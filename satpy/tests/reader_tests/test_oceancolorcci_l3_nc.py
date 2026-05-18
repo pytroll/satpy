@@ -141,7 +141,7 @@ class TestOCCCIReader:
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
 
     def _create_reader_for_resolutions(self, filename):
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filename)
         assert len(filename) == len(files)

@@ -33,16 +33,16 @@ TEST_END_TIME = TEST_START_TIME + dt.timedelta(hours=1)
 def fake_file(tmp_path):
     """Create UALF2 file for the tests."""
     fname = tmp_path / "2021.01.04.08.00.txt"
-    with open(fname, "w") as fid:
+    with open(fname, "w", encoding="utf-8") as fid:
         fid.write(
-            u"2\t3\t2021\t1\t4\t8\t0\t1\t51\t-20.8001\t-158.3439\t0\t0\t10\t0\t0\t1\t3\t3\t9.47\t1.91\t1.59\t"
-            "0.19\t11.4\t8.8\t0.0\t1\t1\t0\t1\n"
-            "2\t3\t2021\t1\t4\t8\t0\t1\t864782486\t0.4381\t-0.8500\t0\t0\t-20\t0\t1\t0\t4\t5\t24.99\t1.95\t1.53\t"
-            "1.53\t14.0\t12.9\t-0.0\t0\t1\t0\t1\n"
-            "2\t3\t2021\t1\t4\t8\t0\t1\t864782486\t0.4381\t-0.8500\t0\t0\t-20\t0\t1\t0\t4\t5\t24.99\t1.95\t1.53\t"
-            "1.53\t14.0\t12.9\t-0.0\t0\t1\t0\t1\n"
-            "2\t3\t2021\t1\t4\t8\t0\t1\t897014133\t66.8166\t42.4914\t0\t0\t15\t0\t0\t1\t5\t7\t103.87\t4.33\t1.46\t"
-            "0.48\t22.0\t12.3\t0.0\t1\t1\t0\t1"
+            "2\t3\t2021\t1\t4\t8\t0\t1\t51\t-20.8001\t-158.3439\t0\t0\t10\t0\t0\t1\t3\t3\t9.47\t"
+            "1.91\t1.59\t0.19\t11.4\t8.8\t0.0\t1\t1\t0\t1\n"
+            "2\t3\t2021\t1\t4\t8\t0\t1\t864782486\t0.4381\t-0.8500\t0\t0\t-20\t0\t1\t0\t4\t5\t"
+            "24.99\t1.95\t1.53\t1.53\t14.0\t12.9\t-0.0\t0\t1\t0\t1\n"
+            "2\t3\t2021\t1\t4\t8\t0\t1\t864782486\t0.4381\t-0.8500\t0\t0\t-20\t0\t1\t0\t4\t5\t"
+            "24.99\t1.95\t1.53\t1.53\t14.0\t12.9\t-0.0\t0\t1\t0\t1\n"
+            "2\t3\t2021\t1\t4\t8\t0\t1\t897014133\t66.8166\t42.4914\t0\t0\t15\t0\t0\t1\t5\t7\t"
+            "103.87\t4.33\t1.46\t0.48\t22.0\t12.3\t0.0\t1\t1\t0\t1"
         )
 
     return fname
@@ -60,7 +60,7 @@ def fake_filehandler(fake_file):
 
 
 def test_ualf2_record_type(fake_filehandler):
-    """Test ualf record type."""
+    """Test UALF2 record type."""
     expected = np.array([2, 2, 2])
     dataset_id = make_dataid(name="ualf_record_type")
     dataset_info = {}
@@ -79,8 +79,14 @@ def test_network_type(fake_filehandler):
 
 def test_time(fake_filehandler):
     """Test time."""
-    expected = np.array(["2021-01-04T08:00:01.000000051", "2021-01-04T08:00:01.864782486",
-                         "2021-01-04T08:00:01.897014133"], dtype="datetime64[ns]")
+    expected = np.array(
+        [
+            "2021-01-04T08:00:01.000000051",
+            "2021-01-04T08:00:01.864782486",
+            "2021-01-04T08:00:01.897014133",
+        ],
+        dtype="datetime64[ns]",
+    )
     dataset_id = make_dataid(name="time")
     dataset_info = {}
     actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
@@ -215,7 +221,7 @@ def test_chi_squared_value_location_optimization(fake_filehandler):
 
 def test_wave_form_rise_time(fake_filehandler):
     """Test wave form rise time."""
-    expected = np.array([11.4, 14., 22.])
+    expected = np.array([11.4, 14.0, 22.0])
     dataset_id = make_dataid(name="wave_form_rise_time")
     dataset_info = {}
     actual = fake_filehandler.get_dataset(dataset_id, dataset_info).values
@@ -298,29 +304,31 @@ def test_column_names_length():
 
 
 @pytest.fixture
-def fake_scn(fake_file):
+def fake_scene(fake_file):
     """Create fake file for tests."""
     from satpy import Scene
+
     scn = Scene(reader="gld360_ualf2", filenames=[fake_file])
     return scn
 
 
-def test_scene_attributes(fake_scn):
+def test_scene_attributes(fake_scene):
     """Test for correct start and end times."""
-    np.testing.assert_equal(fake_scn.start_time, TEST_START_TIME)
-    np.testing.assert_equal(fake_scn.end_time, TEST_END_TIME)
+    np.testing.assert_equal(fake_scene.start_time, TEST_START_TIME)
+    np.testing.assert_equal(fake_scene.end_time, TEST_END_TIME)
 
 
-def test_scene_load(fake_scn):
+def test_scene_load(fake_scene):
     """Test data loading through Scene-object."""
-    fake_scn.load(["time", "latitude", "longitude"])
-    assert "time" in fake_scn
-    assert "latitude" in fake_scn
-    assert "longitude" in fake_scn
+    fake_scene.load(["time", "latitude", "longitude"])
+    assert "time" in fake_scene
+    assert "latitude" in fake_scene
+    assert "longitude" in fake_scene
 
 
-def test_area_(fake_scn):
+def test_area_(fake_scene):
     """Test correct area instance type."""
     from pyresample.geometry import SwathDefinition
-    fake_scn.load(["time"])
-    assert isinstance(fake_scn["time"].attrs["area"], SwathDefinition)
+
+    fake_scene.load(["time"])
+    assert isinstance(fake_scene["time"].attrs["area"], SwathDefinition)

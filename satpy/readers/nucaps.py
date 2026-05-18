@@ -40,8 +40,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.core.netcdf import NetCDF4FileHandler
+from satpy.readers.core.yaml_reader import FileYAMLReader
 
 LOG = logging.getLogger(__name__)
 
@@ -241,8 +241,8 @@ class NUCAPSReader(FileYAMLReader):
         """Configure reader behavior.
 
         Args:
-            mask_surface (boolean): mask anything below the surface pressure
-            mask_quality (boolean): mask anything where the `Quality_Flag` metadata is ``!= 1``.
+            mask_surface (bool): mask anything below the surface pressure
+            mask_quality (bool): mask anything where the `Quality_Flag` metadata is ``!= 1``.
 
         """
         self.pressure_dataset_names = defaultdict(list)

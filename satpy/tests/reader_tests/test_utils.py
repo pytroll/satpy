@@ -18,9 +18,9 @@
 
 """Testing of helper functions."""
 
+import bz2
 import datetime as dt
 import os
-import unittest
 from unittest import mock
 
 import dask.array as da
@@ -32,11 +32,28 @@ import xarray as xr
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
-from satpy.readers import FSFile
-from satpy.readers import utils as hf
+from satpy.readers.core import utils as hf
 
 
-class TestHelpers(unittest.TestCase):
+@pytest.fixture
+def data_file(tmp_path):
+    """Generate a dummy file with data."""
+    filename = tmp_path / "test.DAT"
+    with filename.open("wb") as fp:
+        fp.write(b"TEST")
+    return filename
+
+
+@pytest.fixture
+def bzipped_data_file(tmp_path):
+    """Generate a bzipped dummy file with data."""
+    filename = tmp_path / "test.DAT.bz2"
+    with bz2.open(filename, "wb") as fp:
+        fp.write(b"TEST")
+    return filename
+
+
+class TestHelpers:
     """Test the area helpers."""
 
     def test_lonlat_from_geos(self):
@@ -182,7 +199,7 @@ class TestHelpers(unittest.TestCase):
         assert np.all(mask[range(68 - 1, 33 - 1, -1), range(33, 68)] == 1)
         assert np.all(mask[range(33 - 1, -1, -1), range(68, 101)] == 0)
 
-    @mock.patch("satpy.readers.utils.AreaDefinition")
+    @mock.patch("satpy.readers.core.utils.AreaDefinition")
     def test_sub_area(self, adef):
         """Sub area slicing."""
         area = mock.MagicMock()
@@ -268,8 +285,8 @@ class TestHelpers(unittest.TestCase):
         assert "c" in mda["d"]
         assert "c" in mda["d"]["d"]
 
-    @mock.patch("satpy.readers.utils.bz2.BZ2File")
-    @mock.patch("satpy.readers.utils.Popen")
+    @mock.patch("satpy.readers.core.utils.bz2.BZ2File")
+    @mock.patch("satpy.readers.core.utils.Popen")
     def test_unzip_file(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
@@ -283,7 +300,7 @@ class TestHelpers(unittest.TestCase):
         mock_bz2.return_value = bz2_mock
 
         filename = "tester.DAT.bz2"
-        whichstr = "satpy.readers.utils.which"
+        whichstr = "satpy.readers.core.utils.which"
         segment = 3
         segmentstr = str(segment).zfill(2)
         # no pbzip2 installed with prefix
@@ -309,47 +326,36 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(filename)
         assert new_fname is None
 
-    @mock.patch("bz2.BZ2File")
-    def test_generic_open_BZ2File(self, bz2_mock):
+    def test_generic_open_BZ2File(self, bzipped_data_file):
         """Test the generic_open method with bz2 filename input."""
-        mock_bz2_open = mock.MagicMock()
-        mock_bz2_open.read.return_value = b"TEST"
-        bz2_mock.return_value = mock_bz2_open
-
-        filename = "tester.DAT.bz2"
-        with hf.generic_open(filename) as file_object:
+        with hf.generic_open(bzipped_data_file, "rb") as file_object:
             data = file_object.read()
             assert data == b"TEST"
 
-        assert mock_bz2_open.read.called
-
     def test_generic_open_FSFile_MemoryFileSystem(self):
         """Test the generic_open method with FSFile in MemoryFileSystem."""
+        from satpy.readers.core.remote import FSFile
+
         mem_fs = MemoryFileSystem()
         mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
         mem_file.commit()
         fsf = FSFile(mem_file)
-        with hf.generic_open(fsf) as file_object:
+        with hf.generic_open(fsf, "rb") as file_object:
             data = file_object.read()
             assert data == b"TEST"
 
-    @mock.patch("satpy.readers.utils.open")
-    def test_generic_open_filename(self, open_mock):
+    def test_generic_open_filename(self, data_file):
         """Test the generic_open method with filename (str)."""
-        mock_fn_open = mock.MagicMock()
-        mock_fn_open.read.return_value = b"TEST"
-        open_mock.return_value = mock_fn_open
-
-        filename = "test.DAT"
-        with hf.generic_open(filename) as file_object:
+        with hf.generic_open(data_file, "rb") as file_object:
             data = file_object.read()
             assert data == b"TEST"
 
-        assert mock_fn_open.read.called
 
     @mock.patch("bz2.decompress", return_value=b"TEST_DECOMPRESSED")
     def test_unzip_FSFile(self, bz2_mock):
         """Test the FSFile bz2 file unzipping techniques."""
+        from satpy.readers.core.remote import FSFile
+
         mock_bz2_decompress = mock.MagicMock()
         mock_bz2_decompress.return_value = b"TEST_DECOMPRESSED"
 
@@ -385,7 +391,7 @@ class TestHelpers(unittest.TestCase):
             os.remove(new_fname)
 
     @mock.patch("os.remove")
-    @mock.patch("satpy.readers.utils.unzip_file", return_value="dummy.txt")
+    @mock.patch("satpy.readers.core.utils.unzip_file", return_value="dummy.txt")
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
         """Test the bz2 file unzipping context manager."""
         filename = "dummy.txt.bz2"
@@ -416,7 +422,7 @@ class TestHelpers(unittest.TestCase):
         assert offset == -0.0556
 
         # Test that channels not present in dict return 1.0, 0.0
-        with self.assertWarns(UserWarning):
+        with pytest.warns(UserWarning, match=".*not supplied coefficients.*"):
             slope, offset = hf.get_user_calibration_factors("IR097", radcor_dict)
         assert slope == 1.0
         assert offset == 0.0
@@ -631,3 +637,32 @@ class TestCalibrationCoefficientPicker:
         """Test handling of invalid wishlist type."""
         with pytest.raises(TypeError, match="Unsupported wishlist type"):
             hf.CalibrationCoefficientPicker({"nominal": 123}, 123)
+
+
+@pytest.mark.parametrize("name",
+                         ["np2str",
+                          "get_geostationary_angle_extent",
+                          "get_geostationary_mask",
+                          "get_geostationary_bounding_box",
+                          "get_sub_area",
+                          "unzip_file",
+                          "unzip_context",
+                          "generic_open",
+                          "fromfile",
+                          "bbox",
+                          "get_earth_radius",
+                          "reduce_mda",
+                          "get_user_calibration_factors",
+                          "apply_rad_correction",
+                          "get_array_date",
+                          "apply_earthsun_distance_correction",
+                          "remove_earthsun_distance_correction",
+                          "CalibrationCoefficientPicker",
+                          ]
+                         )
+def test_init_import_warns(name):
+    """Test that importing non-reader functions from __init__.py issue a warning."""
+    from satpy.readers import utils
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
+        _ = getattr(utils, name)

@@ -129,7 +129,7 @@ class TestMSUGSABReader:
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.readers.msu_gsa_l1b import MSUGSAFileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

@@ -97,7 +97,7 @@ for example when testing. The caching can be done by taking advantage of the `fs
     reader_kwargs = {
         'storage_options': {
             's3': {'anon': True},
-            'simple': {
+            'simplecache': {
                 'cache_storage': '/tmp/s3_cache',
             }
         }
@@ -145,6 +145,6 @@ The following table shows the timings for running the above code with different 
 Resources
 =========
 
-See :class:`~satpy.readers.FSFile` for direct usage of `fsspec` with Satpy, and
+See :class:`~satpy.readers.core.remote.FSFile` for direct usage of `fsspec` with Satpy, and
 `fsspec documentation <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ for more details on connection options
 and detailes.

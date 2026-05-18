@@ -5,7 +5,7 @@ reader:
   status: Beta
   supports_fsspec: true
   sensors: ['goci2']
-  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'platform_shortname', "slot"]
 

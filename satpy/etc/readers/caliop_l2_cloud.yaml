@@ -5,7 +5,7 @@ reader:
   description: CALIOP Level 2 Cloud Layer Version 3 HDF4 reader
   status: Alpha
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   default_datasets: []
   sensors: [caliop]
 

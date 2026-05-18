@@ -50,8 +50,8 @@ import logging
 import xarray as xr
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +104,11 @@ class HIML2NCFileHandler(BaseFileHandler):
         variable = variable.drop_vars("Latitude")
         variable = variable.drop_vars("Longitude")
 
+        variable.attrs["sensor"] = self.sensor
+        variable.attrs["platform_name"] = self.platform_name
+        variable.attrs["platform_shortname"] = self.platform_shortname
+        variable.attrs["start_time"] = self.start_time
+        variable.attrs["end_time"] = self.end_time
         variable.attrs.update(key.to_dict())
         return variable
 

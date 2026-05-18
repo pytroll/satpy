@@ -25,7 +25,7 @@ import shutil
 import warnings
 from functools import update_wrapper
 from glob import glob
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TypeAlias
 
 import dask
 import numpy as np
@@ -39,7 +39,7 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefi
 import satpy
 from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
-PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
+PRGeometry: TypeAlias = SwathDefinition | AreaDefinition | StackedAreaDefinition
 
 # Arbitrary time used when computing sensor angles that is passed to
 # pyorbital's get_observer_look function.
@@ -76,7 +76,7 @@ class ZarrCacheHelper:
             use to determine if caching should be done.
         uncacheable_arg_types: Types that if present in the passed arguments
             should trigger caching to *not* happen. By default this includes
-            ``SwathDefinition``, ``xr.DataArray``, and ``da.Array`` objects.
+            ``SwathDefinition``, ``xr.DataArray``, and ``dask.array.Array`` objects.
         sanitize_args_func: Optional function to call to sanitize provided
             arguments before they are considered for caching. This can be used
             to make arguments more "cacheable" by replacing them with similar
@@ -131,7 +131,7 @@ class ZarrCacheHelper:
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
             shutil.rmtree(zarr_dir, ignore_errors=True)
 
-    def _zarr_pattern(self, arg_hash, cache_version: Union[None, int, str] = None) -> str:
+    def _zarr_pattern(self, arg_hash, cache_version: None | int | str = None) -> str:
         if cache_version is None:
             cache_version = self._cache_version
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
@@ -333,24 +333,45 @@ def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
     return xr.DataArray(arr, dims=("y", "x"))
 
 
-def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr.DataArray:
+def compute_relative_azimuth(
+        sat_azi: xr.DataArray | da.Array,
+        sun_azi: xr.DataArray | da.Array
+) -> xr.DataArray | da.Array:
     """Compute the relative azimuth angle.
 
     Args:
-        sat_azi: DataArray for the satellite azimuth angles, typically in 0-360 degree range.
-        sun_azi: DataArray for the solar azimuth angles, should be in same range as sat_azi.
+        sat_azi: satellite azimuth angles typically in the 0-360 degree range.
+        sun_azi: solar azimuth angles in same range as sat_azi.
 
     Returns:
-        A DataArray containing the relative azimuth angle in the 0-180 degree range.
+        The relative azimuth angle or difference between solar and satellite
+        azimuth angles in the 0-180 degree range.
 
     NOTE: Relative azimuth is defined such that:
     Relative azimuth is 0 when sun and satellite are aligned on one side of a pixel (back scatter).
     Relative azimuth is 180 when sun and satellite are directly opposite each other (forward scatter).
     """
-    ssadiff = np.absolute(sun_azi - sat_azi)
-    ssadiff = np.minimum(ssadiff, 360 - ssadiff)
+    xarray_dims = getattr(sat_azi, "dims", None)
+    xarray_coords = getattr(sat_azi, "coords", None)
+    if xarray_dims is not None:
+        sat_azi = sat_azi.data
+        sun_azi = sun_azi.data
+    rel_azi = da.map_blocks(
+        _compute_relative_azimuth,
+        sat_azi, sun_azi,
+        dtype=sat_azi.dtype,
+        meta=np.array((), dtype=sat_azi.dtype),
+        token="relative_azimuth",  # nosec: B106
+    )
+    if xarray_dims is None:
+        return rel_azi
+    return xr.DataArray(rel_azi, dims=xarray_dims, coords=xarray_coords)
 
-    return ssadiff
+
+def _compute_relative_azimuth(sat_azi: np.ndarray, sun_azi: np.ndarray) -> np.ndarray:
+    ssadiff = np.absolute(sun_azi - sat_azi)
+    dtype = sun_azi.dtype.type
+    return np.minimum(ssadiff, dtype(360.0) - ssadiff)
 
 
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
@@ -411,7 +432,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
 
 
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
-def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
+def _get_valid_lonlats(area: PRGeometry, chunks: int | str | tuple = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         # NOTE: This defaults to 64-bit floats due to needed precision for X/Y coordinates
         lons, lats = area.get_lonlats(chunks=chunks)

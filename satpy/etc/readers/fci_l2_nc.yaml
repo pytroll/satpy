@@ -6,7 +6,7 @@ reader:
   status: Alpha
   supports_fsspec: false
   sensors: [fci]
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
   nc_fci_clm:
@@ -245,6 +245,12 @@ datasets:
     coordinates:
       - longitude
       - latitude
+
+  wind_time:
+    name: wind_time
+    standard_name: wind_time
+    file_type: nc_fci_amv
+    nc_key: wind_time
 
   speed_u_component:
     name: speed_u_component

@@ -147,7 +147,7 @@ modifiers:
 
 composites:
   true_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: 'B4'
       modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
@@ -158,7 +158,7 @@ composites:
     standard_name: true_color
 
   true_color_antarctic:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_antarctic]
@@ -169,7 +169,7 @@ composites:
     standard_name: true_color
 
   true_color_continental_average:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_average]
@@ -180,7 +180,7 @@ composites:
     standard_name: true_color
 
   true_color_continental_clean:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_clean]
@@ -191,7 +191,7 @@ composites:
     standard_name: true_color
 
   true_color_continental_polluted:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_continental_polluted]
@@ -202,7 +202,7 @@ composites:
     standard_name: true_color
 
   true_color_desert:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
@@ -213,7 +213,7 @@ composites:
     standard_name: true_color
 
   true_color_marine_clean:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_clean]
@@ -224,7 +224,7 @@ composites:
     standard_name: true_color
 
   true_color_marine_polluted:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_polluted]
@@ -235,7 +235,7 @@ composites:
     standard_name: true_color
 
   true_color_marine_tropical:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
@@ -246,7 +246,7 @@ composites:
     standard_name: true_color
 
   true_color_rural:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_rural]
@@ -257,7 +257,7 @@ composites:
     standard_name: true_color
 
   true_color_urban:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_urban]
@@ -268,7 +268,7 @@ composites:
     standard_name: true_color
 
   true_color_uncorr:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         modifiers: [effective_solar_pathlength_corrected]
@@ -279,7 +279,7 @@ composites:
     standard_name: true_color
 
   true_color_raw:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B4'
         # modifiers: [effective_solar_pathlength_corrected]
@@ -290,7 +290,7 @@ composites:
     standard_name: true_color
 
   natural_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: 'B6'
       modifiers: [effective_solar_pathlength_corrected]
@@ -301,7 +301,7 @@ composites:
     standard_name: natural_color
 
   urban_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B7'
         modifiers: [effective_solar_pathlength_corrected]
@@ -312,7 +312,7 @@ composites:
     standard_name: natural_color
 
   false_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: 'B5'
         modifiers: [effective_solar_pathlength_corrected]
@@ -325,17 +325,17 @@ composites:
   ndvi:
     # Normalized Difference Vegetation Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.RatioCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
       prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'B5'
             modifiers: [effective_solar_pathlength_corrected]
           - name: 'B4'
             modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
-      - compositor: !!python/name:satpy.composites.SumCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
         prerequisites:
           - name: 'B5'
             modifiers: [effective_solar_pathlength_corrected]
@@ -346,17 +346,17 @@ composites:
   ndmi:
     # Normalized Difference Moisture Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndmi/
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.RatioCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
       prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'B5'
             modifiers: [effective_solar_pathlength_corrected]
           - name: 'B6'
             modifiers: [effective_solar_pathlength_corrected]
-      - compositor: !!python/name:satpy.composites.SumCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
         prerequisites:
           - name: 'B5'
             modifiers: [effective_solar_pathlength_corrected]
@@ -367,17 +367,17 @@ composites:
   ndwi:
     # Normalized Difference Water Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.RatioCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
       prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'B3'
             modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: 'B5'
             modifiers: [effective_solar_pathlength_corrected]
-      - compositor: !!python/name:satpy.composites.SumCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
         prerequisites:
           - name: 'B3'
             modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
@@ -388,19 +388,19 @@ composites:
   ndsi:
     # Normalized Difference Snow Index
     # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
-    compositor: !!python/name:satpy.composites.MaskingCompositor
+    compositor: !!python/name:satpy.composites.mask.MaskingCompositor
     prerequisites:
     - name: 'B6'
       modifiers: [effective_solar_pathlength_corrected]
-    - compositor: !!python/name:satpy.composites.RatioCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
       prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: 'B3'
             modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: 'B6'
             modifiers: [effective_solar_pathlength_corrected]
-      - compositor: !!python/name:satpy.composites.SumCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
         prerequisites:
           - name: 'B3'
             modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
@@ -415,7 +415,7 @@ composites:
     standard_name: ndsi_msi
 
   ndsi_with_true_color:
-    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     prerequisites:
       - name: ndsi
       - name: true_color

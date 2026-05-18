@@ -92,7 +92,7 @@ How do I get help?
 The Satpy developers (and all other PyTroll package developers) monitor the:
 
 - `Mailing List <https://groups.google.com/group/pytroll>`_
-- `Slack chat <https://pytroll.slack.com/>`_ (get an `invitation <https://pytrollslackin.herokuapp.com/>`_)
+- `Slack chat <https://pytroll.slack.com/>`_ (see the `PyTroll website <https://pytroll.github.io/#getting-in-touch>`_ for more info)
 - `GitHub issues <https://github.com/pytroll/satpy/issues>`_
 
 How do I submit my changes?

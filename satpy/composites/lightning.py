@@ -22,17 +22,17 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.composites import CompositeBase
+from satpy.composites.core import CompositeBase
 
 LOG = logging.getLogger(__name__)
 
 
 class LightningTimeCompositor(CompositeBase):
-      """Class used to create the flash_age compositor usefull for lighting event visualisation.
+      """Compositor class for lightning visualisation based on time.
 
-      The datas used are dates related to the lightning event that should be normalised between
-      0 and 1. The value 1 corresponds to the latest lightning event and the value 0 corresponds
-      to the latest lightning event - time_range. The time_range is defined in the satpy/etc/composites/li.yaml
+      The compositor normalises the lightning event times between 0 and 1.
+      The value 1 corresponds to the latest lightning event and the value 0 corresponds
+      to the latest lightning event - time_range. The time_range is defined in the composite recipe
       and is in minutes.
       """
       def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
@@ -44,34 +44,33 @@ class LightningTimeCompositor(CompositeBase):
           self.reference_time_attr = self.attrs["reference_time"]
 
 
-      def _normalize_time(self, data:xr.DataArray, attrs:dict) -> xr.DataArray:
+      def _normalize_time(self, data: xr.DataArray, attrs: dict) -> xr.DataArray:
           """Normalize the time in the range between [end_time, end_time - time_range].
 
           The range of the normalised data is between 0 and 1 where 0 corresponds to the date end_time - time_range
           and 1 to the end_time. Where end_times represent the latest lightning event and time_range is the range of
-          time you want to see the event.The dates that are earlier to end_time - time_range are removed.
+          time in minutes visualised in the composite.
+          The dates that are earlier to end_time - time_range are set to NaN.
 
           Args:
-              data (xr.DataArray): datas containing dates to be normalised
-              attrs (dict): Attributes suited to the flash_age composite
+              data: datas containing dates to be normalised
+              attrs: Attributes suited to the flash_age composite
 
           Returns:
-              xr.DataArray: Normalised time
+              Normalised time
           """
           # Compute the maximum time value
           end_time = np.array(np.datetime64(data.attrs[self.reference_time_attr]))
           # Compute the minimum time value based on the time range
           begin_time = end_time - np.timedelta64(self.time_range, "m")
-          # Drop values that are bellow begin_time
+          # Invalidate values that are before begin_time
           condition_time = data >= begin_time
-          condition_time_computed = condition_time.compute()
-          data = data.where(condition_time_computed, drop=True)
-          # exit if data is empty afer filtering
-          if data.size == 0 :
-              LOG.error(f"All the flash_age events happened before {begin_time}")
-              raise ValueError(f"Invalid data: data size is zero. All flash_age "
-                f"events occurred before the specified start time ({begin_time})."
-                )
+          data = data.where(condition_time)
+
+          # raise a warning if data is empty after filtering
+          if np.all(np.isnan(data)) :
+              LOG.warning(f"All the flash_age events happened before {begin_time}, the composite will be empty.")
+
           # Normalize the time values
           normalized_data = (data - begin_time) / (end_time - begin_time)
           # Ensure the result is still an xarray.DataArray
@@ -84,22 +83,21 @@ class LightningTimeCompositor(CompositeBase):
               if key not in existing_attrs and val is not None:
                   existing_attrs[key] = val
 
-      def _redefine_metadata(self,attrs:dict)->dict:
+      def _redefine_metadata(self, attrs: dict) -> dict:
           """Modify the standard_name and name metadatas.
 
           Args:
-              attrs (dict): data's attributes
+              attrs: data's attributes
 
           Returns:
-              dict: atualised attributes
+              updated attributes
           """
           attrs["name"] = self.standard_name
           attrs["standard_name"] = self.standard_name
-          # Attributes to describe the values range
           return attrs
 
 
-      def __call__(self,projectables, nonprojectables=None, **attrs):
+      def __call__(self, projectables, nonprojectables=None, **attrs):
           """Normalise the dates."""
           data = projectables[0]
           new_attrs = data.attrs.copy()

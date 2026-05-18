@@ -22,6 +22,19 @@ See the following page for more information:
 
 https://podaac.jpl.nasa.gov/dataset/VIIRS_NPP-OSPO-L2P-v2.3
 
+Cloud clearing and data filtering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Cloud clearing can be enabled for supported variables (ex. "sst") by passing
+the filter name "cloud_clear" to the file handler "filters" keyword argument::
+
+   scn = Scene(reader="ascpo", filenames=[...],
+               reader_kwargs={"filters": ["cloud_clear"]})
+
+.. versionchanged: 0.58.0
+
+   The cloud clearing is no longer enabled by default.
+
 """
 
 import datetime as dt
@@ -29,7 +42,7 @@ import logging
 
 import numpy as np
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +56,16 @@ ROWS_PER_SCAN = {
 
 class ACSPOFileHandler(NetCDF4FileHandler):
     """ACSPO L2P SST File Reader."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 filters: list[str] | None = None, **kwargs):
+        """Initialize file handler and store cloud clear flag."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        filters = filters or []
+        for filter_name in filters:
+            if filter_name not in ("cloud_clear",):
+                raise ValueError(f"Unknown filter '{filter_name}'")
+        self.cloud_clear = "cloud_clear" in filters
 
     @property
     def platform_name(self):
@@ -143,9 +166,11 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         if scale_factor is not None:
             data = data * scale_factor + add_offset
 
-        if ds_info.get("cloud_clear", False):
+        if self.cloud_clear and ds_info.get("cloud_clear", False):
+            LOG.info(f"Cloud clearing {dataset_id}")
             # clear-sky if bit 15-16 are 00
-            clear_sky_mask = (self["l2p_flags"][0] & 0b1100000000000000) != 0
+            l2p_flags = self._get_unsigned_l2p_flags()
+            clear_sky_mask = (l2p_flags & 0b1100000000000000) != 0
             clear_sky_mask = clear_sky_mask.rename({"ni": "x", "nj": "y"})
             data = data.where(~clear_sky_mask)
 
@@ -155,3 +180,9 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         data.attrs.pop("valid_max", None)
         data.attrs.pop("valid_min", None)
         return data
+
+    def _get_unsigned_l2p_flags(self):
+        l2p_flags = self["l2p_flags"][0]
+        # l2p_flags is usually signed 16-bit (int16) but we need (uint16) for binary operations
+        unsigned_type = l2p_flags.dtype.str.replace("i", "u")
+        return l2p_flags.astype(unsigned_type, copy=False)

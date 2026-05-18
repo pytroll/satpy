@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base modifier classes and utilities."""
 
-from satpy.composites import CompositeBase
+from satpy.composites.core import CompositeBase
 
 
 class ModifierBase(CompositeBase):
@@ -30,7 +30,7 @@ class ModifierBase(CompositeBase):
     different. A modified DataArray can be differentiated from the original
     DataArray by the `modifiers` property of its `DataID`.
 
-    See the :class:`~satpy.composites.CompositeBase` class for information
+    See the :class:`~satpy.composites.core.CompositeBase` class for information
     on the similar concept of "compositors".
 
     """

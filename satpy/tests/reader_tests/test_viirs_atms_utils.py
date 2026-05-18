@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.viirs_atms_sdr_base import _get_file_units, _get_scale_factors_for_units
+from satpy.readers.core.viirs_atms_sdr import _get_file_units, _get_scale_factors_for_units
 from satpy.tests.utils import make_dataid
 
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)

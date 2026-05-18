@@ -18,6 +18,7 @@
 
 import datetime as dt
 import os
+from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
 from unittest import mock
@@ -29,11 +30,11 @@ from pyresample.geometry import BaseDefinition, SwathDefinition
 from xarray import DataArray
 
 from satpy import Scene
-from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.composites.core import GenericCompositor, IncompatibleAreas
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.modifiers import ModifierBase
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 FAKE_FILEHANDLER_START = dt.datetime(2020, 1, 1, 0, 0, 0)
 FAKE_FILEHANDLER_END = dt.datetime(2020, 1, 1, 1, 0, 0)
@@ -87,9 +88,9 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 
     Args:
         file_content (dict): Dictionary of string file keys to fake file data.
-        attrs (iterable): Series of attributes to copy to DataArray object from
+        attrs (Iterable): Series of attributes to copy to DataArray object from
             file content dictionary. Defaults to no attributes.
-        dims (iterable): Dimension names to use for resulting DataArrays.
+        dims (Iterable): Dimension names to use for resulting DataArrays.
             The second to last dimension is used for 1D arrays, so for
             dims of ``('z', 'y', 'x')`` this would use ``'y'``. Otherwise, the
             dimensions are used starting with the last, so 2D arrays are
@@ -276,10 +277,10 @@ class FakeFileHandler(BaseFileHandler):
             yield is_avail, ds_info
 
 
-class CustomScheduler(object):
+class CustomScheduler:
     """Scheduler raising an exception if data are computed too many times."""
 
-    def __init__(self, max_computes=1):
+    def __init__(self, max_computes: int = 1):
         """Set starting and maximum compute counts."""
         self.max_computes = max_computes
         self.total_computes = 0
@@ -291,6 +292,7 @@ class CustomScheduler(object):
         if self.total_computes > self.max_computes:
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
+
         return dask.get(dsk, keys, **kwargs)
 
 
@@ -302,8 +304,12 @@ def assert_maximum_dask_computes(max_computes=1):
         yield new_config
 
 
-def make_fake_scene(content_dict, daskify=False, area=True,
-                    common_attrs=None):
+def make_fake_scene(
+        content_dict: Mapping,
+        daskify: bool = False,
+        area: bool | BaseDefinition = True,
+        common_attrs: dict | None = None,
+) -> Scene:
     """Create a fake Scene.
 
     Create a fake Scene object from fake data.  Data are provided in
@@ -324,14 +330,14 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     objects then this flag has no effect.
 
     Args:
-        content_dict (Mapping): Mapping where keys correspond to objects
+        content_dict: Mapping where keys correspond to objects
             accepted by ``Scene.__setitem__``, i.e. strings or DataID,
             and values may be either ``numpy.ndarray`` or
             ``xarray.DataArray``.
-        daskify (bool): optional, to use dask when converting
+        daskify: optional, to use dask when converting
             ``numpy.ndarray`` to ``xarray.DataArray``.  No effect when the
             values in ``content_dict`` are already ``xarray.DataArray``.
-        area (bool or BaseDefinition): Can be ``True``, ``False``, or an
+        area: Can be ``True``, ``False``, or an
             instance of ``pyresample.geometry.BaseDefinition`` such as
             ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
             the default, automatically generate areas with the name "test-area".
@@ -339,7 +345,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
             of ``pyresample.geometry.BaseDefinition``, those instances will be
             used for all generated fake datasets.  Warning: Passing an area as
             a string (``area="germ"``) is not supported.
-        common_attrs (Mapping): optional, additional attributes that will
+        common_attrs: optional, additional attributes that will
             be added to every dataset in the scene.
 
     Returns:
@@ -373,7 +379,7 @@ def _get_fake_scene_area(arr, area):
 
 def _get_did_for_fake_scene(area, arr, extra_attrs, daskify):
     """Add instance to fake scene.  Helper for make_fake_scene."""
-    from satpy.resample import add_crs_xy_coords
+    from satpy.coords import add_crs_xy_coords
     if isinstance(arr, DataArray):
         new = arr.copy()  # don't change attributes of input
         new.attrs.update(extra_attrs)
@@ -432,37 +438,6 @@ def _compare_nonarray(val1: Any, val2: Any) -> None:
     if isinstance(val1, (np.floating, np.integer, np.bool_)):
         assert isinstance(val2, np.generic)
         assert val1.dtype == val2.dtype
-
-
-def xfail_skyfield_unstable_numpy2():
-    """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
-    try:
-        import skyfield
-
-        # known numpy incompatibility:
-        from skyfield import timelib  # noqa
-    except ImportError:
-        skyfield = None
-
-    import os
-    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2.")
-    return skyfield is None and is_np2 and is_unstable_ci
-
-
-def xfail_h5py_unstable_numpy2():
-    """Determine if h5py-based tests should be xfail in the unstable numpy 2.x environment."""
-    from packaging import version
-    try:
-        import h5py
-        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
-    except ImportError:
-        is_broken_h5py = True
-
-    import os
-    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2.")
-    return is_broken_h5py and is_np2 and is_unstable_ci
 
 
 def skip_numba_unstable_if_missing():

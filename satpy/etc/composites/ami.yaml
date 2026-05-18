@@ -92,7 +92,7 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   true_color_raw:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: VI006
         modifiers: [sunz_corrected]
@@ -102,7 +102,7 @@ composites:
     standard_name: true_color
 
   true_color:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: VI006
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -112,7 +112,7 @@ composites:
     standard_name: true_color
 
   true_color_nocorr:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: VI006
       - name: hybrid_green_nocorr
@@ -120,7 +120,7 @@ composites:
     standard_name: true_color
 
   overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - 0.65
       - 0.85
@@ -128,13 +128,13 @@ composites:
     standard_name: overview
 
   colorized_ir_clouds:
-    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
       - name: '10.4'
     standard_name: colorized_ir_clouds
 
   natural_color:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: NR016
         modifiers: [sunz_corrected]
@@ -146,7 +146,7 @@ composites:
     standard_name: natural_color
 
   natural_color_nocorr:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: NR016
       - name: VI008
@@ -155,7 +155,7 @@ composites:
     standard_name: natural_color
 
   natural_color_raw_with_night_ir:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     standard_name: natural_color_with_night_ir
     lim_low: 80
     lim_high: 90
@@ -164,7 +164,7 @@ composites:
       - cloudtop
 
   day_microphysics_eum:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - wavelength: 0.86
       - wavelength: 3.9
@@ -173,7 +173,7 @@ composites:
     standard_name: day_microphysics
 
   cloud_phase_distinction:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - wavelength: 10.4
       - wavelength: 0.64
@@ -181,7 +181,7 @@ composites:
     standard_name: cloud_phase_distinction
 
   water_vapors1:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - wavelength: 10.4
       - wavelength: 6.2
@@ -189,14 +189,14 @@ composites:
     standard_name: water_vapors1
 
   mid_vapor:
-    compositor: !!python/name:satpy.composites.DifferenceCompositor
+    compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
     prerequisites:
       - wavelength: 7.3
       - wavelength: 6.2
     standard_name: mid_vapor
 
   water_vapors2:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: mid_vapor
       - wavelength: 7.3
@@ -204,17 +204,17 @@ composites:
     standard_name: water_vapors2
 
   convection:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - WV069
           - WV073
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - SW038
           - IR105
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - NR016
           - VI006
@@ -222,18 +222,18 @@ composites:
 
   ir_cloud_day:
     standard_name: ir_cloud_day
-    compositor: !!python/name:satpy.composites.CloudCompositor
+    compositor: !!python/name:satpy.composites.mask.CloudCompositor
     prerequisites:
       - name: IR112
 
   airmass:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: WV063
           - name: WV073
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: IR096
           - name: IR105
@@ -241,13 +241,13 @@ composites:
     standard_name: airmass
 
   ash:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - IR123
           - IR112
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - IR112
           - IR087
@@ -255,21 +255,21 @@ composites:
     standard_name: ash
 
   true_color_with_night_ir:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     standard_name: true_color_with_night_ir
     prerequisites:
       - true_color
       - night_ir_with_background
 
   true_color_with_night_ir_hires:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     standard_name: true_color_with_night_ir_hires
     prerequisites:
       - true_color
       - night_ir_with_background_hires
 
   night_ir_alpha:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     standard_name: night_ir_alpha
     prerequisites:
       - 3.83
@@ -278,14 +278,14 @@ composites:
       - 10.35
 
   night_ir_with_background:
-    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background
 
   night_ir_with_background_hires:
-    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     standard_name: night_ir_with_background_hires
     prerequisites:
       - night_ir_alpha
@@ -295,7 +295,7 @@ composites:
   true_color_reproduction:
     # JMA True Color Reproduction complete composite with corrected and uncorrected blend.
     # http://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
-    compositor: !!python/name:satpy.composites.DayNightCompositor
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     standard_name: true_color_reproduction
     lim_low: 73.
     lim_high: 85.
@@ -305,7 +305,7 @@ composites:
 
   true_color_reproduction_corr:
     # JMA True Color Reproduction corrected composite.
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: VI006
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -316,7 +316,7 @@ composites:
 
   true_color_reproduction_uncorr:
     # JMA True Color Reproduction uncorrected composite.
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: VI006
       - name: ndvi_hybrid_green_raw

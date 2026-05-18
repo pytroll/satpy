@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from satpy.composites import GenericCompositor, SingleBandCompositor
+from satpy.composites.core import GenericCompositor, SingleBandCompositor
 
 
 class CloudCompositorWithoutCloudfree(SingleBandCompositor):

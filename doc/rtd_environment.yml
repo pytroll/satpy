@@ -2,7 +2,7 @@ name: readthedocs
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - python=3.13
   - pip
   - platformdirs
   - dask
@@ -25,15 +25,16 @@ dependencies:
   - rioxarray
   - setuptools
   - setuptools_scm
-  - sphinx
+  - sphinx>=8.2.0
   - sphinx_rtd_theme
-  - sphinxcontrib-apidoc
+  - sphinx-autodoc-typehints
   - trollsift
+  - universal_pathlib
   - xarray
   - zarr
   - xarray-datatree
   - geoviews
   - pip:
-    - graphviz
-    - pytest-lazy-fixtures
-    - ..  # relative path to the satpy project
+      - graphviz
+      - pytest-lazy-fixtures
+      - .. # relative path to the satpy project

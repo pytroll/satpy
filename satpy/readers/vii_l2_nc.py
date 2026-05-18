@@ -20,7 +20,9 @@
 
 import logging
 
-from satpy.readers.vii_base_nc import ViiNCBaseFileHandler
+import xarray as xr
+
+from satpy.readers.core.vii_nc import ViiNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +30,15 @@ logger = logging.getLogger(__name__)
 class ViiL2NCFileHandler(ViiNCBaseFileHandler):
     """Reader class for VII L2 products in netCDF format."""
 
-    def _perform_orthorectification(self, variable, orthorect_data_name):
+    def _perform_orthorectification(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
         """Perform the orthorectification.
 
         Args:
-            variable: xarray DataArray containing the dataset to correct for orthorectification.
+            variable: DataArray containing the dataset to correct for orthorectification.
             orthorect_data_name: name of the orthorectification correction data in the product.
 
         Returns:
-            DataArray: array containing the corrected values and all the original metadata.
+            array containing the corrected values and all the original metadata.
 
         """
         try:

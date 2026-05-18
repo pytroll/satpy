@@ -53,7 +53,7 @@ class TestMultiSceneSave(unittest.TestCase):
         except OSError:
             pass
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_mp4_distributed(self):
         """Save a series of fake scenes to an mp4 video."""
         from satpy import MultiScene
@@ -115,7 +115,7 @@ class TestMultiSceneSave(unittest.TestCase):
         assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
         assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_mp4_no_distributed(self):
         """Save a series of fake scenes to an mp4 video when distributed isn't available."""
         from satpy import MultiScene
@@ -155,7 +155,7 @@ class TestMultiSceneSave(unittest.TestCase):
         assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
         assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_simple(self):
         """Save a series of fake scenes to an PNG images."""
         from satpy import MultiScene
@@ -186,7 +186,7 @@ class TestMultiSceneSave(unittest.TestCase):
         # 2 for each scene
         assert save_datasets.call_count == 2
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_distributed_delayed(self):
         """Test distributed save for writers returning delayed obejcts e.g. simple_image."""
         from dask.delayed import Delayed
@@ -221,7 +221,7 @@ class TestMultiSceneSave(unittest.TestCase):
         # 2 for each scene
         assert save_datasets.call_count == 2
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_distributed_source_target(self):
         """Test distributed save for writers returning sources and targets e.g. geotiff writer."""
         import dask.array as da
@@ -249,7 +249,7 @@ class TestMultiSceneSave(unittest.TestCase):
         source_mock.__class__ = da.Array
         target_mock = mock.MagicMock()
         with mock.patch("satpy.multiscene._multiscene.Scene.save_datasets") as save_datasets:
-            save_datasets.return_value = [(source_mock, target_mock)]  # some arbitrary return value
+            save_datasets.return_value = ([source_mock], [target_mock])  # some arbitrary return value
             # force order of datasets by specifying them
             with pytest.raises(NotImplementedError):
                 mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=["ds1", "ds2", "ds3"],
@@ -302,7 +302,7 @@ class TestMultiSceneSave(unittest.TestCase):
         assert new_scn1["4"].shape == (92, 357)
 
 
-@mock.patch("satpy.multiscene._multiscene.get_enhanced_image")
+@mock.patch("satpy.enhancements.enhancer.get_enhanced_image")
 def test_save_mp4(smg, tmp_path):
     """Save a series of fake scenes to an mp4 video."""
     from satpy import MultiScene

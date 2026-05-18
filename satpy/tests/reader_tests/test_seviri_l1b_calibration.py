@@ -18,13 +18,13 @@
 """Unittesting the native msg reader."""
 
 import datetime as dt
-import unittest
 
 import numpy as np
 import pytest
 import xarray as xr
+from pytest_lazy_fixtures.lazy_fixture import lf
 
-from satpy.readers.seviri_base import SEVIRICalibrationAlgorithm, SEVIRICalibrationHandler
+import satpy.readers.core.seviri as sev
 
 COUNTS_INPUT = xr.DataArray(
     np.array([[377.,  377.,  377.,  376.,  375.],
@@ -49,10 +49,6 @@ RADIANCES_OUTPUT = xr.DataArray(
 
 GAIN = 0.20503567620766011
 OFFSET = -10.456819486590666
-
-CAL_TYPE1 = 1
-CAL_TYPE2 = 2
-CAL_TYPEBAD = -1
 CHANNEL_NAME = "IR_108"
 PLATFORM_ID = 323  # Met-10
 
@@ -103,40 +99,50 @@ VIS008_REFLECTANCE = xr.DataArray(
 )
 
 
-class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
+class TestSEVIRICalibrationAlgorithm:
     """Unit Tests for SEVIRI calibration algorithm."""
 
-    def setUp(self):
+    @pytest.fixture
+    def algo(self):
         """Set up the SEVIRI Calibration algorithm for testing."""
-        self.algo = SEVIRICalibrationAlgorithm(
+        return sev.SEVIRICalibrationAlgorithm(
             platform_id=PLATFORM_ID,
             scan_time=dt.datetime(2020, 8, 15, 13, 0, 40)
         )
 
-    def test_convert_to_radiance(self):
+    def test_convert_to_radiance(self, algo):
         """Test the conversion from counts to radiances."""
-        result = self.algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
+        result = algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
         xr.testing.assert_allclose(result, RADIANCES_OUTPUT)
         assert result.dtype == np.float32
 
-    def test_ir_calibrate(self):
-        """Test conversion from radiance to brightness temperature."""
-        result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
-                                        CHANNEL_NAME, CAL_TYPE1)
+    def test_ir_calibrate_spectral_radiance(self, algo):
+        """Test conversion from spectral radiance to brightness temperature."""
+        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                                   sev.IRCalibrationType.spectral_radiance)
         xr.testing.assert_allclose(result, TBS_OUTPUT1, rtol=1E-5)
         assert result.dtype == np.float32
 
-        result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
-                                        CHANNEL_NAME, CAL_TYPE2)
+    def test_ir_calibrate_effective_radiance(self, algo):
+        """Test conversion from effective radiance to brightness temperature."""
+        result = algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                                   sev.IRCalibrationType.effective_radiance)
         xr.testing.assert_allclose(result, TBS_OUTPUT2, rtol=1E-5)
 
-        with pytest.raises(NotImplementedError):
-            self.algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, CAL_TYPEBAD)
+    def test_ir_calibrate_missing_coefs(self, algo):
+        """Test IR calibration with missing coefficients."""
+        with pytest.raises(ValueError, match="No calibration coefficients"):
+            algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME,
+                              sev.IRCalibrationType.not_processed)
 
-    def test_vis_calibrate(self):
+    def test_ir_calibrate_bad_calib_type(self, algo):
+        """Test IR calibration with bad calibration type."""
+        with pytest.raises(NotImplementedError):
+            algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, cal_type=-1)
+
+    def test_vis_calibrate(self, algo):
         """Test conversion from radiance to reflectance."""
-        result = self.algo.vis_calibrate(VIS008_RADIANCE,
-                                         VIS008_SOLAR_IRRADIANCE)
+        result = algo.vis_calibrate(VIS008_RADIANCE, VIS008_SOLAR_IRRADIANCE)
         xr.testing.assert_allclose(result, VIS008_REFLECTANCE)
         assert result.sun_earth_distance_correction_applied
         assert result.dtype == np.float32
@@ -148,57 +154,87 @@ class TestSeviriCalibrationHandler:
     def test_init(self):
         """Test initialization of the calibration handler."""
         with pytest.raises(ValueError, match="Invalid calibration mode: INVALID. Choose one of (.*)"):
-            SEVIRICalibrationHandler(
-                platform_id=None,
-                channel_name=None,
-                coefs=None,
-                calib_mode="invalid",
-                scan_time=None
-            )
+            self._get_calibration_handler("IR_108", "INVALID")
 
-    def _get_calibration_handler(self, calib_mode="NOMINAL", ext_coefs=None):
+    def _get_calibration_handler(self, channel, calib_mode="NOMINAL", ext_coefs=None):
         """Provide a calibration handler."""
-        return SEVIRICalibrationHandler(
-            platform_id=324,
-            channel_name="IR_108",
-            coefs={
-                "coefs": {
-                    "NOMINAL": {
+        int_coefs = {
+                "NOMINAL": {
+                    "IR_108": {
                         "gain": 10,
                         "offset": -1
                     },
-                    "GSICS": {
+                    "VIS006": {
                         "gain": 20,
                         "offset": -2
                     },
-                    "EXTERNAL": ext_coefs or {}
                 },
-                "radiance_type": 1
-            },
-            calib_mode=calib_mode,
+                "GSICS": {
+                    "IR_108": {
+                        "gain": 30,
+                        "offset": -3
+                    },
+                },
+            }
+        calib_params = sev.CalibParams(
+            mode=calib_mode,
+            internal_coefs=int_coefs,
+            external_coefs=ext_coefs,
+            radiance_type=1)
+        scan_params = sev.ScanParams(
+            platform_id=324,
+            channel_name=channel,
             scan_time=None
         )
+        return sev.SEVIRICalibrationHandler(calib_params, scan_params)
 
     def test_calibrate_exceptions(self):
         """Test exceptions raised by the calibration handler."""
-        calib = self._get_calibration_handler()
+        calib = self._get_calibration_handler("IR_108")
         with pytest.raises(ValueError, match="Invalid calibration invalid for channel IR_108"):
             calib.calibrate(None, "invalid")
 
+    @pytest.fixture
+    def external_coefs(self):
+        """Get external coefficients."""
+        return {"IR_108": {"gain": 40, "offset": -4}}
+
+    @pytest.fixture
+    def coefs_ir108_nominal_exp(self):
+        """Get expected IR coefficients in nominal calib mode."""
+        return {"coefs": {"gain": 10, "offset": -1}, "mode": "NOMINAL"}
+
+    @pytest.fixture
+    def coefs_vis006_exp(self):
+        """Get expected VIS coefficients."""
+        return {"coefs": {"gain": 20, "offset": -2}, "mode": "NOMINAL"}
+
+    @pytest.fixture
+    def coefs_ir108_gsics_exp(self):
+        """Get expected IR coefficients in GSICS calib mode."""
+        return {"coefs": {"gain": 30, "offset": -3}, "mode": "GSICS"}
+
+    @pytest.fixture
+    def coefs_ir108_external_exp(self):
+        """Get expected IR coefficients in the presence of external coefficients."""
+        return {"coefs": {"gain": 40, "offset": -4}, "mode": "external"}
+
     @pytest.mark.parametrize(
-        ("calib_mode", "ext_coefs", "expected"),
+        ("channel", "calib_mode", "ext_coefs", "expected"),
         [
-            ("NOMINAL", {}, (10, -1)),
-            ("GSICS", {}, (20, -40)),
-            ("GSICS", {"gain": 30, "offset": -3}, (30, -3)),
-            ("NOMINAL", {"gain": 30, "offset": -3}, (30, -3))
+            ("IR_108", "NOMINAL", None, lf("coefs_ir108_nominal_exp")),
+            ("IR_108", "GSICS", None, lf("coefs_ir108_gsics_exp")),
+            ("IR_108", "NOMINAL", lf("external_coefs"), lf("coefs_ir108_external_exp")),
+            # For VIS006 there's only nominal coefficients in this example
+            ("VIS006", "NOMINAL", None, lf("coefs_vis006_exp")),
+            ("VIS006", "GSICS", None, lf("coefs_vis006_exp")),
+            ("VIS006", "NOMINAL", lf("external_coefs"), lf("coefs_vis006_exp"))
         ]
     )
-    def test_get_gain_offset(self, calib_mode, ext_coefs, expected):
+    def test_get_coefs(self, channel, calib_mode, ext_coefs, expected):
         """Test selection of gain and offset."""
-        calib = self._get_calibration_handler(calib_mode=calib_mode,
-                                              ext_coefs=ext_coefs)
-        coefs = calib.get_gain_offset()
+        calib = self._get_calibration_handler(channel, calib_mode, ext_coefs)
+        coefs = calib.get_coefs()
         assert coefs == expected
 
 

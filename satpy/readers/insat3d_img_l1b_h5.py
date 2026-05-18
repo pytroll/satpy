@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 from xarray.core.datatree import DataTree
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 LUT_SUFFIXES = {"vis": ("RADIANCE", "ALBEDO"),
                 "swir": ("RADIANCE",),
@@ -166,7 +166,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
     def get_area_def(self, ds_id):
         """Get the area definition."""
-        from satpy.readers._geos_area import get_area_definition, get_area_extent
+        from satpy.readers.core._geos_area import get_area_definition, get_area_extent
         darr = self.get_dataset(ds_id, None)
         shape = darr.shape
         lines = shape[-2]

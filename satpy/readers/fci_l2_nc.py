@@ -15,6 +15,7 @@
 
 """Reader for the FCI L2 products in NetCDF4 format."""
 
+import datetime as dt
 import logging
 from contextlib import suppress
 
@@ -24,10 +25,11 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_geos_area_naming, make_ext
-from satpy.readers.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.resample import get_area_def
+from satpy.area import get_area_def
+from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.fci import platform_name_translate
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -43,7 +45,8 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs["platform"]
+        return platform_name_translate.get(
+            self.nc.attrs["platform"], self.nc.attrs["platform"])
 
     @property
     def sensor_name(self):
@@ -72,20 +75,21 @@ class FciL2CommonFunctions(object):
                 platform_name: name of the platform
             Only for AMVs product:
                 channel: channel at which the AMVs have been retrieved
-
+                time_parameters: dictionary of time attributes (currently only wind_time)
 
         """
         attributes = {
             "filename": self.filename,
-            "spacecraft_name": self.spacecraft_name,
-            "sensor": self.sensor_name,
-            "platform_name": self.spacecraft_name,
+            "spacecraft_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name),
             "ssp_lon": self.ssp_lon,
+            "sensor": self.sensor_name,
+            "platform_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name)
         }
 
         if product_type=="amv":
             attributes["channel"] = self.filename_info["channel"]
-
+            attributes["time_parameters"] = {}
+            attributes["time_parameters"]["wind_time"] = self.wind_time
         return attributes
 
     def _set_attributes(self, variable, dataset_info, product_type="pixel"):
@@ -248,7 +252,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Compute the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_extent = self._get_area_extent()
@@ -400,7 +404,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Construct the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         res = dataset_id["resolution"]
@@ -466,6 +470,22 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
                 "number_of_winds": CHUNK_SIZE
             }
         )
+
+    @property
+    def wind_time(self):
+        """Return wind time as a datetime object.
+
+        This quantity represents the start_time of the second image used
+        for the AMV tracking, and is already present as a wind_time dataset
+        in units of Seconds since 2000-01-01 00:00:00.0.
+        """
+        ref = dt.datetime(2000,1,1,0,0,0)
+        try:
+            secs_since_ref = self.nc["wind_time"].data.item()
+            return ref + dt.timedelta(seconds=secs_since_ref)
+        except KeyError:
+            logger.warning("wind_time dataset not found. Setting wind_time to None.")
+            return None
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the nc_key in dataset_info."""

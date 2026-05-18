@@ -54,8 +54,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf4_utils import from_sds
-from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.readers.core.hdf4 import from_sds
+from satpy.readers.core.hdfeos import HDFEOSGeoReader
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -277,21 +277,18 @@ def _extract_two_byte_mask(data_a: np.ndarray, data_b: np.ndarray, bit_start: in
     return _bits_strip(bit_start, bit_count, byte_dataset)
 
 
-def _bits_strip(bit_start, bit_count, value):
+def _bits_strip(bit_start: int, bit_count: int, value: int) -> int:
     """Extract specified bit from bit representation of integer value.
 
-    Parameters
-    ----------
-    bit_start : int
-        Starting index of the bits to extract (first bit has index 0)
-    bit_count : int
-        Number of bits starting from bit_start to extract
-    value : int
-        Number from which to extract the bits
+    Args:
+        bit_start:
+            Starting index of the bits to extract (first bit has index 0)
+        bit_count:
+            Number of bits starting from bit_start to extract
+        value:
+            Number from which to extract the bits
 
     Returns:
-    -------
-        int
         Value of the extracted bits
 
     """
