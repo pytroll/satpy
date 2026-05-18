@@ -1385,7 +1385,6 @@ datasets:
     import_enum_information: True
 
   # ASR - All-Sky Radiances
-
   vza:
     name: vza
     long_name: Satellite Viewing Zenith Angle

@@ -1282,107 +1282,54 @@ datasets:
       - longitude
       - latitude
 
-  pcld:
-    name: pcld
-    key: '#1#cloudAmountInSegment'
-    fill_value: -1.0e+100
-    resolution: 32000
-    long_name: Cloud Fraction in Segment
-    standard_name: cloud_area_fraction
-    units: '%'
-    file_type: fci_l2_bufr_asr
-    coordinates:
-       - longitude
-       - latitude
-
-  pclr:
-    name: pclr
-    long_name: Clear Sky Fraction in Segment
-    standard_name: clear_sky_area_fraction
-    key: '#1#amountSegmentCloudFree'
-    fill_value: -1.0e+100
-    resolution: 32000
-    units: '%'
-    file_type: fci_l2_bufr_asr
-    coordinates:
-       - longitude
-       - latitude
-
-  pclrs:
-    name: pclrs
-    long_name: Clear Sky Fraction in Segment
-    standard_name: clear_sky_area_fraction
-    key: '#2#amountSegmentCloudFree'
-    fill_value: -1.0e+100
-    resolution: 32000
-    units: '%'
-    file_type: fci_l2_bufr_asr
-    coordinates:
-       - longitude
-       - latitude
-
-  pixel_percentage_clear:
-    name: pixel_percentage_clear
-    key: '#1#amountSegmentCloudFree'
-    fill_value: -1.0e+100
-    resolution: 32000
-    units: '%'
-    file_type: fci_l2_bufr_asr
-    coordinates:
-       - longitude
-       - latitude
-
-  pixel_percentage_clear_water:
-    name: pixel_percentage_clear_water
-    key: '#2#amountSegmentCloudFree'
-    fill_value: -1.0e+100
-    resolution: 32000
-    units: '%'
-    file_type: fci_l2_bufr_asr
-    coordinates:
-       - longitude
-       - latitude
-
   pixel_percentage_cloudy:
     name: pixel_percentage_cloudy
+    long_name: Cloud Fraction in Segment
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
     key: '#1#cloudAmountInSegment'
     fill_value: -1.0e+100
-    resolution: 32000
     units: '%'
-    file_type: fci_l2_bufr_asr
     coordinates:
        - longitude
        - latitude
 
   pixel_percentage_cloudy_low:
     name: pixel_percentage_cloudy_low
+    long_name: Low Cloud Fraction in Segment
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
     key: '#2#cloudAmountInSegment'
     fill_value: -1.0e+100
-    resolution: 32000
     units: '%'
-    file_type: fci_l2_bufr_asr
     coordinates:
        - longitude
        - latitude
 
   pixel_percentage_cloudy_mid:
     name: pixel_percentage_cloudy_mid
+    long_name: Middle Cloud Fraction in Segment
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
     key: '#3#cloudAmountInSegment'
     fill_value: -1.0e+100
-    resolution: 32000
     units: '%'
-    file_type: fci_l2_bufr_asr
     coordinates:
        - longitude
        - latitude
 
   pixel_percentage_cloudy_high:
     name: pixel_percentage_cloudy_high
+    long_name: High Cloud Fraction in Segment
+    standard_name: pixels_used_fraction
+    resolution: 32000
+    file_type: fci_l2_bufr_asr
     key: '#4#cloudAmountInSegment'
     fill_value: -1.0e+100
-    resolution: 32000
     units: '%'
-    file_type: fci_l2_bufr_asr
     coordinates:
        - longitude
        - latitude
