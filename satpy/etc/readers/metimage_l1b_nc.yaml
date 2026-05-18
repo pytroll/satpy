@@ -1,16 +1,15 @@
 reader:
-  name: vii_l1b_nc
-  short_name: VII L1B RAD NetCDF4
-  long_name: EPS-SG Visual Infrafred Imager (VII) Level 1B Radiance data in netCDF4 format
+  name: metimage_l1b_nc
+  short_name: METimage L1B RAD NetCDF4
+  long_name: EPS-SG METimage Level 1B Radiance data in netCDF4 format
   description: >
-    Reader for EUMETSAT EPS-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format per FS V4A.
+    Reader for EUMETSAT EPS-SG METimage (formerly VII) Level 1B Radiance files in NetCDF4 format.
   status: Beta
   supports_fsspec: false
-  sensors: [vii]
+  sensors: [metimage]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
-  # EUMETSAT EPSG-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format
   nc_vii_l1b_rad:
     file_reader: !!python/name:satpy.readers.vii_l1b_nc.ViiL1bNCFileHandler
     file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-VII-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}_T__.nc',
@@ -19,7 +18,6 @@ file_types:
     cached_latitude: data/measurement_data/latitude
 
 datasets:
-
 # --- Coordinates ---
   lon_tie_points:
     name: lon_tie_points
