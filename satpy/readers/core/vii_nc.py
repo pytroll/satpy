@@ -26,7 +26,7 @@ import xarray as xr
 from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
 from satpy.readers.core.netcdf import NetCDF4FileHandler
-from satpy.readers.core.vii import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
+from satpy.readers.core.vii import PLATFORM_NAME_TRANSLATE, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
 
 logger = logging.getLogger(__name__)
 
@@ -240,12 +240,12 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self["/attr/spacecraft"]
+        return PLATFORM_NAME_TRANSLATE.get(self["/attr/spacecraft"], self["/attr/spacecraft"])
 
     @property
     def sensor(self):
         """Return sensor."""
-        return "METimage"
+        return "metimage"
 
     @property
     def ssp_lon(self):
