@@ -30,11 +30,11 @@ from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate
 from satpy.readers.core.file_handlers import BaseFileHandler
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 SSP_DEFAULT = 0.0
 
