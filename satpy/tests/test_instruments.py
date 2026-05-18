@@ -47,14 +47,14 @@ def test_get_instruments_from_attrs_with_warning(attrs, expected):
 
 def test_normalize_instrument_name():
     """Test instrument name normalization."""
-    instr = "My Instrument-123/1"
-    expected = "my_instrument123-1"
+    instr = "My Instrument-123/1 (My Platform)"
+    expected = "my_instrument123-1_my_platform"
     assert instru.normalize_instrument_name(instr) == expected
 
 def test_serialize_instruments():
     """Test instrument set serialization."""
-    instruments = {"My Instrument-123/1", "ABI"}
-    expected = "abi-myinstrument1231"
+    instruments = {"My Instrument-123/1 (My Platform)", "ABI"}
+    expected = "abi-myinstrument1231myplatform"
     assert instru.serialize_instruments(instruments) == expected
 
 def test_set_instruments_attr():

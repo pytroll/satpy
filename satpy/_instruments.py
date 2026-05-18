@@ -55,7 +55,15 @@ def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
 
 def normalize_instrument_name(instrument: str) -> str:
     """Normalize instrument name for internal usage."""
-    return instrument.replace("-", "").replace(" ", "_").replace("/", "-").lower()
+    sep_map = {
+        "-": "",
+        "(": "",
+        ")": "",
+        " ": "_",
+        "/": "-"
+    }
+    sep_trans = str.maketrans(sep_map)
+    return instrument.translate(sep_trans).lower()
 
 
 def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
@@ -75,8 +83,16 @@ def get_pyspectral_instrument_name(instrument: str) -> str:
 
 def serialize_instruments(instruments: set[str]) -> str:
     """Serialize a set of instruments."""
+    sep_map = {
+        "-": "",
+        "(": "",
+        ")": "",
+        " ": "",
+        "/": ""
+    }
+    sep_trans = str.maketrans(sep_map)
     return "-".join(
-        instr.replace("-", "").replace(" ", "").replace("/", "").lower()
+        instr.translate(sep_trans).lower()
         for instr in sorted(instruments)
     )
 
