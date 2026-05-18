@@ -1,9 +1,9 @@
 reader:
   name: metimage_l1b_nc
-  short_name: METimage L1B RAD NetCDF4
-  long_name: EPS-SG METimage Level 1B Radiance data in netCDF4 format
+  short_name: METimage (VII) L1B RAD NetCDF4
+  long_name: EPS-SG METimage (VII) Level 1B Radiance data in netCDF4 format
   description: >
-    Reader for EUMETSAT EPS-SG METimage (formerly VII) Level 1B Radiance files in NetCDF4 format.
+    Reader for EUMETSAT EPS-SG METimage (former name VII) Level 1B Radiance files in NetCDF4 format.
   status: Beta
   supports_fsspec: false
   sensors: [metimage]
