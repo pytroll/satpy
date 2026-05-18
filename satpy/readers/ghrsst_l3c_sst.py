@@ -24,14 +24,15 @@ import logging
 
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.dataset import Dataset
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
 PLATFORM_NAME = {"NPP": "Suomi-NPP", }
-SENSOR_NAME = {"VIIRS": "VIIRS",
-               "AVHRR": "AVHRR/3"}
+SENSOR_NAME = {"VIIRS": OSCAR.VIIRS,
+               "AVHRR": OSCAR.AVHRR_3}
 
 
 class GHRSST_OSISAFL2(NetCDF4FileHandler):
@@ -78,7 +79,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         ds_info.update({
             "units": ds_info.get("units", file_units),
             "platform_name": PLATFORM_NAME.get(self["/attr/platform"], self["/attr/platform"]),
-            "instruments": {SENSOR_NAME.get(self["/attr/sensor"], self["/attr/sensor"])},
+            "instruments": {str(SENSOR_NAME.get(self["/attr/sensor"], self["/attr/sensor"]))},
         })
         ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Dataset)

@@ -31,6 +31,7 @@ import dask.array as da
 import numpy as np
 from pyresample import geometry
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         """Update dataset attributes."""
         dataset.attrs.update(self[dataset_info["nc_key"]].attrs)
         dataset.attrs.update(dataset_info)
-        dataset.attrs["instruments"] = {"SeaWiFS", "MERIS", "MODIS", "VIIRS"}
+        dataset.attrs["instruments"] = {OSCAR.SEAWIFS.value, OSCAR.MERIS.value, OSCAR.MODIS.value, OSCAR.VIIRS.value}
         dataset.attrs["composite_period"] = self.composite_period
         # remove attributes from original file which don't apply anymore
         dataset.attrs.pop("nc_key")

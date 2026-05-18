@@ -9,6 +9,7 @@ import numpy as np
 import xarray as xr
 from xarray.core.datatree import DataTree
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 
 LUT_SUFFIXES = {"vis": ("RADIANCE", "ALBEDO"),
@@ -159,7 +160,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
                                                 satellite_nominal_altitude=float(ds.attrs["Nominal_Altitude(km)"]),
                                                 satellite_actual_altitude=float(ds.attrs["Observed_Altitude(km)"]))
         darr.attrs["platform_name"] = "insat-3d"
-        darr.attrs["instruments"] = {"IMAGER (INSAT)"}
+        darr.attrs["instruments"] = {OSCAR.IMAGER_INSAT}
         darr = darr.squeeze()
 
         return darr

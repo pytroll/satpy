@@ -35,6 +35,7 @@ import numpy as np
 import xarray as xr
 from dask import delayed
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
@@ -117,7 +118,7 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
 
     def _update_dataset_attributes(self, dataset, key, info):
         dataset.attrs.update({"platform_name": self.platform_name,
-                              "instruments": {self.sensor}})
+                              "instruments": {str(self.sensor)}})
         dataset.attrs.update(key.to_dict())
         for meta_key in ("standard_name", "units"):
             if meta_key in info:
@@ -183,7 +184,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         self.active_channels = self._get_active_channels()
 
         self._get_platform_name(AVHRR_PLATFORM_IDS2NAMES)
-        self.sensor = "AVHRR/3"
+        self.sensor = OSCAR.AVHRR_3
 
         self._get_all_interpolated_angles = functools.lru_cache(maxsize=10)(
             self._get_all_interpolated_angles_uncached

@@ -30,6 +30,7 @@ import datetime as dt
 
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.hdf5 import HDF5FileHandler
 
 
@@ -64,8 +65,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
     @property
     def sensor_name(self):
         """Sensor name is hardcoded."""
-        sensor = "MSU-GS/A"
-        return sensor
+        return OSCAR.MSU_GS_A
 
     @property
     def platform_name(self):
@@ -104,7 +104,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
         data.attrs = attrs
         data.attrs.update({
             "platform_name": self.platform_name,
-            "instruments": {self.sensor_name},
+            "instruments": {str(self.sensor_name)},
             "sat_altitude": self.satellite_altitude,
             "sat_latitude": self.satellite_latitude,
             "sat_longitude": self.satellite_longitude,

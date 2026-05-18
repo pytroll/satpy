@@ -82,7 +82,7 @@ class FciL2CommonFunctions(object):
             "filename": self.filename,
             "spacecraft_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name),
             "ssp_lon": self.ssp_lon,
-            "instruments": {WMO_INSTRUMENT_NAMES.get(self.sensor_name, self.sensor_name)},
+            "instruments": {str(WMO_INSTRUMENT_NAMES.get(self.sensor_name, self.sensor_name))},
             "platform_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name)
         }
 

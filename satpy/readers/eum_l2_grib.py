@@ -293,7 +293,7 @@ class EUML2GribFileHandler(BaseFileHandler):
         }
 
         attributes = {"orbital_parameters": orbital_parameters,
-                      "instruments": {WMO_INSTRUMENT_NAMES.get(self.sensor, self.sensor)},
+                      "instruments": {str(WMO_INSTRUMENT_NAMES.get(self.sensor, self.sensor))},
                       "platform_name": self.PLATFORM_NAME}
 
         return attributes

@@ -27,6 +27,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+import satpy._instruments as instru
+from satpy._instruments import OSCAR
 from satpy.aux_download import retrieve
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -65,10 +67,10 @@ PLATFORMS = {"n18": "NOAA-18",
              "f18": "DMSP-F18",
              "gpm": "GPM",
              }
-amsua_mhs = {"AMSU-A", "MHS"}
-atms = {"ATMS"}
-ssmis = {"SSMIS"}
-gmi = {"GMI"}
+amsua_mhs = {OSCAR.AMSU_A, OSCAR.MHS}
+atms = {OSCAR.ATMS}
+ssmis = {OSCAR.SSMIS}
+gmi = {OSCAR.GMI}
 SENSOR = {"n18": amsua_mhs,
           "n19": amsua_mhs,
           "n20": atms,
@@ -327,7 +329,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         metadata = {}
         metadata.update(ds_info)
         metadata.update({
-            "instruments": self.sensor,
+            "instruments": instru.enum_to_str(self.sensor),
             "platform_name": self.platform_name,
             "start_time": self.start_time,
             "end_time": self.end_time,
@@ -423,7 +425,7 @@ class MiRSL2ncHandler(BaseFileHandler):
             data = data.rename(new_name_or_name_dict=ds_info["name"])
             data, ds_info = self.apply_attributes(data, ds_info)
 
-            if self.sensor == {"ATMS"} and self.limb_correction:
+            if self.sensor == atms and self.limb_correction:
                 sfc_type_mask = self["Sfc_type"]
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,

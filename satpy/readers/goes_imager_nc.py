@@ -942,7 +942,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         # Metadata discovered from the file.
         data.attrs.update(
             {"platform_name": self.platform_name,
-             "instruments": {self.instrument},
+             "instruments": {str(self.instrument)},
              "sector": self.sector,
              "orbital_parameters": {"yaw_flip": self.meta["yaw_flip"]}}
         )

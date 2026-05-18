@@ -29,6 +29,7 @@ from functools import reduce
 
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.readers.olci_nc import NCOLCI2, BitFlags, NCOLCIAngles, NCOLCIBase, NCOLCIMeteo
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class NCMERISCal(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info):
         """Init the meris reader base."""
         super(NCMERISCal, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = "meris"
+        self.sensor = OSCAR.MERIS
 
 
 class NCMERISGeo(NCOLCIBase):
@@ -49,7 +50,7 @@ class NCMERISGeo(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info):
         """Init the meris reader base."""
         super(NCMERISGeo, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = "meris"
+        self.sensor = OSCAR.MERIS
 
 
 class NCMERIS2(NCOLCI2):
@@ -58,7 +59,7 @@ class NCMERIS2(NCOLCI2):
     def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
         super(NCMERIS2, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = "meris"
+        self.sensor = OSCAR.MERIS
         self.reflectance_prefix = "M"
         self.reflectance_suffix = "_rho_w"
 
@@ -86,7 +87,7 @@ class NCMERISAngles(NCOLCIAngles):
     def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
         super(NCMERISAngles, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = "meris"
+        self.sensor = OSCAR.MERIS
 
 
 class NCMERISMeteo(NCOLCIMeteo):
@@ -95,4 +96,4 @@ class NCMERISMeteo(NCOLCIMeteo):
     def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
         super(NCMERISMeteo, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = "meris"
+        self.sensor = OSCAR.MERIS

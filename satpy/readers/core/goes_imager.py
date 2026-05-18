@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Common functionality for GOES Imager readers."""
 
+from satpy._instruments import OSCAR
+
 SPACECRAFTS = {
     # these are GP_SC_ID
     18007: "GOES-7",
@@ -38,19 +40,16 @@ SPACECRAFTS = {
     13: "GOES-13",
     14: "GOES-14",
     15: "GOES-15"}
-VISSR = "VISSR"
-IMAGER_8_11 = "IMAGER (GOES 8-11)"
-IMAGER_12_15 = "IMAGER (GOES 12-15)"
 INSTRUMENTS = {
-    "GOES-7": VISSR,
-    "GOES-8": IMAGER_8_11,
-    "GOES-9": IMAGER_8_11,
-    "GOES-10": IMAGER_8_11,
-    "GOES-11": IMAGER_8_11,
-    "GOES-12": IMAGER_12_15,
-    "GOES-13": IMAGER_12_15,
-    "GOES-14": IMAGER_12_15,
-    "GOES-15": IMAGER_12_15,
+    "GOES-7": OSCAR.VISSR,
+    "GOES-8": OSCAR.IMAGER_GOES_8_11,
+    "GOES-9": OSCAR.IMAGER_GOES_8_11,
+    "GOES-10": OSCAR.IMAGER_GOES_8_11,
+    "GOES-11": OSCAR.IMAGER_GOES_8_11,
+    "GOES-12": OSCAR.IMAGER_GOES_12_15,
+    "GOES-13": OSCAR.IMAGER_GOES_12_15,
+    "GOES-14": OSCAR.IMAGER_GOES_12_15,
+    "GOES-15": OSCAR.IMAGER_GOES_12_15,
 }
 
 # Geometric constants [meters]

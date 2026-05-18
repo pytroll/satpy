@@ -24,6 +24,7 @@ ASCII files.
 import dask.dataframe as dd
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.dataset.dataid import DataID
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.netcdf import NetCDF4FileHandler
@@ -122,7 +123,11 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
     def get_dataset(self, dsid, dsinfo):
         """Get requested data as DataArray."""
         ds = self[dsid["name"]].to_dask_array(lengths=True)
-        data = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "instruments": {"VIIRS"}})
+        data = xr.DataArray(
+            ds,
+            dims=("y",),
+            attrs={"platform_name": self.platform_name, "instruments": {OSCAR.VIIRS.value}}
+        )
         for key in ("units", "standard_name", "flag_meanings", "flag_values", "_FillValue"):
             # we only want to add information that isn't present already
             if key in dsinfo and key not in data.attrs:

@@ -47,6 +47,7 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
 from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
@@ -129,7 +130,7 @@ class NCOLCIBase(BaseFileHandler):
         self._end_time = filename_info["end_time"]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
-        self.sensor = "OLCI"
+        self.sensor = OSCAR.OLCI
 
     @cached_property
     def nc(self):

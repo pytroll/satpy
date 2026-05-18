@@ -42,6 +42,7 @@ Here is an example how to read the data in satpy:
 """
 
 
+from satpy._instruments import OSCAR
 from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_BaseFileHandler, mask_and_scale
 
 NAVIGATION_DATASET_NAMES = ["satellite_zenith_angle",
@@ -72,9 +73,7 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         """Get the sensor name."""
         # This should have been self["/attr/instrument"]
         # But the sensor name is currently incorrect in the ESA level-1b files
-        # Also, MWR is not a valid WMO acronym. OSCAR lists "MWR (Sterna)", "MWR (AWS)"
-        # etc. But to avoid enhancement/composite duplication we stick to "MWR".
-        return "MWR"
+        return OSCAR.MWR
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the data."""

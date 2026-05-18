@@ -58,7 +58,7 @@ class VIIRSEDRFlood(HDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(ds_info)
         metadata.update({
-            "instruments": {self.sensor_name},
+            "instruments": {str(self.sensor_name)},
             "platform_name": self.platform_name,
             "start_time": self.start_time,
             "end_time": self.end_time,

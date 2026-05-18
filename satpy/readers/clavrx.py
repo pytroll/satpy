@@ -29,6 +29,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.hdf4 import SDS, HDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -42,12 +43,12 @@ CF_UNITS = {
 }
 
 SENSORS = {
-    "MODIS": "MODIS",
-    "VIIRS": "VIIRS",
-    "AVHRR": "AVHRR",
-    "AHI": "AHI",
-    "ABI": "ABI",
-    "GOES-RU-IMAGER": "ABI",
+    "MODIS": OSCAR.MODIS,
+    "VIIRS": OSCAR.VIIRS,
+    "AVHRR": OSCAR.AVHRR,
+    "AHI": OSCAR.AHI,
+    "ABI": OSCAR.ABI,
+    "GOES-RU-IMAGER": OSCAR.ABI,
 }
 PLATFORMS = {
     "SNPP": "npp",
@@ -60,29 +61,31 @@ PLATFORMS = {
     "G18": "GOES-18",
 }
 ROWS_PER_SCAN = {
-    "VIIRS": 16,
-    "MODIS": 10,
+    OSCAR.VIIRS: 16,
+    OSCAR.MODIS: 10,
 }
 NADIR_RESOLUTION = {
-    "VIIRS": 742,
-    "MODIS": 1000,
-    "AVHRR": 1050,
-    "AHI": 2000,
-    "ABI": 2004,
+    OSCAR.VIIRS: 742,
+    OSCAR.MODIS: 1000,
+    OSCAR.AVHRR: 1050,
+    OSCAR.AHI: 2000,
+    OSCAR.ABI: 2004,
 }
 
 CHANNEL_ALIASES = {
-    "ABI": {"refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
-            "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
-            "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865, "modifiers": ("sunz_corrected",)},
-            "refl_1_38um_nom": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
-            "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
-            "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25, "modifiers": ("sunz_corrected",)},
-            },
-    "VIIRS": {"refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
-              "refl_1_38um_nom": {"name": "M09", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
-              "refl_1_60um_nom": {"name": "I03", "wavelength": 1.61, "modifiers": ("sunz_corrected",)}
-              }
+    OSCAR.ABI: {
+        "refl_0_47um_nom": {"name": "C01", "wavelength": 0.47, "modifiers": ("sunz_corrected",)},
+        "refl_0_65um_nom": {"name": "C02", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+        "refl_0_86um_nom": {"name": "C03", "wavelength": 0.865, "modifiers": ("sunz_corrected",)},
+        "refl_1_38um_nom": {"name": "C04", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+        "refl_1_60um_nom": {"name": "C05", "wavelength": 1.61, "modifiers": ("sunz_corrected",)},
+        "refl_2_10um_nom": {"name": "C06", "wavelength": 2.25, "modifiers": ("sunz_corrected",)},
+    },
+    OSCAR.VIIRS: {
+        "refl_0_65um_nom": {"name": "I01", "wavelength": 0.64, "modifiers": ("sunz_corrected",)},
+        "refl_1_38um_nom": {"name": "M09", "wavelength": 1.38, "modifiers": ("sunz_corrected",)},
+        "refl_1_60um_nom": {"name": "I03", "wavelength": 1.61, "modifiers": ("sunz_corrected",)}
+    }
 }
 
 
@@ -221,7 +224,7 @@ class _CLAVRxHelper:
         if os.path.exists(l1b_filename):
             return str(l1b_filename)
 
-        if sensor == "AHI":
+        if sensor == OSCAR.AHI:
             glob_pat = os.path.join(dirname, l1b_base + "*R20*.nc")
         else:
             glob_pat = os.path.join(dirname, l1b_base + "*.nc")
@@ -409,7 +412,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         l1b_att, inst_att = (str(self.file_content.get("/attr/L1B", None)),
                              str(self.file_content.get("/attr/sensor", None)))
 
-        return (inst_att != "AHI" and "GOES" not in inst_att) or (l1b_att is None)
+        return (inst_att != OSCAR.AHI and "GOES" not in inst_att) or (l1b_att is None)
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
@@ -518,7 +521,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         l1b_att, inst_att = (str(self.nc.attrs.get("L1B", None)),
                              str(self.nc.attrs.get("sensor", None)))
 
-        return (inst_att not in ["ABI", "AHI"] and "GOES" not in inst_att) or (l1b_att is None)
+        abi_ahi = [OSCAR.ABI, OSCAR.AHI]
+        return (inst_att not in abi_ahi and "GOES" not in inst_att) or (l1b_att is None)
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""

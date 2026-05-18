@@ -49,6 +49,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -83,7 +84,7 @@ class SCMIFileHandler(BaseFileHandler):
         is_h8 = "H8" in self.platform_name
         is_h9 = "H9" in self.platform_name
         is_ahi = is_h8 or is_h9
-        return "AHI" if is_ahi else "ABI"
+        return OSCAR.AHI if is_ahi else OSCAR.ABI
 
     @property
     def sensor_names(self):
@@ -155,8 +156,9 @@ class SCMIFileHandler(BaseFileHandler):
             data.attrs["units"] = "%"
 
         # set up all the attributes that might be useful to the user/satpy
+        instrument = data.attrs.get("sensor", self.sensor)
         data.attrs.update({"platform_name": self.platform_name,
-                           "instruments": {data.attrs.get("sensor", self.sensor)},
+                           "instruments": {str(instrument)},
                            })
         if "satellite_longitude" in self.nc.attrs:
             data.attrs["orbital_parameters"] = {

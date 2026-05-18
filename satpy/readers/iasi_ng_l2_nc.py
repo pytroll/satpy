@@ -38,6 +38,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+import satpy._instruments as instru
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
 
@@ -50,7 +52,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
             filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs
         )
 
-        self.sensors = {"IASI-NG"}
+        self.sensors = {OSCAR.IASI_NG}
 
         self.dataset_infos = None
         self.variable_desc = {}
@@ -108,7 +110,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         ds_infos = {
             "name": ds_name,
-            "instruments": self.sensors,
+            "instruments": instru.enum_to_str(self.sensors),
             "file_type": self.filetype_info["file_type"],
         }
 

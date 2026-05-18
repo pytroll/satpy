@@ -23,6 +23,7 @@ import h5py
 import numpy as np
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 from satpy.utils import get_legacy_chunk_size
@@ -105,7 +106,7 @@ class IASIL2HDF5(BaseFileHandler):
         self.finfo = filename_info
         self.lons = None
         self.lats = None
-        self.sensor = "IASI"
+        self.sensor = OSCAR.IASI
         short_name = filename_info["platform_id"]
         self.platform_name = SHORT_NAMES.get(short_name, short_name)
 

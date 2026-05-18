@@ -23,6 +23,7 @@ import logging
 import numpy as np
 
 from satpy._compat import cached_property
+from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
@@ -233,7 +234,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset.attrs.update(self.nc[dataset_info["nc_key"]].attrs)
         dataset.attrs.update(dataset_info)
         dataset.attrs["platform_name"] = "Meteosat-" + SATNUM[self.platform_id]
-        dataset.attrs["instruments"] = {"SEVIRI"}
+        dataset.attrs["instruments"] = {OSCAR.SEVIRI.value}
         dataset.attrs["orbital_parameters"] = {
             "projection_longitude": self.mda["projection_parameters"]["ssp_longitude"],
             "projection_latitude": 0.,

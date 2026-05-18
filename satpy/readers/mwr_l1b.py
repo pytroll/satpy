@@ -57,6 +57,7 @@ example, please provide the actual name for that data: eps_sterna_mwr_l1b_nc.
 
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 MWR_CHANNEL_NAMES = [str(i) for i in range(1, 20)]
@@ -113,9 +114,7 @@ class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
         """Get the sensor name."""
         # This should have been self["/attr/instrument"]
         # But the sensor name is currently incorrect in the ESA level-1b files.
-        # Also, MWR is not a valid WMO acronym. OSCAR lists "MWR (Sterna)", "MWR (AWS)"
-        # etc. But to avoid enhancement/composite duplication we stick to "MWR".
-        return "MWR"
+        return OSCAR.MWR
 
     @property
     def platform_name(self):

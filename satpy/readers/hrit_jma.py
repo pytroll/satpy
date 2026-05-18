@@ -101,6 +101,7 @@ import xarray as xr
 
 import satpy._instruments as instru
 import satpy.utils
+from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.core.hrit import (
     HRITFileHandler,
@@ -177,9 +178,9 @@ PLATFORMS = {
     "GEOS(145.00)": MTSAT2,
 }
 SENSORS = {
-    MTSAT1R: "JAMI",
-    MTSAT2: "IMAGER (MTSAT-2)",
-    HIMAWARI8: "AHI"
+    MTSAT1R: OSCAR.JAMI,
+    MTSAT2: OSCAR.IMAGER_MTSAT_2,
+    HIMAWARI8: OSCAR.AHI
 }
 
 

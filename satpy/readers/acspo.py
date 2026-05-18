@@ -42,15 +42,16 @@ import logging
 
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
 
 ROWS_PER_SCAN = {
-    "MODIS": 10,
-    "VIIRS": 16,
-    "AVHRR": None,
+    OSCAR.MODIS: 10,
+    OSCAR.VIIRS: 16,
+    OSCAR.AVHRR: None,
 }
 
 
@@ -134,7 +135,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": units,
             "platform_name": self.platform_name,
-            "instruments": {self.sensor_name},
+            "instruments": {str(self.sensor_name)},
             "standard_name": standard_name,
             "resolution": resolution,
             "rows_per_scan": rows_per_scan,

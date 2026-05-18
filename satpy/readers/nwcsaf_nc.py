@@ -35,6 +35,7 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import unzip_file
 from satpy.utils import get_chunk_size_limit
@@ -47,28 +48,28 @@ V2025_PERSPECTIVE_POINT_HEIGHT = 35786400.0
 
 
 SENSOR = {
-    "NOAA-19": "AVHRR/3",
-    "NOAA-18": "AVHRR/3",
-    "NOAA-15": "AVHRR/3",
-    "Metop-A": "AVHRR/3",
-    "Metop-B": "AVHRR/3",
-    "Metop-C": "AVHRR/3",
-    "EOS-Aqua": "MODIS",
-    "EOS-Terra": "MODIS",
-    "Suomi-NPP": "VIIRS",
-    "NOAA-20": "VIIRS",
-    "NOAA-21": "VIIRS",
-    "NOAA-22": "VIIRS",
-    "NOAA-23": "VIIRS",
-    "JPSS-1": "VIIRS",
-    "Metop-SG-A1": "METimage",
-    "Metop-SG-A2": "METimage",
-    "Metop-SG-A3": "METimage",
-    "GOES-16": "ABI",
-    "GOES-17": "ABI",
-    "Himawari-8": "AHI",
-    "Himawari-9": "AHI",
-    "Meteosat-12": "FCI",
+    "NOAA-19": OSCAR.AVHRR_3,
+    "NOAA-18": OSCAR.AVHRR_3,
+    "NOAA-15": OSCAR.AVHRR_3,
+    "Metop-A": OSCAR.AVHRR_3,
+    "Metop-B": OSCAR.AVHRR_3,
+    "Metop-C": OSCAR.AVHRR_3,
+    "EOS-Aqua": OSCAR.MODIS,
+    "EOS-Terra": OSCAR.MODIS,
+    "Suomi-NPP": OSCAR.VIIRS,
+    "NOAA-20": OSCAR.VIIRS,
+    "NOAA-21": OSCAR.VIIRS,
+    "NOAA-22": OSCAR.VIIRS,
+    "NOAA-23": OSCAR.VIIRS,
+    "JPSS-1": OSCAR.VIIRS,
+    "Metop-SG-A1": OSCAR.METIMAGE,
+    "Metop-SG-A2": OSCAR.METIMAGE,
+    "Metop-SG-A3": OSCAR.METIMAGE,
+    "GOES-16": OSCAR.ABI,
+    "GOES-17": OSCAR.ABI,
+    "Himawari-8": OSCAR.AHI,
+    "Himawari-9": OSCAR.AHI,
+    "Meteosat-12": OSCAR.FCI,
 }
 
 
@@ -228,7 +229,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop("scale_factor", None)
 
         variable.attrs.update({"platform_name": self.platform_name,
-                               "instruments": self.sensor})
+                               "instruments": str(self.sensor)})
 
         if not variable.attrs.get("standard_name", "").endswith("status_flag"):
             # TODO: do we really need to add units to everything ?

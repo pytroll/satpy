@@ -37,6 +37,7 @@ import numpy as np
 from pyproj import Proj
 from pyresample import geometry
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
@@ -81,19 +82,19 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             xarray_kwargs=kwargs["xarray_kwargs"])
 
     sensors = {
-        "goes": "IMAGER (GOES 12-15)",
-        "himawari8": "AHI",
-        "goes16": "ABI",  # untested
-        "goesr": "ABI",  # untested
+        "goes": OSCAR.IMAGER_GOES_12_15,
+        "himawari8": OSCAR.AHI,
+        "goes16": OSCAR.ABI,  # untested
+        "goesr": OSCAR.ABI,  # untested
     }
     platforms: dict[str, str] = {
     }
     resolutions = {
-        "ABI": {
+        OSCAR.ABI: {
             1: 1002.0086577437705,
             2: 2004.0173154875411,
         },
-        "AHI": {
+        OSCAR.AHI: {
             1: 999.9999820317674,  # assumption
             2: 1999.999964063535,
             4: 3999.99992812707,

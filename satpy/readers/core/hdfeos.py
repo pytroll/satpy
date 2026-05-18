@@ -34,6 +34,7 @@ from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
 from satpy import DataID
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import normalize_low_res_chunks
 
@@ -262,7 +263,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         """Add metadata that is specific to Satpy."""
         new_attrs = {
             "platform_name": self.metadata_platform_name,
-            "instruments": {"MODIS"},
+            "instruments": {OSCAR.MODIS.value},
         }
 
         res = data_id["resolution"]

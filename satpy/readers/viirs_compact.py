@@ -38,6 +38,7 @@ import h5py
 import numpy as np
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import np2str
 from satpy.utils import angle2xyz, get_legacy_chunk_size, lonlat2xyz, xyz2angle, xyz2lonlat
@@ -136,7 +137,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.mda = {}
         short_name = np2str(self.h5f.attrs["Platform_Short_Name"])
         self.mda["platform_name"] = short_names.get(short_name, short_name)
-        self.mda["instruments"] = {"VIIRS"}
+        self.mda["instruments"] = {OSCAR.VIIRS.value}
 
     def __del__(self):
         """Close file handlers when we are done."""

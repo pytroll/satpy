@@ -40,6 +40,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+import satpy._instruments as instru
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.readers.core.yaml_reader import FileYAMLReader
 
@@ -136,7 +138,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             res = self["/attr/instrument_name"]
             return {x.strip() for x in res.split(",")}
         except KeyError:
-            return {"CrIS", "ATMS", "VIIRS"}
+            return {OSCAR.CRIS, OSCAR.ATMS, OSCAR.VIIRS}
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
@@ -169,7 +171,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
-            "instruments": self.sensor_names,
+            "instruments": instru.enum_to_str(self.sensor_names),
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })

@@ -28,6 +28,7 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
 from satpy.utils import get_dask_chunk_size_in_bytes
@@ -111,7 +112,7 @@ class NC_ABI_BASE(BaseFileHandler):
     @property
     def sensor(self):
         """Get sensor name for current file handler."""
-        return "ABI"
+        return OSCAR.ABI
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.

@@ -44,6 +44,7 @@ import logging
 import dask.array as da
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.hdf5 import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
         """Init filehandler."""
         super(DscovrEpicL1BH5FileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.sensor = "EPIC"
+        self.sensor = OSCAR.EPIC
         self.platform_name = "DSCOVR"
 
     @property
@@ -111,6 +112,6 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
 
     def _update_metadata(self, band):
         band = band.rename({band.dims[0]: "x", band.dims[1]: "y"})
-        band.attrs.update({"platform_name": self.platform_name, "instruments": {self.sensor}})
+        band.attrs.update({"platform_name": self.platform_name, "instruments": {str(self.sensor)}})
 
         return band

@@ -75,7 +75,7 @@ class AtmsL1bNCFileHandler(NetCDF4FileHandler):
             "start_time": self.start_time,
             "end_time": self.end_time,
             "platform_name": self.platform_name,
-            "instruments": {self.sensor},
+            "instruments": {str(self.sensor)},
         }
 
     @staticmethod

@@ -162,6 +162,7 @@ import satpy._instruments as instru
 import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms5_vissr_navigation as nav
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
 from satpy.readers.hrit_jma import mjd2datetime64
@@ -286,7 +287,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     def _get_mda(self):
         return {
             "platform": self._mode_block["satellite_name"].decode().strip().upper(),
-            "instruments": {"VISSR (Himawari-5)"},
+            "instruments": {OSCAR.VISSR_HIMAWARI_5.value},
             "time_parameters": self._get_time_parameters(),
             "orbital_parameters": self._get_orbital_parameters(),
         }

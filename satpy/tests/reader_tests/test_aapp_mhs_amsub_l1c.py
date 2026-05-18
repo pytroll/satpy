@@ -26,6 +26,7 @@ import unittest
 import numpy as np
 import pytest
 
+from satpy._instruments import OSCAR
 from satpy.readers.aapp_mhs_amsub_l1c import _HEADERTYPE, _SCANTYPE, HEADER_LENGTH, MHS_AMSUB_AAPPL1CFile
 from satpy.tests.utils import make_dataid
 
@@ -378,7 +379,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.sensor == "mhs"
+        assert fh_.sensor == OSCAR.MHS
 
         self._header["instrument"][0] = 11
         with tempfile.TemporaryFile() as tmpfile:
@@ -388,7 +389,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.sensor == "amsub"
+        assert fh_.sensor == OSCAR.AMSU_B
 
         self._header["instrument"][0] = 10
 

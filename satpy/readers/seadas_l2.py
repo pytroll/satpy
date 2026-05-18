@@ -31,6 +31,7 @@ warned about the quality of the result.
 
 import datetime as dt
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.hdf4 import HDF4FileHandler
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
@@ -50,11 +51,11 @@ class _SEADASL2Base:
         return data
 
     def _rows_per_scan(self):
-        if "MODIS" in self.sensor_names:
+        if OSCAR.MODIS in self.sensor_names:
             return 10
-        if "VIIRS" in self.sensor_names:
+        if OSCAR.VIIRS in self.sensor_names:
             return 16
-        if "OCI" in self.sensor_names:
+        if OSCAR.OCI in self.sensor_names:
             return 0
         raise ValueError(f"Don't know how to read data for sensors: {self.sensor_names}")
 
@@ -83,9 +84,9 @@ class _SEADASL2Base:
         # Example: MODISA or VIIRSN or VIIRSJ1
         sensor_name = self[self.sensor_attr_name]
         if sensor_name.startswith("MODIS"):
-            return {"MODIS"}
+            return {OSCAR.MODIS.value}
         if sensor_name.startswith("VIIRS"):
-            return {"VIIRS"}
+            return {OSCAR.VIIRS.value}
         # Example: OCI
         return {sensor_name}
 

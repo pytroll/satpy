@@ -108,6 +108,7 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
+from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode, recarray2dict, time_cds_short
 from satpy.readers.core.file_handlers import BaseFileHandler
@@ -707,7 +708,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         dataset.attrs["wavelength"] = dataset_info["wavelength"]
         dataset.attrs["standard_name"] = dataset_info["standard_name"]
         dataset.attrs["platform_name"] = self.mda["platform_name"]
-        dataset.attrs["instruments"] = {"SEVIRI"}
+        dataset.attrs["instruments"] = {OSCAR.SEVIRI.value}
         dataset.attrs["georef_offset_corrected"] = self.mda[
             "offset_corrected"]
         dataset.attrs["time_parameters"] = {

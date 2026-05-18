@@ -82,6 +82,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import DataID
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
@@ -121,7 +122,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             self.nc["Longitude"].attrs.update({"standard_name": "longitude"})
 
         self.algorithm_version = filename_info["platform_shortname"]
-        self.sensor_name = "VIIRS"
+        self.sensor_name = OSCAR.VIIRS
 
     def rows_per_scans(self, data_arr: xr.DataArray) -> int:
         """Get number of array rows per instrument scan based on data resolution."""

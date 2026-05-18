@@ -21,14 +21,16 @@ import datetime as dt
 
 import numpy as np
 
+from satpy._instruments import OSCAR
+
 # 6 bytes, 8 bytes, 10 bytes
 time_cds_short = [("Days", ">u2"), ("Milliseconds", ">u4")]
 time_cds = time_cds_short + [("Microseconds", ">u2")]
 time_cds_expanded = time_cds + [("Nanoseconds", ">u2")]
 issue_revision = [("Issue", np.uint16), ("Revision", np.uint16)]
 WMO_INSTRUMENT_NAMES = {
-    "fci": "FCI",
-    "seviri": "SEVIRI"
+    "fci": OSCAR.FCI,
+    "seviri": OSCAR.SEVIRI
 }
 
 def timecds2datetime(tcds):

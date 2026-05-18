@@ -276,7 +276,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         i.update(ds_info)
         i.update({
             "platform_name": self.platform_name,
-            "instruments": {self.sensor_name},
+            "instruments": {str(self.sensor_name)},
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
             "units": output_units,
