@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
+"""EUMETSAT EPS-SG METimage (VII) readers base class."""
 
 
 import datetime as dt
@@ -245,7 +245,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     @property
     def sensor(self):
         """Return sensor."""
-        return self["/attr/instrument"]
+        return "METimage"
 
     @property
     def ssp_lon(self):

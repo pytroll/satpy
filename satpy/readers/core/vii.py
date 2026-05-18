@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Utilities for the management of VII products."""
+"""Utilities for the management of METimage/VII products."""
 
 
 # PLANCK COEFFICIENTS FOR CALIBRATION AS DEFINED BY EUMETSAT
