@@ -37,7 +37,7 @@ import numpy as np
 from pyproj import Proj
 from pyresample import geometry
 
-from satpy.readers.core.netcdf import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         for var_name, val in self.file_content.items():
             if var_name in handled_variables:
                 continue
-            if isinstance(val, netCDF4.Variable):
+            if self.accessor.is_variable(val):
                 ds_info = {
                     "file_type": self.filetype_info["file_type"],
                     "resolution": res,

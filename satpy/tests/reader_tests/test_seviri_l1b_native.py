@@ -1271,7 +1271,7 @@ def test_read_header():
     assert actual == expected
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tmp_seviri_nat_filename(session_tmp_path):
     """Create a fully-qualified filename for a seviri native format file."""
     full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
@@ -1279,7 +1279,7 @@ def tmp_seviri_nat_filename(session_tmp_path):
     return full_file_path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def compressed_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     """Return the fsspec path to the given seviri native file inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_native.zip"

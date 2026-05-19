@@ -12,12 +12,16 @@ file_types:
     virr_l1b:
         file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
         file_patterns:
-        - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_L1B.HDF'
+        - 'tf{start_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_L1B.HDF'
+        # From National Satellite Meteorological Center
+        - '{platform_id}_VIRRX_GBAL_L1_{start_time:%Y%m%d_%H%M}_1000M_MS.HDF'
         geolocation_prefix: ''
     virr_geoxx:
         file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
         file_patterns:
-        - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_GEOXX.HDF'
+        - 'tf{start_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_GEOXX.HDF'
+        # From National Satellite Meteorological Center
+        - '{platform_id}_VIRRX_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEOXX_MS.HDF'
         geolocation_prefix: 'Geolocation/'
 
 datasets:

@@ -36,9 +36,8 @@ import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
+from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
-
-from satpy._compat import ArrayLike, DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -418,7 +417,7 @@ def _get_satpos_from_platform_name(cth_dataset):
 
     Needs pyorbital, skyfield, and astropy to be installed.
     """
-    from pyorbital.orbital import tlefile
+    from pyorbital import tlefile
     from skyfield.api import EarthSatellite, load
     from skyfield.toposlib import wgs84
 

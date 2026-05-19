@@ -101,12 +101,14 @@ Full list of the printed datasets is::
 
 import datetime as dt
 import logging
+from abc import ABCMeta, abstractmethod
 from contextlib import suppress
 
 import dask.array as da
 import h5py
 import numpy as np
 import xarray as xr
+from packaging.version import Version
 
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.nwcsaf_nc import PLATFORM_NAMES, SENSOR, read_nwcsaf_time
@@ -116,7 +118,9 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = get_chunk_size_limit()
 
-WIND_CHANNELS = [
+FIRST_V2025_ALGORITHM_VERSION = Version("7.0")
+
+PRE_V2025_SEVIRI_WIND_CHANNELS = [
     "wind_hrvis",
     "wind_ir108",
     "wind_ir120",
@@ -124,6 +128,49 @@ WIND_CHANNELS = [
     "wind_vis08",
     "wind_wv062",
     "wind_wv073",
+]
+
+POST_V2025_DATASETS = [
+    "air_pressure",
+    "air_pressure_correction",
+    "air_pressure_error",
+    "air_pressure_nwp_at_best_fit_level",
+    "air_temperature",
+    "barometric_altitude_in_hectofeet",
+    "cloud_type",
+    "correlation",
+    "correlation_test",
+    "height_assignment_method",
+    "latitude",
+    "latitude_increment",
+    "longitude",
+    "longitude_increment",
+    "number_of_trajectory_points",
+    "number_of_winds",
+    "orographic_index",
+    "quality_index_iwwg_value",
+    "quality_index_with_forecast",
+    "quality_index_without_forecast",
+    "quality_test",
+    "satellite_channel",
+    "segment_x",
+    "segment_x_pix",
+    "segment_y",
+    "segment_y_pix",
+    "tracer_correlation_method",
+    "tracer_type",
+    "wind_from_direction",
+    "wind_from_direction_difference_nwp_at_amv_level",
+    "wind_from_direction_difference_nwp_at_best_fit_level",
+    "wind_from_direction_nwp_at_amv_level",
+    "wind_from_direction_nwp_at_best_fit_level",
+    "wind_id",
+    "wind_prev_id",
+    "wind_speed",
+    "wind_speed_difference_nwp_at_amv_level",
+    "wind_speed_difference_nwp_at_best_fit_level",
+    "wind_speed_nwp_at_amv_level",
+    "wind_speed_nwp_at_best_fit_level",
 ]
 
 # Source: NWC/CDOP3/GEO/AEMET/SW/DOF
@@ -168,7 +215,21 @@ DATASET_UNITS = {
 }
 
 
-class NWCSAFGEOHRWFileHandler(BaseFileHandler):
+def NWCSAFGEOHRWFileHandler(filename, filename_info, filetype_info, merge_channels=False):
+    """Return NWC SAF HRW file handler for a specific version.
+
+    The name mimics the old file handler class name.
+    """
+    with h5py.File(filename, "r") as fid:
+        version = Version(fid.attrs["product_algorithm_version"].astype(str))
+
+    if version < FIRST_V2025_ALGORITHM_VERSION:
+        return NWCSAFHRWPreV2025FileHandler(filename, filename_info, filetype_info, merge_channels=merge_channels)
+    else:
+        return NWCSAFHRWV2025FileHandler(filename, filename_info, filetype_info)
+
+
+class NWCSAFHRWBase(BaseFileHandler, metaclass=ABCMeta):
     """A file handler class for NWC SAF GEO HRW files."""
 
     def __init__(self, filename, filename_info, filetype_info, merge_channels=False):
@@ -194,23 +255,9 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         with suppress(OSError):
             self.h5f.close()
 
+    @abstractmethod
     def available_datasets(self, configured_datasets=None):
         """Form the names for the available datasets."""
-        for channel in WIND_CHANNELS:
-            prefix = self._get_channel_prefix(channel)
-            dset = self.h5f[channel]
-            for measurand in dset.dtype.fields.keys():
-                if measurand == "trajectory":
-                    continue
-                ds_info = self._measurand_ds_info(prefix, measurand)
-                yield True, ds_info
-            if self.merge_channels:
-                break
-
-    def _get_channel_prefix(self, channel):
-        if self.merge_channels:
-            return ""
-        return channel + "_"
 
     def _measurand_ds_info(self, prefix, measurand):
         ds_info = {
@@ -227,16 +274,9 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
 
         return ds_info
 
+    @abstractmethod
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug("Reading %s.", key["name"])
-        if self.merge_channels:
-            data = self._read_merged_dataset(key)
-        else:
-            data = self._read_dataset(key)
-        data.attrs.update(info)
-
-        return data
 
     def _read_merged_dataset(self, dataset_key):
         """Read a dataset merged from every channel."""
@@ -246,7 +286,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         collect_coords = True
         if "merged" in self.lons:
             collect_coords = False
-        for channel in WIND_CHANNELS:
+        for channel in PRE_V2025_SEVIRI_WIND_CHANNELS:
             if collect_coords:
                 self._read_channel_coordinates(channel)
                 self._append_merged_coordinates(channel)
@@ -262,7 +302,7 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         return self._create_xarray(
             data,
             dataset_name,
-            units,
+            {"units": units},
             "merged"
         )
 
@@ -273,10 +313,9 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         self.lons["merged"].append(self.lons[channel])
         self.lats["merged"].append(self.lats[channel])
 
-    def _create_xarray(self, data, dataset_name, units, channel):
+    def _create_xarray(self, data, dataset_name, attrs, channel):
         lons = self.lons[channel]
         lats = self.lats[channel]
-
         prefix = channel + "_"
         if channel == "merged":
             data = np.concat(data)
@@ -284,39 +323,20 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
             lats = np.concat(lats)
             prefix = ""
 
-        xr_data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                               name=dataset_name,
-                               dims=["y"])
+        xr_data = xr.DataArray(
+            da.from_array(data, chunks=CHUNK_SIZE),
+            name=dataset_name,
+            dims=["y"],
+            attrs=attrs,
+        )
         xr_data[prefix + "longitude"] = ("y", lons)
         xr_data[prefix + "latitude"] = ("y", lats)
-        xr_data.attrs["units"] = units
 
         return xr_data
 
+    @abstractmethod
     def _read_dataset(self, dataset_key):
         """Read a dataset."""
-        dataset_name = dataset_key["name"]
-        key_parts = dataset_name.split("_")
-        channel = "_".join(key_parts[:2])
-        self._read_channel_coordinates(channel)
-        if self.period is None:
-            self.period = self.h5f[channel].attrs["time_period"].item()
-        measurand = "_".join(key_parts[2:])
-        try:
-            data = self.h5f[channel][measurand]
-        except ValueError:
-            logger.warning("Reading %s is not supported.", dataset_name)
-
-        units = DATASET_UNITS[measurand]
-
-        return self._create_xarray(
-            data, dataset_name, units, channel)
-
-
-    def _read_channel_coordinates(self, channel):
-        if channel not in self.lons:
-            self.lons[channel] = self.h5f[channel]["longitude"]
-            self.lats[channel] = self.h5f[channel]["latitude"]
 
     @property
     def start_time(self):
@@ -329,3 +349,131 @@ class NWCSAFGEOHRWFileHandler(BaseFileHandler):
         if self.period is None:
             return self.start_time
         return self.start_time + dt.timedelta(minutes=self.period)
+
+
+class NWCSAFHRWPreV2025FileHandler(NWCSAFHRWBase):
+    """File handler for NWC SAF HRW files generated with versions oldert than v2025."""
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug("Reading %s.", key["name"])
+        if self.merge_channels:
+            data = self._read_merged_dataset(key)
+        else:
+            data = self._read_dataset(key)
+        data.attrs.update(info)
+
+        return data
+
+    def _read_dataset(self, dataset_key):
+        """Read a dataset."""
+        dataset_name = dataset_key["name"]
+        channel, measurand = self._get_channel_and_measurand(dataset_name)
+        self._read_channel_coordinates(channel)
+        self._get_period(channel)
+
+        try:
+            data = self.h5f[channel][measurand]
+            attrs = {"units": DATASET_UNITS[measurand]}
+        except ValueError:
+            logger.warning("Reading %s is not supported.", dataset_name)
+
+        return self._create_xarray(data, dataset_name, attrs, channel)
+
+    @staticmethod
+    def _get_channel_and_measurand(dataset_name):
+        key_parts = dataset_name.split("_")
+        channel = "_".join(key_parts[:2])
+        measurand = "_".join(key_parts[2:])
+
+        return channel, measurand
+
+    def _read_channel_coordinates(self, channel):
+        if channel not in self.lons:
+            self.lons[channel] = self.h5f[channel]["longitude"]
+            self.lats[channel] = self.h5f[channel]["latitude"]
+
+    def available_datasets(self, configured_datasets=None):
+        """Form the names for the available datasets."""
+        for channel in PRE_V2025_SEVIRI_WIND_CHANNELS:
+            prefix = self._get_channel_prefix(channel)
+            dset = self.h5f[channel]
+            for measurand in dset.dtype.fields.keys():
+                if measurand == "trajectory":
+                    continue
+                ds_info = self._measurand_ds_info(prefix, measurand)
+                yield True, ds_info
+            if self.merge_channels:
+                break
+
+    def _get_channel_prefix(self, channel):
+        if self.merge_channels:
+            return ""
+        return channel + "_"
+
+    def _get_period(self, channel):
+        if self.period is None:
+            self.period = self.h5f[channel].attrs["time_period"].item()
+
+
+class NWCSAFHRWV2025FileHandler(NWCSAFHRWBase):
+    """File handler for NWC SAF HRW files generated with versions oldert than v2025."""
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug("Reading %s.", key["name"])
+        data = self._read_dataset(key)
+        data.attrs.update(info)
+
+        return data
+
+    def _read_dataset(self, dataset_key):
+        """Read a dataset."""
+        dataset_name = dataset_key["name"]
+        channel, measurand = self._get_channel_and_measurand(dataset_name)
+        self._read_channel_coordinates(channel)
+        self._get_period(channel)
+
+        try:
+            data = self.h5f[measurand]
+            if data.dtype == np.double:
+                data = np.where(data == data.attrs["_FillValue"], np.nan, data)
+            attrs = dict(self.h5f[measurand].attrs)
+        except ValueError:
+            logger.warning("Reading %s is not supported.", dataset_name)
+
+        return self._create_xarray(data, dataset_name, attrs, channel)
+
+    @staticmethod
+    def _get_channel_and_measurand(dataset_name):
+        channel = measurand = dataset_name
+        if dataset_name == "longitude":
+            channel = measurand = "lon"
+        elif dataset_name == "latitude":
+            channel = measurand = "lat"
+        return channel, measurand
+
+    def _read_channel_coordinates(self, channel):
+        if channel not in self.lons:
+            self.lons[channel] = self.h5f["lon"]
+            self.lats[channel] = self.h5f["lat"]
+
+    def available_datasets(self, configured_datasets=None):
+        """Form the names for the available datasets."""
+        for dset in POST_V2025_DATASETS:
+            dset_name = dset
+            if dset == "lon":
+                dset_name = "longitude"
+            elif dset == "lat":
+                dset_name = "latitude"
+            ds_info = {
+                "file_type": self.filetype_info["file_type"],
+                "resolution": self.resolution,
+                "name": dset_name,
+            }
+            yield True, ds_info
+
+    def _get_period(self, channel):
+        if self.period is None:
+            interval = self.h5f.attrs["sampling_interval"].astype(str).item()
+            self.period = float(interval.split()[0])

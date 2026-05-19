@@ -34,6 +34,7 @@ SWATH_WIDTH = 2048
 COUNTS = (np.arange(5 * NUMBER_OF_SCANS * SWATH_WIDTH) % 500 + 450).reshape((NUMBER_OF_SCANS, SWATH_WIDTH, 5))
 LONS = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH))
 LATS = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH)) * 2
+START_TIME = datetime(2009, 6, 9, 9, 45)
 
 
 @pytest.fixture
@@ -41,10 +42,9 @@ def hrpt_file(tmp_path):
         """Set up the test case."""
         test_data = np.ones(NUMBER_OF_SCANS, dtype=scanline_dtype)
         time_code = []
-        dt = datetime(2009, 6, 9, 9, 45)
         offset = timedelta(seconds=1/6)
         for line in range(NUMBER_OF_SCANS):
-            time_code.append(to_timecode(dt + offset * line)[0])
+            time_code.append(to_timecode(START_TIME + offset * line)[0])
         test_data["timecode"] = time_code
         test_data["image_data"] = COUNTS
         test_data["telemetry"]["PRT"] = 250
@@ -63,17 +63,23 @@ def hrpt_file(tmp_path):
 
 
 @pytest.fixture
-def hrpt_fh(hrpt_file):
+def hrpt_filename_info():
+    """Create expected filename info without actually parsing the filename."""
+    return {"start_time": START_TIME}
+
+
+@pytest.fixture
+def hrpt_fh(hrpt_file, hrpt_filename_info):
     """Open the file handler."""
-    return HRPTFile(hrpt_file, {}, {})
+    return HRPTFile(hrpt_file, hrpt_filename_info, {})
 
 
 class TestHRPTReading:
     """Test case for reading hrpt data."""
 
-    def test_reading(self, hrpt_file):
+    def test_reading(self, hrpt_file, hrpt_filename_info):
         """Test that data is read."""
-        fh = HRPTFile(hrpt_file, {}, {})
+        fh = HRPTFile(hrpt_file, hrpt_filename_info, {})
         assert fh._data is not None
 
 
@@ -102,7 +108,7 @@ class TestHRPTGetCalibratedReflectances:
     def test_calibrated_reflectances_values(self, hrpt_fh):
         """Test the calibrated reflectance values."""
         result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
-        np.testing.assert_allclose(result.values.mean(), 62.262344)
+        np.testing.assert_allclose(result.values.mean(), 57.772733)
 
 
 class TestHRPTGetCalibratedBT:
