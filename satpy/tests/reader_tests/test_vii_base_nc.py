@@ -48,7 +48,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             # Add global attributes
             nc.sensing_start_time_utc = "20170920173040.888"
             nc.sensing_end_time_utc = "20170920174117.555"
-            nc.spacecraft = "test_spacecraft"
+            nc.spacecraft = "SGA1"
             nc.instrument = "test_instrument"
 
             # Create data group
@@ -166,8 +166,9 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                                               hour=17, minute=41, second=17, microsecond=555000)
         assert self.reader.end_time == expected_end_time
 
-        assert self.reader.spacecraft_name == "test_spacecraft"
-        assert self.reader.sensor == "test_instrument"
+        assert self.reader.spacecraft_name == "Metop-SG-A1"
+        # the netCDF instrument attribute is VII, so we hardcode metimage instead
+        assert self.reader.sensor == "metimage"
         assert self.reader.ssp_lon is None
 
         # Checks that the global attributes are correctly read
@@ -175,14 +176,14 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             "filename": self.test_file_name,
             "start_time": expected_start_time,
             "end_time": expected_end_time,
-            "spacecraft_name": "test_spacecraft",
+            "spacecraft_name": "Metop-SG-A1",
             "ssp_lon": None,
-            "sensor": "test_instrument",
+            "sensor": "metimage",
             "filename_start_time": datetime.datetime(year=2017, month=9, day=20,
                                                      hour=12, minute=30, second=30),
             "filename_end_time": datetime.datetime(year=2017, month=9, day=20,
                                                    hour=18, minute=30, second=50),
-            "platform_name": "test_spacecraft",
+            "platform_name": "Metop-SG-A1",
             "quality_group": {
                 "duration_of_product": 1.,
                 "duration_of_data_present": 2.,
