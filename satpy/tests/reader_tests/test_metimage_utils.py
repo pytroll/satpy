@@ -20,7 +20,7 @@
 
 import unittest
 
-import satpy.readers.core.vii
+import satpy.readers.core.metimage
 
 # Constants to be tested
 C1 = 1.191062e+8
@@ -30,7 +30,7 @@ SCAN_ALT_TIE_POINTS = 4
 MEAN_EARTH_RADIUS = 6371008.7714
 
 
-class TestViiUtils(unittest.TestCase):
+class TestMETimageUtils(unittest.TestCase):
     """Test the vii_utils module."""
 
     def test_constants(self):

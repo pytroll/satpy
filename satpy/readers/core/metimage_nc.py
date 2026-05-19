@@ -25,8 +25,8 @@ import logging
 import xarray as xr
 from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
+from satpy.readers.core.metimage import PLATFORM_NAME_TRANSLATE, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
-from satpy.readers.core.vii import PLATFORM_NAME_TRANSLATE, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
 
 logger = logging.getLogger(__name__)
 

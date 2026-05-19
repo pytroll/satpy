@@ -22,7 +22,7 @@ import logging
 
 import xarray as xr
 
-from satpy.readers.core.vii_nc import METimageNCBaseFileHandler
+from satpy.readers.core.metimage_nc import METimageNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 

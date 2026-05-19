@@ -29,12 +29,12 @@ import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.core.vii_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
+from satpy.readers.core.metimage_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
 
 TEST_FILE = "test_file_vii_base_nc.nc"
 
 
-class TestViiNCBaseFileHandler(unittest.TestCase):
+class TestMETimageNCBaseFileHandler(unittest.TestCase):
     """Test the METimageNCBaseFileHandler reader."""
 
     @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")

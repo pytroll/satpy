@@ -32,8 +32,8 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers.core.vii import C1, C2, MEAN_EARTH_RADIUS
-from satpy.readers.core.vii_nc import METimageNCBaseFileHandler
+from satpy.readers.core.metimage import C1, C2, MEAN_EARTH_RADIUS
+from satpy.readers.core.metimage_nc import METimageNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 
