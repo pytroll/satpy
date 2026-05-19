@@ -238,7 +238,7 @@ class NCOLCI1B(NCOLCIChannelBase):
                 dataset.attrs["units"] = "%"
         # 8< v1.0
         if key["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+            warnings.warn("Reflectance is not a correct calibration for OLCI channels, please use 'radiance_factor'",
                  DeprecationWarning)
         # >8 v1.0
 
