@@ -107,7 +107,12 @@ datasets:
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_763
     coordinates: [lat_pixels, lon_pixels]
-    calibration: [reflectance, radiance]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
     chan_solar_index: 4
     wavelength: [0.75695, 0.7627, 0.76845]
 
