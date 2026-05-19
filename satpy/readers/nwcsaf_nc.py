@@ -35,6 +35,7 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
+import satpy._instruments as instru
 from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import unzip_file
@@ -136,7 +137,7 @@ class NcNWCSAF(BaseFileHandler):
             self.platform_name = kwargs["platform_name"]
             self.pps = True
 
-        self.sensor = set([SENSOR.get(self.platform_name, "SEVIRI")])
+        self.sensor = {SENSOR.get(self.platform_name, "SEVIRI")}
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
@@ -229,7 +230,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop("scale_factor", None)
 
         variable.attrs.update({"platform_name": self.platform_name,
-                               "instruments": str(self.sensor)})
+                               "instruments": instru.enum_to_str(self.sensor)})
 
         if not variable.attrs.get("standard_name", "").endswith("status_flag"):
             # TODO: do we really need to add units to everything ?

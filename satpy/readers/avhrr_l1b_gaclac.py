@@ -319,7 +319,7 @@ class GACLACFile(BaseFileHandler):
             res.attrs[attr] = self.reader.meta_data[attr]
         res.attrs["platform_name"] = self.reader.spacecraft_name
         res.attrs["orbit_number"] = self.filename_info.get("orbit_number", None)
-        res.attrs["instruments"] = {self.sensor}
+        res.attrs["instruments"] = {str(self.sensor)}
         try:
             res.attrs["orbital_parameters"] = {"tle": self.reader.get_tle_lines()}
         except (IndexError, RuntimeError):

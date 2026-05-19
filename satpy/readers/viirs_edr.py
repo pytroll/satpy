@@ -178,7 +178,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             data_arr.attrs["standard_name"] = info["standard_name"]
         self._decode_flag_meanings(data_arr)
         data_arr.attrs["platform_name"] = self.platform_name
-        data_arr.attrs["instruments"] = {self.sensor_name}
+        data_arr.attrs["instruments"] = {str(self.sensor_name)}
         data_arr.attrs["rows_per_scan"] = self.rows_per_scans(data_arr)
         return data_arr
 

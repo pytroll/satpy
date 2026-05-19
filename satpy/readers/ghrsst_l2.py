@@ -77,9 +77,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get any available dataset."""
         stdname = info.get("standard_name")
-        data_array = self.nc[stdname].squeeze()
-        data_array.attrs["instruments"] = {self.sensor}
-        return data_array
+        return self.nc[stdname].squeeze()
 
     @property
     def start_time(self):

@@ -192,7 +192,7 @@ class AWS_EPS_Sterna_MWR_L1BFile(AWS_EPS_Sterna_BaseFileHandler):
                                                   "sub_satellite_longitude_end": self.sub_satellite_longitude_end}
 
         data_array.attrs["platform_name"] = self.platform_name
-        data_array.attrs["instruments"] = {self.sensor}
+        data_array.attrs["instruments"] = {str(self.sensor)}
         data_array.attrs["orbit_number"] = self.orbit_start
         return data_array
 

@@ -373,7 +373,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         new_attrs.update(res.attrs)
         res.attrs = new_attrs
         res.attrs["platform_name"] = self.platform_name
-        res.attrs["instruments"] = {self.instrument}
+        res.attrs["instruments"] = {str(self.instrument)}
         res.attrs["orbital_parameters"] = {"projection_longitude": self.mda["projection_parameters"]["SSP_longitude"],
                                            "projection_latitude": 0.0,
                                            "projection_altitude": ALTITUDE}

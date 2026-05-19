@@ -113,7 +113,7 @@ class EDRFileHandler(BaseFileHandler):
         info.update(
             {
                 "platform_name": self.platform_name,
-                "instruments": {str(self.sensor_name)},
+                "instruments": {self.sensor_name},
                 "orbital_parameters": {
                     "start_orbit": self.start_orbit_number,
                     "end_orbit": self.end_orbit_number,

@@ -314,7 +314,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
 
     def _add_attributes(self, xarr, dataset_info):
         """Add dataset attributes to xarray."""
-        xarr.attrs["instruments"] = {WMO_INSTRUMENT_NAMES.get(self.sensor_name, self.sensor_name)}
+        xarr.attrs["instruments"] = {str(WMO_INSTRUMENT_NAMES.get(self.sensor_name, self.sensor_name))}
         xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs["ssp_lon"] = self.ssp_lon
         if ("resolution" not in dataset_info) or (dataset_info["resolution"] is None):

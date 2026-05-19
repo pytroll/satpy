@@ -37,6 +37,7 @@ import numpy as np
 from pyproj import Proj
 from pyresample import geometry
 
+import satpy._instruments as instru
 from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
@@ -293,7 +294,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             # CF compliance
             info["units"] = CF_UNITS[u]
 
-        info["instruments"] = self.sensor_names
+        info["instruments"] = instru.enum_to_str(self.sensor_names)
         info["platform_name"] = self.get_platform(self["/attr/Platform_Name"])
         info["resolution"] = dataset_id["resolution"]
         if var_name == "pixel_longitude":

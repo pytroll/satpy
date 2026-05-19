@@ -133,7 +133,7 @@ class IASIL2HDF5(BaseFileHandler):
             else:
                 m_data = read_geo(fid, key)
         m_data.attrs.update(info)
-        m_data.attrs["instruments"] = {self.sensor}
+        m_data.attrs["instruments"] = {str(self.sensor)}
         m_data.attrs["platform_name"] = self.platform_name
 
         return m_data

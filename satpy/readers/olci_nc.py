@@ -234,7 +234,7 @@ class NCOLCI1B(NCOLCIChannelBase):
                 dataset.attrs["units"] = "%"
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["instruments"] = {self.sensor}
+        dataset.attrs["instruments"] = {str(self.sensor)}
         dataset.attrs.update(key.to_dict())
 
         return dataset
@@ -266,7 +266,7 @@ class NCOLCI2(NCOLCIChannelBase):
             dataset = self.getbitmask(dataset, self.mask_items)
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["instruments"] = {self.sensor}
+        dataset.attrs["instruments"] = {str(self.sensor)}
         dataset.attrs.update(key.to_dict())
         if self.unlog:
             dataset = self.delog(dataset)
@@ -373,7 +373,7 @@ class NCOLCIAngles(NCOLCILowResData):
             values = self.nc[self.datasets[key["name"]]]
 
         values.attrs["platform_name"] = self.platform_name
-        values.attrs["instruments"] = {self.sensor}
+        values.attrs["instruments"] = {str(self.sensor)}
 
         values.attrs.update(key.to_dict())
         return values
@@ -443,7 +443,7 @@ class NCOLCIMeteo(NCOLCILowResData):
             values = self.nc[key["name"]]
 
         values.attrs["platform_name"] = self.platform_name
-        values.attrs["instruments"] = {self.sensor}
+        values.attrs["instruments"] = {str(self.sensor)}
 
         values.attrs.update(key.to_dict())
         return values

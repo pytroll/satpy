@@ -106,7 +106,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             {
                 "file_units": file_units,
                 "platform_name": self.platform_name,
-                "instruments": {str(self.sensor_name)},
+                "instruments": {self.sensor_name},
                 "start_orbit": self.start_orbit_number,
                 "end_orbit": self.end_orbit_number,
             }

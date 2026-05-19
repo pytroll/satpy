@@ -191,7 +191,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
             "platform_name": self.platform_name,
-            "instruments": {str(self.sensor_name)},
+            "instruments": {self.sensor_name},
             "day_night": self["/attr/DayNightFlag"],
             "orbital_parameters": orb_param,
             "start_orbit": self.start_orbit_number,

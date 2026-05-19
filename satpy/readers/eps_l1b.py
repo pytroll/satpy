@@ -290,7 +290,7 @@ class EPSAVHRRFile(BaseFileHandler):
             return
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["instruments"] = {self.sensor_name}
+        dataset.attrs["instruments"] = {str(self.sensor_name)}
         if "calibration" in key:
             dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)

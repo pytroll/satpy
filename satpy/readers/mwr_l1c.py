@@ -92,7 +92,7 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         data_array.attrs.update(dataset_info)
 
         data_array.attrs["platform_name"] = self.platform_name
-        data_array.attrs["instruments"] = {self.sensor}
+        data_array.attrs["instruments"] = {str(self.sensor)}
         return data_array
 
     def _get_navigation_data(self, dataset_id, dataset_info):

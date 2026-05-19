@@ -232,7 +232,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
         arr[arr == dataset_info["fill_value"]] = np.nan
 
         xarr = xr.DataArray(arr, dims=["y", "x"], name=dataset_info["name"])
-        xarr.attrs["instruments"] = {OSCAR.IASI}
+        xarr.attrs["instruments"] = {str(OSCAR.IASI)}
         xarr.attrs["platform_name"] = self.platform_name
         xarr.attrs.update(dataset_info)
 

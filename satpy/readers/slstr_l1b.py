@@ -342,7 +342,7 @@ class NCSLSTRAngles(BaseFileHandler):
                                     dims=["y", "x"], attrs=variable.attrs)
 
         variable.attrs["platform_name"] = self.platform_name
-        variable.attrs["instruments"] = {self.sensor}
+        variable.attrs["instruments"] = {str(self.sensor)}
 
         if "units" not in variable.attrs:
             variable.attrs["units"] = "degrees"
