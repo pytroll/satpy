@@ -228,7 +228,18 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         sensors = instru.get_instruments_from_attrs(dataset.attrs)
         if sensors:
             enhancer.add_sensor_enhancements(sensors)
-        enhancer.apply(img, **dataset.attrs)
+
+        # As long as enhancement YAMLs don't contain WMO instrument
+        # names yet, normalize instrument names from dataset
+        # attributes. This can be removed as soon as enhancement
+        # YAMLs have been updated.
+        attrs = dataset.attrs.copy()
+        normalized = {
+            instru.normalize_instrument_name(sensor)
+            for sensor in sensors
+        }
+        instru.set_instruments_attr(attrs, normalized)
+        enhancer.apply(img, **attrs)
 
     if overlay is not None:
         from satpy.enhancements.overlays import add_overlay
