@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
+"""EUMETSAT EPS-SG METimage (VII) readers base class."""
 
 from __future__ import annotations
 
@@ -24,6 +24,6 @@ from satpy.utils import _import_and_warn_new_location
 
 
 def __getattr__(name: str) -> Any:
-    new_module = "satpy.readers.core.vii_nc"
+    new_module = "satpy.readers.core.metimage_nc"
 
     return _import_and_warn_new_location(new_module, name)

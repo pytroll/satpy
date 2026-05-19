@@ -179,12 +179,12 @@ def test_seviri_base_warns(name):
                          ["METimageNCBaseFileHandler",
                          ]
                          )
-def test_vii_base_nc_warns(name):
+def test_metimage_base_nc_warns(name):
     """Test that there's a warning when importing from VII NetCDF4 base from the old location."""
-    from satpy.readers import vii_base_nc
+    from satpy.readers import metimage_base_nc
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
-        getattr(vii_base_nc, name)
+        getattr(metimage_base_nc, name)
 
 
 @pytest.mark.parametrize("name",
@@ -211,11 +211,11 @@ def test_viirs_atms_sdr_warns(name):
                          ]
                          )
 def test_vii_utils_warns(name):
-    """Test that there's a warning when importing from VII utils from the old location."""
-    from satpy.readers import vii_utils
+    """Test that there's a warning when importing from METimage utils from the old location."""
+    from satpy.readers import metimage_utils
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
-        getattr(vii_utils, name)
+        getattr(metimage_utils, name)
 
 
 @pytest.mark.parametrize("name",
