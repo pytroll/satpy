@@ -15,53 +15,89 @@ reader:
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
-    ICARE_HRV:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_HRV_{version:5s}.hdf']
+  ICARE_HRV:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_HRV_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_016:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR016_{version:5s}.hdf']
+  ICARE_IR_016:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR016_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_039:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR039_{version:5s}.hdf']
+  ICARE_IR_039:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR039_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_087:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR087_{version:5s}.hdf']
+  ICARE_IR_087:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR087_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_097:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR097_{version:5s}.hdf']
+  ICARE_IR_097:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR097_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_108:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR108_{version:5s}.hdf']
+  ICARE_IR_108:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR108_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_120:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR120_{version:5s}.hdf']
+  ICARE_IR_120:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR120_{version:5s}.hdf",
+      ]
 
-    ICARE_IR_134:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR134_{version:5s}.hdf']
+  ICARE_IR_134:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR134_{version:5s}.hdf",
+      ]
 
-    ICARE_VIS006:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_VIS06_{version:5s}.hdf']
+  ICARE_VIS006:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_VIS06_{version:5s}.hdf",
+      ]
 
-    ICARE_VIS008:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_VIS08_{version:5s}.hdf']
+  ICARE_VIS008:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_VIS08_{version:5s}.hdf",
+      ]
 
-    ICARE_WV_062:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_WV062_{version:5s}.hdf']
+  ICARE_WV_062:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_WV062_{version:5s}.hdf",
+      ]
 
-    ICARE_WV_073:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
-        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_WV073_{version:5s}.hdf']
+  ICARE_WV_073:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+    file_patterns:
+      [
+        "GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_WV073_{version:5s}.hdf",
+      ]
 
 datasets:
   HRV:
@@ -69,8 +105,13 @@ datasets:
     resolution: 1000.134348869
     wavelength: [0.5, 0.7, 0.9]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_HRV
 
@@ -79,8 +120,13 @@ datasets:
     resolution: 3000.403165817
     wavelength: [1.5, 1.64, 1.78]
     calibration:
+      # 8< v1.0
       reflectance:
-        standard_name: reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_IR_016
 
@@ -149,8 +195,13 @@ datasets:
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_VIS006
 
@@ -159,8 +210,13 @@ datasets:
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      radiance_factor:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_VIS008
 
