@@ -36,8 +36,8 @@ class TestMETimageUtils(unittest.TestCase):
     def test_constants(self):
         """Test the constant values."""
         # Test the value of the constants
-        assert satpy.readers.core.vii.C1 == C1
-        assert satpy.readers.core.vii.C2 == C2
-        assert satpy.readers.core.vii.TIE_POINTS_FACTOR == TIE_POINTS_FACTOR
-        assert satpy.readers.core.vii.SCAN_ALT_TIE_POINTS == SCAN_ALT_TIE_POINTS
-        assert satpy.readers.core.vii.MEAN_EARTH_RADIUS == MEAN_EARTH_RADIUS
+        assert satpy.readers.core.metimage.C1 == C1
+        assert satpy.readers.core.metimage.C2 == C2
+        assert satpy.readers.core.metimage.TIE_POINTS_FACTOR == TIE_POINTS_FACTOR
+        assert satpy.readers.core.metimage.SCAN_ALT_TIE_POINTS == SCAN_ALT_TIE_POINTS
+        assert satpy.readers.core.metimage.MEAN_EARTH_RADIUS == MEAN_EARTH_RADIUS

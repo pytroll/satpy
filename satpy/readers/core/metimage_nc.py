@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class METimageNCBaseFileHandler(NetCDF4FileHandler):
-    """Base reader class for VII products in netCDF format.
+    """Base reader class for METimage (VII) products in netCDF format.
 
     Args:
         filename (str): File to read
@@ -250,5 +250,5 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
     @property
     def ssp_lon(self):
         """Return subsatellite point longitude."""
-        # This parameter is not applicable to VII
+        # This parameter is not applicable to METimage
         return None
