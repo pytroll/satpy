@@ -113,6 +113,10 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             if orthorect_data_name is not None:
                 variable = self._perform_orthorectification(variable, orthorect_data_name)
 
+        # wrapping longitude between -180 and 180 degrees
+        if variable.name == "longitude":
+            variable = self.wrap_longitude(variable)
+
         # Manage the attributes of the dataset
         variable.attrs.setdefault("units", None)
 
@@ -120,6 +124,12 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    @staticmethod
+    def wrap_longitude(longitude_array):
+        """Wrap longitude between -180 and 180 degrees."""
+        longitude_array = ((longitude_array + 180) % 360) - 180
+        return longitude_array
 
     @staticmethod
     def _perform_interpolation(variable) -> xr.DataArray:

@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The vii_base_nc reader tests package."""
+"""The metimage_base_nc reader tests package."""
 
 import datetime
 import os
@@ -37,7 +37,7 @@ TEST_FILE = "test_file_vii_base_nc.nc"
 class TestMETimageNCBaseFileHandler(unittest.TestCase):
     """Test the METimageNCBaseFileHandler reader."""
 
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def setUp(self, pgi_):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
@@ -72,7 +72,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             lon = g1_1.createVariable("longitude",
                                       np.float32,
                                       dimensions=("num_tie_points_act", "num_tie_points_alt"))
-            lon[:] = 100.
+            lon[:] = 200.
             lat = g1_1.createVariable("latitude",
                                       np.float32,
                                       dimensions=("num_tie_points_act", "num_tie_points_alt"))
@@ -99,8 +99,8 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             var[:] = [7.0, 8.0]
 
         # Create longitude and latitude "interpolated" arrays
-        interp_longitude = xr.DataArray(np.ones((10, 100)))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
+        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude")
+        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude")
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
@@ -265,8 +265,8 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         with pytest.raises(ValueError, match="Unrecognized datetime format"):
             reader.end_time
 
-    @mock.patch("satpy.readers.core.vii_nc.tie_points_interpolation")
-    @mock.patch("satpy.readers.core.vii_nc.tie_points_geo_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.tie_points_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.tie_points_geo_interpolation")
     def test_functions(self, tpgi_, tpi_):
         """Test the functions."""
         with pytest.raises(NotImplementedError):
@@ -359,9 +359,9 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         assert out_variable.dims == ("y", "x")
         assert out_variable.attrs["key_1"] == "value_lat_1"
 
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_calibration")
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_interpolation")
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_orthorectification")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_calibration")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_orthorectification")
     def test_dataset(self, po_, pi_, pc_):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
@@ -409,7 +409,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                                                    "interpolate": True})
         pc_.assert_not_called()
         pi_.assert_not_called()
-        assert longitude[0, 0] == 1.0
+        assert longitude[0, 0] == -110.0  # -180 + (250-180)
 
         # Checks the correct execution of the get_dataset function with a 'cached_latitude' file_key
         latitude = self.reader.get_dataset(None, {"file_key": "cached_latitude",
@@ -443,7 +443,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
         longitude = self.reader_2.get_dataset(None, {"file_key": "cached_longitude",
                                                      "calibration": None})
-        assert longitude[0, 0] == 100.0
+        assert longitude[0, 0] == -160.0  # -180 + (200-180)
 
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
         # in a reader without defined longitude
