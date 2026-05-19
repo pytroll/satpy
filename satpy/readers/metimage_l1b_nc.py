@@ -21,7 +21,7 @@ The ``metimage_l1b_nc`` reader reads and calibrates EPS-SG METimage L1b image da
 explained in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
 Note that METimage is the official name of the instrument, while VII is the old name used during the mission (design).
 The name VII is currently still used in the filenames as well as in official system documentation
-(e.g. the format specs),so we also keep using it in the FileHandlers names.
+(e.g. the format specs).
 
 .. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
 
