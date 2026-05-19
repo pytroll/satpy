@@ -144,7 +144,7 @@ class TestComplexSensorEnhancerConfigs(_BaseCustomEnhancementConfigTests):
 enhancements:
   test1_sensor1_specific:
     name: test1
-    instruments: test_sensor1
+    instruments: [test_sensor1]
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
@@ -160,7 +160,7 @@ enhancements:
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
   test1_sensor2_specific:
     name: test1
-    instruments: test_sensor2
+    instruments: [test_sensor2]
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.contrast.stretch
