@@ -55,15 +55,22 @@ class FciL2CommonFunctions(object):
 
     @property
     def ssp_lon(self):
-        """Return longitude at subsatellite point."""
+        """Return central longitude of GEOS projection grid.
+
+        This is needed to compute the area definition for the gridded products (pixel-based and segmented).
+        For the AMV product it is not needed and therefore no warning is issued if missing.
+        """
         try:
             return float(self.nc["mtg_geos_projection"].attrs["longitude_of_projection_origin"])
         except (KeyError, AttributeError):
-            logger.warning(f"ssp_lon could not be obtained from file content, using default value "
-                           f"of {SSP_DEFAULT} degrees east instead")
+            if self.product_type != "amv":
+                logger.warning(
+                    f"ssp_lon could not be obtained from file content, "
+                    f"using default value of {SSP_DEFAULT} degrees east instead"
+                )
             return SSP_DEFAULT
 
-    def _get_global_attributes(self, product_type="pixel"):
+    def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets.
 
         Returns:
