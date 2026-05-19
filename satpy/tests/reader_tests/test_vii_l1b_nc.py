@@ -34,13 +34,13 @@ import xarray as xr
 from netCDF4 import Dataset
 
 from satpy.readers.core.vii import MEAN_EARTH_RADIUS
-from satpy.readers.vii_l1b_nc import ViiL1bNCFileHandler
+from satpy.readers.vii_l1b_nc import METimageL1BNCFileHandler
 
 TEST_FILE = "test_file_vii_l1b_nc.nc"
 
 
-class TestViiL1bNCFileHandler(unittest.TestCase):
-    """Test the ViiL1bNCFileHandler reader."""
+class TestMETimageL1bNCFileHandler(unittest.TestCase):
+    """Test the METimageL1BNCFileHandler reader."""
 
     def setUp(self):
         """Set up the test."""
@@ -85,7 +85,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
             delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_lines", "num_pixels"))
             delta_lat[:] = 1.0
 
-        self.reader = ViiL1bNCFileHandler(
+        self.reader = METimageL1BNCFileHandler(
             filename=self.test_file_name,
             filename_info={
                 "creation_time": datetime.datetime(year=2017, month=9, day=22,

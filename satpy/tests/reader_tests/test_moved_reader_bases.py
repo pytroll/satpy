@@ -176,7 +176,7 @@ def test_seviri_base_warns(name):
 
 
 @pytest.mark.parametrize("name",
-                         ["ViiNCBaseFileHandler",
+                         ["METimageNCBaseFileHandler",
                          ]
                          )
 def test_vii_base_nc_warns(name):

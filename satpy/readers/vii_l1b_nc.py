@@ -19,8 +19,9 @@
 
 The ``metimage_l1b_nc`` reader reads and calibrates EPS-SG METimage L1b image data in netCDF format. The format is
 explained in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
-Note that METimage is the offical name of the instrument, while VII is the old name referring to the mission (design).
-The name VII is currently still used in the filenames as well as in documentation.
+Note that METimage is the official name of the instrument, while VII is the old name used during the mission (design).
+The name VII is currently still used in the filenames as well as in official system documentation
+(e.g. the format specs),so we also keep using it in the FileHandlers names.
 
 .. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
 
@@ -32,12 +33,12 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core.vii import C1, C2, MEAN_EARTH_RADIUS
-from satpy.readers.core.vii_nc import ViiNCBaseFileHandler
+from satpy.readers.core.vii_nc import METimageNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
+class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
     """Reader class for METimage (VII) L1B products in netCDF format."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):

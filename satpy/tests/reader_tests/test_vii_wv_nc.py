@@ -28,13 +28,13 @@ import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.vii_l2_nc import ViiL2NCFileHandler
+from satpy.readers.vii_l2_nc import METimageL2NCFileHandler
 
 TEST_FILE = "test_file_vii_wv_nc.nc"
 
 
 class TestViiL2NCFileHandler(unittest.TestCase):
-    """Test the ViiL2NCFileHandler reader."""
+    """Test the METimageL2NCFileHandler reader."""
 
     def setUp(self):
         """Set up the test."""
@@ -57,7 +57,7 @@ class TestViiL2NCFileHandler(unittest.TestCase):
             delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_points_alt", "num_points_act"))
             delta_lat[:] = 0.1
 
-        self.reader = ViiL2NCFileHandler(
+        self.reader = METimageL2NCFileHandler(
             filename=self.test_file_name,
             filename_info={
                 "creation_time": datetime.datetime(year=2017, month=9, day=22,

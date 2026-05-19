@@ -29,13 +29,13 @@ import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.core.vii_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, ViiNCBaseFileHandler
+from satpy.readers.core.vii_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
 
 TEST_FILE = "test_file_vii_base_nc.nc"
 
 
 class TestViiNCBaseFileHandler(unittest.TestCase):
-    """Test the ViiNCBaseFileHandler reader."""
+    """Test the METimageNCBaseFileHandler reader."""
 
     @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
     def setUp(self, pgi_):
@@ -115,7 +115,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         self.filename_info = filename_info
 
         # Create a reader
-        self.reader = ViiNCBaseFileHandler(
+        self.reader = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={
@@ -126,7 +126,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Create a second reader where orthorectification and interpolation are inhibited
         # by means of the filetype_info flags
-        self.reader_2 = ViiNCBaseFileHandler(
+        self.reader_2 = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={
@@ -140,7 +140,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Create a third reader without defining cached latitude and longitude
         # by means of the filetype_info flags
-        self.reader_3 = ViiNCBaseFileHandler(
+        self.reader_3 = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={},
@@ -239,7 +239,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                 nc.sensing_start_time_utc = start_str
                 nc.sensing_end_time_utc = end_str
 
-            reader = ViiNCBaseFileHandler(
+            reader = METimageNCBaseFileHandler(
                 filename=self.test_file_name,
                 filename_info=self.filename_info,
                 filetype_info={},
@@ -254,7 +254,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             nc.sensing_start_time_utc = "201709201730"
             nc.sensing_end_time_utc = "201709201740"
 
-        reader = ViiNCBaseFileHandler(
+        reader = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=self.filename_info,
             filetype_info={},

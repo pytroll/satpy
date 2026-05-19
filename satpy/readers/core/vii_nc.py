@@ -31,7 +31,7 @@ from satpy.readers.core.vii import PLATFORM_NAME_TRANSLATE, SCAN_ALT_TIE_POINTS,
 logger = logging.getLogger(__name__)
 
 
-class ViiNCBaseFileHandler(NetCDF4FileHandler):
+class METimageNCBaseFileHandler(NetCDF4FileHandler):
     """Base reader class for VII products in netCDF format.
 
     Args:
