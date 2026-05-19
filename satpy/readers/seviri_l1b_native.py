@@ -708,7 +708,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         dataset.attrs["wavelength"] = dataset_info["wavelength"]
         dataset.attrs["standard_name"] = dataset_info["standard_name"]
         dataset.attrs["platform_name"] = self.mda["platform_name"]
-        dataset.attrs["instruments"] = {OSCAR.SEVIRI.value}
+        dataset.attrs["instruments"] = {str(OSCAR.SEVIRI)}
         dataset.attrs["georef_offset_corrected"] = self.mda[
             "offset_corrected"]
         dataset.attrs["time_parameters"] = {

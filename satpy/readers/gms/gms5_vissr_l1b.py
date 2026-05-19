@@ -287,7 +287,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
     def _get_mda(self):
         return {
             "platform": self._mode_block["satellite_name"].decode().strip().upper(),
-            "instruments": {OSCAR.VISSR_HIMAWARI_5.value},
+            "instruments": {str(OSCAR.VISSR_HIMAWARI_5)},
             "time_parameters": self._get_time_parameters(),
             "orbital_parameters": self._get_orbital_parameters(),
         }

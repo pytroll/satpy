@@ -126,7 +126,7 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
         data = xr.DataArray(
             ds,
             dims=("y",),
-            attrs={"platform_name": self.platform_name, "instruments": {OSCAR.VIIRS.value}}
+            attrs={"platform_name": self.platform_name, "instruments": {str(OSCAR.VIIRS)}}
         )
         for key in ("units", "standard_name", "flag_meanings", "flag_values", "_FillValue"):
             # we only want to add information that isn't present already

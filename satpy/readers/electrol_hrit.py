@@ -287,7 +287,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs["standard_name"] = info["standard_name"]
         res.attrs["wavelength"] = info["wavelength"]
         res.attrs["platform_name"] = self.platform_name
-        res.attrs["instruments"] = {OSCAR.MSU_GS.value}
+        res.attrs["instruments"] = {str(OSCAR.MSU_GS)}
         res.attrs["orbital_parameters"] = {
             "satellite_nominal_longitude": self.mda["orbital_parameters"]["satellite_nominal_longitude"],
             "satellite_nominal_latitude": 0.,

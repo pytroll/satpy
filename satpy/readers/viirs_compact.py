@@ -137,7 +137,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.mda = {}
         short_name = np2str(self.h5f.attrs["Platform_Short_Name"])
         self.mda["platform_name"] = short_names.get(short_name, short_name)
-        self.mda["instruments"] = {OSCAR.VIIRS.value}
+        self.mda["instruments"] = {str(OSCAR.VIIRS)}
 
     def __del__(self):
         """Close file handlers when we are done."""
