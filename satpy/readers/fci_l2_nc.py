@@ -86,18 +86,19 @@ class FciL2CommonFunctions(object):
             "platform_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name)
         }
 
-        if product_type=="amv":
+        if self.product_type == "amv":
             attributes["channel"] = self.filename_info["channel"]
             attributes["time_parameters"] = {}
             attributes["time_parameters"]["wind_time"] = self.wind_time
+
         return attributes
 
-    def _set_attributes(self, variable, dataset_info, product_type="pixel"):
+    def _set_attributes(self, variable, dataset_info):
         """Set dataset attributes."""
-        if product_type in ["pixel", "segmented"]:
-            if product_type == "pixel":
+        if self.product_type in ["pixel", "segmented"]:
+            if self.product_type == "pixel":
                 xdim, ydim = "number_of_columns", "number_of_rows"
-            elif product_type == "segmented":
+            elif self.product_type == "segmented":
                 xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
 
             if dataset_info["nc_key"] not in ["product_quality",
@@ -112,7 +113,7 @@ class FciL2CommonFunctions(object):
             del variable.attrs["unit"]
 
         variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes(product_type=product_type))
+        variable.attrs.update(self._get_global_attributes())
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if import_enum_information:
@@ -180,8 +181,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, with_area_definition=True):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.product_type = "pixel"
 
-        # Use xarray's default netcdf4 engine to open the fileq
+        # Use xarray's default netcdf4 engine to open the file
         self.nc = xr.open_dataset(
             self.filename,
             decode_cf=True,
@@ -343,6 +345,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, with_area_definition=False):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.product_type = "segmented"
+
         # Use xarray's default netcdf4 engine to open the file
         self.nc = xr.open_dataset(
             self.filename,
@@ -396,7 +400,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if "fill_value" in dataset_info:
             variable = self._mask_data(variable, dataset_info["fill_value"])
 
-        variable = self._set_attributes(variable, dataset_info, product_type="segmented")
+        variable = self._set_attributes(variable, dataset_info)
 
         return variable
 
@@ -457,6 +461,7 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.product_type = "amv"
 
     @cached_property
     def nc(self):
@@ -499,6 +504,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             return None
 
         # Manage the attributes of the dataset
-        variable = self._set_attributes(variable, dataset_info, product_type="amv")
+        variable = self._set_attributes(variable, dataset_info)
 
         return variable
