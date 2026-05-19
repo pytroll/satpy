@@ -623,7 +623,7 @@ class TestFciL2NCAMVFileHandler:
         assert amv_filehandler.sensor_name == "test_data_source"
         assert amv_filehandler.ssp_lon == 0.0
 
-        global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
+        global_attributes = amv_filehandler._get_global_attributes()
         expected_global_attributes = {
             "filename": amv_file,
             "spacecraft_name": "TEST_PLATFORM",
@@ -637,8 +637,8 @@ class TestFciL2NCAMVFileHandler:
 
         # Drop wind_time dataset and check that wind_time attribute becomes None
         amv_filehandler.nc = amv_filehandler.nc.drop_vars("wind_time")
-        expected_global_attributes["time_parameters"] = {"wind_time":None}
-        global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
+        expected_global_attributes["time_parameters"] = {"wind_time": None}
+        global_attributes = amv_filehandler._get_global_attributes()
         assert global_attributes == expected_global_attributes
 
     def test_dataset(self, amv_filehandler):
