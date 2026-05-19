@@ -83,12 +83,18 @@ def dummy_vector_scene():
                 crs="EPSG:4326")
     return vs
 
-def test_save(dummy_vector_scene, tmp_path):
+def test_save_feature_sqlite(dummy_vector_scene, tmp_path):
     """Test saving a dummy vector scene."""
+    import geopandas as gpd
+    from shapely import Point
+    fn = tmp_path / "feature.sqlite"
     dummy_vector_scene.save_dataset(
             "dummy_vector_dataset",
             writer="feature",
-            filename=os.fspath(tmp_path / "feature.sqlite"))
+            filename=os.fspath(fn))
+    assert fn.exists()
+    gdf = gpd.read_file(fn)
+    assert gdf["geometry"][0] == Point(1, 2)
 
 def test_resample_reproject(dummy_vector_scene):
     """Test "resampling" with simple reprojecting."""
