@@ -269,7 +269,7 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
                 DataID key -> key properties
 
     """
-    config_filename = inst_utils.normalize_instrument_name(sensor_name) + ".yaml"
+    config_filename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
     logger.debug("Looking for composites config file %s", config_filename)
     paths = get_entry_points_config_dirs("satpy.composites")
     composite_configs = config_search_paths(

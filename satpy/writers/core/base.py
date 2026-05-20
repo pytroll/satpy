@@ -16,7 +16,6 @@
 """Shared objects and base classes for writers."""
 from __future__ import annotations
 
-import contextlib
 import logging
 import os
 import typing
@@ -138,10 +137,9 @@ class Writer(Plugin, DataDownloadMixin):
 
     @staticmethod
     def _prepare_metadata_for_filename_formatting(attrs):
-        with contextlib.suppress(KeyError):
-            instruments = inst_utils.get_instruments_from_attrs(attrs)
-            serialized = inst_utils.serialize_instruments(instruments)
-            inst_utils.set_instruments_attr(attrs, serialized)
+        instruments = inst_utils.get_instruments_from_attrs(attrs, to_internal=True)
+        joined = inst_utils.join_instrument_names(instruments)
+        inst_utils.set_instruments_attr(attrs, joined)
 
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.

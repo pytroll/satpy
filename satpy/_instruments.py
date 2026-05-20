@@ -23,7 +23,7 @@ import satpy
 
 logger = logging.getLogger(__name__)
 
-def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
+def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) -> set[str]:
     """Get instrument names from dataset attributes.
 
     String type attributes are converted to set. This can be
@@ -48,13 +48,25 @@ def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
             stacklevel=2
         )
         instruments = set([instruments])
+    if to_internal:
+        return {
+            wmo_to_internal(inst) for inst in instruments
+        }
     return instruments
 
 
 
-def normalize_instrument_name(instrument: str) -> str:
-    """Normalize instrument name for internal usage."""
-    return instrument.replace("-", "").replace(" ", "_").replace("/", "-").lower()
+def wmo_to_internal(instrument: str) -> str:
+    """Convert WMO to internal instrument name."""
+    sep_map = {
+        "-": "-",
+        "(": "",
+        ")": "",
+        " ": "_",
+        "/": "-"
+    }
+    sep_trans = str.maketrans(sep_map)
+    return instrument.translate(sep_trans).lower()
 
 
 def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
@@ -69,15 +81,12 @@ def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
 
 def get_pyspectral_instrument_name(instrument: str) -> str:
     """Get instrument name expected by pyspectral."""
-    return normalize_instrument_name(instrument)
+    return wmo_to_internal(instrument)
 
 
-def serialize_instruments(instruments: set[str]) -> str:
-    """Serialize a set of instruments."""
-    return "-".join(
-        instr.replace("-", "").replace(" ", "").replace("/", "").lower()
-        for instr in sorted(instruments)
-    )
+def join_instrument_names(instruments: set[str]) -> str:
+    """Join a set of instrument names."""
+    return "-".join(sorted(instruments))
 
 
 def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> None:

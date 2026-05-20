@@ -387,7 +387,7 @@ _SENSOR_TO_RUNNER = {
 
 def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
     try:
-        return _SENSOR_TO_RUNNER[inst_utils.normalize_instrument_name(sensor_name)]
+        return _SENSOR_TO_RUNNER[inst_utils.wmo_to_internal(sensor_name)]
     except KeyError:
         raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {sensor_name}.")
 

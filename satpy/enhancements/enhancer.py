@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from yaml import UnsafeLoader
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._config import config_search_paths, get_entry_points_config_dirs
 from satpy.decision_tree import DecisionTree
 from satpy.utils import (
@@ -130,7 +130,7 @@ class Enhancer:
         """Get the sensor-specific config."""
         paths = get_entry_points_config_dirs("satpy.enhancements")
         for sensor_name in sensors:
-            basename = instru.normalize_instrument_name(sensor_name) + ".yaml"
+            basename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
             config_fn = os.path.join("enhancements", basename)
             config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
@@ -210,7 +210,7 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        sensors = instru.get_instruments_from_attrs(dataset.attrs)
+        sensors = inst_utils.get_instruments_from_attrs(dataset.attrs)
         if sensors:
             enhancer.add_sensor_enhancements(sensors)
         enhancer.apply(img, **dataset.attrs)
