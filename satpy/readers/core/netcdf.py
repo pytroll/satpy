@@ -391,7 +391,7 @@ def get_accessor_and_filehandle_from_engines(filename, *engines):
     """Choose an accessor from the first possible engine, and return in along with the file handle."""
     for engine in engines:
         try:
-            LOG.info(f"Trying reading nc file with {engine} engine…")
+            LOG.debug(f"Trying reading nc file with {engine} engine…")
             return get_accessor_and_filehandle_from_engine(filename, engine)
         except Exception as err:
             LOG.warning(f"Cannot use {engine} engine to read nc file.")
