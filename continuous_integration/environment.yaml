@@ -58,6 +58,7 @@ dependencies:
   - ephem
   - bokeh
   - pytest-xdist
+  - fiona
   - pip:
       - pytest-lazy-fixtures
       - trollsift
