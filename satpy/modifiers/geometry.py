@@ -25,8 +25,7 @@ from typing import Optional
 import numpy as np
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers.angles import sunzen_corr_cos, sunzen_reduction
-from satpy.utils import atmospheric_path_length_correction
+from satpy.modifiers.angles import atmospheric_path_length_correction, sunzen_corr_cos, sunzen_reduction
 
 logger = logging.getLogger(__name__)
 
@@ -141,48 +140,58 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
-    """Special sun zenith correction with the method proposed by Li and Shibata.
+    """Special sun zenith angle correction using the parameterization proposed by Li and Shibata.
 
     (2006): https://doi.org/10.1175/JAS3682.1
 
-    In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier forces all reflectances beyond a
-    solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
-    It also gradually reduces the amount of correction done between
-    ``correction_limit`` and ``max_sza``. If ``max_sza`` is ``None`` then a
-    constant correction is applied to zenith angles beyond
-    ``correction_limit``.
+    This correction method is designed to reduce the over-correction of the standard
+    sun zenith angle correction at high solar zenith angles, which is especially
+    relevant for (RGB) imagery.
 
-    To set ``max_sza`` to ``None`` in a YAML configuration file use:
-
-    .. code-block:: yaml
-
-      effective_solar_pathlength_corrected:
-        modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
-        max_sza: !!null
-        optional_prerequisites:
-        - solar_zenith_angle
+    In previous versions of Satpy, this correction could be capped or reduced at higher
+    sun zenith angles by using the ``correction_limit`` and ``max_sza`` parameters.
+    This has been disabled for this correction since the parameterization also deals with
+    overcorrection at high solar zenith angles. If capping or reduction is still desireble
+    it can be achieved by using the SunZenithCorrector with the same ``correction_limit``
+    and ``max_sza`` parameters.
 
     """
 
-    def __init__(self, correction_limit=88., **kwargs):  # noqa: D417
+    def __init__(
+        self,
+        correction_limit: Optional[float] = None,
+        max_sza: Optional[float] = None,
+        **kwargs,
+    ):
         """Collect custom configuration values.
 
         Args:
-            correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
-                constant correction applied. Otherwise, the correction is gradually reduced to 0 at
-                ``max_sza``. Default 88.
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
+            correction_limit:
+                Solar zenith angle in degrees where correction limiting
+                begins. Deprecated.
+
+            max_sza:
+                Maximum valid angle in degrees for solar zenith angle correction. Deprecated.
+
+
+            **kwargs:
+                Additional keyword arguments passed to the parent class.
 
         """
-        self.correction_limit = correction_limit
+        if correction_limit is not None or max_sza is not None:
+            raise UserWarning(
+                "The `correction_limit` and `max_sza` parameters are deprecated and not "
+                "used for the EffectiveSolarPathLengthCorrector since the parameterization "
+                "by Li and Shibata (2006) already accounts for overcorrection at high solar "
+                "zenith angles. If capping or reduction of the correction is still desireble "
+                "it can be achieved by using the SunZenithCorrector with the same "
+                "`correction_limit` and `max_sza` parameters."
+            )
+
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        logger.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
+        return atmospheric_path_length_correction(proj, coszen)
 
 
 class SunZenithReducer(SunZenithCorrectorBase):

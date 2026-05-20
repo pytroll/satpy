@@ -628,6 +628,27 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     return data * corr
 
 
+def atmospheric_path_length_correction(data, cos_zen):
+    """Perform Sun zenith angle correction following the Li and Shibata parameterization.
+
+    This function uses the correction method proposed by
+    Li and Shibata (2006): https://doi.org/10.1175/JAS3682.1 and is recommended for computing
+    the reflectance for (RGB) imagery to avoid over-correction at high solar zenith angles. It
+    shoudl not be used for quantitative/scientific applications for which the standard cosine
+    correction is more appropriate (see SunZenithCorrector for more details on how to use it).
+
+    Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
+
+    """
+    logger.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata (2006)")
+    corr = 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
+
+    # Force "night" and space pixels to 0 (where SZA is invalid)
+    corr = corr.where(cos_zen.notnull(), 0)
+
+    return data * corr
+
+
 def sunzen_reduction(data: da.Array,
                      sunz: da.Array,
                      limit: float = 55.,
