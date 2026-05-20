@@ -92,3 +92,16 @@ def test_get_one_instrument_from_attrs_with_warning(caplog):
         assert "More than one" in caplog.text
         with pytest.raises(KeyError):
             inst_utils.get_one_instrument_from_attrs({})
+
+
+
+@pytest.mark.parametrize(
+    ("instrument", "expected"),
+    [
+        ("abi", "ABI"),
+        ("ABI", "ABI"),
+    ]
+)
+def test_internal_to_wmo(instrument, expected):
+    """Test conversion to WMO instrument name."""
+    assert inst_utils.internal_to_wmo(instrument) == expected
