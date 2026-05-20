@@ -216,8 +216,8 @@ The difference is that reflectance is normalised by the cosine of the sun zenith
 
 Radiance_factor:
 
-rf = L_vis * solar_irradiance / π
+rf = L_vis × solar_irradiance / π
 
 Reflectance:
 
-ρ = L_vis * solar_irradiance / πcos(sza)
+ρ = L_vis × solar_irradiance / πcos(sza)
