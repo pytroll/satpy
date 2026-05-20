@@ -209,6 +209,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             "filename_start_time": self.filename_info["sensing_start_time"],
             "filename_end_time": self.filename_info["sensing_end_time"],
             "platform_name": self.spacecraft_name,
+            "rows_per_scan": 24
         }
 
         # Add a "quality_group" item to the dictionary with all the variables and attributes

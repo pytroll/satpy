@@ -191,7 +191,8 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                 "duration_of_data_degraded": 4.,
                 "gap_start_time_utc": (5., 6.),
                 "gap_end_time_utc": (7., 8.)
-            }
+            },
+            "rows_per_scan": 24
         }
 
         global_attributes = self.reader._get_global_attributes()
