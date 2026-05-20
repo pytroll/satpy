@@ -67,8 +67,8 @@ class TestEnhancer:
         lines = stdout.splitlines()
         assert lines[0].startswith("name=<wildcard>")
         # make sure lines are indented
-        assert lines[1].startswith("  reader=")
-        assert lines[2].startswith("    platform_name=")
+        assert lines[1].startswith("  tag=")
+        assert lines[2].startswith("    reader=")
 
 
 def test_xrimage_1d():
@@ -479,3 +479,38 @@ enhancements:
         img = self._get_enhanced_image(data_arr, test_configs_path)
         # no reader available, should use default no specified reader
         np.testing.assert_allclose(img.data.values[0], data_arr.data / 50.0)
+
+
+class TestTagEnhancementLookup:
+    """Test that enhancement entries can be differentiated by tag."""
+
+    def test_tag_specific_enhancement_is_selected(self):
+        """Enhancement entry with matching tag is preferred over generic name entry."""
+        from satpy.enhancements.enhancer import EnhancementDecisionTree
+
+        config = {
+            "true_color_wmo": {
+                "name": "true_color",
+                "tag": "wmo",
+                "operations": [{"method": lambda img: img.crude_stretch(0, 50)}],
+            },
+            "true_color_crefl": {
+                "name": "true_color",
+                "tag": "crefl",
+                "operations": [{"method": lambda img: img.crude_stretch(0, 200)}],
+            },
+            "true_color_generic": {
+                "name": "true_color",
+                "operations": [{"method": lambda img: img.crude_stretch(0, 100)}],
+            },
+        }
+
+        tree = EnhancementDecisionTree(config)
+
+        wmo_match = tree.find_match(name="true_color", tag="wmo")
+        crefl_match = tree.find_match(name="true_color", tag="crefl")
+        generic_match = tree.find_match(name="true_color")
+
+        assert wmo_match is not crefl_match
+        assert wmo_match is not generic_match
+        assert crefl_match is not generic_match

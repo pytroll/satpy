@@ -509,25 +509,26 @@ fields in the composite YAML configuration.
 Tagging composite variants
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A composite can carry a list of **tags** that describe which processing variant
-it represents.  Tags are plain strings (e.g., ``wmo``, ``crefl``,
-``nocorr``) and have no special meaning to Satpy beyond being matched during
-compositor lookup.
+A compositor variant carries a ``name`` and an optional ``tag`` that together
+form its :class:`~satpy.dataset.DataID`.  The YAML section key (e.g.
+``true_color_wmo``) is only used to avoid naming collisions inside the YAML
+file; what matters for loading and Scene access is the ``name`` and ``tag``
+fields.
 
 .. code-block:: yaml
 
     sensor_name: visir
 
     composites:
-      true_color_wmo:
+      true_color_wmo:               # YAML key, unique within this file only
         compositor: !!python/name:satpy.composites.SomeCompositor
         prerequisites:
           - name: red
             modifiers: [rayleigh_corrected_wmo]
           - name: green
           - name: blue
-        standard_name: true_color
-        tags: [wmo]
+        name: true_color            # DataID name, used for loading and Scene access
+        tag: wmo                    # DataID tag, used with the colon syntax
 
       true_color_crefl:
         compositor: !!python/name:satpy.composites.SomeCompositor
@@ -536,20 +537,19 @@ compositor lookup.
             modifiers: [rayleigh_corrected_crefl]
           - name: green
           - name: blue
-        standard_name: true_color
-        tags: [crefl]
+        name: true_color
+        tag: crefl
 
-      true_color:                          # default, no tags
+      true_color:                   # default variant, no tag field
         compositor: !!python/name:satpy.composites.SomeCompositor
         prerequisites:
           - name: red
           - name: green
           - name: blue
-        standard_name: true_color
 
-The ``standard_name`` field acts as the *base name* shared by all variants.
-Tag-based resolution searches for a compositor whose ``standard_name`` matches
-and whose ``tags`` list contains the requested tag.
+If no ``name:`` is given, the YAML section key is used as the ``name``.  All
+three composites above therefore share the same base name ``true_color``; the
+``tag`` field distinguishes the variants.
 
 Loading a tagged variant explicitly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -560,49 +560,30 @@ Append ``:<tag>`` to the composite name when calling :meth:`~satpy.scene.Scene.l
 
     scene.load(["true_color:wmo"])
 
-    # The dataset is stored and accessible using the same tag syntax:
+    # Access the result with the same tag syntax:
     data = scene["true_color:wmo"]
 
-This syntax is interpreted as: "find a compositor with
-``standard_name='true_color'`` that has ``'wmo'`` in its ``tags``".  It never
-performs a plain string match, so ``true_color:wmo`` will not accidentally
-resolve to a compositor named ``true_color`` or ``true_color_wmo``.
+    # The DataID has separate name and tag fields:
+    assert data.attrs["_satpy_id"]["name"] == "true_color"
+    assert data.attrs["_satpy_id"]["tag"] == "wmo"
 
-Accessing tag-loaded datasets
-""""""""""""""""""""""""""""""
+``"true_color:wmo"`` is syntactic sugar for
+``DataQuery(name="true_color", tag="wmo")``.  It performs a direct DataID
+lookup, so it will never accidentally resolve to a compositor whose YAML section
+key happens to be ``"true_color_wmo"``.
 
-The dataset is stored in the Scene under the *requested* name (including the
-tag suffix) rather than the compositor's internal YAML key.  Use the same
-tag syntax to retrieve it:
+Loading a compositor without a tag (``scene.load(["true_color"])``) finds only
+the variant whose DataID has no tag set.  Tagged variants are not included in
+plain-name lookups unless ``preferred_composite_tags`` is configured (see
+below).
 
-.. code-block:: python
+Dataset name and file output
+"""""""""""""""""""""""""""""
 
-    scene.load(["true_color:wmo"])
-    data = scene["true_color:wmo"]
-
-The compositor's YAML key name (e.g. ``"true_color_wmo"``) is preserved in
-``data.attrs["_satpy_compositor_name"]`` and is used automatically for
-enhancement lookups (see below).
-
-This also means that :attr:`~satpy.scene.Scene.missing_datasets` is empty
-after a successful load, and that writing the scene with any writer will use
-``"true_color:wmo"`` as the dataset name.
-
-The same rule applies when a tagged variant is selected automatically via
-``preferred_composite_tags``: the dataset is stored under the plain requested
-name (e.g. ``"true_color"``), not under the compositor's YAML key name.
-
-Multiple tags can be combined with additional colons.  All listed tags must be
-present on the compositor (AND semantics):
-
-.. code-block:: python
-
-    scene.load(["true_color:wmo:pyspectral"])  # compositor must carry wmo AND pyspectral
-    scene.load(["true_color:wmo"])             # also matches a compositor with tags [wmo, pyspectral]
-
-A single-tag request is a subset match, so requesting ``"true_color:wmo"``
-will find a compositor tagged ``["wmo", "pyspectral"]`` just as readily as one
-tagged ``["wmo"]`` alone.
+The ``tag`` is a separate field in the DataID, not part of the dataset name.
+Writers that use ``{name}`` in their file patterns therefore produce
+``true_color.tif``, not ``true_color:wmo.tif``.  If you need to distinguish
+output files by tag, use a pattern such as ``{name}_{tag}.tif``.
 
 Session-wide tag preferences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -615,12 +596,13 @@ when one is available:
 
     import satpy
     with satpy.config.set(preferred_composite_tags=["crefl", "wmo"]):
-        scene.load(["true_color"])   # picks true_color_crefl (crefl listed first)
+        scene.load(["true_color"])   # picks the crefl variant (listed first)
+        data = scene["true_color:crefl"]  # stored under name="true_color", tag="crefl"
 
 Resolution order for ``preferred_composite_tags``:
 
 1. Try each tag in the list, in order, looking for a compositor with matching
-   ``standard_name`` and that tag.
+   ``name`` and that ``tag``.
 2. If no tagged variant is found, fall back to the normal name-based lookup.
 
 An explicit ``name:tag`` in the load call always overrides the session-wide
@@ -643,26 +625,27 @@ Or as a YAML configuration key:
 Enhancements for tagged variants
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No extra configuration is needed on the enhancement side.  When a dataset is
-loaded via tag syntax, its ``attrs["_satpy_compositor_name"]`` carries the
-compositor's YAML key name (e.g. ``"true_color_wmo"``).  The enhancement
-lookup tries that name first before falling back to the requested name and
-then to ``standard_name``.
-
-This means an enhancement entry written for ``true_color_wmo`` is picked up
-automatically when loading ``"true_color:wmo"``, and enhancements written
-against ``standard_name: true_color`` serve as a fallback for all variants.
+Enhancement entries can optionally specify a ``tag`` field to target a specific
+composite variant.  The enhancement tree tries the most specific match first
+(name + tag), then falls back to name-only or standard_name-only entries.
 
 .. code-block:: yaml
 
     # In an enhancement YAML file:
-    true_color_wmo:          # matched via _satpy_compositor_name
-      name: true_color_wmo
-      operations: [...]
+    enhancements:
+      true_color_wmo:
+        name: true_color
+        tag: wmo               # only applied when tag="wmo"
+        operations: [...]      # WMO-specific stretch
 
-    true_color_default:      # fallback for any true_color variant
-      standard_name: true_color
-      operations: [...]
+      true_color_crefl:
+        name: true_color
+        tag: crefl             # only applied when tag="crefl"
+        operations: [...]      # crefl-specific stretch
+
+      true_color_default:
+        name: true_color       # fallback for any tag (or no tag)
+        operations: [...]
 
 Deprecating a composite
 ------------------------
