@@ -183,7 +183,7 @@ class Scene:
 
     @property
     def sensor_names(self) -> set[str]:
-        """Return sensor names for the data currently contained in this Scene.
+        """Return WMO sensor names for the data currently contained in this Scene.
 
         Sensor information is collected from data contained in the Scene
         whether loaded from a reader or generated as a composite with
@@ -194,8 +194,7 @@ class Scene:
 
         """
         contained_sensor_names = self._contained_sensor_names()
-        reader_sensor_names = set([sensor for reader_instance in self._readers.values()
-                                   for sensor in reader_instance.sensor_names])
+        reader_sensor_names = self._reader_sensor_names()
         return contained_sensor_names | reader_sensor_names
 
     def _contained_sensor_names(self) -> set[str]:
@@ -203,6 +202,20 @@ class Scene:
         for data_arr in self.values():
             sensor_names.update(inst_utils.get_instruments_from_attrs(data_arr.attrs))
         return sensor_names
+
+    def _reader_sensor_names(self) -> set[str]:
+        """Get WMO instrument names from readers."""
+        instruments = set(
+            [
+                instrument
+                for reader_instance in self._readers.values()
+                for instrument in reader_instance.sensor_names
+            ]
+        )
+        return {
+            inst_utils.internal_to_wmo(inst)
+            for inst in instruments
+        }
 
     @property
     def start_time(self):
