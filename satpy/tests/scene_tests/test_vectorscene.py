@@ -100,9 +100,8 @@ def test_resample_reproject(dummy_vector_scene):
     """Test "resampling" with simple reprojecting."""
     from satpy.area import get_area_def
 
-    #ar = get_area_def("africa_laea_1km")
     ar = get_area_def("africa")
-    nvs = dummy_vector_scene.resample(ar)
+    nvs = dummy_vector_scene.reproject(ar.crs)
     assert nvs["dummy_vector_dataset"].crs == ar.crs
     np.testing.assert_array_almost_equal(
             nvs["dummy_vector_dataset"]["geometry"].x,
