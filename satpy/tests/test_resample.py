@@ -29,6 +29,7 @@ import xarray as xr
 from pyproj import CRS
 
 from satpy.resample.native import NativeResampler
+from satpy.utils import PerformanceWarning
 
 
 def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=None,
@@ -247,8 +248,6 @@ class TestNativeResampler:
         into that chunk size.
 
         """
-        from satpy.utils import PerformanceWarning
-
         d_arr = da.zeros((6, 20), chunks=3)
         text = "Array chunk size is not divisible by aggregation factor. Re-chunking to continue native resampling."
         with pytest.warns(PerformanceWarning, match=text):
@@ -322,6 +321,17 @@ class TestNativeResampler:
         resampler = NativeResampler(source_area, target_area)
         with pytest.raises(ValueError, match="Can only handle 2D or 3D arrays without dimensions."):
             resampler.resample(ds1)
+
+    def test_reduce_first_dim_rechunk_second_dim_good(self):
+        """Test inconsistent chunks are handled consistently."""
+        # See https://github.com/pytroll/satpy/issues/3304
+        row_chunks = (6, 6, 7, 6, 6, 7, 8, 6, 4) * 5
+        col_chunks = (280,)
+        d_arr = da.zeros((280, 280), chunks=(row_chunks, col_chunks))
+        text = "Array chunk size is not divisible by aggregation factor. Re-chunking to continue native resampling."
+        with pytest.warns(PerformanceWarning, match=text):
+            new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
+        assert new_data.shape == (140, 140)
 
 
 class TestBilinearResampler(unittest.TestCase):

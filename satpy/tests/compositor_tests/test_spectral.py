@@ -76,16 +76,17 @@ class TestNdviHybridGreenCompositor:
 
     def setup_method(self):
         """Initialize channels."""
-        coord_val = [1.0, 2.0]
+        y_coord_val = [1.0, 2.0, 3.0]
+        x_coord_val = [1.0, 2.0]
         self.c01 = xr.DataArray(
-            da.from_array(np.array([[0.25, 0.30], [0.20, 0.30]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C02"})
+            da.from_array(np.array([[0.25, 0.30], [0.20, 0.30], [0.0, 0.3]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C02"})
         self.c02 = xr.DataArray(
-            da.from_array(np.array([[0.25, 0.30], [0.25, 0.35]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C03"})
+            da.from_array(np.array([[0.25, 0.30], [0.25, 0.35], [0.0, 0.0]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C03"})
         self.c03 = xr.DataArray(
-            da.from_array(np.array([[0.35, 0.35], [0.28, 0.65]], dtype=np.float32), chunks=25),
-            dims=("y", "x"), coords=[coord_val, coord_val], attrs={"name": "C04"})
+            da.from_array(np.array([[0.35, 0.35], [0.28, 0.65], [0.0, 0.0]], dtype=np.float32), chunks=25),
+            dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C04"})
 
     def test_ndvi_hybrid_green(self):
         """Test General functionality with linear scaling from ndvi to blend fraction."""
@@ -100,7 +101,10 @@ class TestNdviHybridGreenCompositor:
         assert res.attrs["name"] == "ndvi_hybrid_green"
         assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
         data = res.values
-        np.testing.assert_array_almost_equal(data, np.array([[0.2633, 0.3071], [0.2115, 0.3420]]), decimal=4)
+        np.testing.assert_array_almost_equal(
+            data,
+            np.array([[0.2633, 0.3071], [0.2115, 0.3420], [0.0, 0.255]]),
+            decimal=4)
 
     def test_ndvi_hybrid_green_dtype(self):
         """Test that the datatype is not altered by the compositor."""
@@ -120,7 +124,10 @@ class TestNdviHybridGreenCompositor:
         res_np = res.data.compute()
         assert res.dtype == res_np.dtype
         assert res.dtype == np.float32
-        np.testing.assert_array_almost_equal(res.data, np.array([[0.2646, 0.3075], [0.2120, 0.3471]]), decimal=4)
+        np.testing.assert_array_almost_equal(
+            res.data,
+            np.array([[0.2646, 0.3075], [0.2120, 0.3471], [0.0, 0.255]]),
+            decimal=4)
 
     def test_invalid_strength(self):
         """Test using invalid `strength` term for non-linear scaling."""
@@ -138,9 +145,9 @@ class TestNdviHybridGreenCompositor:
                                standard_name="toa_bidirectional_reflectance")
 
         c02_bad_shape = self.c02.copy()
-        c02_bad_shape.coords["y"] = [1.1, 2.]
+        c02_bad_shape.coords["y"] = [1.1, 2.0, 3.0]
         res = comp((self.c01, c02_bad_shape, self.c03))
-        assert res.shape == (2, 2)
+        assert res.shape == (3, 2)
 
 
 class TestNaturalEnhCompositor(unittest.TestCase):

@@ -65,11 +65,11 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 
-@pytest.fixture
-def netcdf_file(tmp_path):
+@pytest.fixture(scope="module")
+def netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file."""
     from netCDF4 import Dataset
-    filename = tmp_path / "test.nc"
+    filename = tmp_path_factory.mktemp("data") / "test.nc"
     with Dataset(filename, "w") as nc:
         # Create dimensions
         nc.createDimension("rows", 10)
@@ -77,14 +77,16 @@ def netcdf_file(tmp_path):
 
         # Create Group
         g1 = nc.createGroup("test_group")
-
         # Add datasets
         ds1_f = g1.createVariable("ds1_f", np.float32,
                                   dimensions=("rows", "cols"))
         ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
+        ds1_f.set_auto_scale(True)
+
         ds1_i = g1.createVariable("ds1_i", np.int32,
                                   dimensions=("rows", "cols"))
         ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
+
         ds2_f = nc.createVariable("ds2_f", np.float32,
                                   dimensions=("rows", "cols"))
         ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
@@ -95,7 +97,7 @@ def netcdf_file(tmp_path):
                                   dimensions=("rows",))
         ds2_s[:] = np.arange(10)
         ds2_sc = nc.createVariable("ds2_sc", np.int8, dimensions=())
-        ds2_sc[:] = 42
+        ds2_sc[:] = np.int8(42)
 
         # Add attributes
         nc.test_attr_str = "test_string"
@@ -230,21 +232,34 @@ class TestNetCDF4FileHandler:
         with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
 
-    def test_get_and_cache_npxr_is_xr(self, netcdf_file):
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_get_and_cache_npxr_is_xr(self, netcdf_file, engine):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
 
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert isinstance(data, xr.DataArray)
 
-    def test_get_and_cache_npxr_data_is_cached(self, netcdf_file):
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_get_and_cache_npxr_for_scalar(self, netcdf_file, engine):
+        """Test that get_and_cache_npxr() returns xr.DataArray."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
+
+        data = file_handler.get_and_cache_npxr("ds2_sc")
+        # WARN: h5netcdf returns an int64!
+        assert data.dtype in [np.int8, np.int64], "Scalar should be of type int8"
+        assert data == 42
+
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_get_and_cache_npxr_data_is_cached(self, netcdf_file, engine):
         """Test that the data are cached when get_and_cache_npxr() is called."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
 
         # Delete the dataset from the file content dict, it should be available from the cache

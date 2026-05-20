@@ -18,6 +18,7 @@
 """Tests for compositors using auxiliary data."""
 
 import os
+import sys
 import unittest
 from unittest import mock
 
@@ -25,6 +26,12 @@ import pytest
 
 import satpy
 
+if sys.platform.startswith("win"):
+    IMAGE_FILENAME = r"C:\foo.tif"
+    PATH_TO_IMAGE = r"C:\path\to\image"
+else:
+    IMAGE_FILENAME = "/foo.tif"
+    PATH_TO_IMAGE = "/path/to/image"
 
 class TestStaticImageCompositor(unittest.TestCase):
     """Test case for the static compositor."""
@@ -39,14 +46,14 @@ class TestStaticImageCompositor(unittest.TestCase):
             StaticImageCompositor("name")
 
         # No area defined
-        comp = StaticImageCompositor("name", filename="/foo.tif")
-        assert comp._cache_filename == "/foo.tif"
+        comp = StaticImageCompositor("name", filename=IMAGE_FILENAME)
+        assert comp._cache_filename == IMAGE_FILENAME
         assert comp.area is None
 
         # Area defined
         get_area_def.return_value = "bar"
-        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
-        assert comp._cache_filename == "/foo.tif"
+        comp = StaticImageCompositor("name", filename=IMAGE_FILENAME, area="euro4")
+        assert comp._cache_filename == IMAGE_FILENAME
         assert comp.area == "bar"
         get_area_def.assert_called_once_with("euro4")
 
@@ -57,7 +64,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         """Test the static compositing."""
         from satpy.composites.aux_data import StaticImageCompositor
 
-        satpy.config.set(data_dir=os.path.join(os.path.sep, "path", "to", "image"))
+        satpy.config.set(data_dir=PATH_TO_IMAGE)
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
@@ -70,10 +77,10 @@ class TestStaticImageCompositor(unittest.TestCase):
         scn["image"] = img
         Scene.return_value = scn
         # absolute path to local file
-        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
+        comp = StaticImageCompositor("name", filename=IMAGE_FILENAME, area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader="generic_image",
-                                      filenames=["/foo.tif"])
+                                      filenames=[IMAGE_FILENAME])
         register.assert_not_called()
         retrieve.assert_not_called()
         assert res.attrs["sensor"] is None
@@ -82,31 +89,31 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # remote file with local cached version
         Scene.reset_mock()
-        register.return_value = "data_dir/foo.tif"
-        retrieve.return_value = "data_dir/foo.tif"
+        register.return_value = os.path.join("data_dir", "foo.tif")
+        retrieve.return_value = os.path.join("data_dir", "foo.tif")
         comp = StaticImageCompositor("name", url=remote_tif, area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader="generic_image",
-                                      filenames=["data_dir/foo.tif"])
+                                      filenames=[os.path.join("data_dir", "foo.tif")])
         assert res.attrs["sensor"] is None
         assert "modifiers" not in res.attrs
         assert "calibration" not in res.attrs
 
         # Non-georeferenced image, no area given
         img.attrs.pop("area")
-        comp = StaticImageCompositor("name", filename="/foo.tif")
+        comp = StaticImageCompositor("name", filename=IMAGE_FILENAME)
         with pytest.raises(AttributeError):
             comp()
 
         # Non-georeferenced image, area given
-        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
+        comp = StaticImageCompositor("name", filename=IMAGE_FILENAME, area="euro4")
         res = comp()
         assert res.attrs["area"].area_id == "euro4"
 
         # Filename contains environment variable
-        os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
-        comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area="euro4")
-        assert comp._cache_filename == "/path/to/image/foo.tif"
+        os.environ["TEST_IMAGE_PATH"] = PATH_TO_IMAGE
+        comp = StaticImageCompositor("name", filename=os.path.join("${TEST_IMAGE_PATH}", "foo.tif"), area="euro4")
+        assert comp._cache_filename == os.path.join(PATH_TO_IMAGE, "foo.tif")
 
         # URL and filename without absolute path
         comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
@@ -118,4 +125,4 @@ class TestStaticImageCompositor(unittest.TestCase):
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
             assert comp._url is None
-            assert comp._cache_filename == os.path.join(os.path.sep, "path", "to", "image", "foo.tif")
+            assert comp._cache_filename == os.path.join(PATH_TO_IMAGE, "foo.tif")
