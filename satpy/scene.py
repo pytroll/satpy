@@ -876,10 +876,10 @@ class Scene:
         reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DataID.from_dataarray(dataset)
-            pres = self._get_new_datasets_from_parent(new_datasets, parent_dataset)
-            if self._replace_anc_for_new_datasets(new_datasets, ds_id, pres, new_scn):
+            pres = _get_new_datasets_from_parent(new_datasets, parent_dataset)
+            if _replace_anc_for_new_datasets(new_datasets, ds_id, pres, new_scn):
                 continue
-            if self._update_area(dataset, parent_dataset, new_scn, ds_id, pres):
+            if _update_area(dataset, parent_dataset, new_scn, ds_id, pres):
                 continue
 
             dataset, source_area = self._reduce_data(dataset, destination_area,
@@ -893,31 +893,6 @@ class Scene:
                 new_scn._datasets[ds_id] = res
             if parent_dataset is not None:
                 replace_anc(res, pres)
-
-    @classmethod
-    def _get_new_datasets_from_parent(self, new_datasets, parent_dataset):
-        if parent_dataset is not None:
-            return new_datasets[DataID.from_dataarray(parent_dataset)]
-        return None
-
-    @classmethod
-    def _replace_anc_for_new_datasets(self, new_datasets, ds_id, pres, new_scn):
-        if ds_id in new_datasets:
-            replace_anc(new_datasets[ds_id], pres)
-            if ds_id in new_scn._datasets:
-                new_scn._datasets[ds_id] = new_datasets[ds_id]
-            return True
-        return False
-
-    @classmethod
-    def _update_area(self, dataset, parent_dataset, new_scn, ds_id, pres):
-        if dataset.attrs.get("area") is None:
-            if parent_dataset is None:
-                new_scn._datasets[ds_id] = dataset
-            else:
-                replace_anc(dataset, pres)
-            return True
-        return False
 
     def _resample_dataset(self, source_area, destination_area, dataset, resamplers, resample_kwargs):
         from satpy.resample.base import resample_dataset
@@ -1730,3 +1705,26 @@ class Scene:
                 LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
+
+
+def _get_new_datasets_from_parent(new_datasets, parent_dataset):
+    if parent_dataset is not None:
+        return new_datasets[DataID.from_dataarray(parent_dataset)]
+    return None
+
+def _replace_anc_for_new_datasets(new_datasets, ds_id, pres, new_scn):
+    if ds_id in new_datasets:
+        replace_anc(new_datasets[ds_id], pres)
+        if ds_id in new_scn._datasets:
+            new_scn._datasets[ds_id] = new_datasets[ds_id]
+        return True
+    return False
+
+def _update_area(dataset, parent_dataset, new_scn, ds_id, pres):
+    if dataset.attrs.get("area") is None:
+        if parent_dataset is None:
+            new_scn._datasets[ds_id] = dataset
+        else:
+            replace_anc(dataset, pres)
+        return True
+    return False
