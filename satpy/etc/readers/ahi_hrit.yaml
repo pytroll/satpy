@@ -9,7 +9,7 @@ reader:
   description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
   status: Nominal
   supports_fsspec: false
-  instruments: [AHI]
+  instruments: [ahi]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'area']
@@ -228,7 +228,7 @@ file_types:
 datasets:
   B01:
     name: B01
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [0.45,0.47,0.49]
     resolution: 1000
     calibration:
@@ -242,7 +242,7 @@ datasets:
 
   B02:
     name: B02
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [0.49,0.51,0.53]
     resolution: 1000
     calibration:
@@ -256,7 +256,7 @@ datasets:
 
   B03:
     name: B03
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [0.62,0.64,0.66]
     resolution: 1000
     calibration:
@@ -270,7 +270,7 @@ datasets:
 
   B04:
     name: B04
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [0.85, 0.86, 0.87]
     resolution: 4000
     calibration:
@@ -284,7 +284,7 @@ datasets:
 
   B05:
     name: B05
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [1.5, 1.6, 1.7]
     resolution: 4000
     calibration:
@@ -298,7 +298,7 @@ datasets:
 
   B06:
     name: B06
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [2.2, 2.3, 2.4]
     resolution: 4000
     calibration:
@@ -315,7 +315,7 @@ datasets:
     resolution:
       4000: {file_type: [hrit_b07_ir4_seg, hrit_b07_ir4_fd]}
       2000: {file_type: [hrit_b07_seg, hrit_b07_fd]}
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [3.7, 3.9, 4.1]
     calibration:
       brightness_temperature:
@@ -327,7 +327,7 @@ datasets:
 
   B08:
     name: B08
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [6.0, 6.2, 6.4]
     resolution: 4000
     calibration:
@@ -341,7 +341,7 @@ datasets:
 
   B09:
     name: B09
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [6.7, 6.9, 7.1]
     resolution: 4000
     calibration:
@@ -355,7 +355,7 @@ datasets:
 
   B10:
     name: B10
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [7.1, 7.3, 7.5]
     resolution: 4000
     calibration:
@@ -369,7 +369,7 @@ datasets:
 
   B11:
     name: B11
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [8.4, 8.6, 8.8]
     resolution: 4000
     calibration:
@@ -383,7 +383,7 @@ datasets:
 
   B12:
     name: B12
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [9.4, 9.6, 9.8]
     resolution: 4000
     calibration:
@@ -397,7 +397,7 @@ datasets:
 
   B13:
     name: B13
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [10.2, 10.4, 10.6]
     resolution: 4000
     calibration:
@@ -411,7 +411,7 @@ datasets:
 
   B14:
     name: B14
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [11.0, 11.2, 11.4]
     resolution: 4000
     calibration:
@@ -425,7 +425,7 @@ datasets:
 
   B15:
     name: B15
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [12.2, 12.4, 12.6]
     resolution: 4000
     calibration:
@@ -439,7 +439,7 @@ datasets:
 
   B16:
     name: B16
-    instruments: [AHI]
+    instruments: [ahi]
     wavelength: [13.1, 13.3, 13.5]
     resolution: 4000
     calibration:

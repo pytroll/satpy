@@ -385,9 +385,13 @@ class HRITJMAFileHandler(HRITFileHandler):
         res.coords["acq_time"] = ("y", self.acq_time)
         res.coords["acq_time"].attrs["long_name"] = "Scanline acquisition time"
 
-        # Update attributes
+        # Update attributes. YAML info contains normalized instrument name,
+        # convert to WMO name.
         res.attrs.update(info)
-        res.attrs["instruments"] = set(res.attrs["instruments"])
+        res.attrs["instruments"] = {
+            instru.NORMALIZED_TO_WMO[instrument]
+            for instrument in res.attrs["instruments"]
+        }
         res.attrs["platform_name"] = self.platform
         res.attrs["orbital_parameters"] = {
             "projection_longitude": float(self.mda["projection_parameters"]["SSP_longitude"]),

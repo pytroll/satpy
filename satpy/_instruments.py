@@ -169,3 +169,9 @@ class OSCAR(StrEnum):
 def enum_to_str(instruments: set[StrEnum]) -> set[str]:
     """Convert OSCAR enums to string."""
     return {str(i) for i in instruments}
+
+
+NORMALIZED_TO_WMO: dict[str, str] = {
+    normalize_instrument_name(instrument): str(instrument)
+    for instrument in OSCAR
+}

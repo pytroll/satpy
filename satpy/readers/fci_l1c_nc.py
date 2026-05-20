@@ -190,6 +190,7 @@ from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
 import satpy
+import satpy._instruments as instru
 from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate
@@ -484,6 +485,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         """
         if info is not None:
             resattrs.update(info)
+            resattrs["instruments"] = {
+                instru.NORMALIZED_TO_WMO[instrument]
+                for instrument in resattrs["instruments"]
+            }
         if None not in (attrs, key):
             resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
 
