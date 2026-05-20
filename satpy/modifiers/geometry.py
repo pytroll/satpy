@@ -43,7 +43,10 @@ class SunZenithCorrectorBase(ModifierBase):
         vis = projectables[0]
         for correction in ["sunz_corrected", "effective_solar_pathlength_corrected"]:
             if vis.attrs.get(correction) or correction in vis.attrs.get("modifiers"):
-                logger.debug(f"Sun zenith correction '{correction}' already applied. Using data as is.")
+                logger.debug(
+                    f"Sun zenith angle correction '{correction}' already applied. "
+                    f"Skipping correction '{self.method}'."
+                )
                 return vis
 
         logger.debug("Applying Sun zenith angle correction")
@@ -130,6 +133,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 Additional keyword arguments passed to the parent class.
 
         """
+        self.method = "sunz_corrected"
         self.correction_limit = correction_limit
         self.max_sza = max_sza
         super(SunZenithCorrector, self).__init__(**kwargs)
@@ -188,7 +192,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
                 "it can be achieved by using the SunZenithCorrector with the same "
                 "`correction_limit` and `max_sza` parameters."
             )
-
+        self.method = "effective_solar_pathlength_corrected"
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):

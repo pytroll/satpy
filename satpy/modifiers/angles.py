@@ -628,7 +628,8 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     return data * corr
 
 
-def atmospheric_path_length_correction(data, cos_zen):
+def atmospheric_path_length_correction(data: xr.DataArray,
+                                       cos_zen: xr.DataArray) -> xr.DataArray:
     """Perform Sun zenith angle correction following the Li and Shibata parameterization.
 
     This function uses the correction method proposed by
