@@ -201,7 +201,9 @@ class Scene:
     def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
-            sensor_names.update(instru.get_instruments_from_attrs(data_arr.attrs))
+            sensor_names.update(
+                instru.get_instruments_from_attrs(data_arr.attrs, normalize=True)
+            )
         return sensor_names
 
     @property

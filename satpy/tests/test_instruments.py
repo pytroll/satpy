@@ -22,15 +22,16 @@ import satpy._instruments as instru
 
 
 @pytest.mark.parametrize(
-    ("attrs", "expected"),
+    ("attrs", "normalize", "expected"),
     [
-        ({"instruments": {"myinstr"}}, {"myinstr"}),
-        ({}, set()),
+        ({"instruments": {"AVHRR/3"}}, False, {"AVHRR/3"}),
+        ({"instruments": {"AVHRR/3"}}, True, {"avhrr-3"}),
+        ({}, False, set()),
     ]
 )
-def test_get_instruments_from_attrs(attrs, expected):
+def test_get_instruments_from_attrs(attrs, normalize, expected):
     """Test getting instruments from dataset attributes."""
-    assert instru.get_instruments_from_attrs(attrs) == expected
+    assert instru.get_instruments_from_attrs(attrs, normalize) == expected
 
 @pytest.mark.parametrize(
     ("attrs", "expected"),

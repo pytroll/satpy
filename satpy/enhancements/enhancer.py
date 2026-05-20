@@ -210,10 +210,10 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        sensors = instru.get_instruments_from_attrs(dataset.attrs)
+        sensors = instru.get_instruments_from_attrs(dataset.attrs, normalize=True)
         if sensors:
             enhancer.add_sensor_enhancements(sensors)
-        enhancer.apply(img, **dataset.attrs)
+        enhancer.apply(img, **_get_normalized_attrs(dataset, sensors))
 
     if overlay is not None:
         from satpy.enhancements.overlays import add_overlay
@@ -226,3 +226,10 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         img = add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
+
+
+def _get_normalized_attrs(dataset, normalized_instruments):
+    """Get normalized dataset attributes matching the YAML definition."""
+    attrs = dataset.attrs.copy()
+    instru.set_instruments_attr(attrs, normalized_instruments)
+    return attrs
