@@ -45,6 +45,15 @@ file_types:
         file_patterns: ['S_NWC_CMIC_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
         file_key_prefix: cmic_
 
+    nc_nwcsaf_cbh:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_CBH_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+    nc_nwcsaf_adcot:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_ADCOT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']    
+    
+
 datasets:
 
   lon:
@@ -53,6 +62,8 @@ datasets:
     - nc_nwcsaf_cma
     - nc_nwcsaf_ct
     - nc_nwcsaf_ctth
+    - nc_nwcsaf_cbh
+    - nc_nwcsaf_adcot
     units: "degrees"
     standard_name: longitude
   lat:
@@ -61,6 +72,8 @@ datasets:
     - nc_nwcsaf_cma
     - nc_nwcsaf_ct
     - nc_nwcsaf_ctth
+    - nc_nwcsaf_cbh
+    - nc_nwcsaf_adcot
     units: "degrees"
     standard_name: latitude
 
@@ -350,3 +363,60 @@ datasets:
     file_key: dcot
     file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
+
+# ---- CBH products ------------
+
+  cbh_alti:
+    name: cbh_alti
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_alti_pal:
+    name: cbh_alti_pal
+    scale_offset_dataset: cbh_alti
+    file_type: nc_nwcsaf_cbh
+
+  cbh_quality:
+    name: cbh_quality
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_conditions:
+    name: cbh_conditions
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_status_flag:
+    name: cbh_status_flag
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_pres:
+    name: cbh_pres
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_pres_pal:
+    name: cbh_pres_pal
+    scale_offset_dataset: cbh_pres
+    file_type: nc_nwcsaf_cbh
+
+  cbh_tempe:
+    name: cbh_tempe
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_tempe_pal:
+    name: cbh_tempe_pal
+    scale_offset_dataset: cbh_tempe
+    file_type: nc_nwcsaf_cbh
+      
+  cbh_hfeet:
+    name: cbh_hfeet
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
+
+  cbh_hfeet_pal:
+    name: cbh_hfeet_pal
+    scale_offset_dataset: cbh_hfeet
+    file_type: nc_nwcsaf_cbh

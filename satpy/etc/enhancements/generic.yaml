@@ -599,6 +599,43 @@ enhancements:
           - dataset: ctth_tempe_pal
             color_scale: 255
 
+  cloud_base_height:
+    standard_name: cloud_base_height
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: cbh_alti_pal
+  
+  cloud_base_pressure:
+    standard_name: cloud_base_pressure
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: cbh_pres_pal
+
+  cloud_base_height_in_hectofeet:
+    standard_name: cloud_base_height_in_hectofeet
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: cbh_hfeet_pal
+
+  cloud_base_temperature:
+    standard_name: cloud_base_temperature
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.palettize
+      kwargs:
+        palettes:
+          - dataset: cbh_tempe_pal     
+            color_scale: 255
+
   cloud_top_phase:
     standard_name: cloud_top_phase
     operations:
