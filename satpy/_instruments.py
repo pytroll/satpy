@@ -24,7 +24,7 @@ import satpy
 
 logger = logging.getLogger(__name__)
 
-def get_instruments_from_attrs(attrs: dict[str,Any], normalize: bool=False) -> set[str]:
+def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
     """Get instrument names from dataset attributes.
 
     String type attributes are converted to set. This can be
@@ -49,8 +49,6 @@ def get_instruments_from_attrs(attrs: dict[str,Any], normalize: bool=False) -> s
             stacklevel=2
         )
         instruments = set([instruments])
-    if normalize:
-        return {normalize_instrument_name(instrument) for instrument in instruments}
     return instruments
 
 
