@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import logging
 import os
 import shutil
 import warnings
@@ -40,6 +41,8 @@ import satpy
 from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
 PRGeometry: TypeAlias = SwathDefinition | AreaDefinition | StackedAreaDefinition
+
+logger = logging.getLogger(__name__)
 
 # Arbitrary time used when computing sensor angles that is passed to
 # pyorbital's get_observer_look function.
@@ -533,54 +536,95 @@ def _get_sensor_angles_ndarray(lons, lats, start_time, sat_lon, sat_lat, sat_alt
 
 def sunzen_corr_cos(data: da.Array,
                     cos_zen: da.Array,
-                    limit: float = 88.,
+                    correction_limit: Optional[float] = 88.,
                     max_sza: Optional[float] = 95.) -> da.Array:
-    """Perform Sun zenith angle correction.
+    """Perform standard Sun zenith angle correction.
 
-    The correction is based on the provided cosine of the zenith
-    angle (``cos_zen``).  The correction is limited
-    to ``limit`` degrees (default: 88.0 degrees).  For larger zenith
-    angles, the correction is the same as at the ``limit`` if ``max_sza``
-    is `None`. The default behavior is to gradually reduce the correction
-    past ``limit`` degrees up to ``max_sza`` where the correction becomes
-    0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
+    The correction is based on the provided cosine of the solar zenith angle
+    (``cos_zen``) and the correction is applied by multiplying the input ``data``
+    by the inverse of the ``cos_zen`` (``1/cos_zen``).
+
+    Through different combinations of the ``correction_limit`` and ``max_sza``
+    parameters, the correction can be capped or reduced at higher solar zenith angles.
+    See class definition of SunZenithCorrector for more details on how these parameters
+    can be used to tweak the correction. The typical historical use case is to avoid
+    over-correction at high solar zenith angles for improved (RGB) imagery, but not the
+    effective pathlength parameterization by Li and Shibata (2006) is recommended
+    when computing the reflectance for (RGB) imagery. This parameterization is availalbe
+    through the EffectiveSolarPathLengthCorrector class.
+
+    Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
     """
     return da.map_blocks(_sunzen_corr_cos_ndarray,
-                         data, cos_zen, limit, max_sza,
+                         data, cos_zen, correction_limit, max_sza,
                          meta=np.array((), dtype=data.dtype),
                          chunks=data.chunks)
 
 
 def _sunzen_corr_cos_ndarray(data: np.ndarray,
                              cos_zen: np.ndarray,
-                             limit: float,
+                             correction_limit: Optional[float],
                              max_sza: Optional[float]) -> np.ndarray:
-    # Convert the zenith angle limit to cosine of zenith angle
-    limit_rad = np.deg2rad(limit)
-    limit_cos = np.cos(limit_rad)
-    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
+    sunz = np.rad2deg(np.arccos(cos_zen))
 
-    # Cosine correction
+    # Start from standard cosine correction
     corr = (1. / cos_zen).astype(data.dtype, copy=False)
-    if max_sza is not None:
-        # gradually fall off for larger zenith angle
-        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
+
+    if correction_limit is not None:
+        corr_at_limit = 1. / np.cos(np.deg2rad(correction_limit))
+
+    if correction_limit is None and max_sza is None:
+        logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)].")
+        # Nothing more to do, the standard correction is already applied above.
+    elif correction_limit is None and max_sza is not None:
+        logger.debug(
+            f"Apply the standard sun-zenith correction [1/cos(sunz)] but set correction (and reflectance) "
+            f"to 0 for angles larger than {max_sza} degrees."
+        )
+        corr = np.where(sunz <= max_sza, corr, 0.).astype(data.dtype, copy=False)
+    elif correction_limit is not None and max_sza is None:
+        logger.debug(
+            f"Apply the standard sun-zenith correction [1/cos(sunz)] but cap the maximum correction "
+            f"for angles larger than {correction_limit} degrees."
+        )
+        corr = np.where(sunz <= correction_limit, corr, corr_at_limit).astype(data.dtype, copy=False)
+    elif correction_limit is not None and max_sza is not None:
+        logger.debug(
+            f"Apply the standard sun-zenith correction [1/cos(sunz)] but gradually reduce the correction "
+            f"for angles larger than {correction_limit} degrees up to {max_sza} degrees where the "
+            f"correction (and reflectance) becomes 0."
+        )
+        if max_sza <= correction_limit:
+            raise ValueError(
+                "max_sza should be larger than correction_limit for a gradual "
+                "reduction of the correction to work.")
+        reduction_factor = (sunz - correction_limit) / (max_sza - correction_limit)
+
         # invert the factor so maximum correction is done at `limit` and falls off later
         with np.errstate(invalid="ignore"):  # we expect space pixels to be invalid
-            grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
-        # make sure we don't make anything negative
-        grad_factor = grad_factor.clip(0.)
-    else:
-        # Use constant value (the limit) for larger zenith angles
-        grad_factor = 1.
-    corr = np.where(
-        cos_zen > limit_cos,
-        corr,
-        (grad_factor / limit_cos).astype(data.dtype, copy=False)
-    )
-    # Force "night" pixels to 0 (where SZA is invalid)
+            reduction_factor = 1. - np.log(reduction_factor + 1) / np.log(2)
+
+        corr_with_reduction = (corr_at_limit * reduction_factor).astype(data.dtype, copy=False)
+
+        corr = np.where(sunz < correction_limit, corr, corr_with_reduction)
+
+    if correction_limit is not None:
+        logger.warning(
+            "Capping or reducing the standard Sun zenith angle correction may lead to underesimated "
+            "reflectance values which is undesireble for scientific applications. To reduce the "
+            "overcorrection for (RGB) imagery the effective pathlength parameterization by Li and "
+            "Shibata (2006) is recommended over the standard correction. See "
+            "EffectiveSolarPathLengthCorrector for more details on this parameterization and how "
+            "to use it."
+        )
+
+    # Make sure we don't make anything negative
+    corr = corr.clip(0.)
+
+    # Force "night" and space pixels to 0 (where SZA is invalid)
     corr[np.isnan(cos_zen)] = 0
+
     return data * corr
 
 
