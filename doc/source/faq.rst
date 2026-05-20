@@ -206,3 +206,18 @@ routine. A similar result can be obtained as follows:
 To learn more about how Satpy scales data for images and more on the
 :func:`~satpy.enhancements.enhancer.get_enhanced_image` function see the
 :doc:`enhancements` documentation.
+
+
+What are the reflectance vs radiance factor quantities for reflective channels
+------------------------------------------------------------------------------
+
+Satpy reads reflective data and carries two calibration levels for it: radiance_factor and reflectance.
+The difference is that reflectance is normalised by the cosine of the sun zenith angle, while the radiance_factor is not.
+
+Radiance_factor:
+
+rf = L_vis * solar_irradiance
+
+Reflectance:
+
+ρ = L_vis * solar_irradiance / cos(sza)
