@@ -387,11 +387,7 @@ class HRITJMAFileHandler(HRITFileHandler):
 
         # Update attributes. YAML info contains normalized instrument name,
         # convert to WMO name.
-        res.attrs.update(info)
-        res.attrs["instruments"] = {
-            inst_utils.NORMALIZED_TO_WMO[instrument]
-            for instrument in res.attrs["instruments"]
-        }
+        self._update_attrs_with_reader_info(res.attrs, info)
         res.attrs["platform_name"] = self.platform
         res.attrs["orbital_parameters"] = {
             "projection_longitude": float(self.mda["projection_parameters"]["SSP_longitude"]),
@@ -399,6 +395,15 @@ class HRITJMAFileHandler(HRITFileHandler):
             "projection_altitude": float(self.mda["projection_parameters"]["h"])}
 
         return res
+
+    def _update_attrs_with_reader_info(self, attrs, info):
+        attrs.update(info)
+        # Instrument names in reader definition are internal format,
+        # convert to WMO names.
+        attrs["instruments"] = {
+            inst_utils.internal_to_wmo(instrument)
+            for instrument in attrs["instruments"]
+        }
 
     def _mask_space(self, data):
         """Mask space pixels."""

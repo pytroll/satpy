@@ -483,12 +483,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
         are not propagated to the calibrated data.
         """
-        if info is not None:
-            resattrs.update(info)
-            resattrs["instruments"] = {
-                inst_utils.NORMALIZED_TO_WMO[instrument]
-                for instrument in resattrs["instruments"]
-            }
+        self._update_attrs_with_reader_info(resattrs, info)
         if None not in (attrs, key):
             resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
 
@@ -505,6 +500,16 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         resattrs.update(self.orbital_param)
         return resattrs
+
+    def _update_attrs_with_reader_info(self, attrs, info):
+        if info is not None:
+            attrs.update(info)
+            # Instrument names in reader definition are internal format,
+            # convert to WMO names.
+            attrs["instruments"] = {
+                inst_utils.internal_to_wmo(instrument)
+                for instrument in attrs["instruments"]
+            }
 
     def get_iqt_parameters_lon_lat_alt(self):
         """Compute the orbital parameters for IQT data.
