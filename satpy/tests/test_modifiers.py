@@ -211,13 +211,14 @@ class TestSunZenithCorrector:
         assert values.dtype == dtype
         assert type(res.data) is type(data_arr.data)
 
-    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
+    def test_incompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+        info = {"test_attr": "test", "optional_datasets": [sunz_sza]}
         with pytest.raises(IncompatibleAreas):
-            comp((sunz_ds2, sunz_sza), test_attr="test")
+            comp((sunz_ds2,), **info)
 
 
 class TestSunZenithReducer:
