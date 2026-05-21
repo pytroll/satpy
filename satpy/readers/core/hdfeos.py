@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2026 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -122,6 +122,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
                 continue
             else:
                 metadata.update(self.read_mda(str_val))
+
         return metadata
 
     @classmethod
@@ -225,6 +226,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         dataset = self._read_dataset_in_file(dataset_name)
         chunks = self._chunks_for_variable(dataset)
         dask_arr = from_sds(dataset, self.filename, chunks=chunks)
+        #breakpoint()
         dims = ("y", "x") if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
@@ -384,6 +386,11 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             if key in dataset_info:
                 data.attrs[key] = dataset_info[key]
         self._add_satpy_metadata(dataset_id, data)
+
+        # mask = (~data.isnull().all(dim="x")).compute()
+        # idx = np.where(mask.values)[0]
+        # data_reduced = data.isel(y=idx)
+        # print(data_reduced.shape)
 
         return data
 
