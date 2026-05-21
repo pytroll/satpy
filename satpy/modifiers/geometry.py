@@ -226,8 +226,9 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
         """
         self.correction_limit = correction_limit
+        self.max_sza = max_sza
         self.strength = strength
-        super(SunZenithReducer, self).__init__(max_sza=max_sza, **kwargs)
+        super(SunZenithReducer, self).__init__(**kwargs)
         if self.max_sza is None:
             raise ValueError("`max_sza` must be defined when using the SunZenithReducer.")
 
