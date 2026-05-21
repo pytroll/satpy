@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  instruments: [mhs,]
+  instruments: [mhs]
 
   data_identification_keys:
     name:
