@@ -1301,7 +1301,7 @@ def test_read_physical_seviri_nat_file(full_path):
     """
     scene = scene_from_physical_seviri_nat_file(full_path)
 
-    assert scene.sensor_names == {"seviri"}
+    assert scene.sensor_names == {"SEVIRI"}
     assert len(scene.available_dataset_ids()) == 36
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
 

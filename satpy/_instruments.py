@@ -17,13 +17,14 @@
 
 import logging
 import warnings
+from enum import StrEnum
 from typing import Any
 
 import satpy
 
 logger = logging.getLogger(__name__)
 
-def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
+def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) -> set[str]:
     """Get instrument names from dataset attributes.
 
     String type attributes are converted to set. This can be
@@ -48,13 +49,25 @@ def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
             stacklevel=2
         )
         instruments = set([instruments])
+    if to_internal:
+        return {
+            wmo_to_internal(inst) for inst in instruments
+        }
     return instruments
 
 
 
-def normalize_instrument_name(instrument: str) -> str:
-    """Normalize instrument name for internal usage."""
-    return instrument.replace("-", "").replace(" ", "_").replace("/", "-").lower()
+def wmo_to_internal(instrument: str) -> str:
+    """Convert WMO to internal instrument name."""
+    sep_map = {
+        "-": "-",
+        "(": "",
+        ")": "",
+        " ": "_",
+        "/": "-"
+    }
+    sep_trans = str.maketrans(sep_map)
+    return instrument.translate(sep_trans).lower()
 
 
 def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
@@ -69,15 +82,12 @@ def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
 
 def get_pyspectral_instrument_name(instrument: str) -> str:
     """Get instrument name expected by pyspectral."""
-    return normalize_instrument_name(instrument)
+    return wmo_to_internal(instrument)
 
 
-def serialize_instruments(instruments: set[str]) -> str:
-    """Serialize a set of instruments."""
-    return "-".join(
-        instr.replace("-", "").replace(" ", "").replace("/", "").lower()
-        for instr in sorted(instruments)
-    )
+def join_instrument_names(instruments: set[str]) -> str:
+    """Join a set of instrument names."""
+    return "-".join(sorted(instruments))
 
 
 def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> None:
@@ -89,3 +99,75 @@ def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> Non
 def get_instruments_key():
     """Get key for instruments in dataset attributes."""
     return satpy.config.get("instruments_key")
+
+
+class OSCAR(StrEnum):
+    """WMO OSCAR instrument names."""
+    ABI = "ABI"
+    AHI = "AHI"
+    AMSR_2 = "AMSR2"
+    AMSU_A = "AMSU-A"
+    AMSU_B = "AMSU-B"
+    ATMS = "ATMS"
+    AVHRR = "AVHRR"
+    AVHRR_2 = "AVHRR/2"
+    AVHRR_3 = "AVHRR/3"
+    CRIS = "CrIS"
+    EPIC = "EPIC"
+    ETM_PLUS = "ETM+"
+    FCI = "FCI"
+    GLM = "GLM"
+    GMI = "GMI"
+    IASI = "IASI"
+    IASI_NG = "IASI-NG"
+    IMAGER_GOES_12_15 = "IMAGER (GOES 12-15)"
+    IMAGER_GOES_8_11 = "IMAGER (GOES 8-11)"
+    IMAGER_INSAT = "IMAGER (INSAT)"
+    IMAGER_MTSAT_2 = "IMAGER (MTSAT-2)"
+    JAMI = "JAMI"
+    LI = "LI"
+    MERIS = "MERIS"
+    MERSI_1 = "MERSI-1"
+    MERSI_2 = "MERSI-2"
+    MERSI_3 = "MERSI-3"
+    MERSI_LL = "MERSI-LL"
+    MERSI_RM = "MERSI-RM"
+    METIMAGE = "METimage"
+    MHS = "MHS"
+    MODIS = "MODIS"
+    MSS = "MSS"
+    MSU_GS = "MSU-GS"
+    MSU_GS_A = "MSU-GS/A"
+    MVIRI = "MVIRI"
+    # OSCAR lists "MWR (Sterna)", "MWR (AWS)" etc.
+    # But to avoid enhancement/composite duplication
+    # we just use "MWR".
+    MWR = "MWR"
+    OCI = "OCI"
+    OLCI = "OLCI"
+    OLI = "OLI"
+    SEAWIFS = "SeaWiFS"
+    SEVIRI = "SEVIRI"
+    SGLI = "SGLI"
+    SLSTR = "SLSTR"
+    SSMIS = "SSMIS"
+    TIRS = "TIRS"
+    TM = "TM"
+    VIIRS = "VIIRS"
+    VISSR = "VISSR"
+    VISSR_HIMAWARI_5 = "VISSR (Himawari-5)"
+
+
+def enum_to_str(instruments: set[StrEnum]) -> set[str]:
+    """Convert OSCAR enums to string."""
+    return {str(i) for i in instruments}
+
+
+_INTERNAL_TO_WMO = {
+    wmo_to_internal(inst): str(inst)
+    for inst in OSCAR
+}
+
+def internal_to_wmo(instrument: str) -> str:
+    """Convert internal to WMO instrument name."""
+    return _INTERNAL_TO_WMO.get(instrument, instrument)

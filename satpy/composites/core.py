@@ -26,7 +26,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.utils import unify_chunks
@@ -437,7 +437,7 @@ class GenericCompositor(CompositeBase):
     def _get_sensors(self, projectables) -> set[str]:
         sensors = set()
         for projectable in projectables:
-            sensors.update(instru.get_instruments_from_attrs(projectable.attrs))
+            sensors.update(inst_utils.get_instruments_from_attrs(projectable.attrs))
         return sensors
 
     def __call__(
@@ -504,7 +504,7 @@ class GenericCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         if resolution is not None:
             new_attrs["resolution"] = resolution
-        instru.set_instruments_attr(new_attrs, self._get_sensors(datasets))
+        inst_utils.set_instruments_attr(new_attrs, self._get_sensors(datasets))
         new_attrs["mode"] = mode
 
         return new_attrs
