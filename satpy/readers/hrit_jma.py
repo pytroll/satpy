@@ -99,7 +99,7 @@ import logging
 import numpy as np
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 import satpy.utils
 from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
@@ -375,7 +375,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         # Filenames of segmented data is identical for MTSAT-1R, MTSAT-2
         # and Himawari-8/9. Make sure we have the correct reader for the data
         # at hand.
-        instrument = instru.get_one_instrument_from_attrs(info)
+        instrument = inst_utils.get_one_instrument_from_attrs(info)
         self._check_sensor_platform_consistency(instrument)
 
         # Calibrate and mask space pixels
@@ -389,7 +389,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         # convert to WMO name.
         res.attrs.update(info)
         res.attrs["instruments"] = {
-            instru.NORMALIZED_TO_WMO[instrument]
+            inst_utils.NORMALIZED_TO_WMO[instrument]
             for instrument in res.attrs["instruments"]
         }
         res.attrs["platform_name"] = self.platform

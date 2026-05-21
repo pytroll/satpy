@@ -18,19 +18,20 @@
 import pytest
 
 import satpy
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 
 
 @pytest.mark.parametrize(
-    ("attrs", "expected"),
+    ("attrs", "to_internal", "expected"),
     [
-        ({"instruments": {"myinstr"}}, {"myinstr"}),
-        ({}, set()),
+        ({"instruments": {"AVHRR/3"}}, False, {"AVHRR/3"}),
+        ({"instruments": {"AVHRR/3"}}, True, {"avhrr-3"}),
+        ({}, False, set()),
     ]
 )
-def test_get_instruments_from_attrs(attrs, expected):
+def test_get_instruments_from_attrs(attrs, to_internal, expected):
     """Test getting instruments from dataset attributes."""
-    assert instru.get_instruments_from_attrs(attrs) == expected
+    assert inst_utils.get_instruments_from_attrs(attrs, to_internal) == expected
 
 @pytest.mark.parametrize(
     ("attrs", "expected"),
@@ -43,39 +44,64 @@ def test_get_instruments_from_attrs(attrs, expected):
 def test_get_instruments_from_attrs_with_warning(attrs, expected):
     """Test deprecation warnings when getting instruments."""
     with pytest.warns(DeprecationWarning, match="v1.1"):
-        assert instru.get_instruments_from_attrs(attrs) == expected
+        assert inst_utils.get_instruments_from_attrs(attrs) == expected
 
-def test_normalize_instrument_name():
-    """Test instrument name normalization."""
-    instr = "My Instrument-123/1 (My Platform)"
-    expected = "my_instrument123-1_my_platform"
-    assert instru.normalize_instrument_name(instr) == expected
 
-def test_serialize_instruments():
-    """Test instrument set serialization."""
-    instruments = {"My Instrument-123/1 (My Platform)", "ABI"}
-    expected = "abi-myinstrument1231myplatform"
-    assert instru.serialize_instruments(instruments) == expected
+@pytest.mark.parametrize(
+    ("instrument", "expected"),
+    [
+        ("AVHRR/3", "avhrr-3"),
+        ("IMAGER (GOES 8-11)", "imager_goes_8-11"),
+        ("MERSI-1", "mersi-1"),
+        ("MSU-GS/A", "msu-gs-a"),
+    ]
+)
+def test_wmo_to_internal(instrument, expected):
+    """Test conversion to internal instrument name."""
+    assert inst_utils.wmo_to_internal(instrument) == expected
+
+
+def test_join_instruments():
+    """Test joining a set of instruments."""
+    instruments = {"mersi-1", "abi"}
+    expected = "abi-mersi-1"
+    assert inst_utils.join_instrument_names(instruments) == expected
+
 
 def test_set_instruments_attr():
     """Test setting instruments attribute."""
     attrs = {"instruments": {"myinstrument"}}
     new_instruments = {"i1", "i2"}
     with satpy.config.set(instruments_key="instruments"):
-        instru.set_instruments_attr(attrs, new_instruments)
+        inst_utils.set_instruments_attr(attrs, new_instruments)
         assert attrs["instruments"] == new_instruments
+
 
 def test_get_one_instrument_from_attrs():
     """Test getting a single instrument from dataset attributes."""
     attrs = {"instruments": {"i1"}}
     with satpy.config.set(instruments_key="instruments"):
-        assert instru.get_one_instrument_from_attrs(attrs) == "i1"
+        assert inst_utils.get_one_instrument_from_attrs(attrs) == "i1"
+
 
 def test_get_one_instrument_from_attrs_with_warning(caplog):
     """Test warnings when getting a single instrument."""
     attrs = {"instruments": {"i1", "i2"}}
     with satpy.config.set(instruments_key="instruments"):
-        instru.get_one_instrument_from_attrs(attrs)
+        inst_utils.get_one_instrument_from_attrs(attrs)
         assert "More than one" in caplog.text
         with pytest.raises(KeyError):
-            instru.get_one_instrument_from_attrs({})
+            inst_utils.get_one_instrument_from_attrs({})
+
+
+
+@pytest.mark.parametrize(
+    ("instrument", "expected"),
+    [
+        ("abi", "ABI"),
+        ("ABI", "ABI"),
+    ]
+)
+def test_internal_to_wmo(instrument, expected):
+    """Test conversion to WMO instrument name."""
+    assert inst_utils.internal_to_wmo(instrument) == expected

@@ -35,7 +35,7 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import unzip_file
@@ -230,7 +230,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop("scale_factor", None)
 
         variable.attrs.update({"platform_name": self.platform_name,
-                               "instruments": instru.enum_to_str(self.sensor)})
+                               "instruments": inst_utils.enum_to_str(self.sensor)})
 
         if not variable.attrs.get("standard_name", "").endswith("status_flag"):
             # TODO: do we really need to add units to everything ?

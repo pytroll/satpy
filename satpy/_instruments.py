@@ -24,7 +24,7 @@ import satpy
 
 logger = logging.getLogger(__name__)
 
-def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
+def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) -> set[str]:
     """Get instrument names from dataset attributes.
 
     String type attributes are converted to set. This can be
@@ -49,14 +49,18 @@ def get_instruments_from_attrs(attrs: dict[str,Any]) -> set[str]:
             stacklevel=2
         )
         instruments = set([instruments])
+    if to_internal:
+        return {
+            wmo_to_internal(inst) for inst in instruments
+        }
     return instruments
 
 
 
-def normalize_instrument_name(instrument: str) -> str:
-    """Normalize instrument name for internal usage."""
+def wmo_to_internal(instrument: str) -> str:
+    """Convert WMO to internal instrument name."""
     sep_map = {
-        "-": "",
+        "-": "-",
         "(": "",
         ")": "",
         " ": "_",
@@ -78,23 +82,12 @@ def get_one_instrument_from_attrs(attrs: dict[str,Any]) -> str:
 
 def get_pyspectral_instrument_name(instrument: str) -> str:
     """Get instrument name expected by pyspectral."""
-    return normalize_instrument_name(instrument)
+    return wmo_to_internal(instrument)
 
 
-def serialize_instruments(instruments: set[str]) -> str:
-    """Serialize a set of instruments."""
-    sep_map = {
-        "-": "",
-        "(": "",
-        ")": "",
-        " ": "",
-        "/": ""
-    }
-    sep_trans = str.maketrans(sep_map)
-    return "-".join(
-        instr.translate(sep_trans).lower()
-        for instr in sorted(instruments)
-    )
+def join_instrument_names(instruments: set[str]) -> str:
+    """Join a set of instrument names."""
+    return "-".join(sorted(instruments))
 
 
 def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> None:
@@ -106,7 +99,6 @@ def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> Non
 def get_instruments_key():
     """Get key for instruments in dataset attributes."""
     return satpy.config.get("instruments_key")
-
 
 
 class OSCAR(StrEnum):
@@ -171,7 +163,11 @@ def enum_to_str(instruments: set[StrEnum]) -> set[str]:
     return {str(i) for i in instruments}
 
 
-NORMALIZED_TO_WMO: dict[str, str] = {
-    normalize_instrument_name(instrument): str(instrument)
-    for instrument in OSCAR
+_INTERNAL_TO_WMO = {
+    wmo_to_internal(inst): str(inst)
+    for inst in OSCAR
 }
+
+def internal_to_wmo(instrument: str) -> str:
+    """Convert internal to WMO instrument name."""
+    return _INTERNAL_TO_WMO.get(instrument, instrument)

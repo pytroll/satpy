@@ -43,7 +43,7 @@ import numpy as np
 import rioxarray  # noqa: F401  # need by xarray with the engine rasterio
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
@@ -214,7 +214,7 @@ class BaseLandsatReader(BaseFileHandler):
         attrs["perc_cloud_cover"] = self._mda.cloud_cover
         # Add platform / sensor attributes
         attrs["platform_name"] = self.platform_name
-        attrs["instruments"] = instru.enum_to_str(self.sensor)
+        attrs["instruments"] = inst_utils.enum_to_str(self.sensor)
         # Apply attrs from YAML
         if "standard_name" in info:
             attrs["standard_name"] = info["standard_name"]

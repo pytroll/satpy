@@ -31,7 +31,7 @@ warned about the quality of the result.
 
 import datetime as dt
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.readers.core.hdf4 import HDF4FileHandler
 from satpy.readers.core.netcdf import NetCDF4FileHandler
@@ -46,7 +46,7 @@ class _SEADASL2Base:
         self.apply_quality_flags = apply_quality_flags and self.l2_flags_var_name in self
 
     def _add_satpy_metadata(self, data):
-        data.attrs["instruments"] = instru.enum_to_str(self.sensor_names)
+        data.attrs["instruments"] = inst_utils.enum_to_str(self.sensor_names)
         data.attrs["platform_name"] = self._platform_name()
         data.attrs["rows_per_scan"] = self._rows_per_scan()
         return data

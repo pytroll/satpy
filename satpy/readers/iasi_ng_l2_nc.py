@@ -38,7 +38,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
@@ -110,7 +110,7 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
 
         ds_infos = {
             "name": ds_name,
-            "instruments": instru.enum_to_str(self.sensors),
+            "instruments": inst_utils.enum_to_str(self.sensors),
             "file_type": self.filetype_info["file_type"],
         }
 

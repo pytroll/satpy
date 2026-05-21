@@ -40,7 +40,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.readers.core.yaml_reader import FileYAMLReader
@@ -171,7 +171,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
-            "instruments": instru.enum_to_str(self.sensor_names),
+            "instruments": inst_utils.enum_to_str(self.sensor_names),
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })

@@ -191,7 +191,7 @@ import numpy as np
 import xarray as xr
 from pyproj import Proj
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.readers.core.fci import platform_name_translate
 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
@@ -522,7 +522,7 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
         ds_info = {
             "name": ds_name,
             "variable_name": var_name,
-            "instruments": instru.enum_to_str(self.sensor_names),
+            "instruments": inst_utils.enum_to_str(self.sensor_names),
             "platform_name": platform_name_translate[platform],
             "file_type": self.filetype_info["file_type"]
         }

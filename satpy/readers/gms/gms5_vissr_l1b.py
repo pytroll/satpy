@@ -158,7 +158,7 @@ import numba
 import numpy as np
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms5_vissr_navigation as nav
@@ -764,7 +764,7 @@ class AreaDefEstimator:
         name_dict = geos_area.get_geos_area_naming(
             {
                 "platform_name": self.metadata["platform"],
-                "instrument_name": instru.get_one_instrument_from_attrs(self.metadata),
+                "instrument_name": inst_utils.get_one_instrument_from_attrs(self.metadata),
                 "service_name": "western-pacific",
                 "service_desc": "Western Pacific",
                 "resolution": dataset_id["resolution"],

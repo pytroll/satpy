@@ -27,7 +27,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-import satpy._instruments as instru
+import satpy._instruments as inst_utils
 from satpy._instruments import OSCAR
 from satpy.aux_download import retrieve
 from satpy.readers.core.file_handlers import BaseFileHandler
@@ -329,7 +329,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         metadata = {}
         metadata.update(ds_info)
         metadata.update({
-            "instruments": instru.enum_to_str(self.sensor),
+            "instruments": inst_utils.enum_to_str(self.sensor),
             "platform_name": self.platform_name,
             "start_time": self.start_time,
             "end_time": self.end_time,
