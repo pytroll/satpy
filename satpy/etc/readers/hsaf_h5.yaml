@@ -6,7 +6,7 @@ reader:
   status: Beta, only h10 currently supported
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [hsaf]
+  instruments: [hsaf]
 
 file_types:
   hsafh5:

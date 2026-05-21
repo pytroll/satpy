@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [abi, ahi, goes_imager]
+  instruments: [abi, ahi, goes_imager]
 
 file_types:
   level2:

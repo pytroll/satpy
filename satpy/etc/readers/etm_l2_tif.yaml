@@ -5,7 +5,7 @@ reader:
   description: GeoTIFF reader for Landsat-7 ETM+ L2 data.
   status: Beta
   supports_fsspec: true
-  sensors: etm+
+  instruments: etm+
   default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   data_identification_keys:

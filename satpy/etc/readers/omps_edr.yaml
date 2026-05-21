@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: true
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [omps]
+  instruments: [omps]
 
 file_types:
   omps_total_ozone:

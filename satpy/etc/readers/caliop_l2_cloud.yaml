@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   default_datasets: []
-  sensors: [caliop]
+  instruments: [caliop]
 
 datasets:
   elevation:

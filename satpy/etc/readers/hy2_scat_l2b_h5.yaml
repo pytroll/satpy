@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [scatterometer]
+  instruments: [scatterometer]
   default_datasets:
 
 file_types:

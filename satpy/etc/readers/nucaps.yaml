@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
-  sensors: [cris, atms, viirs]
+  instruments: [cris, atms, viirs]
   data_identification_keys:
     name:
       required: true

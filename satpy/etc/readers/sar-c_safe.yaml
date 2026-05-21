@@ -5,7 +5,7 @@ reader:
   description: SAFE Reader for SAR-C data
   status: Nominal
   supports_fsspec: true
-  sensors: [sar-c]
+  instruments: [sar-c]
   reader: !!python/name:satpy.readers.sar_c_safe.SAFESARReader
   data_identification_keys:
     name:

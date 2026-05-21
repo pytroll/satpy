@@ -5,7 +5,7 @@ reader:
   description: H5 reader for MSG-GS/A data
   status: Beta
   supports_fsspec: false
-  sensors: [msu_gsa]
+  instruments: [msu_gsa]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 
