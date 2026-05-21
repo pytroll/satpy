@@ -211,7 +211,7 @@ To learn more about how Satpy scales data for images and more on the
 
 
 What are the reflectance vs unnormalized reflectance quantities for reflective channels
-------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
 
 Satpy reads reflective data and carries two calibration levels for it: `unnormalized_reflectance` and `reflectance`.
 The difference is that `reflectance` is normalised by the cosine of the sun zenith angle, while the
