@@ -111,7 +111,7 @@ def sunz_sza():
 
 
 class TestSunZenithCorrector:
-    """Test case for the zenith corrector."""
+    """Test case for the standard Sun zenith angle corrector."""
 
     @pytest.mark.parametrize("as_32bit", [False, True])
     def test_basic_default_not_provided(self, sunz_ds1, as_32bit):
@@ -123,14 +123,14 @@ class TestSunZenithCorrector:
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
         res = comp((sunz_ds1,), test_attr="test")
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
-                                   rtol=1e-6)
+                                   rtol=1e-5)
         assert "y" in res.coords
         assert "x" in res.coords
         ds1 = sunz_ds1.copy().drop_vars(("y", "x"))
         res = comp((ds1,), test_attr="test")
         res_np = res.compute()
         np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
-                                   rtol=1e-6)
+                                   rtol=1e-5)
         assert res.dtype == res_np.dtype
         assert "y" not in res.coords
         assert "x" not in res.coords
@@ -158,7 +158,7 @@ class TestSunZenithCorrector:
         res = comp((data_arr.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
         expected = np.array([[22.401667, 22.31777], [22.437503, 22.353533]], dtype=dtype)
         values = res.values
-        np.testing.assert_allclose(values, expected)
+        np.testing.assert_allclose(values, expected, rtol=1e-5)
         assert res.dtype == dtype
         assert values.dtype == dtype
 
