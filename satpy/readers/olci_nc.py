@@ -236,12 +236,12 @@ class NCOLCI1B(NCOLCIChannelBase):
                 sflux = self._get_solar_flux(idx)
                 dataset = dataset / sflux * np.pi * 100
                 dataset.attrs["units"] = "%"
-        # 8< v1.0
-        if key["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for OLCI channels, please use "
-                "'unnormalized_reflectance'",
-                 DeprecationWarning)
-        # >8 v1.0
+            # 8< v1.0
+            if key["calibration"] == "reflectance":
+                warnings.warn("Reflectance is not a correct calibration for OLCI channels, please use "
+                    "'unnormalized_reflectance'",
+                     DeprecationWarning)
+            # >8 v1.0
 
         dataset.attrs["platform_name"] = self.platform_name
         dataset.attrs["sensor"] = self.sensor
