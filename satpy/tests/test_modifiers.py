@@ -306,6 +306,7 @@ class TestSunZenithReducer:
         values = res.values
         assert values.dtype == dtype
         np.testing.assert_allclose(values, expected, rtol=2e-5)
+        assert type(res.data) is type(sunz_ds1.data)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_custom_settings(self, sunz_ds1, sunz_sza, dtype):
@@ -317,6 +318,7 @@ class TestSunZenithReducer:
         values = res.values
         assert values.dtype == dtype
         np.testing.assert_allclose(values, expected, rtol=2e-5)
+        assert type(res.data) is type(sunz_ds1.data)
 
     def test_invalid_max_sza(self):
         """Test invalid max_sza with sza data available."""
@@ -373,7 +375,6 @@ class TestNIRReflectance:
                 "wavelength": (12.0, 13.0, 14.0),
                 "units": "K",
             })
-
 
     @pytest.mark.parametrize(
         ("include_sunz", "include_co2", "exp_res"),
