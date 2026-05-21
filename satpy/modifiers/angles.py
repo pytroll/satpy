@@ -640,21 +640,12 @@ def atmospheric_path_length_correction(data: xr.DataArray,
     return data * corr
 
 
-def sunzen_reduction(data: da.Array,
-                     sunz: da.Array,
+def sunzen_reduction(data: xr.DataArray,
+                     sunz: xr.DataArray,
                      limit: float = 55.,
                      max_sza: float = 90.,
-                     strength: float = 1.5) -> da.Array:
+                     strength: float = 1.5) -> xr.DataArray:
     """Reduced strength of signal at high sun zenith angles."""
-    return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
-                         meta=np.array((), dtype=data.dtype), chunks=data.chunks)
-
-
-def _sunzen_reduction_ndarray(data: np.ndarray,
-                              sunz: np.ndarray,
-                              limit: float,
-                              max_sza: float,
-                              strength: float) -> np.ndarray:
     # compute reduction factor (0.0 - 1.0) between limit and maz_sza
     reduction_factor = (sunz - limit) / (max_sza - limit)
     reduction_factor = reduction_factor.clip(0., 1.)
@@ -669,11 +660,11 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
     reduction_factor = reduction_factor ** strength / (
                 reduction_factor ** strength + (1 - reduction_factor) ** strength)
 
-    # compute final correction term, with no reduction for angles < limit
-    corr = np.where(sunz < limit, 1.0, reduction_factor)
+    # compute final correction term, with no reduction (=1.0) for angles < limit
+    corr = reduction_factor.where(sunz >= limit, 1.0)
 
     # force "night" pixels to 0 (where SZA is invalid)
-    corr[np.isnan(sunz)] = 0
+    corr = corr.where(sunz.notnull(), 0)
 
     # reduce data signal with correction term
     res = data * corr

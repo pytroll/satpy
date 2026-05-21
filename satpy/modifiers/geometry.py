@@ -233,10 +233,10 @@ class SunZenithReducer(SunZenithCorrectorBase):
     def _apply_correction(self, proj, coszen):
         logger.debug(f"Applying sun-zenith signal reduction with correction_limit {self.correction_limit} deg,"
                      f" strength {self.strength}, and max_sza {self.max_sza} deg.")
-        res = proj.copy()
-        sunz = np.rad2deg(np.arccos(coszen.data))
-        res.data = sunzen_reduction(proj.data, sunz,
-                                    limit=self.correction_limit,
-                                    max_sza=self.max_sza,
-                                    strength=self.strength)
+        sunz = np.rad2deg(np.arccos(coszen))
+        res = sunzen_reduction(proj,
+                               sunz,
+                               limit=self.correction_limit,
+                               max_sza=self.max_sza,
+                               strength=self.strength)
         return res
