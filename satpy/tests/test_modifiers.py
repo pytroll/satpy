@@ -215,7 +215,7 @@ class TestSunZenithCorrector:
         """Test sunz correction on incompatible areas."""
         from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
-        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=90)
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
         with pytest.raises(IncompatibleAreas):
             comp((sunz_ds2, sunz_sza), test_attr="test")
 
