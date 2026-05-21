@@ -557,29 +557,28 @@ def sunzen_corr_cos(data: xr.DataArray,
 
     """
     sunz = np.rad2deg(np.arccos(cos_zen))
+    corr_standard = (1. / cos_zen)
+    corr_at_limit = (
+        1. / np.cos(np.deg2rad(correction_limit))
+        if correction_limit is not None
+        else None
+    )
 
-    # Start from standard cosine correction
-    corr = (1. / cos_zen).astype(data.dtype, copy=False)
-
-    if correction_limit is not None:
-        corr_at_limit = 1. / np.cos(np.deg2rad(correction_limit))
-
-    if correction_limit is None and max_sza is None:
-        logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)].")
-        # Nothing more to do, the standard correction is already applied above.
-    elif correction_limit is None and max_sza is not None:
+    def cutoff():
         logger.debug(
             f"Apply the standard sun-zenith correction [1/cos(sunz)] but set correction (and reflectance) "
             f"to 0 for angles larger than {max_sza} degrees."
         )
-        corr = corr.where(sunz <= max_sza, 0).astype(data.dtype, copy=False)
-    elif correction_limit is not None and max_sza is None:
+        return corr_standard.where(sunz <= max_sza, 0)
+
+    def capped():
         logger.debug(
             f"Apply the standard sun-zenith correction [1/cos(sunz)] but cap the maximum correction "
             f"for angles larger than {correction_limit} degrees."
         )
-        corr = corr.where(sunz <= correction_limit, corr_at_limit).astype(data.dtype, copy=False)
-    elif correction_limit is not None and max_sza is not None:
+        return corr_standard.where(sunz <= correction_limit, corr_at_limit)
+
+    def reduced():
         logger.debug(
             f"Apply the standard sun-zenith correction [1/cos(sunz)] but gradually reduce the correction "
             f"for angles larger than {correction_limit} degrees up to {max_sza} degrees where the "
@@ -597,22 +596,33 @@ def sunzen_corr_cos(data: xr.DataArray,
 
         corr_with_reduction = (corr_at_limit * reduction_factor)
 
-        corr = corr.where(sunz < correction_limit, corr_with_reduction).astype(data.dtype, copy=False)
+        return corr_standard.where(sunz < correction_limit, corr_with_reduction)
+
+    # Check if any modification of the standard correction is requested
+    if correction_limit is None and max_sza is not None:
+        corr = cutoff()
+    elif correction_limit is not None and max_sza is None:
+        corr = capped()
+    elif correction_limit is not None and max_sza is not None:
+        corr = reduced()
+    else:
+        logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)].")
+        corr = corr_standard
 
     if correction_limit is not None:
         logger.warning(
             "Capping or reducing the standard Sun zenith angle correction may lead to underesimated "
-            "reflectance values which is undesireble for scientific applications. To reduce the "
-            "overcorrection for (RGB) imagery the effective pathlength parameterization by Li and "
-            "Shibata (2006) is recommended over the standard correction. See "
+            "reflectance values which is undesireble for quantitative and scientific applications. "
+            "To reduce the overcorrection for (RGB) imagery the effective pathlength parameterization "
+            "by Li and Shibata (2006) is recommended over the standard correction. See "
             "EffectiveSolarPathLengthCorrector for more details on this parameterization and how "
             "to use it."
         )
 
-    # Make sure we don't make anything negative
+    # Preserve data type, make sure we don't produce negative values and set correction to 0 for
+    # "night" and space pixels where SZA is invalid
+    corr = corr.astype(data.dtype, copy=False)
     corr = corr.clip(0.)
-
-    # Force "night" and space pixels to 0 (where SZA is invalid)
     corr = corr.where(cos_zen.notnull(), 0)
 
     return data * corr
