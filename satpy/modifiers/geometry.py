@@ -139,9 +139,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        res = proj.copy()
-        res.data = sunzen_corr_cos(proj.data, coszen.data, correction_limit=self.correction_limit, max_sza=self.max_sza)
-        return res
+        return sunzen_corr_cos(proj, coszen, correction_limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
