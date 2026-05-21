@@ -9,7 +9,7 @@ dependencies:
   - donfig
   - platformdirs
   - toolz
-  - Cython
+  - cython
   - numba
   - sphinx
   - cartopy
@@ -59,9 +59,10 @@ dependencies:
   - bokeh
   - pytest-xdist
   - pip:
-    - pytest-lazy-fixtures
-    - trollsift
-    - trollimage>=1.24
-    - pyspectral
-    - pyorbital
-    - pyPublicDecompWT
+      - pytest-lazy-fixtures
+      - trollsift
+      - trollimage>=1.24
+      - pyspectral
+      - pyorbital
+      - pyPublicDecompWT
+      - pygac

@@ -310,10 +310,11 @@ datasets:
         units: 1
     file_type: [hrit_b06_seg, hrit_b06_fd]
 
-  B07_low_res:
+  B07:
     name: B07
-    resolution: 4000
-#    resolution: 2000
+    resolution:
+      4000: {file_type: [hrit_b07_ir4_seg, hrit_b07_ir4_fd]}
+      2000: {file_type: [hrit_b07_seg, hrit_b07_fd]}
     sensor: ahi
     wavelength: [3.7, 3.9, 4.1]
     calibration:
@@ -323,22 +324,6 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    # FUTURE: Split this in to multiple resolutions so each can be loaded
-    file_type: [hrit_b07_seg, hrit_b07_ir4_seg, hrit_b07_fd, hrit_b07_ir4_fd]
-
-#  B07_high_res:
-#    name: B07
-#    resolution: 2000
-#    sensor: ahi
-#    wavelength: [3.7, 3.9, 4.1]
-#    calibration:
-#      brightness_temperature:
-#        standard_name: toa_brightness_temperature
-#        units: "K"
-#      counts:
-#        standard_name: counts
-#        units: 1
-#    file_type: hrit_b07
 
   B08:
     name: B08

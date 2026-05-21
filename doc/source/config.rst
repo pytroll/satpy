@@ -308,6 +308,8 @@ To create and use your own custom component configuration you should:
 1. Create a directory to store your new custom YAML configuration files.
    The files for each component will go in a subdirectory specific to that
    component (ex. ``composites``, ``enhancements``, ``readers``, ``writers``).
+   A custom ``areas.yaml`` to configure area definitions can also be placed in
+   the root of this directory.
 2. Set the Satpy :ref:`config_path <config_path_setting>` to point to your new
    directory. This could be done by setting the environment variable
    ``SATPY_CONFIG_PATH`` to your custom directory (don't include the

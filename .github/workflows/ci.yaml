@@ -8,7 +8,7 @@ concurrency:
 on: [push, pull_request]
 
 env:
-  CACHE_NUMBER: 0
+  CACHE_NUMBER: 1
 
 jobs:
   test:
@@ -18,10 +18,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
         experimental: [false]
         include:
-          - python-version: "3.12"
+          - python-version: "3.13"
             os: "ubuntu-latest"
             experimental: true
 
@@ -33,10 +33,10 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
@@ -52,14 +52,14 @@ jobs:
           CONDA_PREFIX=$(python -c "import sys; print(sys.prefix)")
           echo "CONDA_PREFIX=$CONDA_PREFIX" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ${{ env.CONDA_PREFIX }}
           key: ${{ matrix.os }}-${{matrix.python-version}}-conda-${{ hashFiles('continuous_integration/environment.yaml') }}-${{ env.DATE }}-${{matrix.experimental}}-${{ env.CACHE_NUMBER }}
         id: cache
 
       - name: Update environment
-        run: mamba env update -n test-environment -f continuous_integration/environment.yaml
+        run: conda env update -n test-environment -f continuous_integration/environment.yaml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install unstable dependencies
@@ -72,10 +72,11 @@ jobs:
         #   compatibility issues with numpy 2. When conda-forge has numpy 2 available
         #   this shouldn't be needed.
         run: |
-          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs
+          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs hatch-cython
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \
+          --only-binary ":all:" \
           --no-deps --pre --upgrade \
           matplotlib \
           numpy \
@@ -115,14 +116,14 @@ jobs:
           pytest -n auto --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           flags: unittests
           files: ./coverage.xml
           env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Coveralls Parallel
-        uses: AndreMiras/coveralls-python-action@develop
+        uses: coverallsapp/github-action@v2
         with:
           flag-name: run-${{ matrix.test_number }}
           parallel: true
@@ -136,7 +137,7 @@ jobs:
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           flags: behaviourtests
           files: ./coverage.xml
@@ -147,6 +148,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: AndreMiras/coveralls-python-action@develop
+        uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true

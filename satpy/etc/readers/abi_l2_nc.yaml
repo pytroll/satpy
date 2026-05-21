@@ -583,5 +583,5 @@ file_types:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns:
      # NDE scheme: ABI-L2-GFLSC-M6_v3r1_g16_s202306071931181_e202306071933554_c202306071934440.nc
-     - '{mission_id:3s}-L2-GFLS{scene_abbr:s}-{scan_mode:2s}_v{sw_version:d}r{sw_revision:d}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+     - '{mission_id:3s}-L2-GFLS{scene_abbr:s}-{scan_mode:2s}_v{sw_version:d}r{sw_revision:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
     observation_type: "GFLS"

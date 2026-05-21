@@ -25,7 +25,7 @@ import shutil
 import warnings
 from functools import update_wrapper
 from glob import glob
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TypeAlias
 
 import dask
 import numpy as np
@@ -39,7 +39,7 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefi
 import satpy
 from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
-PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
+PRGeometry: TypeAlias = SwathDefinition | AreaDefinition | StackedAreaDefinition
 
 # Arbitrary time used when computing sensor angles that is passed to
 # pyorbital's get_observer_look function.
@@ -131,7 +131,7 @@ class ZarrCacheHelper:
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
             shutil.rmtree(zarr_dir, ignore_errors=True)
 
-    def _zarr_pattern(self, arg_hash, cache_version: Union[None, int, str] = None) -> str:
+    def _zarr_pattern(self, arg_hash, cache_version: None | int | str = None) -> str:
         if cache_version is None:
             cache_version = self._cache_version
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
@@ -361,7 +361,7 @@ def compute_relative_azimuth(
         sat_azi, sun_azi,
         dtype=sat_azi.dtype,
         meta=np.array((), dtype=sat_azi.dtype),
-        name="relative_azimuth",
+        token="relative_azimuth",  # nosec: B106
     )
     if xarray_dims is None:
         return rel_azi
@@ -432,7 +432,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
 
 
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
-def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
+def _get_valid_lonlats(area: PRGeometry, chunks: int | str | tuple = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         # NOTE: This defaults to 64-bit floats due to needed precision for X/Y coordinates
         lons, lats = area.get_lonlats(chunks=chunks)

@@ -13,7 +13,6 @@ reader:
   status: Beta
   supports_fsspec: false
   sensors: [mviri]
-  default_channels: [VIS, WV, IR]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:

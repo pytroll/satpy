@@ -6,7 +6,6 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [multiple]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

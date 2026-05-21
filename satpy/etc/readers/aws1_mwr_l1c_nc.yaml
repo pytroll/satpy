@@ -364,6 +364,24 @@ datasets:
             - longitude
             - latitude
 
+    surface_type:
+        name: surface_type
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation:
+        name: terrain_elevation
+        file_type: aws_l1c_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        coordinates:
+            - longitude
+            - latitude
+
 file_types:
     aws_l1c_nc:
         file_reader: !!python/name:satpy.readers.mwr_l1c.AWS_MWR_L1CFile

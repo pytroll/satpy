@@ -28,7 +28,7 @@ modifiers:
 
 composites:
   natural_color:
-    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
       - name: '5'
         modifiers: [sunz_corrected]
@@ -39,7 +39,7 @@ composites:
     standard_name: natural_color
 
   overview_raw:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '1'
       - name: '2'
@@ -47,7 +47,7 @@ composites:
     standard_name: overview
 
   overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '1'
         modifiers: [sunz_corrected]
@@ -57,7 +57,7 @@ composites:
     standard_name: overview
 
   cloudtop:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '7'
       - name: '8'
@@ -65,7 +65,7 @@ composites:
     standard_name: cloudtop
 
   day_microphysics:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '2'
       modifiers: [sunz_corrected]
@@ -75,13 +75,13 @@ composites:
     standard_name: day_microphysics
 
   night_fog:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - name: '8'
       - name: '7'
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+    - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - name: '7'
       - name: '6'

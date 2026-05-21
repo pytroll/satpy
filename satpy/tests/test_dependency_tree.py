@@ -119,7 +119,7 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
         """Test a modis overview dependency calculation with resolution fixed to 1000m."""
         from satpy import DataQuery
         from satpy._config import PACKAGE_CONFIG_PATH
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         from satpy.dataset import DatasetDict
         from satpy.modifiers.geometry import SunZenithCorrector
         from satpy.readers.core.yaml_reader import FileYAMLReader
@@ -167,7 +167,7 @@ class TestMultipleSensors(unittest.TestCase):
 
     def setUp(self):
         """Set up the test tree."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         from satpy.dataset.data_dict import DatasetDict
         from satpy.modifiers import ModifierBase
 

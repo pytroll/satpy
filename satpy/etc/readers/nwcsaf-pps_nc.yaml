@@ -6,7 +6,6 @@ reader:
   status: Alpha, only standard swath based ouput supported (remapped netCDF and CPP products not supported yet)
   supports_fsspec: false
   sensors: ['avhrr-3', 'viirs', 'modis']
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

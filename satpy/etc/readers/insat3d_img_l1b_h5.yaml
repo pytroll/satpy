@@ -8,7 +8,6 @@ reader:
   status: Beta, navigation still off
   supports_fsspec: false
   sensors: [insat3d_img]
-  default_channels: [VIS, WV, TIR1, TIR2, SWIR, MIR]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:

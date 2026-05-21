@@ -166,17 +166,13 @@ class TestDataAccessMethods:
     def test_getitem_slices(self):
         """Test __getitem__ with slices."""
         from pyresample.geometry import AreaDefinition, SwathDefinition
-        from pyresample.utils import proj4_str_to_dict
         scene1 = Scene()
         scene2 = Scene()
-        proj_dict = proj4_str_to_dict("+proj=lcc +datum=WGS84 +ellps=WGS84 "
-                                      "+lon_0=-95. +lat_0=25 +lat_1=25 "
-                                      "+units=m +no_defs")
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj_dict,
+            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
             200,
             400,
             (-1000., -1500., 1000., 1500.),

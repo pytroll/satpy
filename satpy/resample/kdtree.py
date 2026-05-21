@@ -144,7 +144,7 @@ class KDTreeResampler(PRBaseResampler):
             filename = self._create_cache_filename(
                 cache_dir, prefix="nn_lut-",
                 mask=mask_name, **kwargs)
-            fid = zarr.open(filename, "r")
+            fid = zarr.open(filename, mode="r")
             cache = np.array(fid[idx_name])
             if idx_name == "valid_input_index":
                 # valid input index array needs to be boolean

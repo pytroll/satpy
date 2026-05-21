@@ -67,7 +67,7 @@ Stacking scenes
 
 The code below uses the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method of
 the ``MultiScene`` object to stack two separate orbits from a VIIRS sensor. By
-default the ``blend`` method will use the :func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>`
+default the ``blend`` method will use the :func:`satpy.multiscene.stack <satpy.multiscene.blend_funcs.stack>`
 function which uses the first dataset as the base of the image and then
 iteratively overlays the remaining datasets on top.
 
@@ -101,8 +101,8 @@ frequent.
 This weighted blending can be accomplished via the use of the builtin
 :func:`~functools.partial` function (see `Partial
 <https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
-default :func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>` function. The
-:func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>` function can take the optional argument
+default :func:`satpy.multiscene.stack <satpy.multiscene.blend_funcs.stack>` function. The
+:func:`satpy.multiscene.stack <satpy.multiscene.blend_funcs.stack>` function can take the optional argument
 `weights` (`None` on default) which should be a sequence (of length equal to
 the number of scenes being blended) of arrays with pixel weights.
 
@@ -113,7 +113,7 @@ when the satellite zenith angle is small.
 
     >>> from satpy import Scene, MultiScene,  DataQuery
     >>> from functools import partial
-    >>> from satpy.multiscene import stack
+    >>> from satpy.multiscene.blend_funcs import stack
     >>> from satpy.resample import get_area_def
     >>> areaid = get_area_def("myarea")
     >>> geo_scene = Scene(filenames=glob('/data/to/nwcsaf/geo/files/*nc'), reader='nwcsaf-geo')
@@ -175,14 +175,14 @@ Timeseries
 **********
 
 Using the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method with the
-:func:`satpy.multiscene.timeseries <satpy.multiscene._blend_funcs.timeseries>` function will combine
+:func:`satpy.multiscene.timeseries <satpy.multiscene.blend_funcs.timeseries>` function will combine
 multiple scenes from different time slots by time. A single `Scene` with each
 dataset/channel extended by the time dimension will be returned. If used
 together with the :meth:`~satpy.scene.Scene.to_geoviews` method, creation of
 interactive timeseries Bokeh plots is possible.
 
     >>> from satpy import Scene, MultiScene
-    >>> from satpy.multiscene import timeseries
+    >>> from satpy.multiscene.blend_funcs import timeseries
     >>> from glob import glob
     >>> from pyresample.geometry import AreaDefinition
     >>> my_area = AreaDefinition(...)
@@ -323,5 +323,5 @@ Scenes where there is a GLM file without an ABI file starting within at
 most ±30 seconds are skipped.  The ``group_keys`` and ``time_threshold``
 keyword arguments are processed by the :func:`~satpy.readers.core.grouping.group_files`
 function.  The heavy work of blending the two instruments together is
-performed by the :class:`~satpy.composites.BackgroundCompositor` class
+performed by the :class:`~satpy.composites.fill.BackgroundCompositor` class
 through the `"C14_flash_extent_density"` composite.

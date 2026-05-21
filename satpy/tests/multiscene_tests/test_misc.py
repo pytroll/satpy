@@ -104,7 +104,7 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.assert_has_calls(calls)
 
             scn_mock.reset_mock()
-            with pytest.warns(DeprecationWarning):
+            with pytest.warns(DeprecationWarning, match=".*ensure_all_readers.*"):
                 mscn = MultiScene.from_files(
                     input_files_abi + input_files_glm,
                     reader=("abi_l1b", "glm_l2"),

@@ -41,7 +41,7 @@ class TestBaseWriter:
             100, 200, (-180., -90., 180., 90.),
         )
         ds1 = xr.DataArray(
-            da.zeros((100, 200), chunks=50),
+            da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={
                 "name": "test",
@@ -68,7 +68,7 @@ class TestBaseWriter:
 
     def test_save_dataset_static_filename(self):
         """Test saving a dataset with a static filename specified."""
-        self.scn.save_datasets(base_dir=self.base_dir, filename="geotiff.tif")
+        self.scn.save_datasets(datasets=["test"], base_dir=self.base_dir, filename="geotiff.tif")
         assert os.path.isfile(os.path.join(self.base_dir, "geotiff.tif"))
 
     @pytest.mark.parametrize(

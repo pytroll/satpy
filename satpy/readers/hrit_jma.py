@@ -232,7 +232,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self._use_acquisition_time_as_start_time = use_acquisition_time_as_start_time
         self.mda["segment_sequence_number"] = self.mda["image_segm_seq_no"]
         self.mda["planned_end_segment_number"] = self.mda["total_no_image_segm"]
-        self.mda["planned_start_segment_number"] = 1
+        self.mda["planned_start_segment_number"] = np.uint8(1)
 
         items = self.mda["image_data_function"].decode().split("\r")
         if items[0].startswith("$HALFTONE"):

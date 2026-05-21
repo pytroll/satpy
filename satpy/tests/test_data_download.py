@@ -48,7 +48,7 @@ class UnfriendlyModifier(ModifierBase, DataDownloadMixin):
 
 
 def _setup_custom_composite_config(base_dir):
-    from satpy.composites import StaticImageCompositor
+    from satpy.composites.aux_data import StaticImageCompositor
     from satpy.modifiers.atmosphere import ReflectanceCorrector
     composite_config = base_dir.mkdir("composites").join("visir.yaml")
     with open(composite_config, "w") as comp_file:

@@ -12,7 +12,6 @@ reader:
   supports_fsspec: false
   sensors: [seviri]
   doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 # CMSAF naming convention:

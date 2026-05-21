@@ -19,8 +19,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+import typing
 
+import dask.array as da
 import numpy as np
 
 # make sure we have rasterio even though we don't use it until trollimage
@@ -31,6 +32,12 @@ from trollimage.colormap import Colormap
 from trollimage.xrimage import XRImage
 
 from satpy.writers.core.image import ImageWriter
+
+if typing.TYPE_CHECKING:
+    from os import PathLike
+    from typing import Any
+
+    from dask.delayed import Delayed
 
 LOG = logging.getLogger(__name__)
 
@@ -156,7 +163,7 @@ class GeoTIFFWriter(ImageWriter):
             driver: str | None = None,
             tiled: bool = True,
             **kwargs
-    ):
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note this writer requires the ``rasterio`` library to be installed.
@@ -267,7 +274,7 @@ class GeoTIFFWriter(ImageWriter):
                           "setting fill value to 'NaN'")
                 fill_value = np.nan
         if keep_palette and cmap is None and img.palette is not None:
-            from satpy.enhancements import create_colormap
+            from satpy.enhancements.colormap import create_colormap
             cmap = create_colormap({"colors": img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
@@ -275,18 +282,19 @@ class GeoTIFFWriter(ImageWriter):
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat="tif", driver=driver,
-                        fill_value=fill_value,
-                        dtype=dtype, compute=compute,
-                        keep_palette=keep_palette, cmap=cmap,
-                        tags=tags, include_scale_offset_tags=include_scale_offset,
-                        scale_offset_tags=scale_offset_tags,
-                        colormap_tag=colormap_tag,
-                        overviews=overviews,
-                        overviews_resampling=overviews_resampling,
-                        overviews_minsize=overviews_minsize,
-                        tiled=tiled,
-                        **gdal_options)
+        res = img.save(filename, fformat="tif", driver=driver,
+                       fill_value=fill_value,
+                       dtype=dtype, compute=compute,
+                       keep_palette=keep_palette, cmap=cmap,
+                       tags=tags, include_scale_offset_tags=include_scale_offset,
+                       scale_offset_tags=scale_offset_tags,
+                       colormap_tag=colormap_tag,
+                       overviews=overviews,
+                       overviews_resampling=overviews_resampling,
+                       overviews_minsize=overviews_minsize,
+                       tiled=tiled,
+                       **gdal_options)
+        return _trollimage_res_to_satpy_res(res)
 
     def _get_gdal_options(self, kwargs):
         # Update global GDAL options with these specific ones
@@ -295,3 +303,18 @@ class GeoTIFFWriter(ImageWriter):
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
         return gdal_options
+
+
+def _trollimage_res_to_satpy_res(res):
+    # in old trollimage <1.27.0: result is either None or (sources_list, targets_list) or (source, target)
+    # in new trollimage: result is either str or Path or (sources_list, targets_list)
+    if isinstance(res, tuple):
+        if isinstance(res[0], da.Array):
+            # convert old trollimage single (source, target) to ([source], [target])
+            res = ([res[0]], [res[1]])
+        return res
+    if isinstance(res, list) and len(res) == 2 and isinstance(res[0], tuple):
+        # old trollimage with dask-based tags specified (see ninjogeotiff writer)
+        # returns [(tuple of sources), (tuple of targets)], this swaps those types:
+        return list(res[0]), list(res[1])
+    return [res]

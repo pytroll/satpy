@@ -6,7 +6,7 @@ enhancements:
     name: dynamic_dnb
     operations:
       - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 1.0}
   water_detection:
     name: WaterDetection
@@ -84,7 +84,7 @@ enhancements:
     standard_name: viirs_flames_colorised
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - { colors: ylorrd, min_value: 330, max_value: 430 , reverse: true}
@@ -94,7 +94,31 @@ enhancements:
     standard_name: night_ir105
     operations:
       - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
           palettes:
             - { colors: greys, min_value: 190, max_value: 295 }
+
+  day_cloud_type_distinction:
+    standard_name: day_cloud_type_distinction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [280.7, 0, 1]
+          max_stretch: [219.6, 78, 59]
+
+  day_cloud_type:
+    standard_name: day_cloud_type_distinction
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.0, 0.0, 1.0]
+          max_stretch: [10.0, 78.0, 59.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.contrast.gamma
+        kwargs:
+          gamma: [1.5, 1.0, 1.0]

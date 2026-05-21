@@ -275,6 +275,35 @@ To subset multi-resolution data consistently, use the :meth:`~satpy.scene.Scene.
   >>> vis006_llbox_meas = vis006_llbox.values
   >>> vis006_llbox_lon, vis006_llbox_lat = vis006_llbox.attrs['area'].get_lonlats()
 
+.. _user_warnings_errors:
+
+Warnings and Errors
+===================
+
+Throughout the calculations that Satpy performs you may see various warnings
+or if you have logging enabled (see :ref:`troubleshooting` below) see warning
+or error log messages. There are some warnings emitted as part of Satpy's
+processing that originate in the libraries that Satpy depends on, but are
+mostly expected due to the way Satpy does its calculations and the data that
+Satpy is working with. Except for in special cases, Satpy does not generally
+hide or ignore these warnigns from dependencies and it is left to the user
+to control how they'd like to handle them.
+
+Many of the data arrays that Satpy works with use NaN values to indicate
+invalid, masked, or bad quality pixels. Some calculations or libraries
+emit a warning or error when they encounter NaNs. For example, Numpy will
+often emit warnings like::
+
+    RuntimeWarning: invalid value encountered in multiply
+
+For the most part these warnings are expected. For single Satpy-based scripts
+it is recommend to ignore these warnings from numpy globally using
+the :func:`numpy.seterr` or :class:`numpy.errstate` functions:
+
+.. code-block:: python
+
+    import numpy as np
+    np.seterr(invalid="ignore")
 
 .. _troubleshooting:
 

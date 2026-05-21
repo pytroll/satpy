@@ -523,6 +523,86 @@ datasets:
             - longitude
             - latitude
 
+    surface_type_horn1:
+        name: surface_type_horn1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn2:
+        name: surface_type_horn2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn3:
+        name: surface_type_horn3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    surface_type_horn4:
+        name: surface_type_horn4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_surface_type
+        standard_name: surface_type
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn1:
+        name: terrain_elevation_horn1
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "1"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn2:
+        name: terrain_elevation_horn2
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "2"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn3:
+        name: terrain_elevation_horn3
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "3"
+        coordinates:
+            - longitude
+            - latitude
+
+    terrain_elevation_horn4:
+        name: terrain_elevation_horn4
+        file_type: aws_l1b_nc
+        file_key: data/navigation/aws_terrain_elevation
+        standard_name: terrain_elevation
+        horn: "4"
+        coordinates:
+            - longitude
+            - latitude
+
 file_types:
     aws_l1b_nc:
         # W_XX-OHB-Unknown,SAT,1-AWS-1B-RAD_C_OHB_20230707124607_G_D_20220621090100_20220621090618_T_B____.nc

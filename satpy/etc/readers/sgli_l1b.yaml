@@ -7,7 +7,6 @@ reader:
   supports_fsspec: false
   reference: https://gportal.jaxa.jp/gpr/assets/mng_upload/GCOM-C/SGLI_Level1_Product_Format_Description_en.pdf
   sensors: [sgli]
-  default_channels: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
   data_identification_keys:

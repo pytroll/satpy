@@ -64,16 +64,18 @@ mda_compressed["compression_flag_for_data"] = 1
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
     if os.fspath(instance.filename).endswith(".C_"):
-        instance.mda = mda_compressed.copy()
+        m = mda_compressed.copy()
     else:
-        instance.mda = mda.copy()
+        m = mda.copy()
+    return m
 
 
 def new_get_hd_compressed(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = mda.copy()
-    instance.mda["compression_flag_for_data"] = 1
-    instance.mda["data_field_length"] = 1578312
+    m = mda.copy()
+    m["compression_flag_for_data"] = 1
+    m["data_field_length"] = 1578312
+    return m
 
 
 @pytest.fixture

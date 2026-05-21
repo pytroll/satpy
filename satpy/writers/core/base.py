@@ -18,11 +18,21 @@ from __future__ import annotations
 
 import logging
 import os
+import typing
 import warnings
 
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.writers.core.compute import compute_writer_results, split_results
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+    from os import PathLike
+    from typing import Any
+
+    import dask.array as da
+    import xarray as xr
+    from dask.delayed import Delayed
 
 LOG = logging.getLogger(__name__)
 
@@ -147,7 +157,12 @@ class Writer(Plugin, DataDownloadMixin):
             os.makedirs(dirname, exist_ok=True)
         return output_filename
 
-    def save_datasets(self, datasets, compute=True, **kwargs):
+    def save_datasets(
+            self,
+            datasets: Iterable[xr.DataArray],
+            compute: bool = True,
+            **kwargs,
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[typing.Any]] | list[str | PathLike | None]:
         """Save all datasets to one or more files.
 
         Subclasses can use this method to save all datasets to one single
@@ -155,15 +170,15 @@ class Writer(Plugin, DataDownloadMixin):
         this simply calls `save_dataset` for each dataset provided.
 
         Args:
-            datasets (Iterable): Iterable of `xarray.DataArray` objects to
-                                 save using this writer.
-            compute (bool): If `True` (default), compute all the saves to
-                            disk. If `False` then the return value is either
-                            a :doc:`dask:delayed` object or two lists to
-                            be passed to a :func:`dask.array.store` call.
-                            See return values below for more details.
+            datasets: Iterable of `xarray.DataArray` objects to save using
+                this writer.
+            compute: If `True` (default), compute all the saves to
+                disk. If `False` then the return value is either
+                a :doc:`dask:delayed` object or two lists to
+                be passed to a :func:`dask.array.store` call.
+                See return values below for more details.
             **kwargs: Keyword arguments to pass to `save_dataset`. See that
-                      documentation for more details.
+                documentation for more details.
 
         Returns:
             Value returned depends on `compute` keyword argument. If
@@ -177,44 +192,54 @@ class Writer(Plugin, DataDownloadMixin):
             close any objects that have a "close" method.
 
         """
-        results = []
+        sources = []
+        targets = []
+        delayeds = []
         for ds in datasets:
-            results.append(self.save_dataset(ds, compute=False, **kwargs))
+            res = self.save_dataset(ds, compute=False, **kwargs)
+            s, t, d = split_results([res])
+            sources.extend(s)
+            targets.extend(t)
+            delayeds.extend(d)
 
         if compute:
             LOG.info("Computing and writing results...")
-            return compute_writer_results([results])
+            to_compute = (sources, targets) if sources else delayeds
+            return compute_writer_results([to_compute])
 
-        targets, sources, delayeds = split_results([results])
-        if delayeds:
-            # This writer had only delayed writes
-            return delayeds
-        else:
-            return targets, sources
+        if sources:
+            return (sources, targets)
+        return delayeds
 
-    def save_dataset(self, dataset, filename=None, fill_value=None,
-                     compute=True, units=None, **kwargs):
+    def save_dataset(
+            self,
+            dataset: xr.DataArray,
+            filename: str | None = None,
+            fill_value: float | int | None = None,
+            compute: bool = True,
+            units: str | None = None,
+            **kwargs,
+    ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save the ``dataset`` to a given ``filename``.
 
         This method must be overloaded by the subclass.
 
         Args:
-            dataset (xarray.DataArray): Dataset to save using this writer.
-            filename (str): Optionally specify the filename to save this
-                            dataset to. If not provided then `filename`
-                            which can be provided to the init method will be
-                            used and formatted by dataset attributes.
-            fill_value (int or float): Replace invalid values in the dataset
-                                       with this fill value if applicable to
-                                       this writer.
-            compute (bool): If `True` (default), compute and save the dataset.
-                            If `False` return either a :doc:`dask:delayed`
-                            object or tuple of (source, target). See the
-                            return values below for more information.
-            units (str or None): If not None, will convert the dataset to
-                                    the given unit using pint-xarray before
-                                    saving. Default is not to do any
-                                    conversion.
+            dataset: Dataset to save using this writer.
+            filename: Optionally specify the filename to save this
+                dataset to. If not provided then `filename`
+                which can be provided to the init method will be
+                used and formatted by dataset attributes.
+            fill_value: Replace invalid values in the dataset with this fill
+                value if applicable to this writer.
+            compute: If `True` (default), compute and save the dataset.
+                If `False` return either a :doc:`dask:delayed`
+                object or tuple of (source, target). See the
+                return values below for more information.
+            units: If not None, will convert the dataset to
+                the given unit using pint-xarray before
+                saving. Default is not to do any
+                conversion.
             **kwargs: Other keyword arguments for this particular writer.
 
         Returns:

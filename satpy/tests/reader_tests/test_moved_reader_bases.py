@@ -22,15 +22,17 @@ import pytest
 
 def test_abi_base_warns():
     """Test that there's a warning when importing from ABI base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import abi_base
+    from satpy.readers import abi_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(abi_base, "NC_ABI_BASE")
 
 
 def test_fci_base_warns():
     """Test that there's a warning when importing from FCI base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import fci_base
+    from satpy.readers import fci_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(fci_base, "calculate_area_extent")
 
 
@@ -42,15 +44,17 @@ def test_fci_base_warns():
                          )
 def test_eum_base_warns(name):
     """Test that there's a warning when importing from EUM base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import eum_base
+    from satpy.readers import eum_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(eum_base, name)
 
 
 def test_fy4_base_warns():
     """Test that there's a warning when importing from FY4 base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import fy4_base
+    from satpy.readers import fy4_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(fy4_base, "FY4Base")
 
 
@@ -62,8 +66,9 @@ def test_fy4_base_warns():
                          )
 def test_hdf4_utils_warns(name):
     """Test that there's a warning when importing from hdf4 utils from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import hdf4_utils
+    from satpy.readers import hdf4_utils
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(hdf4_utils, name)
 
 
@@ -74,8 +79,9 @@ def test_hdf4_utils_warns(name):
                          )
 def test_hdf5_utils_warns(name):
     """Test that there's a warning when importing from hdf5 utils from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import hdf5_utils
+    from satpy.readers import hdf5_utils
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(hdf5_utils, name)
 
 
@@ -87,8 +93,9 @@ def test_hdf5_utils_warns(name):
                          )
 def test_hdfeos_base_warns(name):
     """Test that there's a warning when importing from hdfeos base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import hdfeos_base
+    from satpy.readers import hdfeos_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(hdfeos_base, name)
 
 
@@ -103,8 +110,9 @@ def test_hdfeos_base_warns(name):
                          )
 def test_hrit_base_warns(name):
     """Test that there's a warning when importing from HRIT base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import hrit_base
+    from satpy.readers import hrit_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(hrit_base, name)
 
 
@@ -114,8 +122,9 @@ def test_hrit_base_warns(name):
                          )
 def test_li_base_nc_warns(name):
     """Test that there's a warning when importing from LI netCDF4 base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import li_base_nc
+    from satpy.readers import li_base_nc
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(li_base_nc, name)
 
 
@@ -127,8 +136,9 @@ def test_li_base_nc_warns(name):
                          )
 def test_netcdf_utils_warns(name):
     """Test that there's a warning when importing from netCDF4 utils from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import netcdf_utils
+    from satpy.readers import netcdf_utils
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(netcdf_utils, name)
 
 
@@ -159,8 +169,9 @@ def test_netcdf_utils_warns(name):
                          )
 def test_seviri_base_warns(name):
     """Test that there's a warning when importing from SEVIRI base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import seviri_base
+    from satpy.readers import seviri_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(seviri_base, name)
 
 
@@ -170,8 +181,9 @@ def test_seviri_base_warns(name):
                          )
 def test_vii_base_nc_warns(name):
     """Test that there's a warning when importing from VII NetCDF4 base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import vii_base_nc
+    from satpy.readers import vii_base_nc
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(vii_base_nc, name)
 
 
@@ -184,8 +196,9 @@ def test_vii_base_nc_warns(name):
                          )
 def test_viirs_atms_sdr_warns(name):
     """Test that there's a warning when importing from VIIRS ATMS SRD base from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import viirs_atms_sdr_base
+    from satpy.readers import viirs_atms_sdr_base
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(viirs_atms_sdr_base, name)
 
 
@@ -199,8 +212,9 @@ def test_viirs_atms_sdr_warns(name):
                          )
 def test_vii_utils_warns(name):
     """Test that there's a warning when importing from VII utils from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import vii_utils
+    from satpy.readers import vii_utils
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(vii_utils, name)
 
 
@@ -218,8 +232,9 @@ def test_vii_utils_warns(name):
                          )
 def test_yaml_reader_warns(name):
     """Test that there's a warning when importing from YAML reader from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import yaml_reader
+    from satpy.readers import yaml_reader
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(yaml_reader, name)
 
 
@@ -236,8 +251,9 @@ def test_yaml_reader_warns(name):
                          )
 def test_xmlformat_warns(name):
     """Test that there's a warning when importing from xmlformat from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import xmlformat
+    from satpy.readers import xmlformat
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(xmlformat, name)
 
 
@@ -248,6 +264,7 @@ def test_xmlformat_warns(name):
                          )
 def test_file_handlers_warns(name):
     """Test that there's a warning when importing from file_handlers from the old location."""
-    with pytest.warns(UserWarning):
-        from satpy.readers import file_handlers
+    from satpy.readers import file_handlers
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(file_handlers, name)
