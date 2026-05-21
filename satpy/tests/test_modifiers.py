@@ -318,7 +318,7 @@ class TestSunZenithReducer:
         assert values.dtype == dtype
         np.testing.assert_allclose(values, expected, rtol=2e-5)
 
-    def test_invalid_max_sza(self, sunz_ds1, sunz_sza):
+    def test_invalid_max_sza(self):
         """Test invalid max_sza with sza data available."""
         from satpy.modifiers.geometry import SunZenithReducer
         with pytest.raises(ValueError, match="`max_sza` must be defined when using the SunZenithReducer."):
