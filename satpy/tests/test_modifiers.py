@@ -149,6 +149,7 @@ class TestSunZenithCorrector:
         np.testing.assert_allclose(values, expected, rtol=1e-5)
         assert res.dtype == dtype
         assert values.dtype == dtype
+        assert type(res.data) is type(data_arr.data)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
@@ -163,6 +164,7 @@ class TestSunZenithCorrector:
         np.testing.assert_allclose(values, expected, rtol=1e-5)
         assert res.dtype == dtype
         assert values.dtype == dtype
+        assert type(res.data) is type(data_arr.data)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
@@ -177,6 +179,7 @@ class TestSunZenithCorrector:
         np.testing.assert_allclose(values, expected, rtol=1e-5)
         assert res.dtype == dtype
         assert values.dtype == dtype
+        assert type(res.data) is type(data_arr.data)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
@@ -191,6 +194,7 @@ class TestSunZenithCorrector:
         np.testing.assert_allclose(values, expected, rtol=1e-5)
         assert res.dtype == dtype
         assert values.dtype == dtype
+        assert type(res.data) is type(data_arr.data)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
@@ -205,6 +209,7 @@ class TestSunZenithCorrector:
         np.testing.assert_allclose(values, expected, rtol=1e-5)
         assert res.dtype == dtype
         assert values.dtype == dtype
+        assert type(res.data) is type(data_arr.data)
 
     def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
