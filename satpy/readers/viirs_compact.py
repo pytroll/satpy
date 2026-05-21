@@ -249,7 +249,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         unit = "W m-2 sr-1 μm-1"
         if dataset_key["calibration"] == "counts":
             raise NotImplementedError("Can't get counts from this data")
-        if dataset_key["calibration"] in ["radiance_factor",
+        if dataset_key["calibration"] in ["unnormalized_reflectance",
                                           # 8< v1.0
                                           "reflectance",
                                           # >8 v1.0
@@ -264,7 +264,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 unit = "%"
                 # 8< v1.0
                 if dataset_key["calibration"] == "reflectance":
-                    warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+                    warn("Reflectance is not a correct calibration for SEVIRI channels, please use "
+                         "'unnormalized_reflectance'",
                          DeprecationWarning)
                 # >8 v1.0
             except KeyError:
@@ -289,7 +290,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                              # 8< v1.0
                              "reflectance, "
                              # >8 v1.0
-                             "radiance_factor or brightness_temperature")
+                             "unnormalized_reflectance or brightness_temperature")
         rads = rads.clip(min=0)
         rads.attrs = self.mda
         rads.attrs["units"] = unit

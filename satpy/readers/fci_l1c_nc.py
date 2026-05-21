@@ -466,13 +466,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                                   # 8< v1.0
                                   "reflectance",
                                   # >8 v1.0
-                                  "radiance_factor",
+                                  "unnormalized_reflectance",
                                   "radiance"]:
-            res.attrs.pop("add_offset")
-            res.attrs.pop("warm_add_offset")
-            res.attrs.pop("scale_factor")
-            res.attrs.pop("warm_scale_factor")
-            res.attrs.pop("valid_range")
+            resattrs.pop("add_offset")
+            resattrs.pop("warm_add_offset")
+            resattrs.pop("scale_factor")
+            resattrs.pop("warm_scale_factor")
+            resattrs.pop("valid_range")
             # Some xarray versions can propagate _FillValue too:
             resattrs.pop("_FillValue", None)
 
@@ -740,7 +740,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                                   # 8< v1.0
                                   "reflectance",
                                   # >8 v1.0
-                                  "radiance_factor",
+                                  "unnormalized_reflectance",
                                   "radiance"]:
             data = self.calibrate_counts_to_physical_quantity(data, key)
         elif key["calibration"] != "counts":
@@ -750,7 +750,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 # 8< v1.0
                 "'reflectance', "
                 # >8 v1.0
-                "'radiance', 'radiance_factor' or 'counts', got "
+                "'radiance', 'unnormalized_reflectance' or 'counts', got "
                 + key["calibration"] + ".")
 
         return data
@@ -767,10 +767,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             # 8< v1.0
             if key["calibration"] == "reflectance":
-                warn("Reflectance is not a correct calibration for FCI channels, please use 'radiance_factor'",
+                warn("Reflectance is not a correct calibration for FCI channels, please use "
+                     "'unnormalized_reflectance'",
                      DeprecationWarning)
             # >8 v1.0
             data = self.calibrate_rad_to_refl(data, key)

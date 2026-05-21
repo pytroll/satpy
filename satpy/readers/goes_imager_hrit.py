@@ -393,7 +393,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         import warnings
         if key.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for GOES Imager, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         logger.debug("Getting raw data")
@@ -441,7 +441,7 @@ class HRITGOESFileHandler(HRITFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             res = self._calibrate(data)
         elif calibration == "brightness_temperature":
             res = self._calibrate(data)

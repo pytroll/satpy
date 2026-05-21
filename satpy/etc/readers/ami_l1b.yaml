@@ -9,61 +9,110 @@ reader:
   sensors: [ami]
   status: Beta
   supports_fsspec: true
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  # file pattern keys to sort files by with 'satpy.utils.group_files'
-  group_keys: ['start_time', 'platform_shortname', 'sensor', 'sector_info']
+  reader:
+    !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader # file pattern keys to sort files by with 'satpy.utils.group_files'
+
+  group_keys: ["start_time", "platform_shortname", "sensor", "sector_info"]
 
 file_types:
   # Example: gk2a_ami_le1b_ir087_fd020ge_201901260310.nc
   # Below list is alphabetical
   ir087:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir087_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_ir087_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   ir096:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir096_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_ir096_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   ir105:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir105_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_ir105_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   ir112:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir112_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_ir112_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   ir123:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir123_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_ir123_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   ir133:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir133_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_ir133_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   nr013:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr013_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_nr013_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   nr016:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr016_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_nr016_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   sw038:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_sw038_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_sw038_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   vi004:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi004_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_vi004_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   vi005:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi005_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_vi005_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   vi006:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi006_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_vi006_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   vi008:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi008_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_vi008_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   wv063:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv063_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_wv063_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   wv069:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv069_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_wv069_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
   wv073:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv073_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns:
+      [
+        "{platform_shortname:4s}_{sensor:3s}_le1b_wv073_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc",
+      ]
 
 datasets:
   # Below list is ordered the same as the table:
@@ -84,7 +133,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: vi004
@@ -106,7 +155,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: vi005
@@ -128,7 +177,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: vi006
@@ -150,7 +199,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: vi008
@@ -172,7 +221,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: nr013
@@ -194,7 +243,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: nr016

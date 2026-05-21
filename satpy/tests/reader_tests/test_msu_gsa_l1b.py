@@ -169,11 +169,11 @@ class TestMSUGSABReader:
             self.reader.load(ds_ids)
 
     def test_vis_cal(self):
-        """Test that we can retrieve VIS data as both radiance and radiance_factor."""
+        """Test that we can retrieve VIS data as both radiance and unnormalized_reflectance."""
         ds_ids = [make_dataid(name="C01", calibration="radiance")]
         res = self.reader.load(ds_ids)
         rad = res["C01"].data
-        ds_ids = [make_dataid(name="C01", calibration="radiance_factor")]
+        ds_ids = [make_dataid(name="C01", calibration="unnormalized_reflectance")]
         res = self.reader.load(ds_ids)
         refl = res["C01"].data
 

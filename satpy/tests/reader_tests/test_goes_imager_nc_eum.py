@@ -113,7 +113,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
 
 
 class GOESNCEUMFileHandlerVISTest(unittest.TestCase):
-    """Testing the radiance_factor."""
+    """Testing the unnormalized_reflectance."""
 
     longMessage = True
 
@@ -158,10 +158,10 @@ class GOESNCEUMFileHandlerVISTest(unittest.TestCase):
         for ch in self.channels:
             if is_vis_channel(ch):
                 data = self.reader.get_dataset(
-                    key=make_dataid(name=ch, calibration="radiance_factor"), info={})
+                    key=make_dataid(name=ch, calibration="unnormalized_reflectance"), info={})
                 # ... this only compares the valid (unmasked) elements
                 assert np.all(self.vis_data == data.to_masked_array()), \
-                    f"get_dataset() returns invalid radiance_factor for channel {ch}"
+                    f"get_dataset() returns invalid unnormalized_reflectance for channel {ch}"
 
     # 8< v1.0
     def test_reflectance_warns(self):

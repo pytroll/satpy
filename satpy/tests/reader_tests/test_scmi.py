@@ -114,7 +114,7 @@ class TestSCMIFileHandler(unittest.TestCase):
         """Test data loading."""
         from satpy.tests.utils import make_dataid
         res = self.reader.get_dataset(
-            make_dataid(name="C05", calibration="radiance_factor"), {})
+            make_dataid(name="C05", calibration="unnormalized_reflectance"), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
         assert "scale_factor" not in res.attrs

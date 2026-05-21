@@ -110,7 +110,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_HRV
@@ -125,7 +125,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_IR_016
@@ -200,7 +200,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_VIS006
@@ -215,7 +215,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: ICARE_VIS008

@@ -221,13 +221,13 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             # 8< v1.0
             ("VIS006", "reflectance", False),
             # >8 v1.0
-            ("VIS006", "radiance_factor", False),
+            ("VIS006", "unnormalized_reflectance", False),
             # VIS channel, external coefficients
             ("VIS006", "radiance", True),
             # 8< v1.0
             ("VIS006", "reflectance", True),
             # >8 v1.0
-            ("VIS006", "radiance_factor", True),
+            ("VIS006", "unnormalized_reflectance", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", False),
             ("IR_108", "radiance", False),
@@ -297,8 +297,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             ("VIS006", "reflectance", True),
             ("VIS006", "reflectance", False),
             # >8 v1.0
-            ("VIS006", "radiance_factor", True),
-            ("VIS006", "radiance_factor", False),
+            ("VIS006", "unnormalized_reflectance", True),
+            ("VIS006", "unnormalized_reflectance", False),
             ("IR_108", "brightness_temperature", True)
          ]
     )

@@ -21,7 +21,7 @@ reader:
     calibration:
       enum:
         - reflectance
-        - radiance_factor
+        - unnormalized_reflectance
         - brightness_temperature
         - radiance
         - counts
@@ -160,7 +160,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -181,7 +181,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -202,7 +202,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -223,7 +223,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -244,7 +244,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -265,7 +265,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -286,7 +286,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -307,7 +307,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -328,7 +328,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -349,7 +349,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -370,7 +370,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_v, latitude_v]
@@ -392,7 +392,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_p, latitude_p]
@@ -414,7 +414,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_p, latitude_p]
@@ -435,7 +435,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_ir, latitude_ir]
@@ -456,7 +456,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_ir, latitude_ir]
@@ -477,7 +477,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_ir, latitude_ir]
@@ -498,7 +498,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     coordinates: [longitude_ir, latitude_ir]

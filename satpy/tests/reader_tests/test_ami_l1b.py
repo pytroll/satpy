@@ -276,13 +276,13 @@ class TestAMIL1bNetCDF:
     def test_get_dataset_vis(self, fake_vis_reader):
         """Test get visible calibrated data."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name="VI006", calibration="radiance_factor")
+        key = make_dataid(name="VI006", calibration="unnormalized_reflectance")
         res = fake_vis_reader.get_dataset(key, {
             "file_key": "image_pixel_values",
             "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
             "units": "%",
         })
-        exp = {"calibration": "radiance_factor",
+        exp = {"calibration": "unnormalized_reflectance",
                "modifiers": (),
                "platform_name": "GEO-KOMPSAT-2A",
                "sensor": "ami",

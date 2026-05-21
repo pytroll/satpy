@@ -148,7 +148,7 @@ class TestVIRRL1BReader(unittest.TestCase):
             # >8 v1.0
             # WARN: v1.0 uncomment this
             # if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
-            #     self._band_helper(attributes, "%", "radiance_factor",
+            #     self._band_helper(attributes, "%", "unnormalized_reflectance",
             #                       "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
             #                       "virr_l1b", 7, 1000)
             elif dataset["name"] in ["3", "4", "5"]:

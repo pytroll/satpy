@@ -257,12 +257,13 @@ class BaseLandsatL1Reader(BaseLandsatReader):
             # 8< v1.0
             "reflectance",
             # >8 v1.0
-            "radiance_factor"]:
+            "unnormalized_reflectance"]:
             data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
             data.data = data.data.astype(np.float32) * 100
             # 8< v1.0
             if calibration == "reflectance":
-                warnings.warn("Reflectance is not valid calibration for OLI channels, please use 'radiance_factor'",
+                warnings.warn("Reflectance is not valid calibration for OLI channels, please use "
+                    "'unnormalized_reflectance'",
                      DeprecationWarning)
             # >8 v1.0
             return data
@@ -285,14 +286,14 @@ class BaseLandsatL2Reader(BaseLandsatReader):
             # 8< v1.0
             "reflectance",
             # >8 v1.0
-            "radiance_factor",
+            "unnormalized_reflectance",
             "brightness_temperature"]:
             data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
             if calibration in [
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
                 data.data = data.data * 100
             data.data = data.data.astype(np.float32)
             return data

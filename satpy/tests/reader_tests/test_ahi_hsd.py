@@ -507,11 +507,11 @@ class TestAHICalibration(unittest.TestCase):
         assert np.allclose(refl, refl_exp)
         # >8 v1.0
 
-        # radiance_factor
+        # unnormalized_reflectance
         refl_exp = np.array([[2.92676, 2.214325],
                              [1.50189, 0.]])
         refl = self.fh.calibrate(data=self.counts,
-                                 calibration="radiance_factor")
+                                 calibration="unnormalized_reflectance")
         assert np.allclose(refl, refl_exp)
 
     def test_updated_calibrate(self):

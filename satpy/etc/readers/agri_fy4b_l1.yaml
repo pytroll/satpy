@@ -13,37 +13,52 @@ reader:
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
-    agri_l1_0500m:
-        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
-    agri_l1_1000m:
-        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_1000M_{version:s}.HDF']
-    agri_l1_2000m:
-        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
-    agri_l1_4000m:
-        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
-    agri_l1_4000m_geo:
-        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
+  agri_l1_0500m:
+    file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+    file_patterns:
+      [
+        "{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF",
+      ]
+  agri_l1_1000m:
+    file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+    file_patterns:
+      [
+        "{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_1000M_{version:s}.HDF",
+      ]
+  agri_l1_2000m:
+    file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+    file_patterns:
+      [
+        "{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF",
+      ]
+  agri_l1_4000m:
+    file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+    file_patterns:
+      [
+        "{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF",
+      ]
+  agri_l1_4000m_geo:
+    file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+    file_patterns:
+      [
+        "{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF",
+      ]
 
 datasets:
   C01:
     name: C01
     wavelength: [0.45, 0.47, 0.49]
     resolution:
-        1000: {file_type: agri_l1_1000m}
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      1000: { file_type: agri_l1_1000m }
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -56,17 +71,17 @@ datasets:
     name: C02
     wavelength: [0.55, 0.65, 0.75]
     resolution:
-        500: {file_type: agri_l1_0500m}
-        1000: {file_type: agri_l1_1000m}
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      500: { file_type: agri_l1_0500m }
+      1000: { file_type: agri_l1_1000m }
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -79,16 +94,16 @@ datasets:
     name: C03
     wavelength: [0.75, 0.83, 0.90]
     resolution:
-        1000: {file_type: agri_l1_1000m}
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      1000: { file_type: agri_l1_1000m }
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -101,15 +116,15 @@ datasets:
     name: C04
     wavelength: [1.36, 1.37, 1.39]
     resolution:
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -122,15 +137,15 @@ datasets:
     name: C05
     wavelength: [1.58, 1.61, 1.64]
     resolution:
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -143,8 +158,8 @@ datasets:
     name: C06
     wavelength: [2.10, 2.22, 2.35]
     resolution:
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -159,8 +174,8 @@ datasets:
     name: C07
     wavelength: [3.5, 3.72, 4.0]
     resolution:
-        2000: {file_type: agri_l1_2000m}
-        4000: {file_type: agri_l1_4000m}
+      2000: { file_type: agri_l1_2000m }
+      4000: { file_type: agri_l1_4000m }
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber

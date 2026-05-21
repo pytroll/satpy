@@ -107,7 +107,7 @@ class TestHRPTGetCalibratedVIS:
 
     def test_calibrated_vis_values(self, hrpt_fh):
         """Test the calibrated reflectance values."""
-        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="radiance_factor"), {})
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="unnormalized_reflectance"), {})
         np.testing.assert_allclose(result.values.mean(), 57.772733)
 
     def test_reflectance_warns(self, hrpt_fh):
@@ -137,7 +137,7 @@ class TestHRPTChannel3:
 
     def test_channel_3a_masking(self, hrpt_fh):
         """Test that channel 3a is split correctly."""
-        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="radiance_factor"), {})
+        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="unnormalized_reflectance"), {})
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
 

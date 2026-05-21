@@ -136,7 +136,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         refl = self.reader._calibrate_vis(radiance=rad,
                                           k=self.coefs["00_7"]["k"])
         assert np.allclose(refl.data, refl_expected.data, atol=1e-06), \
-            "Incorrect conversion from radiance to radiance_factor"
+            "Incorrect conversion from radiance to unnormalized_reflectance"
 
     def test_calibrate_ir(self):
         """Test IR calibration."""
@@ -358,7 +358,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
         # Mock file access to return a fake dataset. Choose a medium count value
         # (100) to avoid elements being masked due to invalid
-        # radiance/radiance_factor/BT
+        # radiance/unnormalized_reflectance/BT
         nrows = ncols = 300
         self.counts = 100 * 32 * np.ones((1, nrows, ncols))  # emulate 10-bit
         self.lon = np.zeros((nrows, ncols))  # Dummy
@@ -422,12 +422,12 @@ class GOESNCFileHandlerTest(unittest.TestCase):
     def test_get_dataset_masks(self):
         """Test whether data and coordinates are masked consistently."""
         # Requires that no element has been masked due to invalid
-        # radiance/radiance_factor/BT (see setUp()).
+        # radiance/unnormalized_reflectance/BT (see setUp()).
         lon = self.reader.get_dataset(key=make_dataid(name="longitude"),
                                       info={})
         lon_mask = lon.to_masked_array().mask
         for ch in self.channels:
-            for calib in ("counts", "radiance", "radiance_factor",
+            for calib in ("counts", "radiance", "unnormalized_reflectance",
                           "brightness_temperature"):
                 try:
                     data = self.reader.get_dataset(
@@ -450,12 +450,12 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                            match=f"Cannot calibrate VIS channel to {cal_enum.brightness_temperature.value}"):
             self.reader.get_dataset(**args)
 
-        # IR -> radiance_factor
+        # IR -> unnormalized_reflectance
         args = dict(key=make_dataid(name="10_7",
-                                    calibration="radiance_factor"),
+                                    calibration="unnormalized_reflectance"),
                     info={})
         with pytest.raises(ValueError,
-                           match=f"Cannot calibrate IR channel to {cal_enum.radiance_factor.value}"):
+                           match=f"Cannot calibrate IR channel to {cal_enum.unnormalized_reflectance.value}"):
             self.reader.get_dataset(**args)
 
         # Unsupported calibration
@@ -475,7 +475,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         for ch in self.channels:
             if is_vis_channel(ch):
                 calibs = {"radiance": "_viscounts2radiance",
-                          "radiance_factor": "_calibrate_vis"}
+                          "unnormalized_reflectance": "_calibrate_vis"}
             else:
                 calibs = {"radiance": "_ircounts2radiance",
                           "brightness_temperature": "_calibrate_ir"}

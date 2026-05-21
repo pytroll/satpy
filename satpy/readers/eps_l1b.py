@@ -46,8 +46,8 @@ def radiance_to_bt(arr, wc_, a__, b__):
     return a__ + b__ * (C2 * wc_ / (da.log(1 + (C1 * (wc_ ** 3) / arr))))
 
 
-def radiance_to_radiance_factor(arr, solar_flux):
-    """Convert to radiance_factor in %."""
+def radiance_to_unnormalized_reflectance(arr, solar_flux):
+    """Convert to unnormalized_reflectance in %."""
     return arr * np.pi * 100.0 / solar_flux
 
 
@@ -147,7 +147,7 @@ class EPSAVHRRFile(BaseFileHandler):
         # 8< v1.0
         "reflectance": "%",
         # >8 v1.0
-        "radiance_factor": "%",
+        "unnormalized_reflectance": "%",
         "brightness_temperature": "K",
         "radiance":  "W m^-2 sr^-1"}
 
@@ -287,7 +287,7 @@ class EPSAVHRRFile(BaseFileHandler):
         import warnings
         if "calibration" in key and key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for AVHRR L1b EPS, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         if self.sections is None:
@@ -350,7 +350,7 @@ class EPSAVHRRFile(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor",
+                "unnormalized_reflectance",
                 "brightness_temperature",
                 "radiance"]:
             raise ValueError("calibration type " + str(key["calibration"]) +
@@ -368,9 +368,9 @@ class EPSAVHRRFile(BaseFileHandler):
                     # 8< v1.0
                     "reflectance",
                     # >8 v1.0
-                    "radiance_factor",
+                    "unnormalized_reflectance",
                     ]:
-                array = radiance_to_radiance_factor(array,
+                array = radiance_to_unnormalized_reflectance(array,
                                          self[f"CH{channel_name}_SOLAR_FILTERED_IRRADIANCE"])
             if channel_name == "3A":
                 mask = self.three_a_mask[:, np.newaxis]

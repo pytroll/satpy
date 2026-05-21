@@ -373,7 +373,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         # 8< v1.0
         if key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
 

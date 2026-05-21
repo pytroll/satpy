@@ -116,13 +116,13 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
 
     def test_dataset(self):
         """Test getting a dataset."""
-        did = make_dataid(name="1", calibration="radiance_factor")
+        did = make_dataid(name="1", calibration="unnormalized_reflectance")
         res = self.fh.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "1"
-        assert res.attrs["calibration"] == "radiance_factor"
+        assert res.attrs["calibration"] == "unnormalized_reflectance"
         assert res.attrs["units"] == "%"
 
         did = make_dataid(name="4", calibration="brightness_temperature")

@@ -106,13 +106,13 @@ class TestEPICL1bReader:
         np.testing.assert_allclose(ds["B317"].data, b317_data)
 
     def test_refl_calibration(self, setup_hdf5_file):
-        """Test that data is correctly calibrated into radiance_factor."""
+        """Test that data is correctly calibrated into unnormalized_reflectance."""
         from satpy.tests.utils import make_dsq
 
         test_reader = self._setup_h5(setup_hdf5_file)
 
-        # Test conversion to radiance_factor
-        ds = test_reader.load([make_dsq(name="B317", calibration="radiance_factor")])
+        # Test conversion to unnormalized_reflectance
+        ds = test_reader.load([make_dsq(name="B317", calibration="unnormalized_reflectance")])
         np.testing.assert_allclose(ds["B317"].data, b317_data * CALIB_COEFS["B317"] * 100., rtol=1e-5)
 
     # 8< v1.0

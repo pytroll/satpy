@@ -847,13 +847,13 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", False),
             # >8 v1.0
-            ("VIS006", "radiance_factor", "NOMINAL", False),
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", False),
             # VIS channel, external coefficients (mode should have no effect)
             ("VIS006", "radiance", "GSICS", True),
             # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", True),
             # >8 v1.0
-            ("VIS006", "radiance_factor", "NOMINAL", True),
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", "NOMINAL", False),
             ("IR_108", "radiance", "NOMINAL", False),
@@ -870,13 +870,13 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", False),
             # >8 v1.0
-            ("HRV", "radiance_factor", "NOMINAL", False),
+            ("HRV", "unnormalized_reflectance", "NOMINAL", False),
             # HRV channel, external coefficients (mode should have no effect)
             ("HRV", "radiance", "GSICS", True),
             # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", True),
             # >8 v1.0
-            ("HRV", "radiance_factor", "NOMINAL", True),
+            ("HRV", "unnormalized_reflectance", "NOMINAL", True),
         ]
     )
     def test_calibrate(

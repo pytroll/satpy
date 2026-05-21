@@ -207,7 +207,7 @@ class NCSLSTR1B(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             # TODO take into account sun-earth distance
             solar_flux = self.cal[re.sub("_[^_]*$", "", key["name"]) + "_solar_irradiances"]
             d_index = self.indices["detector_{}{}".format(self.stripe, self.view[0])]
@@ -218,7 +218,8 @@ class NCSLSTR1B(BaseFileHandler):
             units = "%"
         # 8< v1.0
         if key["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use "
+                "'unnormalized_reflectance'",
                  DeprecationWarning)
         # >8 v1.0
 

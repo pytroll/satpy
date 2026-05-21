@@ -94,7 +94,7 @@ class TestFileHandler:
 
     @pytest.fixture(
         params=[
-            make_dataid(name="VIS", calibration="radiance_factor", resolution=1250),
+            make_dataid(name="VIS", calibration="unnormalized_reflectance", resolution=1250),
             make_dataid(
                 name="IR1", calibration="brightness_temperature", resolution=5000
             ),
@@ -370,7 +370,7 @@ class TestFileHandler:
 
     @pytest.fixture
     def vis_refl_exp(self, mask_space, lons_lats_exp):
-        """Get expected VIS radiance_factor."""
+        """Get expected VIS unnormalized_reflectance."""
         lons, lats = lons_lats_exp
         if mask_space:
             data = [[np.nan, np.nan], [50, 100]]
@@ -470,7 +470,7 @@ class TestFileHandler:
             name="IR1", calibration="brightness_temperature", resolution=5000
         )
         vis_refl_id = make_dataid(
-            name="VIS", calibration="radiance_factor", resolution=1250
+            name="VIS", calibration="unnormalized_reflectance", resolution=1250
         )
         expectations = {
             ir1_counts_id: ir1_counts_exp,

@@ -151,7 +151,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
     @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
         """Test get_dataset."""
-        key = make_dataid(name="CH1", calibration="radiance_factor")
+        key = make_dataid(name="CH1", calibration="unnormalized_reflectance")
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
         res = self.reader.get_dataset(key, {})
         expected = np.array([[np.nan, 0.097752, 0.195503, 0.293255, 0.391007],
@@ -190,7 +190,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
             "number_of_lines": 464,
             "number_of_columns": 2816
         })
-        dsid = make_dataid(name="CH1", calibration="radiance_factor",
+        dsid = make_dataid(name="CH1", calibration="unnormalized_reflectance",
                            resolution=3000)
         area = self.reader.get_area_def(dsid)
 

@@ -86,7 +86,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
         import warnings
         if dataset_id.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for MSU-GS/A, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
@@ -101,15 +101,15 @@ class MSUGSAFileHandler(HDF5FileHandler):
         # Data has a scale and offset that we must apply
         data = self._apply_scale_offset(data)
 
-        # Data is given as radiance values, we must convert if we want radiance_factor
+        # Data is given as radiance values, we must convert if we want unnormalized_reflectance
         if dataset_id.get("calibration") in [
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             solconst = float(attrs.pop("F_solar_constant"))
             data = np.pi * data / solconst
-            # Satpy expects radiance_factor values in 0-100 range
+            # Satpy expects unnormalized_reflectance values in 0-100 range
             data = data * 100.
 
         data.attrs = attrs

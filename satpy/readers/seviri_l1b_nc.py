@@ -179,12 +179,12 @@ class NCSEVIRIFileHandler(BaseFileHandler):
                                                        # 8< v1.0
                                                        "reflectance",
                                                        # >8 v1.0
-                                                       "radiance_factor",
+                                                       "unnormalized_reflectance",
                                                        "brightness_temperature"]
 
         # 8< v1.0
         if dataset_id["calibration"] == "reflectance":
-            warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'radiance_factor'",
+            warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'unnormalized_reflectance'",
                  DeprecationWarning)
         # >8 v1.0
         if (is_calibration and self.mask_bad_quality_scan_lines):

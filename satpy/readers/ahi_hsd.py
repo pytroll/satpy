@@ -678,7 +678,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         import warnings
         if calibration == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for AHI HSD, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
 
@@ -690,14 +690,14 @@ class AHIHSDFileHandler(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor",
+                "unnormalized_reflectance",
                 "brightness_temperature"]:
             data = self.convert_to_radiance(data)
         if calibration in [
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"
+                "unnormalized_reflectance"
                 ]:
             data = self._vis_calibrate(data)
         elif calibration == "brightness_temperature":

@@ -11,12 +11,10 @@ reader:
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
-    h5_std:
-        file_reader: !!python/name:satpy.readers.epic_l1b_h5.DscovrEpicL1BH5FileHandler
-        file_patterns: [
-          "{sensor:4s}_1b_{nominal_time:%Y%m%d%H%M%S}_{version:2s}.h5"
-        ]
-
+  h5_std:
+    file_reader: !!python/name:satpy.readers.epic_l1b_h5.DscovrEpicL1BH5FileHandler
+    file_patterns:
+      ["{sensor:4s}_1b_{nominal_time:%Y%m%d%H%M%S}_{version:2s}.h5"]
 
 datasets:
   B317:
@@ -28,7 +26,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -46,7 +44,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -64,7 +62,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -82,7 +80,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -100,7 +98,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -118,7 +116,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -136,7 +134,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -154,7 +152,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -172,7 +170,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -190,7 +188,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
@@ -198,7 +196,6 @@ datasets:
         units: count
     file_type: h5_std
     file_key: Band780nm/Image
-
 
   longitude:
     name: longitude
@@ -249,16 +246,16 @@ datasets:
     file_key: Band688nm/Geolocation/Earth/ViewAngleAzimuth
 
   satellite_refraction_angle:
-    name:   satellite_refraction_angle
-    standard_name:   satellite_refraction_angle
+    name: satellite_refraction_angle
+    standard_name: satellite_refraction_angle
     long_name: "Satellite refraction angle"
     units: degree
     file_type: h5_std
     file_key: Band688nm/Geolocation/Earth/ViewAngleRefraction
 
   earth_mask:
-    name:     earth_mask
-    standard_name:     earth_mask
+    name: earth_mask
+    standard_name: earth_mask
     long_name: "Satellite refraction angle"
     units: degree
     file_type: h5_std

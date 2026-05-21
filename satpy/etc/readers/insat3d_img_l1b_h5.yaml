@@ -11,12 +11,12 @@ reader:
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
-    h5_std:
-        file_reader: !!python/name:satpy.readers.insat3d_img_l1b_h5.Insat3DIMGL1BH5FileHandler
-        file_patterns: [
-          "{platform:2s}{sensor:3s}_{nominal_time:%d%b%Y_%H%M}_{level:3s}_STD_V01R00.h5"
-        ]
-
+  h5_std:
+    file_reader: !!python/name:satpy.readers.insat3d_img_l1b_h5.Insat3DIMGL1BH5FileHandler
+    file_patterns:
+      [
+        "{platform:2s}{sensor:3s}_{nominal_time:%d%b%Y_%H%M}_{level:3s}_STD_V01R00.h5",
+      ]
 
 datasets:
   VIS:
@@ -29,7 +29,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       # >8 v1.0
-      radiance_factor:
+      unnormalized_reflectance:
         standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:

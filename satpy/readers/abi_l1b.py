@@ -49,7 +49,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         import warnings
         if key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for ABI L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
 
@@ -62,7 +62,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         # mapping of calibration types to calibration functions
         cal_dictionary = {
-            "radiance_factor": self._vis_calibrate,
+            "unnormalized_reflectance": self._vis_calibrate,
             # 8< v1.0
             "reflectance": self._vis_calibrate,
             # >8 v1.0
@@ -141,7 +141,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         return res
 
     def _vis_calibrate(self, data):
-        """Calibrate visible channels to radiance_factor."""
+        """Calibrate visible channels to unnormalized_reflectance."""
         solar_irradiance = self["esun"]
         esd = self["earth_sun_distance_anomaly_in_AU"]
 

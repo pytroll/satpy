@@ -143,7 +143,7 @@ class SCMIFileHandler(BaseFileHandler):
         # 8< v1.0
         if key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         var_name = info.get("file_key", self.filetype_info.get("file_key"))
@@ -166,7 +166,7 @@ class SCMIFileHandler(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor",
+                "unnormalized_reflectance",
                 ):
             data *= 100
             factor *= 100  # used for valid_min/max

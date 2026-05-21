@@ -79,8 +79,8 @@ def test_get_pixvalues(msi_ec_l1c_dummy_file):
         # >8 v1.0
         # assert len(available_datasets) == 27
 
-        vis_id = make_dataid(name="VIS", calibration="radiance_factor")
-        vnir_id = make_dataid(name="VNIR", calibration="radiance_factor")
+        vis_id = make_dataid(name="VIS", calibration="unnormalized_reflectance")
+        vnir_id = make_dataid(name="VNIR", calibration="unnormalized_reflectance")
         res.load([vis_id, vnir_id, "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
         #assert len(res) == 6
         with pytest.raises(KeyError):
@@ -89,7 +89,7 @@ def test_get_pixvalues(msi_ec_l1c_dummy_file):
             res["SWIR1"]
 
         assert res[vis_id].shape == (20, N_COLS)
-        assert res[vis_id].attrs["calibration"] == "radiance_factor"
+        assert res[vis_id].attrs["calibration"] == "unnormalized_reflectance"
         assert res[vis_id].attrs["units"] == "%"
 
         assert res["TIR1"].shape == (20, N_COLS)
@@ -122,8 +122,8 @@ def test_calibration(msi_ec_l1c_dummy_file):
     assert res["VIS"].attrs["units"] == "W m-2 sr-1"
     assert np.all(np.array(res["VIS"].data) == 1)
 
-    res.load([make_dataid(name="VNIR", calibration="radiance_factor")])
-    assert res["VNIR"].attrs["calibration"] == "radiance_factor"
+    res.load([make_dataid(name="VNIR", calibration="unnormalized_reflectance")])
+    assert res["VNIR"].attrs["calibration"] == "unnormalized_reflectance"
     assert res["VNIR"].attrs["units"] == "%"
     assert np.all(np.array(res["VNIR"].data) == 1 * np.pi * 100 / SOL_IRRAD[1])
 

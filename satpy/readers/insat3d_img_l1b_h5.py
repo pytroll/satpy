@@ -139,7 +139,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         import warnings
         if ds_id.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for INSAT3D L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         resolution = ds_id["resolution"]
@@ -157,7 +157,7 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             calibration = "_ALBEDO"
         elif ds_id["calibration"] == "brightness_temperature":
             calibration = "_TEMP"

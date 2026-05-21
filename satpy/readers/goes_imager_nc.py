@@ -194,7 +194,7 @@ During tandem operations of GOES-15 and GOES-17, EUMETSAT distributed a
 variant of this dataset with the following differences:
 
 1. The geolocation is in a separate file, used for all bands
-2. VIS data is calibrated to Albedo (or radiance_factor)
+2. VIS data is calibrated to Albedo (or unnormalized_reflectance)
 3. IR data is calibrated to radiance.
 4. VIS data is downsampled to IR resolution (4km)
 5. File name differs also slightly
@@ -817,13 +817,13 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                        offset=coefs["offset"])
 
     def _calibrate(self, radiance, coefs, channel, calibration):
-        """Convert radiance to radiance_factor or brightness temperature."""
+        """Convert radiance to unnormalized_reflectance or brightness temperature."""
         if is_vis_channel(channel):
             if calibration not in [
                     # 8< v1.0
                     "reflectance",
                     # >8 v1.0
-                    "radiance_factor"]:
+                    "unnormalized_reflectance"]:
                 raise ValueError("Cannot calibrate VIS channel to "
                                  "{}".format(calibration))
             return self._calibrate_vis(radiance=radiance, k=coefs["k"])
@@ -906,7 +906,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _calibrate_vis(radiance, k):
-        """Convert VIS radiance to radiance_factor.
+        """Convert VIS radiance to unnormalized_reflectance.
 
         Note: Angle of incident radiation and annual variation of the
         earth-sun distance is not taken into account. A value of 100%
@@ -926,9 +926,9 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                response function of the detector). Units of k: [m2 um sr W-1]
 
         Returns:
-            radiance_factor [%]
+            unnormalized_reflectance [%]
         """
-        logger.debug("Calibrating to radiance_factor")
+        logger.debug("Calibrating to unnormalized_reflectance")
         refl = 100 * k * radiance
         return refl.clip(min=0)
 
@@ -1024,7 +1024,7 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         import warnings
         if key.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for GOES Imager, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         logger.debug("Reading dataset {}".format(key["name"]))
@@ -1065,7 +1065,7 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
                            # 8< v1.0
                            "reflectance",
                            # >8 v1.0
-                           "radiance_factor",
+                           "unnormalized_reflectance",
                            "brightness_temperature"]:
             radiance = self._counts2radiance(counts=counts, coefs=coefs,
                                              channel=channel)
@@ -1099,7 +1099,7 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         import warnings
         if key.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for GOES Imager, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         logger.debug("Reading dataset {}".format(key["name"]))
@@ -1127,12 +1127,12 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         coefs = CALIB_COEFS[self.platform_name][channel]
         is_vis = is_vis_channel(channel)
 
-        # IR files provide radiances, VIS file provides radiance_factor
+        # IR files provide radiances, VIS file provides unnormalized_reflectance
         if is_vis and calibration in [
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             return data
         if not is_vis and calibration == "radiance":
             return data

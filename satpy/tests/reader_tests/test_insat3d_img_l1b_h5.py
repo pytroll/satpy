@@ -222,7 +222,7 @@ def test_insat3d_datatree_has_global_attributes(insat_filename):
 @pytest.mark.parametrize(("calibration", "expected_values"),
                          [("counts", values_1km),
                           ("radiance", mask_array(values_1km * 2)),
-                          ("radiance_factor", mask_array(values_1km * 3))])
+                          ("unnormalized_reflectance", mask_array(values_1km * 3))])
 def test_filehandler_returns_data_array(insat_filehandler, calibration, expected_values):
     """Test that the filehandler can get dataarrays."""
     fh = insat_filehandler
@@ -246,7 +246,7 @@ def test_filehandler_returns_masked_data_in_space(insat_filehandler):
     fh = insat_filehandler
     ds_info = None
 
-    ds_id = make_dataid(name="VIS", resolution=1000, calibration="radiance_factor")
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="unnormalized_reflectance")
     darr = fh.get_dataset(ds_id, ds_info)
     assert np.isnan(darr[0, 0])
 
@@ -256,7 +256,7 @@ def test_insat3d_has_orbital_parameters(insat_filehandler):
     fh = insat_filehandler
     ds_info = None
 
-    ds_id = make_dataid(name="VIS", resolution=1000, calibration="radiance_factor")
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="unnormalized_reflectance")
     darr = fh.get_dataset(ds_id, ds_info)
 
     assert "orbital_parameters" in darr.attrs
@@ -311,7 +311,7 @@ def test_filehandler_has_start_and_end_time(insat_filehandler):
 def test_satpy_load_array(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
-    scn.load(["VIS"], calibration="radiance_factor")
+    scn.load(["VIS"], calibration="unnormalized_reflectance")
     expected = mask_array(values_1km * 3).squeeze()
     np.testing.assert_allclose(scn["VIS"], expected)
 

@@ -398,7 +398,7 @@ class TestReadingGacFile:
         """Test getting calibrated channel."""
         scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
                       reader_kwargs=reader_kwargs)
-        scene.load(["1"], calibration="radiance_factor")
+        scene.load(["1"], calibration="unnormalized_reflectance")
         assert scene["1"].shape == (expect.num_lines, 409)
         assert scene["1"].dims == ("y", "x")
         assert scene["1"].start_time == expect.start_time

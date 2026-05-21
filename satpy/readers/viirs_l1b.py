@@ -155,7 +155,8 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             scale_offset = self[var_path + "/attr/add_offset"]
             # 8< v1.0
             if dataset_id["calibration"] == "reflectance":
-                warn("Reflectance is not a correct calibration for SGLI channels, please use 'radiance_factor'",
+                warn("Reflectance is not a correct calibration for SGLI channels, please use "
+                     "'unnormalized_reflectance'",
                      DeprecationWarning)
             # >8 v1.0
         elif ds_info.get("units") == "K":

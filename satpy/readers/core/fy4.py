@@ -119,8 +119,8 @@ class FY4Base(HDF5FileHandler):
         return lut[block]
 
     @cached_property
-    def radiance_factor_coeffs(self):
-        """Retrieve the radiance_factor calibration coefficients from the HDF file."""
+    def unnormalized_reflectance_coeffs(self):
+        """Retrieve the unnormalized_reflectance calibration coefficients from the HDF file."""
         # using the corresponding SCALE and OFFSET
         if self.PLATFORM_ID == "FY-4A":
             cal_coef = "CALIBRATION_COEF(SCALE+OFFSET)"
@@ -136,7 +136,7 @@ class FY4Base(HDF5FileHandler):
         import warnings
         if ds_info.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for FY4, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         # Check if calibration is present, if not assume dataset is an angle
@@ -150,9 +150,9 @@ class FY4Base(HDF5FileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             channel_index = int(file_key[-2:]) - 1
-            data = self.calibrate_to_radiance_factor(data, channel_index, ds_info)
+            data = self.calibrate_to_unnormalized_reflectance(data, channel_index, ds_info)
         elif calibration == "brightness_temperature":
             data = self.calibrate_to_bt(data, ds_info, ds_name)
         elif calibration == "radiance":
@@ -165,14 +165,14 @@ class FY4Base(HDF5FileHandler):
             data.attrs["_FillValue"] = data.attrs["FillValue"].item()
         return data
 
-    def calibrate_to_radiance_factor(self, data, channel_index, ds_info):
-        """Calibrate to radiance_factor [%]."""
-        logger.debug("Calibrating to radiance_factor")
+    def calibrate_to_unnormalized_reflectance(self, data, channel_index, ds_info):
+        """Calibrate to unnormalized_reflectance [%]."""
+        logger.debug("Calibrating to unnormalized_reflectance")
         # using the corresponding SCALE and OFFSET
         if self.sensor != "AGRI" and self.sensor != "GHI":
             raise ValueError(f"Unsupported sensor type: {self.sensor}")
 
-        coeffs = self.radiance_factor_coeffs
+        coeffs = self.unnormalized_reflectance_coeffs
         num_channel = coeffs.shape[0]
 
         if self.sensor == "AGRI" and num_channel == 1:

@@ -66,7 +66,7 @@ Gzip-compressed VISSR files can be decompressed on the fly using
 Calibration
 -----------
 
-Sensor counts are calibrated by looking up radiance_factor/temperature values in the
+Sensor counts are calibrated by looking up unnormalized_reflectance/temperature values in the
 calibration tables included in each file. See section 2.2 in the VISSR user
 guide.
 
@@ -327,7 +327,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         import warnings
         if dataset_id.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for GMS-5/VISSR, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         image_data = self._get_image_data()
@@ -612,7 +612,7 @@ def read_from_file_obj(file_obj, dtype, count, offset=0):
 
 
 class Calibrator:
-    """Calibrate VISSR data to radiance_factor or brightness temperature.
+    """Calibrate VISSR data to unnormalized_reflectance or brightness temperature.
 
     Reference: Section 2.2 in the VISSR User Guide.
     """
@@ -646,7 +646,7 @@ class Calibrator:
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             res = self._convert_to_percent(res)
         return res
 

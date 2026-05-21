@@ -153,7 +153,7 @@ class GACLACFile(BaseFileHandler):
         import warnings
         if "calibration" in key and key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         self.read_raw_data()
@@ -285,7 +285,7 @@ class GACLACFile(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor",
+                "unnormalized_reflectance",
                 "brightness_temperature"]:
             if self.calib_channels is None:
                 self.calib_channels = self.reader.get_calibrated_channels()

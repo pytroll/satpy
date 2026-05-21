@@ -139,7 +139,7 @@ def generate_l1b_filename(chan_name: str) -> str:
 
 @pytest.fixture
 def c01_refl(tmp_path) -> xr.DataArray:
-    """Load c01 radiance_factor."""
+    """Load c01 unnormalized_reflectance."""
     with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
         # 8< v1.0

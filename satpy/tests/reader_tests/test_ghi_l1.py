@@ -255,7 +255,7 @@ class Test_HDF_GHI_L1_cal:
         dsqs = []
         for band in ALL_BAND_NAMES:
             if band < "C07":
-                dsqs.append(make_dsq(name=band, calibration="radiance_factor"))
+                dsqs.append(make_dsq(name=band, calibration="unnormalized_reflectance"))
             else:
                 dsqs.append(band)
 
@@ -293,7 +293,7 @@ class Test_HDF_GHI_L1_cal:
         dsqs = []
         for band in ALL_BAND_NAMES:
             if band < "C07":
-                dsqs.append(make_dsq(name=band, calibration="radiance_factor"))
+                dsqs.append(make_dsq(name=band, calibration="unnormalized_reflectance"))
             else:
                 dsqs.append(band)
         res = reader.load(dsqs)
@@ -374,7 +374,7 @@ class Test_HDF_GHI_L1_cal:
         dsqs = []
         for band in band_names:
             if band < "C07":
-                dsqs.append(make_dsq(name=band, calibration="radiance_factor"))
+                dsqs.append(make_dsq(name=band, calibration="unnormalized_reflectance"))
             else:
                 dsqs.append(band)
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
@@ -395,7 +395,7 @@ class Test_HDF_GHI_L1_cal:
     @staticmethod
     def _check_units(band_name, result):
         if band_name <= "C06":
-            assert result[band_name].attrs["calibration"] == "radiance_factor"
+            assert result[band_name].attrs["calibration"] == "unnormalized_reflectance"
         else:
             assert result[band_name].attrs["calibration"] == "brightness_temperature"
         if band_name <= "C06":

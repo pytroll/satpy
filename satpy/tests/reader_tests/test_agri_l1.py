@@ -417,7 +417,7 @@ class Test_HDF_AGRI_L1_cal:
             # 8< v1.0
             assert result[band_name].attrs["calibration"] == "reflectance"
             # >8 v1.0
-            # assert result[band_name].attrs["calibration"] == "radiance_factor"
+            # assert result[band_name].attrs["calibration"] == "unnormalized_reflectance"
         else:
             assert result[band_name].attrs["calibration"] == "brightness_temperature"
         if band_name < "C07":

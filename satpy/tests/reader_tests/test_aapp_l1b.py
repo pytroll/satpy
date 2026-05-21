@@ -254,7 +254,7 @@ class TestAAPPL1BAllChannelsPresent:
         mins = []
         maxs = []
         for name in ["1", "2", "3a"]:
-            key = make_dataid(name=name, calibration="radiance_factor")
+            key = make_dataid(name=name, calibration="unnormalized_reflectance")
             res = all_channels_fh.get_dataset(key, info)
             assert res.dtype == np.float32
             assert res.min() == 0
@@ -265,7 +265,7 @@ class TestAAPPL1BAllChannelsPresent:
                 assert np.all(np.isnan(res[:2, :]))
 
         for name in ["3b", "4", "5"]:
-            key = make_dataid(name=name, calibration="radiance_factor")
+            key = make_dataid(name=name, calibration="unnormalized_reflectance")
             res = all_channels_fh.get_dataset(key, info)
             assert res.dtype == np.float32
             mins.append(res.min().values)
@@ -375,7 +375,7 @@ class TestAAPPL1BChannel3AMissing:
     def test_loading_missing_channels_returns_none(self, missing3a_fh):
         """Test that loading a missing channel raises a keyerror."""
         info = {}
-        key = make_dataid(name="3a", calibration="radiance_factor")
+        key = make_dataid(name="3a", calibration="unnormalized_reflectance")
         assert missing3a_fh.get_dataset(key, info) is None
 
     def test_available_datasets_miss_3a(self, missing3a_fh):
@@ -573,8 +573,8 @@ def _neg_cal_data():
     return data
 
 
-def test_bright_channel2_has_radiance_factor_greater_than_100(neg_cal_path):
+def test_bright_channel2_has_unnormalized_reflectance_greater_than_100(neg_cal_path):
     """Test that a bright channel 2 has reflectances greater that 100."""
     file_handler = AVHRRAAPPL1BFile(neg_cal_path, dict(), None)
-    data = file_handler.get_dataset(make_dataid(name="2", calibration="radiance_factor"), dict())
+    data = file_handler.get_dataset(make_dataid(name="2", calibration="unnormalized_reflectance"), dict())
     np.testing.assert_array_less(100, data.values)

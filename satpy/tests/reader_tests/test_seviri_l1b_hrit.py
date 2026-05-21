@@ -79,7 +79,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the hrv dataset."""
-        key = make_dataid(name="HRV", calibration="radiance_factor")
+        key = make_dataid(name="HRV", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
 
         parent_get_dataset.return_value = mock.MagicMock()
@@ -101,7 +101,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
     def test_get_dataset_non_fill(self, calibrate, parent_get_dataset):
         """Test getting a non-filled hrv dataset."""
-        key = make_dataid(name="HRV", calibration="radiance_factor")
+        key = make_dataid(name="HRV", calibration="unnormalized_reflectance")
         key.name = "HRV"
         info = setup.get_fake_dataset_info()
         self.reader.fill_hrv = False
@@ -200,7 +200,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = data
 
-        key = make_dataid(name="VIS006", calibration="radiance_factor")
+        key = make_dataid(name="VIS006", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
         res = self.reader.get_dataset(key, info)
 
@@ -240,7 +240,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = data
 
-        key = make_dataid(name="VIS006", calibration="radiance_factor")
+        key = make_dataid(name="VIS006", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
         self.reader.mask_bad_quality_scan_lines = False
         res = self.reader.get_dataset(key, info)
@@ -262,7 +262,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     def test_get_dataset_with_raw_metadata(self, calibrate, parent_get_dataset):
         """Test getting the dataset."""
         calibrate.return_value = self._get_fake_data()
-        key = make_dataid(name="VIS006", calibration="radiance_factor")
+        key = make_dataid(name="VIS006", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
         self.reader.include_raw_metadata = True
         res = self.reader.get_dataset(key, info)
@@ -448,13 +448,13 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", False),
             # >8 v1.0
-            ("VIS006", "radiance_factor", "NOMINAL", False),
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", False),
             # VIS channel, external coefficients (mode should have no effect)
             ("VIS006", "radiance", "GSICS", True),
             # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", True),
             # >8 v1.0
-            ("VIS006", "radiance_factor", "NOMINAL", True),
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", "NOMINAL", False),
             ("IR_108", "radiance", "NOMINAL", False),
@@ -471,13 +471,13 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", False),
             # >8 v1.0
-            ("HRV", "radiance_factor", "NOMINAL", False),
+            ("HRV", "unnormalized_reflectance", "NOMINAL", False),
             # HRV channel, external coefficients (mode should have no effect)
             ("HRV", "radiance", "GSICS", True),
             # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", True),
             # >8 v1.0
-            ("HRV", "radiance_factor", "NOMINAL", True),
+            ("HRV", "unnormalized_reflectance", "NOMINAL", True),
         ]
     )
     def test_calibrate(

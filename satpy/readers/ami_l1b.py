@@ -218,7 +218,7 @@ class AMIL1bNetCDF(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor",
+                "unnormalized_reflectance",
                 "brightness_temperature"):
             data = gain * data + offset
             data = self._clip_negative_radiance(data, gain, offset)
@@ -230,7 +230,7 @@ class AMIL1bNetCDF(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             # depends on the radiance calibration above
             rad_to_alb = self.nc.attrs["Radiance_to_Albedo_c"]
             if ds_info.get("units") == "%":
@@ -317,6 +317,6 @@ def _warn_if_reflectance(dataset_id):
     import warnings
     if dataset_id["calibration"] == "reflectance":
         warnings.warn("Reflectance is not a correct calibration for AMI L1, "
-                      "please use 'radiance_factor'",
+                      "please use 'unnormalized_reflectance'",
                       DeprecationWarning)
 # >8 v1.0

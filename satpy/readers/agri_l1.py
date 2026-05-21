@@ -46,7 +46,7 @@ class HDF_AGRI_L1(FY4Base):
         # 8< v1.0
         if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for AGRI L1 data, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
 

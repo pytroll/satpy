@@ -248,7 +248,7 @@ class TestVIIRSL1BReaderDay:
                     # 8< v1.0
                     "reflectance",
                     # >8 v1.0
-                    "radiance_factor"
+                    "unnormalized_reflectance"
                     ]
             assert v.attrs["units"] == "%"
             assert v.attrs["rows_per_scan"] == 2

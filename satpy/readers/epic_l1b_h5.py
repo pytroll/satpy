@@ -34,7 +34,7 @@ while ancillary data can be loaded by its name:
 ``scn.load(['solar_zenith_angle'])``
 
 Note that ancillary dataset names use common standards and not the dataset names in the file.
-By default, channel data is loaded as calibrated radiance_factor, but counts data is also available.
+By default, channel data is loaded as calibrated unnormalized_reflectance, but counts data is also available.
 
 """
 
@@ -48,7 +48,7 @@ from satpy.readers.core.hdf5 import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 
-# Level 1b is given as counts. These factors convert to radiance_factor.
+# Level 1b is given as counts. These factors convert to unnormalized_reflectance.
 # Retrieved from: https://asdc.larc.nasa.gov/documents/dscovr/DSCOVR_EPIC_Calibration_Factors_V03.pdf
 CALIB_COEFS = {"B317": 1.216e-4,
                "B325": 1.111e-4,
@@ -96,7 +96,7 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             return data * CALIB_COEFS[ds_name] * 100.
         return data
 
@@ -106,7 +106,7 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
         import warnings
         if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for EPIC L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
 

@@ -129,13 +129,13 @@ class HDF5SGLI(BaseFileHandler):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             calibrated = (dataset * attrs["Slope_reflectance"] + attrs["Offset_reflectance"]) * 100
         elif calibration == "radiance":
             calibrated = dataset * attrs["Slope"] + attrs["Offset"]
         # 8< v1.0
         if calibration == "reflectance":
-            warn("Reflectance is not a correct calibration for SGLI channels, please use 'radiance_factor'",
+            warn("Reflectance is not a correct calibration for SGLI channels, please use 'unnormalized_reflectance'",
                  DeprecationWarning)
         # >8 v1.0
         missing, _ = self.get_missing_and_saturated(attrs)

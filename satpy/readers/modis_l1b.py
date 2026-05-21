@@ -178,7 +178,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         return index
 
     def _fill_saturated(self, array, valid_max):
-        """Replace saturation-related values with max radiance_factor.
+        """Replace saturation-related values with max unnormalized_reflectance.
 
         If the file handler was created with ``mask_saturated`` set to
         ``True`` then all invalid/fill values are set to NaN. If ``False``
@@ -227,7 +227,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
                 # 8< v1.0
                 "reflectance",
                 # >8 v1.0
-                "radiance_factor"]:
+                "unnormalized_reflectance"]:
             projectable = calibrate_refl(array, var_attrs, index)
             info.setdefault("units", "%")
             info.setdefault("standard_name",
@@ -262,7 +262,7 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
         import warnings
         if key.get("calibration") == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for MODIS L1b, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         if key["name"] in HDFEOSGeoReader.DATASET_NAMES:
@@ -290,7 +290,7 @@ def calibrate_refl(array, attributes, index):
     """Calibration for reflective channels."""
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
-    # convert to radiance_factor and convert from 1 to %
+    # convert to unnormalized_reflectance and convert from 1 to %
     array = (array - offset)
     array = array * (scale * 100)  # avoid extra dask tasks by combining scalars
     return array

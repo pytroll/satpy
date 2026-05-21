@@ -295,7 +295,7 @@ class TestFileHandlerCalibrationBase:
                 )
             },
             # >8 v1.0
-            "radiance_factor": {
+            "unnormalized_reflectance": {
                 "NOMINAL": xr.DataArray(
                     [[np.nan, 41.88985],
                      [460.7884, 1182.2247]],
@@ -390,7 +390,7 @@ class TestFileHandlerCalibrationBase:
                 )
             },
             # >8 v1.0
-            "radiance_factor": {
+            "unnormalized_reflectance": {
                 "NOMINAL": xr.DataArray(
                     [[np.nan, 415.26767],
                      [4567.944, 11719.775]],

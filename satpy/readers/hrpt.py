@@ -163,7 +163,7 @@ class HRPTFile(BaseFileHandler):
         import warnings
         if "calibration" in key and key["calibration"] == "reflectance":
             warnings.warn("Reflectance is not a correct calibration for AVHRR L0, "
-                          "please use 'radiance_factor'",
+                          "please use 'unnormalized_reflectance'",
                           DeprecationWarning)
         # >8 v1.0
         attrs = info.copy()

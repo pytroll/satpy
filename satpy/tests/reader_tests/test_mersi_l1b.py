@@ -682,15 +682,15 @@ class TestMERSIRML1B(MERSIL1BTester):
 
         ds_ids = []
         for band_name in ["1", "2", "4"]:
-            ds_ids.append(make_dataid(name=band_name, calibration="radiance_factor"))
+            ds_ids.append(make_dataid(name=band_name, calibration="unnormalized_reflectance"))
         ds_ids.append(make_dataid(name="7"))
         res = reader.load(ds_ids)
         assert len(res) == 4
         assert res["1"].shape == (2 * 10, 4096)
-        assert res["1"].attrs["calibration"] == "radiance_factor"
+        assert res["1"].attrs["calibration"] == "unnormalized_reflectance"
         assert res["1"].attrs["units"] == "%"
         assert res["2"].shape == (2 * 10, 4096)
-        assert res["2"].attrs["calibration"] == "radiance_factor"
+        assert res["2"].attrs["calibration"] == "unnormalized_reflectance"
         assert res["2"].attrs["units"] == "%"
         assert res["7"].shape == (20, 2048 * 2)
         assert res["7"].attrs["calibration"] == "brightness_temperature"
