@@ -195,7 +195,6 @@ def to_timecode(dt_time):
 
 def test_time_seconds():
     """Test conversion of timecode to datetime64."""
-    current = datetime.now()
-    current = current.replace(microsecond=round(current.microsecond, -3))
-    timecode, year = to_timecode(current)
-    assert time_seconds(np.array([timecode], "u2"), year) == np.datetime64(current)
+    dtime = datetime(2026, 5, 20, 14, 2, 28, 999000)
+    timecode, year = to_timecode(dtime)
+    assert time_seconds(np.array([timecode], "u2"), year) == np.datetime64(dtime)

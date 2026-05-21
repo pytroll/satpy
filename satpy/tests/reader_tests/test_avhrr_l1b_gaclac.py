@@ -252,9 +252,10 @@ class FakeDataGenerator:
         )
 
         scans = np.ones(num_lines, dtype=pygac.gac_pod.scanline)
+
         scans["scan_line_number"] = np.arange(num_lines)
         scans["time_code"] = times_enc
-        scans["telemetry"] = 100 * np.arange(35 * num_lines).reshape((num_lines, 35))
+        scans["telemetry"] = FakeDataGenerator._get_telemetry(num_lines)
         scans["quality_indicators"] = np.empty(num_lines, np.uint16(qual_flag))
 
         hdr0 = np.zeros(1, dtype=pygac.pod_reader.header0)
@@ -266,6 +267,32 @@ class FakeDataGenerator:
 
         spare = np.zeros(pygac.gac_pod.GACPODReader().offset - (hdr0.itemsize + hdr3.itemsize), dtype="u1")
         return [hdr0, hdr3, spare, scans]
+
+    @staticmethod
+    def _get_telemetry(num_scans):
+        """Get encoded telemetry.
+
+        The PRT threshold in Pygac is hardcoded to 50, so this method creates
+        an encoded telemetry array that yields PRT values between 40 and 60 when
+        decoded.
+
+        This is how pygac.pod_reader.PODReader.get_telemetry decodes telemetry:
+
+        number_of_scans = self.scans["telemetry"].shape[0]
+        decode_tele = np.zeros((int(number_of_scans), 105))
+        decode_tele[:, ::3] = (self.scans["telemetry"] >> 20) & 1023
+        decode_tele[:, 1::3] = (self.scans["telemetry"] >> 10) & 1023
+        decode_tele[:, 2::3] = self.scans["telemetry"] & 1023
+
+        Each telemetry word is a 32-bit integer that packs three 10-bit values.
+        We need 35 words in order to satisfy 3*num_words == 105.
+        """
+        num_words = 35
+        desired = np.linspace(60, 40, num_scans).astype(int)
+        desired_enc = (desired << 20) | (desired << 10) | desired
+        # For simplicity, assign the same value to all words
+        telemetry = np.repeat(desired_enc, num_words).reshape((num_scans, num_words))
+        return telemetry
 
 
 def encode_timestamps_pod(year: np.ndarray, jday: np.ndarray, msec: np.ndarray) -> np.ndarray:

@@ -212,7 +212,7 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_thermal_channel(self, data, key):
         """Calibrate a thermal channel."""
-        from pygac.calibration import calibrate_thermal
+        from pygac.calibration.noaa import calibrate_thermal
         line_numbers = (
             np.round((self.times - self.times[-1]) /
                      np.timedelta64(166666667, "ns"))).astype(int)
@@ -226,7 +226,7 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_solar_channel(self, data, key):
         """Calibrate a solar channel."""
-        from pygac.calibration import calibrate_solar
+        from pygac.calibration.noaa import calibrate_solar
         julian_days = ((np.datetime64(self.start_time)
                         - np.datetime64(str(self.year) + "-01-01T00:00:00"))
                        / np.timedelta64(1, "D"))
@@ -237,7 +237,7 @@ class HRPTFile(BaseFileHandler):
     @cached_property
     def calibrator(self):
         """Create a calibrator for the data."""
-        from pygac.calibration import Calibrator
+        from pygac.calibration.noaa import Calibrator
         pg_spacecraft = "".join(self.platform_name.split()).lower()
         return Calibrator(pg_spacecraft)
 
