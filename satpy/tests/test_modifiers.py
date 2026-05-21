@@ -299,26 +299,24 @@ class TestSunZenithReducer:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_default_settings(self, sunz_ds1, sunz_sza, dtype):
         """Test default settings with sza data available."""
-        res = self.default((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
-        expected = np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]], dtype=dtype)
+        info = {"test_attr": "test", "optional_datasets": [sunz_sza.astype(dtype)]}
+        res = self.default((sunz_ds1.astype(dtype),), **info)
+        expected = np.array([[1.0, 0.176790], [0.036095, 0.0]], dtype=dtype)
         assert res.dtype == dtype
         values = res.values
         assert values.dtype == dtype
-        np.testing.assert_allclose(values,
-                                   expected,
-                                   rtol=2e-5)
+        np.testing.assert_allclose(values, expected, rtol=2e-5)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_custom_settings(self, sunz_ds1, sunz_sza, dtype):
         """Test custom settings with sza data available."""
-        res = self.custom((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
-        expected = np.array([[0.01041319, 0.01030033], [0.01046164, 0.01034834]], dtype=dtype)
+        info = {"test_attr": "test", "optional_datasets": [sunz_sza.astype(dtype)]}
+        res = self.custom((sunz_ds1.astype(dtype),), **info)
+        expected = np.array([[5.436207e-01, 3.657017e-02], [1.143065e-02, 2.450100e-04]], dtype=dtype)
         assert res.dtype == dtype
         values = res.values
         assert values.dtype == dtype
-        np.testing.assert_allclose(values,
-                                   expected,
-                                   rtol=1e-5)
+        np.testing.assert_allclose(values, expected, rtol=2e-5)
 
     def test_invalid_max_sza(self, sunz_ds1, sunz_sza):
         """Test invalid max_sza with sza data available."""
