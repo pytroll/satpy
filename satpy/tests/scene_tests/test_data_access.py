@@ -393,3 +393,22 @@ class TestComputePersist:
         scene.load(["ds1"])
         scene = scene.chunk(chunks=2)
         assert scene["ds1"].data.chunksize == (2, 2)
+
+
+class TestLegacySensorAttribute:
+    """Tests for legacy sensor attribute."""
+
+    @pytest.mark.parametrize(
+        ("instruments", "expected"),
+        [
+            ({"inst1"}, "inst1"),
+            ({"inst1", "inst2"}, {"inst1", "inst2"})
+        ]
+    )
+    def test_getting_dataset_with_sensor_attribute(self, instruments, expected):
+        """Test getting dataset with sensor attribute."""
+        scene = Scene()
+        scene["ds1"] = xr.DataArray(attrs={"instruments": instruments})
+        scene["ds2"] = xr.DataArray()
+        assert scene["ds1"].attrs["sensor"] == expected
+        assert "sensor" not in scene["ds2"].attrs
