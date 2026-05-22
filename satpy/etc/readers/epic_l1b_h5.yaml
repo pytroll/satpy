@@ -7,7 +7,7 @@ reader:
     For documentation see: https://cmr.earthdata.nasa.gov/search/concepts/C1667168435-LARC_ASDC.html.
   status: Beta
   supports_fsspec: false
-  sensors: [epic]
+  instruments: [epic]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:

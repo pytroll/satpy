@@ -5,7 +5,7 @@ reader:
   description: FY-3A Medium Resolution Spectral Imager 1 (MERSI-1) L1B Reader
   status: Beta
   supports_fsspec: false
-  sensors: [mersi-1]
+  instruments: [mersi-1]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

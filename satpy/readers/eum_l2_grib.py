@@ -30,7 +30,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.eum import WMO_INSTRUMENT_NAMES, get_service_mode
 from satpy.readers.core.fci import calculate_area_extent as fci_calculate_area_extent
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.seviri import PLATFORM_DICT as SEVIRI_PLATFORM_DICT
@@ -292,7 +292,8 @@ class EUML2GribFileHandler(BaseFileHandler):
             "projection_longitude": self._ssp_lon
         }
 
-        attributes = {"orbital_parameters": orbital_parameters, "sensor": self.sensor,
+        attributes = {"orbital_parameters": orbital_parameters,
+                      "instruments": {str(WMO_INSTRUMENT_NAMES.get(self.sensor, self.sensor))},
                       "platform_name": self.PLATFORM_NAME}
 
         return attributes

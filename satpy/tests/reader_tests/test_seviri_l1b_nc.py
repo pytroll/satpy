@@ -332,7 +332,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             },
             "georef_offset_corrected": True,
             "platform_name": "Meteosat-11",
-            "sensor": "seviri",
+            "instruments": {"SEVIRI"},
             "units": "units",
             "wavelength": "wavelength",
             "standard_name": "standard_name"

@@ -242,5 +242,5 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             assert isinstance(v.attrs["area"], AreaDefinition)
             assert v.attrs["area"].is_geostationary is True
             assert v.attrs["platform_name"] == "himawari8"
-            assert v.attrs["sensor"] == "ahi"
+            assert v.attrs["instruments"] == {"AHI"}
         assert datasets["variable3"].attrs.get("flag_meanings") is not None

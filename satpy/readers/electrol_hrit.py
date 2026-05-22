@@ -30,6 +30,7 @@ import logging
 import numpy as np
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.core.hrit import (
     HRITFileHandler,
@@ -286,7 +287,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs["standard_name"] = info["standard_name"]
         res.attrs["wavelength"] = info["wavelength"]
         res.attrs["platform_name"] = self.platform_name
-        res.attrs["sensor"] = "msu-gs"
+        res.attrs["instruments"] = {str(OSCAR.MSU_GS)}
         res.attrs["orbital_parameters"] = {
             "satellite_nominal_longitude": self.mda["orbital_parameters"]["satellite_nominal_longitude"],
             "satellite_nominal_latitude": 0.,

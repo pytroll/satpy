@@ -6,7 +6,7 @@
     Reader for EUMETSAT EPSG-SG Visual Infrared Imager Level 2 files in NetCDF4 format.
   status: Beta
   supports_fsspec: false
-  sensors: [vii]
+  instruments: [vii]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
  file_types:

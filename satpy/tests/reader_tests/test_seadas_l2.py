@@ -229,10 +229,10 @@ class TestSEADAS:
     @pytest.mark.parametrize(
         ("input_files", "exp_plat", "exp_sensor", "exp_rps"),
         [
-            (lazy_fixture("seadas_l2_modis_chlor_a"), "Aqua", {"modis"}, 10),
-            (lazy_fixture("seadas_l2_viirs_npp_chlor_a"), "Suomi-NPP", {"viirs"}, 16),
-            (lazy_fixture("seadas_l2_viirs_j01_chlor_a"), "NOAA-20", {"viirs"}, 16),
-            (lazy_fixture("seadas_l2_modis_chlor_a_netcdf"), "Terra", {"modis"}, 10),
+            (lazy_fixture("seadas_l2_modis_chlor_a"), "Aqua", {"MODIS"}, 10),
+            (lazy_fixture("seadas_l2_viirs_npp_chlor_a"), "Suomi-NPP", {"VIIRS"}, 16),
+            (lazy_fixture("seadas_l2_viirs_j01_chlor_a"), "NOAA-20", {"VIIRS"}, 16),
+            (lazy_fixture("seadas_l2_modis_chlor_a_netcdf"), "Terra", {"MODIS"}, 10),
         ])
     @pytest.mark.parametrize("apply_quality_flags", [False, True])
     def test_load_chlor_a(self, input_files, exp_plat, exp_sensor, exp_rps, apply_quality_flags):
@@ -243,7 +243,7 @@ class TestSEADAS:
         data_arr = scene["chlor_a"]
         assert data_arr.dims == ("y", "x")
         assert data_arr.attrs["platform_name"] == exp_plat
-        assert data_arr.attrs["sensor"] == exp_sensor
+        assert data_arr.attrs["instruments"] == exp_sensor
         assert data_arr.attrs["units"] == "mg m^-3"
         assert data_arr.dtype.type == np.float32
         assert isinstance(data_arr.attrs["area"], SwathDefinition)

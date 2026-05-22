@@ -116,9 +116,8 @@ class VIRR_L1B(HDF5FileHandler):
             data = data * slope + intercept
         new_dims = {old: new for old, new in zip(data.dims, ("y", "x"))}
         data = data.rename(new_dims)
-        # use lowercase sensor name to be consistent with the rest of satpy
         data.attrs.update({"platform_name": self["/attr/Satellite Name"],
-                           "sensor": self["/attr/Sensor Identification Code"].lower()})
+                           "instruments": {self["/attr/Sensor Identification Code"]}})
         data.attrs.update(ds_info)
         units = self.get(file_key + "/attr/units")
         if units is not None and str(units).lower() != "none":

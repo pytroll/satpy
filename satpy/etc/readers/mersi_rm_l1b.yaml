@@ -5,7 +5,7 @@ reader:
   description: FY-3G Medium Resolution Spectral Imager - Rainfall Measurement (MERSI-RM) L1B Reader
   status: Beta
   supports_fsspec: false
-  sensors: [mersi-rm]
+  instruments: [mersi-rm]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

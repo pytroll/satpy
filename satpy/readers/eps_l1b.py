@@ -29,6 +29,7 @@ from pyresample.geometry import SwathDefinition
 
 from satpy._compat import cached_property
 from satpy._config import get_config_path
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.xmlformat import XMLFormat
 from satpy.utils import get_legacy_chunk_size
@@ -141,7 +142,7 @@ class EPSAVHRRFile(BaseFileHandler):
                    "M02": "Metop-A",
                    "M03": "Metop-C", }
 
-    sensors = {"AVHR": "avhrr-3"}
+    sensors = {"AVHR": OSCAR.AVHRR_3}
 
     units = {"reflectance": "%",
              "brightness_temperature": "K",
@@ -289,7 +290,7 @@ class EPSAVHRRFile(BaseFileHandler):
             return
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["sensor"] = self.sensor_name
+        dataset.attrs["instruments"] = {str(self.sensor_name)}
         if "calibration" in key:
             dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)

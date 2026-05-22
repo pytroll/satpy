@@ -188,7 +188,7 @@ def test_get_dataset_counts(sgli_vn_file):
     assert np.allclose(res, FULL_KM_ARRAY & MASK)
     assert res.dtype == np.uint16
     assert res.attrs["platform_name"] == "GCOM-C1"
-    assert res.attrs["sensor"] == "sgli"
+    assert res.attrs["instruments"] == {"SGLI"}
 
 def test_get_dataset_for_unknown_channel(sgli_vn_file):
     """Test that counts can be extracted from a file."""

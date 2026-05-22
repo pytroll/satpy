@@ -5,7 +5,7 @@ reader:
   description: NetCDF Reader for ESA Oceancolor CCI data
   status: Nominal
   supports_fsspec: false
-  sensors: [merged]
+  instruments: [merged]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

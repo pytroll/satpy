@@ -230,7 +230,7 @@ def get_attrs_exp(projection_longitude=0.0):
         "wavelength": "wavelength",
         "standard_name": "standard_name",
         "platform_name": "Meteosat-11",
-        "sensor": "seviri",
+        "instruments": {"SEVIRI"},
         "orbital_parameters": {"projection_longitude": projection_longitude,
                                "projection_latitude": 0.,
                                "projection_altitude": 35785831.0,

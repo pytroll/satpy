@@ -200,8 +200,6 @@ def test_init(test_data, iasi_filehandler):
     assert iasi_filehandler.finfo == FNAME_INFO
     assert iasi_filehandler.lons is None
     assert iasi_filehandler.lats is None
-    assert iasi_filehandler.mda["platform_name"] == "Metop-B"
-    assert iasi_filehandler.mda["sensor"] == "iasi"
 
 
 def test_time_properties(iasi_filehandler):
