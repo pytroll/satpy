@@ -843,20 +843,32 @@ class Scene:
             return self.slice(key)
         # 8< v1.0
         data_array = self._datasets[key]
-        instruments = inst_utils.get_instruments_from_attrs(data_array.attrs)
-        if instruments:
-            self._set_legacy_sensor_attribute(data_array, instruments)
+        if self._should_add_sensor_attribute(data_array):
+            self._set_sensor_attribute(data_array)
             return data_array
         # >8 v1.0
         return self._datasets[key]
 
     # 8< v1.0
-    def _set_legacy_sensor_attribute(self, data_array: xr.DataArray, instruments: set[str]) -> None:
-        if len(instruments) == 1:
-            # In satpy < v1.0 single sensors are provided as string
+    def _should_add_sensor_attribute(self, data_array: xr.DataArray) -> bool:
+         return "instruments" in data_array.attrs and "sensor" not in data_array.attrs
+
+    def _set_sensor_attribute(self, data_array: xr.DataArray) -> None:
+        instruments = data_array.attrs["instruments"]
+        if self._should_convert_to_string(instruments):
             data_array.attrs["sensor"] = inst_utils.wmo_to_internal(list(instruments)[0])
         else:
             data_array.attrs["sensor"] = {inst_utils.wmo_to_internal(inst) for inst in instruments}
+
+    def _should_convert_to_string(self, instruments):
+        # In satpy < v1.0 single sensors are provided as string by most readers
+        has_one_element = len(instruments) == 1
+        readers_providing_set = [
+            "seadas_l2",
+            "oci_l2_bgc"
+        ]
+        is_exception = any([reader in self._readers for reader in readers_providing_set])
+        return has_one_element and not is_exception
     # >8 v1.0
 
     def __setitem__(self, key, value):

@@ -395,20 +395,34 @@ class TestComputePersist:
         assert scene["ds1"].data.chunksize == (2, 2)
 
 
+# 8< v1.0
 class TestLegacySensorAttribute:
     """Tests for legacy sensor attribute."""
 
     @pytest.mark.parametrize(
-        ("instruments", "expected"),
+        ("reader", "expected"),
         [
-            ({"inst1"}, "inst1"),
-            ({"inst1", "inst2"}, {"inst1", "inst2"})
+            ("most-readers", "inst1"),
+            ("seadas_l2", {"inst1"}),
+            ("oci_l2_bgc", {"inst1"}),
         ]
     )
-    def test_getting_dataset_with_sensor_attribute(self, instruments, expected):
-        """Test getting dataset with sensor attribute."""
+    def test_set_single_sensor(self, reader, expected):
+        """Test setting sensor attribute with a single sensor."""
         scene = Scene()
-        scene["ds1"] = xr.DataArray(attrs={"instruments": instruments})
-        scene["ds2"] = xr.DataArray()
-        assert scene["ds1"].attrs["sensor"] == expected
-        assert "sensor" not in scene["ds2"].attrs
+        scene._readers[reader] = "dummy"
+        scene["ds"] = xr.DataArray(attrs={"instruments": {"inst1"}})
+        assert scene["ds"].attrs["sensor"] == expected
+
+    def test_set_multi_sensor(self):
+        """Test setting sensor attribute with multiple sensors."""
+        scene = Scene()
+        scene["ds"] = xr.DataArray(attrs={"instruments": {"inst1", "inst2"}})
+        assert scene["ds"].attrs["sensor"] == {"inst1", "inst2"}
+
+    def test_set_no_sensor(self):
+        """Test sensor attribute is set only if instruments present."""
+        scene = Scene()
+        scene["ds"] = xr.DataArray()
+        assert "sensor" not in scene["ds"].attrs
+# >8 v1.0
