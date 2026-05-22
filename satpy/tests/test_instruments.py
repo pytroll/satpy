@@ -15,6 +15,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for instrument helpers."""
 
+from pathlib import Path
+
 import pytest
 
 import satpy
@@ -108,3 +110,60 @@ def test_get_one_instrument_from_attrs_with_warning(caplog):
 def test_internal_to_wmo(instrument, expected):
     """Test conversion to WMO instrument name."""
     assert inst_utils.internal_to_wmo(instrument) == expected
+
+
+class TestFilenameInstrumentConsistency:
+    """Test that filenames match instruments."""
+
+    etc_dir = Path(satpy.__file__).parent / "etc/"
+
+    def test_enhancement_filenames_match_instruments(self):
+        """Test that enhancement filenames match instruments."""
+        enh_dir = self.etc_dir / "enhancements"
+        exceptions = [
+            "generic",
+            "hsaf",
+            "mimic",
+            "scatterometer",
+            # FIXME: below
+            "mwr"
+        ]
+        files = [
+            f for f in enh_dir.glob("*.yaml")
+            if f.stem not in exceptions
+        ]
+        assert not self._find_mismatches(files)
+
+    def _find_mismatches(self, files):
+        return [
+            file for file in files
+            if inst_utils.internal_to_wmo(file.stem) not in inst_utils.OSCAR
+        ]
+
+    def test_composite_filenames_match_instruments(self):
+        """Test that composite filenames match instruments."""
+        comp_dir = self.etc_dir / "composites"
+        exceptions = [
+            "hsaf",
+            "visir",
+            "microwave",
+            "sar",
+            "scatterometer",
+            # FIXME: below
+            "ec_msi",
+            "goes_imager",
+            "oli_tirs",
+            "sar-c",
+            "sen2_msi",
+            "insat3d_img",
+            "msu_gsa",
+            "virr",
+            "vii",
+            "mwr"
+
+            ]
+        files = [
+            f for f in comp_dir.glob("*.yaml")
+            if f.stem not in exceptions
+        ]
+        assert not self._find_mismatches(files)
