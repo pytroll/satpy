@@ -189,14 +189,14 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
         """
         if correction_limit is not None or max_sza is not None:
-            raise UserWarning(
-                "The `correction_limit` and `max_sza` parameters are deprecated and not "
-                "used for the EffectiveSolarPathLengthCorrector since the parameterization "
-                "by Li and Shibata (2006) already accounts for overcorrection at high solar "
-                "zenith angles. If capping or reduction of the correction is still desireble "
-                "it can be achieved by using the SunZenithCorrector with the same "
-                "`correction_limit` and `max_sza` parameters."
-            )
+            msg = "The ``correction_limit`` and ``max_sza`` parameters have been deprecated and are no " \
+                "longer used for the EffectiveSolarPathLengthCorrector and will be fully removed " \
+                "in satpy v1.0. This is done since the parameterization by Li and Shibata (2006) " \
+                "already accounts for overcorrection at high solar zenith angles. If capping or " \
+                "reduction of the correction is still desirable it can be achieved by using the " \
+                "``SunZenithCorrector`` with the same ``correction_limit`` and ``max_sza`` parameters."
+            warnings.warn(msg, UserWarning, stacklevel=2)
+
         self.method = "effective_solar_pathlength_corrected"
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
@@ -214,7 +214,7 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     where reduction_factor is a pixel-level value ranging from 0 to 1 within the sunz interval.
 
-    The `strength` parameter can be used for a non-linear reduction within the sunz interval. A strength larger
+    The ``strength`` parameter can be used for a non-linear reduction within the sunz interval. A strength larger
     than 1.0 will decelerate the signal reduction towards the sunz interval extremes, whereas a strength
     smaller than 1.0 will accelerate the signal reduction towards the sunz interval extremes.
 
