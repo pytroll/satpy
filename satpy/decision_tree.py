@@ -181,7 +181,7 @@ class DecisionTree:
         if isinstance(attr, list):
             return tuple(sorted(attr))
         elif isinstance(attr, str):
-            return tuple([attr])
+            return (attr,)
         return attr
 
     @staticmethod
