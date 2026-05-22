@@ -842,15 +842,15 @@ class Scene:
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple):
             return self.slice(key)
-        # 8< v1.1
+        # 8< v1.0
         data_array = self._datasets[key]
         if self._should_add_legacy_sensor_attribute(data_array):
             self._set_legacy_sensor_attribute(data_array)
             return data_array
-        # >8 v1.1
+        # >8 v1.0
         return self._datasets[key]
 
-    # 8< v1.1
+    # 8< v1.0
     def _should_add_legacy_sensor_attribute(self, data_array: xr.DataArray) -> bool:
         instruments = inst_utils.get_instruments_from_attrs(data_array.attrs)
         return bool(instruments) and satpy.config.get("legacy_sensor_attribute")
@@ -862,7 +862,7 @@ class Scene:
             data_array.attrs["sensor"] = inst_utils.wmo_to_internal(list(instruments)[0])
         else:
             data_array.attrs["sensor"] = {inst_utils.wmo_to_internal(inst) for inst in instruments}
-    # >8 v1.1
+    # >8 v1.0
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
