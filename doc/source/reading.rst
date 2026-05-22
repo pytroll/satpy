@@ -226,22 +226,14 @@ time etc. The following attributes are standardized across all readers:
   should be all lowercase. If the dataset is the result of observations from multiple sensors a
   ``set`` object can be used to specify more than one sensor name.
 
-  .. versionremoved:: 1.0
+  .. deprecated:: 0.61.0
 
-    The ``sensor`` attribute has been replaced by ``instruments`` in Satpy v1.0. During
-    a transition phase the attribute can be restored by setting
-
-    .. code-block:: python
-
-      import satpy
-      satpy.config.set(legacy_sensor_attribute=True)
-
-    This option will be removed in Satpy v1.1.
+    The ``sensor`` attribute will be replaced by ``instruments`` in Satpy v1.0.
 
 * ``instruments``: Names of instruments that recorded the data, stored in a ``set`` object.
   Instrument names follow the WMO OSCAR naming conventions.
 
-  .. versionadded:: 1.0
+  .. versionadded:: 0.61.0
 
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.

@@ -29,7 +29,6 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
-import satpy
 import satpy._instruments as inst_utils
 from satpy.area import get_area_def
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
@@ -844,19 +843,15 @@ class Scene:
             return self.slice(key)
         # 8< v1.0
         data_array = self._datasets[key]
-        if self._should_add_legacy_sensor_attribute(data_array):
-            self._set_legacy_sensor_attribute(data_array)
+        instruments = inst_utils.get_instruments_from_attrs(data_array.attrs)
+        if instruments:
+            self._set_legacy_sensor_attribute(data_array, instruments)
             return data_array
         # >8 v1.0
         return self._datasets[key]
 
     # 8< v1.0
-    def _should_add_legacy_sensor_attribute(self, data_array: xr.DataArray) -> bool:
-        instruments = inst_utils.get_instruments_from_attrs(data_array.attrs)
-        return bool(instruments) and satpy.config.get("legacy_sensor_attribute")
-
-    def _set_legacy_sensor_attribute(self, data_array: xr.DataArray) -> None:
-        instruments = inst_utils.get_instruments_from_attrs(data_array.attrs)
+    def _set_legacy_sensor_attribute(self, data_array: xr.DataArray, instruments: set[str]) -> None:
         if len(instruments) == 1:
             # In satpy < v1.0 single sensors are provided as string
             data_array.attrs["sensor"] = inst_utils.wmo_to_internal(list(instruments)[0])

@@ -21,7 +21,6 @@ import pytest
 import xarray as xr
 from dask import array as da
 
-import satpy
 from satpy import Scene
 from satpy.dataset.dataid import default_id_keys_config
 from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, make_cid, make_dataid
@@ -409,14 +408,7 @@ class TestLegacySensorAttribute:
     def test_getting_dataset_with_sensor_attribute(self, instruments, expected):
         """Test getting dataset with sensor attribute."""
         scene = Scene()
-        scene["ds"] = xr.DataArray(attrs={"instruments": instruments})
-        assert "sensor" not in scene["ds"].attrs
-        with satpy.config.set(legacy_sensor_attribute=True):
-            assert scene["ds"].attrs["sensor"] == expected
-
-    def test_no_instruments_no_sensor(self):
-        """Test setting sensor only if instruments are present."""
-        scene = Scene()
-        scene["ds"] = xr.DataArray()
-        with satpy.config.set(legacy_sensor_attribute=True):
-            assert "sensor" not in scene["ds"].attrs
+        scene["ds1"] = xr.DataArray(attrs={"instruments": instruments})
+        scene["ds2"] = xr.DataArray()
+        assert scene["ds1"].attrs["sensor"] == expected
+        assert "sensor" not in scene["ds2"].attrs
