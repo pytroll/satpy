@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from pathlib import Path
 
 import yaml
@@ -42,12 +43,12 @@ class EnhancementDecisionTree(DecisionTree):
                                 ("name",
                                  "reader",
                                  "platform_name",
-                                 "sensor",
+                                 "instruments",
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor"])
+        multival_keys = kwargs.pop("multival_keys", ["instruments"])
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
 
@@ -57,6 +58,9 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             config_dict = self._get_config_dict_from_user(config_file)
             recursive_dict_update(conf, config_dict)
+        # 8< v1.0
+        self._ensure_compat(conf)
+        # >8 v1.0
         self._build_tree(conf)
 
     def _get_config_dict_from_user(self, config_file: str | Path | dict) -> dict:
@@ -86,6 +90,21 @@ class EnhancementDecisionTree(DecisionTree):
                 return {}
             LOG.debug(f"Adding enhancement configuration from file: {config_file}")
         return enhancement_section
+
+    # 8< v1.0
+    def _ensure_compat(self, config_dict: dict) -> None:
+        for enh_name, enh_config in config_dict.items():
+            if "sensor" in enh_config:
+                warnings.warn(
+                    "Renaming the 'sensor' enhancement attribute to 'instruments'. "
+                    "This will raise an exception in Satpy v1.0 when the 'sensor' "
+                    "attribute will be removed. To silence this warning, rename "
+                    "'sensor' to 'instruments' in your enhancement YAML file.",
+                    DeprecationWarning,
+                    stacklevel=3
+                )
+                inst_utils.set_instruments_attr(config_dict[enh_name], enh_config["sensor"])
+    # >8 v1.0
 
     def find_match(self, **query_dict):
         """Find a match."""

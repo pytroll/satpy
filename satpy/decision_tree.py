@@ -163,8 +163,8 @@ class DecisionTree:
             for match_level, match_key in enumerate(self._match_keys):
                 # or None is necessary if they have empty strings
                 this_attr_val = sect_attrs.get(match_key, self.any_key) or None
-                if match_key in self._multival_keys and isinstance(this_attr_val, list):
-                    this_attr_val = tuple(sorted(this_attr_val))
+                if match_key in self._multival_keys:
+                    this_attr_val = self._normalize_multival_attr(this_attr_val)
                 is_last_key = match_key == self._match_keys[-1]
                 level_needs_init = this_attr_val not in curr_level
                 if is_last_key:
@@ -176,10 +176,32 @@ class DecisionTree:
                     curr_level[this_attr_val] = _DecisionDict(self._match_keys[match_level + 1], match_level + 1)
                 curr_level = curr_level[this_attr_val]
 
+    def _normalize_multival_attr(self, attr):
+        """Convert multival attributes from list/str to sorted tuple."""
+        if isinstance(attr, list):
+            return tuple(sorted(attr))
+        elif isinstance(attr, str):
+            return (attr,)
+        return attr
+
     @staticmethod
     def _convert_query_val_to_hashable(query_val):
+        """Prepare multival query for matching.
+
+        First priority is exact matches with the sorted values.
+        If not found, search each of the values individually in
+        alphabetical order - both as tuple with a single element
+        and string.
+        """
         _sorted_query_val = sorted(query_val)
-        query_vals = [tuple(_sorted_query_val)] + _sorted_query_val
+        # Exact match
+        query_vals = [tuple(_sorted_query_val)]
+        # Each of the values individually, in alphabetical order,
+        # as tuple with a single element.
+        query_vals += [tuple([v]) for v in _sorted_query_val]
+        # Each of the values individually, in alphabetical order,
+        # as string.
+        query_vals += _sorted_query_val
         query_vals += query_val
         return query_vals
 
