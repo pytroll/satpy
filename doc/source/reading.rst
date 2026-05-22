@@ -222,11 +222,27 @@ time etc. The following attributes are standardized across all readers:
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
-* ``instruments`` (previously ``sensor`` in Satpy < v1.0): Names of instruments that recorded the
-  data, stored in a ``set`` object. Starting with Satpy v1.0 the instrument names follow WMO OSCAR
-  naming conventions. To facilitate the transision, you can get the ``sensor`` attribute back by
-  setting ``satpy.config.set(legacy_sensor_attribute=True)``. This config switch will be removed
-  in Satpy v1.1.
+* ``sensor``: The name of the sensor that recorded the data. For full support through Satpy this
+  should be all lowercase. If the dataset is the result of observations from multiple sensors a
+  ``set`` object can be used to specify more than one sensor name.
+
+  .. versionremoved:: 1.0
+
+    The ``sensor`` attribute has been replaced by ``instruments`` in Satpy v1.0. During
+    a transition phase the attribute can be restored by setting
+
+    .. code-block:: python
+
+      import satpy
+      satpy.config.set(legacy_sensor_attribute=True)
+
+    This option will be removed in Satpy v1.1.
+
+* ``instruments``: Names of instruments that recorded the data, stored in a ``set`` object.
+  Instrument names follow the WMO OSCAR naming conventions.
+
+  .. versionadded:: 1.0
+
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
   See the :ref:`orbital_parameters` section below for more information.
