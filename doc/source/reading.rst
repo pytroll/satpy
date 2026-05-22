@@ -225,6 +225,16 @@ time etc. The following attributes are standardized across all readers:
 * ``sensor``: The name of the sensor that recorded the data. For full support through Satpy this
   should be all lowercase. If the dataset is the result of observations from multiple sensors a
   ``set`` object can be used to specify more than one sensor name.
+
+  .. deprecated:: 0.61.0
+
+    The ``sensor`` attribute will be replaced by ``instruments`` in Satpy v1.0.
+
+* ``instruments``: Names of instruments that recorded the data, stored in a ``set`` object.
+  Instrument names follow the WMO OSCAR naming conventions.
+
+  .. versionadded:: 0.61.0
+
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
   See the :ref:`orbital_parameters` section below for more information.

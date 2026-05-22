@@ -31,24 +31,28 @@ def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) ->
     removed once all file handlers provide instruments as a
     set.
     """
-    legacy = attrs.get("sensor", set())
-    instruments = attrs.get("instruments", legacy)
-    if legacy:
+    instruments = attrs.get("instruments", set())
+    # 8< v1.0
+    sensor = attrs.get("sensor", set())
+    if sensor:
         warnings.warn(
-            "Satpy will ignore the 'sensor' attribute as of v1.1. "
+            "Satpy will ignore the 'sensor' attribute as of v1.0. "
             "Use the 'instruments' attribute instead.",
             DeprecationWarning,
             stacklevel=2
         )
+        if not instruments:
+            instruments = sensor
     if isinstance(instruments, str):
         warnings.warn(
             "Converting 'instruments' attribute from string to set. "
-            "This will result in an error in v1.1, when Satpy will require "
+            "This will result in an error in v1.0, when Satpy will require "
             "set type instruments attributes.",
             DeprecationWarning,
             stacklevel=2
         )
         instruments = set([instruments])
+    # >8 v1.0
     if to_internal:
         return {
             wmo_to_internal(inst) for inst in instruments
