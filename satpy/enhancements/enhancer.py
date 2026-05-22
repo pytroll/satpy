@@ -58,9 +58,9 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             config_dict = self._get_config_dict_from_user(config_file)
             recursive_dict_update(conf, config_dict)
-        # 8< v1.0
+        # 8< v1.1
         self._ensure_compat(conf)
-        # >8 v1.0
+        # >8 v1.1
         self._build_tree(conf)
 
     def _get_config_dict_from_user(self, config_file: str | Path | dict) -> dict:
@@ -91,7 +91,7 @@ class EnhancementDecisionTree(DecisionTree):
             LOG.debug(f"Adding enhancement configuration from file: {config_file}")
         return enhancement_section
 
-    # 8< v1.0
+    # 8< v1.1
     def _ensure_compat(self, config_dict: dict) -> None:
         for enh_name, enh_config in config_dict.items():
             if "sensor" in enh_config:
@@ -104,7 +104,7 @@ class EnhancementDecisionTree(DecisionTree):
                     stacklevel=3
                 )
                 inst_utils.set_instruments_attr(config_dict[enh_name], enh_config["sensor"])
-    # >8 v1.0
+    # >8 v1.1
 
     def find_match(self, **query_dict):
         """Find a match."""
