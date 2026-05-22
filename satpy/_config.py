@@ -54,7 +54,8 @@ _CONFIG_DEFAULTS = {
     "readers": {
         "clip_negative_radiances": False,
     },
-    "instruments_key": "sensor"
+    "instruments_key": "sensor",
+    "legacy_sensor_attribute": False
 }
 
 # Satpy main configuration object

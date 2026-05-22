@@ -21,6 +21,7 @@ import pytest
 import xarray as xr
 from dask import array as da
 
+import satpy
 from satpy import Scene
 from satpy.dataset.dataid import default_id_keys_config
 from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, make_cid, make_dataid
@@ -393,3 +394,29 @@ class TestComputePersist:
         scene.load(["ds1"])
         scene = scene.chunk(chunks=2)
         assert scene["ds1"].data.chunksize == (2, 2)
+
+
+class TestLegacySensorAttribute:
+    """Tests for legacy sensor attribute."""
+
+    @pytest.mark.parametrize(
+        ("instruments", "expected"),
+        [
+            ({"inst1"}, "inst1"),
+            ({"inst1", "inst2"}, {"inst1", "inst2"})
+        ]
+    )
+    def test_getting_dataset_with_sensor_attribute(self, instruments, expected):
+        """Test getting dataset with sensor attribute."""
+        scene = Scene()
+        scene["ds"] = xr.DataArray(attrs={"instruments": instruments})
+        assert "sensor" not in scene["ds"].attrs
+        with satpy.config.set(legacy_sensor_attribute=True):
+            assert scene["ds"].attrs["sensor"] == expected
+
+    def test_no_instruments_no_sensor(self):
+        """Test setting sensor only if instruments are present."""
+        scene = Scene()
+        scene["ds"] = xr.DataArray()
+        with satpy.config.set(legacy_sensor_attribute=True):
+            assert "sensor" not in scene["ds"].attrs
