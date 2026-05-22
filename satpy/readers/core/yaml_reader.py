@@ -148,6 +148,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             filetype_info["file_patterns"] = file_patterns
             self.file_patterns.extend(file_patterns)
 
+        # 8< v1.0
         if "sensors" in self.info:
                 warnings.warn(
                     "Renaming the 'sensors' reader attribute to 'instruments'. "
@@ -158,6 +159,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                     stacklevel=3
                 )
                 self.info["instruments"] = self.info["sensors"]
+        # >8 v1.0
         if "instruments" in self.info and not isinstance(self.info["instruments"], (list, tuple)):
             self.info["instruments"] = [self.info["instruments"]]
         self.datasets = self.config.get("datasets", {})
