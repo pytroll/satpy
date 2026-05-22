@@ -186,12 +186,21 @@ class DecisionTree:
 
     @staticmethod
     def _convert_query_val_to_hashable(query_val):
+        """Prepare multival query for matching.
+
+        First priority is exact matches with the sorted values.
+        If not found, search each of the values individually in
+        alphabetical order - both as tuple with a single element
+        and string.
+        """
         _sorted_query_val = sorted(query_val)
-        # Full match: All elements in the tuple
+        # Exact match
         query_vals = [tuple(_sorted_query_val)]
-        # Partial match: One element of the tuple, as tuple
+        # Each of the values individually, in alphabetical order,
+        # as tuple with a single element.
         query_vals += [tuple([v]) for v in _sorted_query_val]
-        # Partial match: One element of the tuple, as string
+        # Each of the values individually, in alphabetical order,
+        # as string.
         query_vals += _sorted_query_val
         query_vals += query_val
         return query_vals
