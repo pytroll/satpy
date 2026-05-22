@@ -35,7 +35,7 @@ To create such an array, you can do for example
 
     my_dataarray = xr.DataArray(my_data, dims=['y', 'x'],
                                 coords={'x': np.arange(...)},
-                                attrs={'sensor': 'olci'})
+                                attrs={'instruments': {'OLCI'})
 
 where ``my_data`` can be a regular numpy array, a numpy memmap, or, if you
 want to keep things lazy, a dask array (more on dask later). Satpy uses dask
@@ -105,7 +105,7 @@ Some metadata that should always be present in our dataarrays:
 
 - ``area`` the area of the dataset. This should be handled in the reader.
 - ``start_time``, ``end_time``
-- ``sensor``
+- ``instruments``
 
 Operations on DataArrays
 ************************
