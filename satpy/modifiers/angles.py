@@ -610,13 +610,13 @@ def sunzen_corr_cos(data: xr.DataArray,
         corr = corr_standard
 
     if correction_limit is not None:
-        logger.warning(
+        logger.debug(
             "Capping or reducing the standard Sun zenith angle correction may lead to underesimated "
             "reflectance values which is undesireble for quantitative and scientific applications. "
             "To reduce the overcorrection for (RGB) imagery the effective pathlength parameterization "
-            "by Li and Shibata (2006) is recommended over the standard correction. See "
-            "EffectiveSolarPathLengthCorrector for more details on this parameterization and how "
-            "to use it."
+            "by Li and Shibata (2006) is recommended over the standard correction. This is available "
+            "through the ``effective_solar_pathlength_corrected`` modifier which can be used instead of "
+            "``sunz_corrected``"
         )
 
     # Preserve data type, make sure we don't produce negative values and set correction to 0 for
