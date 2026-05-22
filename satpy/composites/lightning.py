@@ -132,7 +132,11 @@ class GeometryContainer:
         return f"<GeoDataFrame>\nData:\n{self.data}\n\nAttributes:\n{self.attrs}"
 
 class FlashGeometry(CompositeBase):
-    """Flash Geometry Processor."""
+    """Flash Geometry Processor.
+
+    Calculate flash geometries from groups belonging to the same flash.
+    Needs only the LGR data, not LFL.
+    """
 
     def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
         """Initialisation of the class."""

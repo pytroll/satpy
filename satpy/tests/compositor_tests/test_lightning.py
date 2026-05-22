@@ -335,168 +335,9 @@ def lgr_sample_dict():
 
 
 @pytest.fixture
-def lfl_sample_dict():
-    """Return dict for sample LFL data."""
-    return {"coords": {},
- "attrs": {"title": "",
-  "summary": "",
-  "keywords": "",
-  "keywords_vocabulary": "",
-  "subtype": "",
-  "component1": "",
-  "component2": "",
-  "component3": "",
-  "algorithm_version": "",
-  "format_version": "",
-  "special_compression": "",
-  "subsetting": "",
-  "runtime_data": "",
-  "parent_data": "",
-  "group_tag": "",
-  "subsettable_groups": "",
-  "subsettable_groups_present": "",
-  "mtg_name": "",
-  "alternative_name": "",
-  "purpose": "",
-  "id": "",
-  "naming_authority": "EUMETSAT",
-  "cdm_datatype": "",
-  "geospatial_lat_min": -82.0,
-  "geospatial_lat_max": 82.0,
-  "geospatial_lon_min": -82.0,
-  "geospatial_lon_max": 82.0,
-  "platform": "MTI1",
-  "creator_url": "www.eumetsat.int",
-  "linked_data": "",
-  "project": "MTG",
-  "data_designator": "IMG+SAT",
-  "time_coverage_resolution": "",
-  "release_version": "Original",
-  "coverage": "FD",
-  "history": "Original generated version",
-  "baseline_version": "",
-  "date_time_position": "YYYYMMDDhhmmss",
-  "license": "",
-  "format": "NC4E",
-  "processing_mode": "N",
-  "creator_type": "institution",
-  "comment": "None",
-  "references": "www.eumetsat.int",
-  "standard_name_vocabulary": "CF Standard Name Table v27",
-  "time_position": "hhmmss",
-  "location_indicator": "XX-EUMETSAT-Darmstadt",
-  "instrument_configuration_id_version": "0",
-  "facility_or_tool": "L2PF",
-  "instrument_configuration_id": "0",
-  "Conventions": "CF-1.7",
-  "creator_institution": "EUMETSAT",
-  "processor_version": "",
-  "creator_name": "",
-  "creator_email": "ops@eumetsat.int",
-  "institution": "EUMETSAT",
-  "processing_level": "2",
-  "source": "LI",
-  "data_source": "LI",
-  "repeat_cycle_in_day": "0099",
-  "count_in_repeat_cycle": "0043",
-  "processed_count_in_repeat_cycle": "0043",
-  "date_created": "20260504162742",
-  "time_coverage_start": "20260504162700",
-  "time_coverage_end": "20260504162710",
-  "environment": "OPE",
-  "type": "LFL",
-  "product_id": "LI-2-LFL-x-FD",
-  "time_coverage_duration": "10",
-  "disposition_mode": "O"},
- "dims": {"auxiliary_dataset": 1, "flashes": 3, "truncated_flash": 1},
- "data_vars": {"auxiliary_dataset_identifier": {"dims": ("auxiliary_dataset",),
-   "attrs": {"long_name": "Auxiliary dataset identifier",
-    "title": "Identifier of auxiliary dataset or type of auxiliary dataset used to produce this product"},
-   "data": ["CM__L2-PROC_MTI1+LI_20250122000000_static.nc"]},
-  "auxiliary_dataset_status": {"dims": ("auxiliary_dataset",),
-   "attrs": {"long_name": "Status of auxiliary dataset",
-    "meaning": "0 = OK, 1 = out_of_validity_time, 2 = not_available"},
-   "data": [0]},
-  "l1b_missing_warning": {"dims": (),
-   "attrs": {"long_name": "Expected L1b inputs missing"},
-   "data": 0},
-  "l1b_geolocation_warning": {"dims": (),
-   "attrs": {"long_name": "L1b geolocation warning"},
-   "data": 0},
-  "l1b_radiometric_warning": {"dims": (),
-   "attrs": {"long_name": "L1b radiometric warning"},
-   "data": 0},
-  "flash_time": {"dims": ("flashes",),
-   "attrs": {"long_name": "Nominal flash time",
-    "standard_name": "time",
-    "precision": "0.001",
-    "time_standard": "UTC"},
-   "data": [datetime.datetime(2026, 5, 4, 16, 27, 1, 136800),
-    datetime.datetime(2026, 5, 4, 16, 27, 1, 382800),
-    datetime.datetime(2026, 5, 4, 16, 27, 2, 225800)]},
-  "latitude": {"dims": ("flashes",),
-   "attrs": {"long_name": "Latitude of flash",
-    "units": "degrees_north",
-    "standard_name": "latitude"},
-   "data": [11.118599891662598, 11.480400085449219, 10.500300407409668]},
-  "longitude": {"dims": ("flashes",),
-   "attrs": {"long_name": "Longitude of flash",
-    "units": "degrees_east",
-    "standard_name": "longitude"},
-   "data": [-5.996700286865234, -5.891400337219238, -6.318000316619873]},
-  "radiance": {"dims": ("flashes",),
-   "attrs": {"long_name": "Radiance of flash", "units": "mW.m-2.sr-1"},
-   "data": [90.0, 178.0, 8.0]},
-  "flash_id": {"dims": ("flashes",),
-   "attrs": {"long_name": "LI L2 Flash IDs"},
-   "data": [99630775, 99630776, 99630784]},
-  "number_of_groups": {"dims": ("flashes",),
-   "attrs": {"long_name": "Number of groups in each flash"},
-   "data": [6, 15, 2]},
-  "number_of_events": {"dims": ("flashes",),
-   "attrs": {"long_name": "Number of events in each flash"},
-   "data": [18, 35, 2]},
-  "flash_duration": {"dims": ("flashes",),
-   "attrs": {"long_name": "Flash duration", "units": "ms"},
-   "data": [12, 283, 1]},
-  "flash_footprint": {"dims": ("flashes",),
-   "attrs": {"long_name": "Flash footprint size"},
-   "data": [9, 7, 2]},
-  "truncated_flashes": {"dims": ("truncated_flash",),
-   "attrs": {"long_name": "Truncated flash indices"},
-   "data": [336]},
-  "flash_filter_confidence": {"dims": ("flashes",),
-   "attrs": {"long_name": "L2 filtered flash confidence"},
-   "data": [0.0, 0.0, 1.0]}}}
-
-#
-#@pytest.fixture
-#def lgr_sample_df(lgr_sample_dict):
-#    """Return a small sample of LGR data as a DataFrame."""
-#    df = pd.DataFrame.from_dict(lgr_sample_dict, orient="tight")
-#    return df.astype({
-#        "group_id": "uint32",
-#        "flash_id": "uint32",
-#        "latitude": "float32",
-#        "longitude": "float32"})
-#
-#
-#@pytest.fixture
-#def lfl_sample_df(lfl_sample_dict):
-#    """Return a small sample of LFL data as a DataFrame."""
-#    return pd.DataFrame.from_dict(lfl_sample_dict, orient="tight").astype({"flash_id": "uint32"})
-#
-
-@pytest.fixture
 def lgr_sample_xr(lgr_sample_dict):
     """Return a small sample of LGR data as an xarray.Dataset."""
     return xr.Dataset.from_dict(lgr_sample_dict)
-
-
-@pytest.fixture
-def lfl_sample_xr(lfl_sample_dict):
-    """Return a small sample of LFL data as an xarray.Dataset."""
-    return xr.Dataset.from_dict(lfl_sample_dict)
 
 
 @pytest.fixture
@@ -506,16 +347,6 @@ def lgr_sample_file(lgr_sample_xr, tmp_path):
                      "CHK-BODY---NC4E_C_EUMT_21260504162742_L2PF_OPE_"
                      "20260504162700_20260504162710_N__T_0099_0043.nc")
     lgr_sample_xr.to_netcdf(fn)
-    return fn
-
-
-@pytest.fixture
-def lfl_sample_file(lfl_sample_xr, tmp_path):
-    """Return a small sample LFL file."""
-    fn = (tmp_path / "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+LI-2-LFL--FD--"
-                     "CHK-BODY---NC4E_C_EUMT_21260504162742_L2PF_OPE_"
-                     "20260504162700_20260504162710_N__T_0099_0043.nc")
-    lfl_sample_xr.to_netcdf(fn)
     return fn
 
 
@@ -604,10 +435,10 @@ def test_update_missing_metadata():
     assert existing_attrs == expected_attrs
 
 
-def test_vectorscene_load_flash_geometry(lgr_sample_file, lfl_sample_file):
+def test_vectorscene_load_flash_geometry(lgr_sample_file):
     """Test we can get flash geometry from a VectorScene."""
     from satpy.vectorscene import VectorScene
-    vs = VectorScene(filenames=[lgr_sample_file, lfl_sample_file],
+    vs = VectorScene(filenames=[lgr_sample_file],
                      reader=["li_l2_nc"])
     vs.load(["acc_flash_geometry"])
     raise NotImplementedError()
