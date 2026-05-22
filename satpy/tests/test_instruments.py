@@ -34,7 +34,7 @@ def test_get_instruments_from_attrs(attrs, to_internal, expected):
     assert inst_utils.get_instruments_from_attrs(attrs, to_internal) == expected
 
 
-# 8< v1.0
+# 8< v1.1
 @pytest.mark.parametrize(
     ("attrs", "expected"),
     [
@@ -47,7 +47,7 @@ def test_get_instruments_from_attrs_with_warning(attrs, expected):
     """Test deprecation warnings when getting instruments."""
     with pytest.warns(DeprecationWarning, match="v1.1"):
         assert inst_utils.get_instruments_from_attrs(attrs) == expected
-# >8 v1.0
+# >8 v1.1
 
 
 @pytest.mark.parametrize(

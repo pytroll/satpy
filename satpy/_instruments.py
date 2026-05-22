@@ -32,7 +32,7 @@ def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) ->
     set.
     """
     instruments = attrs.get("instruments", set())
-    # 8< v1.0
+    # 8< v1.1
     sensor = attrs.get("sensor", set())
     if sensor:
         warnings.warn(
@@ -52,7 +52,7 @@ def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) ->
             stacklevel=2
         )
         instruments = set([instruments])
-    # >8 v1.0
+    # >8 v1.1
     if to_internal:
         return {
             wmo_to_internal(inst) for inst in instruments
