@@ -148,18 +148,18 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             filetype_info["file_patterns"] = file_patterns
             self.file_patterns.extend(file_patterns)
 
-        # 8< v1.1
+        # 8< v1.0
         if "sensors" in self.info:
                 warnings.warn(
                     "Renaming the 'sensors' reader attribute to 'instruments'. "
-                    "This will raise an exception in Satpy v1.1 when the 'sensors' "
+                    "This will raise an exception in Satpy v1.0 when the 'sensors' "
                     "attribute will be removed. To silence this warning, rename "
                     "'sensors' to 'instruments' in your reader YAML file.",
                     DeprecationWarning,
                     stacklevel=3
                 )
                 self.info["instruments"] = self.info["sensors"]
-        # >8 v1.1
+        # >8 v1.0
         if "instruments" in self.info and not isinstance(self.info["instruments"], (list, tuple)):
             self.info["instruments"] = [self.info["instruments"]]
         self.datasets = self.config.get("datasets", {})
