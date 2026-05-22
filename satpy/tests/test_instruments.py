@@ -43,7 +43,7 @@ def test_get_instruments_from_attrs(attrs, to_internal, expected):
 )
 def test_get_instruments_from_attrs_with_warning(attrs, expected):
     """Test deprecation warnings when getting instruments."""
-    with pytest.warns(DeprecationWarning, match="v1.1"):
+    with pytest.warns(DeprecationWarning, match="v1.0"):
         assert inst_utils.get_instruments_from_attrs(attrs) == expected
 
 
