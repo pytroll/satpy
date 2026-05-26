@@ -256,13 +256,13 @@ class TestEffectiveSolarPathLengthCorrector:
     def test_with_deprecated_correction_limit(self):
         """Test with deprecated correction_limit."""
         from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
-        with pytest.raises(UserWarning):
+        with pytest.warns(UserWarning, match="deprecated"):
             EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple(), correction_limit=88)
 
     def test_with_deprecated_sza_max(self):
         """Test with deprecated max_sza."""
         from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
-        with pytest.raises(UserWarning):
+        with pytest.warns(UserWarning, match="deprecated"):
             EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple(), max_sza=95)
 
     def test_incompatible_areas(self, sunz_ds2, sunz_sza):
