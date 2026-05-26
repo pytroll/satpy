@@ -208,6 +208,25 @@ class TestSunZenithCorrector:
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
         assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_invalid_max_sza_and_correction_limit_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test with correction_limit > max_sza when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=80)
+        with pytest.raises(ValueError, match="`max_sza` must be larger than `correction_limit`"):
+            call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_custom_warning_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test custom warning when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        msg = "This is a custom warning."
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), user_warning=msg)
+        with pytest.warns(UserWarning, match=msg):
+            call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+
     def test_incompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites.core import IncompatibleAreas

@@ -586,7 +586,7 @@ def sunzen_corr_cos(data: xr.DataArray,
         )
         if max_sza <= correction_limit:
             raise ValueError(
-                "max_sza should be larger than correction_limit for a gradual "
+                "`max_sza` must be larger than `correction_limit` for a gradual "
                 "reduction of the correction to work.")
         reduction_factor = (sunz - correction_limit) / (max_sza - correction_limit)
 
