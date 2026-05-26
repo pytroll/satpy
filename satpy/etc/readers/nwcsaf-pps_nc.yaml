@@ -420,3 +420,14 @@ datasets:
     name: cbh_hfeet_pal
     scale_offset_dataset: cbh_hfeet
     file_type: nc_nwcsaf_cbh
+
+# -------------------------------------
+  adcot:
+    name: adcot
+    file_type: nc_nwcsaf_adcot
+    coordinates: [lon, lat]
+
+  adcot_pal:
+    name: adcot_pal
+    scale_offset_dataset: adcot
+    file_type: nc_nwcsaf_adcot

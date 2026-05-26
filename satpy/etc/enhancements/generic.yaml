@@ -633,8 +633,17 @@ enhancements:
       method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
-          - dataset: cbh_tempe_pal     
+          - dataset: cbh_tempe_pal
             color_scale: 255
+
+  adcot:
+    standard_name: adcot
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: adcot_pal
 
   cloud_top_phase:
     standard_name: cloud_top_phase
