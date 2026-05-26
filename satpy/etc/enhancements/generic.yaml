@@ -607,7 +607,7 @@ enhancements:
       kwargs:
         palettes:
           - dataset: cbh_alti_pal
-  
+
   cloud_base_pressure:
     standard_name: cloud_base_pressure
     operations:

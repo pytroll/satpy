@@ -51,8 +51,8 @@ file_types:
 
     nc_nwcsaf_adcot:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
-        file_patterns: ['S_NWC_ADCOT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']    
-    
+        file_patterns: ['S_NWC_ADCOT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
 
 datasets:
 
@@ -410,7 +410,7 @@ datasets:
     name: cbh_tempe_pal
     scale_offset_dataset: cbh_tempe
     file_type: nc_nwcsaf_cbh
-      
+
   cbh_hfeet:
     name: cbh_hfeet
     file_type: nc_nwcsaf_cbh
