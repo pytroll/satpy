@@ -42,13 +42,17 @@ class SunZenithCorrectorBase(ModifierBase):
         """Generate the composite."""
         projectables = self.match_data_arrays(list(projectables) + list(info.get("optional_datasets", [])))
         vis = projectables[0]
-        for correction in ["sunz_corrected", "effective_solar_pathlength_corrected"]:
-            if vis.attrs.get(correction) or correction in vis.attrs.get("modifiers"):
-                logger.debug(
-                    f"Sun zenith angle correction '{correction}' already applied. "
-                    f"Skipping correction '{self.method}'."
-                )
-                return vis
+
+        # Make sure to avoid alternative but mutually exclusive sun zenith angle corrections
+        sunz_correction_methods = {"sunz_corrected", "effective_solar_pathlength_corrected"}
+        if self.method in sunz_correction_methods:
+            for correction in sunz_correction_methods:
+                if vis.attrs.get(correction) or correction in vis.attrs.get("modifiers"):
+                    logger.debug(
+                        f"Sun zenith angle correction '{correction}' already applied. "
+                        f"Skipping correction '{self.method}'."
+                    )
+                    return vis
 
         logger.debug("Applying Sun zenith angle correction")
         if not info.get("optional_datasets"):
@@ -230,6 +234,7 @@ class SunZenithReducer(SunZenithCorrectorBase):
             strength (float): The strength of the non-linear signal reduction.
 
         """
+        self.method = "sunz_reduced"
         self.correction_limit = correction_limit
         self.max_sza = max_sza
         self.strength = strength
