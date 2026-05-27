@@ -210,6 +210,18 @@ class TestSunZenithCorrector:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_double_correction(self, data_arr, sunz_sza, dtype):
+        """Test double sunz correction when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+        data_arr = data_arr.copy()
+        data_arr.attrs["modifiers"] = ("effective_solar_pathlength_corrected",)
+        expected = data_arr.values
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
     def test_invalid_max_sza_and_correction_limit_with_sza_provided(self, data_arr, sunz_sza, dtype):
         """Test with correction_limit > max_sza when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
@@ -269,6 +281,18 @@ class TestEffectiveSolarPathLengthCorrector:
         from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
         comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
         expected = np.array([[5.595989, 14.823307], [21.973671, 16.988299]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_double_correction(self, data_arr, sunz_sza, dtype):
+        """Test double sunz correction when SZA is provided."""
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
+        data_arr = data_arr.copy()
+        data_arr.attrs["modifiers"] = ("sunz_corrected",)
+        expected = data_arr.values
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
         assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
