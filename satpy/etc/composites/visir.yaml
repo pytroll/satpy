@@ -64,7 +64,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - wavelength: 0.67
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -77,7 +77,7 @@ modifiers:
     aerosol_type: marine_tropical_aerosol
     prerequisites:
     - wavelength: 0.67
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -90,7 +90,7 @@ modifiers:
     aerosol_type: desert_aerosol
     prerequisites:
     - wavelength: 0.67
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -103,7 +103,7 @@ modifiers:
     aerosol_type: continental_average_aerosol
     prerequisites:
     - wavelength: 0.67
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle

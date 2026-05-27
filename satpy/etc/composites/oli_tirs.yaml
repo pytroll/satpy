@@ -7,7 +7,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -20,7 +20,7 @@ modifiers:
     aerosol_type: antarctic_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -33,7 +33,7 @@ modifiers:
     aerosol_type: continental_average_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -46,7 +46,7 @@ modifiers:
     aerosol_type: continental_clean_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -59,7 +59,7 @@ modifiers:
     aerosol_type: continental_polluted_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -72,7 +72,7 @@ modifiers:
     aerosol_type: desert_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -85,7 +85,7 @@ modifiers:
     aerosol_type: marine_clean_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -98,7 +98,7 @@ modifiers:
     aerosol_type: marine_polluted_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -111,7 +111,7 @@ modifiers:
     aerosol_type: marine_tropical_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -124,7 +124,7 @@ modifiers:
     aerosol_type: rural_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle
@@ -137,7 +137,7 @@ modifiers:
     aerosol_type: urban_aerosol
     prerequisites:
       - name: 'B4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle

@@ -21,7 +21,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
     - name: satellite_zenith_angle

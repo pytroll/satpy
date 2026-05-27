@@ -21,7 +21,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - name: B680
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
