@@ -54,11 +54,11 @@ composites:
     strength: 3.0
     prerequisites:
       - name: vis_05
-        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: vis_08
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   ndvi_hybrid_green_raw:
@@ -73,18 +73,18 @@ composites:
       - name: vis_08
     standard_name: toa_bidirectional_reflectance
 
-  ndvi_hybrid_green_fully_sunzencorrected:
+  ndvi_hybrid_green_sunz_reduced:
     description: Same as ndvi_hybrid_green, but without Sun-zenith reduction
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
     limits: [0.15, 0.05]
     strength: 3.0
     prerequisites:
       - name: vis_05
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected, sunz_reduced]
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected, sunz_reduced]
       - name: vis_08
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected, sunz_reduced]
     standard_name: toa_bidirectional_reflectance
 
   ### Non-official HRV Clouds composite similar to SEVIRI
@@ -94,9 +94,9 @@ composites:
     standard_name: hrv_clouds
     prerequisites:
       - name: vis_06
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: vis_06
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - ir_105
 
   ### True Color
@@ -108,23 +108,23 @@ composites:
       of the ndvi_hybrid_green composites for details.
     prerequisites:
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: ndvi_hybrid_green
       - name: vis_04
-        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
-  true_color_fully_sunzencorrected:
+  true_color_sunz_reduced:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     description: >
       Same as true_color, but without Sun-zenith reduction. For users that want to maintain as much data as possible
       close to the terminator, at cost of some artefacts (bright limb and reddish clouds) (see issue #2643).
     prerequisites:
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: ndvi_hybrid_green_fully_sunzencorrected
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected, sunz_reduced]
+      - name: ndvi_hybrid_green_sunz_reduced
       - name: vis_04
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: true_color
 
   true_color_raw_with_corrected_green:
@@ -187,10 +187,10 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: ndvi_hybrid_green
       - name: vis_04
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color_reproduction_color_stretch
 
   true_color_reproduction_uncorr:
@@ -358,7 +358,7 @@ composites:
     standard_name: ir_sandwich
     prerequisites:
       - name: "vis_06"
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: colorized_ir_clouds
 
   colorized_ir_clouds:
@@ -379,23 +379,39 @@ composites:
   ### other RGBs
   cloud_type:
     description: >
-      Equal to cimss_cloud_type recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+      Equal to cimss_cloud_type recipe.
     references:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
       Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: nir_13
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: vis_06
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: nir_16
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected]
+    standard_name: cimss_cloud_type
+
+  cloud_type_sunz_reduced:
+    description: >
+      Equal to cloud_type recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: nir_13
+        modifiers: [effective_solar_pathlength_corrected, sunz_reduced]
+      - name: vis_06
+        modifiers: [effective_solar_pathlength_corrected, sunz_reduced]
+      - name: nir_16
+        modifiers: [effective_solar_pathlength_corrected, sunz_reduced]
     standard_name: cimss_cloud_type
 
   day_cloud_type_chmi:
     description: >
-      Equal to cimss_cloud_type recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
+      Equal to cloud_type recipe, but with alternative enhancement by CHMI to avoid saturation.
     references:
       EUMETRAIN Quick Guide: https://eumetrain.org/sites/default/files/2021-05/CloudTypeRGB.pdf
       EUMETRAIN extended Guide: https://resources.eumetrain.org/data/7/736/index.htm
@@ -421,6 +437,20 @@ composites:
       - night_ir105
 
   cloud_phase:
+    references:
+      EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe: https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: nir_16
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: nir_22
+        modifiers: [effective_solar_pathlength_corrected]
+      - name: vis_06
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: cloud_phase
+
+  cloud_phase_sunz_reduced:
     description: >
       Equal to cloud_phase recipe, but with additional sunz_reducer modifier to avoid saturation at the terminator.
     references:
@@ -429,16 +459,16 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: nir_16
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, sunz_reduced]
       - name: nir_22
-        modifiers: [sunz_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, sunz_reduced]
       - name: vis_06
-        modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected, sunz_reduced]
     standard_name: cloud_phase
 
   day_cloud_phase_chmi:
     description: >
-      Equal to cloud_phase recipe, but with effective_solar_pathlength_corrected modifier to avoid saturation at the terminator.
+      Equal to cloud_phase recipe, but with alternative enhancement by CHMI to avoid saturation.
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: nir_16
@@ -494,9 +524,9 @@ composites:
       - name: ir_38
         modifiers: [nir_reflectance]
       - name: nir_22
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: nir_16
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
 
   fire_temperature_rad:
     standard_name: fire_temperature_fci_rad
@@ -520,9 +550,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: vis_08
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: nir_16
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: ir_38
         modifiers: [nir_reflectance]
     standard_name: snow
@@ -655,7 +685,7 @@ composites:
     standard_name: vis-crude
     prerequisites:
       - name: vis_06
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
 
   _ir105:
     compositor: !!python/name:satpy.composites.core.SingleBandCompositor

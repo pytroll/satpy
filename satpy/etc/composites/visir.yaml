@@ -188,9 +188,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - wavelength: 0.8
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 1.63
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 3.9
       modifiers: [nir_reflectance]
     standard_name: snow
@@ -199,7 +199,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - wavelength: 0.85
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 3.9
       modifiers: [nir_reflectance]
     - 10.8
@@ -253,11 +253,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - wavelength: 1.63
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.85
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.635
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
 
   night_fog:
@@ -286,9 +286,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - wavelength: 0.6
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.8
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - 10.8
     standard_name: overview
 
@@ -536,11 +536,11 @@ composites:
     standard_name: natural_enh
     prerequisites:
     - wavelength: 1.6
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.8
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.6
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
 
   _night_background:
     compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
@@ -566,9 +566,9 @@ composites:
     prerequisites:
       - wavelength: 10.3
       - wavelength: 0.64
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - wavelength: 1.6
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: cloud_phase_distinction
 
   cloud_phase_distinction_raw:
@@ -590,11 +590,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - wavelength: 1.6
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - wavelength: 2.25
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - wavelength: 0.67
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: cloud_phase
 
   cloud_phase_raw:
@@ -616,11 +616,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - wavelength: 1.38
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - wavelength: 0.64
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - wavelength: 1.61
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: cimss_cloud_type
 
   cimss_cloud_type_raw:

@@ -24,9 +24,9 @@ composites:
     # should we be using the most corrected or least corrected inputs?
     # what happens if something requests more modifiers on top of this?
     - wavelength: 0.51
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - wavelength: 0.85
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   reproduced_green:
@@ -35,11 +35,11 @@ composites:
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
     - name: B02
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: B03
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: B04
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: none
 
   reproduced_green_uncorr:
@@ -69,11 +69,11 @@ composites:
     strength: 3.0
     prerequisites:
     - name: B02
-      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: B03
-      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: B04
-      modifiers: [sunz_corrected, sunz_reduced]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   airmass:
@@ -200,9 +200,9 @@ composites:
     - wavelength: 3.85
       modifiers: [nir_reflectance]
     - wavelength: 2.26
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 1.61
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: fire_temperature
     name: fire_temperature_39refl
 
@@ -210,9 +210,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: B03
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: B04
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: B13
     standard_name: overview
 
@@ -228,11 +228,11 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
     - wavelength: 1.63
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.85
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - wavelength: 0.635
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     high_resolution_band: blue
     standard_name: natural_color
 
@@ -240,10 +240,10 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
     - name: B03
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: hybrid_green
     - name: B01
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     high_resolution_band: red
     standard_name: true_color
 
@@ -251,10 +251,10 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
     - name: B03
-      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: ndvi_hybrid_green
     - name: B01
-      modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     high_resolution_band: red
     standard_name: true_color
 
@@ -302,10 +302,10 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: B03
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: reproduced_green
       - name: B01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color_reproduction_color_stretch
 
   true_color_reproduction_uncorr:
