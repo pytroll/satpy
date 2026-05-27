@@ -135,8 +135,13 @@ class HDF5SGLI(BaseFileHandler):
             calibrated = dataset * attrs["Slope"] + attrs["Offset"]
         # 8< v1.0
         if calibration == "reflectance":
-            warn("Reflectance is not a correct calibration for SGLI channels, please use 'unnormalized_reflectance'",
-                 DeprecationWarning)
+            warn(
+                "The 'reflectance' calibration for SGLI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         missing, _ = self.get_missing_and_saturated(attrs)
         return calibrated.where(dataset < missing)

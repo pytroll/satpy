@@ -142,7 +142,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
     def test_reflectance_warns(self):
         """Test that asking for reflectance as calibration issues a warning."""
         did = make_dataid(name="1", calibration="reflectance")
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = self.fh.get_dataset(did, {})
 
     def test_get_dataset_radiance(self, file_handler):

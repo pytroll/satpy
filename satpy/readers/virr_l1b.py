@@ -128,9 +128,13 @@ class VIRR_L1B(HDF5FileHandler):
             data.attrs.update({"units": "%"})
             # 8< v1.0
             if dataset_id["calibration"] == "reflectance":
-                warn("Reflectance is not a correct calibration for SEVIRI channels, please use "
-                     "'unnormalized_reflectance'",
-                     DeprecationWarning)
+                warn(
+                    "The 'reflectance' calibration for VIRR L1b is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
             # >8 v1.0
         else:
             data.attrs.update({"units": "1"})

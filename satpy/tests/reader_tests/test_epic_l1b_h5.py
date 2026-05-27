@@ -121,7 +121,7 @@ class TestEPICL1bReader:
         from satpy.tests.utils import make_dsq
 
         test_reader = self._setup_h5(setup_hdf5_file)
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = test_reader.load([make_dsq(name="B317", calibration="reflectance")])
     # >8 v1.0
 

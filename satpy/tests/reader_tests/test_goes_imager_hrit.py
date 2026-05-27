@@ -174,7 +174,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         import pytest
         key = make_dataid(name="CH1", calibration="reflectance")
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = self.reader.get_dataset(key, {})
     # >8 v1.0
 

@@ -56,9 +56,13 @@ class MSIECL1CFileHandler(HDF5FileHandler):
         # 8< v1.0
         import warnings
         if dataset_id.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for MSI EarthCare L1c, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for MSI EarthCare L1c is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
         data = self[file_key]

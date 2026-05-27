@@ -1023,9 +1023,13 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         # 8< v1.0
         import warnings
         if key.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for GOES Imager, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for GOES Imager is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         logger.debug("Reading dataset {}".format(key["name"]))
 
@@ -1098,9 +1102,13 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         # 8< v1.0
         import warnings
         if key.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for GOES Imager, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for GOES Imager is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         logger.debug("Reading dataset {}".format(key["name"]))
 

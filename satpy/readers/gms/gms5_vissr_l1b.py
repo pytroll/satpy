@@ -326,9 +326,13 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         # 8< v1.0
         import warnings
         if dataset_id.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for GMS-5/VISSR, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for GMS-5/VISSR is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         image_data = self._get_image_data()
         counts = self._get_counts(image_data)

@@ -439,7 +439,7 @@ class TestReadingGacFile:
         """Test getting calibrated channel."""
         scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
                       reader_kwargs=reader_kwargs)
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             scene.load(["1"], calibration="reflectance")
         # >8 v1.0
 

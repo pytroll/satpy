@@ -554,9 +554,13 @@ def _vis_calibrate(data,
     # 8< v1.0
     import warnings
     if calib_type == "reflectance":
-        warnings.warn("Reflectance is not a correct calibration for AVHRR AAPP L1b, "
-                      "please use 'unnormalized_reflectance'",
-                      DeprecationWarning)
+        warnings.warn(
+                "The 'reflectance' calibration for AVHRR AAPP L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
     # >8 v1.0
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.

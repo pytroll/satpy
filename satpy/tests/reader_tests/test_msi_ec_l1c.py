@@ -133,6 +133,6 @@ def test_reflectance_warns(msi_ec_l1c_dummy_file):
     """Test that asking for reflectances issue a warning."""
     res = Scene(reader="msi_l1c_earthcare", filenames=[msi_ec_l1c_dummy_file])
 
-    with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+    with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
         res.load([make_dataid(name="VIS", calibration="reflectance")])
 # >8 v1.0

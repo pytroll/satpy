@@ -261,9 +261,13 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
         # 8< v1.0
         import warnings
         if key.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for MODIS L1b, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for MODIS L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         if key["name"] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)

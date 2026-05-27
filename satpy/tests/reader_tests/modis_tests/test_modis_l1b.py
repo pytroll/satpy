@@ -225,6 +225,6 @@ class TestModisL1b:
         scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file)
         dataset_name = "1"
         with dask.config.set({"array.chunk-size": "1 MiB"}):
-            with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+            with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
                 scene.load([dataset_name], calibration="reflectance")
     # >8 v1.0

@@ -684,8 +684,13 @@ class HRITMSGFileHandler(HRITFileHandler):
         res = self.calibrate(res, key["calibration"])
         # 8< v1.0
         if key["calibration"] == "reflectance":
-            warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'unnormalized_reflectance'",
-                 DeprecationWarning)
+            warn(
+                "The 'reflectance' calibration for SEVIRI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         is_calibration = key["calibration"] in ["radiance",
                                                 # 8< v1.0

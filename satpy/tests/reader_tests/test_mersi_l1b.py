@@ -729,6 +729,6 @@ class TestMERSIRML1B(MERSIL1BTester):
         files = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(files)
 
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = reader.load([make_dataid(name="1", calibration="reflectance")])
     # >8 v1.0

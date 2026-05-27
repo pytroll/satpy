@@ -184,8 +184,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
         # 8< v1.0
         if dataset_id["calibration"] == "reflectance":
-            warn("Reflectance is not a correct calibration for SEVIRI channels, please use 'unnormalized_reflectance'",
-                 DeprecationWarning)
+            warn(
+                "The 'reflectance' calibration for SEVIRI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         if (is_calibration and self.mask_bad_quality_scan_lines):
             dataset = self._mask_bad_quality(dataset, dataset_info)

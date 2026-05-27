@@ -105,9 +105,13 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
         # 8< v1.0
         import warnings
         if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for EPIC L1b, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for EPIC L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
 
         ds_name = dataset_id["name"]

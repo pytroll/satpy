@@ -112,7 +112,7 @@ class TestHRPTGetCalibratedVIS:
 
     def test_reflectance_warns(self, hrpt_fh):
         """Test that asking for reflectance issues a warning."""
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
 
 

@@ -218,9 +218,13 @@ class NCSLSTR1B(BaseFileHandler):
             units = "%"
         # 8< v1.0
         if key["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for SEVIRI channels, please use "
-                "'unnormalized_reflectance'",
-                 DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for SLSTR L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
 
         info = info.copy()

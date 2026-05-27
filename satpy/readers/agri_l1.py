@@ -45,9 +45,13 @@ class HDF_AGRI_L1(FY4Base):
         logger.debug("Reading in get_dataset %s.", ds_name)
         # 8< v1.0
         if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for AGRI L1 data, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for AGRI L1 is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
 
         file_key = ds_info.get("file_key", ds_name)

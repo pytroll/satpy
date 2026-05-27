@@ -316,7 +316,11 @@ class AMIL1bNetCDF(BaseFileHandler):
 def _warn_if_reflectance(dataset_id):
     import warnings
     if dataset_id["calibration"] == "reflectance":
-        warnings.warn("Reflectance is not a correct calibration for AMI L1, "
-                      "please use 'unnormalized_reflectance'",
-                      DeprecationWarning)
+        warnings.warn(
+            "The 'reflectance' calibration for AMI L1b is missing Solar Zenith Angle (SZA) "
+            "normalization and is actually unnormalized reflectance. To reflect this, "
+            "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+            "The underlying data remain identical.",
+            DeprecationWarning,
+            stacklevel=2)
 # >8 v1.0

@@ -31,8 +31,8 @@ For more information on this format, the reader can refer to the
 
 import datetime as dt
 import logging
+import warnings
 from contextlib import suppress
-from warnings import warn
 
 import dask.array as da
 import h5py
@@ -264,9 +264,13 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 unit = "%"
                 # 8< v1.0
                 if dataset_key["calibration"] == "reflectance":
-                    warn("Reflectance is not a correct calibration for SEVIRI channels, please use "
-                         "'unnormalized_reflectance'",
-                         DeprecationWarning)
+                    warnings.warn(
+                        "The 'reflectance' calibration for VIIRS Compact is missing Solar Zenith Angle (SZA) "
+                        "normalization and is actually unnormalized reflectance. To reflect this, "
+                        "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                        "The underlying data remain identical.",
+                        DeprecationWarning,
+                        stacklevel=2)
                 # >8 v1.0
             except KeyError:
                 # Maybe it's IR data?

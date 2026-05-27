@@ -770,9 +770,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "unnormalized_reflectance"]:
             # 8< v1.0
             if key["calibration"] == "reflectance":
-                warn("Reflectance is not a correct calibration for FCI channels, please use "
-                     "'unnormalized_reflectance'",
-                     DeprecationWarning)
+                warn(
+                    "The 'reflectance' calibration for FCI L1b is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
             # >8 v1.0
             data = self.calibrate_rad_to_refl(data, key)
 

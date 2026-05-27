@@ -280,7 +280,7 @@ class Test_HDF_GHI_L1_cal:
             else:
                 dsqs.append(band)
 
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = reader.load(dsqs)
     # >8 v1.0
 

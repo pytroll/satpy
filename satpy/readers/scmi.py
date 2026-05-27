@@ -139,9 +139,13 @@ class SCMIFileHandler(BaseFileHandler):
         logger.debug("Reading in get_dataset %s.", key["name"])
         # 8< v1.0
         if key["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for SCMI ABI L1b, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for SCMI ABI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         var_name = info.get("file_key", self.filetype_info.get("file_key"))
         if var_name:

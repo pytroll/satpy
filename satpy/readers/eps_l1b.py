@@ -286,9 +286,13 @@ class EPSAVHRRFile(BaseFileHandler):
         # 8< v1.0
         import warnings
         if "calibration" in key and key["calibration"] == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for AVHRR L1b EPS, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for AVHRR EPS L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         if self.sections is None:
             self._read_all()

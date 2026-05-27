@@ -408,7 +408,7 @@ def test_calibrate(tmp_path, calibration):
     key = make_dataid(name="VIS", calibration=calibration)
     # 8< v1.0
     if calibration == "reflectance":
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             res = reader.get_dataset(
                 key,
                 {

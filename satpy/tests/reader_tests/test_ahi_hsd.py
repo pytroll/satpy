@@ -502,7 +502,7 @@ class TestAHICalibration(unittest.TestCase):
         # Reflectance
         refl_exp = np.array([[2.92676, 2.214325],
                              [1.50189, 0.]])
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             refl = self.fh.calibrate(data=self.counts, calibration="reflectance")
         assert np.allclose(refl, refl_exp)
         # >8 v1.0

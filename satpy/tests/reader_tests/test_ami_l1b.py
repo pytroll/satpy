@@ -314,7 +314,7 @@ class TestAMIL1bNetCDF:
         """Test get visible calibrated data."""
         from satpy.tests.utils import make_dataid
         key = make_dataid(name="VI006", calibration="reflectance")
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = fake_vis_reader.get_dataset(key, {
                 "file_key": "image_pixel_values",
                 "standard_name": "toa_bidirectional_reflectance",

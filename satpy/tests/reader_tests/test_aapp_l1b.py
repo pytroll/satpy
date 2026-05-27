@@ -279,7 +279,7 @@ class TestAAPPL1BAllChannelsPresent:
         """Test the reading."""
         info = {}
         key = make_dataid(name="1", calibration="reflectance")
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = all_channels_fh.get_dataset(key, info)
 
     def test_angles(self, all_channels_fh):

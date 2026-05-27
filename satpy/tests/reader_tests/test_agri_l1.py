@@ -281,7 +281,7 @@ class Test_HDF_AGRI_L1_cal:
         band_names = ALL_BAND_NAMES
         # 8< v1.0
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Reflectance is not a correct calibration.*")
+            warnings.filterwarnings("ignore", message="is missing Solar Zenith Angle.*")
             # >8 v1.0
             res = reader.load(band_names)
         assert len(res) == 14
@@ -296,7 +296,7 @@ class Test_HDF_AGRI_L1_cal:
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
         band_names = ALL_BAND_NAMES[0:1]
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = reader.load(band_names)
     # >8 v1.0
 
@@ -307,7 +307,7 @@ class Test_HDF_AGRI_L1_cal:
         band_names = ALL_BAND_NAMES
         # 8< v1.0
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Reflectance is not a correct calibration.*")
+            warnings.filterwarnings("ignore", message="is missing Solar Zenith Angle.*")
             # >8 v1.0
             res = reader.load(band_names)
 
@@ -394,7 +394,7 @@ class Test_HDF_AGRI_L1_cal:
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
         # 8< v1.0
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Reflectance is not a correct calibration.*")
+            warnings.filterwarnings("ignore", message="is missing Solar Zenith Angle.*")
             # >8 v1.0
             res = reader.load(band_names)
         assert len(res) == len(band_names)

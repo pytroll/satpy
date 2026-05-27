@@ -138,9 +138,13 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
         # 8< v1.0
         import warnings
         if ds_id.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for INSAT3D L1b, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for INSAT3D L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         resolution = ds_id["resolution"]
         ds = self.datatree[str(resolution)]

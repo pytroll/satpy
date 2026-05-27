@@ -131,7 +131,7 @@ class TestSCMIFileHandler(unittest.TestCase):
         """Test that using reflectance as calibration issues a warning."""
         from satpy.tests.utils import make_dataid
 
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = self.reader.get_dataset(
                 make_dataid(name="C05", calibration="reflectance"), {})
     # >8 v1.0

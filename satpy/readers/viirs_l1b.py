@@ -155,9 +155,13 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             scale_offset = self[var_path + "/attr/add_offset"]
             # 8< v1.0
             if dataset_id["calibration"] == "reflectance":
-                warn("Reflectance is not a correct calibration for SGLI channels, please use "
-                     "'unnormalized_reflectance'",
-                     DeprecationWarning)
+                warn(
+                    "The 'reflectance' calibration for VIIRS L1b is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
             # >8 v1.0
         elif ds_info.get("units") == "K":
             # normal brightness temperature

@@ -183,5 +183,5 @@ class TestMSUGSABReader:
     def test_reflectance_warns(self):
         """Test that a warning is issued if reflectance is requested."""
         ds_ids = [make_dataid(name="C01", calibration="reflectance")]
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = self.reader.load(ds_ids)

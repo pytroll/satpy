@@ -135,9 +135,13 @@ class FY4Base(HDF5FileHandler):
         # 8< v1.0
         import warnings
         if ds_info.get("calibration") == "reflectance":
-            warnings.warn("Reflectance is not a correct calibration for FY4, "
-                          "please use 'unnormalized_reflectance'",
-                          DeprecationWarning)
+            warnings.warn(
+                "The 'reflectance' calibration for FY-4 is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
         # >8 v1.0
         # Check if calibration is present, if not assume dataset is an angle
         calibration = ds_info.get("calibration")

@@ -466,7 +466,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_reflectance_warns(self):
         """Test that asking for reflectance calibration issues a warning."""
-        with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
             _ = self.reader.get_dataset(key=make_dataid(name="00_7", calibration="reflectance"),
                                         info={})
 

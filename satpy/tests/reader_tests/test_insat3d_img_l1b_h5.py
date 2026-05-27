@@ -237,7 +237,7 @@ def test_filehandler_returns_data_array(insat_filehandler, calibration, expected
 def test_reflectance_warns(insat_filehandler):
     """Test that asking for reflectance issues a warning."""
     ds_id = make_dataid(name="VIS", resolution=1000, calibration="reflectance")
-    with pytest.warns(DeprecationWarning, match="Reflectance is not a correct calibration"):
+    with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
         _ = insat_filehandler.get_dataset(ds_id, {})
 
 
