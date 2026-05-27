@@ -34,11 +34,15 @@ on those modifiers can be found in the linked API documentation.
       - Description
     * - ``sunz_corrected``
       - :class:`~satpy.modifiers.geometry.SunZenithCorrector`
-      - Modifies solar channels for the solar zenith angle to provide
-        smoother images.
+      - Normalizes solar channels for the solar zenith angle to compute the true reflectance.
+        For Satpy < v1.0 the correction is reduced at high solar zenith angles (> 88 degrees)
+        to avoid over-correction and achieve better looking (RGB) imagery.
     * - ``effective_solar_pathlength_corrected``
       - :class:`~satpy.modifiers.geometry.EffectiveSolarPathLengthCorrector`
-      - Modifies solar channels for atmospheric path length of solar radiation.
+      - Normalizes solar channels for the solar zenith angle to compute the reflectance,
+        but parameterized following Li and Shibata (2006, :doi:`10.1175/JAS3682.1`) to avoid
+        over-correction at high solar zenith angles for better looking (RGB) imagery. This should
+        not be used for quantitative or scientific applications.
     * - ``nir_reflectance``
       - :class:`~satpy.modifiers.spectral.NIRReflectance`
       - Calculates reflective part of channels at the edge of solar and
