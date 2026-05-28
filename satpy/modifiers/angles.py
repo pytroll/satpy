@@ -625,8 +625,9 @@ def atmospheric_path_length_correction(data: xr.DataArray,
     This function uses the correction method proposed by
     Li and Shibata (2006): https://doi.org/10.1175/JAS3682.1 and is recommended for computing
     the reflectance for (RGB) imagery to avoid over-correction at high solar zenith angles. It
-    shoudl not be used for quantitative/scientific applications for which the standard cosine
-    correction is more appropriate (see SunZenithCorrector for more details on how to use it).
+    should not be used for quantitative or scientific applications beyond the visual usage of
+    imagery for which the standard cosine correction is more appropriate (see SunZenithCorrector
+    for more details on how to use it).
 
     Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
