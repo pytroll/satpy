@@ -101,30 +101,23 @@ modifiers:
     - name: solar_zenith_angle
       resolution: 742
 
-  # Although `effective_solar_pathlength_corrected` is now the recommended solar zenith
-  # angle correction modifier for (RGB) imagery (agreed during RGB workshop in
-  # Norrkoeping 2025), we need to keep using `sunz_corrected` (SunZenithCorrector)
-  # for VIIRS data given that the SDR data come with the `1/cos(sunz)` normalization
-  # already applied, whereas the L1B data do not. Consequently, the `sunz_corrected`
-  # modifier is attached to the dataset when loading VIIRS SDR data. Hence, if we would
-  # use the `effective_solar_pathlength_corrected` modifier in the recipes defined below,
-  # we would not be able to load composites using VIIRS SDR data since satpy would not
-  # be able to find the "base" dataset with no modifiers applied, but only the one with
-  # the `sunz_corrected` modifier applied.
-  # Since the default behaviour of `sunz_corrected` has changed to compute the true
-  # reflectance, we explicitly define `correction_limit` in order to avoid over-correction
-  # at very high sun zenith angles.
+  # Although we use the `EffectiveSolarPathLengthCorrector` for VIIRS data, we keep the
+  # name `sunz_corrected`. This is needed in order to be able to load composites and
+  # reject further corrections if loading VIIRS SDR data for which the standard
+  # `1/cos(sunz)` normalization is already applied, with the `sunz_modifier` attached
+  # to the dataset during reading. If we were to use the `effective_solar_pathlength_corrected`
+  # name instead, satpy would not be able to find the "base" dataset with no modifiers applied,
+  # but only the one with the `sunz_corrected` modifier applied, hence leading to failure
+  # when loading composites using VIIRS SDR data.
   sunz_corrected:
-    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
-    correction_limit: 86
+    modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 742
 
-  # See comment above concerning the use of `SunZenithCorrector` for VIIRS data.
+  # See comment above concerning the use of the `sunz_corrected_iband` name for VIIRS data.
   sunz_corrected_iband:
-    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
-    correction_limit: 86
+    modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 371
