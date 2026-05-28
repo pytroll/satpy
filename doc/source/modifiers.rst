@@ -43,7 +43,7 @@ on those modifiers can be found in the linked API documentation.
         but parameterized following Li and Shibata (2006, :doi:`10.1175/JAS3682.1`) to avoid
         over-correction at high solar zenith angles for better looking (RGB) imagery, also
         extending beyond 90 degrees solar zenith angle. This should not be used for
-        quantitative or scientific applications.
+        quantitative scientific applications beyond the visual usage of imagery.
     * - ``nir_reflectance``
       - :class:`~satpy.modifiers.spectral.NIRReflectance`
       - Calculates reflective part of channels at the edge of solar and
