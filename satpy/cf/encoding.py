@@ -71,6 +71,7 @@ def _set_default_time_encoding(encoding, dataset):
         time_enc = {"units": default.attrs["units"], "calendar": default.attrs["calendar"]}
         time_enc.update(encoding.get("time", {}))
         bounds_enc = {"units": time_enc["units"],
+                      "dtype": "float64",
                       "calendar": time_enc["calendar"],
                       "_FillValue": None}
         encoding["time"] = time_enc
