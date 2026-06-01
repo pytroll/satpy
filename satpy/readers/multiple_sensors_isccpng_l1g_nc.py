@@ -73,20 +73,30 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
         if len(data.dims) > 2:
-            data = data.drop_vars("latitude")
-            data = data.drop_vars("longitude")
-            data = data.drop_vars("start_time")
-            data = data.drop_vars("end_time")
+            for var in ["latitude", "longitude", "start_time", "end_time", "time"]:
+                try:
+                    data = data.drop_vars(var)
+                except ValueError:
+                    pass
             data = data.rename({"longitude": "x", "latitude": "y"})
         return data
 
     def set_time_attrs(self, data):
         """Set time from attributes."""
         if "start_time" in data.coords:
+            # ISCCP-NG L1g demo
             data.attrs["start_time"] = data["start_time"].values[0]
             data.attrs["end_time"] = data["end_time"].values[0]
             self._end_time = data.attrs["end_time"]
             self._start_time = data.attrs["start_time"]
+        if data.name == "pixel_time":
+            # EUMETSAT L1g
+            if not np.issubdtype(data.dtype, np.floating):
+                logger.debug("Finding max/min time")
+                data.attrs["start_time"] = np.nanmin(data.values)
+                data.attrs["end_time"] = np.nanmax(data.values)
+                self._end_time = data.attrs["end_time"]
+                self._start_time = data.attrs["start_time"]
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""

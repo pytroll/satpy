@@ -10,74 +10,102 @@ reader:
 file_types:
     isccp_ng_l1g_nc_refl_0047um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_0047um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_0047um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_0047um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_00_51um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_51um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_51um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_00_51um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_01_38um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_38um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_38um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_01_38um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_02_20um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_02_20um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_02_20um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_02_20um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_01_60um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_60um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_01_60um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_01_60um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_03_80um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_03_80um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_03_80um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_03_80um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_08_60um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_08_60um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_08_60um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_08_60um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_09_70um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_09_70um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_09_70um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_09_70um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_11_00um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_11_00um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_11_00um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_11_00um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_10_40um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_10_40um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_10_40um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_10_40um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_12_00um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_12_00um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_12_00um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_12_00um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_13_30um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_13_30um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_13_30um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_13_30um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_00_65um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_65um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_65um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_00_65um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_refl_00_86um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_86um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__refl_00_86um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__refl_00_86um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_06_20um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_20um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_20um__{start_time:%Y%m%dT%H%M}.nc',
+                       'EUM_L1g_v{version}_res_0_05deg__temp_06_20um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_06_70um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_70um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_06_70um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_06_70um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_temp_07_30um:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_07_30um__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__temp_07_30um__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__temp_07_30um__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_solar_zenith:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_zenith_angle__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__solar_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_sensor_zenith:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['EUM_L1g_v{version}_res_0_05deg__sensor_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_satellite_zenith:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__satellite_zenith_angle__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_solar_azimuth:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__solar_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__solar_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
+    isccp_ng_l1g_nc_sensor_azimuth:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['EUM_L1g_v{version}_res_0_05deg__sensor_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_satellite_azimuth:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__satellite_azimuth_angle__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_time:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
-        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__pixel_time__{start_time:%Y%m%dT%H%M}.nc']
+        file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__pixel_time__{start_time:%Y%m%dT%H%M}.nc',
+                        'EUM_L1g_v{version}_res_0_05deg__pixel_time__{start_time:%Y%m%dT%H%M}.nc']
     isccp_ng_l1g_nc_wmo_id:
         file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
         file_patterns: ['ISCCP-NG_L1g_demo_v{version}_res_0_05deg__wmo_id__{start_time:%Y%m%dT%H%M}.nc']
-
+    isccp_ng_l1g_nc_sensor_flag:
+        file_reader: !!python/name:satpy.readers.multiple_sensors_isccpng_l1g_nc.IsccpngL1gFileHandler
+        file_patterns: ['EUM_L1g_v{version}_res_0_05deg__sensor_flag__{start_time:%Y%m%dT%H%M}.nc']
 
 datasets:
   refl_0047um:
@@ -291,6 +319,14 @@ datasets:
     units: degrees
     nc_key: 'solar_zenith_angle'
 
+  sensor_zenith_angle:
+    name: sensor_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 3000.403165817
+    file_type:  isccp_ng_l1g_nc_sensor_zenith
+    units: degrees
+    nc_key: 'sensor_zenith_angle'
+
   satellite_zenith_angle:
     name: satellite_zenith_angle
     standard_name: satellite_zenith_angle
@@ -306,6 +342,14 @@ datasets:
     file_type:  isccp_ng_l1g_nc_solar_azimuth
     units: degrees
     nc_key: 'solar_azimuth_angle'
+
+  sensor_azimuth_angle:
+    name: sensor_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 3000.403165817
+    file_type:  isccp_ng_l1g_nc_sensor_azimuth
+    units: degrees
+    nc_key: 'sensor_azimuth_angle'
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
@@ -353,3 +397,10 @@ datasets:
     file_type: isccp_ng_l1g_nc_wmo_id
     coordinates: [lon, lat]
     nc_key: 'wmo_id'
+
+  sensor_flag:
+    name: sensor_flag
+    resolution: 3000.403165817
+    file_type: isccp_ng_l1g_nc_sensor_flag
+    coordinates: [lon, lat]
+    nc_key: 'sensor_flag'
