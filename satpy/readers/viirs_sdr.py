@@ -38,7 +38,7 @@ from glob import glob
 import numpy as np
 
 from satpy.readers.core.viirs_atms_sdr import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
-from satpy.readers.core.yaml_reader import FileYAMLReader
+from satpy.readers.core.yaml_reader import RasterFileYAMLReader
 
 NO_DATE = dt.datetime(1958, 1, 1)
 EPSILON_TIME = dt.timedelta(days=2)
@@ -183,7 +183,7 @@ def split_desired_other(fhs, prime_geo, second_geo):
     return desired, other
 
 
-class VIIRSSDRReader(FileYAMLReader):
+class VIIRSSDRReader(RasterFileYAMLReader):
     """Custom file reader for finding VIIRS SDR geolocation at runtime."""
 
     def __init__(self, config_files, use_tc=None, **kwargs):  # noqa: D417

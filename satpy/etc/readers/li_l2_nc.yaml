@@ -4,7 +4,7 @@ reader:
   long_name: LI Level-2 NetCDF Reader
   description: Reader for MTG Lightning Imager (LI) Level-2 NetCDF files
   sensors: [li]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   status: Beta
   supports_fsspec: false
 

@@ -5,7 +5,7 @@ reader:
   description: Reader for Hydrology SAF products
   status: Beta, only h03, h03b, h05 and h05b currently supported
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
   sensors: [hsaf]
 
 file_types:

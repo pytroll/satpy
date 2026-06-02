@@ -9,7 +9,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [combined]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     camel_emis_file:

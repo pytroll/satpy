@@ -6,7 +6,7 @@ reader:
     Reader for EUMETSAT EPS-SG Ice Cloud Imager Level 1B Radiance files in NetCDF4.
   status: Beta
   sensors: [ici]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
   data_identification_keys:
     name:

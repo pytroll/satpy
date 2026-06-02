@@ -10,7 +10,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [ghi]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     ghi_l1_0250m:

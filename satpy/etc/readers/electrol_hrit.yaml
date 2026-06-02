@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   sensors: [msu-gs]
-  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.RasterFileYAMLReader
 
 file_types:
     HRIT_00_6_4:
