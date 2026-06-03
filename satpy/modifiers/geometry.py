@@ -206,6 +206,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
         """
         if correction_limit is not None or max_sza is not None:
+            # TODO Remove class init input variables and warning in satpy v1.0
             msg = "The ``correction_limit`` and ``max_sza`` parameters have been deprecated and are no " \
                 "longer used for the EffectiveSolarPathLengthCorrector and will be fully removed " \
                 "in satpy v1.0. This is done since the parameterization by Li and Shibata (2006) " \
