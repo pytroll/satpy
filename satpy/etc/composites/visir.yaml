@@ -9,7 +9,7 @@ modifiers:
   sunz_corrected:
     modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     optional_prerequisites:
-      - solar_zenith_angle
+    - solar_zenith_angle
 
   effective_solar_pathlength_corrected:
     modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
