@@ -149,8 +149,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-
-        if self.correction_limit is not None or self.max_sza is not None:
+        if self.correction_limit == 88.0 or self.max_sza == 95.0:
             # TODO Change class defaults and remove warning in satpy v1.0
             warnings.warn(
                 "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
