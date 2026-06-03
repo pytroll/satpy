@@ -3,15 +3,6 @@ sensor_name: visir/seviri
 modifiers:
   sunz_corrected:
     modifier: !!python/name:satpy.modifiers.SunZenithCorrector
-    user_warning: >
-      The reduction of the standard Sun zenith angle correction above 88 degrees will
-      be removed in satpy v1.0 in order to compute the true reflectance with the
-      'sunz_corrected' modifier. To avoid overcorrection at high angles for (RGB) imagery
-      it's recommended to use the 'effective_solar_pathlength_corrected' modifier instead.
-      If you still want to keep the current behaviour, please set the 'correction_limit'
-      parameter to 88.0 and 'max_sza' to 95.0 in a local definition of the modifier.
-    correction_limit: 88.0
-    max_sza: 95.0
 
   co2_corrected:
     modifier: !!python/name:satpy.modifiers.CO2Corrector

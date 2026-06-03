@@ -119,7 +119,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         self,
         correction_limit: Optional[float] = 88.0,
         max_sza: Optional[float] = 95.0,
-        user_warning: Optional[str] = None,
         **kwargs,
     ):
         """Collect custom configuration values.
@@ -135,9 +134,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 Pixels with solar zenith angles greater than
                 ``max_sza`` are set to 0.
 
-            user_warning:
-                Optional user warning to be shown when applying the correction.
-
             **kwargs:
                 Additional keyword arguments passed to the parent class.
 
@@ -145,7 +141,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         self.method = "sunz_corrected"
         self.correction_limit = correction_limit
         self.max_sza = max_sza
-        self.user_warning = user_warning
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
@@ -161,8 +156,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 UserWarning,
                 stacklevel=2,
             )
-        if self.user_warning:
-            warnings.warn(self.user_warning, UserWarning, stacklevel=2)
         return sunzen_corr_cos(proj, coszen, correction_limit=self.correction_limit, max_sza=self.max_sza)
 
 
