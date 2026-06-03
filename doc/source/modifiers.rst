@@ -36,7 +36,9 @@ on those modifiers can be found in the linked API documentation.
       - :class:`~satpy.modifiers.geometry.SunZenithCorrector`
       - Normalizes solar channels for the solar zenith angle using ``1/cos(sza)``
         to compute the true reflectance. This leads to zero reflectance for
-        solar zenith angles of 90 degrees and above.
+        solar zenith angles of 90 degrees and above. For Satpy < 1.0 a reduction
+        of the correction is applied between 88-95 degrees in order to avoid
+        over-correction for (RGB) imagery and retain imagery beyond 90 degrees.
     * - ``effective_solar_pathlength_corrected``
       - :class:`~satpy.modifiers.geometry.EffectiveSolarPathLengthCorrector`
       - Normalizes solar channels for the solar zenith angle to compute the reflectance,
