@@ -117,8 +117,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
-        correction_limit: Optional[float] = None,
-        max_sza: Optional[float] = None,
+        correction_limit: Optional[float] = 88.0,
+        max_sza: Optional[float] = 95.0,
         user_warning: Optional[str] = None,
         **kwargs,
     ):
@@ -149,6 +149,19 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
+
+        if self.correction_limit is not None or self.max_sza is not None:
+            # TODO Change class defaults and remove warning in satpy v1.0
+            warnings.warn(
+                "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
+                "be removed in satpy v1.0 in order to compute the true reflectance with the 'sunz_corrected' modifier. "
+                "To avoid overcorrection at high angles for (RGB) imagery it's recommended to use the "
+                "'effective_solar_pathlength_corrected' modifier instead. If you still want to keep the current "
+                "behaviour, please set the 'correction_limit' parameter to 88.0 and 'max_sza' to 95.0 in a local "
+                "definition of the modifier.",
+                UserWarning,
+                stacklevel=2,
+            )
         if self.user_warning:
             warnings.warn(self.user_warning, UserWarning, stacklevel=2)
         return sunzen_corr_cos(proj, coszen, correction_limit=self.correction_limit, max_sza=self.max_sza)

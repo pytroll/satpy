@@ -142,7 +142,7 @@ class TestSunZenithCorrector:
         if as_32bit:
             sunz_ds1 = sunz_ds1.astype(np.float32)
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
-        expected = np.array([[66.853256, 68.168938], [66.307419, 67.601494]])
+        expected = np.array([[22.401667, 22.31777], [22.437503, 22.353533]])
         res = call_sunz_modifier(comp, sunz_ds1)
         assert_sunz_modifier_result(res, expected, sunz_ds1)
         assert "y" in res.coords
@@ -164,7 +164,7 @@ class TestSunZenithCorrector:
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
-        expected = np.array([[5.758770, 19.107323], [57.298689, 0.0]], dtype=dtype)
+        expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
         assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
