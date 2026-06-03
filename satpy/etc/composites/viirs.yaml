@@ -101,6 +101,18 @@ modifiers:
     - name: solar_zenith_angle
       resolution: 742
 
+  sunz_corrected:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+    prerequisites:
+    - name: solar_zenith_angle
+      resolution: 742
+
+  sunz_corrected_iband:
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+    prerequisites:
+    - name: solar_zenith_angle
+      resolution: 371
+
   effective_solar_pathlength_corrected:
     modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
     prerequisites:
