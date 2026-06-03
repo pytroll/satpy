@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 NLON = 7200
 NLAT = 3600
 
+
 class IsccpngL1gFileHandler(BaseFileHandler):
     """Reader L1G ISCCP-NG data."""
 
@@ -37,17 +38,21 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         super(IsccpngL1gFileHandler, self).__init__(
             filename, filename_info, filetype_info)
 
-        self._start_time = filename_info["start_time"]
-        self._end_time = filename_info["start_time"]
+        self._start_time = np.datetime64(filename_info["start_time"])
+        self._end_time = np.datetime64(filename_info["start_time"])
         self.sensor = "multiple_sensors"
         self.filename_info = filename_info
 
     def tile_geolocation(self, data, key):
         """Get geolocation on full swath."""
         if key in "latitude":
-            return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, NLON)), dims=["y", "x"], attrs=data.attrs)
+            return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, NLON)), dims=[
+                                "y", "x"], attrs=data.attrs)
         if key in "longitude":
-            return xr.DataArray(np.tile(data.values, (NLAT, 1)), dims=["y", "x"], attrs=data.attrs)
+            return xr.DataArray(
+                np.tile(
+                    data.values, (NLAT, 1)), dims=[
+                    "y", "x"], attrs=data.attrs)
         return data
 
     def get_best_layer_of_data(self, data):
@@ -76,7 +81,12 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
         if len(data.dims) > 2:
-            for var in ["latitude", "longitude", "start_time", "end_time", "time"]:
+            for var in [
+                "latitude",
+                "longitude",
+                "start_time",
+                "end_time",
+                    "time"]:
                 try:
                     data = data.drop_vars(var)
                 except ValueError:
@@ -98,8 +108,8 @@ class IsccpngL1gFileHandler(BaseFileHandler):
                 logger.debug("Finding max/min time")
                 data.attrs["start_time"] = np.nanmin(data.values)
                 data.attrs["end_time"] = np.nanmax(data.values)
-                self._end_time = data.attrs["end_time"].astype('datetime64[us]').astype(datetime.datetime)
-                self._start_time = data.attrs["start_time"].astype('datetime64[us]').astype(datetime.datetime)
+                self._end_time = data.attrs["end_time"]
+                self._start_time = data.attrs["start_time"]
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
