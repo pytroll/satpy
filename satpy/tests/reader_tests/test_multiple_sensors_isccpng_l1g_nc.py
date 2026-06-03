@@ -34,7 +34,8 @@ import xarray as xr
 def nc_filename(tmp_path):
     """Create nc test data file and return its filename."""
     a_time = dt.datetime(2019, 8, 26, 12, 25, tzinfo=dt.timezone.utc)
-    filename = f"ISCCP-NG_L1g_demo_v5_res_0_05deg__temp_11_00um__{a_time:%Y%m%dT%H%M}.nc"
+    filename = f"ISCCP-NG_L1g_demo_v5_res_0_05deg__temp_11_00um__{
+        a_time:%Y%m%dT%H%M}.nc"
     filename_str = str(tmp_path / filename)
     jan_1970 = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
     delta_t = a_time - jan_1970
@@ -75,7 +76,8 @@ def nc_filename_eum(tmp_path, is_eum=False):
     """Create nc test data file and return its filename."""
     a_time = dt.datetime(2019, 8, 26, 12, 25, tzinfo=dt.timezone.utc)
     filename = f"EUM_L1g_v5_res_0_05deg__temp_11_00um__{a_time:%Y%m%dT%H%M}.nc"
-    filename_time = f"EUM_L1g_v5_res_0_05deg__pixel_time__{a_time:%Y%m%dT%H%M}.nc"
+    filename_time = f"EUM_L1g_v5_res_0_05deg__pixel_time__{
+        a_time:%Y%m%dT%H%M}.nc"
     filename_str = str(tmp_path / filename)
     filename_time_str = str(tmp_path / filename_time)
     # Create test data
@@ -85,12 +87,14 @@ def nc_filename_eum(tmp_path, is_eum=False):
     lons = np.linspace(-180, 180, npix)
     array = np.empty((1, 3, nscn, npix))
     array_time = np.empty((1, 3, nscn, npix))
-    array_time[:,:,:,:] = np.datetime64("NaT")
+    array_time[:, :, :, :] = np.datetime64("NaT")
     array[0, 0, 0, 0] = 27000
     array_time[0, 0, 0, 0] = np.datetime64('2019-08-26 12:20:00.000')
     array_time[0, 0, 0, 1] = np.datetime64('2019-08-26 12:30:00.000')
-    ds = xr.Dataset({"temp_11_00um": (("time", "layer", "latitude", "longitude"), array)})
-    ds_time = xr.Dataset({"pixel_time": (("time", "layer", "latitude", "longitude"), array_time)})
+    ds = xr.Dataset(
+        {"temp_11_00um": (("time", "layer", "latitude", "longitude"), array)})
+    ds_time = xr.Dataset(
+        {"pixel_time": (("time", "layer", "latitude", "longitude"), array_time)})
     ds["temp_11_00um"].attrs["_FillValue"] = -32767
     ds["temp_11_00um"].attrs["scale_factor"] = 0.01
     ds["temp_11_00um"].attrs["units"] = "K"
@@ -115,7 +119,6 @@ def nc_filename_eum(tmp_path, is_eum=False):
 
 class TestISCCPNGL1gReader:
     """Test the IsccpngL1gFileHandler reader."""
-
 
     def test_read_eum_l1g(self, nc_filename_eum, monkeypatch):
         """Test reading reflectances and BT."""
@@ -152,6 +155,3 @@ class TestISCCPNGL1gReader:
         assert (scn_["lon"].shape == (36, 72))
         assert (scn_["temp_11_00um"].shape == (36, 72))
         assert (scn_["temp_11_00um"].values[0, 0] == 270)
-
-
-    
