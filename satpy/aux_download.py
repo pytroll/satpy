@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Functions and utilities for downloading ancillary data."""
+from __future__ import annotations
 
 import logging
 import os
@@ -24,8 +25,8 @@ import satpy
 
 logger = logging.getLogger(__name__)
 
-_FILE_REGISTRY = {}
-_FILE_URLS = {}
+_FILE_REGISTRY: dict[str, str | None] = {}
+_FILE_URLS: dict[str, str] = {}
 RUNNING_TESTS = False
 
 
