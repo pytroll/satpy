@@ -171,3 +171,6 @@ def _check_expected_array(
     area = data_arr.attrs["area"]
     assert isinstance(area, SwathDefinition)
     assert area.shape == (SINGLE_GRAN_SHAPE[0] * num_granules, SINGLE_GRAN_SHAPE[1])
+
+    if "valid_range" in data_arr.attrs:
+        assert isinstance(data_arr.attrs["valid_range"], list)
