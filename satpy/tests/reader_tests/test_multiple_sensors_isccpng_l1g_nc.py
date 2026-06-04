@@ -34,8 +34,7 @@ import xarray as xr
 def nc_filename(tmp_path):
     """Create nc test data file and return its filename."""
     a_time = dt.datetime(2019, 8, 26, 12, 25, tzinfo=dt.timezone.utc)
-    filename = f"ISCCP-NG_L1g_demo_v5_res_0_05deg__temp_11_00um__{
-        a_time:%Y%m%dT%H%M}.nc"
+    filename = f"ISCCP-NG_L1g_demo_v5_res_0_05deg__temp_11_00um__{a_time:%Y%m%dT%H%M}.nc"
     filename_str = str(tmp_path / filename)
     jan_1970 = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
     delta_t = a_time - jan_1970
@@ -58,7 +57,6 @@ def nc_filename(tmp_path):
                             "latitude": lats[:],
                             "longitude": lons[:]},
                     attrs={"scale_factor": 0.01, "units": "K"})
-
     ds["temp_11_00um"].attrs["_FillValue"] = -32767
     ds["temp_11_00um"].attrs["scale_factor"] = 0.01
     ds["temp_11_00um"].attrs["units"] = "K"
@@ -76,8 +74,7 @@ def nc_filename_eum(tmp_path, is_eum=False):
     """Create nc test data file and return its filename."""
     a_time = dt.datetime(2019, 8, 26, 12, 25, tzinfo=dt.timezone.utc)
     filename = f"EUM_L1g_v5_res_0_05deg__temp_11_00um__{a_time:%Y%m%dT%H%M}.nc"
-    filename_time = f"EUM_L1g_v5_res_0_05deg__pixel_time__{
-        a_time:%Y%m%dT%H%M}.nc"
+    filename_time = f"EUM_L1g_v5_res_0_05deg__pixel_time__{a_time:%Y%m%dT%H%M}.nc"
     filename_str = str(tmp_path / filename)
     filename_time_str = str(tmp_path / filename_time)
     # Create test data

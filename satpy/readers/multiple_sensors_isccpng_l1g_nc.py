@@ -17,7 +17,6 @@
 
 import logging
 
-import datetime
 import numpy as np
 import xarray as xr
 from pyresample import geometry
