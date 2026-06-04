@@ -139,6 +139,10 @@ class EDRFileHandler(BaseFileHandler):
             data_arr.data = np.where(ef_mask, data_arr.data, np.nan)
         # xarray auto mask and scale handled any fills from the file
         valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
+        if isinstance(valid_range, np.ndarray):
+            valid_range = valid_range.tolist()
+            # data array attrs are updated with ds_info later
+            ds_info["valid_range"] = valid_range
         if "valid_min" in data_arr.attrs and valid_range is None:
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
