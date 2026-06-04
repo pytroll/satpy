@@ -128,6 +128,7 @@ def test_available_datasets(tmp_path):
     "filter_by_error_flag",
     [
         None,
+        [],
         [0, 1],
         [0, 1, 2, 3],
     ],
@@ -156,7 +157,7 @@ def _check_expected_array(
 
     data_np = data_arr.data.compute()
     assert data_np.dtype == data_arr.dtype
-    if filter_by_error_flag is None:
+    if not filter_by_error_flag:
         assert not np.isnan(data_np).any()
     else:
         assert not np.isnan(data_np[1:SINGLE_GRAN_SHAPE[0]]).any()
