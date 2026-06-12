@@ -53,6 +53,7 @@ The following people have made contributions to this project:
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Przemyslaw Juda (pjuda)](https://github.com/pjuda)
+- [Inderpreet Kaur](https://github.com/ikaur17)
 - [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Beke Kremmling (bkremmli)](https://github.com/bkremmli) - Deutscher Wetterdienst
