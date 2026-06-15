@@ -8,7 +8,7 @@ concurrency:
 on: [push, pull_request]
 
 env:
-  CACHE_NUMBER: 0
+  CACHE_NUMBER: 1
 
 jobs:
   test:
@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
@@ -59,7 +59,7 @@ jobs:
         id: cache
 
       - name: Update environment
-        run: mamba env update -n test-environment -f continuous_integration/environment.yaml
+        run: conda env update -n test-environment -f continuous_integration/environment.yaml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install unstable dependencies
@@ -72,7 +72,7 @@ jobs:
         #   compatibility issues with numpy 2. When conda-forge has numpy 2 available
         #   this shouldn't be needed.
         run: |
-          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs
+          python -m pip install versioneer extension-helpers setuptools-scm configobj pkgconfig hatchling hatch-vcs hatch-cython
           python -m pip install \
           --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/ \
           --trusted-host pypi.anaconda.org \

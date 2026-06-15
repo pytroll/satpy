@@ -3,7 +3,7 @@ fail_fast: false
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: 'v0.15.4'
+    rev: 'v0.15.15'
     hooks:
       - id: ruff-check
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -19,7 +19,7 @@ repos:
       - id: bandit
         args: [--ini, .bandit]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.19.1'  # Use the sha / tag you want to point at
+    rev: 'v2.1.0'  # Use the sha / tag you want to point at
     hooks:
       - id: mypy
         additional_dependencies:
@@ -29,7 +29,7 @@ repos:
           - types-requests
         args: ["--python-version", "3.10", "--ignore-missing-imports"]
   - repo: https://github.com/pycqa/isort
-    rev: 8.0.1
+    rev: 9.0.0a3
     hooks:
       - id: isort
         language_version: python3

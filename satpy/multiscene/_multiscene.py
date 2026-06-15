@@ -336,9 +336,9 @@ class MultiScene(object):
         dataset (:class:`xarray.DataArray` object).  The blend method
         then assigns those datasets to the blended scene.
 
-        Blending functions provided in this module are :func:`satpy.multiscene._blend_funcs.stack`
-        (the default), :func:`satpy.multiscene._blend_funcs.timeseries`, and
-        :func:`satpy.multiscene._blend_funcs.temporal_rgb`, but the Python built-in
+        Blending functions provided in this module are :func:`satpy.multiscene.blend_funcs.stack`
+        (the default), :func:`satpy.multiscene.blend_funcs.timeseries`, and
+        :func:`satpy.multiscene.blend_funcs.temporal_rgb`, but the Python built-in
         function :func:`sum` also works and may be appropriate for
         some types of data.
 

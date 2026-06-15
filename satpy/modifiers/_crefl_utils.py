@@ -63,7 +63,7 @@ The original CREFL code is similar to what is described in appendix A1 (page
 from __future__ import annotations
 
 import logging
-from typing import Optional, Type, Union
+from typing import Optional, Type
 
 import dask.array as da
 import numpy as np
@@ -94,7 +94,7 @@ class _Coefficients:
     LUTS: list[np.ndarray] = []
     # resolution -> wavelength -> coefficient index
     # resolution -> band name -> coefficient index
-    COEFF_INDEX_MAP: dict[int, dict[Union[tuple, str], int]] = {}
+    COEFF_INDEX_MAP: dict[int, dict[tuple | str, int]] = {}
 
     def __init__(self, wavelength_range, resolution=0):
         self._wv_range = wavelength_range
