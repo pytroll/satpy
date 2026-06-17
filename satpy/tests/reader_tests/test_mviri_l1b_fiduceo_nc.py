@@ -66,10 +66,10 @@ attrs_refl_exp.update(
     {"sun_earth_distance_correction_applied": True,
      "sun_earth_distance_correction_factor": 1.}
 )
-acq_time_vis_exp = [np.datetime64("NaT").astype("datetime64[ns]"),
-                    np.datetime64("NaT").astype("datetime64[ns]"),
-                    np.datetime64("1970-01-01 02:30").astype("datetime64[ns]"),
-                    np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
+acq_time_vis_exp = [np.datetime64("NaT", "ns"),
+                    np.datetime64("NaT", "ns"),
+                    np.datetime64("1970-01-01 02:30", "ns"),
+                    np.datetime64("1970-01-01 02:30", "ns")]
 vis_counts_exp = xr.DataArray(
     np.array(
         [[0., 17., 34., 51.],
@@ -125,16 +125,13 @@ u_vis_refl_exp = xr.DataArray(
         dtype=np.float32
     ),
     dims=("y", "x"),
-    coords={
-        "acq_time": ("y", acq_time_vis_exp),
-    },
     attrs=attrs_exp
 )
 
 u_struct_refl_exp = u_vis_refl_exp.copy()
 
-acq_time_ir_wv_exp = [np.datetime64("NaT"),
-                      np.datetime64("1970-01-01 02:30").astype("datetime64[ns]")]
+acq_time_ir_wv_exp = [np.datetime64("NaT", "ns"),
+                      np.datetime64("1970-01-01 02:30", "ns")]
 wv_counts_exp = xr.DataArray(
     np.array(
         [[0, 85],
@@ -216,9 +213,6 @@ quality_pixel_bitmask_exp = xr.DataArray(
         dtype=np.uint8
     ),
     dims=("y", "x"),
-    coords={
-        "acq_time": ("y", acq_time_vis_exp),
-    },
     attrs=attrs_exp
 )
 sza_vis_exp = xr.DataArray(
@@ -288,18 +282,18 @@ def fixture_fake_dataset(time_fake_dataset):
             dtype=np.uint8
         )
     )
-
     cov = da.from_array([[1, 2], [3, 4]])
-
+    vis_refl = (vis_refl_exp.dims, vis_refl_exp.data / 100)
+    u_vis_refl = (u_vis_refl_exp.dims, u_vis_refl_exp.data / 100)
     with ignore_dup_dim_warning(), xr.set_options(keep_attrs=False):
         ds = xr.Dataset(
             data_vars={
                 "count_vis": (("y", "x"), count_vis),
                 "count_wv": (("y_ir_wv", "x_ir_wv"), count_wv),
                 "count_ir": (("y_ir_wv", "x_ir_wv"), count_ir),
-                "toa_bidirectional_reflectance_vis": vis_refl_exp / 100,
-                "u_independent_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
-                "u_structured_toa_bidirectional_reflectance": u_vis_refl_exp / 100,
+                "toa_bidirectional_reflectance_vis": vis_refl,
+                "u_independent_toa_bidirectional_reflectance": u_vis_refl,
+                "u_structured_toa_bidirectional_reflectance": u_vis_refl,
                 "quality_pixel_bitmask": (("y", "x"), mask),
                 "solar_zenith_angle": (("y_tie", "x_tie"), sza),
                 "time_ir_wv": (("y_ir_wv", "x_ir_wv"), time_fake_dataset),
@@ -637,7 +631,7 @@ class TestDatasetPreprocessor:
                 "covariance_spectral_response_function_vis": (("srf_size_1", "srf_size_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_independent": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
                 "channel_correlation_matrix_structured": (("channel_1", "channel_2"), [[1, 2], [3, 4]]),
-                "time": (("y", "x"), [[time_exp, np.datetime64("NaT")], [time_exp, time_exp]])
+                "time": (("y", "x"), [[time_exp, np.datetime64("NaT", "ns")], [time_exp, time_exp]])
             },
             coords={
                 "y": [0, 1],
@@ -659,29 +653,29 @@ class TestInterpolator:
         """Returns time_ir_wv."""
         time_ir_wv = xr.DataArray(
             [
-              [np.datetime64("1970-01-01 01:00"), np.datetime64("1970-01-01 02:00")],
-              [np.datetime64("1970-01-01 03:00"), np.datetime64("1970-01-01 04:00")],
-              [np.datetime64("NaT"), np.datetime64("1970-01-01 06:00")],
-              [np.datetime64("NaT"), np.datetime64("NaT")],
+              [np.datetime64("1970-01-01 01:00", "ns"), np.datetime64("1970-01-01 02:00", "ns")],
+              [np.datetime64("1970-01-01 03:00", "ns"), np.datetime64("1970-01-01 04:00", "ns")],
+              [np.datetime64("NaT", "ns"), np.datetime64("1970-01-01 06:00", "ns")],
+              [np.datetime64("NaT", "ns"), np.datetime64("NaT", "ns")],
             ],
             dims=("y", "x"),
             coords={"y": [1, 3, 5, 7]}
         )
-        return time_ir_wv.astype("datetime64[ns]")
+        return time_ir_wv
 
     @pytest.fixture(name="acq_time_exp")
     def fixture_acq_time_exp(self):
         """Returns acq_time_vis_exp."""
         vis = xr.DataArray(
             [
-                np.datetime64("1970-01-01 01:30"),
-                np.datetime64("1970-01-01 01:30"),
-                np.datetime64("1970-01-01 03:30"),
-                np.datetime64("1970-01-01 03:30"),
-                np.datetime64("1970-01-01 06:00"),
-                np.datetime64("1970-01-01 06:00"),
-                np.datetime64("NaT"),
-                np.datetime64("NaT")
+                np.datetime64("1970-01-01 01:30", "ns"),
+                np.datetime64("1970-01-01 01:30", "ns"),
+                np.datetime64("1970-01-01 03:30", "ns"),
+                np.datetime64("1970-01-01 03:30", "ns"),
+                np.datetime64("1970-01-01 06:00", "ns"),
+                np.datetime64("1970-01-01 06:00", "ns"),
+                np.datetime64("NaT", "ns"),
+                np.datetime64("NaT", "ns")
             ],
             dims="y",
             coords={"y": [1, 2, 3, 4, 5, 6, 7, 8]}
@@ -689,10 +683,10 @@ class TestInterpolator:
 
         ir = xr.DataArray(
             [
-                np.datetime64("1970-01-01 01:30"),
-                np.datetime64("1970-01-01 03:30"),
-                np.datetime64("1970-01-01 06:00"),
-                np.datetime64("NaT"),
+                np.datetime64("1970-01-01 01:30", "ns"),
+                np.datetime64("1970-01-01 03:30", "ns"),
+                np.datetime64("1970-01-01 06:00", "ns"),
+                np.datetime64("NaT", "ns"),
             ],
             dims="y",
             coords={"y": [1, 3, 5, 7]}

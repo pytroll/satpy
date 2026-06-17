@@ -65,7 +65,7 @@ class EDRFileHandler(BaseFileHandler):
         """Initialize the geo filehandler."""
         super(EDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.filter_by_error_flag = filter_by_error_flag
+        self.filter_by_error_flag = filter_by_error_flag or []
 
         drop_variables = filetype_info.get("drop_variables", None)
         f_obj = open_file_or_filename(self.filename)
@@ -134,11 +134,15 @@ class EDRFileHandler(BaseFileHandler):
         return data_arr
 
     def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
-        if self.filter_by_error_flag is not None:
+        if self.filter_by_error_flag:
             ef_mask = np.isin(self.nc[self.error_flag_var_name].data, self.filter_by_error_flag)
             data_arr.data = np.where(ef_mask, data_arr.data, np.nan)
         # xarray auto mask and scale handled any fills from the file
         valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
+        if isinstance(valid_range, np.ndarray):
+            valid_range = valid_range.tolist()
+            # data array attrs are updated with ds_info later
+            ds_info["valid_range"] = valid_range
         if "valid_min" in data_arr.attrs and valid_range is None:
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
         if valid_range is not None:
