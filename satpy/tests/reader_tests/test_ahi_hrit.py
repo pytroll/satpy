@@ -366,7 +366,13 @@ def test_get_area_def(tmp_path, mda_info, area_name, extent):
     assert area.description == AREA_NAMES[area_name]["long"]
 
 
-@pytest.mark.parametrize("calibration", ["counts", "reflectance", "brightness_temperature"])
+@pytest.mark.parametrize("calibration", [
+    "counts",
+    # 8< v1.0
+    "reflectance",
+    # >8 v1.0
+    "unnormalized_reflectance",
+    "brightness_temperature"])
 def test_calibrate(tmp_path, calibration):
     """Test calibration."""
     num_rows = 275
@@ -374,14 +380,22 @@ def test_calibrate(tmp_path, calibration):
     hrit_path = tmp_path / "IMG_DK01VIS_202509261940_001"
     units = {
         "counts": "1",
+        # 8< v1.0
         "reflectance": "%",
+        # >8 v1.0
+        "unnormalized_reflectance": "%",
         "brightness_temperature": "K",
     }[calibration]
     create_fake_ahi_hrit(
         hrit_path,
         num_rows,
         num_cols,
-        is_vis=calibration == "reflectance",
+        is_vis=calibration in (
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "unnormalized_reflectance",
+            ),
         # Choose an area near the subsatellite point to avoid masking of space pixels
         metadata_overrides={
             "loff": 1375.0,
@@ -392,18 +406,33 @@ def test_calibrate(tmp_path, calibration):
     )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
     key = make_dataid(name="VIS", calibration=calibration)
-    res = reader.get_dataset(
-        key,
-        {
-            "units": units,
-            "sensor": "ahi",
-        },
-    )
+    # 8< v1.0
+    if calibration == "reflectance":
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            res = reader.get_dataset(
+                key,
+                {
+                    "units": units,
+                    "sensor": "ahi",
+                },
+            )
+    else:
+        # >8 v1.0
+        res = reader.get_dataset(
+            key,
+            {
+                "units": units,
+                "sensor": "ahi",
+            },
+        )
 
     exp_counts = np.arange(49658, 49658 + 200, 1, dtype=">u2").astype(np.float32)
     exp = {
         "counts": exp_counts,
+        # 8< v1.0
         "reflectance": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
+        # >8 v1.0
+        "unnormalized_reflectance": np.interp(exp_counts, [0, 1023, 65535], [-0.10, 100.0, 100.0]),
         "brightness_temperature": np.interp(exp_counts, [0, 1023, 65535], [329.98, 130.02, 130.02]),
     }
     res_np = res.data.compute()
@@ -459,7 +488,7 @@ def test_get_dataset(tmp_path):
     )
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
-    key = make_dataid(name="VIS", calibration="reflectance")
+    key = make_dataid(name="VIS", calibration="unnormalized_reflectance")
     with mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
             mock.patch.object(reader, "calibrate", wraps=reader.calibrate) as calibrate:
         res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
@@ -484,7 +513,7 @@ def test_sensor_mismatch(tmp_path, caplog):
     create_fake_ahi_hrit(hrit_path)
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
-    key = make_dataid(name="VIS", calibration="reflectance")
+    key = make_dataid(name="VIS", calibration="unnormalized_reflectance")
     reader.get_dataset(key, {"units": "%", "sensor": "jami"})
     assert "Sensor-Platform mismatch" in caplog.text
     hrit_path.unlink()

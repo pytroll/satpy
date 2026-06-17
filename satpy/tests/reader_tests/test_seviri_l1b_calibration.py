@@ -281,7 +281,21 @@ class TestFileHandlerCalibrationBase:
                     dims=("y", "x")
                 )
             },
+            # 8< v1.0
             "reflectance": {
+                "NOMINAL": xr.DataArray(
+                    [[np.nan, 41.88985],
+                     [460.7884, 1182.2247]],
+                    dims=("y", "x")
+                ),
+                "EXTERNAL": xr.DataArray(
+                    [[np.nan, 418.89853],
+                     [4607.8843, 11822.249]],
+                    dims=("y", "x")
+                )
+            },
+            # >8 v1.0
+            "unnormalized_reflectance": {
                 "NOMINAL": xr.DataArray(
                     [[np.nan, 41.88985],
                      [460.7884, 1182.2247]],
@@ -362,7 +376,21 @@ class TestFileHandlerCalibrationBase:
                     dims=("y", "x")
                 )
             },
+            # 8< v1.0
             "reflectance": {
+                "NOMINAL": xr.DataArray(
+                    [[np.nan, 415.26767],
+                     [4567.944, 11719.775]],
+                    dims=("y", "x")
+                ),
+                "EXTERNAL": xr.DataArray(
+                    [[np.nan, 173.02817],
+                     [1903.31, 4883.2397]],
+                    dims=("y", "x")
+                )
+            },
+            # >8 v1.0
+            "unnormalized_reflectance": {
                 "NOMINAL": xr.DataArray(
                     [[np.nan, 415.26767],
                      [4567.944, 11719.775]],

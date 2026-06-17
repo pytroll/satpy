@@ -208,3 +208,19 @@ routine. A similar result can be obtained as follows:
 To learn more about how Satpy scales data for images and more on the
 :func:`~satpy.enhancements.enhancer.get_enhanced_image` function see the
 :doc:`enhancements` documentation.
+
+
+What are the reflectance vs unnormalized reflectance quantities for reflective channels
+---------------------------------------------------------------------------------------
+
+Satpy reads reflective data and carries two calibration levels for it: `unnormalized_reflectance` and `reflectance`.
+The difference is that `reflectance` is normalised by the cosine of the sun zenith angle, while the
+`unnormalized_reflectance` is not.
+
+Unnormalized reflectance:
+
+rf = L_vis × solar_irradiance / π
+
+Reflectance:
+
+ρ = L_vis × solar_irradiance / πcos(sza)

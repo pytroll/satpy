@@ -66,7 +66,7 @@ Gzip-compressed VISSR files can be decompressed on the fly using
 Calibration
 -----------
 
-Sensor counts are calibrated by looking up reflectance/temperature values in the
+Sensor counts are calibrated by looking up unnormalized_reflectance/temperature values in the
 calibration tables included in each file. See section 2.2 in the VISSR user
 guide.
 
@@ -323,6 +323,17 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset from file."""
+        # 8< v1.0
+        import warnings
+        if dataset_id.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for GMS-5/VISSR is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         image_data = self._get_image_data()
         counts = self._get_counts(image_data)
         dataset = self._calibrate(counts, dataset_id)
@@ -605,7 +616,7 @@ def read_from_file_obj(file_obj, dtype, count, offset=0):
 
 
 class Calibrator:
-    """Calibrate VISSR data to reflectance or brightness temperature.
+    """Calibrate VISSR data to unnormalized_reflectance or brightness temperature.
 
     Reference: Section 2.2 in the VISSR User Guide.
     """
@@ -635,7 +646,11 @@ class Calibrator:
         )
 
     def _postproc(self, res, calibration):
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             res = self._convert_to_percent(res)
         return res
 

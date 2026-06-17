@@ -216,6 +216,7 @@ from __future__ import division
 import copy
 import datetime as dt
 import logging
+from warnings import warn
 
 import dask.array as da
 import numpy as np
@@ -681,8 +682,22 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key["calibration"])
-
-        is_calibration = key["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warn(
+                "The 'reflectance' calibration for SEVIRI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
+        is_calibration = key["calibration"] in ["radiance",
+                                                # 8< v1.0
+                                                "reflectance",
+                                                # >8 v1.0
+                                                "unnormalized_reflectance",
+                                                "brightness_temperature"]
         if is_calibration and self.mask_bad_quality_scan_lines:
             res = self._mask_bad_quality(res)
 

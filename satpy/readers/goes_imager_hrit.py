@@ -389,6 +389,17 @@ class HRITGOESFileHandler(HRITFileHandler):
 
     def get_dataset(self, key, info):
         """Get the data  from the files."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for GOES Imager is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         logger.debug("Getting raw data")
         res = super(HRITGOESFileHandler, self).get_dataset(key, info)
 
@@ -430,7 +441,11 @@ class HRITGOESFileHandler(HRITFileHandler):
         tic = dt.datetime.now()
         if calibration == "counts":
             return data
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             res = self._calibrate(data)
         elif calibration == "brightness_temperature":
             res = self._calibrate(data)

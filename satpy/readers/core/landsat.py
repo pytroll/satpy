@@ -35,6 +35,7 @@ The geometry differs between bands, so if you need precise geometry you should c
 """
 
 import logging
+import warnings
 from datetime import datetime, timezone
 
 import dask.array as da
@@ -252,9 +253,23 @@ class BaseLandsatL1Reader(BaseLandsatReader):
                 data.data = data.data.astype(np.float32)
                 return data
 
-        if calibration == "reflectance":
+        if calibration in [
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "unnormalized_reflectance"]:
             data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
             data.data = data.data.astype(np.float32) * 100
+            # 8< v1.0
+            if calibration == "reflectance":
+                warnings.warn(
+                    "The 'reflectance' calibration for OLI is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
             return data
 
         if calibration == "brightness_temperature":
@@ -271,9 +286,18 @@ class BaseLandsatL2Reader(BaseLandsatReader):
         if calibration == "counts":
             return data
 
-        if calibration in ["reflectance", "brightness_temperature"]:
+        if calibration in [
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "unnormalized_reflectance",
+            "brightness_temperature"]:
             data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
-            if calibration == "reflectance":
+            if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
                 data.data = data.data * 100
             data.data = data.data.astype(np.float32)
             return data

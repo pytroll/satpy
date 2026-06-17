@@ -45,6 +45,10 @@ import datetime as dt
 import logging
 import os
 
+# 8< v1.0
+import warnings
+
+# >8 v1.0
 import numpy as np
 import xarray as xr
 from pyresample import geometry
@@ -133,6 +137,16 @@ class SCMIFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug("Reading in get_dataset %s.", key["name"])
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for SCMI ABI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         var_name = info.get("file_key", self.filetype_info.get("file_key"))
         if var_name:
             data = self[var_name]
@@ -149,7 +163,12 @@ class SCMIFileHandler(BaseFileHandler):
         offset = data.attrs.pop("add_offset", 0)
         units = data.attrs.get("units", 1)
         # the '*1' unit is some weird convention added/needed by AWIPS
-        if units in ["1", "*1"] and key["calibration"] == "reflectance":
+        if units in ["1", "*1"] and key["calibration"] in (
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance",
+                ):
             data *= 100
             factor *= 100  # used for valid_min/max
             data.attrs["units"] = "%"

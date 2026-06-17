@@ -40,6 +40,7 @@ References:
 
 
 import logging
+import warnings
 from functools import reduce
 
 import dask.array as da
@@ -226,11 +227,25 @@ class NCOLCI1B(NCOLCIChannelBase):
         else:
             dataset = self.nc[self.channel + "_radiance"]
 
-            if key["calibration"] == "reflectance":
+            if key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
                 idx = int(key["name"][2:]) - 1
                 sflux = self._get_solar_flux(idx)
                 dataset = dataset / sflux * np.pi * 100
                 dataset.attrs["units"] = "%"
+            # 8< v1.0
+            if key["calibration"] == "reflectance":
+                warnings.warn(
+                    "The 'reflectance' calibration for OLCI is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
 
         dataset.attrs["platform_name"] = self.platform_name
         dataset.attrs["sensor"] = self.sensor

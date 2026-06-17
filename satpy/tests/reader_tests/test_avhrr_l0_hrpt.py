@@ -102,13 +102,19 @@ class TestHRPTGetUncalibratedData:
         assert (result.values == COUNTS[:, :, 0]).all()
 
 
-class TestHRPTGetCalibratedReflectances:
-    """Test case for reading calibrated reflectances from hrpt data."""
+class TestHRPTGetCalibratedVIS:
+    """Test case for reading calibrated vis data from hrpt data."""
 
-    def test_calibrated_reflectances_values(self, hrpt_fh):
+    def test_calibrated_vis_values(self, hrpt_fh):
         """Test the calibrated reflectance values."""
-        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="unnormalized_reflectance"), {})
         np.testing.assert_allclose(result.values.mean(), 57.772733)
+
+    def test_reflectance_warns(self, hrpt_fh):
+        """Test that asking for reflectance issues a warning."""
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
+
 
 
 class TestHRPTGetCalibratedBT:
@@ -131,7 +137,7 @@ class TestHRPTChannel3:
 
     def test_channel_3a_masking(self, hrpt_fh):
         """Test that channel 3a is split correctly."""
-        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="unnormalized_reflectance"), {})
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
 

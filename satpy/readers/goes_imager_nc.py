@@ -194,7 +194,7 @@ During tandem operations of GOES-15 and GOES-17, EUMETSAT distributed a
 variant of this dataset with the following differences:
 
 1. The geolocation is in a separate file, used for all bands
-2. VIS data is calibrated to Albedo (or reflectance)
+2. VIS data is calibrated to Albedo (or unnormalized_reflectance)
 3. IR data is calibrated to radiance.
 4. VIS data is downsampled to IR resolution (4km)
 5. File name differs also slightly
@@ -817,9 +817,13 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                        offset=coefs["offset"])
 
     def _calibrate(self, radiance, coefs, channel, calibration):
-        """Convert radiance to reflectance or brightness temperature."""
+        """Convert radiance to unnormalized_reflectance or brightness temperature."""
         if is_vis_channel(channel):
-            if not calibration == "reflectance":
+            if calibration not in [
+                    # 8< v1.0
+                    "reflectance",
+                    # >8 v1.0
+                    "unnormalized_reflectance"]:
                 raise ValueError("Cannot calibrate VIS channel to "
                                  "{}".format(calibration))
             return self._calibrate_vis(radiance=radiance, k=coefs["k"])
@@ -902,7 +906,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _calibrate_vis(radiance, k):
-        """Convert VIS radiance to reflectance.
+        """Convert VIS radiance to unnormalized_reflectance.
 
         Note: Angle of incident radiation and annual variation of the
         earth-sun distance is not taken into account. A value of 100%
@@ -922,9 +926,9 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                response function of the detector). Units of k: [m2 um sr W-1]
 
         Returns:
-            Reflectance [%]
+            unnormalized_reflectance [%]
         """
-        logger.debug("Calibrating to reflectance")
+        logger.debug("Calibrating to unnormalized_reflectance")
         refl = 100 * k * radiance
         return refl.clip(min=0)
 
@@ -1016,6 +1020,17 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for GOES Imager is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         logger.debug("Reading dataset {}".format(key["name"]))
 
         # Read data from file and calibrate if necessary
@@ -1050,7 +1065,11 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         coefs = CALIB_COEFS[self.platform_name][channel]
         if calibration == "counts":
             return counts
-        if calibration in ["radiance", "reflectance",
+        if calibration in ["radiance",
+                           # 8< v1.0
+                           "reflectance",
+                           # >8 v1.0
+                           "unnormalized_reflectance",
                            "brightness_temperature"]:
             radiance = self._counts2radiance(counts=counts, coefs=coefs,
                                              channel=channel)
@@ -1080,6 +1099,17 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for GOES Imager is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         logger.debug("Reading dataset {}".format(key["name"]))
 
         tic = dt.datetime.now()
@@ -1105,8 +1135,12 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         coefs = CALIB_COEFS[self.platform_name][channel]
         is_vis = is_vis_channel(channel)
 
-        # IR files provide radiances, VIS file provides reflectances
-        if is_vis and calibration == "reflectance":
+        # IR files provide radiances, VIS file provides unnormalized_reflectance
+        if is_vis and calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             return data
         if not is_vis and calibration == "radiance":
             return data

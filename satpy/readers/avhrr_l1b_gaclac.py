@@ -149,6 +149,17 @@ class GACLACFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for SCMI ABI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         self.read_raw_data()
         if key["name"] in ["latitude", "longitude"]:
             # Lats/lons are buffered by the reader
@@ -274,7 +285,12 @@ class GACLACFile(BaseFileHandler):
                 counts = self.reader.get_counts()
                 self.counts = counts
             channels = self.counts
-        elif calibration in ["reflectance", "brightness_temperature"]:
+        elif calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance",
+                "brightness_temperature"]:
             if self.calib_channels is None:
                 self.calib_channels = self.reader.get_calibrated_channels()
             channels = self.calib_channels

@@ -674,12 +674,35 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
+        # 8< v1.0
+        import warnings
+        if calibration == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for AHI HSD is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
+
         if calibration == "counts":
             return data
 
-        if calibration in ["radiance", "reflectance", "brightness_temperature"]:
+        if calibration in [
+                "radiance",
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance",
+                "brightness_temperature"]:
             data = self.convert_to_radiance(data)
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"
+                ]:
             data = self._vis_calibrate(data)
         elif calibration == "brightness_temperature":
             data = self._ir_calibrate(data)

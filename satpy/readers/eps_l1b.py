@@ -46,8 +46,8 @@ def radiance_to_bt(arr, wc_, a__, b__):
     return a__ + b__ * (C2 * wc_ / (da.log(1 + (C1 * (wc_ ** 3) / arr))))
 
 
-def radiance_to_refl(arr, solar_flux):
-    """Convert to reflectances in %."""
+def radiance_to_unnormalized_reflectance(arr, solar_flux):
+    """Convert to unnormalized_reflectance in %."""
     return arr * np.pi * 100.0 / solar_flux
 
 
@@ -143,9 +143,13 @@ class EPSAVHRRFile(BaseFileHandler):
 
     sensors = {"AVHR": "avhrr-3"}
 
-    units = {"reflectance": "%",
-             "brightness_temperature": "K",
-             "radiance":  "W m^-2 sr^-1"}
+    units = {
+        # 8< v1.0
+        "reflectance": "%",
+        # >8 v1.0
+        "unnormalized_reflectance": "%",
+        "brightness_temperature": "K",
+        "radiance":  "W m^-2 sr^-1"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
@@ -279,6 +283,17 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for AVHRR EPS L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         if self.sections is None:
             self._read_all()
 
@@ -335,7 +350,13 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def _get_calibrated_dataarray(self, key):
         """Get a calibrated dataarray."""
-        if key["calibration"] not in ["reflectance", "brightness_temperature", "radiance"]:
+        if key["calibration"] not in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance",
+                "brightness_temperature",
+                "radiance"]:
             raise ValueError("calibration type " + str(key["calibration"]) +
                              " is not supported!")
 
@@ -347,8 +368,13 @@ class EPSAVHRRFile(BaseFileHandler):
         array = self["SCENE_RADIANCES"][:, radiance_indices[channel_name], :]
 
         if channel_name in ["1", "2", "3A"]:
-            if key["calibration"] == "reflectance":
-                array = radiance_to_refl(array,
+            if key["calibration"] in [
+                    # 8< v1.0
+                    "reflectance",
+                    # >8 v1.0
+                    "unnormalized_reflectance",
+                    ]:
+                array = radiance_to_unnormalized_reflectance(array,
                                          self[f"CH{channel_name}_SOLAR_FILTERED_IRRADIANCE"])
             if channel_name == "3A":
                 mask = self.three_a_mask[:, np.newaxis]

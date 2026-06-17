@@ -19,6 +19,7 @@
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import numpy as np
 
@@ -152,6 +153,16 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             valid_max = self[var_path + "/attr/valid_max"]
             scale_factor = self[var_path + "/attr/scale_factor"]
             scale_offset = self[var_path + "/attr/add_offset"]
+            # 8< v1.0
+            if dataset_id["calibration"] == "reflectance":
+                warn(
+                    "The 'reflectance' calibration for VIIRS L1b is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
         elif ds_info.get("units") == "K":
             # normal brightness temperature
             # use a special LUT to get the actual values

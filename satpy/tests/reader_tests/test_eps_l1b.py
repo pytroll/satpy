@@ -121,13 +121,13 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
 
     def test_dataset(self, file_handler):
         """Test getting a dataset."""
-        did = make_dataid(name="1", calibration="reflectance")
+        did = make_dataid(name="1", calibration="unnormalized_reflectance")
         res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "1"
-        assert res.attrs["calibration"] == "reflectance"
+        assert res.attrs["calibration"] == "unnormalized_reflectance"
         assert res.attrs["units"] == "%"
 
         did = make_dataid(name="4", calibration="brightness_temperature")
@@ -138,6 +138,12 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["name"] == "4"
         assert res.attrs["calibration"] == "brightness_temperature"
         assert res.attrs["units"] == "K"
+
+    def test_reflectance_warns(self):
+        """Test that asking for reflectance as calibration issues a warning."""
+        did = make_dataid(name="1", calibration="reflectance")
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = self.fh.get_dataset(did, {})
 
     def test_get_dataset_radiance(self, file_handler):
         """Test loading a data array with radiance calibration."""
