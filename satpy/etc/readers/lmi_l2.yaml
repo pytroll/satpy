@@ -1,0 +1,27 @@
+# References:
+#  - L2 Data of FY4A Lightning Mapping Imager
+#  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
+
+reader:
+  name: lmi_l2
+  description: Lightning Mapping Imager Dataset reader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [lmi]
+
+file_types:
+  lmi:
+    file_reader: !!python/name:satpy.readers.lmi_l2.LMIL2FileHandler
+    file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L2-_LMI{product:s}_SING_NUL_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{resolution:s}_N{subtask_num:s}V{version:s}.NC']
+
+datasets:
+  LAT:
+    name: LAT
+    file_type: lmi
+    standard_name: latitude
+    units: degree_north
+
+  LON:
+    name: LON
+    file_type: lmi
+    standard_name: longitude
+    units: degree_east
