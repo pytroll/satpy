@@ -4,7 +4,7 @@ reader:
   long_name: Vaisala GLD360 UALF2
   description: Vaisala GLD360 reader for Universal ASCII Lightning Format 2.
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [gld360]
+  instruments: [gld360]
 
 file_types:
   gld360:
@@ -80,7 +80,7 @@ datasets:
     file_type: gld360
     coordinates: [ longitude, latitude ]
 
-  number_of_sensors:
+  number_of_instruments:
     name: number_of_sensors
     sensor: gld360
     file_type: gld360

@@ -5,7 +5,7 @@ reader:
   description: NC Reader for OCI data
   status: Nominal
   supports_fsspec: true
-  sensors: [oci]
+  instruments: [oci]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

@@ -99,7 +99,9 @@ import logging
 import numpy as np
 import xarray as xr
 
+import satpy._instruments as inst_utils
 import satpy.utils
+from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.core.hrit import (
     HRITFileHandler,
@@ -176,9 +178,9 @@ PLATFORMS = {
     "GEOS(145.00)": MTSAT2,
 }
 SENSORS = {
-    MTSAT1R: "jami",
-    MTSAT2: "mtsat2_imager",
-    HIMAWARI8: "ahi"
+    MTSAT1R: OSCAR.JAMI,
+    MTSAT2: OSCAR.IMAGER_MTSAT_2,
+    HIMAWARI8: OSCAR.AHI
 }
 
 
@@ -373,7 +375,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         # Filenames of segmented data is identical for MTSAT-1R, MTSAT-2
         # and Himawari-8/9. Make sure we have the correct reader for the data
         # at hand.
-        self._check_sensor_platform_consistency(info["sensor"])
+        instrument = inst_utils.get_one_instrument_from_attrs(info)
+        self._check_sensor_platform_consistency(instrument)
 
         # Calibrate and mask space pixels
         res = self._mask_space(self.calibrate(res, key["calibration"]))
@@ -382,8 +385,9 @@ class HRITJMAFileHandler(HRITFileHandler):
         res.coords["acq_time"] = ("y", self.acq_time)
         res.coords["acq_time"].attrs["long_name"] = "Scanline acquisition time"
 
-        # Update attributes
-        res.attrs.update(info)
+        # Update attributes. YAML info contains normalized instrument name,
+        # convert to WMO name.
+        self._update_attrs_with_reader_info(res.attrs, info)
         res.attrs["platform_name"] = self.platform
         res.attrs["orbital_parameters"] = {
             "projection_longitude": float(self.mda["projection_parameters"]["SSP_longitude"]),
@@ -391,6 +395,15 @@ class HRITJMAFileHandler(HRITFileHandler):
             "projection_altitude": float(self.mda["projection_parameters"]["h"])}
 
         return res
+
+    def _update_attrs_with_reader_info(self, attrs, info):
+        attrs.update(info)
+        # Instrument names in reader definition are internal format,
+        # convert to WMO names.
+        attrs["instruments"] = {
+            inst_utils.internal_to_wmo(instrument)
+            for instrument in attrs["instruments"]
+        }
 
     def _mask_space(self, data):
         """Mask space pixels."""

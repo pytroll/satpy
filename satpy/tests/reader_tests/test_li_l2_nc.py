@@ -259,8 +259,8 @@ class TestLIL2():
         # Should have some datasets:
         assert len(handler.provided_datasets) > 0
 
-        # Sensor names should be just 'li'
-        assert handler.sensor_names == {"li"}
+        # Sensor names should be just 'LI'
+        assert handler.sensor_names == {"LI"}
 
         # check product type:
         assert handler.product_type == "2-AF"
@@ -279,7 +279,7 @@ class TestLIL2():
         dsid = make_dataid(name="flash_duration")
         dset = handler.get_dataset(dsid)
         assert dset.attrs["platform_name"] == "Meteosat-12"
-        assert dset.attrs["sensor"] == "li"
+        assert dset.attrs["instruments"] == {"LI"}
 
     def test_var_path_exists(self, filetype_infos):
         """Test variable_path_exists from li reader."""

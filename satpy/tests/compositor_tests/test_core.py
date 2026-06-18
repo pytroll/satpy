@@ -199,19 +199,19 @@ class TestSingleBandCompositor(unittest.TestCase):
         """Test calling the compositor."""
         # Dataset with extra attributes
         all_valid = self.all_valid
-        all_valid.attrs["sensor"] = "foo"
+        all_valid.attrs["instruments"] = {"foo"}
         attrs = {
             "foo": "bar",
             "resolution": 333,
             "units": "K",
-            "sensor": {"fake_sensor1", "fake_sensor2"},
+            "instruments": {"fake_sensor1", "fake_sensor2"},
             "calibration": "BT",
             "wavelength": 10.8
         }
         self.comp.attrs["resolution"] = None
         res = self.comp([all_valid], **attrs)
         # Verify attributes
-        assert res.attrs.get("sensor") == "foo"
+        assert res.attrs.get("instruments") == {"foo"}
         assert "foo" in res.attrs
         assert res.attrs.get("foo") == "bar"
         assert "units" in res.attrs
@@ -279,11 +279,11 @@ class TestGenericCompositor(unittest.TestCase):
         res = self.comp._get_sensors([self.all_valid])
         assert res == set()
         dset1 = self.all_valid
-        dset1.attrs["sensor"] = "foo"
+        dset1.attrs["instruments"] = {"foo"}
         res = self.comp._get_sensors([dset1])
         assert res == {"foo"}
         dset2 = self.first_invalid
-        dset2.attrs["sensor"] = {"bar"}
+        dset2.attrs["instruments"] = {"bar"}
         res = self.comp._get_sensors([dset1, dset2])
         assert "foo" in res
         assert "bar" in res
@@ -327,12 +327,12 @@ class TestGenericCompositor(unittest.TestCase):
         """Test calling generic compositor."""
         # Multiple datasets with extra attributes
         all_valid = self.all_valid
-        all_valid.attrs["sensor"] = {"foo"}
+        all_valid.attrs["instruments"] = {"foo"}
         attrs = {"foo": "bar", "resolution": 333}
         self.comp.attrs["resolution"] = None
         res = self.comp([self.all_valid, self.first_invalid], **attrs)
         # Verify attributes
-        assert res.attrs.get("sensor") == {"foo"}
+        assert res.attrs.get("instruments") == {"foo"}
         assert "foo" in res.attrs
         assert res.attrs.get("foo") == "bar"
         assert "units" not in res.attrs

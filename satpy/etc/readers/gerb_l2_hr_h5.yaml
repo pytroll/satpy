@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [gerb]
+  instruments: [gerb]
 
 file_types:
   gerb_l2_hr_h5:

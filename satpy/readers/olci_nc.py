@@ -47,6 +47,7 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
 from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
@@ -129,7 +130,7 @@ class NCOLCIBase(BaseFileHandler):
         self._end_time = filename_info["end_time"]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
-        self.sensor = "olci"
+        self.sensor = OSCAR.OLCI
 
     @cached_property
     def nc(self):
@@ -233,7 +234,7 @@ class NCOLCI1B(NCOLCIChannelBase):
                 dataset.attrs["units"] = "%"
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["sensor"] = self.sensor
+        dataset.attrs["instruments"] = {str(self.sensor)}
         dataset.attrs.update(key.to_dict())
 
         return dataset
@@ -265,7 +266,7 @@ class NCOLCI2(NCOLCIChannelBase):
             dataset = self.getbitmask(dataset, self.mask_items)
 
         dataset.attrs["platform_name"] = self.platform_name
-        dataset.attrs["sensor"] = self.sensor
+        dataset.attrs["instruments"] = {str(self.sensor)}
         dataset.attrs.update(key.to_dict())
         if self.unlog:
             dataset = self.delog(dataset)
@@ -372,7 +373,7 @@ class NCOLCIAngles(NCOLCILowResData):
             values = self.nc[self.datasets[key["name"]]]
 
         values.attrs["platform_name"] = self.platform_name
-        values.attrs["sensor"] = self.sensor
+        values.attrs["instruments"] = {str(self.sensor)}
 
         values.attrs.update(key.to_dict())
         return values
@@ -442,7 +443,7 @@ class NCOLCIMeteo(NCOLCILowResData):
             values = self.nc[key["name"]]
 
         values.attrs["platform_name"] = self.platform_name
-        values.attrs["sensor"] = self.sensor
+        values.attrs["instruments"] = {str(self.sensor)}
 
         values.attrs.update(key.to_dict())
         return values

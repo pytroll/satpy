@@ -208,7 +208,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             assert v.attrs["units"] == "MW"
             assert v.attrs["platform_name"] == "NOAA-21"
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
@@ -265,7 +265,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             assert v.attrs["units"] == "MW"
             assert v.attrs["platform_name"] == "Suomi-NPP"
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
 
 
 @mock.patch("satpy.readers.viirs_edr_active_fires.dd.read_csv")
@@ -321,7 +321,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         for v in datasets.values():
             assert v.attrs["units"] == "MW"
             assert v.attrs["platform_name"] == "NOAA-20"
-            assert v.attrs["sensor"] == "VIIRS"
+            assert v.attrs["instruments"] == {"VIIRS"}
 
 
 @mock.patch("satpy.readers.viirs_edr_active_fires.dd.read_csv")
@@ -379,4 +379,4 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         for v in datasets.values():
             assert v.attrs["units"] == "MW"
             assert v.attrs["platform_name"] == "Suomi-NPP"
-            assert v.attrs["sensor"] == "VIIRS"
+            assert v.attrs["instruments"] == {"VIIRS"}

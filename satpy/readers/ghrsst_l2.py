@@ -92,7 +92,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self.nc.attrs["sensor"].lower()
+        return self.nc.attrs["sensor"]
 
     def __del__(self):
         """Close the tarfile object."""

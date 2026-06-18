@@ -316,7 +316,7 @@ class TestGAASPReader:
         assert "scale_factor" not in attrs
         assert "add_offset" not in attrs
         assert attrs["platform_name"] == "GCOM-W1"
-        assert attrs["sensor"] == "amsr2"
+        assert attrs["instruments"] == {"AMSR2"}
         assert attrs["start_time"] == dt.datetime(2020, 8, 12, 5, 58, 31)
         assert attrs["end_time"] == dt.datetime(2020, 8, 12, 6, 7, 1)
 

@@ -286,7 +286,7 @@ class GRIBFileHandler(BaseFileHandler):
             "modelName": "modelName",
             "valid_min": "minimum",
             "valid_max": "maximum",
-            "sensor": "modelName"}
+            "instruments": "modelName"}
 
         ds_info.update({
             "filename": self.filename,
@@ -302,6 +302,7 @@ class GRIBFileHandler(BaseFileHandler):
             else:
                 ds_info[key] = "unknown"
 
+        ds_info["instruments"] = {ds_info["instruments"]}
         return ds_info
 
     def get_dataset(self, dataset_id, ds_info):
