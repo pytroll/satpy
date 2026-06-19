@@ -495,6 +495,9 @@ image) for both of the static images::
           min_stretch: [0, 0, 0]
           max_stretch: [255, 255, 255]
 
+.. image:: https://user-images.githubusercontent.com/500246/106626015-8b72c400-6577-11eb-87b7-5bf32e45d5e1.png
+   :width: 600
+
 .. _enhancing-the-images:
 
 Enhancing the images
