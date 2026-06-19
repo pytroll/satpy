@@ -154,6 +154,15 @@ class Node:
                         res.append(sub_child)
         return res
 
+    def to_graphviz(self, graph, **node_kwargs) -> str:
+        """Add nodes and edges to the provided graphviz graph."""
+        node_name = str(self.name)
+        graph.node(node_name, **node_kwargs)
+        for child in self.children:
+            child_node_name = child.to_graphviz(graph, **node_kwargs)
+            graph.edge(node_name, child_node_name)
+        return node_name
+
 
 class CompositorNode(Node):
     """Implementation of a compositor-specific node."""
