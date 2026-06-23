@@ -387,9 +387,10 @@ enhancements:
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 
-from pathlib import Path  # noqa
 
 # 8< v1.0
+from pathlib import Path  # noqa
+
 import satpy  # noqa
 from satpy._config import PACKAGE_CONFIG_PATH  # noqa
 
