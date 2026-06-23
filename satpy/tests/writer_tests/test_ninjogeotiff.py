@@ -1005,7 +1005,7 @@ def test_write_mean_time(test_image_with_time_coords_no_dask, tmp_path):
     import rasterio
 
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
-    fn = os.fspath(tmp_path / "test-{mean_time:%Y%m%d%H%M%S}.tif")
+    fn = os.fspath(tmp_path / "test-mean-time.tif")
     ngtw = NinJoGeoTIFFWriter(filename=fn)
     ngtw.save_dataset(
         test_image_with_time_coords_no_dask.data,
@@ -1013,28 +1013,26 @@ def test_write_mean_time(test_image_with_time_coords_no_dask, tmp_path):
         blockysize=128,
         compress="lzw",
         predictor=2,
-        dynamic_fields={"mean_time"},
         PhysicUnit="N/A",
         PhysicValue="N/A",
         SatelliteNameID="trollsat",
         ChannelID="trollchannel",
         DataType="GORN",
         DataSource="dowsing rod")
-    with rasterio.open(fn.replace("{mean_time:%Y%m%d%H%M%S}",
-                                  "19850813130001")) as src:
+    with rasterio.open(fn) as src:
         tgs = src.tags()
     assert tgs["ninjo_DateID"] == "492786000"
-    assert tgs["ninjo_ValidDateID"] == "492786001"
+    assert tgs["ninjo_ValidTimeID"] == "492786001"
 
 
 def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
-    """Test that mean time is written to GeoTIFF."""
+    """Test that mean time is written to GeoTIFF, without early dask comutes."""
     import rasterio
 
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
 
     # actual mean time in filename not supported
-    fn = os.fspath(tmp_path / "test-no-mean-time-in-filename.tif")
+    fn = os.fspath(tmp_path / "test-mean-time-dask.tif")
     with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
         ngtw = NinJoGeoTIFFWriter(filename=fn)
         res = ngtw.save_dataset(
@@ -1043,7 +1041,6 @@ def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
             blockysize=128,
             compress="lzw",
             predictor=2,
-            dynamic_fields={"mean_time"},
             PhysicUnit="N/A",
             PhysicValue="N/A",
             SatelliteNameID="trollsat",
@@ -1055,4 +1052,4 @@ def test_write_mean_time_dask(test_image_with_time_coords_dask, tmp_path):
     with rasterio.open(fn) as src:
         tgs = src.tags()
     assert tgs["ninjo_DateID"] == "492786000"
-    assert tgs["ninjo_ValidDateID"] == "492786001"
+    assert tgs["ninjo_ValidTimeID"] == "492786001"

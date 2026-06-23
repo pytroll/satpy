@@ -111,7 +111,6 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             compute=True, keep_palette=False, cmap=None, overviews=None,
             overviews_minsize=256, overviews_resampling=None,
             tags=None, config_files=None,
-            dynamic_fields=set(),
             *, ChannelID, DataType, PhysicUnit, PhysicValue,
             SatelliteNameID, **kwargs):
         """Save image along with NinJo tags.
@@ -139,9 +138,6 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overviews_minsize (int):
                 As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             overviews_resampling (str):
-                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
-            dynamic_fields (set[str]):
-                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             tags (dict): Extra (not NinJo) tags to add to GDAL MetaData
             config_files (Any): Not directly used by this writer, supported
                 for compatibility with other writers.
@@ -171,7 +167,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             PhysicValue (str)
                 NinJo label for quantity (example: "temperature")
 
-        The tag ``ValidDateID`` is included if the dataset has a ``time``
+        The tag ``ValidTimeID`` is included if the dataset has a ``time``
         coordinate.  See the :doc:`example on storing mean time </examples/mean_time>`
         for details.  All other tags are filled automatically without user action.
         """
@@ -179,8 +175,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
         # filename not passed on to writer by Scene.save_dataset, but I need
         # it!
-        filename = filename or self.get_filename(**dataset.attrs,
-                                                 **self._get_dynamic_fields(dataset, dynamic_fields))
+        filename = filename or self.get_filename(**dataset.attrs)
 
         gdal_opts = {}
         ntg_opts = {}
@@ -279,7 +274,7 @@ class NinJoTagGenerator:
     - Tags calculated from data and metadata.  Those tags are defined in the
       attribute ``dynamic_tags``.  They are either calculated from image data,
       from image metadata, or from arguments passed by the user to the writer.
-      Some dynamic tags, such as ``ValidDateID``, are only calculated if
+      Some dynamic tags, such as ``ValidTimeID``, are only calculated if
       necessary metadata are available in the input data.
 
     Some tags are mandatory (defined in ``mandatory_tags``).  All tags that are
@@ -304,7 +299,7 @@ class NinJoTagGenerator:
         "ColorDepth": "color_depth",
         "CreationDateID": "creation_date_id",
         "DateID": "date_id",
-        "ValidDateID": "valid_date_id",
+        "ValidTimeID": "valid_time_id",
         "EarthRadiusLarge": "earth_radius_large",
         "EarthRadiusSmall": "earth_radius_small",
         "FileName": "filename",
@@ -335,7 +330,7 @@ class NinJoTagGenerator:
                      "OverFlightTime", "IsBlackLinesCorrection",
                      "IsAtmosphereCorrected", "IsCalibrated", "IsNormalized",
                      "OriginalHeader", "IsValueTableAvailable",
-                     "ValueTableFloatField", "ValidDateID"}
+                     "ValueTableFloatField", "ValidTimeID"}
 
     # tags that are added later in other ways
     postponed_tags = {"AxisIntercept", "Gradient"}
@@ -436,7 +431,7 @@ class NinJoTagGenerator:
         delta = tm.replace(tzinfo=datetime.timezone.utc) - self._epoch
         return int(delta.total_seconds())
 
-    def get_valid_date_id(self):
+    def get_valid_time_id(self):
         """Calculate the valid date ID.
 
         That's seconds since UNIX Epoch for a representative time for the

@@ -30,15 +30,10 @@ To retain it upon resampling, pass ``resample_coords=True`` to :meth:`~satpy.sce
 
    ls = sc.resample("eurol", resample_coords=True)
 
-For supported writers, it can be stored in the filename by passing ``dynamic_fields={"mean_time"}``
-to :meth:`~satpy.scene.Scene.save_datasets`:
+For supported writers, it can be stored in the headers by passing ``dynamic_fields={"mean_time"}``
+to :meth:`~satpy.scene.Scene.save_datasets`.  Storing in the filename is not currently
+supported, because the filename is normally constructed before any values are calculated,
+and calculating the mean time would trigger an early dask computation.
 
-.. code-block:: python
-
-   ls.save_datasets(
-       writer="geotiff",
-       filename="{platform_name}-{sensor}-{name}-{area.area_id}-{start_time:%Y%m%d%H%M}-{mean_time:%Y%m%d%H%M%S}.tif",
-       dynamic_fields={"mean_time"})
-
-For supported writers, valid time may also be written to the headers.  Consult
-the documentation of your writer for details.
+Consult the documentation for specific writers for details on how the mean time may be written
+to the headers.
