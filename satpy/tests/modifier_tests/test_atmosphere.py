@@ -235,7 +235,6 @@ def fake_ir_039_dask_with_time():
                         attrs={"units": "seconds since 1950-05-05 05:00:00"})})
 
 
-
 @pytest.fixture
 def fake_ir_108():
     """Return fake IR 10.8 µm data."""
