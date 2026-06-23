@@ -148,6 +148,24 @@ class Enhancer:
     def get_sensor_enhancement_config(self, sensors: set[str]):
         """Get the sensor-specific config."""
         paths = get_entry_points_config_dirs("satpy.enhancements")
+        # 8< v1.0
+        # Users might have enhancements that still use the legacy
+        # instrument name.
+        from satpy._config import PACKAGE_CONFIG_PATH  # noqa
+        satpy_enh_dir = Path(PACKAGE_CONFIG_PATH) / "enhancements"
+        legacy_sensors = {
+            "MSI (Sentinel-2A)": "sen2_msi",
+            "MWR (AWS)": "mwr",
+            "MWR (Sterna)": "mwr",
+        }
+        more_sensors = list(sensors)
+        more_sensors += [
+            legacy_sensor
+            for sensor in sensors
+            if (legacy_sensor := legacy_sensors.get(sensor))
+        ]
+        sensors = set(more_sensors)
+        # >8 v1.0
         for sensor_name in sensors:
             basename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
             config_fn = os.path.join("enhancements", basename)
@@ -155,6 +173,26 @@ class Enhancer:
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:
+                # 8< v1.0
+                is_legacy = sensor_name in legacy_sensors.values()
+                is_user_file = Path(config_file).parent != satpy_enh_dir
+                if is_legacy and is_user_file:
+                    new_names = [
+                        new_name
+                        for new_name, old_name in legacy_sensors.items()
+                        if old_name == sensor_name
+                    ]
+                    new_files = [
+                        inst_utils.wmo_to_internal(new_name) + ".yaml"
+                        for new_name in new_names
+                    ]
+                    msg = (f"Instrument '{sensor_name}' has been renamed to "
+                           f"'{'/'.join(new_names)}'. Your enhancement config "
+                           f"{config_file} still uses the old instrument name. "
+                           f"Rename the file to '{'/'.join(new_files)}', "
+                           f"otherwise it will be ignored in Satpy v1.0.")
+                    warnings.warn(msg, DeprecationWarning, stacklevel=2)
+                # >8 v1.0
                 yield config_file
 
     def add_sensor_enhancements(self, sensors: set[str]):

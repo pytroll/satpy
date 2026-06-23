@@ -121,11 +121,12 @@ class TestFilenameInstrumentConsistency:
         """Test that enhancement filenames match instruments."""
         enh_dir = self.etc_dir / "enhancements"
         exceptions = [
+            # Not a WMO instrument name
             "generic",
             "hsaf",
             "mimic",
             "scatterometer",
-            # FIXME: below
+            # Shared by multiple instruments
             "mwr"
         ]
         files = [
@@ -144,23 +145,16 @@ class TestFilenameInstrumentConsistency:
         """Test that composite filenames match instruments."""
         comp_dir = self.etc_dir / "composites"
         exceptions = [
+            # Not a WMO instrument name
             "hsaf",
             "visir",
             "microwave",
+            # Shared by multiple instruments
             "sar",
             "scatterometer",
-            # FIXME: below
-            "ec_msi",
             "goes_imager",
             "oli_tirs",
-            "sar-c",
-            "sen2_msi",
-            "insat3d_img",
-            "msu_gsa",
-            "virr",
-            "vii",
             "mwr"
-
             ]
         files = [
             f for f in comp_dir.glob("*.yaml")

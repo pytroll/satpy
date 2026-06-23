@@ -1,4 +1,4 @@
-sensor_name: visir/virr
+sensor_name: visir/virr_fy-3
 
 modifiers:
   sunz_corrected:

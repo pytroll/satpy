@@ -1,4 +1,4 @@
-sensor_name: visir/sen2_msi
+sensor_name: visir/msi_sentinel-2a
 
 modifiers:
   rayleigh_corrected:

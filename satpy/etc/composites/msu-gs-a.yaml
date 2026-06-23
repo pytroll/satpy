@@ -1,4 +1,4 @@
-sensor_name: visir/msu_gsa
+sensor_name: visir/msu-gs-a
 
 composites:
   overview_raw:

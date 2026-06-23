@@ -387,6 +387,59 @@ enhancements:
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 
+from pathlib import Path  # noqa
+
+# 8< v1.0
+import satpy  # noqa
+from satpy._config import PACKAGE_CONFIG_PATH  # noqa
+
+
+class TestUserConfigWithLegacyInstrumentNames:
+    """Test finding user config with legacy instrument name."""
+
+    @pytest.fixture
+    def user_enh_dir(self, tmp_path):
+        """Get directory with user enhancements."""
+        return tmp_path / "etc" / "enhancements"
+
+    @pytest.fixture(autouse=True)
+    def user_config_files(self, user_enh_dir):
+        """Write user config with legacy instrument name."""
+        user_enh_dir.mkdir(parents=True)
+        for legacy_name in ["sen2_msi", "mwr"]:
+            legacy_file = user_enh_dir / f"{legacy_name}.yaml"
+            legacy_file.touch()
+
+    def test_finding_user_config(self, user_enh_dir):
+        """Test finding user config with legacy instrument name."""
+        satpy_enh_dir = Path(PACKAGE_CONFIG_PATH) / "enhancements"
+        with satpy.config.set(config_path=[str(user_enh_dir.parent)]):
+            instruments = {
+                "MSI (Sentinel-2A)",
+                "MWR (AWS)",
+                "SEVIRI",
+            }
+            enhancer = Enhancer()
+            with pytest.warns(DeprecationWarning, match="has been renamed"):
+                config_files = set(
+                    enhancer.get_sensor_enhancement_config(instruments)
+                )
+
+            # MSI and MWR have been renamed, so Satpy should also look
+            # for the corresponding legacy filenames in the user's
+            # enhancements directory.
+            expected ={
+                str(satpy_enh_dir / "msi_sentinel-2a.yaml"),
+                str(satpy_enh_dir / "mwr_aws.yaml"),
+                str(satpy_enh_dir / "mwr.yaml"),
+                str(satpy_enh_dir / "seviri.yaml"),
+                str(user_enh_dir / "sen2_msi.yaml"),
+                str(user_enh_dir / "mwr.yaml"),
+            }
+            assert config_files == expected
+# >8 v1.0
+
+
 class TestReaderEnhancerConfigs(_BaseCustomEnhancementConfigTests):
     """Test enhancement configs that use reader name."""
 
