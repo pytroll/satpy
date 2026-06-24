@@ -138,6 +138,7 @@ class NCSLSTR1B(BaseFileHandler):
                                   chunks={"columns": CHUNK_SIZE,
                                           "rows": CHUNK_SIZE})
         self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        self.baseline = filename_info["baseline"]
         self.channel = filename_info["dataset_name"]
         self.stripe = filename_info["stripe"]
         views = {"n": "nadir", "o": "oblique"}
@@ -201,7 +202,12 @@ class NCSLSTR1B(BaseFileHandler):
             variable = self.nc["{}_BT_{}{}".format(self.channel, self.stripe, self.view[0])]
         else:
             variable = self.nc["{}_radiance_{}{}".format(self.channel, self.stripe, self.view[0])]
-        radiances = self._apply_radiance_adjustment(variable)
+        # Processing baseline version 005 and above already include the radiance adjustment factor
+        # Therefore, unless user supplies their own, do not apply here.
+        if self.baseline < 5 or self.usercalib is not None:
+            radiances = self._apply_radiance_adjustment(variable)
+        else:
+            radiances = variable
         units = variable.attrs["units"]
         if key["calibration"] == "reflectance":
             # TODO take into account sun-earth distance
