@@ -49,7 +49,6 @@ class PillowWriter(ImageWriter):
         img: XRImage,
         filename: str | None = None,
         compute: bool = True,
-        dynamic_fields: set[str] = set(),
         **kwargs,
     ) -> list[da.Array | Delayed] | tuple[list[da.Array], list[Any]] | list[str | PathLike | None]:
         """Save Image object to a given ``filename``.
@@ -64,8 +63,6 @@ class PillowWriter(ImageWriter):
                 If `False` return either a `dask.delayed.Delayed`
                 object or tuple of (source, target). See the
                 return values below for more information.
-            dynamic_fields: Fields calculated dynamically from the
-                data for the purposes of filling in the filename.
             **kwargs: Keyword arguments to pass to the images `save` method.
 
         Returns:
@@ -80,9 +77,7 @@ class PillowWriter(ImageWriter):
             this method.
 
         """
-        filename = filename or self.get_filename(**img.data.attrs,
-                                                 **self._get_dynamic_fields(img.data,
-                                                                            dynamic_fields))
+        filename = filename or self.get_filename(**img.data.attrs)
 
         LOG.debug("Saving to image: %s", filename)
         res = img.save(filename, compute=compute, **kwargs)

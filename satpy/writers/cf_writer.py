@@ -233,7 +233,7 @@ class CFWriter(Writer):
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=None,  # noqa: D417
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
                       include_orig_name=True, numeric_name_prefix="CHANNEL_",
-                      dynamic_fields=set(), **to_netcdf_kwargs):
+                      **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -269,9 +269,7 @@ class CFWriter(Writer):
 
         # Define netCDF filename if not provided
         # - It infers the name from the first DataArray
-        filename = filename or self.get_filename(**datasets[0].attrs,
-                                                 **self._get_dynamic_fields(datasets[0],
-                                                                            dynamic_fields))
+        filename = filename or self.get_filename(**datasets[0].attrs)
 
         # Collect xr.Dataset for each group
         grouped_datasets, header_attrs = collect_cf_datasets(list_dataarrays=datasets,  # list of xr.DataArray
