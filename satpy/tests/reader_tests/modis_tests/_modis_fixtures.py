@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
+# Copyright (c) 2021-2026 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -331,7 +331,21 @@ def _create_core_metadata(file_shortname: str) -> str:
                           f"VALUE = {file_shortname!r}\nEND_OBJECT = SHORTNAME\n\n" \
                           "OBJECT = VERSIONID\nNUM_VAL = 1\nVALUE = 6\nEND_OBJECT = VERSIONID\n\n" \
                           "END_GROUP = COLLECTIONDESCRIPTIONCLASS\n\n"
-    core_metadata_header += "\n\n" + inst_metadata + collection_metadata
+
+    gring_metadata = "GROUP = SPATIALDOMAINCONTAINER\n\n GROUP = HORIZONTALSPATIALDOMAINCONTAINER\n\n "\
+        'GROUP = GPOLYGON\n\n OBJECT = GPOLYGONCONTAINER\n CLASS = "1"\n\n '\
+        'GROUP = GRING\n CLASS = "1"\n\n  OBJECT = EXCLUSIONGRINGFLAG\n NUM_VAL = 1\n '\
+        'CLASS = "1"\n VALUE = "N"\n  END_OBJECT = EXCLUSIONGRINGFLAG\n\n END_GROUP = GRING\n\n '\
+        'GROUP = GRINGPOINT\n CLASS = "1"\n\n OBJECT = GRINGPOINTLONGITUDE\n NUM_VAL = 4\n '\
+        'CLASS = "1"\n VALUE = (37.5053242268888, 6.38401236692491, -48.2870137383305, 36.7762332873298)\n '\
+        'END_OBJECT = GRINGPOINTLONGITUDE\n\n OBJECT = GRINGPOINTLATITUDE\n NUM_VAL = 4\n CLASS = "1"\n '\
+        "VALUE = (34.5168084728086, 30.695318900416, 70.1120029478276, 83.8447003025456)\n "\
+        "END_OBJECT = GRINGPOINTLATITUDE\n\n OBJECT = GRINGPOINTSEQUENCENO\n NUM_VAL = 4\n "\
+        'CLASS = "1"\n VALUE = (1, 2, 3, 4)\n END_OBJECT = GRINGPOINTSEQUENCENO\n\n '\
+        "END_GROUP = GRINGPOINT\n\n  END_OBJECT = GPOLYGONCONTAINER\n\n  END_GROUP = GPOLYGON\n\n "\
+        "END_GROUP = HORIZONTALSPATIALDOMAINCONTAINER\n\n END_GROUP = SPATIALDOMAINCONTAINER\n\n"
+
+    core_metadata_header += "\n\n" + inst_metadata + collection_metadata + gring_metadata
     return core_metadata_header
 
 
