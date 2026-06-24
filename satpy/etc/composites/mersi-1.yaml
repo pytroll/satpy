@@ -7,7 +7,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - name: '3'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
     - name: satellite_zenith_angle
@@ -38,36 +38,36 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '3'
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: '2'
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: '1'
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_uncorr:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '3'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '2'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '1'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
 
   natural_color:
     compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
       - name: '6'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '16'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '3'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
       - name: '4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     high_resolution_band: green
     neutral_resolution_band: blue
     standard_name: natural_color
@@ -76,8 +76,8 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: '3'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '4'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '5'
     standard_name: overview

@@ -32,11 +32,11 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_raw:
@@ -46,11 +46,11 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C01
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green:
@@ -60,11 +60,11 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_nocorr:
@@ -82,30 +82,30 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
       - name: green_crefl
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
     standard_name: true_color
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: green_raw
       - name: C01
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
 
   true_color:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: green
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_nocorr:
@@ -120,11 +120,11 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     high_resolution_band: blue
     standard_name: natural_color
 
@@ -149,9 +149,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - C14
     standard_name: overview
 
@@ -190,11 +190,11 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   cimss_green_sunz:
@@ -203,11 +203,11 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C01
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   cimss_green:
@@ -232,10 +232,10 @@ composites:
       Research Article: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: cimss_green_sunz_rayleigh
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: cimss_true_color
 
   cimss_true_color_sunz:
@@ -250,10 +250,10 @@ composites:
       Research Article: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: cimss_green_sunz
       - name: C01
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: cimss_true_color
 
   cimss_true_color:
@@ -439,9 +439,9 @@ composites:
     prerequisites:
       - name: C13
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: cloud_phase_distinction
 
   day_cloud_type_distinction:
@@ -600,9 +600,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: C07
@@ -680,9 +680,9 @@ composites:
     prerequisites:
       - name: C06
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: land_cloud_fire
 
   land_cloud:
@@ -694,9 +694,9 @@ composites:
     prerequisites:
       - name: C05
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: land_cloud
 
   snow:
@@ -709,9 +709,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C07
         modifiers: [nir_reflectance]
     standard_name: snow
@@ -726,7 +726,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C07
         modifiers: [nir_reflectance]
       - name: C14
@@ -754,11 +754,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C06
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: cloud_phase
 
   cloud_phase_raw:
@@ -796,9 +796,9 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: green
     standard_name: true_color
 
@@ -824,10 +824,10 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: green
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color_reproduction_color_stretch
 
   true_color_reproduction_uncorr:

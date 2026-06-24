@@ -1452,9 +1452,9 @@ class Scene:
                 loaded datasets. This is a shortcut similar to calibration,
                 but only represents a single set of modifiers as a tuple.
                 For example, specifying
-                ``modifiers=('sunz_corrected', 'rayleigh_corrected')`` will
+                ``modifiers=('effective_solar_pathlength_corrected', 'rayleigh_corrected')`` will
                 attempt to apply both of these modifiers to all loaded
-                datasets in the specified order ('sunz_corrected' first).
+                datasets in the specified order ('effective_solar_pathlength_corrected' first).
             level (list | str): Pressure level to limit available datasets.
                 Pressure should be in hPa or mb. If an altitude is used it
                 should be specified in inverse meters (1/m). The units of this

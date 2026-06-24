@@ -20,12 +20,13 @@
 from __future__ import annotations
 
 import logging
+import warnings
+from typing import Optional
 
 import numpy as np
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers.angles import sunzen_corr_cos, sunzen_reduction
-from satpy.utils import atmospheric_path_length_correction
+from satpy.modifiers.angles import atmospheric_path_length_correction, sunzen_corr_cos, sunzen_reduction
 
 logger = logging.getLogger(__name__)
 
@@ -33,34 +34,32 @@ logger = logging.getLogger(__name__)
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
 
-    def __init__(self, max_sza=95.0, **kwargs):  # noqa: D417
-        """Collect custom configuration values.
-
-        Args:
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
-
-        """
-        self.max_sza = max_sza
-        self.max_sza_cos = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
+    def __init__(self, **kwargs):  # noqa: D417
+        """Collect custom configuration values."""
         super(SunZenithCorrectorBase, self).__init__(**kwargs)
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
         projectables = self.match_data_arrays(list(projectables) + list(info.get("optional_datasets", [])))
         vis = projectables[0]
-        if vis.attrs.get("sunz_corrected"):
-            logger.debug("Sun zenith correction already applied")
-            return vis
 
-        logger.debug("Applying sun zen correction")
+        # Make sure to avoid alternative but mutually exclusive sun zenith angle corrections
+        sunz_correction_methods = {"sunz_corrected", "effective_solar_pathlength_corrected"}
+        if self.method in sunz_correction_methods:
+            for correction in sunz_correction_methods:
+                if vis.attrs.get(correction) or correction in vis.attrs.get("modifiers"):
+                    logger.debug(
+                        f"Sun zenith angle correction '{correction}' already applied. "
+                        f"Skipping correction '{self.method}'."
+                    )
+                    return vis
+
+        logger.debug("Applying Sun zenith angle correction")
         if not info.get("optional_datasets"):
             # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
             from .angles import get_cos_sza
             coszen = get_cos_sza(vis)
-            if self.max_sza is not None:
-                coszen = coszen.where(coszen >= self.max_sza_cos)
         else:
             # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
@@ -75,92 +74,144 @@ class SunZenithCorrectorBase(ModifierBase):
 
 
 class SunZenithCorrector(SunZenithCorrectorBase):
-    """Standard sun zenith correction using ``1 / cos(sunz)``.
+    """Standard Sun zenith angle correction using ``1 / cos(sunz)``.
 
-    In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier forces all reflectances beyond a
-    solar zenith angle of ``max_sza`` to 0. It also gradually reduces the
-    amount of correction done between ``correction_limit`` and ``max_sza``. If
-    ``max_sza`` is ``None`` then a constant correction is applied to zenith
-    angles beyond ``correction_limit``.
+    Modes
+    -----
+    The behavior of the correction depends on the combination of ``correction_limit`` and
+    ``max_sza``:
 
-    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+    * ``correction_limit=None, max_sza=None``:
+        Apply pure ``1 / cos(sunz)`` correction everywhere.
+
+    * ``correction_limit=None, max_sza=<float>``:
+        Apply ``1 / cos(sunz)`` correction up to ``max_sza``.
+        Pixels with solar zenith angle > ``max_sza`` are set to 0.
+
+    * ``correction_limit=<float>, max_sza=None``:
+        Apply ``1 / cos(sunz)`` up to ``correction_limit``.
+        Beyond this limit, the correction is clamped to the value at
+        ``correction_limit`` (constant correction).
+
+    * ``correction_limit=<float>, max_sza=<float>``:
+        Apply ``1 / cos(sunz)`` up to ``correction_limit``.
+        Between ``correction_limit`` and ``max_sza``, the correction is
+        gradually reduced to 0.
+        Pixels with solar zenith angle > ``max_sza`` are set to 0.
+
+    Note that all corrections are undefined for ``cos(sunz) <= 0`` meaning that
+    the reflectance data are forced to zero.
+
+    To configure this in a YAML configuration file setting e.g. ``max_sza`` to ``None`` use:
 
     .. code-block:: yaml
 
       sunz_corrected:
         modifier: !!python/name:satpy.modifiers.SunZenithCorrector
+        correction_limit: 88
         max_sza: !!null
         optional_prerequisites:
         - solar_zenith_angle
 
     """
 
-    def __init__(self, correction_limit=88., **kwargs):  # noqa: D417
+    def __init__(
+        self,
+        correction_limit: Optional[float] = 88.0,
+        max_sza: Optional[float] = 95.0,
+        **kwargs,
+    ):
         """Collect custom configuration values.
 
         Args:
-            correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
-                constant correction applied. Otherwise, the correction is gradually reduced to 0 at
-                ``max_sza``. Default 88.
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
+            correction_limit:
+                Solar zenith angle in degrees where correction limiting
+                begins.
+
+            max_sza:
+                Maximum valid angle in degrees for solar zenith angle correction.
+
+                Pixels with solar zenith angles greater than
+                ``max_sza`` are set to 0.
+
+            **kwargs:
+                Additional keyword arguments passed to the parent class.
 
         """
+        self.method = "sunz_corrected"
         self.correction_limit = correction_limit
+        self.max_sza = max_sza
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        res = proj.copy()
-        res.data = sunzen_corr_cos(proj.data, coszen.data, limit=self.correction_limit, max_sza=self.max_sza)
-        return res
+        if self.correction_limit == 88.0 or self.max_sza == 95.0:
+            # TODO Change class defaults and remove warning in satpy v1.0
+            warnings.warn(
+                "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
+                "be removed in satpy v1.0 in order to compute the true reflectance with the 'sunz_corrected' modifier. "
+                "To avoid overcorrection at high angles for (RGB) imagery it's recommended to use the "
+                "'effective_solar_pathlength_corrected' modifier instead. If you still want to keep the current "
+                "behaviour, please set the 'correction_limit' parameter to 88.0 and 'max_sza' to 95.0 in a local "
+                "definition of the modifier.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return sunzen_corr_cos(proj, coszen, correction_limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
-    """Special sun zenith correction with the method proposed by Li and Shibata.
+    """Special sun zenith angle correction using the parameterization proposed by Li and Shibata.
 
     (2006): https://doi.org/10.1175/JAS3682.1
 
-    In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier forces all reflectances beyond a
-    solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
-    It also gradually reduces the amount of correction done between
-    ``correction_limit`` and ``max_sza``. If ``max_sza`` is ``None`` then a
-    constant correction is applied to zenith angles beyond
-    ``correction_limit``.
+    This correction method is designed to reduce the over-correction of the standard
+    sun zenith angle correction at high solar zenith angles, which is especially
+    relevant for (RGB) imagery.
 
-    To set ``max_sza`` to ``None`` in a YAML configuration file use:
-
-    .. code-block:: yaml
-
-      effective_solar_pathlength_corrected:
-        modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
-        max_sza: !!null
-        optional_prerequisites:
-        - solar_zenith_angle
+    In previous versions of Satpy, this correction could be capped or reduced at higher
+    sun zenith angles by using the ``correction_limit`` and ``max_sza`` parameters.
+    This has been disabled for this correction since the parameterization also deals with
+    overcorrection at high solar zenith angles. If capping or reduction is still desireble
+    it can be achieved by using the SunZenithCorrector with the same ``correction_limit``
+    and ``max_sza`` parameters.
 
     """
 
-    def __init__(self, correction_limit=88., **kwargs):  # noqa: D417
+    def __init__(
+        self,
+        correction_limit: Optional[float] = None,
+        max_sza: Optional[float] = None,
+        **kwargs,
+    ):
         """Collect custom configuration values.
 
         Args:
-            correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
-                constant correction applied. Otherwise, the correction is gradually reduced to 0 at
-                ``max_sza``. Default 88.
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
+            correction_limit:
+                Solar zenith angle in degrees where correction limiting
+                begins. Deprecated.
+
+            max_sza:
+                Maximum valid angle in degrees for solar zenith angle correction. Deprecated.
+
+            **kwargs:
+                Additional keyword arguments passed to the parent class.
 
         """
-        self.correction_limit = correction_limit
+        if correction_limit is not None or max_sza is not None:
+            # TODO Remove class init input variables and warning in satpy v1.0
+            msg = "The ``correction_limit`` and ``max_sza`` parameters have been deprecated and are no " \
+                "longer used for the EffectiveSolarPathLengthCorrector and will be fully removed " \
+                "in satpy v1.0. This is done since the parameterization by Li and Shibata (2006) " \
+                "already accounts for overcorrection at high solar zenith angles. If capping or " \
+                "reduction of the correction is still desirable it can be achieved by using the " \
+                "``SunZenithCorrector`` with the same ``correction_limit`` and ``max_sza`` parameters."
+            warnings.warn(msg, UserWarning, stacklevel=2)
+
+        self.method = "effective_solar_pathlength_corrected"
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        logger.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
+        return atmospheric_path_length_correction(proj, coszen)
 
 
 class SunZenithReducer(SunZenithCorrectorBase):
@@ -173,7 +224,7 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     where reduction_factor is a pixel-level value ranging from 0 to 1 within the sunz interval.
 
-    The `strength` parameter can be used for a non-linear reduction within the sunz interval. A strength larger
+    The ``strength`` parameter can be used for a non-linear reduction within the sunz interval. A strength larger
     than 1.0 will decelerate the signal reduction towards the sunz interval extremes, whereas a strength
     smaller than 1.0 will accelerate the signal reduction towards the sunz interval extremes.
 
@@ -189,19 +240,21 @@ class SunZenithReducer(SunZenithCorrectorBase):
             strength (float): The strength of the non-linear signal reduction.
 
         """
+        self.method = "sunz_reduced"
         self.correction_limit = correction_limit
+        self.max_sza = max_sza
         self.strength = strength
-        super(SunZenithReducer, self).__init__(max_sza=max_sza, **kwargs)
+        super(SunZenithReducer, self).__init__(**kwargs)
         if self.max_sza is None:
             raise ValueError("`max_sza` must be defined when using the SunZenithReducer.")
 
     def _apply_correction(self, proj, coszen):
         logger.debug(f"Applying sun-zenith signal reduction with correction_limit {self.correction_limit} deg,"
                      f" strength {self.strength}, and max_sza {self.max_sza} deg.")
-        res = proj.copy()
-        sunz = np.rad2deg(np.arccos(coszen.data))
-        res.data = sunzen_reduction(proj.data, sunz,
-                                    limit=self.correction_limit,
-                                    max_sza=self.max_sza,
-                                    strength=self.strength)
+        sunz = np.rad2deg(np.arccos(coszen))
+        res = sunzen_reduction(proj,
+                               sunz,
+                               limit=self.correction_limit,
+                               max_sza=self.max_sza,
+                               strength=self.strength)
         return res

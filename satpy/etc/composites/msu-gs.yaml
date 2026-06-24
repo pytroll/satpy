@@ -12,8 +12,8 @@ composites:
     compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: 00_9
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: 00_9
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - 10.8
     standard_name: overview

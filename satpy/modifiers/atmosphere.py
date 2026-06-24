@@ -56,7 +56,7 @@ class PSPRayleighReflectance(ModifierBase):
         reduce_strength: 0.6
         prerequisites:
           - name: B03
-            modifiers: [sunz_corrected]
+            modifiers: [effective_solar_pathlength_corrected]
         optional_prerequisites:
           - satellite_azimuth_angle
           - satellite_zenith_angle

@@ -101,8 +101,7 @@ def sunz_ds2():
 def sunz_sza():
     """Generate fake solar zenith angle data array for testing."""
     sza = xr.DataArray(
-        np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
-                                           chunks=2))),
+        da.from_array([[80.0, 87.0], [89.0, 93.0]], chunks=2),
         attrs={"area": _sunz_area_def()},
         dims=("y", "x"),
         coords={"y": [0, 1], "x": [0, 1]},
@@ -110,27 +109,49 @@ def sunz_sza():
     return sza
 
 
+def call_sunz_modifier(comp, data_arr, sunz_sza=None, dtype=None):
+    """Helper function for running sunz modifiers."""
+    if dtype is not None:
+        data_arr = data_arr.astype(dtype)
+        if sunz_sza is not None:
+            sunz_sza = sunz_sza.astype(dtype)
+
+    info = {"test_attr": "test"}
+    if sunz_sza is not None:
+        info["optional_datasets"] = [sunz_sza]
+
+    return comp((data_arr,), **info)
+
+
+def assert_sunz_modifier_result(res, expected, data_arr, dtype=None, rtol=1e-5):
+    """Helper function for asserting sunz modifier results."""
+    np.testing.assert_allclose(res.values, expected, rtol=rtol)
+    assert type(res.data) is type(data_arr.data)
+    if dtype is not None:
+        assert res.dtype == dtype
+        assert res.values.dtype == dtype
+
+
 class TestSunZenithCorrector:
-    """Test case for the zenith corrector."""
+    """Test case for the standard Sun zenith angle corrector."""
 
     @pytest.mark.parametrize("as_32bit", [False, True])
-    def test_basic_default_not_provided(self, sunz_ds1, as_32bit):
+    def test_default_with_sza_not_provided(self, sunz_ds1, as_32bit):
         """Test default limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
-
         if as_32bit:
             sunz_ds1 = sunz_ds1.astype(np.float32)
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
-        res = comp((sunz_ds1,), test_attr="test")
-        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
-                                   rtol=1e-6)
+        expected = np.array([[22.401667, 22.31777], [22.437503, 22.353533]])
+        res = call_sunz_modifier(comp, sunz_ds1)
+        assert_sunz_modifier_result(res, expected, sunz_ds1)
         assert "y" in res.coords
         assert "x" in res.coords
+
         ds1 = sunz_ds1.copy().drop_vars(("y", "x"))
-        res = comp((ds1,), test_attr="test")
+        res = call_sunz_modifier(comp, ds1)
         res_np = res.compute()
-        np.testing.assert_allclose(res_np.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]),
-                                   rtol=1e-6)
+        np.testing.assert_allclose(res_np.values, expected, rtol=1e-5)
         assert res.dtype == res_np.dtype
         assert "y" not in res.coords
         assert "x" not in res.coords
@@ -138,50 +159,152 @@ class TestSunZenithCorrector:
             assert res.dtype == np.float32
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_basic_lims_not_provided(self, sunz_ds1, dtype):
-        """Test custom limits when SZA isn't provided."""
-        from satpy.modifiers.geometry import SunZenithCorrector
-        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=90)
-        res = comp((sunz_ds1.astype(dtype),), test_attr="test")
-        expected = np.array([[66.853262, 68.168939], [66.30742, 67.601493]], dtype=dtype)
-        values = res.values
-        np.testing.assert_allclose(values, expected, rtol=1e-5)
-        assert res.dtype == dtype
-        assert values.dtype == dtype
-
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
-    def test_basic_default_provided(self, data_arr, sunz_sza, dtype):
+    def test_default_with_sza_provided(self, data_arr, sunz_sza, dtype):
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
-        res = comp((data_arr.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
-        expected = np.array([[22.401667, 22.31777], [22.437503, 22.353533]], dtype=dtype)
-        values = res.values
-        np.testing.assert_allclose(values, expected)
-        assert res.dtype == dtype
-        assert values.dtype == dtype
+        expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
-    def test_basic_lims_provided(self, data_arr, sunz_sza, dtype):
-        """Test custom limits when SZA is provided."""
+    def test_standard_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test correction_limit=None and max_sza=None when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
-        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=90)
-        res = comp((data_arr.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
-        expected = np.array([[66.853262, 68.168939], [66.30742, 67.601493]], dtype=dtype)
-        values = res.values
-        np.testing.assert_allclose(values, expected, rtol=1e-5)
-        assert res.dtype == dtype
-        assert values.dtype == dtype
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=None, max_sza=None)
+        expected = np.array([[5.758770, 19.107323], [57.298689, 0.0]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
-    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_custom_max_sza_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test custom max_sza (and correction_limit=None) when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=None, max_sza=88)
+        expected = np.array([[5.758770, 19.107323], [0.0, 0.0]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_custom_correction_limit_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test custom correction_limit (and max_sza=None) when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=None)
+        expected = np.array([[5.758770, 19.107323], [28.653708, 28.653708]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_custom_max_sza_and_correction_limit_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test custom correction_limit and max_sza when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=95)
+        expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_double_correction(self, data_arr, sunz_sza, dtype):
+        """Test double sunz correction when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+        data_arr = data_arr.copy()
+        data_arr.attrs["modifiers"] = ("effective_solar_pathlength_corrected",)
+        expected = data_arr.values
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_invalid_max_sza_and_correction_limit_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test with correction_limit > max_sza when SZA is provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=80)
+        with pytest.raises(ValueError, match="`max_sza` must be larger than `correction_limit`"):
+            call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+
+    def test_incompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
-        comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=90)
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
         with pytest.raises(IncompatibleAreas):
-            comp((sunz_ds2, sunz_sza), test_attr="test")
+            call_sunz_modifier(comp, sunz_ds2, sunz_sza)
+
+
+class TestEffectiveSolarPathLengthCorrector:
+    """Test case for the effective solar path length corrector."""
+
+    @pytest.mark.parametrize("as_32bit", [False, True])
+    def test_with_sza_not_provided(self, sunz_ds1, as_32bit):
+        """Test when SZA isn't provided."""
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        if as_32bit:
+            sunz_ds1 = sunz_ds1.astype(np.float32)
+        comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
+        expected = np.array([[22.458680, 22.512698], [22.435495, 22.489718]])
+        res = call_sunz_modifier(comp, sunz_ds1)
+        assert_sunz_modifier_result(res, expected, sunz_ds1)
+        assert "y" in res.coords
+        assert "x" in res.coords
+
+        ds1 = sunz_ds1.copy().drop_vars(("y", "x"))
+        res = call_sunz_modifier(comp, ds1)
+        res_np = res.compute()
+        np.testing.assert_allclose(res_np.values, expected, rtol=1e-5)
+        assert res.dtype == res_np.dtype
+        assert "y" not in res.coords
+        assert "x" not in res.coords
+        if as_32bit:
+            assert res.dtype == np.float32
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_with_sza_provided(self, data_arr, sunz_sza, dtype):
+        """Test when SZA is provided."""
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
+        expected = np.array([[5.595989, 14.823307], [21.973671, 16.988299]], dtype=dtype)
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_double_correction(self, data_arr, sunz_sza, dtype):
+        """Test double sunz correction when SZA is provided."""
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
+        data_arr = data_arr.copy()
+        data_arr.attrs["modifiers"] = ("sunz_corrected",)
+        expected = data_arr.values
+        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
+    def test_with_deprecated_correction_limit(self):
+        """Test with deprecated correction_limit."""
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        with pytest.warns(UserWarning, match="deprecated"):
+            EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple(), correction_limit=88)
+
+    def test_with_deprecated_sza_max(self):
+        """Test with deprecated max_sza."""
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        with pytest.warns(UserWarning, match="deprecated"):
+            EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple(), max_sza=95)
+
+    def test_incompatible_areas(self, sunz_ds2, sunz_sza):
+        """Test with incompatible areas."""
+        from satpy.composites.core import IncompatibleAreas
+        from satpy.modifiers.geometry import EffectiveSolarPathLengthCorrector
+        comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
+        with pytest.raises(IncompatibleAreas):
+            call_sunz_modifier(comp, sunz_ds2, sunz_sza)
 
 
 class TestSunZenithReducer:
@@ -198,33 +321,22 @@ class TestSunZenithReducer:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_default_settings(self, sunz_ds1, sunz_sza, dtype):
         """Test default settings with sza data available."""
-        res = self.default((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
-        expected = np.array([[0.02916261, 0.02839063], [0.02949383, 0.02871911]], dtype=dtype)
-        assert res.dtype == dtype
-        values = res.values
-        assert values.dtype == dtype
-        np.testing.assert_allclose(values,
-                                   expected,
-                                   rtol=2e-5)
+        expected = np.array([[1.0, 0.176790], [0.036095, 0.0]], dtype=dtype)
+        res = call_sunz_modifier(self.default, sunz_ds1, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, sunz_ds1, dtype, rtol=2e-5)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_custom_settings(self, sunz_ds1, sunz_sza, dtype):
         """Test custom settings with sza data available."""
-        res = self.custom((sunz_ds1.astype(dtype), sunz_sza.astype(dtype)), test_attr="test")
-        expected = np.array([[0.01041319, 0.01030033], [0.01046164, 0.01034834]], dtype=dtype)
-        assert res.dtype == dtype
-        values = res.values
-        assert values.dtype == dtype
-        np.testing.assert_allclose(values,
-                                   expected,
-                                   rtol=1e-5)
+        expected = np.array([[5.436207e-01, 3.657017e-02], [1.143065e-02, 2.450100e-04]], dtype=dtype)
+        res = call_sunz_modifier(self.custom, sunz_ds1, sunz_sza, dtype)
+        assert_sunz_modifier_result(res, expected, sunz_ds1, dtype, rtol=2e-5)
 
-    def test_invalid_max_sza(self, sunz_ds1, sunz_sza):
+    def test_invalid_max_sza(self):
         """Test invalid max_sza with sza data available."""
         from satpy.modifiers.geometry import SunZenithReducer
         with pytest.raises(ValueError, match="`max_sza` must be defined when using the SunZenithReducer."):
             SunZenithReducer(name="sza_reduction_test_invalid", modifiers=tuple(), max_sza=None)
-
 
 class TestNIRReflectance:
     """Test NIR reflectance compositor."""
@@ -274,7 +386,6 @@ class TestNIRReflectance:
                 "wavelength": (12.0, 13.0, 14.0),
                 "units": "K",
             })
-
 
     @pytest.mark.parametrize(
         ("include_sunz", "include_co2", "exp_res"),
