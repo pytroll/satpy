@@ -22,9 +22,13 @@ from pathlib import Path
 import yaml
 from yaml import UnsafeLoader
 
+import satpy._instruments as inst_utils
 from satpy._config import config_search_paths, get_entry_points_config_dirs
 from satpy.decision_tree import DecisionTree
-from satpy.utils import get_logger, recursive_dict_update
+from satpy.utils import (
+    get_logger,
+    recursive_dict_update,
+)
 
 LOG = get_logger(__name__)
 
@@ -122,26 +126,23 @@ class Enhancer:
 
         self.sensor_enhancement_configs = []
 
-    def get_sensor_enhancement_config(self, sensor):
+    def get_sensor_enhancement_config(self, sensors: set[str]):
         """Get the sensor-specific config."""
-        if isinstance(sensor, str):
-            # one single sensor
-            sensor = [sensor]
-
         paths = get_entry_points_config_dirs("satpy.enhancements")
-        for sensor_name in sensor:
-            config_fn = os.path.join("enhancements", sensor_name + ".yaml")
+        for sensor_name in sensors:
+            basename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
+            config_fn = os.path.join("enhancements", basename)
             config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:
                 yield config_file
 
-    def add_sensor_enhancements(self, sensor):
+    def add_sensor_enhancements(self, sensors: set[str]):
         """Add sensor-specific enhancements."""
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
-        for config_file in self.get_sensor_enhancement_config(sensor):
+        for config_file in self.get_sensor_enhancement_config(sensors):
             if config_file not in self.sensor_enhancement_configs:
                 self.sensor_enhancement_configs.append(config_file)
                 new_configs.append(config_file)
@@ -209,10 +210,11 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        if dataset.attrs.get("sensor", None):
-            enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
-
-        enhancer.apply(img, **dataset.attrs)
+        sensors = inst_utils.get_instruments_from_attrs(dataset.attrs, to_internal=True)
+        if sensors:
+            enhancer.add_sensor_enhancements(sensors)
+        dataset_attrs = _get_dataset_attrs_for_enh(dataset, sensors)
+        enhancer.apply(img, **dataset_attrs)
 
     if overlay is not None:
         from satpy.enhancements.overlays import add_overlay
@@ -225,3 +227,14 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         img = add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
+
+
+def _get_dataset_attrs_for_enh(dataset, instruments_int):
+    """Get dataset attributes for applying enhancement.
+
+    In particular, use instrument names in internal format so that
+    they match the enhancement definition in the YAML.
+    """
+    attrs = dataset.attrs.copy()
+    inst_utils.set_instruments_attr(attrs, instruments_int)
+    return attrs
