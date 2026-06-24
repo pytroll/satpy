@@ -198,11 +198,8 @@ class NCSLSTR1B(BaseFileHandler):
                 self.view != key["view"].name):
             return
         logger.debug("Reading %s.", key["name"])
-        if key["calibration"] == "brightness_temperature":
-            variable = self.nc["{}_BT_{}{}".format(self.channel, self.stripe, self.view[0])]
-        else:
-chan_type = "BT" if key["calibration"] == "brightness_temperature" else "radiance"
-variable = self.nc[f"{self.channel}_{chan_type}_{self.stripe}{self.view[0]}"]
+        chan_type = "BT" if key["calibration"] == "brightness_temperature" else "radiance"
+        variable = self.nc[f"{self.channel}_{chan_type}_{self.stripe}{self.view[0]}"]
         # Processing baseline version 005 and above already include the radiance adjustment factor
         # Therefore, unless user supplies their own, do not apply here.
         if self.baseline < 5 or self.usercalib is not None:
