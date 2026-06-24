@@ -601,15 +601,41 @@ def _verify_times(projectables):
     times = [p.coords["time"] for p in projectables
              if hasattr(p, "coords") and "time" in p.coords]
     for time in times:
-        if "units" not in time.attrs:
-            raise ValueError("Time coordinate lacks units attribute")
-        if time.attrs["units"] != times[0].attrs["units"]:
-            raise IncompatibleTimes("Time coordinates have inconsistent units.  "
-                                    "Conversions not implemented.")
-        if time.dims != times[0].dims:
-            raise IncompatibleTimes(
-                "Time coordinates have inconsistent dimensionality.  Only "
-                "consistent dimensionality is implemented.")
+        _verify_time_units_attribute(time)
+        _verify_time_coordinate_units(time, times[0].attrs["units"])
+        _verify_time_coordinate_dimensions(time, times[0].dims)
+
+
+def _verify_time_units_attribute(time):
+    if "units" not in time.attrs:
+        raise ValueError(
+                "Time coordinate lacks units attribute. "
+                "This error probably means that one or more inputs of a "
+                "composite have a time coordinate, but due to a "
+                "missing units attribute, satpy cannot interpret this time "
+                "and cannot verify consistency with other time coordinates.")
+
+
+def _verify_time_coordinate_units(time, main_unit):
+    if time.attrs["units"] != main_unit:
+        raise IncompatibleTimes(
+                "Time coordinates have inconsistent units.  "
+                f"Encountered both {main_unit:s} and {time.attrs['units']:s}. "
+                "Conversions not implemented. "
+                "This error probably means that two or more inputs of a "
+                "composite have a time coordinate, but due to differing units, "
+                "satpy cannot combine the composite inputs.")
+
+
+def _verify_time_coordinate_dimensions(time, main_dim):
+    if time.dims != main_dim:
+        raise IncompatibleTimes(
+            "Time coordinates have inconsistent dimensionality.  "
+            f"Encountered both {time.dims!s} and {main_dim!s}. "
+            "Only consistent dimensionality is implemented. "
+            "This error probably means that two or more inputs of a "
+            "composite have a time coordinate, but due to differing "
+            "dimensions, satpy cannot combine the composite inputs.")
 
 
 class RGBCompositor(GenericCompositor):
