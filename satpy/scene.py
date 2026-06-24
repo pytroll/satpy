@@ -974,8 +974,9 @@ class Scene:
         except NotImplementedError:
             LOG.info("Not reducing data before resampling.")
         else:
+            orig_source_area = source_area
             source_area = source_area[slice_y, slice_x]
-            reductions[source_area] = (slice_x, slice_y), source_area
+            reductions[orig_source_area] = (slice_x, slice_y), source_area
             dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
 
         return dataset, source_area
