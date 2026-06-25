@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
+"""EUMETSAT EPS-SG METimage (VII) readers base class."""
 
 
 import datetime as dt
@@ -25,14 +25,14 @@ import logging
 import xarray as xr
 from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
+from satpy.readers.core.metimage import PLATFORM_NAME_TRANSLATE, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
-from satpy.readers.core.vii import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
 
 logger = logging.getLogger(__name__)
 
 
-class ViiNCBaseFileHandler(NetCDF4FileHandler):
-    """Base reader class for VII products in netCDF format.
+class METimageNCBaseFileHandler(NetCDF4FileHandler):
+    """Base reader class for METimage (VII) products in netCDF format.
 
     Args:
         filename (str): File to read
@@ -113,6 +113,10 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             if orthorect_data_name is not None:
                 variable = self._perform_orthorectification(variable, orthorect_data_name)
 
+        # wrapping longitude between -180 and 180 degrees
+        if variable.name == "longitude":
+            variable = self.wrap_longitude(variable)
+
         # Manage the attributes of the dataset
         variable.attrs.setdefault("units", None)
 
@@ -120,6 +124,12 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    @staticmethod
+    def wrap_longitude(longitude_array):
+        """Wrap longitude between -180 and 180 degrees."""
+        longitude_array = ((longitude_array + 180) % 360) - 180
+        return longitude_array
 
     @staticmethod
     def _perform_interpolation(variable) -> xr.DataArray:
@@ -199,6 +209,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             "filename_start_time": self.filename_info["sensing_start_time"],
             "filename_end_time": self.filename_info["sensing_end_time"],
             "platform_name": self.spacecraft_name,
+            "rows_per_scan": 24
         }
 
         # Add a "quality_group" item to the dictionary with all the variables and attributes
@@ -240,15 +251,15 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self["/attr/spacecraft"]
+        return PLATFORM_NAME_TRANSLATE.get(self["/attr/spacecraft"], self["/attr/spacecraft"])
 
     @property
     def sensor(self):
         """Return sensor."""
-        return self["/attr/instrument"]
+        return "metimage"
 
     @property
     def ssp_lon(self):
         """Return subsatellite point longitude."""
-        # This parameter is not applicable to VII
+        # This parameter is not applicable to METimage
         return None
