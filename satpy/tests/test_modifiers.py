@@ -175,7 +175,7 @@ class TestSunZenithCorrector:
         assert res.dtype == dtype
         assert values.dtype == dtype
 
-    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
+    def test_incompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
@@ -183,6 +183,18 @@ class TestSunZenithCorrector:
         with pytest.raises(IncompatibleAreas):
             comp((sunz_ds2, sunz_sza), test_attr="test")
 
+    def test_retain_time_coordinate(self, sunz_ds1):
+        """Test sunz correction retains time coordinate."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        sunz_ds1.coords["time"] = xr.DataArray(
+                np.zeros_like(sunz_ds1.values),
+                dims=sunz_ds1.dims,
+                attrs={"area": sunz_ds1.attrs["area"],
+                       "units": "seconds since 2022-02-22 22:22:00"})
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+        res = comp([sunz_ds1])
+        assert "time" in res.coords
+        np.testing.assert_array_equal(sunz_ds1.coords["time"], res.coords["time"])
 
 class TestSunZenithReducer:
     """Test case for the sun zenith reducer."""

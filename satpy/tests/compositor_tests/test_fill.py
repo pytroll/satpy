@@ -31,6 +31,30 @@ from pyresample import AreaDefinition
 from satpy.tests.utils import CustomScheduler
 
 
+@pytest.fixture
+def data_with_time():
+    """Return fake data array with time coordinate."""
+    return xr.DataArray(
+            da.array([[1, 2, 3], [4, 3, 2]]),
+            dims=("y", "x"),
+            coords={"time": xr.DataArray(
+                da.array([[0, 1, 2], [3, 4, 5]]),
+                dims=("y", "x"),
+                attrs={"units": "seconds since 1900-01-01 00:00:00"})})
+
+
+@pytest.fixture
+def data_with_different_time():
+    """Return fake data array with a different time coordinate."""
+    return xr.DataArray(
+            da.array([[1, 2, 3], [4, 3, 2]]),
+            dims=("y", "x"),
+            coords={"time": xr.DataArray(
+                da.array([[0, 1, 2.1], [3, 4, 5]]),
+                dims=("y", "x"),
+                attrs={"units": "seconds since 1900-01-01 00:00:00"})})
+
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
@@ -222,8 +246,26 @@ class TestDayNightCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
 
+    def test_day_night_retains_time_coordinate(self):
+        """Test that time coordinate is retained."""
+        from satpy.composites.fill import DayNightCompositor
 
-class TestFillingCompositor(unittest.TestCase):
+        comp = DayNightCompositor(name="dn_test", day_night="day_night")
+        data_a = self.data_a.copy()
+        data_b = self.data_b.copy()
+        data_a.coords["time"] = xr.DataArray(
+                np.zeros_like(data_a.values),
+                dims=data_a.dims,
+                attrs={"area": data_a.attrs["area"],
+                       "units": "seconds since 2123-12-12 12:12:30"})
+        with xr.set_options(keep_attrs=True):
+            data_b.coords["time"] = data_a.coords["time"].copy()+0.1
+        res = comp((data_a, data_b, self.sza))
+        assert "time" in res.coords
+        np.testing.assert_array_equal(res.coords["bands"], ["R", "G", "B"])
+
+
+class TestFillingCompositor:
     """Test case for the filling compositor."""
 
     def test_fill(self):
@@ -238,6 +280,15 @@ class TestFillingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands="R").data, filler.data)
         np.testing.assert_allclose(res.sel(bands="G").data, filler.data)
         np.testing.assert_allclose(res.sel(bands="B").data, blue.data)
+
+    def test_fill_retains_time_coordinate(self, data_with_time,
+                                          data_with_different_time):
+        """Test that time coordinate is retained."""
+        from satpy.composites.fill import FillingCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = FillingCompositor(name="fill_test")
+            res = comp([data_with_time]*2 + [data_with_different_time]*2)
+        assert "time" in res.coords
 
 
 class TestMultiFiller(unittest.TestCase):
@@ -258,6 +309,16 @@ class TestMultiFiller(unittest.TestCase):
         np.testing.assert_allclose(res.data, expected.data)
         assert "units" in res.attrs
         assert res.attrs["units"] == "K"
+
+
+def test_filler_retains_time_coordinate(data_with_time,
+                                        data_with_different_time):
+    """Test that Filler retains the time coordinate."""
+    from satpy.composites.fill import Filler
+    with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+        comp = Filler(name="filler_test")
+        res = comp([data_with_time, data_with_different_time])
+    assert "time" in res.coords
 
 
 def _enhance2dataset(dataset, convert_p=False):

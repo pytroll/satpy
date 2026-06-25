@@ -34,7 +34,8 @@ class DifferenceCompositor(CompositeBase):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(projectables,
+                                              drop_coordinates=False)
         info = combine_metadata(*projectables)
         info["name"] = self.attrs["name"]
         info.update(self.attrs)  # attrs from YAML/__init__
@@ -52,7 +53,8 @@ class RatioCompositor(CompositeBase):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(projectables,
+                                              drop_coordinates=False)
         info = combine_metadata(*projectables)
         info.update(self.attrs)
 
@@ -68,7 +70,8 @@ class SumCompositor(CompositeBase):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(projectables,
+                                              drop_coordinates=False)
         info = combine_metadata(*projectables)
         info["name"] = self.attrs["name"]
 

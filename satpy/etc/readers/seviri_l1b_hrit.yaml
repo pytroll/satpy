@@ -11,6 +11,7 @@ reader:
     HRIT reader for EUMETSAT MSG (Meteosat 8 to 11) SEVIRI Level 1b files.
   status: Nominal
   supports_fsspec: true
+  supports_time_tracking: true
   sensors: [seviri]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
 
