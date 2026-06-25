@@ -218,21 +218,24 @@ def fake_ir_039():
             dims=("y", "x"))
 
 
-@pytest.fixture
-def fake_ir_039_dask_with_time():
-    """Return fake IR 3.9 µm data, daskified with time coordinate."""
+def _get_fake_xrda_with_time_coords(data, coords):
     return xr.DataArray(
-            da.array([
-                [258.85126, 265.5641 , 279.3434 , 288.12598],
-                [280.36703, 286.23367, 289.83792, 279.60886]]),
+            da.array(data),
             dims=("y", "x"),
             coords={"time":
                     xr.DataArray(
-                        da.array([
-                            [0, 1, 2, 3],
-                            [0, 1, 2, 3]]),
+                        da.array(coords),
                         dims=("y", "x"),
                         attrs={"units": "seconds since 1950-05-05 05:00:00"})})
+
+
+@pytest.fixture
+def fake_ir_039_dask_with_time():
+    """Return fake IR 3.9 µm data, daskified with time coordinate."""
+    return _get_fake_xrda_with_time_coords([
+                [258.8, 265.5, 279.3, 288.1],
+                [280.3, 286.2, 289.8, 279.6]],
+                [[0, 1, 2, 3], [0, 1, 2, 3]])
 
 
 @pytest.fixture
@@ -248,19 +251,10 @@ def fake_ir_108():
 @pytest.fixture
 def fake_ir_108_dask_with_time():
     """Return fake IR 10.8 µm data, daskified with time coordinate."""
-    return xr.DataArray(
-            da.array([
-                [251.42664, 244.1881 , 281.82275, 276.40485],
-                [280.53705, 286.7915 , 290.83807, 265.59827]]),
-            dims=("y", "x"),
-            coords={"time":
-                    xr.DataArray(
-                        da.array([
-                            [0, 1, 2, 3.1],
-                            [0, 1, 2.1, 3]]),
-                        dims=("y", "x"),
-                        attrs={"units": "seconds since 1950-05-05 05:00:00"})})
-
+    return _get_fake_xrda_with_time_coords([
+                [251.4, 244.1, 281.8, 276.4],
+                [280.5, 286.7, 290.8, 265.5]],
+                [[0, 1, 2, 3.1], [0, 1, 2.1, 3]])
 
 @pytest.fixture
 def fake_ir_134():
@@ -275,18 +269,10 @@ def fake_ir_134():
 @pytest.fixture
 def fake_ir_134_dask_with_time():
     """Return fake IR 13.4 µm data, daskified with time coordinate."""
-    return xr.DataArray(
-            da.array([
-                [238.38925, 231.85939, 254.27702, 251.15706],
-                [256.5422 , 259.16937, 260.9417 , 246.25409]]),
-            dims=("y", "x"),
-            coords={"time":
-                    xr.DataArray(
-                        da.array([
-                            [0, 1, 2.1, 3],
-                            [0, 1, 2.1, 3]]),
-                        dims=("y", "x"),
-                        attrs={"units": "seconds since 1950-05-05 05:00:00"})})
+    return _get_fake_xrda_with_time_coords([
+                [238.3, 231.8, 254.2, 251.1],
+                [256.5, 259.1, 260.9, 246.2]],
+                [[0, 1, 2.1, 3], [0, 1, 2.1, 3]])
 
 
 class TestCO2Corrector:
