@@ -113,8 +113,10 @@ class TestUpdateEncoding:
             "bar": {"chunksizes": (1, 1, 1)},
             "time": {"_FillValue": None,
                      "calendar": "proleptic_gregorian",
+                     "dtype": "float64",
                      "units": "days since 2009-07-01 12:15:00"},
             "time_bnds": {"_FillValue": None,
+                          "dtype": "float64",
                           "calendar": "proleptic_gregorian",
                           "units": "days since 2009-07-01 12:15:00"}
         }
