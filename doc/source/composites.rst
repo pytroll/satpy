@@ -495,6 +495,188 @@ image) for both of the static images::
           min_stretch: [0, 0, 0]
           max_stretch: [255, 255, 255]
 
+.. _composite_variants:
+
+Composite variants
+------------------
+
+.. versionadded:: 0.60
+
+Satpy supports defining multiple *variants* of a composite (e.g., one that
+applies WMO-recommended recipe and one that does not).  This feature is controlled by optional
+fields in the composite YAML configuration.
+
+Tagging composite variants
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A compositor variant carries a ``name`` and an optional ``tag`` that together
+form its :class:`~satpy.dataset.DataID`.  The YAML section key (e.g.
+``true_color_wmo``) is only used to avoid naming collisions inside the YAML
+file; what matters for loading and Scene access is the ``name`` and ``tag``
+fields.
+
+.. code-block:: yaml
+
+    sensor_name: visir
+
+    composites:
+      true_color_wmo:               # YAML key, unique within this file only
+        compositor: !!python/name:satpy.composites.SomeCompositor
+        prerequisites:
+          - name: red
+            modifiers: [rayleigh_corrected_wmo]
+          - name: green
+          - name: blue
+        name: true_color            # DataID name, used for loading and Scene access
+        tag: wmo                    # DataID tag, used with the colon syntax
+
+      true_color_crefl:
+        compositor: !!python/name:satpy.composites.SomeCompositor
+        prerequisites:
+          - name: red
+            modifiers: [rayleigh_corrected_crefl]
+          - name: green
+          - name: blue
+        name: true_color
+        tag: crefl
+
+      true_color:                   # default variant, no tag field
+        compositor: !!python/name:satpy.composites.SomeCompositor
+        prerequisites:
+          - name: red
+          - name: green
+          - name: blue
+
+If no ``name:`` is given, the YAML section key is used as the ``name``.  All
+three composites above therefore share the same base name ``true_color``; the
+``tag`` field distinguishes the variants.
+
+Loading a tagged variant explicitly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Append ``:<tag>`` to the composite name when calling :meth:`~satpy.scene.Scene.load`:
+
+.. code-block:: python
+
+    scene.load(["true_color:wmo"])
+
+    # Access the result with the same tag syntax:
+    data = scene["true_color:wmo"]
+
+    # The DataID has separate name and tag fields:
+    assert data.attrs["_satpy_id"]["name"] == "true_color"
+    assert data.attrs["_satpy_id"]["tag"] == "wmo"
+
+``"true_color:wmo"`` is syntactic sugar for
+``DataQuery(name="true_color", tag="wmo")``.  It performs a direct DataID
+lookup, so it will never accidentally resolve to a compositor whose YAML section
+key happens to be ``"true_color_wmo"``.
+
+Loading a compositor without a tag (``scene.load(["true_color"])``) finds only
+the variant whose DataID has no tag set.  Tagged variants are not included in
+plain-name lookups unless ``preferred_composite_tags`` is configured (see
+below).
+
+Dataset name and file output
+"""""""""""""""""""""""""""""
+
+The ``tag`` is a separate field in the DataID, not part of the dataset name.
+Writers that use ``{name}`` in their file patterns therefore produce
+``true_color.tif``, not ``true_color:wmo.tif``.  If you need to distinguish
+output files by tag, use a pattern such as ``{name}_{tag}.tif``.
+
+Session-wide tag preferences
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can configure an **ordered** list of preferred tags so that loading an
+unqualified name like ``"true_color"`` automatically selects a tagged variant
+when one is available:
+
+.. code-block:: python
+
+    import satpy
+    with satpy.config.set(preferred_composite_tags=["crefl", "wmo"]):
+        scene.load(["true_color"])   # picks the crefl variant (listed first)
+        data = scene["true_color:crefl"]  # stored under name="true_color", tag="crefl"
+
+Resolution order for ``preferred_composite_tags``:
+
+1. Try each tag in the list, in order, looking for a compositor with matching
+   ``name`` and that ``tag``.
+2. If no tagged variant is found, fall back to the normal name-based lookup.
+
+An explicit ``name:tag`` in the load call always overrides the session-wide
+preference for that specific dataset.
+
+The setting can also be provided as an environment variable (comma-separated):
+
+.. code-block:: bash
+
+    export SATPY_PREFERRED_COMPOSITE_TAGS=crefl,wmo
+
+Or as a YAML configuration key:
+
+.. code-block:: yaml
+
+    preferred_composite_tags:
+      - crefl
+      - wmo
+
+Enhancements for tagged variants
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Enhancement entries can optionally specify a ``tag`` field to target a specific
+composite variant.  The enhancement tree tries the most specific match first
+(name + tag), then falls back to name-only or standard_name-only entries.
+
+.. code-block:: yaml
+
+    # In an enhancement YAML file:
+    enhancements:
+      true_color_wmo:
+        name: true_color
+        tag: wmo               # only applied when tag="wmo"
+        operations: [...]      # WMO-specific stretch
+
+      true_color_crefl:
+        name: true_color
+        tag: crefl             # only applied when tag="crefl"
+        operations: [...]      # crefl-specific stretch
+
+      true_color_default:
+        name: true_color       # fallback for any tag (or no tag)
+        operations: [...]
+
+Deprecating a composite
+------------------------
+
+To emit a warning when a composite is used, add a ``warnings`` mapping to the
+composite YAML entry.  Each key is a Python warning category name and the
+value is the warning message:
+
+.. code-block:: yaml
+
+    composites:
+      old_true_color:
+        compositor: !!python/name:satpy.composites.SomeCompositor
+        prerequisites:
+          - name: red
+          - name: green
+          - name: blue
+        standard_name: true_color
+        warnings:
+          DeprecationWarning: "old_true_color is deprecated, use true_color_wmo instead."
+
+The warning is emitted only when the compositor is actually *loaded* (i.e.
+when :meth:`~satpy.scene.Scene.load` is called with the deprecated name), not
+during composite discovery calls such as
+:meth:`~satpy.scene.Scene.available_dataset_names`.
+
+Supported warning categories are any that exist in the Python ``builtins``
+module (e.g., ``DeprecationWarning``, ``FutureWarning``,
+``PendingDeprecationWarning``, ``UserWarning``).  If a category name is not
+recognised, ``UserWarning`` is used as a fallback.
+
 .. _enhancing-the-images:
 
 Enhancing the images

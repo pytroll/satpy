@@ -24,7 +24,7 @@ from typing import Container, Iterable, Optional
 import numpy as np
 
 from satpy import DataID, DatasetDict
-from satpy.dataset import ModifierTuple, create_filtered_query
+from satpy.dataset import DataQuery, ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
 from satpy.node import EMPTY_LEAF_NAME, CompositorNode, MissingDependencies, Node, ReaderNode
 from satpy.utils import get_logger
@@ -492,14 +492,60 @@ class DependencyTree(Tree):
         return dep_key.from_dict(orig_dict)
 
     def get_compositor(self, key):
-        """Get a compositor."""
+        """Get a compositor.
+
+        Resolves in order:
+        1. ``preferred_composite_tags`` config: for plain-name queries, try each preferred tag first.
+        2. Direct DataID matching (handles explicit tag queries and plain untagged lookups).
+
+        If the compositor has a ``warnings`` attribute dict, those warnings are emitted here.
+        """
+        compositor = self._find_compositor_via_preferred_tags(key)
+        if compositor is not None:
+            return compositor
+
         for sensor_name in sorted(self.compositors):
             try:
-                return self.compositors[sensor_name][key]
+                compositor = self.compositors[sensor_name][key]
+                self._emit_compositor_warnings(compositor)
+                return compositor
             except KeyError:
                 continue
 
         raise KeyError("Could not find compositor '{}'".format(key))
+
+    def _find_compositor_via_preferred_tags(self, key):
+        """Try each preferred tag in order and return the first matching compositor.
+
+        Only applies to plain-name queries (no ``tag`` set).  Returns ``None`` if
+        no preferred-tag variant is found, so the caller can fall through to the
+        normal name-based lookup.
+        """
+        import satpy
+        try:
+            name = key["name"]
+        except (KeyError, TypeError):
+            return None
+        if key.get("tag") is not None:
+            return None
+        for tag in satpy.config.get("preferred_composite_tags", []):
+            tagged_query = DataQuery(name=name, tag=tag)
+            for sensor_name in sorted(self.compositors):
+                try:
+                    compositor = self.compositors[sensor_name][tagged_query]
+                    self._emit_compositor_warnings(compositor)
+                    return compositor
+                except KeyError:
+                    continue
+        return None
+
+    @staticmethod
+    def _emit_compositor_warnings(compositor):
+        import builtins
+        import warnings
+        for category_name, message in compositor.attrs.get("warnings", {}).items():
+            category = getattr(builtins, category_name, UserWarning)
+            warnings.warn(message, category, stacklevel=4)
 
     def get_modifier(self, comp_id):
         """Get a modifer."""

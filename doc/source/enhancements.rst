@@ -93,11 +93,12 @@ that looks at specific metadata keys one at a time. In particular, the current
 implementation depends on the following keys:
 
 1. ``name``
-2. ``reader``
-3. ``platform_name``
-4. ``sensor``
-5. ``standard_name``
-6. ``units``
+2. ``tag``
+3. ``reader``
+4. ``platform_name``
+5. ``sensor``
+6. ``standard_name``
+7. ``units``
 
 For low-level implementation details see the
 :class:`~satpy.enhancements.enhancer.EnhancementDecisionTree` class.
@@ -262,20 +263,18 @@ on trace log messages with:
 You should then see log messages like the following::
 
     TRACE    : Checking 'name' level for 'cloud_type': True
-    TRACE    :   Checking 'reader' level for 'abi_l1b': False
-    TRACE    :   Checking 'reader' level for <wildcard>: False
-    TRACE    : Checking 'name' level for <wildcard>: True
-    TRACE    :   Checking 'reader' level for 'abi_l1b': False
-    TRACE    :   Checking 'reader' level for <wildcard>: True
-    TRACE    :     Checking 'platform_name' level for 'GOES-16': False
-    TRACE    :     Checking 'platform_name' level for <wildcard>: True
-    TRACE    :       Checking 'sensor' level for 'abi': True
-    TRACE    :         Checking 'standard_name' level for 'cloud_type': True
-    TRACE    :           Match key 'units' not in query dict
-    TRACE    :           Checking 'units' level for <wildcard>: True
-    TRACE    :             Found match!
-    TRACE    :             | sensor=abi
-    TRACE    :             | standard_name=cloud_type
+    TRACE    :   Checking 'tag' level for <wildcard>: True
+    TRACE    :     Checking 'reader' level for 'abi_l1b': False
+    TRACE    :     Checking 'reader' level for <wildcard>: True
+    TRACE    :       Checking 'platform_name' level for 'GOES-16': False
+    TRACE    :       Checking 'platform_name' level for <wildcard>: True
+    TRACE    :         Checking 'sensor' level for 'abi': True
+    TRACE    :           Checking 'standard_name' level for 'cloud_type': True
+    TRACE    :             Match key 'units' not in query dict
+    TRACE    :             Checking 'units' level for <wildcard>: True
+    TRACE    :               Found match!
+    TRACE    :               | sensor=abi
+    TRACE    :               | standard_name=cloud_type
 
 Additionally, you can directly load the :class:`~satpy.enhancements.enhancer.Enhancer`
 object used by Satpy and print the entire "tree" and attempt to follow the
@@ -292,36 +291,38 @@ path to match your particular DataArray's metadata:
 This would produce (long) output similar to::
 
     name=<wildcard>
-      reader=<wildcard>
-        platform_name=<wildcard>
-          sensor=<wildcard>
-            standard_name=<wildcard>
-              units=<wildcard>
-                | <global wildcard match>
-            standard_name=toa_bidirectional_reflectance
-              units=<wildcard>
-                | standard_name=toa_bidirectional_reflectance
-            standard_name=surface_bidirectional_reflectance
-              units=<wildcard>
-                | standard_name=surface_bidirectional_reflectance
-            standard_name=true_color
-              units=<wildcard>
-                | standard_name=true_color
-      reader=clavrx
-        platform_name=<wildcard>
-          sensor=<wildcard>
-            standard_name=cloud_mask
-              units=<wildcard>
-                | reader=clavrx
-                | standard_name=cloud_mask
+      tag=<wildcard>
+        reader=<wildcard>
+          platform_name=<wildcard>
+            sensor=<wildcard>
+              standard_name=<wildcard>
+                units=<wildcard>
+                  | <global wildcard match>
+              standard_name=toa_bidirectional_reflectance
+                units=<wildcard>
+                  | standard_name=toa_bidirectional_reflectance
+              standard_name=surface_bidirectional_reflectance
+                units=<wildcard>
+                  | standard_name=surface_bidirectional_reflectance
+              standard_name=true_color
+                units=<wildcard>
+                  | standard_name=true_color
+        reader=clavrx
+          platform_name=<wildcard>
+            sensor=<wildcard>
+              standard_name=cloud_mask
+                units=<wildcard>
+                  | reader=clavrx
+                  | standard_name=cloud_mask
     name=true_color_crefl
-      reader=<wildcard>
-        platform_name=<wildcard>
-          sensor=<wildcard>
-            standard_name=true_color
-              units=<wildcard>
-                | name=true_color_crefl
-                | standard_name=true_color
+      tag=<wildcard>
+        reader=<wildcard>
+          platform_name=<wildcard>
+            sensor=<wildcard>
+              standard_name=true_color
+                units=<wildcard>
+                  | name=true_color_crefl
+                  | standard_name=true_color
 
 Built-in enhancement methods
 ----------------------------

@@ -36,6 +36,7 @@ class EnhancementDecisionTree(DecisionTree):
         """Init the decision tree."""
         match_keys = kwargs.pop("match_keys",
                                 ("name",
+                                 "tag",
                                  "reader",
                                  "platform_name",
                                  "sensor",

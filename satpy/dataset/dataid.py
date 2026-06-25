@@ -279,7 +279,8 @@ minimal_default_keys_config = {"name": {
                               },
                                "resolution": {
                                    "transitive": True,
-                               }
+                               },
+                              "tag": {"transitive": False, "match_empty": False},
                               }
 
 
@@ -493,6 +494,18 @@ def _generalize_value_for_comparison(val):
     raise NotImplementedError("Don't know how to generalize " + str(type(val)))
 
 
+def parse_dataset_key(key):
+    """Parse a string dataset key into a DataQuery.
+
+    Supports plain names (``"true_color"``) and tag syntax (``"true_color:wmo"``).
+    A colon separates the name from the tag; the tag is a single string.
+    """
+    if ":" in key:
+        name, tag = key.split(":", 1)
+        return DataQuery(name=name, tag=tag)
+    return DataQuery(name=key)
+
+
 class DataQuery:
     """The data query object.
 
@@ -585,11 +598,25 @@ class DataQuery:
         """Match the dataid with the current query."""
         if self._shares_required_keys(dataid):
             keys_to_check = set(dataid.keys()) & set(self._fields)
+            non_empty_keys = self._non_nullable_keys(dataid)
+            # Keys with match_empty=False and a set value in the DataID must be
+            # matched explicitly: if the query doesn't mention such a key, the
+            # DataID is not a match.
+            for key in non_empty_keys:
+                if dataid.get(key) is not None and key not in self._fields:
+                    return False
+            keys_to_check |= non_empty_keys & set(self._fields)
         else:
             keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
         if not keys_to_check:
             return False
         return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
+
+    @staticmethod
+    def _non_nullable_keys(dataid):
+        """Return keys for which None is not a wildcard (i.e. keys where match_empty is false)."""
+        return {k for k, cfg in dataid._id_keys.items()
+                if isinstance(cfg, dict) and not cfg.get("match_empty", True)}
 
     def _shares_required_keys(self, dataid):
         """Check if dataid shares required keys with the current query."""
@@ -744,7 +771,7 @@ def _create_id_dict_from_any_key(dataset_key):
         ds_dict = dataset_key.to_dict()
     except AttributeError:
         if isinstance(dataset_key, str):
-            ds_dict = {"name": dataset_key}
+            ds_dict = parse_dataset_key(dataset_key).to_dict()
         elif isinstance(dataset_key, numbers.Number):
             ds_dict = {"wavelength": dataset_key}
         else:
