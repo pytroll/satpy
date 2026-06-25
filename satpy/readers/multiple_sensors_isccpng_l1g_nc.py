@@ -25,6 +25,9 @@ from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
+NLON = 7200
+NLAT = 3600
+
 
 class IsccpngL1gFileHandler(BaseFileHandler):
     """Reader L1G ISCCP-NG data."""
@@ -34,17 +37,21 @@ class IsccpngL1gFileHandler(BaseFileHandler):
         super(IsccpngL1gFileHandler, self).__init__(
             filename, filename_info, filetype_info)
 
-        self._start_time = filename_info["start_time"]
-        self._end_time = None
+        self._start_time = np.datetime64(filename_info["start_time"])
+        self._end_time = np.datetime64(filename_info["start_time"])
         self.sensor = "multiple_sensors"
         self.filename_info = filename_info
 
     def tile_geolocation(self, data, key):
         """Get geolocation on full swath."""
         if key in "latitude":
-            return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, 7200)), dims=["y", "x"], attrs=data.attrs)
+            return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, NLON)), dims=[
+                                "y", "x"], attrs=data.attrs)
         if key in "longitude":
-            return xr.DataArray(np.tile(data.values, (3600, 1)), dims=["y", "x"], attrs=data.attrs)
+            return xr.DataArray(
+                np.tile(
+                    data.values, (NLAT, 1)), dims=[
+                    "y", "x"], attrs=data.attrs)
         return data
 
     def get_best_layer_of_data(self, data):
@@ -64,8 +71,8 @@ class IsccpngL1gFileHandler(BaseFileHandler):
             "name_of_proj",
             "id_of_proj",
             proj_dict,
-            7200,
-            3600,
+            NLON,
+            NLAT,
             np.asarray([-180, -90, 180, 90])
         )
         return area
@@ -73,20 +80,35 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
         if len(data.dims) > 2:
-            data = data.drop_vars("latitude")
-            data = data.drop_vars("longitude")
-            data = data.drop_vars("start_time")
-            data = data.drop_vars("end_time")
+            for var in [
+                "latitude",
+                "longitude",
+                "start_time",
+                "end_time",
+                    "time"]:
+                try:
+                    data = data.drop_vars(var)
+                except ValueError:
+                    pass
             data = data.rename({"longitude": "x", "latitude": "y"})
         return data
 
     def set_time_attrs(self, data):
         """Set time from attributes."""
         if "start_time" in data.coords:
+            # ISCCP-NG L1g demo
             data.attrs["start_time"] = data["start_time"].values[0]
             data.attrs["end_time"] = data["end_time"].values[0]
             self._end_time = data.attrs["end_time"]
             self._start_time = data.attrs["start_time"]
+        if data.name == "pixel_time":
+            # EUMETSAT L1g
+            if not np.issubdtype(data.dtype, np.floating):
+                logger.debug("Finding max/min time")
+                data.attrs["start_time"] = np.nanmin(data.values)
+                data.attrs["end_time"] = np.nanmax(data.values)
+                self._end_time = data.attrs["end_time"]
+                self._start_time = data.attrs["start_time"]
 
     def get_dataset(self, key, yaml_info):
         """Get dataset."""
