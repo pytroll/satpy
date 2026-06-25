@@ -181,3 +181,60 @@ _INTERNAL_TO_WMO = {
 def internal_to_wmo(instrument: str) -> str:
     """Convert internal to WMO instrument name."""
     return _INTERNAL_TO_WMO.get(instrument, instrument)
+
+
+from pathlib import Path  # noqa
+
+import satpy._instruments as instr_utils  # noqa
+
+# 8< v1.0
+from satpy._config import PACKAGE_CONFIG_PATH  # noqa
+
+RENAMED_ENH_INSTRUMENTS = {
+    "MSI (Sentinel-2A)": "sen2_msi",
+    "MWR (AWS)": "mwr",
+    "MWR (Sterna)": "mwr",
+}
+
+def add_deprecated_instrument_aliases_for_enhancements(instruments: set[str]) -> set[str]:
+    """Add deprecated instrument aliases for enhancements that were renamed."""
+    return _add_deprecated_instrument_aliases(instruments, RENAMED_ENH_INSTRUMENTS)
+
+
+def _add_deprecated_instrument_aliases(instruments: set[str], new_to_old_names: dict[str,str]) -> set[str]:
+    extended = list(instruments)
+    extended += [
+        old_name
+        for new_name in instruments
+        if (old_name := new_to_old_names.get(new_name))
+    ]
+    return set(extended)
+
+
+def warn_if_deprecated_instrument_in_enhancement_filename(instrument: str, config_file: str) -> None:
+    """Warn if the filename contains a deprecated instrument name."""
+    _warn_if_deprecated_instrument_in_filename(instrument, config_file, RENAMED_ENH_INSTRUMENTS)
+
+
+def _warn_if_deprecated_instrument_in_filename(
+        instrument: str, config_file: str, new_to_old_names: dict[str,str]
+    ) -> None:
+    satpy_enh_dir = Path(PACKAGE_CONFIG_PATH) / "enhancements"
+    is_old = instrument in new_to_old_names.values()
+    is_user_file = Path(config_file).parent != satpy_enh_dir
+    if is_old and is_user_file:
+        new_names = [
+            new_name
+            for new_name, old_name in new_to_old_names.items()
+            if old_name == instrument
+        ]
+        new_files = [
+            instr_utils.wmo_to_internal(new_name) + ".yaml"
+            for new_name in new_names
+        ]
+        msg = (f"Instrument '{instrument}' has been renamed to "
+               f"'{'/'.join(new_names)}'. Your enhancement config "
+               f"{config_file} still uses the old instrument name. "
+               f"Rename the file to '{'/'.join(new_files)}', "
+               f"otherwise it will be ignored in Satpy v1.0.")
+        warnings.warn(msg, DeprecationWarning, stacklevel=3)
