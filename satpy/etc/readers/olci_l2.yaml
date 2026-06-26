@@ -1,7 +1,7 @@
 reader:
   name: olci_l2
   short_name: OLCI Level 2
-  long_name: Sentinel-3 A and B OLCI Level 2 data in netCDF4 format
+  long_name: Sentinel-3 OLCI Level 2 data in netCDF4 format
   description: NC Reader for OLCI data
   status: Nominal
   supports_fsspec: true

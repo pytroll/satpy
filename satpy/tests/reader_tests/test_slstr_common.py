@@ -23,11 +23,10 @@ import unittest
 import unittest.mock as mock
 
 import numpy as np
-import pytest
 import xarray as xr
 
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
-from satpy.readers.slstr_l1b import NCSLSTR1B
+from satpy.readers.core.slstr import NCSLSTRAngles, NCSLSTRFlag, NCSLSTRGeo
 
 local_id_keys_config = {"name": {
     "required": True,
@@ -70,9 +69,8 @@ local_id_keys_config = {"name": {
 class TestSLSTRL1B(unittest.TestCase):
     """Common setup for SLSTR_L1B tests."""
 
-    @mock.patch("satpy.readers.slstr_l1b.xr")
     @mock.patch("satpy.readers.core.slstr.xr")
-    def setUp(self, xr_, xr2_):
+    def setUp(self, xr_):
         """Create a fake dataset using the given radiance data."""
         self.base_data = np.array(([1., 2., 3., 4., 5., 6., 7., 8., 9.],
                                    [7., 8., 9., 10., 11., 12., 13., 14., 15.],
@@ -120,7 +118,7 @@ class TestSLSTRL1B(unittest.TestCase):
         x_in = xr.DataArray(self.ix_data,dims=("columns", "rows"))
         y_in = xr.DataArray(self.iy_data,dims=("columns", "rows"))
 
-        xr.DataArray(self.ang_data,dims=("columns_t", "rows_t"))
+        saa = xr.DataArray(self.ang_data,dims=("columns_t", "rows_t"))
         x_tx = xr.DataArray(self.tx_data,dims=("columns_t", "rows_t"))
         y_tx = xr.DataArray(self.ty_data,dims=("columns_t", "rows_t"))
 
@@ -130,13 +128,17 @@ class TestSLSTRL1B(unittest.TestCase):
                 "S9_BT_ao": self.rad,
                 "foo_radiance_an": self.rad,
                 "S5_solar_irradiances": self.rad,
+                "geometry_tn": self.rad,
+                "latitude_an": self.rad,
                 "x_in": x_in,
                 "y_in": y_in,
                 "x_an": x_in,
                 "y_an": y_in,
+                "flags_an": self.rad,
                 "detector_an": det,
                 "x_tx": x_tx,
                 "y_tx": y_tx,
+                "solar_azimuth_tn": saa,
             },
             attrs={
                 "start_time": self.start_time,
@@ -161,13 +163,12 @@ class TestSLSTRReader(TestSLSTRL1B):
             """Fake function to return interpolated data."""
             return np.zeros((3, 2))
 
-    @mock.patch("satpy.readers.slstr_l1b.xr")
+    @mock.patch("satpy.readers.core.slstr.xr")
     @mock.patch("scipy.interpolate.RectBivariateSpline")
     def test_instantiate(self, bvs_, xr_):
         """Test initialization of file handlers."""
         bvs_.return_value = self.FakeSpl
         xr_.open_dataset.return_value = self.fake_dataset
-
         good_start = dt.datetime.strptime(self.start_time,
                                           "%Y-%m-%dT%H:%M:%S.%fZ")
         good_end = dt.datetime.strptime(self.end_time,
@@ -175,110 +176,59 @@ class TestSLSTRReader(TestSLSTRL1B):
 
         ds_id = make_dataid(name="foo", calibration="radiance",
                             stripe="a", view="nadir")
+        ds_id_500 = make_dataid(name="foo", calibration="radiance",
+                                stripe="a", view="nadir", resolution=500)
         filename_info = {"mission_id": "S3A", "dataset_name": "foo",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n", "baseline":4}
-        test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
+                         "stripe": "a", "view": "n", "baseline": 4}
+        test = NCSLSTRGeo("somedir/geometry_an.nc", filename_info, "c")
+        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "latitude_{stripe:1s}{view:1s}"}))
+        assert test.start_time == good_start
+        assert test.end_time == good_end
+        xr_.open_dataset.assert_called()
+        xr_.open_dataset.reset_mock()
+
+        test = NCSLSTRFlag("somedir/S1_radiance_an.nc", filename_info, "c")
+        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "flags_{stripe:1s}{view:1s}"}))
         assert test.view == "nadir"
         assert test.stripe == "a"
-        with pytest.warns(UserWarning, match=r"No radiance adjustment supplied for channel"):
-            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
-        filename_info = {"mission_id": "S3A", "dataset_name": "foo",
-                         "start_time": 0, "end_time": 0,
-                         "stripe": "c", "view": "o", "baseline": 4}
-        test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c")
-        assert test.view == "oblique"
-        assert test.stripe == "c"
-        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
+        test = NCSLSTRAngles("somedir/S1_radiance_an.nc", filename_info, "c")
+        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "geometry_t{view:1s}"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
+        test.get_dataset(ds_id_500, dict(filename_info, **{"file_key": "geometry_t{view:1s}"}))
 
-class TestSLSTRCalibration(TestSLSTRL1B):
-    """Test the implementation of the calibration factors."""
+class TestSLSTRAngles(TestSLSTRL1B):
+    """Test the implementation of the angle reconstruction."""
 
-    @mock.patch("satpy.readers.slstr_l1b.xr")
-    def test_radiance_calibration(self, xr_):
-        """Test radiance calibration steps."""
-        from satpy.readers.core.slstr import CHANCALIB_FACTORS
-        xr_.open_dataset.return_value = self.fake_dataset
+    @mock.patch("satpy.readers.core.slstr.xr.open_dataset")
+    def test_angles_loading(self, xr_):
+        """Test ability to load angles steps."""
+        xr_.return_value = self.fake_dataset
 
-        ds_id = make_dataid(name="foo", calibration="radiance",
-                            stripe="a", view="nadir")
-        filename_info = {"mission_id": "S3A", "dataset_name": "foo",
+        res = np.array([[350.17659522, 353.31335956, 356.1441152, 358.55896366,
+                         0.4400064, 1.79903533, 3.18424353, 5.28496166, 8.80226547],
+                        [350.02717525, 353.48225908, 356.37905054, 358.72059252,
+                         0.5, 1.81840943, 3.23819125, 5.44552178, 9.13958444],
+                        [349.30986294, 354.38594648, 357.53203205, 359.49732861,
+                         1.00001215, 2.61842911, 4.45389453, 6.49348929, 8.72979111],
+                        [349.68116993, 354.62824808, 357.55405421, 359.31582013,
+                         0.74004914, 2.46431559, 4.44154365, 6.45655991, 8.30055946]])
+
+        ds_id = make_dataid(name="solar_azimuth_angle", view="nadir")
+        filename_info = {"mission_id": "S3A", "dataset_name": "solar_azimuth_angle",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n", "baseline": 4}
+                         "stripe": "t", "view": "n", "baseline": 4}
 
-        test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c")
-        # Check warning is raised if we don't have calibration
-        with pytest.warns(UserWarning, match=r"No radiance adjustment supplied for channel"):
-            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
-
-        # Check user calibration is used correctly
-        test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c",
-                         user_calibration={"foo_nadir": 0.4})
-        data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
-        np.testing.assert_allclose(data.values, self.base_data * 0.4)
-
-        # Check internal calibration is used correctly
-        ds_id = make_dataid(name="S5", calibration="radiance", stripe="a", view="nadir")
-        filename_info["dataset_name"] = "S5"
-        test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
-        data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
-        np.testing.assert_allclose(data.values,
-                                   self.base_data * CHANCALIB_FACTORS["S5_nadir"])
-
-
-    @mock.patch("satpy.readers.slstr_l1b.xr")
-    def test_apply_radiance_adjustment_called(self, xr_):
-        """Test radiance adjustment with old processing baselines."""
-        xr_.open_dataset.return_value = self.fake_dataset
-
-        ds_id = make_dataid(name="S5", calibration="radiance",
-                            stripe="a", view="nadir")
-        filename_info = {"mission_id": "S3A", "dataset_name": "S5",
-                         "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n", "baseline": 5}
-
-        test = NCSLSTR1B("somedir/S5_radiance_co.nc", filename_info, "c")
-        with mock.patch.object(test, "_apply_radiance_adjustment", wraps=test._apply_radiance_adjustment) as mock_apply:
-            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
-            mock_apply.assert_not_called()
-
-        filename_info["baseline"] = 4
-        test = NCSLSTR1B("somedir/S5_radiance_co.nc", filename_info, "c")
-        with mock.patch.object(test, "_apply_radiance_adjustment", wraps=test._apply_radiance_adjustment) as mock_apply:
-            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
-            mock_apply.assert_called()
-
-    @mock.patch("satpy.readers.slstr_l1b.xr")
-    @mock.patch("satpy.readers.slstr_l1b.da")
-    def test_reflectance_calibration(self, da_, xr_):
-        """Test reflectance calibration."""
-        xr_.open_dataset.return_value = self.fake_dataset
-        da_.map_blocks.return_value = self.rad / 100.
-        filename_info = {"mission_id": "S3A", "dataset_name": "S5",
-                         "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n", "baseline": 4}
-        ds_id = make_dataid(name="S5", calibration="reflectance", stripe="a", view="nadir")
-        test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
-        data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
-        assert data.units == "%"
-        np.testing.assert_allclose(data.values, self.rad * np.pi)
-
-    def test_cal_rad(self):
-        """Test the radiance to reflectance converter."""
-        rad = np.array([10., 20., 30., 40., 50., 60., 70.])
-        didx = np.array([1, 2., 1., 3., 2., 2., 0.])
-        solflux = np.array([100., 200., 300., 400.])
-
-        good_rad = np.array([1. / 20., 1. / 15., 3. / 20., 1. / 10., 1. / 6., 2. / 10., 7. / 10.])
-
-        out_rad = NCSLSTR1B._cal_rad(rad, didx, solflux)
-        np.testing.assert_allclose(out_rad, good_rad)
+        test = NCSLSTRAngles("somedir/geometry_tn.nc", filename_info, "c")
+        data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "solar_azimuth_tn"}))
+        assert data.attrs["units"] == "degrees"
+        assert data.shape == res.shape
+        np.testing.assert_allclose(data.values, res)

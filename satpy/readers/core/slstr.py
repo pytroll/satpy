@@ -1,0 +1,280 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2016-2020 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+
+"""SLSTR common (L1+L2) reader functions."""
+
+import datetime as dt
+import logging
+import os
+
+import dask.array as da
+import numpy as np
+import xarray as xr
+
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.utils import get_legacy_chunk_size
+
+logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = get_legacy_chunk_size()
+
+PLATFORM_NAMES = {"S3A": "Sentinel-3A",
+                  "S3B": "Sentinel-3B",
+                  "S3C": "Sentinel-3C",
+                  "S3D": "Sentinel-3D"}
+
+# These are the default channel adjustment factors.
+# Defined in the product notice: S3.PN-SLSTR-L1.10
+# https://user.eumetsat.int/s3/eup-strapi-media/S3_PN_SLSTR_L1_10_i1r0_SLSTR_L1_PB_SL_L1_004_05_00_fbf01b8813.pdf
+CHANCALIB_FACTORS = {"S1_nadir": 0.97,
+                     "S2_nadir": 0.98,
+                     "S3_nadir": 0.98,
+                     "S4_nadir": 1.0,
+                     "S5_nadir": 1.11,
+                     "S6_nadir": 1.13,
+                     "S7_nadir": 1.0,
+                     "S8_nadir": 1.0,
+                     "S9_nadir": 1.0,
+                     "S1_oblique": 0.94,
+                     "S2_oblique": 0.95,
+                     "S3_oblique": 0.95,
+                     "S4_oblique": 1.0,
+                     "S5_oblique": 1.04,
+                     "S6_oblique": 1.07,
+                     "S7_oblique": 1.0,
+                     "S8_oblique": 1.0,
+                     "S9_oblique": 1.0, }
+
+
+class NCSLSTRGeo(BaseFileHandler):
+    """Filehandler for geo info."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the geo filehandler."""
+        super(NCSLSTRGeo, self).__init__(filename, filename_info,
+                                         filetype_info)
+        self.nc = xr.open_dataset(self.filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
+        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+
+        self.cache = {}
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug("Reading %s.", key["name"])
+        file_key = info["file_key"].format(view=key["view"].name[0],
+                                           stripe=key["stripe"].name)
+        try:
+            variable = self.nc[file_key]
+        except KeyError:
+            return
+
+        info = info.copy()
+        info.update(variable.attrs)
+
+        variable.attrs = info
+        return variable
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+class NCSLSTRAngles(BaseFileHandler):
+    """Filehandler for angles."""
+
+    def _loadcart(self, fname):
+        """Load a cartesian file of appropriate type."""
+        cartf = xr.open_dataset(fname,
+                                decode_cf=True,
+                                mask_and_scale=True,
+                                chunks={"columns": CHUNK_SIZE,
+                                        "rows": CHUNK_SIZE})
+        return cartf
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the angles reader."""
+        super(NCSLSTRAngles, self).__init__(filename, filename_info,
+                                            filetype_info)
+
+        self.nc = xr.open_dataset(self.filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
+
+        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+        self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
+        self.sensor = "slstr"
+        self.view = filename_info["view"]
+        self._start_time = filename_info["start_time"]
+        self._end_time = filename_info["end_time"]
+
+        carta_file = os.path.join(
+            os.path.dirname(self.filename), "cartesian_a{}.nc".format(self.view[0]))
+        carti_file = os.path.join(
+            os.path.dirname(self.filename), "cartesian_i{}.nc".format(self.view[0]))
+        cartx_file = os.path.join(
+            os.path.dirname(self.filename), "cartesian_tx.nc")
+        self.carta = self._loadcart(carta_file)
+        self.carti = self._loadcart(carti_file)
+        self.cartx = self._loadcart(cartx_file)
+
+    @staticmethod
+    def _interp_data(indata, full_grid, tie_grid, ds_name):
+        """Interpolate data from tie point grid to full image grid."""
+        from scipy.interpolate import RectBivariateSpline
+
+        # Check if we are interpolating angles
+        if "angle" in ds_name:
+            # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
+            # interpolation artifacts such as values <0 or >360.
+            indat = indata[:, ::-1]
+            sin_angles = np.sin(np.radians(indat))
+            cos_angles = np.cos(np.radians(indat))
+            sin_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], sin_angles)
+            cos_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], cos_angles)
+            values_sin = sin_interp.ev(full_grid[1], full_grid[0])
+            values_cos = cos_interp.ev(full_grid[1], full_grid[0])
+            values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
+        else:
+            # Otherwise, interpolate as normal.
+            spl = RectBivariateSpline(tie_grid[1], tie_grid[0], indata[:, ::-1])
+            values = spl.ev(full_grid[1], full_grid[0])
+        return values
+
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        if not key["view"].name.startswith(self.view[0]):
+            return
+        logger.debug("Reading %s.", key["name"])
+        # Check if file_key is specified in the yaml
+        file_key = info["file_key"].format(view=key["view"].name[0])
+
+        variable = self.nc[file_key]
+        l_step = self.nc.attrs.get("al_subsampling_factor", 1)
+        c_step = self.nc.attrs.get("ac_subsampling_factor", 16)
+
+        if key.get("resolution", 1000) == 500:
+            l_step *= 2
+            c_step *= 2
+
+        if c_step != 1 or l_step != 1:
+            logger.debug("Interpolating %s.", key["name"])
+            # TODO: do it in cartesian coordinates ! pbs at date line and
+            # possible
+            tie_x = self.cartx["x_tx"].data[0, :][::-1]
+            tie_y = self.cartx["y_tx"].data[:, 0]
+            if key.get("resolution", 1000) == 500:
+                full_x = self.carta["x_a" + self.view[0]].data
+                full_y = self.carta["y_a" + self.view[0]].data
+            else:
+                full_x = self.carti["x_i" + self.view[0]].data
+                full_y = self.carti["y_i" + self.view[0]].data
+
+            variable = variable.fillna(0)
+            variable.attrs["resolution"] = key.get("resolution", 1000)
+
+            # Interpolate the data to the full image grid
+            values = self._interp_data(variable.data,
+                                       [full_x, full_y],
+                                       [tie_x, tie_y],
+                                       key["name"])
+
+            variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                                    dims=["y", "x"], attrs=variable.attrs)
+
+        variable.attrs["platform_name"] = self.platform_name
+        variable.attrs["sensor"] = self.sensor
+
+        if "units" not in variable.attrs:
+            variable.attrs["units"] = "degrees"
+
+        variable.attrs.update(key.to_dict())
+
+        return variable
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+class NCSLSTRFlag(BaseFileHandler):
+    """File handler for flags."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the flag reader."""
+        super(NCSLSTRFlag, self).__init__(filename, filename_info,
+                                          filetype_info)
+        self.nc = xr.open_dataset(self.filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={"columns": CHUNK_SIZE,
+                                          "rows": CHUNK_SIZE})
+        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        self.stripe = filename_info["stripe"]
+        views = {"n": "nadir", "o": "oblique"}
+        self.view = views[filename_info["view"]]
+        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+        self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
+        self.sensor = "slstr"
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        if (self.stripe != key["stripe"].name or
+                self.view != key["view"].name):
+            return
+        logger.debug("Reading %s.", key["name"])
+        file_key = info["file_key"].format(view=key["view"].name[0],
+                                           stripe=key["stripe"].name)
+        variable = self.nc[file_key]
+
+        info = info.copy()
+        info.update(variable.attrs)
+        info.update(key.to_dict())
+        info.update(dict(platform_name=self.platform_name,
+                         sensor=self.sensor))
+
+        variable.attrs = info
+        return variable
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
