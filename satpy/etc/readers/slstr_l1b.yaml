@@ -1,7 +1,7 @@
 reader:
   name: slstr_l1b
   short_name: SLSTR l1b
-  long_name: Sentinel-3 A and B SLSTR data in netCDF4 format
+  long_name: Sentinel-3 SLSTR data in netCDF4 format
   description: NC Reader for SLSTR data
   status: Alpha
   supports_fsspec: false
