@@ -149,10 +149,11 @@ class Enhancer:
         """Get the sensor-specific config."""
         paths = get_entry_points_config_dirs("satpy.enhancements")
         # 8< v1.0
-        # Users might have enhancements that still use the legacy
-        # instrument name.
-        import satpy._instruments as instr_utils  # noqa
-        sensors = instr_utils.add_deprecated_instrument_aliases_for_enhancements(sensors)
+        # Users might have enhancements that still use the legacy instrument name.
+        import satpy._instruments as inst_utils  # noqa
+        sensors = sensors.union(
+            inst_utils.get_deprecated_instrument_aliases_for_enhancements(sensors)
+        )
         # >8 v1.0
         for sensor_name in sensors:
             basename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
@@ -162,7 +163,7 @@ class Enhancer:
             # options, only entire sections are overwritten
             for config_file in config_files:
                 # 8< v1.0
-                instr_utils.warn_if_deprecated_instrument_in_enhancement_filename(sensor_name, config_file)
+                inst_utils.warn_if_deprecated_instrument_in_enhancement_filename(sensor_name, config_file)
                 # >8 v1.0
                 yield config_file
 

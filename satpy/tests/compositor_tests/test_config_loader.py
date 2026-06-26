@@ -17,7 +17,10 @@
 
 """Tests for compositor config handling."""
 
+import pytest
+
 import satpy
+from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
 
 def test_bad_sensor_yaml_configs(tmp_path):
@@ -26,8 +29,6 @@ def test_bad_sensor_yaml_configs(tmp_path):
     But the bad YAML also shouldn't crash composite configuration loading.
 
     """
-    from satpy.composites.config_loader import load_compositor_configs_for_sensors
-
     comp_dir = tmp_path / "composites"
     comp_dir.mkdir()
     comp_yaml = comp_dir / "fake_sensor.yaml"
@@ -56,3 +57,33 @@ def _create_fake_composite_config(yaml_filename: str):
         },
             comp_file,
         )
+
+
+
+# 8< v1.0
+import satpy._instruments as inst_utils  # noqa
+
+
+class TestUserConfigWithDeprecatedFilename:
+    """Test finding user config with deprecated filename."""
+
+    @pytest.fixture
+    def user_comp_dir(self, tmp_path):
+        """Get directory with user composites."""
+        return tmp_path / "etc" / "composites"
+
+    @pytest.fixture(autouse=True)
+    def user_config_file(self, user_comp_dir):
+        """Write user config with old instrument in the filename."""
+        user_comp_dir.mkdir(parents=True)
+        depr_file = user_comp_dir / "old-name.yaml"
+        _create_fake_composite_config(depr_file)
+
+    def test_finding_user_config(self, user_comp_dir, monkeypatch):
+        """Test finding user config with old instrument in the filename."""
+        monkeypatch.setitem(inst_utils.RENAMED_COMP_INSTRUMENTS, "New Name", "old-name")
+        with satpy.config.set(config_path=[str(user_comp_dir.parent)]):
+            with pytest.warns(DeprecationWarning, match="has been renamed"):
+                comps, _ = load_compositor_configs_for_sensors(["New Name"])
+            assert "New Name" in comps
+# >8 v1.0
