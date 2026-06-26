@@ -38,7 +38,7 @@ class TestHSAFEnhancement:
     def test_hsaf_rr_enhancement_colormap_applied(self):
         """Test application of the enhancement."""
         enh = Enhancer()
-        enh.add_sensor_enhancements(["hsaf"])
+        enh.add_sensor_enhancements({"hsaf"})
 
         img = get_enhanced_image(self.data, enhance=enh)
         enhanced = img.data
