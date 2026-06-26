@@ -36,7 +36,7 @@ def test_orbit_number_start_end(aws_mwr_handler):
 
 def test_metadata(aws_mwr_handler):
     """Test that the metadata is read correctly."""
-    assert aws_mwr_handler.sensor == "MWR"
+    assert aws_mwr_handler.sensor == "MWR (AWS)"
     assert aws_mwr_handler.platform_name == PLATFORM_NAME
 
 
@@ -60,7 +60,7 @@ def test_get_channel_data(aws_mwr_handler, fake_mwr_data_array):
     assert res.attrs["orbital_parameters"]["sub_satellite_longitude_end"] == 296.79
     assert res.dims == ("y", "x")
     assert "n_channels" not in res.coords
-    assert res.attrs["instruments"] == {"MWR"}
+    assert res.attrs["instruments"] == {"MWR (AWS)"}
     assert res.attrs["platform_name"] == PLATFORM_NAME
 
 

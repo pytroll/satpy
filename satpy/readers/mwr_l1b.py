@@ -114,7 +114,9 @@ class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
         """Get the sensor name."""
         # This should have been self["/attr/instrument"]
         # But the sensor name is currently incorrect in the ESA level-1b files.
-        return OSCAR.MWR
+        if "AWS" in self.platform_name:
+            return OSCAR.MWR_AWS
+        return OSCAR.MWR_STERNA
 
     @property
     def platform_name(self):
