@@ -183,31 +183,43 @@ def internal_to_wmo(instrument: str) -> str:
     return _INTERNAL_TO_WMO.get(instrument, instrument)
 
 
+
+# 8< v1.0
 from pathlib import Path  # noqa
 
 import satpy._instruments as inst_utils  # noqa
-
-# 8< v1.0
 from satpy._config import PACKAGE_CONFIG_PATH  # noqa
+from satpy._instruments import OSCAR  # noqa
 
 RENAMED_ENH_INSTRUMENTS = {
-    "MSI (Sentinel-2A)": "sen2_msi",
-    "MWR (AWS)": "mwr",
-    "MWR (Sterna)": "mwr",
+    OSCAR.MSI_SENTINEL_2A: "sen2_msi",
+    OSCAR.MWR_AWS: "mwr",
+    OSCAR.MWR_STERNA: "mwr",
 }
 RENAMED_COMP_INSTRUMENTS = {
-    "MetImage": "vii"
-    # TODO
+    OSCAR.IMAGER_GOES_8_11: "goes_imager",
+    OSCAR.IMAGER_GOES_12_15: "goes_imager",
+    OSCAR.IMAGER_INSAT: "insat3d_img",
+    OSCAR.METIMAGE: "vii",
+    OSCAR.MSI: "ec_msi",
+    OSCAR.MSU_GS_A: "msu-gsa",
+    OSCAR.MWR_AWS: "mwr",
+    OSCAR.MWR_STERNA: "mwr",
+    OSCAR.OLI: "oli_tirs",
+    OSCAR.TIRS: "oli_tirs",
+    OSCAR.VIRR_FY_3: "virr",
+    OSCAR.SAR_C_SENTINEL_1: "sar-c",
+    OSCAR.MSI_SENTINEL_2A: "sen2_msi",
 }
 
 def get_deprecated_instrument_aliases_for_enhancements(instruments: set[str]) -> set[str]:
     """Get deprecated instrument aliases for enhancements that were renamed."""
-    return _get_deprecated_instrument_aliases(instruments, RENAMED_ENH_INSTRUMENTS)
+    return _get_deprecated_instrument_aliases(instruments, RENAMED_ENH_INSTRUMENTS)  # type: ignore
 
 
 def get_deprecated_instrument_aliases_for_composites(instruments: set[str]) -> set[str]:
     """Get deprecated instrument aliases for composites that were renamed."""
-    return _get_deprecated_instrument_aliases(instruments, RENAMED_COMP_INSTRUMENTS)
+    return _get_deprecated_instrument_aliases(instruments, RENAMED_COMP_INSTRUMENTS)  # type: ignore
 
 
 def _get_deprecated_instrument_aliases(instruments: set[str], renamed_instruments: dict[str,str]) -> set[str]:
@@ -224,7 +236,7 @@ def warn_if_deprecated_instrument_in_enhancement_filename(instrument: str, confi
     _warn_if_deprecated_instrument_in_filename(
         instrument,
         config_file,
-        RENAMED_ENH_INSTRUMENTS,
+        RENAMED_ENH_INSTRUMENTS,  # type: ignore
     )
 
 
@@ -233,7 +245,7 @@ def warn_if_deprecated_instrument_in_composite_filename(instrument: str, config_
     _warn_if_deprecated_instrument_in_filename(
         instrument,
         config_file,
-        RENAMED_COMP_INSTRUMENTS,
+        RENAMED_COMP_INSTRUMENTS,  # type: ignore
     )
 
 
