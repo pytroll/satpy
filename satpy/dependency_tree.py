@@ -23,7 +23,6 @@ from typing import Container, Iterable, Optional
 
 import numpy as np
 
-import satpy._instruments as inst_utils
 from satpy import DataID, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
@@ -505,7 +504,6 @@ class DependencyTree(Tree):
     def get_modifier(self, comp_id):
         """Get a modifer."""
         # create a DataID for the compositor we are generating
-        instr_key = inst_utils.get_instruments_key()
         modifier = comp_id["modifiers"][-1]
         for sensor_name in sorted(self.modifiers):
             modifiers = self.modifiers[sensor_name]
@@ -516,7 +514,7 @@ class DependencyTree(Tree):
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
-            moptions[instr_key] = sensor_name
+            moptions["instruments"] = sensor_name
             compositors[comp_id] = mloader(_satpy_id=comp_id, **moptions)
             return compositors[comp_id]
 

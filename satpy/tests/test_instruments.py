@@ -17,7 +17,6 @@
 
 import pytest
 
-import satpy
 import satpy._instruments as inst_utils
 
 
@@ -75,26 +74,23 @@ def test_set_instruments_attr():
     """Test setting instruments attribute."""
     attrs = {"instruments": {"myinstrument"}}
     new_instruments = {"i1", "i2"}
-    with satpy.config.set(instruments_key="instruments"):
-        inst_utils.set_instruments_attr(attrs, new_instruments)
-        assert attrs["instruments"] == new_instruments
+    inst_utils.set_instruments_attr(attrs, new_instruments)
+    assert attrs["instruments"] == new_instruments
 
 
 def test_get_one_instrument_from_attrs():
     """Test getting a single instrument from dataset attributes."""
     attrs = {"instruments": {"i1"}}
-    with satpy.config.set(instruments_key="instruments"):
-        assert inst_utils.get_one_instrument_from_attrs(attrs) == "i1"
+    assert inst_utils.get_one_instrument_from_attrs(attrs) == "i1"
 
 
 def test_get_one_instrument_from_attrs_with_warning(caplog):
     """Test warnings when getting a single instrument."""
     attrs = {"instruments": {"i1", "i2"}}
-    with satpy.config.set(instruments_key="instruments"):
-        inst_utils.get_one_instrument_from_attrs(attrs)
-        assert "More than one" in caplog.text
-        with pytest.raises(KeyError):
-            inst_utils.get_one_instrument_from_attrs({})
+    inst_utils.get_one_instrument_from_attrs(attrs)
+    assert "More than one" in caplog.text
+    with pytest.raises(KeyError):
+        inst_utils.get_one_instrument_from_attrs({})
 
 
 

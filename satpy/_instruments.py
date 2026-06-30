@@ -20,8 +20,6 @@ import warnings
 from enum import StrEnum
 from typing import Any
 
-import satpy
-
 logger = logging.getLogger(__name__)
 
 def get_instruments_from_attrs(attrs: dict[str,Any], to_internal: bool=False) -> set[str]:
@@ -96,13 +94,7 @@ def join_instrument_names(instruments: set[str]) -> str:
 
 def set_instruments_attr(attrs: dict[str,Any], instruments: set[str]|str) -> None:
     """Set 'instruments' dataset atrribute."""
-    key = get_instruments_key()
-    attrs[key] = instruments
-
-
-def get_instruments_key():
-    """Get key for instruments in dataset attributes."""
-    return satpy.config.get("instruments_key")
+    attrs["instruments"] = instruments
 
 
 class OSCAR(StrEnum):
