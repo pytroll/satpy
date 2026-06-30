@@ -41,7 +41,7 @@ from satpy.tests.utils import make_dataid
 MHS_YAML_READER_DICT = {
     "reader": {"name": "mhs_l1c_aapp",
                "description": "AAPP l1c Reader for AMSU-B/MHS data",
-               "sensors": ["mhs"],
+               "instruments": ["mhs"],
                "data_identification_keys": {"name": {"required": True},
                                             "frequency_double_sideband":
                                                 {"type": FrequencyDoubleSideBand},
@@ -206,7 +206,7 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         patterns = ["a{something:3s}.bla",
                     "a0{something:2s}.bla"]
         res_dict = {"reader": {"name": "fake",
-                               "sensors": ["canon"]},
+                               "instruments": ["canon"]},
                     "file_types": {"ftype1": {"name": "ft1",
                                               "file_patterns": patterns,
                                               "file_reader": DummyReader}},
@@ -300,7 +300,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Prepare a reader instance with a fake config."""
         patterns = ["a{something:3s}.bla"]
         res_dict = {"reader": {"name": "fake",
-                               "sensors": ["canon"]},
+                               "instruments": ["canon"]},
                     "file_types": {"ftype1": {"name": "ft1",
                                               "file_reader": BaseFileHandler,
                                               "file_patterns": patterns}},
@@ -561,7 +561,7 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
         """Prepare a reader instance with a fake config."""
         patterns = ["a{something:3s}.bla"]
         res_dict = {"reader": {"name": "fake",
-                               "sensors": ["canon"]},
+                               "instruments": ["canon"]},
                     "file_types": {"ftype1": {"name": "ft1",
                                               "file_reader": BaseFileHandler,
                                               "file_patterns": patterns}},
@@ -639,7 +639,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         patterns2 = ["b.nc"]
         patterns3 = ["geo.nc"]
         res_dict = {"reader": {"name": "fake",
-                               "sensors": ["canon"]},
+                               "instruments": ["canon"]},
                     "file_types": {"ftype1": {"name": "ft1",
                                               "file_patterns": patterns1},
                                    "ftype2": {"name": "ft2",

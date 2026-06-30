@@ -718,7 +718,7 @@ class FiduceoMviriBase(BaseFileHandler):
         """Update dataset attributes."""
         ds.attrs.update(info)
         ds.attrs.update({"platform": self.filename_info["platform"],
-                         "sensor": self.filename_info["sensor"]})
+                         "instruments": {self.filename_info["instrument"]}})
         ds.attrs["raw_metadata"] = self.nc.attrs
         ds.attrs["orbital_parameters"] = self._get_orbital_parameters()
 

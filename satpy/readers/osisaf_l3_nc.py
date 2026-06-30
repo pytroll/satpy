@@ -170,21 +170,25 @@ class OSISAFL3NCFileHandler(NetCDF4FileHandler):
         ds_info.update({
             "units": ds_info.get("units", file_units),
             "platform_name": self._get_platname(),
-            "sensor": self._get_instname()
+            "instruments": self._get_instruments()
         })
         ds_info.update(dataset_id.to_dict())
         data.attrs.update(ds_info)
         return data
 
-    def _get_instname(self):
-        """Get instrument name."""
+    def _get_instruments(self):
+        """Get instrument names."""
         try:
-            return self["/attr/instrument_name"]
+            instruments = self["/attr/instrument_name"]
         except KeyError:
             try:
-                return self["/attr/sensor"]
+                instruments = self["/attr/sensor"]
             except KeyError:
-                return "unknown_sensor"
+                instruments = "unknown_sensor"
+        return set(
+            instr.strip()
+            for instr in instruments.split(",")
+        )
 
     def _get_platname(self):
         """Get platform name."""

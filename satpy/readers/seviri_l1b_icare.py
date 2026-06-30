@@ -101,10 +101,10 @@ class SEVIRI_ICARE(HDF4FileHandler):
         # the sensor and platform names are stored together, eg: MSG1/SEVIRI
         attr = self["/attr/Sensors"]
         if isinstance(attr, np.ndarray):
-            attr = str(attr.astype(str)).lower()
+            attr = str(attr.astype(str))
         else:
-            attr = attr.lower()
-        plat = attr[0:4]
+            attr = attr
+        plat = attr[0:4].lower()
         sens = attr[5:]
         # icare uses non-standard platform names
         if plat == "msg1":
@@ -222,7 +222,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
                     "start_time": self.start_time,
                     "end_time": self.end_time,
                     "platform_name": self.sensor_name[0],
-                    "sensor": self.sensor_name[1],
+                    "instruments": {self.sensor_name[1]},
                     "zone": self.zone,
                     "projection_altitude": self.alt,
                     "cfac": geoloc[0],

@@ -6,7 +6,7 @@ reader:
     GEO-KOMPSAT-2 AMI Level 1b data reader in the NetCDF4 format. The file format and
     instrument are described on KMA's website
     `here <https://nmsc.kma.go.kr/enhome/html/base/cmm/selectPage.do?page=satellite.gk2a.intro>`_.
-  sensors: [ami]
+  instruments: [ami]
   status: Beta
   supports_fsspec: true
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader

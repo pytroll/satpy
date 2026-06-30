@@ -17,14 +17,19 @@
 from __future__ import annotations
 
 import os
+import warnings
 from pathlib import Path
 
 import yaml
 from yaml import UnsafeLoader
 
+import satpy._instruments as inst_utils
 from satpy._config import config_search_paths, get_entry_points_config_dirs
 from satpy.decision_tree import DecisionTree
-from satpy.utils import get_logger, recursive_dict_update
+from satpy.utils import (
+    get_logger,
+    recursive_dict_update,
+)
 
 LOG = get_logger(__name__)
 
@@ -38,12 +43,12 @@ class EnhancementDecisionTree(DecisionTree):
                                 ("name",
                                  "reader",
                                  "platform_name",
-                                 "sensor",
+                                 "instruments",
                                  "standard_name",
                                  "units",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        multival_keys = kwargs.pop("multival_keys", ["sensor"])
+        multival_keys = kwargs.pop("multival_keys", ["instruments"])
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, match_keys, multival_keys)
 
@@ -53,6 +58,9 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             config_dict = self._get_config_dict_from_user(config_file)
             recursive_dict_update(conf, config_dict)
+        # 8< v1.0
+        self._ensure_compat(conf)
+        # >8 v1.0
         self._build_tree(conf)
 
     def _get_config_dict_from_user(self, config_file: str | Path | dict) -> dict:
@@ -82,6 +90,21 @@ class EnhancementDecisionTree(DecisionTree):
                 return {}
             LOG.debug(f"Adding enhancement configuration from file: {config_file}")
         return enhancement_section
+
+    # 8< v1.0
+    def _ensure_compat(self, config_dict: dict) -> None:
+        for enh_name, enh_config in config_dict.items():
+            if "sensor" in enh_config:
+                warnings.warn(
+                    "Renaming the 'sensor' enhancement attribute to 'instruments'. "
+                    "This will raise an exception in Satpy v1.0 when the 'sensor' "
+                    "attribute will be removed. To silence this warning, rename "
+                    "'sensor' to 'instruments' in your enhancement YAML file.",
+                    DeprecationWarning,
+                    stacklevel=3
+                )
+                inst_utils.set_instruments_attr(config_dict[enh_name], enh_config["sensor"])
+    # >8 v1.0
 
     def find_match(self, **query_dict):
         """Find a match."""
@@ -122,26 +145,23 @@ class Enhancer:
 
         self.sensor_enhancement_configs = []
 
-    def get_sensor_enhancement_config(self, sensor):
+    def get_sensor_enhancement_config(self, sensors: set[str]):
         """Get the sensor-specific config."""
-        if isinstance(sensor, str):
-            # one single sensor
-            sensor = [sensor]
-
         paths = get_entry_points_config_dirs("satpy.enhancements")
-        for sensor_name in sensor:
-            config_fn = os.path.join("enhancements", sensor_name + ".yaml")
+        for sensor_name in sensors:
+            basename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
+            config_fn = os.path.join("enhancements", basename)
             config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:
                 yield config_file
 
-    def add_sensor_enhancements(self, sensor):
+    def add_sensor_enhancements(self, sensors: set[str]):
         """Add sensor-specific enhancements."""
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
-        for config_file in self.get_sensor_enhancement_config(sensor):
+        for config_file in self.get_sensor_enhancement_config(sensors):
             if config_file not in self.sensor_enhancement_configs:
                 self.sensor_enhancement_configs.append(config_file)
                 new_configs.append(config_file)
@@ -209,10 +229,11 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
     if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
-        if dataset.attrs.get("sensor", None):
-            enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
-
-        enhancer.apply(img, **dataset.attrs)
+        sensors = inst_utils.get_instruments_from_attrs(dataset.attrs, to_internal=True)
+        if sensors:
+            enhancer.add_sensor_enhancements(sensors)
+        dataset_attrs = _get_dataset_attrs_for_enh(dataset, sensors)
+        enhancer.apply(img, **dataset_attrs)
 
     if overlay is not None:
         from satpy.enhancements.overlays import add_overlay
@@ -225,3 +246,14 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         img = add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
+
+
+def _get_dataset_attrs_for_enh(dataset, instruments_int):
+    """Get dataset attributes for applying enhancement.
+
+    In particular, use instrument names in internal format so that
+    they match the enhancement definition in the YAML.
+    """
+    attrs = dataset.attrs.copy()
+    inst_utils.set_instruments_attr(attrs, instruments_int)
+    return attrs

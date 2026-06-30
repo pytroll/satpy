@@ -202,7 +202,7 @@ class TestOCCCIReader:
         assert len(res) == len(ds_list_all)
         for curds in ds_list_all:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["instruments"] == {"SeaWiFS", "MERIS", "MODIS", "VIIRS"}
             assert res[curds].attrs["composite_period"] == "monthly"
 
     def test_get_dataset_8d_iopprods(self, fake_dataset, fake_file_dict):
@@ -214,7 +214,7 @@ class TestOCCCIReader:
         assert len(res) == len(ds_list_iop)
         for curds in ds_list_iop:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["instruments"] == {"SeaWiFS", "MERIS", "MODIS", "VIIRS"}
             assert res[curds].attrs["composite_period"] == "8-day"
 
     def test_get_dataset_1d_kprods(self, fake_dataset, fake_file_dict):
@@ -226,7 +226,7 @@ class TestOCCCIReader:
         assert len(res) == len(ds_list_kd)
         for curds in ds_list_kd:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["instruments"] == {"SeaWiFS", "MERIS", "MODIS", "VIIRS"}
             assert res[curds].attrs["composite_period"] == "daily"
 
     def test_get_dataset_5d_allprods(self, fake_dataset, fake_file_dict):
@@ -238,7 +238,7 @@ class TestOCCCIReader:
         assert len(res) == len(ds_list_all)
         for curds in ds_list_all:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
-            assert res[curds].attrs["sensor"] == "merged"
+            assert res[curds].attrs["instruments"] == {"SeaWiFS", "MERIS", "MODIS", "VIIRS"}
             assert res[curds].attrs["composite_period"] == "5-day"
 
     def test_start_time(self, fake_file_dict):

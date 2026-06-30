@@ -364,13 +364,13 @@ class TestBackgroundCompositor:
                                   dims=("bands", "y", "x"),
                                   coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs.copy())
-        foreground.attrs["sensor"] = "abi"
+        foreground.attrs["instruments"] = {"ABI"}
         background = xr.DataArray(da.ones((1, 2, 2)), dims=("bands", "y", "x"),
                                   coords={"bands": [c for c in attrs["mode"]]},
                                   attrs=attrs.copy())
-        background.attrs["sensor"] = "glm"
+        background.attrs["instruments"] = {"GLM"}
         res = comp([foreground, background])
         assert res.attrs["area"] == "foo"
         np.testing.assert_allclose(res, np.array([[1., 0.5], [0., 1.]]))
         assert res.attrs["mode"] == "L"
-        assert res.attrs["sensor"] == {"abi", "glm"}
+        assert res.attrs["instruments"] == {"ABI", "GLM"}

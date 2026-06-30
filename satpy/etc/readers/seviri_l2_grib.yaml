@@ -5,7 +5,7 @@ reader:
   description: Reader for EUMETSAT MSG SEVIRI L2 files in GRIB format.
   status: Nominal
   supports_fsspec: false
-  sensors: [seviri]
+  instruments: [seviri]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 

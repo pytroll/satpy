@@ -70,6 +70,7 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
+from satpy._instruments import OSCAR
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import (
@@ -394,7 +395,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                         count=1)[0]
         self.platform_name = np2str(self.basic_info["satellite"])
         self.observation_area = np2str(self.basic_info["observation_area"])
-        self.sensor = "ahi"
+        self.sensor = OSCAR.AHI
         self.mask_space = mask_space
         self.band_name = filetype_info["file_type"][4:].upper()
         calib_mode_choices = ("NOMINAL", "UPDATE")

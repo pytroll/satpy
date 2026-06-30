@@ -102,7 +102,7 @@ class EDRFileHandler(BaseFileHandler):
     @property
     def sensor_name(self):
         """Get the sensor name."""
-        return self.nc.instrument.lower()
+        return self.nc.instrument
 
     def get_metadata(self, dataset_id, ds_info):
         """Get the metadata."""
@@ -113,7 +113,7 @@ class EDRFileHandler(BaseFileHandler):
         info.update(
             {
                 "platform_name": self.platform_name,
-                "sensor": self.sensor_name,
+                "instruments": {self.sensor_name},
                 "orbital_parameters": {
                     "start_orbit": self.start_orbit_number,
                     "end_orbit": self.end_orbit_number,

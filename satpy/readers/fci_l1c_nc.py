@@ -190,6 +190,7 @@ from pyorbital.astronomy import sun_earth_distance_correction
 from pyresample import geometry
 
 import satpy
+import satpy._instruments as inst_utils
 from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode
 from satpy.readers.core.fci import platform_name_translate
@@ -482,8 +483,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         Ensures attributes from uncalibrated data (e.g. `_FillValue` from counts)
         are not propagated to the calibrated data.
         """
-        if info is not None:
-            resattrs.update(info)
+        self._update_attrs_with_reader_info(resattrs, info)
         if None not in (attrs, key):
             resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
 
@@ -500,6 +500,16 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         resattrs.update(self.orbital_param)
         return resattrs
+
+    def _update_attrs_with_reader_info(self, attrs, info):
+        if info is not None:
+            attrs.update(info)
+            # Instrument names in reader definition are internal format,
+            # convert to WMO names.
+            attrs["instruments"] = {
+                inst_utils.internal_to_wmo(instrument)
+                for instrument in attrs["instruments"]
+            }
 
     def get_iqt_parameters_lon_lat_alt(self):
         """Compute the orbital parameters for IQT data.

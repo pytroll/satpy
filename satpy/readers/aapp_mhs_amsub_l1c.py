@@ -27,6 +27,7 @@ import logging
 import dask.array as da
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.readers.aapp_l1b import AAPPL1BaseFileHandler, create_xarray
 from satpy.utils import get_legacy_chunk_size
 
@@ -81,9 +82,9 @@ class MHS_AMSUB_AAPPL1CFile(AAPPL1BaseFileHandler):
     def _get_sensorname(self):
         """Get the sensor name from the header."""
         if self._header["instrument"][0] == 11:
-            self.sensor = "amsub"
+            self.sensor = OSCAR.AMSU_B
         elif self._header["instrument"][0] == 12:
-            self.sensor = "mhs"
+            self.sensor = OSCAR.MHS
         else:
             raise IOError("Sensor neither MHS nor AMSU-B!")
 

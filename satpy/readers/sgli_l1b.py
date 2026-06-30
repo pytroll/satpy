@@ -37,6 +37,8 @@ import numpy as np
 import xarray as xr
 from dask.array.core import normalize_chunks
 
+from satpy._instruments import OSCAR
+
 # from satpy import CHUNK_SIZE
 from satpy.readers.core.file_handlers import BaseFileHandler
 
@@ -89,7 +91,7 @@ class HDF5SGLI(BaseFileHandler):
         dataset = self.prepare_dataset(key, dataset)
 
         dataset.attrs["platform_name"] = "GCOM-C1"
-        dataset.attrs["sensor"] = "sgli"
+        dataset.attrs["instruments"] = {str(OSCAR.SGLI)}
         dataset.attrs["units"] = info["units"]
         dataset.attrs["standard_name"] = info["standard_name"]
         return dataset

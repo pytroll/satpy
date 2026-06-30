@@ -29,6 +29,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
+import satpy._instruments as inst_utils
 from satpy.area import get_area_def
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.composites.core import IncompatibleAreas
@@ -36,7 +37,10 @@ from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, data
 from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers.core.loading import load_readers
-from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
+from satpy.utils import (
+    convert_remote_files_to_fsspec,
+    get_storage_options_from_reader_kwargs,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -179,7 +183,7 @@ class Scene:
 
     @property
     def sensor_names(self) -> set[str]:
-        """Return sensor names for the data currently contained in this Scene.
+        """Return WMO sensor names for the data currently contained in this Scene.
 
         Sensor information is collected from data contained in the Scene
         whether loaded from a reader or generated as a composite with
@@ -190,20 +194,28 @@ class Scene:
 
         """
         contained_sensor_names = self._contained_sensor_names()
-        reader_sensor_names = set([sensor for reader_instance in self._readers.values()
-                                   for sensor in reader_instance.sensor_names])
+        reader_sensor_names = self._reader_sensor_names()
         return contained_sensor_names | reader_sensor_names
 
     def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
-            if "sensor" not in data_arr.attrs:
-                continue
-            if isinstance(data_arr.attrs["sensor"], str):
-                sensor_names.add(data_arr.attrs["sensor"])
-            elif isinstance(data_arr.attrs["sensor"], set):
-                sensor_names.update(data_arr.attrs["sensor"])
+            sensor_names.update(inst_utils.get_instruments_from_attrs(data_arr.attrs))
         return sensor_names
+
+    def _reader_sensor_names(self) -> set[str]:
+        """Get WMO instrument names from readers."""
+        instruments = set(
+            [
+                instrument
+                for reader_instance in self._readers.values()
+                for instrument in reader_instance.sensor_names
+            ]
+        )
+        return {
+            inst_utils.internal_to_wmo(inst)
+            for inst in instruments
+        }
 
     @property
     def start_time(self):
@@ -829,7 +841,35 @@ class Scene:
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple):
             return self.slice(key)
+        # 8< v1.0
+        data_array = self._datasets[key]
+        if self._should_add_sensor_attribute(data_array):
+            self._set_sensor_attribute(data_array)
+            return data_array
+        # >8 v1.0
         return self._datasets[key]
+
+    # 8< v1.0
+    def _should_add_sensor_attribute(self, data_array: xr.DataArray) -> bool:
+         return "instruments" in data_array.attrs and "sensor" not in data_array.attrs
+
+    def _set_sensor_attribute(self, data_array: xr.DataArray) -> None:
+        instruments = data_array.attrs["instruments"]
+        if self._should_convert_to_string(instruments):
+            data_array.attrs["sensor"] = inst_utils.wmo_to_internal(list(instruments)[0])
+        else:
+            data_array.attrs["sensor"] = {inst_utils.wmo_to_internal(inst) for inst in instruments}
+
+    def _should_convert_to_string(self, instruments):
+        # In satpy < v1.0 single sensors are provided as string by most readers
+        has_one_element = len(instruments) == 1
+        readers_providing_set = [
+            "seadas_l2",
+            "oci_l2_bgc"
+        ]
+        is_exception = any([reader in self._readers for reader in readers_providing_set])
+        return has_one_element and not is_exception
+    # >8 v1.0
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""

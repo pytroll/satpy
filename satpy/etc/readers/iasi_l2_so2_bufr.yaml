@@ -6,7 +6,7 @@ reader:
     Reader for IASI L2 files
   status: Beta
   supports_fsspec: false
-  sensors: [iasi]
+  instruments: [iasi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   default_datasets:
 

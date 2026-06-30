@@ -163,7 +163,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         default = "Data_Products/{dataset_group}/attr/Instrument_Short_Name"
         sensor_path = self.filetype_info.get(
             "sensor_name", default).format(dataset_group=dataset_group)
-        return self[sensor_path].lower()
+        return self[sensor_path]
 
     def scale_swath_data(self, data, scaling_factors, dataset_group):
         """Scale swath data using scaling factors and offsets.
@@ -276,7 +276,7 @@ class JPSS_SDR_FileHandler(HDF5FileHandler):
         i.update(ds_info)
         i.update({
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "instruments": {self.sensor_name},
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
             "units": output_units,

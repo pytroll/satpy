@@ -110,6 +110,7 @@ import numpy as np
 import xarray as xr
 from packaging.version import Version
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.nwcsaf_nc import PLATFORM_NAMES, SENSOR, read_nwcsaf_time
 from satpy.utils import get_chunk_size_limit
@@ -241,7 +242,7 @@ class NWCSAFHRWBase(BaseFileHandler, metaclass=ABCMeta):
         self.filetype_info = filetype_info
         self.merge_channels = merge_channels
         self.platform_name = PLATFORM_NAMES.get(self.h5f.attrs["satellite_identifier"].astype(str))
-        self.sensor = SENSOR.get(self.platform_name, "seviri")
+        self.sensor = SENSOR.get(self.platform_name, OSCAR.SEVIRI)
         self.lons = {}
         self.lats = {}
         # Imaging period, which is set after reading any data, and used to calculate end time

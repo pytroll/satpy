@@ -6,7 +6,7 @@ reader:
     Reader for EUMETSAT EPS-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format per FS V4A.
   status: Beta
   supports_fsspec: false
-  sensors: [vii]
+  instruments: [vii]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

@@ -7,7 +7,7 @@ reader:
   supports_fsspec: false
   # could this be a python hook ?
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [amsr2]
+  instruments: [amsr2]
 
 datasets:
   btemp_10.7v:

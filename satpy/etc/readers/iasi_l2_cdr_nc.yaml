@@ -10,7 +10,7 @@ reader:
   status: Alpha
   supports_fsspec: True
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [iasi]
+  instruments: [iasi]
   default_datasets:
 
 file_types:

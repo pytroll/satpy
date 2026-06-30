@@ -36,6 +36,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+import satpy._instruments as inst_utils
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -77,8 +78,8 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         """Get sensor."""
         res = self["/attr/sensor"]
         if isinstance(res, np.ndarray):
-            return str(res.astype(str)).lower()
-        return res.lower()
+            return str(res.astype(str))
+        return res
 
     @property
     def sensor_names(self):
@@ -174,7 +175,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         metadata.update(ds_info)
         metadata.update({
             "platform_shortname": self.platform_shortname,
-            "sensor": self.sensor,
+            "instruments": inst_utils.enum_to_str(self.sensor_names),
             "start_time": self.start_time,
             "end_time": self.end_time,
             "time_coverage_start": self.time_coverage_start,

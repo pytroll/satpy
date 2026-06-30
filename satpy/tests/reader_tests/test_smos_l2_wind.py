@@ -91,7 +91,7 @@ class TestSMOSL2WINDReader:
         assert len(ds) == 1
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "SM"
-            assert d.attrs["sensor"] == "MIRAS"
+            assert d.attrs["instruments"] == {"MIRAS"}
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
             assert "y" in d.dims

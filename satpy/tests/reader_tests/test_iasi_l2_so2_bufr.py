@@ -366,7 +366,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
         assert scn.start_time is not None
         assert scn.end_time is not None
         assert scn.sensor_names
-        assert "iasi" in scn.sensor_names
+        assert "IASI" in scn.sensor_names
 
     @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):

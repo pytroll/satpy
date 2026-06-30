@@ -134,7 +134,7 @@ class TestVIRRL1BReader(unittest.TestCase):
             ds = datasets[dataset["name"]]
             attributes = ds.attrs
             assert isinstance(ds.data, da.Array)
-            assert "virr" == attributes["sensor"]
+            assert attributes["instruments"] == {"VIRR"}
             assert platform_name == attributes["platform_name"]
             assert datetime.datetime(2018, 12, 25, 21, 41, 47, 90000) == attributes["start_time"]
             assert datetime.datetime(2018, 12, 25, 21, 47, 28, 254000) == attributes["end_time"]
