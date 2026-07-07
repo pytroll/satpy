@@ -208,14 +208,8 @@ class TestSLSTRReader(TestSLSTRL1B):
         open_dataset_.return_value = self.fake_dataset
         exists_.side_effect = lambda path: "cartesian_" in path
 
-        good_start = dt.datetime.strptime(
-            self.start_time,
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-        )
-        good_end = dt.datetime.strptime(
-            self.end_time,
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-        )
+        good_start = dt.datetime.strptime(self.start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        good_end = dt.datetime.strptime(self.end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
 
         ds_id = make_dataid(
             name="foo",
@@ -242,20 +236,14 @@ class TestSLSTRReader(TestSLSTRL1B):
         }
 
         test = NCSLSTRGeo("somedir/geometry_an.nc", filename_info, "c")
-        test.get_dataset(
-            ds_id,
-            dict(filename_info, **{"file_key": "latitude_{stripe:1s}{view:1s}"}),
-        )
+        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "latitude_{stripe:1s}{view:1s}"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
         open_dataset_.assert_called()
         open_dataset_.reset_mock()
 
         test = NCSLSTRFlag("somedir/S1_radiance_an.nc", filename_info, "c")
-        test.get_dataset(
-            ds_id,
-            dict(filename_info, **{"file_key": "flags_{stripe:1s}{view:1s}"}),
-        )
+        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "flags_{stripe:1s}{view:1s}"}),)
         assert test.view == "nadir"
         assert test.stripe == "a"
         assert test.start_time == good_start
@@ -269,19 +257,13 @@ class TestSLSTRReader(TestSLSTRL1B):
         assert hasattr(test, "carti")
         assert hasattr(test, "carta")
 
-        test.get_dataset(
-            ds_id,
-            dict(filename_info, **{"file_key": "geometry_t{view:1s}"}),
-        )
+        test.get_dataset(ds_id, dict(filename_info, **{"file_key": "geometry_t{view:1s}"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
         open_dataset_.assert_called()
         open_dataset_.reset_mock()
 
-        test.get_dataset(
-            ds_id_500,
-            dict(filename_info, **{"file_key": "geometry_t{view:1s}"}),
-        )
+        test.get_dataset(ds_id_500, dict(filename_info, **{"file_key": "geometry_t{view:1s}"}))
 
 
 class TestSLSTRAngles(TestSLSTRL1B):
