@@ -70,6 +70,49 @@ local_id_keys_config = {
 class TestSLSTRL1B(unittest.TestCase):
     """Common setup for SLSTR_L1B tests."""
 
+    def _make_fake_dataset(self):
+        """Create a fake dataset for use in testing."""
+        det = xr.DataArray(
+            self.base_data,
+            dims=("columns", "rows"),
+            attrs={
+                "scale_factor": 1.0,
+                "add_offset": 0.0,
+                "_FillValue": 255,
+            },
+        )
+
+        x_in = xr.DataArray(self.ix_data, dims=("columns", "rows"))
+        y_in = xr.DataArray(self.iy_data, dims=("columns", "rows"))
+
+        saa = xr.DataArray(self.ang_data, dims=("columns_t", "rows_t"))
+        x_tx = xr.DataArray(self.tx_data, dims=("columns_t", "rows_t"))
+        y_tx = xr.DataArray(self.ty_data, dims=("columns_t", "rows_t"))
+
+        self.fake_dataset = xr.Dataset(
+            data_vars={
+                "S5_radiance_an": self.rad,
+                "S9_BT_ao": self.rad,
+                "foo_radiance_an": self.rad,
+                "S5_solar_irradiances": self.rad,
+                "geometry_tn": self.rad,
+                "latitude_an": self.rad,
+                "x_in": x_in,
+                "y_in": y_in,
+                "x_an": x_in,
+                "y_an": y_in,
+                "flags_an": self.rad,
+                "detector_an": det,
+                "x_tx": x_tx,
+                "y_tx": y_tx,
+                "solar_azimuth_tn": saa,
+            },
+            attrs={
+                "start_time": self.start_time,
+                "stop_time": self.end_time,
+            },
+        )
+
     def setUp(self):
         """Create a fake dataset using the given radiance data."""
         self.base_data = np.array((
@@ -135,46 +178,9 @@ class TestSLSTRL1B(unittest.TestCase):
             },
         )
 
-        det = xr.DataArray(
-            self.base_data,
-            dims=("columns", "rows"),
-            attrs={
-                "scale_factor": 1.0,
-                "add_offset": 0.0,
-                "_FillValue": 255,
-            },
-        )
+        self._make_fake_dataset()
 
-        x_in = xr.DataArray(self.ix_data, dims=("columns", "rows"))
-        y_in = xr.DataArray(self.iy_data, dims=("columns", "rows"))
 
-        saa = xr.DataArray(self.ang_data, dims=("columns_t", "rows_t"))
-        x_tx = xr.DataArray(self.tx_data, dims=("columns_t", "rows_t"))
-        y_tx = xr.DataArray(self.ty_data, dims=("columns_t", "rows_t"))
-
-        self.fake_dataset = xr.Dataset(
-            data_vars={
-                "S5_radiance_an": self.rad,
-                "S9_BT_ao": self.rad,
-                "foo_radiance_an": self.rad,
-                "S5_solar_irradiances": self.rad,
-                "geometry_tn": self.rad,
-                "latitude_an": self.rad,
-                "x_in": x_in,
-                "y_in": y_in,
-                "x_an": x_in,
-                "y_an": y_in,
-                "flags_an": self.rad,
-                "detector_an": det,
-                "x_tx": x_tx,
-                "y_tx": y_tx,
-                "solar_azimuth_tn": saa,
-            },
-            attrs={
-                "start_time": self.start_time,
-                "stop_time": self.end_time,
-            },
-        )
 
 
 def make_dataid(**items):
