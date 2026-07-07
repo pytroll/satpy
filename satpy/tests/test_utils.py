@@ -286,10 +286,14 @@ class TestCheckSatpy:
 class TestShowVersions:
     """Test the 'show_versions' function."""
 
-    def test_basic_show_versions(self):
+    def test_basic_show_versions(self, capsys):
         """Test 'check_satpy' basic functionality."""
         from satpy.utils import show_versions
         show_versions()
+        out, _ = capsys.readouterr()
+        for package_name in ("pyresample", "pykdtree", "trollimage", "trollsift",
+                             "pycoast", "pydecorate", "python-geotiepoints"):
+            assert f"{package_name}:" in out
 
     def test_show_specific_version(self, capsys):
         """Test 'show_version' works with installed package."""

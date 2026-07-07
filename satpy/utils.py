@@ -521,11 +521,18 @@ def show_versions(packages=None):
             "gdal",
             "rasterio",
             "pyproj",
+            "pyresample",
+            "pykdtree",
+            "trollimage",
+            "trollsift",
             "netcdf4",
             "h5py",
             "pyhdf",
             "h5netcdf",
             "fsspec",
+            "pycoast",
+            "pydecorate",
+            "python-geotiepoints",
         )
         if packages is None
         else packages
