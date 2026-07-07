@@ -70,6 +70,9 @@ file_types:
     esa_l1b_flag:
         file_reader: !!python/name:satpy.readers.core.slstr.NCSLSTRFlag
         file_patterns: ['{mission_id:3s}_SL_1_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{baseline:3d}.SEN3/flags_{stripe:1s}{view:1s}.nc']
+    esa_l1b_cartesian:
+        file_reader: !!python/name:satpy.readers.core.slstr.NCSLSTRGeo
+        file_patterns: ['{mission_id:3s}_SL_1_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{baseline:3d}.SEN3/cartesian_{stripe:1s}{view:1s}.nc']
 
 datasets:
   longitude:
@@ -79,6 +82,16 @@ datasets:
     stripe: [a, b, i, f]
     file_type: esa_geo
     file_key: longitude_{stripe:1s}{view:1s}
+    standard_name: longitude
+    units: degree
+
+  longitude_orphan:
+    name: longitude_orphan
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: longitude_orphan_{stripe:1s}{view:1s}
     standard_name: longitude
     units: degree
 
@@ -92,6 +105,16 @@ datasets:
     standard_name: latitude
     units: degree
 
+  latitude_orphan:
+    name: latitude_orphan
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: latitude_orphan_{stripe:1s}{view:1s}
+    standard_name: latitude_orphan
+    units: degree
+
   elevation:
     name: elevation
     resolution: [500, 1000]
@@ -100,6 +123,56 @@ datasets:
     file_type: esa_geo
     file_key: elevation_{stripe:1s}{view:1s}
     standard_name: elevation
+    units: m
+
+  elevation_orphan:
+    name: elevation_orphan
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: elevation_{stripe:1s}{view:1s}
+    standard_name: elevation_orphan
+    units: m
+
+  x_coords:
+    name: x_coords
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: x_{stripe:1s}{view:1s}
+    standard_name: x_coords
+    units: m
+
+  y_coords:
+    name: y_coords
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: y_{stripe:1s}{view:1s}
+    standard_name: y_coords
+    units: m
+
+  x_orphan_coords:
+    name: x_orphan_coords
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: x_orphan_{stripe:1s}{view:1s}
+    standard_name: x_orphan_coords
+    units: m
+
+  y_orphan_coords:
+    name: y_orphan_coords
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: y_orphan_{stripe:1s}{view:1s}
+    standard_name: y_orphan_coords
     units: m
 
   # The channels S1-S3 are available in nadir (default) and oblique view.

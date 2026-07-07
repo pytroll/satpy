@@ -140,9 +140,12 @@ class NCSLSTRAngles(BaseFileHandler):
             os.path.dirname(self.filename), "cartesian_i{}.nc".format(self.view[0]))
         cartx_file = os.path.join(
             os.path.dirname(self.filename), "cartesian_tx.nc")
-        self.carta = self._loadcart(carta_file)
-        self.carti = self._loadcart(carti_file)
-        self.cartx = self._loadcart(cartx_file)
+        if os.path.exists(carta_file):
+            self.carta = self._loadcart(carta_file)
+        if os.path.exists(carti_file):
+            self.carti = self._loadcart(carti_file)
+        if os.path.exists(cartx_file):
+            self.cartx = self._loadcart(cartx_file)
 
     @staticmethod
     def _interp_data(indata, full_grid, tie_grid, ds_name):
