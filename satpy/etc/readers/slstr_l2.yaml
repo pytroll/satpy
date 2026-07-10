@@ -1,0 +1,245 @@
+reader:
+  name: slstr_l2
+  short_name: SLSTR l2
+  long_name: Sentinel-3 SLSTR Level-2 data in netCDF4 format
+  description: NC Reader for SLSTR L2 data
+  status: Alpha
+  supports_fsspec: false
+  sensors: [slstr]
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  data_identification_keys:
+    name:
+      required: true
+    wavelength:
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+          - reflectance
+          - brightness_temperature
+          - radiance
+          - counts
+      transitive: true
+    view:
+      enum:
+        - nadir
+        - oblique
+      transitive: true
+    stripe:
+      enum:
+        - a
+        - b
+        - i
+        - f
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    resolution:
+      transitive: false
+    view:
+      enum:
+        - nadir
+        - oblique
+      transitive: true
+    stripe:
+      enum:
+        - a
+        - b
+        - i
+        - f
+
+file_types:
+    esa_lst:
+        file_reader: !!python/name:satpy.readers.slstr_l2_nc.NCSLSTRL2LST
+        file_patterns:
+         - '{mission_id:3s}_SL_2_LST____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{platform_mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/LST_{stripe:1s}{view:1s}.nc'
+    esa_angles:
+        file_reader: !!python/name:satpy.readers.core.slstr.NCSLSTRAngles
+        file_patterns:
+        - '{mission_id:3s}_SL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{baseline:3d}.SEN3/geometry_{stripe:1s}{view:1s}.nc'
+    esa_geo:
+        file_reader: !!python/name:satpy.readers.core.slstr.NCSLSTRGeo
+        file_patterns:
+        - '{mission_id:3s}_SL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{baseline:3d}.SEN3/geodetic_{stripe:1s}{view:1s}.nc'
+    esa_cartesian:
+        file_reader: !!python/name:satpy.readers.core.slstr.NCSLSTRGeo
+        file_patterns:
+        - '{mission_id:3s}_SL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{baseline:3d}.SEN3/cartesian{stripe:1s}{view:1s}.nc'
+
+datasets:
+  longitude:
+    name: longitude
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: longitude_{stripe:1s}{view:1s}
+    standard_name: longitude
+    units: degree
+
+  longitude_orphan:
+    name: longitude_orphan
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: longitude_orphan_{stripe:1s}{view:1s}
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: latitude_{stripe:1s}{view:1s}
+    standard_name: latitude
+    units: degree
+
+  latitude_orphan:
+    name: latitude_orphan
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: latitude_orphan_{stripe:1s}{view:1s}
+    standard_name: latitude_orphan
+    units: degree
+
+  elevation:
+    name: elevation
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: elevation_{stripe:1s}{view:1s}
+    standard_name: elevation
+    units: m
+
+  elevation_orphan:
+    name: elevation_orphan
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: elevation_{stripe:1s}{view:1s}
+    standard_name: elevation_orphan
+    units: m
+
+  x_coords:
+    name: x_coords
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: x_{stripe:1s}{view:1s}
+    standard_name: x_coords
+    units: m
+
+  y_coords:
+    name: y_coords
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: y_{stripe:1s}{view:1s}
+    standard_name: y_coords
+    units: m
+
+  x_orphan_coords:
+    name: x_orphan_coords
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: x_orphan_{stripe:1s}{view:1s}
+    standard_name: x_orphan_coords
+    units: m
+
+  y_orphan_coords:
+    name: y_orphan_coords
+    resolution: 1000
+    view: nadir
+    stripe: i
+    file_type: esa_geo
+    file_key: y_orphan_{stripe:1s}{view:1s}
+    standard_name: y_orphan_coords
+    units: m
+
+  LST:
+    name: LST
+    sensor: slstr
+    stripe: i
+    view: nadir
+    resolution: 1000
+    standard_name: land_surface_temperature
+    units: K
+    coordinates: [longitude, latitude]
+    file_type: esa_lst
+    file_key: LST
+
+  LST_orphan:
+    name: LST_orphan
+    sensor: slstr
+    stripe: i
+    view: nadir
+    resolution: 1000
+    standard_name: land_surface_temperature
+    units: K
+    coordinates: [longitude_orphan, latitude_orphan]
+    file_type: esa_lst
+    file_key: LST_orphan
+
+  LST_exception:
+    name: LST_exception
+    sensor: slstr
+    stripe: i
+    view: nadir
+    resolution: 1000
+    standard_name: LST_quality_flag
+    units: 1
+    coordinates: [longitude, latitude]
+    file_type: esa_lst
+    file_key: exception
+
+  LST_exception_orphan:
+    name: LST_exception_orphan
+    sensor: slstr
+    stripe: i
+    view: nadir
+    resolution: 1000
+    standard_name: LST_quality_flag
+    units: 1
+    coordinates: [longitude_orphan, latitude_orphan]
+    file_type: esa_lst
+    file_key: exception_orphan
+
+  LST_uncertainty:
+    name: LST_uncertainty
+    sensor: slstr
+    stripe: i
+    view: nadir
+    resolution: 1000
+    standard_name: LST_uncertainty
+    units: K
+    coordinates: [longitude, latitude]
+    file_type: esa_lst
+    file_key: LST_uncertainty
+
+  LST_uncertainty_orphan:
+    name: LST_uncertainty_orphan
+    sensor: slstr
+    stripe: i
+    view: nadir
+    resolution: 1000
+    standard_name: LST_uncertainty
+    units: K
+    coordinates: [longitude_orphan, latitude_orphan]
+    file_type: esa_lst
+    file_key: LST_uncertainty_orphan

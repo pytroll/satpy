@@ -31,9 +31,7 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 PENDING_OLD_READER_NAMES = {"fci_l1c_fdhsi": "fci_l1c_nc", "viirs_l2_cloud_mask_nc": "viirs_edr"}
-OLD_READER_NAMES: dict[str, str] = {
-    "slstr_l2": "ghrsst_l2",
-}
+OLD_READER_NAMES: dict[str, str] = {}
 
 
 def read_reader_config(config_files, loader=UnsafeLoader):
