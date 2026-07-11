@@ -526,6 +526,10 @@ def show_versions(packages=None):
             "pyhdf",
             "h5netcdf",
             "fsspec",
+            "pyresample",
+            "trollimage",
+            "trollsift",
+            "pykdtree",
         )
         if packages is None
         else packages
