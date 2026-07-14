@@ -530,6 +530,9 @@ def show_versions(packages=None):
             "trollimage",
             "trollsift",
             "pykdtree",
+            "pycoast",
+            "pydecorate",
+            "python-geotiepoints",
         )
         if packages is None
         else packages
