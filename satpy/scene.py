@@ -214,7 +214,7 @@ class Scene:
 
         """
         start_times = [data_arr.attrs["start_time"] for data_arr in self.values()
-                       if "start_time" in data_arr.attrs]
+                       if "start_time" in data_arr.attrs and data_arr.attrs["start_time"] is not None]
         if not start_times:
             start_times = self._reader_times("start_time")
         if not start_times:
@@ -231,7 +231,7 @@ class Scene:
 
         """
         end_times = [data_arr.attrs["end_time"] for data_arr in self.values()
-                     if "end_time" in data_arr.attrs]
+                     if "end_time" in data_arr.attrs and data_arr.attrs["end_time"] is not None]
         if not end_times:
             end_times = self._reader_times("end_time")
         if not end_times:

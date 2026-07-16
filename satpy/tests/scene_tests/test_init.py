@@ -22,6 +22,7 @@ from copy import deepcopy
 from unittest import mock
 
 import pytest
+import xarray as xr
 
 import satpy
 from satpy import Scene
@@ -54,6 +55,32 @@ class TestScene:
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
         assert scene.start_time == FAKE_FILEHANDLER_START
         assert scene.end_time == FAKE_FILEHANDLER_END
+
+    @pytest.mark.parametrize(
+        ("property_name", "expected"),
+        [("start_time", FAKE_FILEHANDLER_START), ("end_time", FAKE_FILEHANDLER_END)],
+    )
+    def test_start_end_times_ignore_none_dataset_times(self, property_name, expected):
+        """Test that missing dataset times don't hide valid dataset times."""
+        scene = Scene()
+        scene["timed"] = xr.DataArray([], attrs={
+            "start_time": FAKE_FILEHANDLER_START,
+            "end_time": FAKE_FILEHANDLER_END,
+        })
+        scene["untimed"] = xr.DataArray([], attrs={"start_time": None, "end_time": None})
+
+        assert getattr(scene, property_name) == expected
+
+    def test_start_end_times_fallback_when_dataset_times_are_none(self):
+        """Test reader and None fallbacks when all dataset times are missing."""
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene["untimed"] = xr.DataArray([], attrs={"start_time": None, "end_time": None})
+        assert scene.start_time == FAKE_FILEHANDLER_START
+        assert scene.end_time == FAKE_FILEHANDLER_END
+
+        scene._readers = {}
+        assert scene.start_time is None
+        assert scene.end_time is None
 
     def test_init_preserve_reader_kwargs(self):
         """Test that the initialization preserves the kwargs."""
