@@ -20,12 +20,7 @@ One common parameter across almost all Writers is ``filename`` and
 The ``filename`` argument can specify Python string formatting fields.
 Those fields are mostly filled by attributes available or the individual
 datasets.  Following Python string formatting rules, attributes of
-attributes can be referenced as well, for example ``area.name``.  In
-addition to dataset attributes, some reader/writer combinations support
-dynamically calculated field values.  This currently exists only for
-``{mean_time}`` if the keyword argument ``dynamic_fields={"mean_time"}``
-is passed to :meth:`~satpy.scene.Scene.save_datasets`.  See the
-:doc:`example on storing valid time </examples/mean_time>` for details.
+attributes can be referenced as well, for example ``area.name``.
 
 .. _writer_table:
 
