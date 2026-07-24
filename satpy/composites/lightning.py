@@ -29,6 +29,7 @@ import xarray as xr
 
 from satpy import config
 from satpy.composites.core import CompositeBase
+from satpy.composites.vectorscene import GeometryContainer
 
 LOG = logging.getLogger(__name__)
 
@@ -111,25 +112,6 @@ class LightningTimeCompositor(CompositeBase):
           new_attrs = self._redefine_metadata(new_attrs)
           return self._normalize_time(data, new_attrs)
 
-
-
-class GeometryContainer:
-    """Container for geometries stored in geopandas Geodataframes."""
-    def __init__(self, data: gpd.GeoDataFrame, attrs=None):
-        """Create Container for geodataframe."""
-        if not isinstance(data, gpd.GeoDataFrame):
-            raise TypeError("Data must be a GeoDataFrame")
-        self.data = data
-        self.attrs = attrs if attrs is not None else {}
-
-    def __getitem__(self, key):
-        """Get column by name."""
-        # Basic slicing or column access
-        return self.data[key]
-
-    def __repr__(self):
-        """Print geodataframe."""
-        return f"<GeoDataFrame>\nData:\n{self.data}\n\nAttributes:\n{self.attrs}"
 
 class FlashGeometry(CompositeBase):
     """Flash Geometry Processor.

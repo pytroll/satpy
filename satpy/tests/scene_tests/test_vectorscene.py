@@ -57,9 +57,7 @@ def test_init():
 
 def test_load(tmp_path):
     """Test loading some vector data."""
-    import geopandas
-
-    from satpy.vectorscene import VectorScene
+    from satpy.vectorscene import GeometryContainer, VectorScene
     dummy_reader_path = tmp_path / "dummy_vector_reader.yaml"
     with dummy_reader_path.open("w") as fp:
         fp.write(dummy_config)
@@ -67,7 +65,7 @@ def test_load(tmp_path):
         srclc.return_value = [[os.fspath(dummy_reader_path)]]
         vs = VectorScene(filenames=["grenadines"], reader=["dummy_vector_reader"])
         vs.load(["dummy_vector_dataset"])
-        assert isinstance(vs["dummy_vector_dataset"], geopandas.GeoDataFrame)
+        assert isinstance(vs["dummy_vector_dataset"], GeometryContainer)
 
 @pytest.fixture
 def dummy_vector_scene():

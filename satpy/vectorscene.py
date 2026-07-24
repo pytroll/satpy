@@ -30,6 +30,7 @@ vectors, or lightning point data.
 import warnings
 from collections.abc import Iterable
 
+import geopandas as gpd
 import pyproj
 
 from .dataset import DataID
@@ -41,8 +42,10 @@ class VectorScene(BaseScene):
 
     WORK IN PROGRESS.
 
-    The datasets in a VectorScene are not xarray dataarrays but geopandas
-    geodataframes.  Some things work differently.
+    The datasets in a VectorScene are not xarray dataarrays but
+    GeometryContainers, which are small wrappers around geopandas
+    geodataframes bundling them with attributes (attributes are still experimental
+    in pandas as of pandas 3.0).
 
     Area covered by VectorScene datasets is not in the area attribute, but
     in the geometry attribute, like for any geopandas geodataframe.
@@ -90,3 +93,42 @@ class VectorScene(BaseScene):
             ds_id = DataID.from_dataarray(ds)
             new_scn._datasets[ds_id] = ds.to_crs(target)
         return new_scn
+
+    def __setitem__(self, key, value):
+        """Add a geodataframe or geometrycontainer to the key.
+
+        Objects contained by a VectorScene must be GeometryContainer.  For
+        convenience, assigning a GeoDataFrame also works, which will then be
+        wrapped in a GeometryContainer.
+        """
+        if isinstance(value, GeometryContainer):
+            super().__setitem__(key, value)
+        else:
+            super().__setitem__(key, GeometryContainer(value))
+
+
+class GeometryContainer:
+    """Container for geometries stored in geopandas Geodataframes.
+
+    This container bundles a geopandas GeoDataFrame with a dictionary of
+    attributes.  Although pandas DataFrames support attributes, this is
+    marked as "experimental and may change without warning", so we take care
+    of attributes in the GeometryContainer to be on the safe side.
+
+    GeometryContainer is also experimental and may change without warning.
+    """
+    def __init__(self, data: gpd.GeoDataFrame, attrs=None):
+        """Create Container for geodataframe."""
+        if not isinstance(data, gpd.GeoDataFrame):
+            raise TypeError("Data must be a GeoDataFrame")
+        self.data = data
+        self.attrs = attrs if attrs is not None else {}
+
+    def __getitem__(self, key):
+        """Get column by name."""
+        # Basic slicing or column access
+        return self.data[key]
+
+    def __repr__(self):
+        """Print geodataframe."""
+        return f"<GeoDataFrame>\nData:\n{self.data}\n\nAttributes:\n{self.attrs}"
