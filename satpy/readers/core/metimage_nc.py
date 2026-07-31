@@ -4,6 +4,7 @@
 
 import datetime as dt
 import logging
+import os
 
 import numpy as np
 import xarray as xr
@@ -16,6 +17,7 @@ from satpy.readers.core.metimage import (
     TIE_POINTS_FACTOR,
 )
 from satpy.readers.core.netcdf import NetCDF4FileHandler
+from satpy.readers.core.utils import unzip_file
 from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,9 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, orthorect=False):
         """Prepare the class for dataset reading."""
+        self._unzipped = unzip_file(filename)
+        if self._unzipped:
+            filename = self._unzipped
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
@@ -207,6 +212,15 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    def __del__(self):
+        """Remove the decompressed temp file, if one was created."""
+        try:
+            if getattr(self, "_unzipped", None):
+                os.remove(self._unzipped)
+        except (AttributeError, OSError):
+            logger.warning(f"An error occurred while cleaning up the decompressed file {self.filename}")
+        super().__del__()
 
     @staticmethod
     def wrap_longitude(longitude_array):

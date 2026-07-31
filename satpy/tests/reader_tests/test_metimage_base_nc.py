@@ -1,7 +1,9 @@
 
 """The metimage_base_nc reader tests package."""
 
+import bz2
 import datetime
+import gc
 import os
 import unittest
 import uuid
@@ -204,6 +206,71 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                     except (TypeError, ValueError):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
                     assert equal
+
+    def _make_bz2_copy(self, suffix=".bz2"):
+        """Create a bz2-compressed copy of the test file and return its path."""
+        bz2_filename = self.test_file_name + suffix
+        with open(self.test_file_name, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
+            f_out.write(f_in.read())
+        return bz2_filename
+
+    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
+    def test_bz2_reading(self, pgi_):
+        """Test that a bz2-compressed file is transparently decompressed and read correctly."""
+        interp_longitude = xr.DataArray(np.ones((10, 100)))
+        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
+        pgi_.return_value = (interp_longitude, interp_latitude)
+
+        bz2_filename = self._make_bz2_copy()
+        try:
+            reader = ViiNCBaseFileHandler(
+                filename=bz2_filename,
+                filename_info=self.filename_info,
+                filetype_info={
+                    "cached_longitude": "data/measurement_data/longitude",
+                    "cached_latitude": "data/measurement_data/latitude"
+                }
+            )
+            unzipped_path = reader.filename
+
+            # Should have decompressed to a separate temp file, not read the .bz2 directly
+            assert unzipped_path != bz2_filename
+            assert os.path.exists(unzipped_path)
+
+            # Cross-check against the uncompressed-file reader (ground truth from setUp)
+            assert reader.spacecraft_name == self.reader.spacecraft_name
+            assert reader.start_time == self.reader.start_time
+
+            variable = reader.get_dataset(
+                None, {"file_key": "data/measurement_data/tpw", "calibration": None}
+            )
+            expected = self.reader.get_dataset(
+                None, {"file_key": "data/measurement_data/tpw", "calibration": None}
+            )
+            assert np.allclose(variable.values, expected.values)
+
+            del reader
+            gc.collect()   # safety net, not strictly required here
+            assert not os.path.exists(unzipped_path)
+        finally:
+            os.remove(bz2_filename)
+
+    def test_corrupt_bz2_raises(self):
+        """Test that a corrupt .bz2 file raises OSError rather than a confusing one."""
+        bad_filename = self.test_file_name + "_corrupt.bz2"
+        with open(bad_filename, "wb") as f:
+            f.write(b"not a real bz2 stream")
+        try:
+            # The error message differs depending on whether pbzip2 is installed
+            # (see satpy.readers.core.utils._unzip_local_file)
+            with pytest.raises(OSError, match=r"(?i)(pbzip2 error|invalid data stream)"):
+                ViiNCBaseFileHandler(
+                    filename=bad_filename,
+                    filename_info=self.filename_info,
+                    filetype_info={}
+                )
+        finally:
+            os.remove(bad_filename)
 
     def test_start_end_time_additional_formats(self):
         """Test parsing additional datetime formats."""
