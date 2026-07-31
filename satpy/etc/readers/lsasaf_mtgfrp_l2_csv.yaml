@@ -1,0 +1,50 @@
+reader:
+  name: lsasaf-mtgfrp_l2_csv
+  short_name: FCI LSASAF-FRP CSV
+  long_name: MTG FCI Level 2 LSASAF FRP (CSV)
+  description: >
+    CSV reader for LSA SAF MTG FCI Level 2 Fire Radiative Power files.
+  status: Beta
+  sensors: [fci]
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+
+file_types:
+  csv_fci_frp:
+    file_reader: !!python/name:satpy.readers.fci_lsasaf_frp_l2_csv.FRPFileHandler
+    file_patterns:
+      - '{facility_or_tool}-509_{satellite_name}_MTFRPPIXEL-ListProduct_MTG-{coverage}_{start_time:%Y%m%d%H%M}.csv'
+
+datasets:
+  frp:
+    name: frp
+    standard_name: fire_radiative_power
+    file_type: csv_fci_frp
+    file_key: FRP
+    resolution: 1000
+    units: MW
+
+  abs_line:
+    name: abs_line
+    standard_name: pixel_line_number_value_in_fci_projection
+    file_type: csv_fci_frp
+    file_key: ABS_LINE
+
+  abs_samp:
+    name: abs_samp
+    standard_name: pixel_column_number_value_in_fci_projection
+    file_type: csv_fci_frp
+    file_key: ABS_SAMP
+
+  latitude:
+    name: latitude
+    standard_name: active_fire_pixel_centre_latitude
+    file_type: csv_fci_frp
+    file_key: LATITUDE
+    units: degrees_north
+
+  longitude:
+    name: longitude
+    standard_name: active_fire_pixel_centre_longitude
+    file_type: csv_fci_frp
+    file_key: LONGITUDE
+    units: degrees_east
