@@ -55,6 +55,7 @@ The following people have made contributions to this project:
 - [Przemyslaw Juda (pjuda)](https://github.com/pjuda)
 - [Inderpreet Kaur](https://github.com/ikaur17)
 - [Pouria Khalaj](https://github.com/pkhalaj)
+- [Bilel Khlaifia (khlaifiabilel)](https://github.com/khlaifiabilel)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Beke Kremmling (bkremmli)](https://github.com/bkremmli) - Deutscher Wetterdienst
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
