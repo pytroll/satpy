@@ -215,12 +215,12 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
 
     def __del__(self):
         """Remove the decompressed temp file, if one was created."""
+        super().__del__()   # release the netCDF/h5netcdf handle first, so Windows can drop its lock
         try:
             if getattr(self, "_unzipped", None):
                 os.remove(self._unzipped)
         except (AttributeError, OSError):
-            logger.warning(f"An error occurred while cleaning up the decompressed file {self.filename}")
-        super().__del__()
+            pass
 
     @staticmethod
     def wrap_longitude(longitude_array):

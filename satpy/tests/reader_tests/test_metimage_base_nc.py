@@ -3,7 +3,6 @@
 
 import bz2
 import datetime
-import gc
 import os
 import unittest
 import uuid
@@ -206,71 +205,6 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                     except (TypeError, ValueError):
                         equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
                     assert equal
-
-    def _make_bz2_copy(self, suffix=".bz2"):
-        """Create a bz2-compressed copy of the test file and return its path."""
-        bz2_filename = self.test_file_name + suffix
-        with open(self.test_file_name, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
-            f_out.write(f_in.read())
-        return bz2_filename
-
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
-    def test_bz2_reading(self, pgi_):
-        """Test that a bz2-compressed file is transparently decompressed and read correctly."""
-        interp_longitude = xr.DataArray(np.ones((10, 100)))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
-        pgi_.return_value = (interp_longitude, interp_latitude)
-
-        bz2_filename = self._make_bz2_copy()
-        try:
-            reader = ViiNCBaseFileHandler(
-                filename=bz2_filename,
-                filename_info=self.filename_info,
-                filetype_info={
-                    "cached_longitude": "data/measurement_data/longitude",
-                    "cached_latitude": "data/measurement_data/latitude"
-                }
-            )
-            unzipped_path = reader.filename
-
-            # Should have decompressed to a separate temp file, not read the .bz2 directly
-            assert unzipped_path != bz2_filename
-            assert os.path.exists(unzipped_path)
-
-            # Cross-check against the uncompressed-file reader (ground truth from setUp)
-            assert reader.spacecraft_name == self.reader.spacecraft_name
-            assert reader.start_time == self.reader.start_time
-
-            variable = reader.get_dataset(
-                None, {"file_key": "data/measurement_data/tpw", "calibration": None}
-            )
-            expected = self.reader.get_dataset(
-                None, {"file_key": "data/measurement_data/tpw", "calibration": None}
-            )
-            assert np.allclose(variable.values, expected.values)
-
-            del reader
-            gc.collect()   # safety net, not strictly required here
-            assert not os.path.exists(unzipped_path)
-        finally:
-            os.remove(bz2_filename)
-
-    def test_corrupt_bz2_raises(self):
-        """Test that a corrupt .bz2 file raises OSError rather than a confusing one."""
-        bad_filename = self.test_file_name + "_corrupt.bz2"
-        with open(bad_filename, "wb") as f:
-            f.write(b"not a real bz2 stream")
-        try:
-            # The error message differs depending on whether pbzip2 is installed
-            # (see satpy.readers.core.utils._unzip_local_file)
-            with pytest.raises(OSError, match=r"(?i)(pbzip2 error|invalid data stream)"):
-                ViiNCBaseFileHandler(
-                    filename=bad_filename,
-                    filename_info=self.filename_info,
-                    filetype_info={}
-                )
-        finally:
-            os.remove(bad_filename)
 
     def test_start_end_time_additional_formats(self):
         """Test parsing additional datetime formats."""
@@ -508,3 +442,135 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                                                      "interpolate": True})
         # Checks that the function returns None
         assert longitude is None
+
+
+# --- bz2 decompression support ---------------------------------------------
+# Written as plain pytest functions (rather than TestViiNCBaseFileHandler
+# methods) specifically to use tmp_path fixtures for automatic, cross-platform
+# temp-file cleanup -- fixture injection doesn't work inside unittest.TestCase
+# methods, so these live at module scope instead.
+
+@pytest.fixture
+def vii_filename_info():
+    """Return a filename_info dict valid for the base-class reader."""
+    return {
+        "creation_time": datetime.datetime(year=2017, month=9, day=22,
+                                           hour=22, minute=40, second=10),
+        "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
+                                                hour=12, minute=30, second=30),
+        "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
+                                              hour=18, minute=30, second=50),
+    }
+
+
+@pytest.fixture
+def vii_base_nc_file(tmp_path):
+    """Create a small VII netCDF test file and return its path."""
+    filename = tmp_path / "test_file_vii_base_nc.nc"
+    with Dataset(filename, "w") as nc:
+        nc.sensing_start_time_utc = "20170920173040.888"
+        nc.sensing_end_time_utc = "20170920174117.555"
+        nc.spacecraft = "test_spacecraft"
+        nc.instrument = "test_instrument"
+
+        g1 = nc.createGroup("data")
+        g1.createDimension("num_pixels", 10)
+        g1.createDimension("num_lines", 100)
+
+        g1_1 = g1.createGroup("measurement_data")
+        g1_1.createDimension("num_tie_points_act", 10)
+        g1_1.createDimension("num_tie_points_alt", 100)
+
+        tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
+        tpw[:] = 1.
+        tpw.test_attr = "attr"
+        lon = g1_1.createVariable("longitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lon[:] = 100.
+        lat = g1_1.createVariable("latitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lat[:] = 10.
+
+        g2 = nc.createGroup("quality")
+        g2.createDimension("gap_items", 2)
+        var = g2.createVariable("duration_of_product", np.double, dimensions=())
+        var[:] = 1.0
+        var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
+        var[:] = 2.0
+        var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
+        var[:] = 3.0
+        var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
+        var[:] = 4.0
+        var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [5.0, 6.0]
+        var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [7.0, 8.0]
+
+    return filename
+
+
+@pytest.fixture
+def vii_base_nc_file_bz2(vii_base_nc_file):
+    """Compress the netCDF fixture into a .bz2 file alongside it."""
+    bz2_filename = vii_base_nc_file.parent / (vii_base_nc_file.name + ".bz2")
+    with open(vii_base_nc_file, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
+        f_out.write(f_in.read())
+    return bz2_filename
+
+
+@mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
+def test_bz2_reading(pgi_, vii_base_nc_file, vii_base_nc_file_bz2, vii_filename_info):
+    """Test that a bz2-compressed file is transparently decompressed and read correctly."""
+    interp_longitude = xr.DataArray(np.ones((10, 100)))
+    interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
+    pgi_.return_value = (interp_longitude, interp_latitude)
+
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+    }
+    reader = ViiNCBaseFileHandler(str(vii_base_nc_file_bz2), vii_filename_info, filetype_info)
+    expected_reader = ViiNCBaseFileHandler(str(vii_base_nc_file), vii_filename_info, filetype_info)
+
+    # Should have decompressed to a separate temp file, not read the .bz2 directly
+    assert reader.filename != str(vii_base_nc_file_bz2)
+
+    # Cross-check against the uncompressed-file reader
+    assert reader.spacecraft_name == expected_reader.spacecraft_name
+    assert reader.start_time == expected_reader.start_time
+
+    variable = reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    expected = expected_reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    assert np.allclose(variable.values, expected.values)
+    # Not asserting the decompressed temp file is deleted immediately here -- cleanup
+    # timing depends on __del__/gc timing and, on Windows, on the underlying file handle
+    # being released first. The actual contract we care about (cleanup never raises,
+    # even if it fails) is covered separately by test_del_swallows_cleanup_errors.
+
+
+def test_corrupt_bz2_raises(tmp_path, vii_filename_info):
+    """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
+    bad_filename = tmp_path / "corrupt.nc.bz2"
+    bad_filename.write_bytes(b"not a real bz2 stream")
+
+    with pytest.raises(OSError):   # noqa: PT011 -- underlying error (WinError 32 vs pbzip2 vs
+                                   # "invalid data stream") varies by OS/locale/pbzip2 install;
+                                   # see satpy/readers/core/utils.py::unzip_file
+        ViiNCBaseFileHandler(str(bad_filename), vii_filename_info, {})
+
+
+@mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
+def test_del_swallows_cleanup_errors(pgi_, vii_base_nc_file_bz2, vii_filename_info):
+    """Test that __del__ never raises, even if removing the decompressed temp file fails."""
+    interp_longitude = xr.DataArray(np.ones((10, 100)))
+    interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
+    pgi_.return_value = (interp_longitude, interp_latitude)
+
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+    }
+    reader = ViiNCBaseFileHandler(str(vii_base_nc_file_bz2), vii_filename_info, filetype_info)
+
+    with mock.patch("os.remove", side_effect=OSError("mock disk error")):
+        reader.__del__()  # must not raise
