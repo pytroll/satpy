@@ -548,7 +548,8 @@ def test_bz2_reading(pgi_, vii_base_nc_file, vii_base_nc_file_bz2, vii_filename_
     # even if it fails) is covered separately by test_del_swallows_cleanup_errors.
 
 
-def test_corrupt_bz2_raises(tmp_path, vii_filename_info):
+@mock.patch("satpy.readers.core.utils.which", return_value=None)
+def test_corrupt_bz2_raises(which_, tmp_path, vii_filename_info):
     """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
     bad_filename = tmp_path / "corrupt.nc.bz2"
     bad_filename.write_bytes(b"not a real bz2 stream")
