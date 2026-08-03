@@ -26,21 +26,21 @@ Per default, the reader retds and loads an sparse 1-D array
 of fire pixels and maps them on an 2-D grid based on the 1 km Full disk
 FCI grid. The resulting 2-D array is Compatible with later resampling.
 
-#Example:
-#from satpy import Scene
-#from satpy.area import get_area_def
-#path_frp_csv = "/path/to/csv/file/LSA-509_MTG_MTFRPPIXEL-ListProduct_MTG-FD_YYYMMDDHHMM.csv"
-#scn = Scene(reader='lsasaf_mtgfrp_l2_csv', filenames=[path_frp_csv])
-#scn_l1c.load(["frp"])
-#lcl = scn_l1c.resample("eurol", resampler="nearest")
-#lcl.save_dataset(
-#    "frp",
-#    (
-#        "{platform_name}_{name}_{area.area_id}_"
-#        "{start_time:%Y%m%d_%H%M}_{end_time:%H%M}-geotiff.tif"
-#    ),
-#    writer="geotiff",
-#)
+Example::
+    from satpy import Scene
+    from satpy.area import get_area_def
+    path_frp_csv = "/path/to/csv/file/LSA-509_MTG_MTFRPPIXEL-ListProduct_MTG-FD_YYYMMDDHHMM.csv"
+    scn = Scene(reader='lsasaf_mtgfrp_l2_csv', filenames=[path_frp_csv])
+    scn_l1c.load(["frp"])
+    lcl = scn_l1c.resample("eurol", resampler="nearest")
+    lcl.save_dataset(
+        "frp",
+        (
+            "{platform_name}_{name}_{area.area_id}_"
+            "{start_time:%Y%m%d_%H%M}_{end_time:%H%M}-geotiff.tif"
+        ),
+        writer="geotiff",
+    )
 
 NOTE: Currently method end_time is designed for 10 minute scan times, not for RSS.
 """
