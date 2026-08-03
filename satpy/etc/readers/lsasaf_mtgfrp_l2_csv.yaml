@@ -1,5 +1,5 @@
 reader:
-  name: lsasaf-mtgfrp_l2_csv
+  name: lsasaf_mtgfrp_l2_csv
   short_name: FCI LSASAF-FRP CSV
   long_name: MTG FCI Level 2 LSASAF FRP (CSV)
   description: >
