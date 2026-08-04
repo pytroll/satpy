@@ -37,7 +37,7 @@ from satpy.readers.core._geos_area import get_geos_area_naming
 from satpy.readers.core.eum import get_service_mode, recarray2dict
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.seviri import mpef_product_header
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
 try:
     import eccodes as ec
@@ -47,14 +47,14 @@ except ImportError:
 
 logger = logging.getLogger("EumetsatL2Bufr")
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 SSP_DEFAULT = 0.0
 BUFR_FILL_VALUE = -1.e+100
 
 data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "name": "MSG2"},
                     57: {"ssp": "E0095", "name": "MSG3"}, 70: {"ssp": "E0000", "name": "MSG4"},
-                    71: {"ssp": "E0000", "name": "MTGi1"}}
+                    71: {"ssp": "E0000", "name": "MTGi1"}, 73: {"ssp": "E0000", "name": "MTGi2"}}
 
 # Sensor resolution (pixel size in m) used to deermine product segment sizes
 resolution_dict = {"fci": 2000, "seviri": 3000}

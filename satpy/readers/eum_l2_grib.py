@@ -37,9 +37,9 @@ from satpy.readers.core.seviri import PLATFORM_DICT as SEVIRI_PLATFORM_DICT
 from satpy.readers.core.seviri import REPEAT_CYCLE_DURATION as SEVIRI_REPEAT_CYCLE_DURATION
 from satpy.readers.core.seviri import REPEAT_CYCLE_DURATION_RSS as SEVIRI_REPEAT_CYCLE_DURATION_RSS
 from satpy.readers.core.seviri import calculate_area_extent as seviri_calculate_area_extent
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 try:
     import eccodes as ec
