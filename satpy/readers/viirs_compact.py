@@ -291,9 +291,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         elif dataset_key["calibration"] != "radiance":
             raise ValueError("Calibration parameter should be radiance, "
-                             # 8< v1.0
-                             "reflectance, "
-                             # >8 v1.0
                              "unnormalized_reflectance or brightness_temperature")
         rads = rads.clip(min=0)
         rads.attrs = self.mda
