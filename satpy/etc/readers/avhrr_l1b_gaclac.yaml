@@ -6,7 +6,7 @@ reader:
     status: Nominal
     supports_fsspec: false
     reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-    sensors: [avhrr-3, avhrr-2, avhrr-1]
+    instruments: [avhrr-3, avhrr-2, avhrr-1]
 
 datasets:
     '1':

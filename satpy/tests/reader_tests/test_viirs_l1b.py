@@ -218,7 +218,7 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
@@ -249,7 +249,7 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
@@ -286,7 +286,7 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert v.attrs["day_night"] == "Day"
             assert v.attrs["orbital_parameters"]["start_direction"] == "Descending"
             assert v.attrs["orbital_parameters"]["end_direction"] == "Ascending"
@@ -316,7 +316,7 @@ class TestVIIRSL1BReaderDay:
         assert len(datasets) == 4
         for v in datasets.values():
             assert v.attrs["resolution"] == 371
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
@@ -337,7 +337,7 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
@@ -363,7 +363,7 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
@@ -387,7 +387,7 @@ class TestVIIRSL1BReaderDay:
         assert len(datasets) == 2
         for v in datasets.values():
             assert v.attrs["units"] == "1"
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 

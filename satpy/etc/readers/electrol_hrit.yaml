@@ -5,7 +5,7 @@ reader:
   description: Reader for Electro-L N2 MSU-GS HRIT data
   status: Nominal
   supports_fsspec: false
-  sensors: [msu-gs]
+  instruments: [msu-gs]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

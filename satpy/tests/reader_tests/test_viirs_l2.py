@@ -130,7 +130,7 @@ class TestVIIRSL2FileHandler:
         for d in loaded_datasets.values():
             assert d.shape == DEFAULT_FILE_SHAPE
             assert d.dims == ("y", "x")
-            assert d.attrs["sensor"] == "viirs"
+            assert d.attrs["instruments"] == {"VIIRS"}
             d_np = d.compute()
             assert d.dtype == d_np.dtype
             assert d.dtype == np.float32

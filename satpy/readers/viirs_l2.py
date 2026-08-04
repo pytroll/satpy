@@ -71,7 +71,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Get sensor name."""
-        return self["/attr/instrument"].lower()
+        return self["/attr/instrument"]
 
     def _get_dataset_file_units(self, ds_info, var_path):
         file_units = ds_info.get("units")
@@ -106,7 +106,7 @@ class VIIRSL2FileHandler(NetCDF4FileHandler):
             {
                 "file_units": file_units,
                 "platform_name": self.platform_name,
-                "sensor": self.sensor_name,
+                "instruments": {self.sensor_name},
                 "start_orbit": self.start_orbit_number,
                 "end_orbit": self.end_orbit_number,
             }

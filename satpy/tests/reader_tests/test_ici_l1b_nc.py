@@ -522,7 +522,7 @@ class TestIciL1bNCFileHandler:
             "end_time": dt.datetime(2000, 1, 2, 4, 5, 6),
             "spacecraft_name": "SGB",
             "ssp_lon": None,
-            "sensor": "ICI",
+            "instruments": {"ICI"},
             "filename_start_time": dt.datetime(2000, 1, 1, 1, 0),
             "filename_end_time": dt.datetime(2000, 1, 1, 2, 0),
             "platform_name": "SGB",

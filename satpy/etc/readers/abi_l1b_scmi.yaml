@@ -5,7 +5,7 @@ reader:
   description: SCMI NetCDF4 Reader for ABI data
   status: Beta
   supports_fsspec: false
-  sensors: []
+  instruments: []
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 # Typical filenames from Unidata THREDDS server:

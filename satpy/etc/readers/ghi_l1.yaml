@@ -9,7 +9,7 @@ reader:
   description: FY-4A GHI instrument HDF5 reader
   status: Nominal
   supports_fsspec: false
-  sensors: [ghi]
+  instruments: [ghi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

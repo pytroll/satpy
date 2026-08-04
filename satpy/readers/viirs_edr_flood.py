@@ -41,8 +41,8 @@ class VIIRSEDRFlood(HDF4FileHandler):
         """Get sensor name."""
         sensor = self["/attr/SensorIdentifyCode"]
         if isinstance(sensor, np.ndarray):
-            return str(sensor.astype(str)).lower()
-        return sensor.lower()
+            return str(sensor.astype(str))
+        return sensor
 
     @property
     def platform_name(self):
@@ -58,7 +58,7 @@ class VIIRSEDRFlood(HDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(ds_info)
         metadata.update({
-            "sensor": self.sensor_name,
+            "instruments": {str(self.sensor_name)},
             "platform_name": self.platform_name,
             "start_time": self.start_time,
             "end_time": self.end_time,

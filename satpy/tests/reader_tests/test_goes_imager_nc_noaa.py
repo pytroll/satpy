@@ -403,7 +403,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                             "projection_altitude": ALTITUDE,
                                             "yaw_flip": True},
                      "platform_name": "GOES-15",
-                     "sensor": "goes_imager",
+                     "instruments": {"IMAGER (GOES 12-15)"},
                      "sector": UNKNOWN_SECTOR,
                      "nadir_row": 1,
                      "nadir_col": 2,

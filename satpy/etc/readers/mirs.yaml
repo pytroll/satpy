@@ -6,7 +6,7 @@ reader:
   status: Beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [amsu, amsu-mhs, atms, ssmis, gmi]
+  instruments: [amsu, amsu-mhs, atms, ssmis, gmi]
   data_files:
      - url: "https://zenodo.org/record/10357932/files/limbcoef_atmsland_noaa20.txt"
        known_hash: "08deca15afe8638effac9e6ccb442c2c386f5444926129d30a250d5840264c1d"

@@ -35,6 +35,8 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
+import satpy._instruments as inst_utils
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import unzip_file
 from satpy.utils import get_chunk_size_limit
@@ -45,29 +47,30 @@ CHUNK_SIZE = get_chunk_size_limit()
 
 V2025_PERSPECTIVE_POINT_HEIGHT = 35786400.0
 
+
 SENSOR = {
-    "NOAA-19": "avhrr-3",
-    "NOAA-18": "avhrr-3",
-    "NOAA-15": "avhrr-3",
-    "Metop-A": "avhrr-3",
-    "Metop-B": "avhrr-3",
-    "Metop-C": "avhrr-3",
-    "EOS-Aqua": "modis",
-    "EOS-Terra": "modis",
-    "Suomi-NPP": "viirs",
-    "NOAA-20": "viirs",
-    "NOAA-21": "viirs",
-    "NOAA-22": "viirs",
-    "NOAA-23": "viirs",
-    "JPSS-1": "viirs",
-    "Metop-SG-A1": "metimage",
-    "Metop-SG-A2": "metimage",
-    "Metop-SG-A3": "metimage",
-    "GOES-16": "abi",
-    "GOES-17": "abi",
-    "Himawari-8": "ahi",
-    "Himawari-9": "ahi",
-    "Meteosat-12": "fci",
+    "NOAA-19": OSCAR.AVHRR_3,
+    "NOAA-18": OSCAR.AVHRR_3,
+    "NOAA-15": OSCAR.AVHRR_3,
+    "Metop-A": OSCAR.AVHRR_3,
+    "Metop-B": OSCAR.AVHRR_3,
+    "Metop-C": OSCAR.AVHRR_3,
+    "EOS-Aqua": OSCAR.MODIS,
+    "EOS-Terra": OSCAR.MODIS,
+    "Suomi-NPP": OSCAR.VIIRS,
+    "NOAA-20": OSCAR.VIIRS,
+    "NOAA-21": OSCAR.VIIRS,
+    "NOAA-22": OSCAR.VIIRS,
+    "NOAA-23": OSCAR.VIIRS,
+    "JPSS-1": OSCAR.VIIRS,
+    "Metop-SG-A1": OSCAR.METIMAGE,
+    "Metop-SG-A2": OSCAR.METIMAGE,
+    "Metop-SG-A3": OSCAR.METIMAGE,
+    "GOES-16": OSCAR.ABI,
+    "GOES-17": OSCAR.ABI,
+    "Himawari-8": OSCAR.AHI,
+    "Himawari-9": OSCAR.AHI,
+    "Meteosat-12": OSCAR.FCI,
 }
 
 
@@ -105,7 +108,7 @@ class NcNWCSAF(BaseFileHandler):
 
         self.pps = False
         self.platform_name = None
-        self.sensor = None
+        self.sensor = {}
         self.file_key_prefix = filetype_info.get("file_key_prefix", "")
 
         try:
@@ -134,7 +137,7 @@ class NcNWCSAF(BaseFileHandler):
             self.platform_name = kwargs["platform_name"]
             self.pps = True
 
-        self.sensor = set([SENSOR.get(self.platform_name, "seviri")])
+        self.sensor = {SENSOR.get(self.platform_name, "SEVIRI")}
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
@@ -227,7 +230,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop("scale_factor", None)
 
         variable.attrs.update({"platform_name": self.platform_name,
-                               "sensor": self.sensor})
+                               "instruments": inst_utils.enum_to_str(self.sensor)})
 
         if not variable.attrs.get("standard_name", "").endswith("status_flag"):
             # TODO: do we really need to add units to everything ?

@@ -35,6 +35,7 @@ from numpy.typing import ArrayLike
 
 from satpy.readers.core._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
 from satpy.readers.core.eum import recarray2dict, time_cds_short
+from satpy.readers.core.goes_imager import ALTITUDE, EQUATOR_RADIUS, INSTRUMENTS, POLE_RADIUS, SPACECRAFTS
 from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
@@ -50,10 +51,6 @@ class CalibrationError(Exception):
 
 logger = logging.getLogger("hrit_goes")
 
-# Geometric constants [meters]
-EQUATOR_RADIUS = 6378169.00
-POLE_RADIUS = 6356583.80
-ALTITUDE = 35785831.00
 
 # goes implementation:
 key_header = np.dtype([("key_number", "u1"),
@@ -342,30 +339,6 @@ geometric_processing = np.dtype([("TagType", "<u4"),
 C1 = 1.19104273e-5
 C2 = 1.43877523
 
-SPACECRAFTS = {
-    # these are GP_SC_ID
-    18007: "GOES-7",
-    18008: "GOES-8",
-    18009: "GOES-9",
-    18010: "GOES-10",
-    18011: "GOES-11",
-    18012: "GOES-12",
-    18013: "GOES-13",
-    18014: "GOES-14",
-    18015: "GOES-15",
-    # these are in block-0
-    7: "GOES-7",
-    8: "GOES-8",
-    9: "GOES-9",
-    10: "GOES-10",
-    11: "GOES-11",
-    12: "GOES-12",
-    13: "GOES-13",
-    14: "GOES-14",
-    15: "GOES-15"}
-
-SENSOR_NAME = "goes_imager"
-
 
 class HRITGOESFileHandler(HRITFileHandler):
     """GOES HRIT format reader."""
@@ -386,6 +359,7 @@ class HRITGOESFileHandler(HRITFileHandler):
 
         satellite_id = self.prologue["SatelliteID"]
         self.platform_name = SPACECRAFTS[satellite_id]
+        self.instrument = INSTRUMENTS[self.platform_name]
 
     def get_dataset(self, key, info):
         """Get the data  from the files."""
@@ -399,7 +373,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         new_attrs.update(res.attrs)
         res.attrs = new_attrs
         res.attrs["platform_name"] = self.platform_name
-        res.attrs["sensor"] = SENSOR_NAME
+        res.attrs["instruments"] = {str(self.instrument)}
         res.attrs["orbital_parameters"] = {"projection_longitude": self.mda["projection_parameters"]["SSP_longitude"],
                                            "projection_latitude": 0.0,
                                            "projection_altitude": ALTITUDE}
@@ -470,7 +444,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         loff = nlines - loff
         name_dict = get_geos_area_naming({
             "platform_name": self.platform_name,
-            "instrument_name": SENSOR_NAME,
+            "instrument_name": "goes_imager",
             # Partial scans are padded to full disk
             "service_name": "FD",
             "service_desc": "Full Disk",

@@ -30,6 +30,7 @@ import logging
 
 import numpy as np
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.abi import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class NCGriddedGLML2(NC_ABI_BASE):
     @property
     def sensor(self):
         """Get sensor name for current file handler."""
-        return "glm"
+        return OSCAR.GLM
 
     @property
     def start_time(self):
@@ -77,7 +78,7 @@ class NCGriddedGLML2(NC_ABI_BASE):
         logger.debug("Reading in get_dataset %s.", key["name"])
         res = self[key["name"]]
         res.attrs.update({"platform_name": self.platform_name,
-                          "sensor": self.sensor})
+                          "instruments": {str(self.sensor)}})
         res.attrs.update(self.filename_info)
 
         # Add orbital parameters

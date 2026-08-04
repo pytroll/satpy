@@ -6,7 +6,7 @@ reader:
     Reader for ASCAT L2 SOIL MOISUTRE FILES
   status: Defunct
   supports_fsspec: false
-  sensors: [scatterometer]
+  instruments: [scatterometer]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   default_datasets:
 

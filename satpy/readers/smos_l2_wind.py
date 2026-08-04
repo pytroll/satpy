@@ -67,7 +67,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         metadata.update({
             "platform_shortname": self.platform_shortname,
             "platform_name": self.platform_name,
-            "sensor": self["/attr/instrument"],
+            "instruments": {self["/attr/instrument"]},
             "start_time": self.start_time,
             "end_time": self.end_time,
             "level": self["/attr/processing_level"],

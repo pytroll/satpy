@@ -28,6 +28,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -264,7 +265,7 @@ class NCSLSTRAngles(BaseFileHandler):
 
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
-        self.sensor = "slstr"
+        self.sensor = OSCAR.SLSTR
         self.view = filename_info["view"]
         self._start_time = filename_info["start_time"]
         self._end_time = filename_info["end_time"]
@@ -345,7 +346,7 @@ class NCSLSTRAngles(BaseFileHandler):
                                     dims=["y", "x"], attrs=variable.attrs)
 
         variable.attrs["platform_name"] = self.platform_name
-        variable.attrs["sensor"] = self.sensor
+        variable.attrs["instruments"] = {str(self.sensor)}
 
         if "units" not in variable.attrs:
             variable.attrs["units"] = "degrees"

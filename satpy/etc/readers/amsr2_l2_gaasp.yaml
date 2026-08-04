@@ -9,7 +9,7 @@ reader:
   status: Beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [amsr2]
+  instruments: [amsr2]
 
 file_types:
   amsr2_mbt:

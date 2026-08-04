@@ -380,7 +380,7 @@ class Test_HDF_AGRI_L1_cal:
     def _check_calibration_and_units(self, band_names, result):
         for band_name in band_names:
             band_number = int(band_name[-2:])
-            assert result[band_name].attrs["sensor"].islower()
+            assert result[band_name].attrs["instruments"] == {"AGRI"}
             assert result[band_name].shape == (2, 5)
             np.testing.assert_allclose(result[band_name].values, self.expected[band_number], equal_nan=True)
             self._check_units(band_name, result)

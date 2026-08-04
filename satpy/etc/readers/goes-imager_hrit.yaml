@@ -5,7 +5,7 @@ reader:
   description: Reader for GOES Imager Level 1 data in HRIT format
   status: Nominal
   supports_fsspec: false
-  sensors: [goes_imager]
+  instruments: [goes_imager]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOSegmentYAMLReader
 
 # eg.

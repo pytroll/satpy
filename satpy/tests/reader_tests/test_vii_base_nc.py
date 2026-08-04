@@ -177,7 +177,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             "end_time": expected_end_time,
             "spacecraft_name": "test_spacecraft",
             "ssp_lon": None,
-            "sensor": "test_instrument",
+            "instruments": {"test_instrument"},
             "filename_start_time": datetime.datetime(year=2017, month=9, day=20,
                                                      hour=12, minute=30, second=30),
             "filename_end_time": datetime.datetime(year=2017, month=9, day=20,

@@ -73,7 +73,7 @@ class HIML2NCFileHandler(BaseFileHandler):
         if self.nc.attrs["cdm_data_type"] != EXPECTED_DATA_AREA:
             raise ValueError("File is not a full disk scene")
 
-        self.sensor = self.nc.attrs["instrument_name"].lower()
+        self.sensor = self.nc.attrs["instrument_name"]
         self.nlines = self.nc.sizes["Columns"]
         self.ncols = self.nc.sizes["Rows"]
         self.platform_name = self.nc.attrs["satellite_name"]
@@ -104,7 +104,7 @@ class HIML2NCFileHandler(BaseFileHandler):
         variable = variable.drop_vars("Latitude")
         variable = variable.drop_vars("Longitude")
 
-        variable.attrs["sensor"] = self.sensor
+        variable.attrs["instruments"] = {self.sensor}
         variable.attrs["platform_name"] = self.platform_name
         variable.attrs["platform_shortname"] = self.platform_shortname
         variable.attrs["start_time"] = self.start_time

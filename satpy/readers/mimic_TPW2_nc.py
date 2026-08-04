@@ -149,7 +149,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         metadata.update(info)
         metadata.update({
             "platform_shortname": "aggregated microwave",
-            "sensor": "mimic",
+            "instruments": {"mimic"},
             "start_time": self.start_time,
             "end_time": self.end_time,
         })

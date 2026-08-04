@@ -130,7 +130,7 @@ class GAASPFileHandler(BaseFileHandler):
     @property
     def sensor_names(self):
         """Sensors who have data in this file."""
-        return {self.nc.attrs["instrument_name"].lower()}
+        return {self.nc.attrs["instrument_name"]}
 
     @property
     def platform_name(self):
@@ -192,7 +192,7 @@ class GAASPFileHandler(BaseFileHandler):
 
         attrs.update({
             "platform_name": self.platform_name,
-            "sensor": sorted(self.sensor_names)[0],
+            "instruments": self.sensor_names,
             "start_time": self.start_time,
             "end_time": self.end_time,
         })

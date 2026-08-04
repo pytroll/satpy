@@ -5,7 +5,7 @@ reader:
   description: SAFE Reader for SAR L2 OCN data
   status: Defunct
   supports_fsspec: false
-  sensors: [sar-c]
+  instruments: [sar-c]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

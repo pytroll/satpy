@@ -309,19 +309,19 @@ def nwcsaf_old_geo_ct_filehandler(nwcsaf_old_geo_ct_filename):
 class TestNcNWCSAFGeo:
     """Test the NcNWCSAF reader for Geo products."""
 
-    @pytest.mark.parametrize(("platform", "instrument"), [("Metop-B", "avhrr-3"),
-                                                          ("NOAA-20", "viirs"),
-                                                          ("Himawari-8", "ahi"),
-                                                          ("GOES-17", "abi"),
-                                                          ("Meteosat-11", "seviri")])
+    @pytest.mark.parametrize(("platform", "instrument"), [("Metop-B", "AVHRR/3"),
+                                                          ("NOAA-20", "VIIRS"),
+                                                          ("Himawari-8", "AHI"),
+                                                          ("GOES-17", "ABI"),
+                                                          ("Meteosat-11", "SEVIRI")])
     def test_sensor_name_platform(self, nwcsaf_geo_ct_filehandler, platform, instrument):
         """Test that the correct sensor name is being set."""
         nwcsaf_geo_ct_filehandler.set_platform_and_sensor(platform_name=platform)
         assert nwcsaf_geo_ct_filehandler.sensor == set([instrument])
         assert nwcsaf_geo_ct_filehandler.sensor_names == set([instrument])
 
-    @pytest.mark.parametrize(("platform", "instrument"), [("GOES16", "abi"),
-                                                          ("MSG4", "seviri")])
+    @pytest.mark.parametrize(("platform", "instrument"), [("GOES16", "ABI"),
+                                                          ("MSG4", "SEVIRI")])
     def test_sensor_name_sat_id(self, nwcsaf_geo_ct_filehandler, platform, instrument):
         """Test that the correct sensor name is being set."""
         nwcsaf_geo_ct_filehandler.set_platform_and_sensor(sat_id=platform)

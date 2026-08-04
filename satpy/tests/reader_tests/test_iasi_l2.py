@@ -157,7 +157,7 @@ def test_scene(test_data):
     assert scn.start_time is not None
     assert scn.end_time is not None
     assert scn.sensor_names
-    assert "iasi" in scn.sensor_names
+    assert "IASI" in scn.sensor_names
 
 
 def test_scene_load_available_datasets(test_data):
@@ -200,8 +200,6 @@ def test_init(test_data, iasi_filehandler):
     assert iasi_filehandler.finfo == FNAME_INFO
     assert iasi_filehandler.lons is None
     assert iasi_filehandler.lats is None
-    assert iasi_filehandler.mda["platform_name"] == "Metop-B"
-    assert iasi_filehandler.mda["sensor"] == "iasi"
 
 
 def test_time_properties(iasi_filehandler):

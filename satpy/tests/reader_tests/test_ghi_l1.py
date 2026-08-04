@@ -344,7 +344,7 @@ class Test_HDF_GHI_L1_cal:
 
     def _check_calibration_and_units(self, band_names, result):
         for band_name in band_names:
-            assert result[band_name].attrs["sensor"].islower()
+            assert result[band_name].attrs["instruments"] == {"GHI"}
             assert result[band_name].shape == (2, 5)
             np.testing.assert_allclose(result[band_name].values, self.expected[band_name], equal_nan=True)
             self._check_units(band_name, result)

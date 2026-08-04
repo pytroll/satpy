@@ -4,7 +4,7 @@ reader:
   long_name: Himawari-8/9 AHI Level 2 products in netCDF4 format from NOAA enterprise
   status: Beta
   supports_fsspec: true
-  sensors: ['ahi']
+  instruments: [ahi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 

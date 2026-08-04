@@ -228,7 +228,7 @@ class TestCLAVRXReaderGeo:
                 for v in datasets.values():
                     assert isinstance(v.area, AreaDefinition)
                     assert v.platform_name == "GOES-16"
-                    assert v.sensor == "abi"
+                    assert v.instruments == {"ABI"}
 
                     assert "calibration" not in v.attrs
                     assert "rows_per_scan" not in v.coords.get("longitude").attrs

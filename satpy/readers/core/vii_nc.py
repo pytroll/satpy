@@ -195,7 +195,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             "end_time": self.end_time,
             "spacecraft_name": self.spacecraft_name,
             "ssp_lon": self.ssp_lon,
-            "sensor": self.sensor,
+            "instruments": {self.sensor},
             "filename_start_time": self.filename_info["sensing_start_time"],
             "filename_end_time": self.filename_info["sensing_end_time"],
             "platform_name": self.spacecraft_name,

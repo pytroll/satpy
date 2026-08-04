@@ -70,7 +70,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Get sensor name."""
-        return self["/attr/instrument"].lower()
+        return self["/attr/instrument"]
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
         """Adjust scaling factors."""
@@ -191,7 +191,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "instruments": {self.sensor_name},
             "day_night": self["/attr/DayNightFlag"],
             "orbital_parameters": orb_param,
             "start_orbit": self.start_orbit_number,

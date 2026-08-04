@@ -3,7 +3,7 @@ reader:
   short_name: ISCCP NG NetCDF4
   long_name: ISCCP NG Level 1g NetCDF4
   description: https://cimss.ssec.wisc.edu/isccp-ng/
-  sensors: [seviri, abi, ahi]
+  instruments: [seviri, abi, ahi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   group_keys: ["start_time", "satid"]
 

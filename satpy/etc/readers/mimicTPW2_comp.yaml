@@ -5,7 +5,7 @@ reader:
     description:  NetCDF4 reader for the MIMIC TPW Version 2.0 product
     status: Beta
     supports_fsspec: false
-    sensors: [mimic]
+    instruments: [mimic]
     reader:  !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

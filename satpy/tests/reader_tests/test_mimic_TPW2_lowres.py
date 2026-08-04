@@ -120,7 +120,7 @@ class TestMimicTPW2Reader:
         assert len(ds) == len(float_variables)
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "aggregated microwave"
-            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["instruments"] == {"mimic"}
             assert d.attrs["units"] == "mm"
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
@@ -135,7 +135,7 @@ class TestMimicTPW2Reader:
         assert len(ds) == len(date_variables)
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "aggregated microwave"
-            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["instruments"] == {"mimic"}
             assert d.attrs["units"] == "minutes"
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
@@ -151,7 +151,7 @@ class TestMimicTPW2Reader:
         assert len(ds) == len(ubyte_variables)
         for d in ds.values():
             assert d.attrs["platform_shortname"] == "aggregated microwave"
-            assert d.attrs["sensor"] == "mimic"
+            assert d.attrs["instruments"] == {"mimic"}
             assert "source_key" in d.attrs
             assert "area" in d.attrs
             assert d.attrs["area"] is not None

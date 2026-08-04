@@ -5,7 +5,7 @@ reader:
   description: reader for VIRR data
   status: Beta
   supports_fsspec: false
-  sensors: [virr]
+  instruments: [virr]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

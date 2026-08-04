@@ -132,7 +132,7 @@ class TestGHRSSTL2Reader:
         self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
         test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
-        assert test.sensor == "viirs"
+        assert test.sensor == "VIIRS"
 
     def test_get_start_and_end_times(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""

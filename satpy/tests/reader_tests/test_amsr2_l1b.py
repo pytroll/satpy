@@ -160,7 +160,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
             assert d.attrs["area"] is not None
             assert d.attrs["area"].lons.shape == (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2)
             assert d.attrs["area"].lats.shape == (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2)
-            assert d.attrs["sensor"] == "amsr2"
+            assert d.attrs["instruments"] == {"AMSR2"}
             assert d.attrs["platform_name"] == "GCOM-W1"
 
     def test_load_89ghz(self):

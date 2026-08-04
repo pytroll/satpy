@@ -5,7 +5,7 @@ reader:
   description: NetCDF4 reader for the NWCSAF GEO 2016/2018 format
   status: Alpha
   supports_fsspec: false
-  sensors: [seviri, abi, ahi]
+  instruments: [seviri, abi, ahi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

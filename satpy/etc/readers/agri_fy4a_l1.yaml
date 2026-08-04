@@ -9,7 +9,7 @@ reader:
   description: FY-4A AGRI instrument HDF5 reader
   status: Beta
   supports_fsspec: false
-  sensors: [agri]
+  instruments: [agri]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

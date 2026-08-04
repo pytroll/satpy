@@ -5,7 +5,7 @@ reader:
   description: Reader for EUMETSAT MTG FCI L2 files in NetCDF4 format.
   status: Alpha
   supports_fsspec: false
-  sensors: [fci]
+  instruments: [fci]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:

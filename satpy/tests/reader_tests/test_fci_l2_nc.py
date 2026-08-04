@@ -132,7 +132,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             "filename": self.test_file,
             "spacecraft_name": "TEST_PLATFORM",
             "ssp_lon": 0.0,
-            "sensor": "test_data_source",
+            "instruments": {"test_data_source"},
             "platform_name": "TEST_PLATFORM"
         }
         assert global_attributes == expected_global_attributes
@@ -338,7 +338,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             "filename": self.seg_test_file,
             "spacecraft_name": "TEST_FCI_PLATFORM",
             "ssp_lon": 0.0,
-            "sensor": "test_fci_data_source",
+            "instruments": {"test_fci_data_source"},
             "platform_name": "TEST_FCI_PLATFORM"
         }
         assert global_attributes == expected_global_attributes
@@ -627,7 +627,7 @@ class TestFciL2NCAMVFileHandler:
         expected_global_attributes = {
             "filename": amv_file,
             "spacecraft_name": "TEST_PLATFORM",
-            "sensor": "test_data_source",
+            "instruments": {"test_data_source"},
             "platform_name": "TEST_PLATFORM",
             "channel": "test_channel",
             "ssp_lon": 0.0,

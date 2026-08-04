@@ -278,7 +278,7 @@ class TestOLCIReader(unittest.TestCase):
                                                  coords={"rows": np.arange(5),
                                                          "columns": np.arange(6)},
                                                  attrs=attr_dict)
-        ds_info = {"name": "chl_nn", "sensor": "olci", "resolution": 300,
+        ds_info = {"name": "chl_nn", "instruments": {"OLCI"}, "resolution": 300,
                    "standard_name": "algal_pigment_concentration", "units": "lg(re mg.m-3)",
                    "coordinates": ("longitude", "latitude"), "file_type": "esa_l2_chl_nn", "nc_key": "CHL_NN",
                    "modifiers": ()}

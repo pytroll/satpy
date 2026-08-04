@@ -8,7 +8,7 @@ reader:
     `here <https://lpdaac.usgs.gov/products/cam5k30emv002/>`_.
   status: Nominal
   supports_fsspec: false
-  sensors: [combined]
+  instruments: [combined]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

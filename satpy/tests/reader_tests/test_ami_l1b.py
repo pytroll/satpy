@@ -244,7 +244,7 @@ class TestAMIL1bNetCDF:
         exp = {"calibration": "radiance",
                "modifiers": (),
                "platform_name": "GEO-KOMPSAT-2A",
-               "sensor": "ami",
+               "instruments": {"AMI"},
                "units": "W m-2 um-1 sr-1"}
         for key, val in exp.items():
             assert val == res.attrs[key]
@@ -285,7 +285,7 @@ class TestAMIL1bNetCDF:
         exp = {"calibration": "reflectance",
                "modifiers": (),
                "platform_name": "GEO-KOMPSAT-2A",
-               "sensor": "ami",
+               "instruments": {"AMI"},
                "units": "%"}
         for key, val in exp.items():
             assert val == res.attrs[key]
@@ -303,7 +303,7 @@ class TestAMIL1bNetCDF:
         exp = {"calibration": "counts",
                "modifiers": (),
                "platform_name": "GEO-KOMPSAT-2A",
-               "sensor": "ami",
+               "instruments": {"AMI"},
                "units": "1"}
         for key, val in exp.items():
             assert val == res.attrs[key]

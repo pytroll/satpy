@@ -7,7 +7,7 @@ reader:
     For documentation see: https://mosdac.gov.in/insat-3d-references .
   status: Beta, navigation still off
   supports_fsspec: false
-  sensors: [insat3d_img]
+  instruments: [insat3d_img]
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:

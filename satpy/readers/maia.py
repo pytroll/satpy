@@ -32,6 +32,7 @@ import h5py
 import numpy as np
 from xarray import DataArray
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
@@ -111,9 +112,9 @@ class MAIAFileHandler(BaseFileHandler):
     def get_platform(self, platform):
         """Get the platform."""
         if self.file_content["sat_id"] in (14,):
-            return "viirs"
+            return OSCAR.VIIRS
         else:
-            return "avhrr"
+            return OSCAR.AVHRR
 
     @property
     def start_time(self):

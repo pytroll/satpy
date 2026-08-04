@@ -5,7 +5,7 @@ reader:
   description: HDF5 reader for the GPM/IMERG data
   status: Nominal
   supports_fsspec: false
-  sensors: [multiple]
+  instruments: [multiple]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

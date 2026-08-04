@@ -46,7 +46,7 @@ from ._modis_fixtures import (
 
 
 def _check_shared_metadata(data_arr):
-    assert data_arr.attrs["sensor"] == "modis"
+    assert data_arr.attrs["instruments"] == {"MODIS"}
     assert data_arr.attrs["platform_name"] == "Terra"
     assert "rows_per_scan" in data_arr.attrs
     assert isinstance(data_arr.attrs["rows_per_scan"], int)

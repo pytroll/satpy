@@ -378,7 +378,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.sensor == "mhs"
+        assert fh_.sensor == "MHS"
 
         self._header["instrument"][0] = 11
         with tempfile.TemporaryFile() as tmpfile:
@@ -388,7 +388,7 @@ class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
 
             fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
-        assert fh_.sensor == "amsub"
+        assert fh_.sensor == "AMSU-B"
 
         self._header["instrument"][0] = 10
 

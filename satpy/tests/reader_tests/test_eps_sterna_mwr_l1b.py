@@ -66,5 +66,5 @@ def test_try_get_data_not_in_file(eps_sterna_mwr_handler):
 
 def test_metadata(eps_sterna_mwr_handler):
     """Test that the metadata is read correctly."""
-    assert eps_sterna_mwr_handler.sensor == "mwr"
+    assert eps_sterna_mwr_handler.sensor == "MWR"
     assert eps_sterna_mwr_handler.platform_name == "ST01"

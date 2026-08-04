@@ -396,7 +396,7 @@ def test_calibrate(tmp_path, calibration):
         key,
         {
             "units": units,
-            "sensor": "ahi",
+            "instruments": ["ahi"],
         },
     )
 
@@ -430,7 +430,7 @@ def test_mask_space(tmp_path):
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     key = make_dataid(name="VIS", calibration="counts")
-    res = reader.get_dataset(key, {"units": "1", "sensor": "ahi"})
+    res = reader.get_dataset(key, {"units": "1", "instruments": ["ahi"]})
     res_np = res.data.compute()
     assert res_np.dtype == res.dtype
     assert res_np.dtype == np.float32
@@ -462,13 +462,13 @@ def test_get_dataset(tmp_path):
     key = make_dataid(name="VIS", calibration="reflectance")
     with mock.patch.object(reader, "_mask_space", wraps=reader._mask_space) as mask_space, \
             mock.patch.object(reader, "calibrate", wraps=reader.calibrate) as calibrate:
-        res = reader.get_dataset(key, {"units": "%", "sensor": "ahi"})
+        res = reader.get_dataset(key, {"units": "%", "instruments": ["ahi"]})
         mask_space.assert_called()
         calibrate.assert_called()
 
     # Check attributes
     assert res.attrs["units"] == "%"
-    assert res.attrs["sensor"] == "ahi"
+    assert res.attrs["instruments"] == {"AHI"}
     assert res.attrs["platform_name"] == HIMAWARI8
     assert res.attrs["orbital_parameters"] == {"projection_longitude": 140.7,
                                                "projection_latitude": 0.0,
@@ -485,7 +485,7 @@ def test_sensor_mismatch(tmp_path, caplog):
     reader = HRITJMAFileHandler(hrit_path, {"start_time": dt.datetime.now()}, {})
 
     key = make_dataid(name="VIS", calibration="reflectance")
-    reader.get_dataset(key, {"units": "%", "sensor": "jami"})
+    reader.get_dataset(key, {"units": "%", "instruments": ["jami"]})
     assert "Sensor-Platform mismatch" in caplog.text
     hrit_path.unlink()
 

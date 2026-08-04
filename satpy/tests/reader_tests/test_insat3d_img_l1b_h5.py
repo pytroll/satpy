@@ -259,7 +259,7 @@ def test_insat3d_has_orbital_parameters(insat_filehandler):
     assert "satellite_nominal_altitude" in darr.attrs["orbital_parameters"]
     assert "satellite_actual_altitude" in darr.attrs["orbital_parameters"]
     assert "platform_name" in darr.attrs
-    assert "sensor" in darr.attrs
+    assert darr.attrs["instruments"] == {"IMAGER (INSAT)"}
 
 
 def test_filehandler_returns_coords(insat_filehandler):

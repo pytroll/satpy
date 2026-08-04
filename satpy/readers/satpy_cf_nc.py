@@ -182,6 +182,7 @@ import logging
 import xarray as xr
 from pyresample import AreaDefinition
 
+import satpy._instruments as inst_utils
 import satpy.cf.decoding
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.core.file_handlers import BaseFileHandler
@@ -215,10 +216,8 @@ class SatpyCFFileHandler(BaseFileHandler):
         """Get sensor set."""
         sensors = set()
         for _, ds_info in self.available_datasets():
-            try:
-                sensors.add(ds_info["sensor"])
-            except KeyError:
-                continue
+            instruments = inst_utils.get_instruments_from_attrs(ds_info)
+            sensors.update(instruments)
         return sensors
 
     def available_datasets(self, configured_datasets=None):

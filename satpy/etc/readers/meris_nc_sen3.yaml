@@ -5,7 +5,7 @@ reader:
   description: NC Reader for MERIS data (Sentinel 3 like format)
   status: Beta
   supports_fsspec: false
-  sensors: [meris]
+  instruments: [meris]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

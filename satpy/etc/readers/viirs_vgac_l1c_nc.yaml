@@ -5,7 +5,7 @@ reader:
   description: https://ams.confex.com/ams/JOINTSATMET/mediafile/Handout/Paper360556/VGAC%20version%201%20-%20poster.pdf
 
     NetCDF4 reader for VGAC from VIIRS.
-  sensors: [viirs]
+  instruments: [viirs]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

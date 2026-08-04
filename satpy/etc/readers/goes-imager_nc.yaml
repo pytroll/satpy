@@ -11,7 +11,7 @@ reader:
 
   status: Beta
   supports_fsspec: false
-  sensors: [goes_imager]
+  instruments: [goes_imager]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 

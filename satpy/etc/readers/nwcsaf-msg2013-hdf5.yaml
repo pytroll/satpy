@@ -5,7 +5,7 @@ reader:
   description: HDF5 reader for the NWCSAF/Geo Seviri 2013 format
   status: Defunct
   supports_fsspec: false
-  sensors: [seviri]
+  instruments: [seviri]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

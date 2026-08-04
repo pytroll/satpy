@@ -252,7 +252,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         for v in datasets.values():
             assert v.attrs["units"] in ["1", "%"]
             assert v.attrs["platform_name"] == "npp"
-            assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["instruments"] == {"VIIRS"}
             assert isinstance(v.attrs["area"], SwathDefinition)
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 16
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 16

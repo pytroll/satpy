@@ -11,7 +11,7 @@ reader:
     A reader for L1b SEVIRI data that has been retrieved from the ICARE service as HDF.
   status: Defunct
   supports_fsspec: false
-  sensors: [seviri]
+  instruments: [seviri]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:

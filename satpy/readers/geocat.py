@@ -37,6 +37,8 @@ import numpy as np
 from pyproj import Proj
 from pyresample import geometry
 
+import satpy._instruments as inst_utils
+from satpy._instruments import OSCAR
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
@@ -81,19 +83,19 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             xarray_kwargs=kwargs["xarray_kwargs"])
 
     sensors = {
-        "goes": "goes_imager",
-        "himawari8": "ahi",
-        "goes16": "abi",  # untested
-        "goesr": "abi",  # untested
+        "goes": OSCAR.IMAGER_GOES_12_15,
+        "himawari8": OSCAR.AHI,
+        "goes16": OSCAR.ABI,  # untested
+        "goesr": OSCAR.ABI,  # untested
     }
     platforms: dict[str, str] = {
     }
     resolutions = {
-        "abi": {
+        OSCAR.ABI: {
             1: 1002.0086577437705,
             2: 2004.0173154875411,
         },
-        "ahi": {
+        OSCAR.AHI: {
             1: 999.9999820317674,  # assumption
             2: 1999.999964063535,
             4: 3999.99992812707,
@@ -129,7 +131,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     @property
     def sensor_names(self):
         """Get sensor names."""
-        return [self.get_sensor(self["/attr/Sensor_Name"])]
+        return {self.get_sensor(self["/attr/Sensor_Name"])}
 
     @property
     def start_time(self):
@@ -292,7 +294,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             # CF compliance
             info["units"] = CF_UNITS[u]
 
-        info["sensor"] = self.get_sensor(self["/attr/Sensor_Name"])
+        info["instruments"] = inst_utils.enum_to_str(self.sensor_names)
         info["platform_name"] = self.get_platform(self["/attr/Platform_Name"])
         info["resolution"] = dataset_id["resolution"]
         if var_name == "pixel_longitude":

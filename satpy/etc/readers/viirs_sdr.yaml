@@ -6,7 +6,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
-  sensors: [viirs]
+  instruments: [viirs]
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   # by default, don't use start_time group files (only orbit and platform)
   group_keys: ['orbit', 'platform_shortname']

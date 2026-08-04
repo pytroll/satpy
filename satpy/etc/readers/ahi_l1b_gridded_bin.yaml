@@ -10,7 +10,7 @@ reader:
   status: Nominal
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
-  sensors: [ahi]
+  instruments: [ahi]
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time']
 

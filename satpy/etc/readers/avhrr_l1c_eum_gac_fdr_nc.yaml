@@ -5,7 +5,7 @@ reader:
     description: NetCDF4 reader for EUMETCSAT GAC FDR AVHRR L1c
     status: Defunct
     supports_fsspec: false
-    sensors: [avhrr-3, avhrr-2, avhrr-1]
+    instruments: [avhrr-3, avhrr-2, avhrr-1]
     reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 

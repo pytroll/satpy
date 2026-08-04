@@ -28,6 +28,7 @@ import yaml
 from yaml import UnsafeLoader
 
 import satpy
+import satpy._instruments as inst_utils
 from satpy import DataID, DataQuery
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.dataset.dataid import minimal_default_keys_config
@@ -268,7 +269,7 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
                 DataID key -> key properties
 
     """
-    config_filename = sensor_name + ".yaml"
+    config_filename = inst_utils.wmo_to_internal(sensor_name) + ".yaml"
     logger.debug("Looking for composites config file %s", config_filename)
     paths = get_entry_points_config_dirs("satpy.composites")
     composite_configs = config_search_paths(

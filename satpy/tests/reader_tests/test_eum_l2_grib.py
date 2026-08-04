@@ -149,7 +149,7 @@ def test_seviri_data_reading(da_, xr_, setup_reader):
                 "orbital_parameters": {
                     "projection_longitude": 9.5
                 },
-                "sensor": "seviri",
+                "instruments": {"SEVIRI"},
                 "platform_name": "Meteosat-11"
             }
             assert attributes == expected_attributes
@@ -250,7 +250,7 @@ def test_fci_data_reading(da_, xr_, setup_reader):
                 "orbital_parameters": {
                     "projection_longitude": 0.0
                 },
-                "sensor": "fci",
+                "instruments": {"FCI"},
                 "platform_name": "MTG-i1"
             }
             assert attributes == expected_attributes

@@ -24,6 +24,7 @@ ASCII files.
 import dask.dataframe as dd
 import xarray as xr
 
+from satpy._instruments import OSCAR
 from satpy.dataset.dataid import DataID
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.netcdf import NetCDF4FileHandler
@@ -76,7 +77,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             data.attrs["units"] = "K"
 
         data.attrs["platform_name"] = PLATFORM_MAP.get(self.filename_info["satellite_name"].upper(), "unknown")
-        data.attrs["sensor"] = self.sensor_name
+        data.attrs["instruments"] = {self.sensor_name}
 
         return data
 
@@ -93,7 +94,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Name of sensor for this file."""
-        return self["/attr/instrument_name"].lower()
+        return self["/attr/instrument_name"]
 
     @property
     def platform_name(self):
@@ -122,7 +123,11 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
     def get_dataset(self, dsid, dsinfo):
         """Get requested data as DataArray."""
         ds = self[dsid["name"]].to_dask_array(lengths=True)
-        data = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "sensor": "VIIRS"})
+        data = xr.DataArray(
+            ds,
+            dims=("y",),
+            attrs={"platform_name": self.platform_name, "instruments": {str(OSCAR.VIIRS)}}
+        )
         for key in ("units", "standard_name", "flag_meanings", "flag_values", "_FillValue"):
             # we only want to add information that isn't present already
             if key in dsinfo and key not in data.attrs:

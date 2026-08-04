@@ -193,7 +193,7 @@ REQUIRED_ATTR_KEYS = {
     "orbital_parameters",
     "file_type",
     "name",
-    "sensor",
+    "instruments",
     "resolution",
 }
 
@@ -1120,7 +1120,7 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             assert "orbital_parameters" in res[aux].attrs.keys()
             assert "file_type" in res[aux].attrs.keys()
             assert "name" in res[aux].attrs.keys()
-            assert "sensor" in res[aux].attrs.keys()
+            assert res[aux].attrs["instruments"] == {"FCI"}
             assert "resolution" in res[aux].attrs.keys()
 
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),

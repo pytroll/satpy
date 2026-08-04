@@ -185,7 +185,7 @@ def test_hrw_handler_init(hrw_file):
     assert fh.filename_info == FILENAME_INFO
     assert fh.filetype_info == FILETYPE_INFO
     assert fh.platform_name is not None
-    assert fh.sensor == "seviri"
+    assert fh.sensor == "SEVIRI"
 
 
 def test_available_datasets(hrw_file):
@@ -289,7 +289,7 @@ def test_hrw_handler_init_v2025(hrw_v2025_file):
     assert fh.filename_info == FILENAME_INFO_V2025
     assert fh.filetype_info == FILETYPE_INFO
     assert fh.platform_name is not None
-    assert fh.sensor == "fci"
+    assert fh.sensor == "FCI"
 
 
 def test_available_datasets_v2025(hrw_v2025_file):

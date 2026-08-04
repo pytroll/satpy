@@ -141,7 +141,7 @@ class TestSceneAllAvailableDatasets:
         doesn't break available composite IDs.
 
         """
-        scene = _scene_with_data_array_none_sensor()
+        scene = _scene_with_data_array_empty_sensor()
         available_comp_ids = scene.available_composite_ids()
         assert make_cid(name="static_image") in available_comp_ids
 
@@ -645,31 +645,31 @@ class TestLoadingComposites:
         assert len(avail_comps) == 1
         pytest.raises(KeyError, scene.load, [0.21])
 
-    def test_load_when_sensor_none_in_preloaded_dataarrays(self):
-        """Test Scene loading when existing loaded arrays have sensor set to None.
+    def test_load_when_sensor_empty_in_preloaded_dataarrays(self):
+        """Test Scene loading when existing loaded arrays have empty sensor set.
 
         Some readers or composites (ex. static images) don't have a sensor and
-        developers choose to set it to `None`. This test makes sure this
+        developers choose to set it to `set()`. This test makes sure this
         doesn't break loading.
 
         """
-        scene = _scene_with_data_array_none_sensor()
+        scene = _scene_with_data_array_empty_sensor()
         scene.load(["static_image"])
         assert "static_image" in scene
         assert "my_data" in scene
 
 
-def _scene_with_data_array_none_sensor():
+def _scene_with_data_array_empty_sensor():
     scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
-    scene["my_data"] = _data_array_none_sensor("my_data")
+    scene["my_data"] = _data_array_with_empty_sensor("my_data")
     return scene
 
 
-def _data_array_none_sensor(name: str) -> xr.DataArray:
-    """Create a DataArray with sensor set to ``None``."""
+def _data_array_with_empty_sensor(name: str) -> xr.DataArray:
+    """Create a DataArray with empty sensor set."""
     return xr.DataArray(
         da.zeros((2, 2)),
         attrs={
             "name": name,
-            "sensor": None,
+            "sensor": set(),
         })

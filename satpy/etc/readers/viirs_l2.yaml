@@ -6,7 +6,7 @@ reader:
   status: Alpha
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
-  sensors: [viirs]
+  instruments: [viirs]
 
 file_types:
   cldprop_l2_viirs:

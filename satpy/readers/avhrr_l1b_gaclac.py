@@ -42,6 +42,7 @@ from pygac.gac_pod import GACPODReader
 from pygac.lac_klm import LACKLMReader
 from pygac.lac_pod import LACPODReader
 
+from satpy._instruments import OSCAR
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
@@ -109,21 +110,21 @@ class GACLACFile(BaseFileHandler):
             else:
                 self.reader_class = LACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
-            self.sensor = "avhrr-3"
+            self.sensor = OSCAR.AVHRR_3
         elif self._is_avhrr2():
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACPODReader
             else:
                 self.reader_class = LACPODReader
             self.chn_dict = AVHRR2_CHANNEL_NAMES
-            self.sensor = "avhrr-2"
+            self.sensor = OSCAR.AVHRR_2
         else:
             if filename_info.get("transfer_mode") == "GHRR":
                 self.reader_class = GACPODReader
             else:
                 self.reader_class = LACPODReader
             self.chn_dict = AVHRR_CHANNEL_NAMES
-            self.sensor = "avhrr"
+            self.sensor = OSCAR.AVHRR
         self.filename_info = filename_info
 
     def _is_avhrr2(self):
@@ -318,7 +319,7 @@ class GACLACFile(BaseFileHandler):
             res.attrs[attr] = self.reader.meta_data[attr]
         res.attrs["platform_name"] = self.reader.spacecraft_name
         res.attrs["orbit_number"] = self.filename_info.get("orbit_number", None)
-        res.attrs["sensor"] = self.sensor
+        res.attrs["instruments"] = {str(self.sensor)}
         try:
             res.attrs["orbital_parameters"] = {"tle": self.reader.get_tle_lines()}
         except (IndexError, RuntimeError):

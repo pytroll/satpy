@@ -104,7 +104,7 @@ class TestAtsmsL1bNCFileHandler:
         ("start_time", dt.datetime(2000, 1, 2, 3, 4, 5)),
         ("end_time", dt.datetime(2000, 1, 2, 4, 5, 6)),
         ("platform_name", "JPSS-1"),
-        ("sensor", "ATMS"),
+        ("instruments", {"ATMS"}),
     ])
     def test_attrs(self, reader, param, expect):
         """Test attributes."""
@@ -139,7 +139,7 @@ class TestAtsmsL1bNCFileHandler:
         ("start_time", dt.datetime(2000, 1, 2, 3, 4, 5)),
         ("end_time", dt.datetime(2000, 1, 2, 4, 5, 6)),
         ("platform_name", "JPSS-1"),
-        ("sensor", "ATMS"),
+        ("instruments", {"ATMS"}),
         ("creation_time", dt.datetime(2020, 1, 2, 3, 4, 5)),
         ("type", "test_data"),
         ("name", "test"),
@@ -175,4 +175,4 @@ class TestAtsmsL1bNCFileHandler:
             np.full((2, 3), 100.),
         )
         assert dataset.dims == ("y", "x")
-        assert dataset.attrs["sensor"] == "ATMS"
+        assert dataset.attrs["instruments"] == {"ATMS"}

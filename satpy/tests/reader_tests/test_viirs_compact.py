@@ -2468,6 +2468,7 @@ class TestCompact:
             assert ds.dtype == np.float32
             assert ds.compute().shape == (752, 4064)
             assert ds.attrs["rows_per_scan"] == 16
+            assert ds.attrs["instruments"] == {"VIIRS"}
 
     def test_distributed(self):
         """Check that distributed computations work."""

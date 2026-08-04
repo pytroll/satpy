@@ -41,7 +41,7 @@ class TestModisL3MCD12Q1:
         ds_name = "LC_Type2"
         scene.load([ds_name])
         assert scene[ds_name].attrs["area"].description == "Tiled sinusoidal L3 MODIS area"
-        assert scene[ds_name].attrs["sensor"] == "modis"
+        assert scene[ds_name].attrs["instruments"] == {"MODIS"}
 
     def test_scene_available_datasets(self, modis_l3_nasa_mcd12q1_file):
         """Test that datasets are available."""
