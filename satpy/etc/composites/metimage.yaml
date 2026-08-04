@@ -1,4 +1,4 @@
-sensor_name: visir/vii
+sensor_name: visir/metimage
 modifiers:
   nir_reflectance:
     modifier: !!python/name:satpy.modifiers.NIRReflectance

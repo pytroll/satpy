@@ -15,14 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""EUMETSAT EPS-SG Visible/Infrared Imager (VII) Level 1B products reader.
+"""EUMETSAT EPS-SG METimage (VII) Level 1B products reader.
 
-The ``vii_l1b_nc`` reader reads and calibrates EPS-SG VII L1b image data in netCDF format. The format is explained
-in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
+The ``metimage_l1b_nc`` reader reads and calibrates EPS-SG METimage L1b image data in netCDF format. The format is
+explained in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
+Note that METimage is the official name of the instrument, while VII is the old name used during the mission (design).
+The name VII is currently still used in the filenames as well as in official system documentation
+(e.g. the format specs).
 
-This version is applicable for the vii test data V2 to be released in Jan 2022.
-
-.. _EPS-SG VII Level 1B Product Format Specification V4A: https://www.eumetsat.int/media/44393
+.. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
 
 """
 
@@ -31,14 +32,14 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers.core.vii import C1, C2, MEAN_EARTH_RADIUS
-from satpy.readers.core.vii_nc import ViiNCBaseFileHandler
+from satpy.readers.core.metimage import C1, C2, MEAN_EARTH_RADIUS
+from satpy.readers.core.metimage_nc import METimageNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
-    """Reader class for VII L1B products in netCDF format."""
+class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
+    """Reader class for METimage (VII) L1B products in netCDF format."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Read the calibration data and prepare the class for dataset reading."""
