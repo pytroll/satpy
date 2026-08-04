@@ -53,6 +53,7 @@ The following people have made contributions to this project:
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Przemyslaw Juda (pjuda)](https://github.com/pjuda)
+- [Inderpreet Kaur](https://github.com/ikaur17)
 - [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Beke Kremmling (bkremmli)](https://github.com/bkremmli) - Deutscher Wetterdienst
@@ -76,7 +77,7 @@ The following people have made contributions to this project:
 - [Christian Peters (peters77)](https://github.com/peters77)
 - [Pepe Phillips (pepephillips)](https://github.com/pepephillips)
 - [Ghislain Picard (ghislainp)](https://github.com/ghislainp)
-- [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
+- [Simon Proud (simon-sat)](https://github.com/simon-sat)
 - [Martin Radenz (martin-rdz)](https://github.com/martin-rdz)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
@@ -93,6 +94,7 @@ The following people have made contributions to this project:
 - [Michael Schmutz (Graenni)](https://github.com/Graenni) - Meteotest AG
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
+- Martin Setvak - CHMI
 - [Will Sharpe (wjsharpe)](https://github.com/wjsharpe)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
@@ -111,4 +113,7 @@ The following people have made contributions to this project:
 - [Clément (ludwigvonkoopa)](https://github.com/ludwigVonKoopa)
 - [Xuanhan Lai (sgxl)](https://github.com/sgxl)
 - [Nalin Parihar(Nalin7parihar](https://github.com/Nalin7parihar)
+- [Albert Brotzer](https://github.com/albertbrotzer)
+- [Alexandra Melzer](https://github.com/armelzer)
 - [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
+- [Göte Kleringer (Grukank)](https://github.com/Grukank)

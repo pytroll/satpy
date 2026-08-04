@@ -16,20 +16,21 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface for BaseFileHandlers."""
+from __future__ import annotations
 
 import numpy as np
 import xarray as xr
 from pyresample.geometry import SwathDefinition
 
 from satpy.dataset import combine_metadata
-from satpy.readers.core.remote import open_file_or_filename
+from satpy.readers.core.remote import FSFile, open_file_or_filename
 
 
-def open_dataset(filename, *args, **kwargs):  # noqa: D417
+def open_dataset(filename: str | FSFile, *args, **kwargs):  # noqa: D417
     """Open a file with xarray.
 
     Args:
-       filename (Union[str, FSFile]):
+       filename:
            The path to the file to open. Can be a `string` or
            :class:`~satpy.readers.core.remote.FSFile` object which allows using
            `fsspec` or `s3fs` like files.

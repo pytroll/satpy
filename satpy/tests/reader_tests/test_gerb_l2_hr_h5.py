@@ -43,7 +43,7 @@ def write_h5_null_string_att(loc_id, name, s):
     at.write(np.array(s, dtype=f"|S{len(s)+1}"))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     """Create a dummy HDF5 file for the GERB L2 HR product."""
     filename = tmp_path_factory.mktemp("data") / FNAME

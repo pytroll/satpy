@@ -95,7 +95,7 @@ References:
 .. _EUMETSAT Product Navigator:
     https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Native Format File Definition:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_fg15_msg_native_format_15_6b513c5bb3.pdf
 """
 
 import datetime as dt

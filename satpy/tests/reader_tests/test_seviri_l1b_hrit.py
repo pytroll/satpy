@@ -508,17 +508,16 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_equal(res, expected)
 
 
-@pytest.fixture(scope="session")
-def prologue_file(session_tmp_path, prologue_header_contents):
+@pytest.fixture(scope="module")
+def prologue_file(session_tmp_path):
     """Create a dummy prologue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_prologue
-    header = prologue_header_contents
+    header = prologue_header_contents()
     contents = np.void(1, dtype=hrit_prologue)
     contents["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"] = 324
     return create_file(session_tmp_path / "prologue", header + [contents])
 
 
-@pytest.fixture(scope="session")
 def prologue_header_contents():
     """Get the contents of the header."""
     return [
@@ -536,16 +535,15 @@ def prologue_header_contents():
     ]
 
 
-@pytest.fixture(scope="session")
-def epilogue_file(session_tmp_path, epilogue_header_contents):
+@pytest.fixture(scope="module")
+def epilogue_file(session_tmp_path):
     """Create a dummy epilogue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue
-    header = epilogue_header_contents
+    header = epilogue_header_contents()
     contents = np.void(1, dtype=hrit_epilogue)
     return create_file(session_tmp_path / "epilogue", header + [contents])
 
 
-@pytest.fixture(scope="session")
 def epilogue_header_contents():
     """Get the contents of the header."""
     return [
@@ -568,7 +566,7 @@ def create_file(filename, file_contents):
     return filename
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def segment_file(session_tmp_path):
     """Create a segment_file."""
     cols = 3712
@@ -621,7 +619,7 @@ def test_read_real_segment(prologue_file, epilogue_file, segment_file):
     res.compute()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file, segment_file):
     """Return the fsspec paths to the given seviri hrit files inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_hrit.zip"

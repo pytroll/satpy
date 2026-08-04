@@ -160,7 +160,7 @@ def sampling_to_lfac_cfac(sampling):
     Appendix E.2.
 
     .. _MSG Ground Segment LRIT HRIT Mission Specific Implementation:
-       https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_05057_spe_msg_lrit_hri.pdf
+       https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05057_spe_msg_lrit_hri_bcaff5f0ba.pdf
 
     Args:
         sampling: float

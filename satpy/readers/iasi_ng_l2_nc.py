@@ -28,7 +28,7 @@ level:
 
 For more information in the product files content, please refer to the
 EPS-SG IASI-NG Level 2 Format specification document provided by EUMETSAT at:
-https://www-cdn.eumetsat.int/files/2022-04/EPS-SG%20IASI-NG%20L2%20Product%20Format%20Specification_web_0.pdf
+https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_IASI_NG_L2_Product_Format_Specification_v4_B_cffb0a9273.pdf
 """
 
 import re

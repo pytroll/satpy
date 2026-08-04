@@ -303,7 +303,10 @@ class TestGAASPReader:
             assert np.issubdtype(data_arr.dtype, np.integer)
         else:
             assert "_FillValue" not in data_arr.attrs
-            if np.issubdtype(data_arr.dtype, np.floating):
+            if data_id["name"].startswith("latency"):
+                # timedelta only fits in 64-bit float
+                assert data_arr.dtype.type == np.float64
+            elif np.issubdtype(data_arr.dtype, np.floating):
                 # we started with float32, it should stay that way
                 assert data_arr.dtype.type == np.float32
 

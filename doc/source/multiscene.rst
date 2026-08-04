@@ -67,7 +67,7 @@ Stacking scenes
 
 The code below uses the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method of
 the ``MultiScene`` object to stack two separate orbits from a VIIRS sensor. By
-default the ``blend`` method will use the :func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>`
+default the ``blend`` method will use the :func:`satpy.multiscene.stack <satpy.multiscene.blend_funcs.stack>`
 function which uses the first dataset as the base of the image and then
 iteratively overlays the remaining datasets on top.
 
@@ -101,8 +101,8 @@ frequent.
 This weighted blending can be accomplished via the use of the builtin
 :func:`~functools.partial` function (see `Partial
 <https://docs.python.org/3/library/functools.html#partial-objects>`_) and the
-default :func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>` function. The
-:func:`satpy.multiscene.stack <satpy.multiscene._blend_funcs.stack>` function can take the optional argument
+default :func:`satpy.multiscene.stack <satpy.multiscene.blend_funcs.stack>` function. The
+:func:`satpy.multiscene.stack <satpy.multiscene.blend_funcs.stack>` function can take the optional argument
 `weights` (`None` on default) which should be a sequence (of length equal to
 the number of scenes being blended) of arrays with pixel weights.
 
@@ -175,7 +175,7 @@ Timeseries
 **********
 
 Using the :meth:`MultiScene.blend <satpy.multiscene._multiscene.MultiScene.blend>` method with the
-:func:`satpy.multiscene.timeseries <satpy.multiscene._blend_funcs.timeseries>` function will combine
+:func:`satpy.multiscene.timeseries <satpy.multiscene.blend_funcs.timeseries>` function will combine
 multiple scenes from different time slots by time. A single `Scene` with each
 dataset/channel extended by the time dimension will be returned. If used
 together with the :meth:`~satpy.scene.Scene.to_geoviews` method, creation of

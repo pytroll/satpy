@@ -182,7 +182,7 @@ class TestSLSTRReader(TestSLSTRL1B):
                                 stripe="a", view="nadir", resolution=500)
         filename_info = {"mission_id": "S3A", "dataset_name": "foo",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n"}
+                         "stripe": "a", "view": "n", "baseline":4}
         test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
         assert test.view == "nadir"
         assert test.stripe == "a"
@@ -195,7 +195,7 @@ class TestSLSTRReader(TestSLSTRL1B):
 
         filename_info = {"mission_id": "S3A", "dataset_name": "foo",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "c", "view": "o"}
+                         "stripe": "c", "view": "o", "baseline": 4}
         test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c")
         assert test.view == "oblique"
         assert test.stripe == "c"
@@ -207,7 +207,7 @@ class TestSLSTRReader(TestSLSTRL1B):
 
         filename_info = {"mission_id": "S3A", "dataset_name": "foo",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n"}
+                         "stripe": "a", "view": "n", "baseline": 4}
         test = NCSLSTRGeo("somedir/geometry_an.nc", filename_info, "c")
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "latitude_{stripe:1s}{view:1s}"}))
         assert test.start_time == good_start
@@ -246,7 +246,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
                             stripe="a", view="nadir")
         filename_info = {"mission_id": "S3A", "dataset_name": "foo",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n"}
+                         "stripe": "a", "view": "n", "baseline": 4}
 
         test = NCSLSTR1B("somedir/S1_radiance_co.nc", filename_info, "c")
         # Check warning is raised if we don't have calibration
@@ -267,6 +267,29 @@ class TestSLSTRCalibration(TestSLSTRL1B):
         np.testing.assert_allclose(data.values,
                                    self.base_data * CHANCALIB_FACTORS["S5_nadir"])
 
+
+    @mock.patch("satpy.readers.slstr_l1b.xr")
+    def test_apply_radiance_adjustment_called(self, xr_):
+        """Test radiance adjustment with old processing baselines."""
+        xr_.open_dataset.return_value = self.fake_dataset
+
+        ds_id = make_dataid(name="S5", calibration="radiance",
+                            stripe="a", view="nadir")
+        filename_info = {"mission_id": "S3A", "dataset_name": "S5",
+                         "start_time": 0, "end_time": 0,
+                         "stripe": "a", "view": "n", "baseline": 5}
+
+        test = NCSLSTR1B("somedir/S5_radiance_co.nc", filename_info, "c")
+        with mock.patch.object(test, "_apply_radiance_adjustment", wraps=test._apply_radiance_adjustment) as mock_apply:
+            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
+            mock_apply.assert_not_called()
+
+        filename_info["baseline"] = 4
+        test = NCSLSTR1B("somedir/S5_radiance_co.nc", filename_info, "c")
+        with mock.patch.object(test, "_apply_radiance_adjustment", wraps=test._apply_radiance_adjustment) as mock_apply:
+            test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
+            mock_apply.assert_called()
+
     @mock.patch("satpy.readers.slstr_l1b.xr")
     @mock.patch("satpy.readers.slstr_l1b.da")
     def test_reflectance_calibration(self, da_, xr_):
@@ -275,7 +298,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
         da_.map_blocks.return_value = self.rad / 100.
         filename_info = {"mission_id": "S3A", "dataset_name": "S5",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "a", "view": "n"}
+                         "stripe": "a", "view": "n", "baseline": 4}
         ds_id = make_dataid(name="S5", calibration="reflectance", stripe="a", view="nadir")
         test = NCSLSTR1B("somedir/S1_radiance_an.nc", filename_info, "c")
         data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "S5"}))
@@ -314,7 +337,7 @@ class TestSLSTRAngles(TestSLSTRL1B):
         ds_id = make_dataid(name="solar_azimuth_angle", view="nadir")
         filename_info = {"mission_id": "S3A", "dataset_name": "solar_azimuth_angle",
                          "start_time": 0, "end_time": 0,
-                         "stripe": "t", "view": "n"}
+                         "stripe": "t", "view": "n", "baseline": 4}
 
         test = NCSLSTRAngles("somedir/geometry_tn.nc", filename_info, "c")
         data = test.get_dataset(ds_id, dict(filename_info, **{"file_key": "solar_azimuth_tn"}))

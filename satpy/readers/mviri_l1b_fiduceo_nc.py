@@ -505,7 +505,7 @@ class _DatasetPreprocessor:
         time = ds["time"]
         time_dec = (time + time.attrs["add_offset"]).astype("datetime64[s]").astype("datetime64[ns]")
         is_fill_value = time == time.attrs["_FillValue"]
-        return xr.where(is_fill_value, np.datetime64("NaT"), time_dec)
+        return xr.where(is_fill_value, np.datetime64("NaT", "ns"), time_dec)
 
     def _fix_duplicate_dimensions(self, ds):
         """Rename dimensions as duplicate dimensions names are not supported by xarray."""
