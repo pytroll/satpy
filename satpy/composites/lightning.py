@@ -29,7 +29,7 @@ import xarray as xr
 
 from satpy import config
 from satpy.composites.core import CompositeBase
-from satpy.composites.vectorscene import GeometryContainer
+from satpy.vectorscene import GeometryContainer
 
 LOG = logging.getLogger(__name__)
 
