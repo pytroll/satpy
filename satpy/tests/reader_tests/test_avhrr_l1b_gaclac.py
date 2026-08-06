@@ -18,6 +18,7 @@
 
 """Pygac interface."""
 import datetime as dt
+import warnings
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -80,6 +81,14 @@ LAC_KLM_FILENAMES = ["BRN.HRPT.M1.D14152.S0958.E1012.B0883232.UB",
 
 LAC_EOSIP_FILENAMES = ["N06_RPRO_AVH_L1B_1P_20061206T010808_20061206T012223_007961/image.l1b"]
 
+
+@pytest.fixture(autouse=True)
+def silence_pygac_warnings():
+    """Silence some warnings from Pygac."""
+    warnings.filterwarnings(action="ignore", message="Using CoeffStatus.PROVISIONAL", category=RuntimeWarning)
+    warnings.filterwarnings(action="ignore", message="Using the 'corr' argument", category=DeprecationWarning)
+    warnings.filterwarnings(action="ignore", message="divide by zero", category=RuntimeWarning)
+    warnings.filterwarnings(action="ignore", message="Unexpected record length", category=RuntimeWarning)
 
 class TestGACLACFile:
     """Test the GACLAC file handler."""
@@ -151,7 +160,7 @@ class DataType(Enum):
 
 
 @dataclass
-class TestParams:
+class AvhrrTestParams:
     """Test parameters."""
     data_type: DataType
     satellite: str
@@ -192,7 +201,7 @@ class FakeDataGenerator:
     """Generate fake GAC data."""
 
     @staticmethod
-    def get_data(params: TestParams) -> list[np.ndarray]:
+    def get_data(params: AvhrrTestParams) -> list[np.ndarray]:
         """Get fake data."""
         methods = {
             DataType.KLM: FakeDataGenerator._get_klm_data,
@@ -340,7 +349,7 @@ def _write_tle(params, tle_dir):
         fh.write(params.tle)
 
 
-def _write_stub(params: TestParams, tmp_dir: Path):
+def _write_stub(params: AvhrrTestParams, tmp_dir: Path):
     fake_data = FakeDataGenerator.get_data(params)
     filename = tmp_dir / params.filename
     with filename.open("wb") as fh:
@@ -349,7 +358,7 @@ def _write_stub(params: TestParams, tmp_dir: Path):
     return filename
 
 
-def _get_reader_kwargs(params: TestParams, tle_dir: Path):
+def _get_reader_kwargs(params: AvhrrTestParams, tle_dir: Path):
     default = {"tle_name": "TLE_%(satname)s.txt", "tle_dir": str(tle_dir)}
     return default | params.reader_kwargs
 
@@ -357,14 +366,14 @@ def _get_reader_kwargs(params: TestParams, tle_dir: Path):
 class TestReadingGacFile:
     """Test reading GAC files."""
 
-    klm_params = TestParams(
+    klm_params = AvhrrTestParams(
         data_type=DataType.KLM,
         satellite="noaa15",
         filename="NSS.GHRR.NK.D09362.S2359.E0001.B6044445.GC",
         reader_kwargs={"strip_invalid_coords": True},
         tle=tle_noaa15
     )
-    pod_params = TestParams(
+    pod_params = AvhrrTestParams(
         data_type=DataType.POD,
         satellite="noaa14",
         filename="NSS.GHRR.NJ.D09362.S2359.E0001.B6044445.GC",
@@ -375,12 +384,14 @@ class TestReadingGacFile:
     )
 
     @pytest.fixture(params=["klm_params", "pod_params"], scope="class")
-    def params(self, request):
+    @classmethod
+    def params(cls, request):
         """Get test parameters."""
         return getattr(request.cls, request.param)
 
     @pytest.fixture(scope="class")
-    def expect(self, params: TestParams):
+    @classmethod
+    def expect(cls, params: AvhrrTestParams):
         """Get expectations."""
         klm_expect = Expectations(
             num_lines=55,
@@ -407,17 +418,20 @@ class TestReadingGacFile:
         return exp[params.data_type]
 
     @pytest.fixture(autouse=True, scope="class")
-    def tle_file(self, tle_dir: Path, params: TestParams):
+    @classmethod
+    def tle_file(cls, tle_dir: Path, params: AvhrrTestParams):
         """Write TLE file."""
         _write_tle(params, tle_dir)
 
     @pytest.fixture(scope="class")
-    def stub(self, tmp_dir: Path, params: TestParams):
+    @classmethod
+    def stub(cls, tmp_dir: Path, params: AvhrrTestParams):
         """Write stub file."""
         return _write_stub(params, tmp_dir)
 
     @pytest.fixture(scope="class")
-    def reader_kwargs(self, params: TestParams, tle_dir: Path):
+    @classmethod
+    def reader_kwargs(cls, params: AvhrrTestParams, tle_dir: Path):
         """Get reader keyword arguments."""
         return _get_reader_kwargs(params, tle_dir)
 
@@ -477,7 +491,7 @@ class TestReadingGacFile:
         assert scene["qual_flags"].shape == (expect.num_lines, 7)
         assert scene["qual_flags"].dims == ("y", "num_flags")
 
-    def test_get_latlon_without_interp(self, stub: Path, params: TestParams, expect: Expectations, tle_dir: Path):
+    def test_get_latlon_without_interp(self, stub: Path, params: AvhrrTestParams, expect: Expectations, tle_dir: Path):
         """Test getting lat/lon coordinates without interpolation.
 
         Only works for KLM, because the stub file is too small.
@@ -497,7 +511,7 @@ class TestReadingGacFile:
 def test_all_data_masked_out(tmp_dir: Path, tle_dir: Path):
     """Test reading a file where all scanlines are masked."""
     flags = pygac.klm_reader.KLM_QualityIndicator
-    params = TestParams(
+    params = AvhrrTestParams(
         data_type=DataType.KLM,
         satellite="noaa15",
         tle=tle_noaa15,
