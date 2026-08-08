@@ -445,13 +445,13 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
 
 
 # --- bz2 decompression support ---------------------------------------------
-# Written as plain pytest functions (rather than TestViiNCBaseFileHandler
+# Written as plain pytest functions (rather than TestMETimageNCBaseFileHandler
 # methods) specifically to use tmp_path fixtures for automatic, cross-platform
 # temp-file cleanup -- fixture injection doesn't work inside unittest.TestCase
 # methods, so these live at module scope instead.
 
 @pytest.fixture
-def vii_filename_info():
+def metimage_filename_info():
     """Return a filename_info dict valid for the base-class reader."""
     return {
         "creation_time": datetime.datetime(year=2017, month=9, day=22,
@@ -464,8 +464,8 @@ def vii_filename_info():
 
 
 @pytest.fixture
-def vii_base_nc_file(tmp_path):
-    """Create a small VII netCDF test file and return its path."""
+def metimage_base_nc_file(tmp_path):
+    """Create a small METimage netCDF test file and return its path."""
     filename = tmp_path / "test_file_vii_base_nc.nc"
     with Dataset(filename, "w") as nc:
         nc.sensing_start_time_utc = "20170920173040.888"
@@ -510,16 +510,16 @@ def vii_base_nc_file(tmp_path):
 
 
 @pytest.fixture
-def vii_base_nc_file_bz2(vii_base_nc_file):
+def metimage_base_nc_file_bz2(metimage_base_nc_file):
     """Compress the netCDF fixture into a .bz2 file alongside it."""
-    bz2_filename = vii_base_nc_file.parent / (vii_base_nc_file.name + ".bz2")
-    with open(vii_base_nc_file, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
+    bz2_filename = metimage_base_nc_file.parent / (metimage_base_nc_file.name + ".bz2")
+    with open(metimage_base_nc_file, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
         f_out.write(f_in.read())
     return bz2_filename
 
 
-@mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
-def test_bz2_reading(pgi_, vii_base_nc_file, vii_base_nc_file_bz2, vii_filename_info):
+@mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
+def test_bz2_reading(pgi_, metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
     """Test that a bz2-compressed file is transparently decompressed and read correctly."""
     interp_longitude = xr.DataArray(np.ones((10, 100)))
     interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
@@ -529,11 +529,11 @@ def test_bz2_reading(pgi_, vii_base_nc_file, vii_base_nc_file_bz2, vii_filename_
         "cached_longitude": "data/measurement_data/longitude",
         "cached_latitude": "data/measurement_data/latitude",
     }
-    reader = ViiNCBaseFileHandler(str(vii_base_nc_file_bz2), vii_filename_info, filetype_info)
-    expected_reader = ViiNCBaseFileHandler(str(vii_base_nc_file), vii_filename_info, filetype_info)
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
+    expected_reader = METimageNCBaseFileHandler(str(metimage_base_nc_file), metimage_filename_info, filetype_info)
 
     # Should have decompressed to a separate temp file, not read the .bz2 directly
-    assert reader.filename != str(vii_base_nc_file_bz2)
+    assert reader.filename != str(metimage_base_nc_file_bz2)
 
     # Cross-check against the uncompressed-file reader
     assert reader.spacecraft_name == expected_reader.spacecraft_name
@@ -549,7 +549,7 @@ def test_bz2_reading(pgi_, vii_base_nc_file, vii_base_nc_file_bz2, vii_filename_
 
 
 @mock.patch("satpy.readers.core.utils.which", return_value=None)
-def test_corrupt_bz2_raises(which_, tmp_path, vii_filename_info):
+def test_corrupt_bz2_raises(which_, tmp_path, metimage_filename_info):
     """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
     bad_filename = tmp_path / "corrupt.nc.bz2"
     bad_filename.write_bytes(b"not a real bz2 stream")
@@ -557,11 +557,11 @@ def test_corrupt_bz2_raises(which_, tmp_path, vii_filename_info):
     with pytest.raises(OSError):   # noqa: PT011 -- underlying error (WinError 32 vs pbzip2 vs
                                    # "invalid data stream") varies by OS/locale/pbzip2 install;
                                    # see satpy/readers/core/utils.py::unzip_file
-        ViiNCBaseFileHandler(str(bad_filename), vii_filename_info, {})
+        METimageNCBaseFileHandler(str(bad_filename), metimage_filename_info, {})
 
 
-@mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
-def test_del_swallows_cleanup_errors(pgi_, vii_base_nc_file_bz2, vii_filename_info):
+@mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
+def test_del_swallows_cleanup_errors(pgi_, metimage_base_nc_file_bz2, metimage_filename_info):
     """Test that __del__ never raises, even if removing the decompressed temp file fails."""
     interp_longitude = xr.DataArray(np.ones((10, 100)))
     interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
@@ -571,7 +571,7 @@ def test_del_swallows_cleanup_errors(pgi_, vii_base_nc_file_bz2, vii_filename_in
         "cached_longitude": "data/measurement_data/longitude",
         "cached_latitude": "data/measurement_data/latitude",
     }
-    reader = ViiNCBaseFileHandler(str(vii_base_nc_file_bz2), vii_filename_info, filetype_info)
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
 
     with mock.patch("os.remove", side_effect=OSError("mock disk error")):
         reader.__del__()  # must not raise
