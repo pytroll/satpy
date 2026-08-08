@@ -79,13 +79,26 @@ class EDRFileHandler(BaseFileHandler):
             "NOAA21": "NOAA-21",
             "NOAA22": "NOAA-22",
             "NOAA23": "NOAA-23",
+            "NOAA-20": "NOAA-20",
+            "NOAA-21": "NOAA-21",
+            "NOAA-22": "NOAA-22",
+            "NOAA-23": "NOAA-23",
+            "J01": "NOAA-20",
+            "J02": "NOAA-21",
+            # J04 will launch before J03
+            "J04": "NOAA-22",
+            "J03": "NOAA-23",
         }
-        return platform_dict[self.nc.platform]
+        if hasattr(self.nc, "platform"):
+            return platform_dict[self.nc.platform]
+        return platform_dict[self.nc.platform_name]
 
     @property
     def sensor_name(self):
         """Get the sensor name."""
-        return self.nc.instrument.lower()
+        if hasattr(self.nc, "instrument"):
+            return self.nc.instrument.lower()
+        return self.nc.instrument_name.lower()
 
     def get_metadata(self, dataset_id, ds_info):
         """Get the metadata."""
