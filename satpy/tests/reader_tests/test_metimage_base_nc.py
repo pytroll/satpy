@@ -27,62 +27,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         # Easiest way to test the reader is to create a test netCDF file on the fly
         # uses a UUID to avoid permission conflicts during execution of tests in parallel
         self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
-
-        with Dataset(self.test_file_name, "w") as nc:
-            # Add global attributes
-            nc.sensing_start_time_utc = "20170920173040.888"
-            nc.sensing_end_time_utc = "20170920174117.555"
-            nc.spacecraft = "SGA1"
-            nc.instrument = "test_instrument"
-
-            # Create data group
-            g1 = nc.createGroup("data")
-
-            # Add dimensions to data group
-            g1.createDimension("num_pixels", 10)
-            g1.createDimension("num_lines", 100)
-
-            # Create data/measurement_data group
-            g1_1 = g1.createGroup("measurement_data")
-
-            # Add dimensions to data/measurement_data group
-            g1_1.createDimension("num_tie_points_act", 10)
-            g1_1.createDimension("num_tie_points_alt", 100)
-
-            # Add variables to data/measurement_data group
-            tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
-            tpw[:] = 1.
-            tpw.test_attr = "attr"
-            tpw.valid_min = -10.0
-            tpw.valid_max = 10.0
-            lon = g1_1.createVariable("longitude",
-                                      np.float32,
-                                      dimensions=("num_tie_points_act", "num_tie_points_alt"))
-            lon[:] = 200.
-            lat = g1_1.createVariable("latitude",
-                                      np.float32,
-                                      dimensions=("num_tie_points_act", "num_tie_points_alt"))
-            lat[:] = 10.
-
-            # Create quality group
-            g2 = nc.createGroup("quality")
-
-            # Add dimensions to quality group
-            g2.createDimension("gap_items", 2)
-
-            # Add variables to quality group
-            var = g2.createVariable("duration_of_product", np.double, dimensions=())
-            var[:] = 1.0
-            var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
-            var[:] = 2.0
-            var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
-            var[:] = 3.0
-            var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
-            var[:] = 4.0
-            var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
-            var[:] = [5.0, 6.0]
-            var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
-            var[:] = [7.0, 8.0]
+        _create_metimage_base_nc_file(self.test_file_name)
 
         # Create longitude and latitude "interpolated" arrays
         interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
@@ -467,45 +412,7 @@ def metimage_filename_info():
 def metimage_base_nc_file(tmp_path):
     """Create a small METimage netCDF test file and return its path."""
     filename = tmp_path / "test_file_vii_base_nc.nc"
-    with Dataset(filename, "w") as nc:
-        nc.sensing_start_time_utc = "20170920173040.888"
-        nc.sensing_end_time_utc = "20170920174117.555"
-        nc.spacecraft = "test_spacecraft"
-        nc.instrument = "test_instrument"
-
-        g1 = nc.createGroup("data")
-        g1.createDimension("num_pixels", 10)
-        g1.createDimension("num_lines", 100)
-
-        g1_1 = g1.createGroup("measurement_data")
-        g1_1.createDimension("num_tie_points_act", 10)
-        g1_1.createDimension("num_tie_points_alt", 100)
-
-        tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
-        tpw[:] = 1.
-        tpw.test_attr = "attr"
-        lon = g1_1.createVariable("longitude", np.float32,
-                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
-        lon[:] = 100.
-        lat = g1_1.createVariable("latitude", np.float32,
-                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
-        lat[:] = 10.
-
-        g2 = nc.createGroup("quality")
-        g2.createDimension("gap_items", 2)
-        var = g2.createVariable("duration_of_product", np.double, dimensions=())
-        var[:] = 1.0
-        var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
-        var[:] = 2.0
-        var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
-        var[:] = 3.0
-        var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
-        var[:] = 4.0
-        var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
-        var[:] = [5.0, 6.0]
-        var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
-        var[:] = [7.0, 8.0]
-
+    _create_metimage_base_nc_file(filename)
     return filename
 
 
@@ -575,3 +482,60 @@ def test_del_swallows_cleanup_errors(pgi_, metimage_base_nc_file_bz2, metimage_f
 
     with mock.patch("os.remove", side_effect=OSError("mock disk error")):
         reader.__del__()  # must not raise
+
+
+def _create_metimage_base_nc_file(filename):
+    """Create a small METimage base netCDF test file at the given path."""
+    with Dataset(filename, "w") as nc:
+        # Add global attributes
+        nc.sensing_start_time_utc = "20170920173040.888"
+        nc.sensing_end_time_utc = "20170920174117.555"
+        nc.spacecraft = "SGA1"
+        nc.instrument = "test_instrument"
+
+        # Create data group
+        g1 = nc.createGroup("data")
+
+        # Add dimensions to data group
+        g1.createDimension("num_pixels", 10)
+        g1.createDimension("num_lines", 100)
+
+        # Create data/measurement_data group
+        g1_1 = g1.createGroup("measurement_data")
+
+        # Add dimensions to data/measurement_data group
+        g1_1.createDimension("num_tie_points_act", 10)
+        g1_1.createDimension("num_tie_points_alt", 100)
+
+        # Add variables to data/measurement_data group
+        tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
+        tpw[:] = 1.
+        tpw.test_attr = "attr"
+        tpw.valid_min = -10.0
+        tpw.valid_max = 10.0
+        lon = g1_1.createVariable("longitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lon[:] = 200.
+        lat = g1_1.createVariable("latitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lat[:] = 10.
+
+        # Create quality group
+        g2 = nc.createGroup("quality")
+
+        # Add dimensions to quality group
+        g2.createDimension("gap_items", 2)
+
+        # Add variables to quality group
+        var = g2.createVariable("duration_of_product", np.double, dimensions=())
+        var[:] = 1.0
+        var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
+        var[:] = 2.0
+        var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
+        var[:] = 3.0
+        var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
+        var[:] = 4.0
+        var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [5.0, 6.0]
+        var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [7.0, 8.0]
