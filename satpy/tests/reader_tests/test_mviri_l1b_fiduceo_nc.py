@@ -339,10 +339,10 @@ def fixture_fake_dataset(time_fake_dataset):
     return ds
 
 
-@pytest.fixture(name="projection_longitude", params=["57.0"])
-def fixture_projection_longitude(request):
+@pytest.fixture(name="projection_longitude")
+def fixture_projection_longitude():
     """Get projection longitude as string."""
-    return request.param
+    return "57.0"
 
 
 @pytest.fixture(name="fake_file")
@@ -385,16 +385,23 @@ def fixture_reader():
     return reader
 
 
-class TestFiduceoMviriFileHandlers:
-    """Unit tests for FIDUCEO MVIRI file handlers."""
+class TestFileHandlerInitialization:
+    """File handler initialization tests."""
 
-    @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
+    @pytest.fixture(name="projection_longitude", params=["57.0", "5700"])
+    def fixture_projection_longitude(self, request):
+        """Get projection longitude as string."""
+        return request.param
+
     def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
         fh = file_handler()
         assert fh.projection_longitude == 57.0
         assert fh.mask_bad_quality is True
 
+
+class TestFiduceoMviriFileHandlers:
+    """Unit tests for FIDUCEO MVIRI file handlers."""
     @pytest.mark.parametrize(
         ("name", "calibration", "resolution", "expected"),
         [

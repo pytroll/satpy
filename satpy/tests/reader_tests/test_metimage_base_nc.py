@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The vii_base_nc reader tests package."""
+"""The metimage_base_nc reader tests package."""
 
 import datetime
 import os
@@ -29,15 +29,15 @@ import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.core.vii_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, ViiNCBaseFileHandler
+from satpy.readers.core.metimage_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
 
 TEST_FILE = "test_file_vii_base_nc.nc"
 
 
-class TestViiNCBaseFileHandler(unittest.TestCase):
-    """Test the ViiNCBaseFileHandler reader."""
+class TestMETimageNCBaseFileHandler(unittest.TestCase):
+    """Test the METimageNCBaseFileHandler reader."""
 
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_geo_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def setUp(self, pgi_):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
@@ -48,7 +48,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             # Add global attributes
             nc.sensing_start_time_utc = "20170920173040.888"
             nc.sensing_end_time_utc = "20170920174117.555"
-            nc.spacecraft = "test_spacecraft"
+            nc.spacecraft = "SGA1"
             nc.instrument = "test_instrument"
 
             # Create data group
@@ -72,7 +72,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             lon = g1_1.createVariable("longitude",
                                       np.float32,
                                       dimensions=("num_tie_points_act", "num_tie_points_alt"))
-            lon[:] = 100.
+            lon[:] = 200.
             lat = g1_1.createVariable("latitude",
                                       np.float32,
                                       dimensions=("num_tie_points_act", "num_tie_points_alt"))
@@ -99,8 +99,8 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             var[:] = [7.0, 8.0]
 
         # Create longitude and latitude "interpolated" arrays
-        interp_longitude = xr.DataArray(np.ones((10, 100)))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
+        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude")
+        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude")
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
@@ -115,7 +115,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         self.filename_info = filename_info
 
         # Create a reader
-        self.reader = ViiNCBaseFileHandler(
+        self.reader = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={
@@ -126,7 +126,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Create a second reader where orthorectification and interpolation are inhibited
         # by means of the filetype_info flags
-        self.reader_2 = ViiNCBaseFileHandler(
+        self.reader_2 = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={
@@ -140,7 +140,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Create a third reader without defining cached latitude and longitude
         # by means of the filetype_info flags
-        self.reader_3 = ViiNCBaseFileHandler(
+        self.reader_3 = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={},
@@ -166,8 +166,9 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                                               hour=17, minute=41, second=17, microsecond=555000)
         assert self.reader.end_time == expected_end_time
 
-        assert self.reader.spacecraft_name == "test_spacecraft"
-        assert self.reader.sensor == "test_instrument"
+        assert self.reader.spacecraft_name == "Metop-SG-A1"
+        # the netCDF instrument attribute is VII, so we hardcode metimage instead
+        assert self.reader.sensor == "metimage"
         assert self.reader.ssp_lon is None
 
         # Checks that the global attributes are correctly read
@@ -175,14 +176,14 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             "filename": self.test_file_name,
             "start_time": expected_start_time,
             "end_time": expected_end_time,
-            "spacecraft_name": "test_spacecraft",
+            "spacecraft_name": "Metop-SG-A1",
             "ssp_lon": None,
-            "sensor": "test_instrument",
+            "sensor": "metimage",
             "filename_start_time": datetime.datetime(year=2017, month=9, day=20,
                                                      hour=12, minute=30, second=30),
             "filename_end_time": datetime.datetime(year=2017, month=9, day=20,
                                                    hour=18, minute=30, second=50),
-            "platform_name": "test_spacecraft",
+            "platform_name": "Metop-SG-A1",
             "quality_group": {
                 "duration_of_product": 1.,
                 "duration_of_data_present": 2.,
@@ -190,7 +191,8 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                 "duration_of_data_degraded": 4.,
                 "gap_start_time_utc": (5., 6.),
                 "gap_end_time_utc": (7., 8.)
-            }
+            },
+            "rows_per_scan": 24
         }
 
         global_attributes = self.reader._get_global_attributes()
@@ -238,7 +240,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                 nc.sensing_start_time_utc = start_str
                 nc.sensing_end_time_utc = end_str
 
-            reader = ViiNCBaseFileHandler(
+            reader = METimageNCBaseFileHandler(
                 filename=self.test_file_name,
                 filename_info=self.filename_info,
                 filetype_info={},
@@ -253,7 +255,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             nc.sensing_start_time_utc = "201709201730"
             nc.sensing_end_time_utc = "201709201740"
 
-        reader = ViiNCBaseFileHandler(
+        reader = METimageNCBaseFileHandler(
             filename=self.test_file_name,
             filename_info=self.filename_info,
             filetype_info={},
@@ -264,8 +266,8 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         with pytest.raises(ValueError, match="Unrecognized datetime format"):
             reader.end_time
 
-    @mock.patch("satpy.readers.core.vii_nc.tie_points_interpolation")
-    @mock.patch("satpy.readers.core.vii_nc.tie_points_geo_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.tie_points_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.tie_points_geo_interpolation")
     def test_functions(self, tpgi_, tpi_):
         """Test the functions."""
         with pytest.raises(NotImplementedError):
@@ -358,9 +360,9 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         assert out_variable.dims == ("y", "x")
         assert out_variable.attrs["key_1"] == "value_lat_1"
 
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_calibration")
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_interpolation")
-    @mock.patch("satpy.readers.core.vii_nc.ViiNCBaseFileHandler._perform_orthorectification")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_calibration")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_orthorectification")
     def test_dataset(self, po_, pi_, pc_):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
@@ -408,7 +410,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
                                                    "interpolate": True})
         pc_.assert_not_called()
         pi_.assert_not_called()
-        assert longitude[0, 0] == 1.0
+        assert longitude[0, 0] == -110.0  # -180 + (250-180)
 
         # Checks the correct execution of the get_dataset function with a 'cached_latitude' file_key
         latitude = self.reader.get_dataset(None, {"file_key": "cached_latitude",
@@ -442,7 +444,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
         longitude = self.reader_2.get_dataset(None, {"file_key": "cached_longitude",
                                                      "calibration": None})
-        assert longitude[0, 0] == 100.0
+        assert longitude[0, 0] == -160.0  # -180 + (200-180)
 
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
         # in a reader without defined longitude
