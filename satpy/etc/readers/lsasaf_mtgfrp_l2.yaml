@@ -1,9 +1,9 @@
 reader:
-  name: lsasaf_mtgfrp_l2_nc
-  short_name: FCI LSASAF-FRP NC
-  long_name: MTG FCI Level 2 LSASAF FRP (NetCDF)
+  name: lsasaf_mtgfrp_l2
+  short_name: FCI LSASAF-FRP
+  long_name: MTG FCI Level 2 LSASAF FRP (CSV and NetCDF)
   description: >
-    NetCDF reader for LSA SAF MTG FCI Level 2 Fire Radiative Power files.
+    NetCDF and CSV reader for LSA SAF MTG FCI Level 2 Fire Radiative Power files.
   status: Beta
   sensors: [fci]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
@@ -13,10 +13,10 @@ file_types:
     file_reader: !!python/name:satpy.readers.fci_lsasaf_frp_l2_csv.FRPFileHandler
     file_patterns:
       - '{facility_or_tool}-509_{platform_name}_MTFRPPIXEL-ListProduct_MTG-{coverage}_{start_time:%Y%m%d%H%M}.csv'
-#  nc_fci_frp:
-#    file_reader: !!python/name:satpy.readers.fci_lsasaf_frp_l2_nc.FRPFileHandler
-#    file_patterns:
-#     - 'W_PT-{facility_or_tool},SATELLITE,LSA-509_{platform_name}_MTFRPPIXEL_MTG-{coverage}_{disposition_mode}_LPMG_{start_time:%Y%m%d%H%M%S}.nc'
+  nc_fci_frp:
+    file_reader: !!python/name:satpy.readers.fci_lsasaf_frp_l2_nc.FRPFileHandler
+    file_patterns:
+     - 'W_PT-{facility_or_tool},SATELLITE,LSA-509_{platform_name}_MTFRPPIXEL_MTG-{coverage}_{disposition_mode}_LPMG_{start_time:%Y%m%d%H%M%S}.nc'
 
 datasets:
   frp:
