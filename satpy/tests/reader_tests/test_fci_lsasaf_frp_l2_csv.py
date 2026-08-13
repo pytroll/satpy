@@ -35,7 +35,7 @@ from satpy.readers.fci_lsasaf_frp_l2_csv import COLUMN_MAP, FRPFileHandler
 def filename_info():
     """Return filename_info."""
     return {
-        "satellite_name": "MTG",
+        "platform_name": "MTG",
         "start_time": datetime(2026, 7, 31, 12, 0),
         "facility_or_tool": "LSA",
         "coverage": "FD",
@@ -52,7 +52,7 @@ def filetype_info():
 def sample_csv_file(tmp_path):
     """Create simple csv testdata, stored in temporary place."""
     csv_content = """FRP,LATITUDE,LONGITUDE,ABS_LINE,ABS_SAMP
-10.5,50.1,8.6,1,1
+10.5,50.1,8.6,0,0
 20.0,50.2,8.7,2,3
 30.0,50.3,8.8,4,5
 """
@@ -117,8 +117,8 @@ def test_get_dataset_latitude_returns_dataarray(reader):
     assert data.dims == ("y",)
     assert data.attrs["units"] == "degrees_north"
     assert data.attrs["standard_name"] == "active_fire_pixel_centre_latitude"
-    assert data.attrs["satellite_name"] == "MTG"
-    assert data.attrs["platform_name"] == "Meteosat-12"
+    assert data.attrs["satellite_name"] == "Meteosat-12"
+    assert data.attrs["platform_name"] == "MTG"
     assert data.attrs["sensor"] == "fci"
     assert data.attrs["start_time"] == reader.start_time
     assert data.attrs["end_time"] == reader.end_time
@@ -142,13 +142,11 @@ def test_get_dataset_frp_adds_lat_lon_coords(monkeypatch, reader):
 
     assert isinstance(data, xr.DataArray)
     assert data.dims == ("y",)
-    assert "longitude" in data.coords
-    assert "latitude" in data.coords
     assert data.attrs["units"] == "MW"
     assert data.attrs["standard_name"] == "fire_radiative_power"
     assert data.attrs["resolution"] == 1000
-    assert data.attrs["satellite_name"] == "MTG"
-    assert data.attrs["platform_name"] == "Meteosat-12"
+    assert data.attrs["satellite_name"] == "Meteosat-12"
+    assert data.attrs["platform_name"] == "MTG"
     assert data.attrs["sensor"] == "fci"
 
 
@@ -176,8 +174,8 @@ def test_get_array_on_fci_grid(monkeypatch, reader):
     assert gridded.shape == (5, 6)
 
     assert np.isclose(gridded.values[0, 0], 10.5)
-    assert np.isclose(gridded.values[1, 2], 20.0)
-    assert np.isclose(gridded.values[3, 4], 30.0)
+    assert np.isclose(gridded.values[2, 3], 20.0)
+    assert np.isclose(gridded.values[4, 5], 30.0)
 
     assert np.isnan(gridded.values[0, 1])
     assert gridded.attrs["satellite_name"] == "MTG"

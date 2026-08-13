@@ -16,17 +16,17 @@
 """MTG FCI Fire Radiative Power (FRP) Level-2 (L2) CSV reader.
 
 This reader supports reading the frp product from the LSASAF FRPPIXEL based Product.
-It can be e.g. used with SingleBandCompositor or MaskingCompositor.
+It can be used standalone to read the data from the files, or to generate composites
+e.g. with SingleBandCompositor or MaskingCompositor.
 
 More detailed information about the related product and data see:
 https://lsa-saf.eumetsat.int/en/data/products/fire-products/
 
+Per default, the reader reads and loads a 1-D array
+of fire pixels and maps them on a sparse 2-D grid based on the 1 km Full disk
 
-Per default, the reader retds and loads an sparse 1-D array
-of fire pixels and maps them on an 2-D grid based on the 1 km Full disk
-FCI grid. The resulting 2-D array is Compatible with later resampling.
-
-NOTE: Currently method end_time is designed for 10 minute scan times, not for RSS.
+NOTE: The reader currently assumes the product to be full-disc,
+with a 10-minute repeat cycle, and coming from Meteosat-12.
 """
 
 
@@ -65,8 +65,9 @@ class FRPFileHandler(BaseFileHandler):
         super().__init__(filename, filename_info, filetype_info)
 
         self.filename_info = filename_info
-        self.satellite_name = filename_info.get("satellite_name")
-
+        #self.satellite_name = filename_info.get("satellite_name")
+        self.platform_name = filename_info.get("platform_name")
+        self.satellite_name = PLATFORM_MAP.get(self.platform_name, self.platform_name)
         self.file_content = dd.read_csv(
             filename,
             usecols=list(COLUMN_MAP.values())
@@ -101,7 +102,7 @@ class FRPFileHandler(BaseFileHandler):
             dims=("y",),
             attrs={
                 "satellite_name": self.satellite_name,
-                "platform_name": PLATFORM_MAP.get(self.satellite_name, self.satellite_name),
+                "platform_name": self.platform_name,
                 "sensor": "fci",
                 "start_time": self.start_time,
                 "end_time": self.end_time,
@@ -113,12 +114,6 @@ class FRPFileHandler(BaseFileHandler):
                 data.attrs[key] = dsinfo[key]
 
         if name == "frp":
-            lons = self["longitude"].to_dask_array(lengths=True)
-            lats = self["latitude"].to_dask_array(lengths=True)
-            data = data.assign_coords({
-                "longitude": ("y", lons),
-                "latitude": ("y", lats),
-            })
             data = self.get_array_on_fci_grid(data)
 
         return data
@@ -133,19 +128,13 @@ class FRPFileHandler(BaseFileHandler):
         cols = self["abs_samp"]
         attrs = data_array.attrs.copy()
 
-        rows_int = (rows.astype(int) - 1).compute()
-        cols_int = (cols.astype(int) - 1).compute()
+        rows_int = (rows.astype(int)).compute()
+        cols_int = (cols.astype(int)).compute()
 
         values = data_array.data.compute() if hasattr(data_array.data, "compute") else data_array.values
 
-        valid = (
-            (rows_int >= 0) & (rows_int < FRP_GRID_SHAPE[0]) &
-            (cols_int >= 0) & (cols_int < FRP_GRID_SHAPE[1])
-        )
-
         grid = np.full(FRP_GRID_SHAPE, np.nan, dtype=np.float32)
-        grid[rows_int[valid], cols_int[valid]] = values[valid]
-
+        grid[rows_int, cols_int] = values
         xarr = xr.DataArray(
             grid,
             dims=("y", "x"),
