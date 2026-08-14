@@ -32,15 +32,20 @@ with a 10-minute repeat cycle, and coming from Meteosat-12.
 
 from datetime import timedelta
 
+import dask.array as da
 import dask.dataframe as dd
 import numpy as np
 import xarray as xr
 
 from satpy.area import get_area_def
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.utils import get_chunk_size_limit
 
 # Full-disk 1 km FCI grid
 FRP_GRID_SHAPE = (11136, 11136)
+
+#Derived from PYTROLL_CHUNK_SIZE, else defaults to 128MiB.
+CHUNK_SIZE = get_chunk_size_limit()
 
 # Map internal/platform short names to OSCAR standard platform names
 PLATFORM_MAP = {
@@ -114,12 +119,6 @@ class FRPFileHandler(BaseFileHandler):
                 data.attrs[key] = dsinfo[key]
 
         if name == "frp":
-            lons = self["longitude"].to_dask_array(lengths=True)
-            lats = self["latitude"].to_dask_array(lengths=True)
-            data = data.assign_coords({
-                "longitude": ("y", lons),
-                "latitude": ("y", lats),
-            })
             data = self.get_array_on_fci_grid(data)
 
         return data
@@ -137,12 +136,18 @@ class FRPFileHandler(BaseFileHandler):
         rows_int = (rows.astype(int)).compute()
         cols_int = (cols.astype(int)).compute()
 
+        # values is a 1-D List of np.ndarray
         values = data_array.data.compute() if hasattr(data_array.data, "compute") else data_array.values
 
-        grid = np.full(FRP_GRID_SHAPE, np.nan, dtype=np.float32)
-        grid[rows_int, cols_int] = values
+        # Create an empty 1-D nan array for the results
+        flattened_result = np.nan * da.zeros((FRP_GRID_SHAPE[0] * FRP_GRID_SHAPE[1]), dtype=data_array.dtype)
+        # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
+        flattened_result[rows_int * FRP_GRID_SHAPE[1] + cols_int] = values #data_array
+        # ... reshape to final 2D grid
+        data_2d = da.reshape(flattened_result, FRP_GRID_SHAPE)
+
         xarr = xr.DataArray(
-            grid,
+            da.asarray(data_2d, CHUNK_SIZE),
             dims=("y", "x"),
             attrs=attrs,
         )
