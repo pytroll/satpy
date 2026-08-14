@@ -114,6 +114,12 @@ class FRPFileHandler(BaseFileHandler):
                 data.attrs[key] = dsinfo[key]
 
         if name == "frp":
+            lons = self["longitude"].to_dask_array(lengths=True)
+            lats = self["latitude"].to_dask_array(lengths=True)
+            data = data.assign_coords({
+                "longitude": ("y", lons),
+                "latitude": ("y", lats),
+            })
             data = self.get_array_on_fci_grid(data)
 
         return data
