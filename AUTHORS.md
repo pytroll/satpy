@@ -53,6 +53,7 @@ The following people have made contributions to this project:
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Przemyslaw Juda (pjuda)](https://github.com/pjuda)
+- [Sylvester Kaczmarek (sylvesterkaczmarek)](https://github.com/sylvesterkaczmarek)
 - [Inderpreet Kaur](https://github.com/ikaur17)
 - [Pouria Khalaj](https://github.com/pkhalaj)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
