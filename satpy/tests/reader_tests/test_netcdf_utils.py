@@ -175,6 +175,22 @@ class TestNetCDF4FileHandler:
         assert "test_group/attr/test_attr_str" in file_handler.file_content
         assert "attr/test_attr_str" in file_handler.file_content
 
+    @pytest.mark.parametrize(
+        ("required_variables", "expected_variable"),
+        [
+            (["ds2_f"], "ds2_f"),
+            (["attr/test_attr_str", "ds2_i"], "ds2_i"),
+        ],
+    )
+    def test_listed_root_variables(self, netcdf_file, required_variables, expected_variable):
+        """Test collection of required variables located at the NetCDF root."""
+        filetype_info = {"required_netcdf_variables": required_variables}
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
+
+        assert expected_variable in file_handler.file_content
+        assert file_handler.file_content[expected_variable + "/shape"] == (10, 100)
+
     def test_listed_variables_with_composing(self, netcdf_file):
         """Test that composing for listed variables is performed."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
@@ -288,7 +304,7 @@ class TestNetCDF4FsspecFileHandler:
             assert fh.accessor.engine == "netcdf4"
 
     def test_use_h5netcdf_for_file_not_accessible_locally(self):
-        """Test that h5netcdf is used for files that are not accesible locally."""
+        """Test that h5netcdf is used when file not accesible locally."""
         from unittest.mock import patch
 
         fname = "s3://bucket/object.nc"
@@ -398,7 +414,7 @@ def _write_test_h5netcdf(fname, data):
 
 
 def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
-    """Test getting xr.DataArray from h5netcdf variable."""
+    """Test getting scalar xr.DataArray from h5netcdf variable."""
     import numpy as np
 
     from satpy.readers.core.netcdf import get_data_as_xarray
