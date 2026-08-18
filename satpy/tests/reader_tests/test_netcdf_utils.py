@@ -304,7 +304,7 @@ class TestNetCDF4FsspecFileHandler:
             assert fh.accessor.engine == "netcdf4"
 
     def test_use_h5netcdf_for_file_not_accessible_locally(self):
-        """Test that h5netcdf is used when file not accesible locally."""
+        """Test that h5netcdf is used for files that are not accesible locally."""
         from unittest.mock import patch
 
         fname = "s3://bucket/object.nc"
@@ -414,7 +414,7 @@ def _write_test_h5netcdf(fname, data):
 
 
 def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
-    """Test getting scalar xr.DataArray from h5netcdf variable."""
+    """Test getting xr.DataArray from h5netcdf variable."""
     import numpy as np
 
     from satpy.readers.core.netcdf import get_data_as_xarray
