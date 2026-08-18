@@ -69,6 +69,8 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
             tpw[:] = 1.
             tpw.test_attr = "attr"
+            tpw.valid_min = -10.0
+            tpw.valid_max = 10.0
             lon = g1_1.createVariable("longitude",
                                       np.float32,
                                       dimensions=("num_tie_points_act", "num_tie_points_alt"))
@@ -376,6 +378,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         assert variable.dims == ("y", "x")
         assert variable.attrs["test_attr"] == "attr"
         assert variable.attrs["units"] is None
+        assert "valid_min" not in variable.attrs
 
         # Checks the correct execution of the get_dataset function with a valid file_key
         # and required calibration and interpolation
