@@ -120,6 +120,10 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         # Manage the attributes of the dataset
         variable.attrs.setdefault("units", None)
 
+        # Remove possibly incorrect attributes
+        for possible_invalid_attr in ("valid_min", "valid_max"):
+            variable.attrs.pop(possible_invalid_attr, None)
+
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
