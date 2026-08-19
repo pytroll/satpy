@@ -3,24 +3,90 @@
 Satpy is a [Pytroll](https://pytroll.github.io/) library for reading, manipulating, and writing data
 from remote-sensing earth-observing satellite instruments.
 Satpy is an abstraction layer over `pyresample`, `pyspectral`, `trollimage`, `pycoast`, and
-`python-geotiepoints`.
+`python-geotiepoints` libraries.
+
+If something below is not clear, consult the Sphinx documentation in `doc/source/`; the
+"Where to read more" table at the bottom points at the most relevant pages.
 
 ## Core concepts
 
-- `Scene` (`satpy/scene.py`) is the user-facing container. Typical flow: `Scene(filenames, reader=)`
-  → `load([...])` → `resample(area)` → `save_datasets()`.
-- Data is always an `xarray.DataArray` wrapping a **dask array**. Dims are `y`, `x`, and `bands`.
-  Metadata lives in `.attrs`; `area`, `start_time`, `end_time`, and `sensor` are expected to be
-  present.
-- `DataID` / `DataQuery` (`satpy/dataset/dataid.py`) are the keys in a Scene's `DatasetDict`.
-  Default ID keys for imager bands: `name`, `wavelength`, `resolution`, `calibration`, `modifiers`.
-- Pipeline: **readers** → **composites** (combine bands) → **modifiers** (transform one band) →
-  **resampling** → **enhancements** (stretch to 0–1) → **writers**. `DependencyTree`
-  (`satpy/dependency_tree.py`) resolves composite/modifier prerequisites.
-- **Every component is a Python class *plus* a YAML config.** YAML under `satpy/etc/` points at
-  classes with `!!python/name:` and is loaded with PyYAML's `UnsafeLoader` (which is why `.bandit`
-  skips B506). Adding a class without a matching YAML entry does nothing.
-- A composite's `standard_name` is what links it to its enhancement rule.
+Satpy uses a high-level `Scene` object (`satpy/scene.py`) to wrap the functionality of the other parts
+of Satpy. The Scene is both a container for the data being worked with and the interface to act on
+that data. Every component of Satpy is technically optional: the component classes can be imported
+and called directly, and users can skip anything their task doesn't need. A `Scene` is not required,
+it is only the easiest way to tie the components together.
+
+Data processed by Satpy may be referred to as a dataset, a product, channel, or a band.
+Data is always an `xarray.DataArray` wrapping a **dask array**. Dims should be `y` and `x`.
+A third `bands` dimension is common for representing image bands (ex. R, G, B). Other dimensions
+(ex. time) are also possible. In rare cases 1D arrays are used and may only have a `y` dimension.
+Metadata lives in `.attrs`; `area`, `start_time`, `end_time`, `units`, `standard_name`, and `sensor`
+are expected to be present.
+A `DataID` (`satpy/dataset/dataid.py`) object is used as the identifier for each product.
+A user may use a `DataQuery` (`satpy/dataset/dataid.py`) to access a product of a specific `DataID`
+as shorthand for the full `DataID` or when not all parts of the ID are known.
+Default ID keys for imager bands: `name`, `wavelength`, `resolution`, `calibration`, `modifiers`.
+
+### Geographic data
+
+Geolocation objects are stored in the `.attrs["area"]` field. The types of geographic data Satpy
+deals with:
+
+- 2D projected data: Data mapped to a projected grid of pixels. Dimensions are `y` and `x`
+  and are most often in units of "meters" or "degrees". Geolocation is usually defined by
+  an `AreaDefinition` object from `pyresample` using a Coordinate Reference System (CRS) to define
+  the projection, width and height to define the shape in pixels, and extents to define the outer
+  edges of the area in projection units.
+- 2D swath data: Data recorded from a polar-orbiting satellite where the `y` dimension usually is the
+  along-track direction and `x` is the cross-track direction. Geolocation is usually defined by
+  a 2D longitude and 2D latitude array contained in a `SwathDefinition` object from `pyresample`.
+- 1D data: Sometimes 1-dimensional data is processed that represents an unstructured version of one
+  of the above 2 cases or some other case not well represented by the existing structures.
+
+### High-level components
+
+The main components wrapped by the `Scene` and used in a typical user workflow are:
+
+- **Readers**: Given input data files (typically on-disk) determine which files can be read and make
+  the contents available to the user as `xarray.DataArray` objects identified by a `DataID`. Readers
+  use a collection of file handlers (one per input file) to do the actual reading of the files.
+- **Compositors**: Combine multiple datasets to create a new dataset. It is common for a composite's
+  `standard_name` to be used to link it to an enhancement configuration.
+- **Modifiers**: Transform or correct a single band. Generally modifiers retain the overall meaning
+  of the original data, but have adjusted some aspect of it (ex. removing atmospheric effects).
+- **Writers**: Write data to another (typically on-disk) format. Writers also use "enhancements" to scale
+  data to be written.
+
+All high-level components are a Python class plus a YAML config. YAML under `satpy/etc/` points at
+classes with `!!python/name:` and is loaded with PyYAML's `UnsafeLoader` (which is why `.bandit`
+skips B506). Satpy typically finds a YAML configuration and then loads the associated
+Python object with information from the YAML file. The YAML is what makes a component
+*discoverable*: a class with no YAML entry can still be imported and called directly, but nothing
+config-driven (`Scene.load`, `available_dataset_names`, the `DependencyTree`) will ever find it.
+
+When composites or modifiers have dependencies the `DependencyTree` (`satpy/dependency_tree.py`)
+is used to resolve which dataset should be used and where it should come from
+(ex. another composite versus a loaded reader).
+
+### Low-level components
+
+- **Resamplers**: Remap data from one geolocation to another (swath → area, area → area, …). Usually
+  referenced by a short string name rather than instantiated directly.
+- **Enhancements**: Normalize (0-1) or colorize data (ex. single band -> RGB) before data is written
+  to an output format or visualized (ex. matplotlib plot).
+
+### Typical workflow
+
+`Scene(filenames, reader=)` → `load([...])` → `resample(area)` → `save_datasets()`
+
+Internally that is **readers** → **compositors** / **modifiers** (ordered by the `DependencyTree`) →
+**resampling** → **enhancements** → **writers**.
+
+## MultiScene
+
+The `MultiScene` (`satpy/multiscene/_multiscene.py`, still experimental) was created to make working
+with multiple `Scene` objects easier. Some features include the ability to save animations by
+treating each Scene as a frame or combining multiple Scenes into a single dataset/image.
 
 ## Repo layout
 
@@ -37,8 +103,6 @@ satpy/
 ├── modifiers/            base.py + geometry/atmosphere/spectral/angles/parallax/filters
 ├── resample/             base.py dispatch + kdtree/native/bucket/ewa
 ├── cf/                   CF-NetCDF encoding used by writers/cf_writer.py
-├── multiscene/           MultiScene (experimental) + blend_funcs
-├── demo/                 demo data downloaders
 ├── etc/                  YAML config: readers/ composites/ enhancements/ writers/ areas.yaml
 └── tests/                mirrors the source split (see Testing below)
 ```
@@ -47,7 +111,6 @@ satpy/
 
 | Thing | Path |
 |---|---|
-| `Scene` | `satpy/scene.py` |
 | `BaseFileHandler` | `satpy/readers/core/file_handlers.py` |
 | `FileYAMLReader` | `satpy/readers/core/yaml_reader.py` |
 | Format bases (`NetCDF4FileHandler`, `HDF5FileHandler`, …) | `satpy/readers/core/{netcdf,hdf5,hdf4,hdfeos,hrit}.py` |
@@ -66,7 +129,7 @@ satpy/
   module-level `__getattr__` forwarders driven by `satpy.utils._import_and_warn_new_location`.
   **Always import from the real `*.core.*` / split modules.** Old paths are removed in Satpy 1.0.
 - `satpy.writers.show` and `satpy.writers.to_image` are hard-removed and raise `AttributeError`.
-- **Stay lazy.** Never call `.compute()`, `.values`, `np.asarray()`, or `bool()` on data in library
+- **Stay lazy.** Avoid `.compute()`, `.values`, `np.asarray()`, or `bool()` on data in library
   code.
 - **Do not build dask arrays out of delayed objects.** To wrap a non-dask-friendly function, use
   `da.map_blocks` / `da.map_overlap` / `da.blockwise`, not `dask.delayed` + `da.from_delayed`.
@@ -108,11 +171,6 @@ satpy/
 ## Development
 
 ```bash
-conda create -n satpy-dev python=3.11 && conda activate satpy-dev
-conda install --only-deps satpy && conda install eccodes
-pip install -e ".[dev]"          # dev = satpy[doc,tests]
-pre-commit install
-
 pytest satpy/tests                                    # unit tests
 pytest satpy/tests/reader_tests/test_abi_l1b.py       # single module
 cd doc && make html                                   # docs; RTD builds with fail_on_warning
@@ -124,7 +182,7 @@ behave satpy/tests/behave/features                    # reference-image comparis
 ```
 
 CI runs the unit tests and behave tests on Linux/macOS/Windows × Python 3.11/3.12/3.13. Linting is
-delegated to pre-commit.ci.
+delegated to pre-commit.ci. Env setup: `doc/source/dev_guide/index.rst`.
 
 **Default verification is `pytest satpy/tests`.** Do not run the behave or image-comparison suites
 unless explicitly asked. `satpy/tests/features/` (behave BDD) runs in CI; `satpy/tests/behave/`
@@ -134,13 +192,9 @@ work on a normal dev machine without that data.
 
 ## Style and linting
 
-- ruff with `line-length = 120`. (`doc/source/dev_guide/CONTRIBUTING.rst` still says 80 characters;
-  120 is what the tooling actually enforces.)
-- Rules enabled: `A D E W F I PT TID C90 Q T10 T20 NPY`. Google-convention docstrings are required
-  on all public modules, classes, and functions. mccabe max-complexity 10. Double quotes. No `print`.
-- isort with the black profile, `known_first_party = "satpy"`.
-- pre-commit runs ruff-check, trailing-whitespace, end-of-file-fixer, check-yaml `--unsafe`, bandit,
-  mypy, and isort. There is **no `ruff-format`** — do not reformat code you did not otherwise touch.
+- ruff, `line-length = 120`. Google-convention docstrings on all public modules, classes, and
+  functions. Full rule set and isort config live in `pyproject.toml`.
+- There is **no `ruff-format`** — do not reformat code you did not otherwise touch.
 
 ## Testing
 
