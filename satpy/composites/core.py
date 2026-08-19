@@ -204,11 +204,11 @@ class CompositeBase:
 
     @staticmethod
     def drop_coordinates(data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
-        """Drop negligible non-dimensional coordinates.
+        """Drop negligible coordinates that are not dimension coordinates.
 
-        Drops negligible coordinates if they do not correspond to any
-        dimension.  Negligible coordinates are defined in the
-        :attr:`NEGLIGIBLE_COORDS` module attribute.
+        Negligible coordinates are retained only when they are the coordinate
+        variable for their same-named dimension. Negligible coordinates are
+        defined in the :attr:`NEGLIGIBLE_COORDS` module attribute.
 
         Args:
             data_arrays: Arrays to be checked
@@ -216,8 +216,8 @@ class CompositeBase:
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and
-                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
+                    if ds.coords[coord].dims != (coord,) and
+                    any(negligible in coord for negligible in NEGLIGIBLE_COORDS)]
             if drop:
                 new_arrays.append(ds.drop_vars(drop))
             else:
