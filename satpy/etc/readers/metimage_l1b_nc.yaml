@@ -48,6 +48,7 @@ datasets:
 # --- Measurement data ---
   vii_4:
     name: vii_443
+    vii_number: 4
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_443
     coordinates: [lat_pixels, lon_pixels]
@@ -62,6 +63,7 @@ datasets:
 
   vii_8:
     name: vii_555
+    vii_number: 8
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_555
     coordinates: [lat_pixels, lon_pixels]
@@ -76,6 +78,7 @@ datasets:
 
   vii_12:
     name: vii_668
+    vii_number: 12
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_668
     coordinates: [lat_pixels, lon_pixels]
@@ -90,6 +93,7 @@ datasets:
 
   vii_15:
     name: vii_752
+    vii_number: 15
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_752
     coordinates: [lat_pixels, lon_pixels]
@@ -104,6 +108,7 @@ datasets:
 
   vii_16:
     name: vii_763
+    vii_number: 16
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_763
     coordinates: [lat_pixels, lon_pixels]
@@ -118,6 +123,7 @@ datasets:
 
   vii_17:
     name: vii_865
+    vii_number: 17
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_865
     coordinates: [lat_pixels, lon_pixels]
@@ -132,6 +138,7 @@ datasets:
 
   vii_20:
     name: vii_914
+    vii_number: 20
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_914
     coordinates: [lat_pixels, lon_pixels]
@@ -146,6 +153,7 @@ datasets:
 
   vii_22:
     name: vii_1240
+    vii_number: 22
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1240
     coordinates: [lat_pixels, lon_pixels]
@@ -160,6 +168,7 @@ datasets:
 
   vii_23:
     name: vii_1375
+    vii_number: 23
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1375
     coordinates: [lat_pixels, lon_pixels]
@@ -174,6 +183,7 @@ datasets:
 
   vii_24:
     name: vii_1630
+    vii_number: 24
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1630
     coordinates: [lat_pixels, lon_pixels]
@@ -188,6 +198,7 @@ datasets:
 
   vii_25:
     name: vii_2250
+    vii_number: 25
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_2250
     coordinates: [lat_pixels, lon_pixels]
@@ -202,6 +213,7 @@ datasets:
 
   vii_26:
     name: vii_3740
+    vii_number: 26
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_3740
     coordinates: [lat_pixels, lon_pixels]
@@ -216,6 +228,7 @@ datasets:
 
   vii_28:
     name: vii_3959
+    vii_number: 28
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_3959
     coordinates: [lat_pixels, lon_pixels]
@@ -230,6 +243,7 @@ datasets:
 
   vii_30:
     name: vii_4050
+    vii_number: 30
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_4050
     coordinates: [lat_pixels, lon_pixels]
@@ -244,6 +258,7 @@ datasets:
 
   vii_33:
     name: vii_6725
+    vii_number: 33
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_6725
     coordinates: [lat_pixels, lon_pixels]
@@ -258,6 +273,7 @@ datasets:
 
   vii_34:
     name: vii_7325
+    vii_number: 34
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_7325
     coordinates: [lat_pixels, lon_pixels]
@@ -272,6 +288,7 @@ datasets:
 
   vii_35:
     name: vii_8540
+    vii_number: 35
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_8540
     coordinates: [lat_pixels, lon_pixels]
@@ -286,6 +303,7 @@ datasets:
 
   vii_37:
     name: vii_10690
+    vii_number: 37
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_10690
     coordinates: [lat_pixels, lon_pixels]
@@ -300,6 +318,7 @@ datasets:
 
   vii_39:
     name: vii_12020
+    vii_number: 39
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_12020
     coordinates: [lat_pixels, lon_pixels]
@@ -314,6 +333,7 @@ datasets:
 
   vii_40:
     name: vii_13345
+    vii_number: 40
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_13345
     coordinates: [lat_pixels, lon_pixels]
