@@ -121,6 +121,48 @@ class TestMatchDataArrays:
         ret_datasets = comp.match_data_arrays([ds, ds])
         assert "acq_time" not in ret_datasets[0].coords
 
+    def test_drop_coordinates_drops_non_dimension_time_coordinate(self):
+        """Test a time coordinate on another dimension is dropped."""
+        from satpy.composites.core import CompositeBase
+
+        data = xr.DataArray(
+            np.arange(12).reshape(3, 4),
+            dims=("y", "x"),
+            coords={"time": xr.DataArray(np.arange(3), dims=("y",))},
+        )
+
+        result = CompositeBase.drop_coordinates([data])[0]
+
+        assert "time" not in result.coords
+
+    def test_drop_coordinates_drops_mismatched_same_named_coordinate(self):
+        """Test a same-named coordinate on the wrong dimension is dropped."""
+        from satpy.composites.core import CompositeBase
+
+        data = xr.DataArray(
+            np.arange(24).reshape(2, 3, 4),
+            dims=("time", "y", "x"),
+            coords={"time": xr.DataArray(np.arange(3), dims=("y",))},
+        )
+
+        result = CompositeBase.drop_coordinates([data])[0]
+
+        assert "time" not in result.coords
+
+    def test_drop_coordinates_keeps_dimension_time_coordinate(self):
+        """Test a true time dimension coordinate is retained."""
+        from satpy.composites.core import CompositeBase
+
+        data = xr.DataArray(
+            np.arange(24).reshape(2, 3, 4),
+            dims=("time", "y", "x"),
+            coords={"time": xr.DataArray(np.arange(2), dims=("time",))},
+        )
+
+        result = CompositeBase.drop_coordinates([data])[0]
+
+        assert result.coords["time"].dims == ("time",)
+
     def test_almost_equal_geo_coordinates(self):
         """Test that coordinates that are almost-equal still match.
 
@@ -399,6 +441,7 @@ def test_add_bands_sequence():
     with assert_maximum_dask_computes(0):
         res = add_bands(data_arr, new_bands)
     _check_add_band_results(res, exp_bands, np.float32)
+
 
 def test_add_bands_p_l():
     """Test failing P to L case."""

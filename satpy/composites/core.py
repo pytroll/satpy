@@ -38,6 +38,11 @@ NEGLIGIBLE_COORDS = ["time"]
 TIME_COMPATIBILITY_TOLERANCE = np.timedelta64(1, "s")
 
 
+def _is_coord_var(data_arr: xr.DataArray, coord_name: str) -> bool:
+    """Return whether a coordinate is the variable for its same-named dimension."""
+    return data_arr.coords[coord_name].dims == (coord_name,)
+
+
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
 
@@ -216,7 +221,7 @@ class CompositeBase:
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if ds.coords[coord].dims != (coord,) and
+                    if not _is_coord_var(ds, coord) and
                     any(negligible in coord for negligible in NEGLIGIBLE_COORDS)]
             if drop:
                 new_arrays.append(ds.drop_vars(drop))
