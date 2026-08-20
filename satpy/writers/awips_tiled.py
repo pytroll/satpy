@@ -1493,7 +1493,8 @@ class AWIPSTiledWriter(Writer):
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
         # use the first data array as a "representative" for the group
         ds_info = data_arrs[0].attrs.copy()
-        del ds_info["valid_range"]  # remove variable-specific metadata that may contain dask arrays
+        for possible_dask_attr in ("valid_range", "valid_min", "valid_max"):
+            ds_info.pop(possible_dask_attr, None)  # remove variable-specific metadata that may contain dask arrays
         # we want to use our own creation_time
         ds_info["creation_time"] = creation_time
         if source_name is not None:

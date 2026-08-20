@@ -657,7 +657,7 @@ class TestParallaxCorrectionModifier:
         cloud_location = {
                 "foroyar": {
                     7500: (197, 202, 152, 172),
-                    15000: (238, 243, 164, 184)},
+                    15000: (239, 244, 165, 185)},
                 "ouagadougou": {
                     7500: (159, 164, 140, 160),
                     15000: (163, 168, 141, 161)}}

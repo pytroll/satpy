@@ -439,6 +439,14 @@ def mss_l1_landsat1_b4_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_la
 
 
 @pytest.fixture(scope="module")
+def mss_l1_landsat1_b5_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_landsat1_area):
+    """Create the file for the Landsat-1 MSS L1 B4 channel."""
+    filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_B5.TIF"
+    create_tif_file(spectral_data, "B5", mss_l1_landsat1_area, filename, mss_l1_landsat1_date)
+    return os.fspath(filename)
+
+
+@pytest.fixture(scope="module")
 def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
     """Create the Landsat-1 MSS L1 metadata xml file."""
     filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_MTL.xml"
@@ -447,9 +455,9 @@ def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
 
 
 @pytest.fixture(scope="module")
-def mss_l1_landsat1_all_files(mss_l1_landsat1_b4_file, mss_l1_landsat1_mda_file):
+def mss_l1_landsat1_all_files(mss_l1_landsat1_b4_file, mss_l1_landsat1_b5_file, mss_l1_landsat1_mda_file):
     """Return all the files."""
-    return mss_l1_landsat1_b4_file, mss_l1_landsat1_mda_file
+    return mss_l1_landsat1_b4_file, mss_l1_landsat1_b5_file, mss_l1_landsat1_mda_file
 
 
 @pytest.fixture(scope="module")
@@ -457,6 +465,14 @@ def mss_l1_landsat4_b4_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_la
     """Create the file for the Landsat-4 MSS L1 B4 channel."""
     filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_B4.TIF"
     create_tif_file(spectral_data, "B4", mss_l1_landsat4_area, filename, mss_l1_landsat4_date)
+    return os.fspath(filename)
+
+
+@pytest.fixture(scope="module")
+def mss_l1_landsat4_b3_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_landsat4_area):
+    """Create the file for the Landsat-4 MSS L1 B4 channel."""
+    filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_B3.TIF"
+    create_tif_file(spectral_data, "B3", mss_l1_landsat4_area, filename, mss_l1_landsat4_date)
     return os.fspath(filename)
 
 
@@ -469,9 +485,9 @@ def mss_l1_landsat4_mda_file(mss_l1_landsat4_files_path):
 
 
 @pytest.fixture(scope="module")
-def mss_l1_landsat4_all_files(mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file):
+def mss_l1_landsat4_all_files(mss_l1_landsat4_b4_file, mss_l1_landsat4_b3_file, mss_l1_landsat4_mda_file):
     """Return all the files."""
-    return mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file
+    return mss_l1_landsat4_b4_file, mss_l1_landsat4_b3_file, mss_l1_landsat4_mda_file
 
 
 @pytest.fixture(scope="module")
@@ -511,11 +527,11 @@ class TestLandsat:
             pytest.param("tm_l1_tif", "B4", "B6", lf("tm_l1_all_files"), lf("tm_l1_area"), id="tm_l1"),
             pytest.param("tm_l2_tif", "B4", "B6", lf("tm_l2_all_files"), lf("tm_l2_area"), id="tm_l2"),
             pytest.param(
-                "mss_l1_tif", "B4", None, lf("mss_l1_landsat1_all_files"), lf("mss_l1_landsat1_area"),
+                "mss_l1_tif", "B4", "B5", lf("mss_l1_landsat1_all_files"), lf("mss_l1_landsat1_area"),
                 id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, lf("mss_l1_landsat4_all_files"), lf("mss_l1_landsat4_area"),
+                "mss_l1_tif", "B4", "B3", lf("mss_l1_landsat4_all_files"), lf("mss_l1_landsat4_area"),
                 id="mss_l1_landsat4",
             ),
         ],

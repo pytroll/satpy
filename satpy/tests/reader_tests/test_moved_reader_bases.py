@@ -176,18 +176,6 @@ def test_seviri_base_warns(name):
 
 
 @pytest.mark.parametrize("name",
-                         ["ViiNCBaseFileHandler",
-                         ]
-                         )
-def test_vii_base_nc_warns(name):
-    """Test that there's a warning when importing from VII NetCDF4 base from the old location."""
-    from satpy.readers import vii_base_nc
-
-    with pytest.warns(UserWarning, match=".*has been moved.*"):
-        getattr(vii_base_nc, name)
-
-
-@pytest.mark.parametrize("name",
                          ["JPSS_SDR_FileHandler",
                           "DATASET_KEYS",
                           "ATMS_DATASET_KEYS",
@@ -200,22 +188,6 @@ def test_viirs_atms_sdr_warns(name):
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(viirs_atms_sdr_base, name)
-
-
-@pytest.mark.parametrize("name",
-                         ["C1",
-                          "C2",
-                          "TIE_POINTS_FACTOR",
-                          "SCAN_ALT_TIE_POINTS",
-                          "MEAN_EARTH_RADIUS",
-                         ]
-                         )
-def test_vii_utils_warns(name):
-    """Test that there's a warning when importing from VII utils from the old location."""
-    from satpy.readers import vii_utils
-
-    with pytest.warns(UserWarning, match=".*has been moved.*"):
-        getattr(vii_utils, name)
 
 
 @pytest.mark.parametrize("name",

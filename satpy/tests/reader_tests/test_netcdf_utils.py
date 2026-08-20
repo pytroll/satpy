@@ -175,6 +175,22 @@ class TestNetCDF4FileHandler:
         assert "test_group/attr/test_attr_str" in file_handler.file_content
         assert "attr/test_attr_str" in file_handler.file_content
 
+    @pytest.mark.parametrize(
+        ("required_variables", "expected_variable"),
+        [
+            (["ds2_f"], "ds2_f"),
+            (["attr/test_attr_str", "ds2_i"], "ds2_i"),
+        ],
+    )
+    def test_listed_root_variables(self, netcdf_file, required_variables, expected_variable):
+        """Test collection of required variables located at the NetCDF root."""
+        filetype_info = {"required_netcdf_variables": required_variables}
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
+
+        assert expected_variable in file_handler.file_content
+        assert file_handler.file_content[expected_variable + "/shape"] == (10, 100)
+
     def test_listed_variables_with_composing(self, netcdf_file):
         """Test that composing for listed variables is performed."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
