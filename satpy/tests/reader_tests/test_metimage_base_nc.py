@@ -37,14 +37,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
-        filename_info = {
-            "creation_time": datetime.datetime(year=2017, month=9, day=22,
-                                               hour=22, minute=40, second=10),
-            "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
-                                                    hour=12, minute=30, second=30),
-            "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
-                                                  hour=18, minute=30, second=50)
-        }
+        filename_info = _metimage_filename_info()
         self.filename_info = filename_info
 
         # Create a reader
@@ -398,14 +391,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
 @pytest.fixture
 def metimage_filename_info():
     """Return a filename_info dict valid for the base-class reader."""
-    return {
-        "creation_time": datetime.datetime(year=2017, month=9, day=22,
-                                           hour=22, minute=40, second=10),
-        "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
-                                                hour=12, minute=30, second=30),
-        "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
-                                              hour=18, minute=30, second=50),
-    }
+    return _metimage_filename_info()
 
 
 @pytest.fixture
@@ -482,6 +468,18 @@ def test_del_swallows_cleanup_errors(pgi_, metimage_base_nc_file_bz2, metimage_f
 
     with mock.patch("os.remove", side_effect=OSError("mock disk error")):
         reader.__del__()  # must not raise
+
+
+def _metimage_filename_info():
+    """Return a filename_info dict valid for the base-class reader."""
+    return {
+        "creation_time": datetime.datetime(year=2017, month=9, day=22,
+                                           hour=22, minute=40, second=10),
+        "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
+                                                hour=12, minute=30, second=30),
+        "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
+                                              hour=18, minute=30, second=50),
+    }
 
 
 def _create_metimage_base_nc_file(filename):
