@@ -46,7 +46,7 @@ datasets:
     standard_name: latitude
 
 # --- Measurement data ---
-  vii_4:
+  vii_443:
     name: vii_443
     vii_channel_id: 4
     file_type: nc_vii_l1b_rad
@@ -62,7 +62,7 @@ datasets:
     wavelength: [0.428, 0.443, 0.458]
     resolution: 500
 
-  vii_8:
+  vii_555:
     name: vii_555
     vii_channel_id: 8
     file_type: nc_vii_l1b_rad
@@ -78,7 +78,7 @@ datasets:
     wavelength: [0.545, 0.555, 0.565]
     resolution: 500
 
-  vii_12:
+  vii_668:
     name: vii_668
     vii_channel_id: 12
     file_type: nc_vii_l1b_rad
@@ -94,7 +94,7 @@ datasets:
     wavelength: [0.658, 0.668, 0.678]
     resolution: 500
 
-  vii_15:
+  vii_752:
     name: vii_752
     vii_channel_id: 15
     file_type: nc_vii_l1b_rad
@@ -110,7 +110,7 @@ datasets:
     wavelength: [0.7465, 0.7515, 0.7565]
     resolution: 500
 
-  vii_16:
+  vii_763:
     name: vii_763
     vii_channel_id: 16
     file_type: nc_vii_l1b_rad
@@ -126,7 +126,7 @@ datasets:
     wavelength: [0.75695, 0.7627, 0.76845]
     resolution: 500
 
-  vii_17:
+  vii_865:
     name: vii_865
     vii_channel_id: 17
     file_type: nc_vii_l1b_rad
@@ -142,7 +142,7 @@ datasets:
     wavelength: [0.855, 0.865, 0.875]
     resolution: 500
 
-  vii_20:
+  vii_914:
     name: vii_914
     vii_channel_id: 20
     file_type: nc_vii_l1b_rad
@@ -158,7 +158,7 @@ datasets:
     wavelength: [0.904, 0.914, 0.924]
     resolution: 500
 
-  vii_22:
+  vii_1240:
     name: vii_1240
     vii_channel_id: 22
     file_type: nc_vii_l1b_rad
@@ -174,7 +174,7 @@ datasets:
     wavelength: [1.230, 1.240, 1.250]
     resolution: 500
 
-  vii_23:
+  vii_1375:
     name: vii_1375
     vii_channel_id: 23
     file_type: nc_vii_l1b_rad
@@ -190,7 +190,7 @@ datasets:
     wavelength: [1.355, 1.375, 1.395]
     resolution: 500
 
-  vii_24:
+  vii_1630:
     name: vii_1630
     vii_channel_id: 24
     file_type: nc_vii_l1b_rad
@@ -206,7 +206,7 @@ datasets:
     wavelength: [1.620, 1.630, 1.640]
     resolution: 500
 
-  vii_25:
+  vii_2250:
     name: vii_2250
     vii_channel_id: 25
     file_type: nc_vii_l1b_rad
@@ -222,7 +222,7 @@ datasets:
     wavelength: [2.225, 2.250, 2.275]
     resolution: 500
 
-  vii_26:
+  vii_3740:
     name: vii_3740
     vii_channel_id: 26
     file_type: nc_vii_l1b_rad
@@ -238,7 +238,7 @@ datasets:
     wavelength: [3.650, 3.740, 3.830]
     resolution: 500
 
-  vii_28:
+  vii_3959:
     name: vii_3959
     vii_channel_id: 28
     file_type: nc_vii_l1b_rad
@@ -254,7 +254,7 @@ datasets:
     wavelength: [3.929, 3.959, 3.989]
     resolution: 500
 
-  vii_30:
+  vii_4050:
     name: vii_4050
     vii_channel_id: 30
     file_type: nc_vii_l1b_rad
@@ -270,7 +270,7 @@ datasets:
     wavelength: [4.020, 4.050, 4.080]
     resolution: 500
 
-  vii_33:
+  vii_6725:
     name: vii_6725
     vii_channel_id: 33
     file_type: nc_vii_l1b_rad
@@ -286,7 +286,7 @@ datasets:
     wavelength: [6.540, 6.725, 6.910]
     resolution: 500
 
-  vii_34:
+  vii_7325:
     name: vii_7325
     vii_channel_id: 34
     file_type: nc_vii_l1b_rad
@@ -302,7 +302,7 @@ datasets:
     wavelength: [7.180, 7.325, 7.470]
     resolution: 500
 
-  vii_35:
+  vii_8540:
     name: vii_8540
     vii_channel_id: 35
     file_type: nc_vii_l1b_rad
@@ -318,7 +318,7 @@ datasets:
     wavelength: [8.395, 8.540, 8.685]
     resolution: 500
 
-  vii_37:
+  vii_10690:
     name: vii_10690
     vii_channel_id: 37
     file_type: nc_vii_l1b_rad
@@ -334,7 +334,7 @@ datasets:
     wavelength: [10.440, 10.690, 10.940]
     resolution: 500
 
-  vii_39:
+  vii_12020:
     name: vii_12020
     vii_channel_id: 39
     file_type: nc_vii_l1b_rad
@@ -350,7 +350,7 @@ datasets:
     wavelength: [11.770, 12.020, 12.270]
     resolution: 500
 
-  vii_40:
+  vii_13345:
     name: vii_13345
     vii_channel_id: 40
     file_type: nc_vii_l1b_rad
