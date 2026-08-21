@@ -15,7 +15,7 @@ from netCDF4 import Dataset
 
 from satpy.readers.core.metimage_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
 
-TEST_FILE = "test_file_vii_base_nc.nc"
+TEST_FILE = "test_file_metimage_base_nc.nc"
 
 
 class TestMETimageNCBaseFileHandler(unittest.TestCase):
@@ -397,7 +397,7 @@ def metimage_filename_info():
 @pytest.fixture
 def metimage_base_nc_file(tmp_path):
     """Create a small METimage netCDF test file and return its path."""
-    filename = tmp_path / "test_file_vii_base_nc.nc"
+    filename = tmp_path / "test_file_metimage_base_nc.nc"
     _create_metimage_base_nc_file(filename)
     return filename
 
