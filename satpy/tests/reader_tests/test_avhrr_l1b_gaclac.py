@@ -87,7 +87,6 @@ def silence_pygac_warnings():
     """Silence some warnings from Pygac."""
     warnings.filterwarnings(action="ignore", message="Using CoeffStatus.PROVISIONAL", category=RuntimeWarning)
     warnings.filterwarnings(action="ignore", message="Using the 'corr' argument", category=DeprecationWarning)
-    warnings.filterwarnings(action="ignore", message="divide by zero", category=RuntimeWarning)
     warnings.filterwarnings(action="ignore", message="Unexpected record length", category=RuntimeWarning)
 
 class TestGACLACFile:
@@ -200,34 +199,39 @@ tle_noaa15 = """1 25338U 98030A   09361.80631861 -.00000112  00000-0 -29536-4 0 
 class FakeDataGenerator:
     """Generate fake GAC data."""
 
-    @staticmethod
-    def get_data(params: AvhrrTestParams) -> list[np.ndarray]:
+    def __init__(self, num_lines: int=55) -> None:
+        """Initialize the fake data generator."""
+        self.num_lines = num_lines
+
+    def get_data(self, params: AvhrrTestParams) -> list[np.ndarray]:
         """Get fake data."""
         methods = {
-            DataType.KLM: FakeDataGenerator._get_klm_data,
-            DataType.POD: FakeDataGenerator._get_pod_data,
+            DataType.KLM: self._get_klm_data,
+            DataType.POD: self._get_pod_data,
         }
         return methods[params.data_type](params.filename, params.qual_flag)
 
-    @staticmethod
-    def _get_klm_data(filename: str, qual_flag: int):
-        num_lines = 55
-        times, msecs_since_00 = FakeDataGenerator._get_times(num_lines)
+    def _get_klm_data(self, filename: str, qual_flag: int):
+        times, msecs_since_00 = self._get_times()
         telemetry = np.zeros(1, dtype=pygac.klm_reader.analog_telemetry_v2)
-        scans = np.ones(num_lines, dtype=pygac.gac_klm.scanline)
-        scans["scan_line_number"] = np.arange(num_lines)
+        scans = np.ones(self.num_lines, dtype=pygac.gac_klm.scanline)
+        scans["scan_line_number"] = np.arange(self.num_lines)
         scans["scan_line_year"] = times.dt.year.values
         scans["scan_line_day_of_year"] = times.dt.dayofyear.values
         scans["scan_line_utc_time_of_day"] = msecs_since_00.values
-        scans["telemetry"]["PRT"] = np.repeat(np.arange(num_lines), 3).reshape((num_lines, 3))
-        scans["quality_indicator_bit_field"] = np.full(num_lines, qual_flag)
+        scans["telemetry"]["PRT"] = self._duplicate_for_all_scanlines(np.arange(self.num_lines), 3)
+        # Space data and back scan should be different to avoid
+        # division by zero during calibration.
+        scans["back_scan"] = self._duplicate_for_all_scanlines(np.ones(self.num_lines), 30)
+        scans["space_data"] = self._duplicate_for_all_scanlines(np.zeros(self.num_lines), 50)
+        scans["quality_indicator_bit_field"] = np.full(self.num_lines, qual_flag)
 
         hdr = np.zeros(1, dtype=pygac.klm_reader.header)
         hdr["data_type_code"] = 2  # GAC
         hdr["data_set_name"] = filename
         hdr["noaa_spacecraft_identification_code"] = 4  # NOAA-15
         hdr["noaa_level_1b_format_version_number"] = 2
-        hdr["count_of_data_records"] = num_lines
+        hdr["count_of_data_records"] = self.num_lines
         hdr["start_of_data_set_year"] = times.dt.year.values[0]
         hdr["start_of_data_set_day_of_year"] = times.dt.dayofyear.values[0]
         hdr["start_of_data_set_utc_time_of_day"] = msecs_since_00.values[0]
@@ -236,12 +240,11 @@ class FakeDataGenerator:
 
         return [hdr, telemetry, spare, scans]
 
-    @staticmethod
-    def _get_times(num_lines: int):
+    def _get_times(self):
         times = xr.DataArray(
             [
                 dt.datetime(2009, 12, 28, 23, 59, 50) + dt.timedelta(milliseconds=line/GACReader.scan_freq)
-                for line in range(num_lines)
+                for line in range(self.num_lines)
             ],
         )
         msecs_since_00 = (
@@ -250,26 +253,27 @@ class FakeDataGenerator:
         )
         return times, msecs_since_00
 
-    @staticmethod
-    def _get_pod_data(filename: str, qual_flag: int):
-        num_lines = 55
-        times, msecs_since_00 = FakeDataGenerator._get_times(num_lines)
+    def _duplicate_for_all_scanlines(self, fake_data_1d, repeats):
+        return np.repeat(fake_data_1d, repeats).reshape((self.num_lines, repeats))
+
+    def _get_pod_data(self, filename: str, qual_flag: int):
+        times, msecs_since_00 = self._get_times()
         times_enc = encode_timestamps_pod(
             times.dt.year.values,
             times.dt.dayofyear.values,
             msecs_since_00.values.astype(int)
         )
 
-        scans = np.ones(num_lines, dtype=pygac.gac_pod.scanline)
+        scans = np.ones(self.num_lines, dtype=pygac.gac_pod.scanline)
 
-        scans["scan_line_number"] = np.arange(num_lines)
+        scans["scan_line_number"] = np.arange(self.num_lines)
         scans["time_code"] = times_enc
-        scans["telemetry"] = FakeDataGenerator._get_telemetry(num_lines)
-        scans["quality_indicators"] = np.empty(num_lines, np.uint16(qual_flag))
+        scans["telemetry"] = self._get_telemetry()
+        scans["quality_indicators"] = np.empty(self.num_lines, np.uint16(qual_flag))
 
         hdr0 = np.zeros(1, dtype=pygac.pod_reader.header0)
         hdr0["start_time"] = times_enc[0]
-        hdr0["number_of_scans"] = num_lines
+        hdr0["number_of_scans"] = self.num_lines
         hdr0["noaa_spacecraft_identification_code"] = 3  # NOAA-14
 
         hdr3 = np.zeros(1, dtype=pygac.pod_reader.header3)
@@ -277,30 +281,58 @@ class FakeDataGenerator:
         spare = np.zeros(pygac.gac_pod.GACPODReader().offset - (hdr0.itemsize + hdr3.itemsize), dtype="u1")
         return [hdr0, hdr3, spare, scans]
 
-    @staticmethod
-    def _get_telemetry(num_scans):
-        """Get encoded telemetry.
+    def _get_telemetry(self):
+        """Get encoded telemetry as expected by Pygac.
 
-        The PRT threshold in Pygac is hardcoded to 50, so this method creates
-        an encoded telemetry array that yields PRT values between 40 and 60 when
-        decoded.
+        This is how pygac.pod_reader.PODReader.get_telemetry decodes telemetry::
 
-        This is how pygac.pod_reader.PODReader.get_telemetry decodes telemetry:
+            number_of_scans = self.scans["telemetry"].shape[0]
+            decode_tele = np.zeros((int(number_of_scans), 105))
+            decode_tele[:, ::3] = (self.scans["telemetry"] >> 20) & 1023
+            decode_tele[:, 1::3] = (self.scans["telemetry"] >> 10) & 1023
+            decode_tele[:, 2::3] = self.scans["telemetry"] & 1023
 
-        number_of_scans = self.scans["telemetry"].shape[0]
-        decode_tele = np.zeros((int(number_of_scans), 105))
-        decode_tele[:, ::3] = (self.scans["telemetry"] >> 20) & 1023
-        decode_tele[:, 1::3] = (self.scans["telemetry"] >> 10) & 1023
-        decode_tele[:, 2::3] = self.scans["telemetry"] & 1023
+        After decoding, ICT and space counts are extracted as follows::
 
-        Each telemetry word is a 32-bit integer that packs three 10-bit values.
-        We need 35 words in order to satisfy 3*num_words == 105.
+            ict_counts = np.zeros((int(number_of_scans), 3))
+            ict_counts[:, 0] = np.mean(decode_tele[:, 22:50:3], axis=1)
+            ict_counts[:, 1] = np.mean(decode_tele[:, 23:51:3], axis=1)
+            ict_counts[:, 2] = np.mean(decode_tele[:, 24:52:3], axis=1)
+
+            space_counts = np.zeros((int(number_of_scans), 3))
+            space_counts[:, 0] = np.mean(decode_tele[:, 54:100:5], axis=1)
+            space_counts[:, 1] = np.mean(decode_tele[:, 55:101:5], axis=1)
+            space_counts[:, 2] = np.mean(decode_tele[:, 56:102:5], axis=1)
+
         """
-        num_words = 35
-        desired = np.linspace(60, 40, num_scans).astype(int)
-        desired_enc = (desired << 20) | (desired << 10) | desired
-        # For simplicity, assign the same value to all words
-        telemetry = np.repeat(desired_enc, num_words).reshape((num_scans, num_words))
+        # Create desired telemetry array after decoding by Pygac. Shape (scan, 105)
+        # is hard-coded.
+        num_scans = self.num_lines
+        telemetry = np.zeros((num_scans, 105), dtype=np.uint32)
+
+        # Set realistic PRT values. Pygac has a fixed PRT threshold of 50,
+        # so choose some values below and some above the threshold.
+        prt = np.linspace(40, 60, num_scans).astype(np.uint32)
+        telemetry[:, 17:20] = prt[:, None]
+
+        # Make sure ICT and space counts are different to avoid
+        # division by zero during calibration.
+        ict = np.full(num_scans, 200, dtype=np.uint32)
+        space = np.full(num_scans, 100, dtype=np.uint32)
+        telemetry[:, 22:50:3] = ict[:, None]
+        telemetry[:, 23:51:3] = ict[:, None]
+        telemetry[:, 24:52:3] = ict[:, None]
+        telemetry[:, 54:100:5] = space[:, None]
+        telemetry[:, 55:101:5] = space[:, None]
+        telemetry[:, 56:102:5] = space[:, None]
+
+        # Encode telemetry array as expected by Pygac. Pack every three
+        # 10-bit values into one 32-bit word.
+        telemetry = (
+            (telemetry[:, 0::3] << 20)
+            | (telemetry[:, 1::3] << 10)
+            | telemetry[:, 2::3]
+        ).astype(np.uint32)
         return telemetry
 
 
@@ -350,7 +382,7 @@ def _write_tle(params, tle_dir):
 
 
 def _write_stub(params: AvhrrTestParams, tmp_dir: Path):
-    fake_data = FakeDataGenerator.get_data(params)
+    fake_data = FakeDataGenerator().get_data(params)
     filename = tmp_dir / params.filename
     with filename.open("wb") as fh:
         for array in fake_data:
