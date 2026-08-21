@@ -417,9 +417,7 @@ class TestBz2Support:
     @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def test_bz2_reading(self, pgi_, metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
         """Test that a bz2-compressed file is transparently decompressed and read correctly."""
-        interp_longitude = xr.DataArray(np.ones((10, 100)))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
-        pgi_.return_value = (interp_longitude, interp_latitude)
+        pgi_.return_value = _dummy_interpolated_lonlat()
 
         filetype_info = {
             "cached_longitude": "data/measurement_data/longitude",
@@ -459,9 +457,7 @@ class TestBz2Support:
     @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def test_del_swallows_cleanup_errors(self, pgi_, metimage_base_nc_file_bz2, metimage_filename_info):
         """Test that __del__ never raises, even if removing the decompressed temp file fails."""
-        interp_longitude = xr.DataArray(np.ones((10, 100)))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2.)
-        pgi_.return_value = (interp_longitude, interp_latitude)
+        pgi_.return_value = _dummy_interpolated_lonlat()
 
         filetype_info = {
             "cached_longitude": "data/measurement_data/longitude",
@@ -483,6 +479,18 @@ def _metimage_filename_info():
         "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
                                               hour=18, minute=30, second=50),
     }
+
+
+def _dummy_interpolated_lonlat():
+    """Return placeholder longitude/latitude arrays for mocking _perform_geo_interpolation.
+
+    Used where the interpolation output must be valid-shaped but its specific
+    values are irrelevant to the test.
+    """
+    return (
+        xr.DataArray(np.ones((10, 100)), name="longitude"),
+        xr.DataArray(np.ones((10, 100)) * 2., name="latitude"),
+    )
 
 
 def _create_metimage_base_nc_file(filename):
