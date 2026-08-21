@@ -111,9 +111,9 @@ def common_checks(ec_, reader, mock_file, dataset_id):
 def test_seviri_data_reading(da_, xr_, setup_reader):
     """Test the reading of data from the product."""
     from satpy.readers.eum_l2_grib import EUML2GribFileHandler
-    from satpy.utils import get_legacy_chunk_size
+    from satpy.utils import get_chunk_size_limit
     ec_ = setup_reader
-    chunk_size = get_legacy_chunk_size()
+    chunk_size = get_chunk_size_limit()
 
     with mock.patch("builtins.open", mock.mock_open()) as mock_file:
         with mock.patch("satpy.readers.eum_l2_grib.ec", ec_):
@@ -214,9 +214,9 @@ def test_seviri_data_reading(da_, xr_, setup_reader):
 def test_fci_data_reading(da_, xr_, setup_reader):
     """Test the reading of fci data from the product."""
     from satpy.readers.eum_l2_grib import EUML2GribFileHandler
-    from satpy.utils import get_legacy_chunk_size
+    from satpy.utils import get_chunk_size_limit
     ec_ = setup_reader
-    chunk_size = get_legacy_chunk_size()
+    chunk_size = get_chunk_size_limit()
 
     with mock.patch("builtins.open", mock.mock_open()) as mock_file:
         with mock.patch("satpy.readers.eum_l2_grib.ec", ec_):

@@ -16,8 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Utilities for the management of VII products."""
+"""Utilities for the management of METimage (VII) products."""
 
+PLATFORM_NAME_TRANSLATE = {
+    "SGA1": "Metop-SG-A1",
+    "SGA2": "Metop-SG-A2",
+    "SGA3": "Metop-SG-A3"
+}
 
 # PLANCK COEFFICIENTS FOR CALIBRATION AS DEFINED BY EUMETSAT
 C1 = 1.191062e+8   # [W/m2·sr-1·µm4]

@@ -301,7 +301,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         elif self.filename_info["coverage"] in ["FD", "AF"]:
             return 10
         else:
-            logger.debug(f"Coverage \"{self.filename_info['coverage']}\" not recognised. "
+            logger.debug(f'Coverage "{self.filename_info['coverage']}" not recognised. '
                          f"Using observation times for nominal times.")
             return None
 

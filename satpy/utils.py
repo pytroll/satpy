@@ -481,6 +481,13 @@ def show_versions(packages=None):
             "pyhdf",
             "h5netcdf",
             "fsspec",
+            "pyresample",
+            "trollimage",
+            "trollsift",
+            "pykdtree",
+            "pycoast",
+            "pydecorate",
+            "python-geotiepoints",
         )
         if packages is None
         else packages

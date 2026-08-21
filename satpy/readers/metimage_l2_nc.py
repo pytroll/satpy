@@ -22,12 +22,12 @@ import logging
 
 import xarray as xr
 
-from satpy.readers.core.vii_nc import ViiNCBaseFileHandler
+from satpy.readers.core.metimage_nc import METimageNCBaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-class ViiL2NCFileHandler(ViiNCBaseFileHandler):
+class METimageL2NCFileHandler(METimageNCBaseFileHandler):
     """Reader class for VII L2 products in netCDF format."""
 
     def _perform_orthorectification(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:

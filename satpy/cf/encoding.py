@@ -68,9 +68,12 @@ def _set_default_time_encoding(encoding, dataset):
             dtnp64 = dataset["time"].data
 
         default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
-        time_enc = {"units": default.attrs["units"], "calendar": default.attrs["calendar"]}
+        time_enc = {"units": default.attrs["units"],
+                    "dtype": "float64",
+                    "calendar": default.attrs["calendar"]}
         time_enc.update(encoding.get("time", {}))
         bounds_enc = {"units": time_enc["units"],
+                      "dtype": "float64",
                       "calendar": time_enc["calendar"],
                       "_FillValue": None}
         encoding["time"] = time_enc

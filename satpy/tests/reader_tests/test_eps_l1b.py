@@ -17,10 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the eps l1b format."""
 
-import os
-from contextlib import suppress
 from tempfile import mkstemp
-from unittest import TestCase, mock
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -65,7 +63,7 @@ def create_sections(structure):
     return sections
 
 
-class BaseTestCaseEPSL1B(TestCase):
+class BaseTestCaseEPSL1B():
     """Base class for EPS l1b test case."""
 
     def _create_structure(self):
@@ -78,14 +76,22 @@ class BaseTestCaseEPSL1B(TestCase):
         return sections
 
 
+@pytest.fixture(scope="class")
+def tmp_dir(tmp_path_factory):
+    """Create a temporary directory shared by all tests in a class."""
+    return tmp_path_factory.mktemp("test_eps_l1b")
+
+
 class TestEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler."""
 
-    def setUp(self):
+    scan_lines = 1080
+    earth_views = 2048
+
+    @pytest.fixture(scope="class")
+    def file_handler(self, tmp_dir):
         """Set up the tests."""
         # ipr is not present in the xml format ?
-        self.scan_lines = 1080
-        self.earth_views = 2048
 
         sections = self._create_structure()
         sections[("mphr", 0)]["TOTAL_MDR"] = (b"TOTAL_MDR                     =   " +
@@ -98,26 +104,25 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
                                                              b"\n")
         sections[("sphr", 0)]["NAV_SAMPLE_RATE"] = b"NAV_SAMPLE_RATE               =  20\n"
 
-        _fd, fname = mkstemp()
+        _fd, fname = mkstemp(dir=tmp_dir)
         fd = open(_fd)
 
-        self.filename = fname
         for _, arr in sections.items():
             arr.tofile(fd)
         fd.close()
-        self.fh = eps.EPSAVHRRFile(self.filename, {"start_time": "now",
-                                                   "end_time": "later"}, {})
+        return eps.EPSAVHRRFile(fname, {"start_time": "now",
+                                        "end_time": "later"}, {})
 
-    def test_read_all(self):
+    def test_read_all(self, file_handler):
         """Test initialization."""
-        self.fh._read_all()
-        assert self.fh.scanlines == 1080
-        assert self.fh.pixels == 2048
+        file_handler._read_all()
+        assert file_handler.scanlines == 1080
+        assert file_handler.pixels == 2048
 
-    def test_dataset(self):
+    def test_dataset(self, file_handler):
         """Test getting a dataset."""
         did = make_dataid(name="1", calibration="reflectance")
-        res = self.fh.get_dataset(did, {})
+        res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
@@ -126,7 +131,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["units"] == "%"
 
         did = make_dataid(name="4", calibration="brightness_temperature")
-        res = self.fh.get_dataset(did, {})
+        res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
@@ -134,10 +139,10 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["calibration"] == "brightness_temperature"
         assert res.attrs["units"] == "K"
 
-    def test_get_dataset_radiance(self):
+    def test_get_dataset_radiance(self, file_handler):
         """Test loading a data array with radiance calibration."""
         did = make_dataid(name="1", calibration="radiance")
-        res = self.fh.get_dataset(did, {})
+        res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
@@ -145,28 +150,28 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["calibration"] == "radiance"
         assert res.attrs["units"] == "W m^-2 sr^-1"
 
-    def test_navigation(self):
+    def test_navigation(self, file_handler):
         """Test the navigation."""
         did = make_dataid(name="longitude")
-        res = self.fh.get_dataset(did, {})
+        res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "longitude"
 
-    def test_angles(self):
+    def test_angles(self, file_handler):
         """Test the navigation."""
         did = make_dataid(name="solar_zenith_angle")
-        res = self.fh.get_dataset(did, {})
+        res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "solar_zenith_angle"
 
-    def test_clould_flags(self):
+    def test_clould_flags(self, file_handler):
         """Test getting the cloud flags."""
         did = make_dataid(name="cloud_flags")
-        res = self.fh.get_dataset(did, {})
+        res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
@@ -208,16 +213,13 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
 class TestWrongScanlinesEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler on a corrupt file."""
 
-    @pytest.fixture(autouse=True)
-    def _inject_fixtures(self, caplog):
-        """Inject caplog."""
-        self._caplog = caplog
+    scan_lines = 1080
+    earth_views = 2048
 
-    def setUp(self):
+    @pytest.fixture(scope="class")
+    def file_handler(self, tmp_dir):
         """Set up the tests."""
         # ipr is not present in the xml format ?
-        self.scan_lines = 1080
-        self.earth_views = 2048
 
         sections = self._create_structure()
         sections[("mphr", 0)]["TOTAL_MDR"] = (b"TOTAL_MDR                     =   " +
@@ -229,57 +231,48 @@ class TestWrongScanlinesEPSL1B(BaseTestCaseEPSL1B):
                                                              bytes(str(self.earth_views), encoding="ascii") +
                                                              b"\n")
         sections[("sphr", 0)]["NAV_SAMPLE_RATE"] = b"NAV_SAMPLE_RATE               =  20\n"
-        _fd, fname = mkstemp()
+        _fd, fname = mkstemp(dir=tmp_dir)
         fd = open(_fd)
 
-        self.filename = fname
         for _, arr in sections.items():
             arr.tofile(fd)
         fd.close()
-        self.fh = eps.EPSAVHRRFile(self.filename, {"start_time": "now",
-                                                   "end_time": "later"}, {})
+        return eps.EPSAVHRRFile(fname, {"start_time": "now",
+                                        "end_time": "later"}, {})
 
-    def test_read_all_return_right_number_of_scan_lines(self):
+    def test_read_all_return_right_number_of_scan_lines(self, file_handler):
         """Test scanline assignment."""
-        self.fh._read_all()
-        assert self.fh.scanlines == self.scan_lines
+        file_handler._read_all()
+        assert file_handler.scanlines == self.scan_lines
 
-    def test_read_all_warns_about_scan_lines(self):
+    def test_read_all_warns_about_scan_lines(self, file_handler, caplog):
         """Test scanline assignment."""
-        self.fh._read_all()
-        assert "scanlines" in self._caplog.records[0].message
-        assert self._caplog.records[0].levelname == "WARNING"
+        file_handler._read_all()
+        assert "scanlines" in caplog.records[0].message
+        assert caplog.records[0].levelname == "WARNING"
 
-    def test_read_all_assigns_int_scan_lines(self):
+    def test_read_all_assigns_int_scan_lines(self, file_handler):
         """Test scanline assignment."""
-        self.fh._read_all()
-        assert isinstance(self.fh.scanlines, int)
+        file_handler._read_all()
+        assert isinstance(file_handler.scanlines, int)
 
-    def test_get_dataset_longitude_shape_is_right(self):
+    def test_get_dataset_longitude_shape_is_right(self, file_handler):
         """Test that the shape of longitude is 1080."""
         key = make_dataid(name="longitude")
-        longitudes = self.fh.get_dataset(key, dict())
+        longitudes = file_handler.get_dataset(key, dict())
         assert longitudes.shape == (self.scan_lines, self.earth_views)
-
-    def tearDown(self):
-        """Tear down the tests."""
-        with suppress(OSError):
-            os.remove(self.filename)
 
 
 class TestWrongSamplingEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler on a corrupt file."""
 
-    @pytest.fixture(autouse=True)
-    def _inject_fixtures(self, caplog):
-        """Inject caplog."""
-        self._caplog = caplog
+    scan_lines = 1080
+    earth_views = 2048
+    sample_rate = 23
 
-    def setUp(self):
+    @pytest.fixture
+    def file_handler(self, tmp_dir):
         """Set up the tests."""
-        self.scan_lines = 1080
-        self.earth_views = 2048
-        self.sample_rate = 23
         sections = self._create_structure()
         sections[("mphr", 0)]["TOTAL_MDR"] = (b"TOTAL_MDR                     =   " +
                                               bytes(str(self.scan_lines), encoding="ascii") +
@@ -292,18 +285,17 @@ class TestWrongSamplingEPSL1B(BaseTestCaseEPSL1B):
         sections[("sphr", 0)]["NAV_SAMPLE_RATE"] = (b"NAV_SAMPLE_RATE               =  " +
                                                     bytes(str(self.sample_rate), encoding="ascii") +
                                                     b"\n")
-        _fd, fname = mkstemp()
+        _fd, fname = mkstemp(dir=tmp_dir)
         fd = open(_fd)
 
-        self.filename = fname
         for _, arr in sections.items():
             arr.tofile(fd)
         fd.close()
-        self.fh = eps.EPSAVHRRFile(self.filename, {"start_time": "now",
-                                                   "end_time": "later"}, {})
+        return eps.EPSAVHRRFile(fname, {"start_time": "now",
+                                        "end_time": "later"}, {})
 
-    def test_get_dataset_fails_because_of_wrong_sample_rate(self):
+    def test_get_dataset_fails_because_of_wrong_sample_rate(self, file_handler):
         """Test that lons fail to be interpolate."""
         key = make_dataid(name="longitude")
         with pytest.raises(NotImplementedError):
-            self.fh.get_dataset(key, dict())
+            file_handler.get_dataset(key, dict())
