@@ -397,7 +397,7 @@ def metimage_filename_info():
 @pytest.fixture
 def metimage_base_nc_file(tmp_path):
     """Create a small METimage netCDF test file and return its path."""
-    filename = tmp_path / "test_file_metimage_base_nc.nc"
+    filename = tmp_path / TEST_FILE
     _create_metimage_base_nc_file(filename)
     return filename
 
