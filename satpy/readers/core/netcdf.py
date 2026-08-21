@@ -160,13 +160,15 @@ class NetCDF4FileHandler(BaseFileHandler):
         for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
             parts = itm.split("/")
             grp = file_handle
+            is_attribute = False
             for p in parts[:-1]:
                 if p == "attr":
                     n = "/".join(parts)
                     self.file_content[n] = self._get_attr_value(grp, parts[-1])
+                    is_attribute = True
                     break
                 grp = grp[p]
-            if p != "attr":
+            if not is_attribute:
                 var_obj = grp[parts[-1]]
                 self._collect_variable_info(itm, var_obj)
                 self.collect_dimensions(itm, grp)
