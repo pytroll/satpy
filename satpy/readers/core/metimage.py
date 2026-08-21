@@ -19,9 +19,12 @@
 """Utilities for the management of METimage (VII) products."""
 
 PLATFORM_NAME_TRANSLATE = {
-    "SGA1": "Metop-SG-A1",
-    "SGA2": "Metop-SG-A2",
-    "SGA3": "Metop-SG-A3"
+    "SGA1": "Metop-SGA1",
+    "SGA2": "Metop-SGA2",
+    "SGA3": "Metop-SGA3",
+    "D": "Metop-D",
+    "E": "Metop-E",
+    "F": "Metop-F",
 }
 
 # PLANCK COEFFICIENTS FOR CALIBRATION AS DEFINED BY EUMETSAT
