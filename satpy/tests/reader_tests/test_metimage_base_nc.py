@@ -168,7 +168,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                                               hour=17, minute=41, second=17, microsecond=555000)
         assert self.reader.end_time == expected_end_time
 
-        assert self.reader.spacecraft_name == "Metop-SG-A1"
+        assert self.reader.spacecraft_name == "Metop-SGA1"
         # the netCDF instrument attribute is VII, so we hardcode metimage instead
         assert self.reader.sensor == "metimage"
         assert self.reader.ssp_lon is None
@@ -178,14 +178,14 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             "filename": self.test_file_name,
             "start_time": expected_start_time,
             "end_time": expected_end_time,
-            "spacecraft_name": "Metop-SG-A1",
+            "spacecraft_name": "Metop-SGA1",
             "ssp_lon": None,
             "sensor": "metimage",
             "filename_start_time": datetime.datetime(year=2017, month=9, day=20,
                                                      hour=12, minute=30, second=30),
             "filename_end_time": datetime.datetime(year=2017, month=9, day=20,
                                                    hour=18, minute=30, second=50),
-            "platform_name": "Metop-SG-A1",
+            "platform_name": "Metop-SGA1",
             "quality_group": {
                 "duration_of_product": 1.,
                 "duration_of_data_present": 2.,
