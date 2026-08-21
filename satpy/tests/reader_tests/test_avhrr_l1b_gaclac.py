@@ -85,9 +85,10 @@ LAC_EOSIP_FILENAMES = ["N06_RPRO_AVH_L1B_1P_20061206T010808_20061206T012223_0079
 @pytest.fixture(autouse=True)
 def silence_pygac_warnings():
     """Silence some warnings from Pygac."""
+    # Current default coefficients are still provisional, see
+    # https://github.com/pytroll/pygac/pull/124
     warnings.filterwarnings(action="ignore", message="Using CoeffStatus.PROVISIONAL", category=RuntimeWarning)
     warnings.filterwarnings(action="ignore", message="Using the 'corr' argument", category=DeprecationWarning)
-    warnings.filterwarnings(action="ignore", message="Unexpected record length", category=RuntimeWarning)
 
 class TestGACLACFile:
     """Test the GACLAC file handler."""
@@ -199,7 +200,7 @@ tle_noaa15 = """1 25338U 98030A   09361.80631861 -.00000112  00000-0 -29536-4 0 
 class FakeDataGenerator:
     """Generate fake GAC data."""
 
-    def __init__(self, num_lines: int=55) -> None:
+    def __init__(self, num_lines: int=56) -> None:
         """Initialize the fake data generator."""
         self.num_lines = num_lines
 
@@ -426,18 +427,18 @@ class TestReadingGacFile:
     def expect(cls, params: AvhrrTestParams):
         """Get expectations."""
         klm_expect = Expectations(
-            num_lines=55,
+            num_lines=56,
             start_time=dt.datetime(2009, 12, 29, 9, 5, 57, 500000),
-            end_time=dt.datetime(2009, 12, 29, 0, 0, 16, 500000),
+            end_time=dt.datetime(2009, 12, 29, 0, 0, 17),
             num_lines_slc=11,
             start_time_slc=dt.datetime(2009, 12, 28, 23, 59, 54, 500000),
             end_time_slc=dt.datetime(2009, 12, 28, 23, 59, 59, 500000),
             platform_name="noaa15"
         )
         pod_expect = Expectations(
-            num_lines=54,
+            num_lines=55,
             start_time=dt.datetime(2009, 12, 28, 23, 59, 49, 800000),
-            end_time=dt.datetime(2009, 12, 29, 0, 0, 16, 300000),
+            end_time=dt.datetime(2009, 12, 29, 0, 0, 16, 800000),
             num_lines_slc=11,
             start_time_slc=dt.datetime(2009, 12, 28, 23, 59, 54, 800000),
             end_time_slc=dt.datetime(2009, 12, 28, 23, 59, 59, 800000),
