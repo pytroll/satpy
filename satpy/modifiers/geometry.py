@@ -21,10 +21,11 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 
+import satpy
 from satpy.modifiers import ModifierBase
 from satpy.modifiers.angles import atmospheric_path_length_correction, sunzen_corr_cos, sunzen_reduction
 
@@ -54,7 +55,6 @@ class SunZenithCorrectorBase(ModifierBase):
                     )
                     return vis
 
-        logger.debug("Applying Sun zenith angle correction")
         if not info.get("optional_datasets"):
             # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
@@ -117,8 +117,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
-        correction_limit: Optional[float] = 88.0,
-        max_sza: Optional[float] = 95.0,
+        correction_limit: float | Literal["__default__"] | None = "__default__",
+        max_sza: float | Literal["__default__"] | None = "__default__",
         **kwargs,
     ):
         """Collect custom configuration values.
@@ -137,25 +137,42 @@ class SunZenithCorrector(SunZenithCorrectorBase):
             **kwargs:
                 Additional keyword arguments passed to the parent class.
 
+        TODO Once Satpy v1.0 has been around long enough we should:
+                1. Remove the config entry "use_legacy_sunz_correction"
+                2. Remove the self.use_legacy flag
+                3. Change defaults of correction_limit and max_sza to None
+                4. Change _apply_correction() accordingly
         """
         self.method = "sunz_corrected"
+        # TODO Change fallback to `False` below in Satpy v1.0
+        self.use_legacy = satpy.config.get("use_legacy_sunz_correction", True)
         self.correction_limit = correction_limit
         self.max_sza = max_sza
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        if self.correction_limit == 88.0 or self.max_sza == 95.0:
-            # TODO Change class defaults and remove warning in satpy v1.0
+
+        if (self.correction_limit == "__default__" or self.max_sza == "__default__") and self.use_legacy:
             warnings.warn(
                 "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
-                "be removed in satpy v1.0 in order to compute the true reflectance with the 'sunz_corrected' modifier. "
-                "To avoid overcorrection at high angles for (RGB) imagery it's recommended to use the "
-                "'effective_solar_pathlength_corrected' modifier instead. If you still want to keep the current "
-                "behaviour, please set the 'correction_limit' parameter to 88.0 and 'max_sza' to 95.0 in a local "
-                "definition of the modifier.",
+                "be removed in Satpy v1.0 to allow computation of the true reflectance with the "
+                "'sunz_corrected' modifier. To avoid overcorrection at high angles in (RGB) imagery, it is "
+                "recommended to use the 'effective_solar_pathlength_corrected' modifier instead. "
+                "To retain the current reduction after upgrading to Satpy v1.0, either set "
+                "`satpy.config.set(use_legacy_sunz_correction=True)` or explicitly set `correction_limit: 88.0` "
+                "and `max_sza: 95.0` in a local definition of the modifier. To opt in to the new "
+                "behaviour before Satpy v1.0 and disable this warning, set "
+                "`satpy.config.set(use_legacy_sunz_correction=False)`.",
                 UserWarning,
                 stacklevel=2,
             )
+
+        if self.correction_limit == "__default__":
+            self.correction_limit = 88.0 if self.use_legacy else None
+
+        if self.max_sza == "__default__":
+            self.max_sza = 95.0 if self.use_legacy else None
+
         return sunzen_corr_cos(proj, coszen, correction_limit=self.correction_limit, max_sza=self.max_sza)
 
 

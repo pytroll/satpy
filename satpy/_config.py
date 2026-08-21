@@ -51,6 +51,7 @@ _CONFIG_DEFAULTS = {
     "demo_data_dir": ".",
     "download_aux": True,
     "sensor_angles_position_preference": "actual",
+    "use_legacy_sunz_correction": True,  # TODO Change to false in Satpy 1.0
     "readers": {
         "clip_negative_radiances": False,
     },

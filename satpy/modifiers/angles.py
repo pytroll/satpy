@@ -536,8 +536,8 @@ def _get_sensor_angles_ndarray(lons, lats, start_time, sat_lon, sat_lat, sat_alt
 
 def sunzen_corr_cos(data: xr.DataArray,
                     cos_zen: xr.DataArray,
-                    correction_limit: Optional[float] = 88.,
-                    max_sza: Optional[float] = 95.) -> xr.DataArray:
+                    correction_limit: Optional[float] = None,
+                    max_sza: Optional[float] = None) -> xr.DataArray:
     """Perform standard Sun zenith angle correction.
 
     The correction is based on the provided cosine of the solar zenith angle
@@ -566,21 +566,21 @@ def sunzen_corr_cos(data: xr.DataArray,
 
     def cutoff():
         logger.debug(
-            f"Apply the standard sun-zenith correction [1/cos(sunz)] but set correction (and reflectance) "
+            f"Applying the standard sun-zenith correction [1/cos(sunz)] but setting correction (and reflectance) "
             f"to 0 for angles larger than {max_sza} degrees."
         )
         return corr_standard.where(sunz <= max_sza, 0)
 
     def capped():
         logger.debug(
-            f"Apply the standard sun-zenith correction [1/cos(sunz)] but cap the maximum correction "
+            f"Applying the standard sun-zenith correction [1/cos(sunz)] but capping the maximum correction "
             f"for angles larger than {correction_limit} degrees."
         )
         return corr_standard.where(sunz <= correction_limit, corr_at_limit)
 
     def reduced():
         logger.debug(
-            f"Apply the standard sun-zenith correction [1/cos(sunz)] but gradually reduce the correction "
+            f"Applying the standard sun-zenith correction [1/cos(sunz)] but gradually reducing the correction "
             f"for angles larger than {correction_limit} degrees up to {max_sza} degrees where the "
             f"correction (and reflectance) becomes 0."
         )
@@ -606,7 +606,7 @@ def sunzen_corr_cos(data: xr.DataArray,
     elif correction_limit is not None and max_sza is not None:
         corr = reduced()
     else:
-        logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)].")
+        logger.debug("Applying the standard sun-zenith correction [1/cos(sunz)].")
         corr = corr_standard
 
     # Preserve data type, make sure we don't produce negative values and set correction to 0 for
@@ -632,7 +632,7 @@ def atmospheric_path_length_correction(data: xr.DataArray,
     Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
     """
-    logger.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata (2006)")
+    logger.debug("Applying the effective solar atmospheric path length correction method by Li and Shibata (2006)")
     corr = 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
 
     # Force "night" and space pixels to 0 (where SZA is invalid)
