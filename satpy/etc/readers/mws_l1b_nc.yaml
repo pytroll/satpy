@@ -453,7 +453,7 @@ datasets:
         name: mws_lon
         resolution: 17000
         file_type: mws_l1b_nc
-        file_key: data/navigation/mws_lat
+        file_key: data/navigation/mws_lon
         standard_name: longitude
         units: degrees_east
 
