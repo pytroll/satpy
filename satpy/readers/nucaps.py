@@ -190,7 +190,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Load data array and metadata for specified dataset."""
         var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         metadata = self.get_metadata(dataset_id, ds_info)
-        valid_min, valid_max = self[var_path + "/attr/valid_range"]
+        valid_min, valid_max = self.get(var_path + "/attr/valid_range", (None, None))
         fill_value = self.get(var_path + "/attr/_FillValue")
 
         d_tmp = self[var_path]
@@ -302,6 +302,7 @@ class NUCAPSReader(FileYAMLReader):
 
         datasets_loaded = super(NUCAPSReader, self).load(
             dataset_keys, previous_datasets=previous_datasets)
+        dataset_keys &= set(datasets_loaded.keys())
 
         if pressure_levels is not None:
             if remove_plevels:

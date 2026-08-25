@@ -106,7 +106,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content[k] = DEFAULT_PRES_FILE_DATA
             file_content[k + "/shape"] = DEFAULT_PRES_FILE_SHAPE
             file_content[k + "/attr/units"] = units
-            file_content[k + "/attr/valid_range"] = (0., 120.)
+            if k != "H2O":
+                # for some reason the H2O product doesn't have a valid range
+                file_content[k + "/attr/valid_range"] = (0., 120.)
             file_content[k + "/attr/_FillValue"] = -9999.
             if standard_name:
                 file_content[k + "/attr/standard_name"] = standard_name
