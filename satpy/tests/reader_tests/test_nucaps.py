@@ -54,100 +54,111 @@ ALL_PRESSURE_LEVELS = [
 ]
 ALL_PRESSURE_LEVELS = np.repeat([ALL_PRESSURE_LEVELS], DEFAULT_PRES_FILE_SHAPE[0], axis=0)
 
+GLOBAL_ATTRS = {
+    "/attr/time_coverage_start": "2020-10-20T12:00:00.5Z",
+    "/attr/time_coverage_end": "2020-10-20T12:00:36Z",
+    "/attr/start_orbit_number": 1,
+    "/attr/end_orbit_number": 2,
+    "/attr/platform_name": "NPP",
+    "/attr/instrument_name": "CrIS, ATMS, VIIRS",
+}
+# (name, units, standard_name)
+NONPRESSURE_VARS = (
+    ("Solar_Zenith", "degrees", "solar_zenith_angle"),
+    ("Topography", "meters", ""),
+    ("Land_Fraction", "1", ""),
+    ("Surface_Pressure", "mb", ""),
+    ("Skin_Temperature", "Kelvin", "surface_temperature"),
+)
+PRESSURE_VARS = (
+    ("Temperature", "Kelvin", "air_temperature"),
+    ("Effective_Pressure", "mb", ""),
+    ("H2O", "1", ""),
+    ("H2O_MR", "g/g", ""),
+    ("O3", "1", ""),
+    ("O3_MR", "1", ""),
+    ("Liquid_H2O", "1", ""),
+    ("Liquid_H2O_MR", "g/g", "cloud_liquid_water_mixing_ratio"),
+    ("CO", "1", ""),
+    ("CO_MR", "1", ""),
+    ("CH4", "1", ""),
+    ("CH4_MR", "1", ""),
+    ("CO2", "1", ""),
+    ("HNO3", "1", ""),
+    ("HNO3_MR", "1", ""),
+    ("N2O", "1", ""),
+    ("N2O_MR", "1", ""),
+    ("SO2", "1", ""),
+    ("SO2_MR", "1", ""),
+)
+
+
+def _add_variable(file_content, name, data, shape, units=None, standard_name="", valid_range=None):
+    """Add a fake variable and its attributes to the file content dict."""
+    file_content[name] = data
+    file_content[name + "/shape"] = shape
+    if units is not None:
+        file_content[name + "/attr/units"] = units
+    if valid_range is not None:
+        file_content[name + "/attr/valid_range"] = valid_range
+    if standard_name:
+        file_content[name + "/attr/standard_name"] = standard_name
+    file_content[name + "/attr/_FillValue"] = -9999.
+
+
+def _add_nonpressure_vars(file_content):
+    """Add the variables that only have a single dimension."""
+    for name, units, standard_name in NONPRESSURE_VARS:
+        _add_variable(file_content, name, DEFAULT_FILE_DATA, DEFAULT_FILE_SHAPE,
+                      units=units, standard_name=standard_name, valid_range=(0., 120.))
+
+
+def _add_pressure_vars(file_content):
+    """Add the variables that have a pressure level dimension."""
+    for name, units, standard_name in PRESSURE_VARS:
+        # for some reason the H2O product doesn't have a valid range
+        valid_range = None if name == "H2O" else (0., 120.)
+        _add_variable(file_content, name, DEFAULT_PRES_FILE_DATA, DEFAULT_PRES_FILE_SHAPE,
+                      units=units, standard_name=standard_name, valid_range=valid_range)
+    _add_variable(file_content, "Pressure", ALL_PRESSURE_LEVELS, DEFAULT_PRES_FILE_SHAPE,
+                  units="mb", valid_range=(0., 2000.))
+
+
+def _add_quality_flag(file_content):
+    """Add the integer quality flag variable."""
+    _add_variable(file_content, "Quality_Flag", DEFAULT_FILE_DATA.astype(np.int32), DEFAULT_FILE_SHAPE,
+                  valid_range=(0, 31))
+
+
+def _add_navigation_vars(file_content):
+    """Add the longitude and latitude variables."""
+    _add_variable(file_content, "Longitude", DEFAULT_LON_DATA, DEFAULT_FILE_SHAPE,
+                  units="degrees_east", standard_name="longitude", valid_range=(-180., 180.))
+    _add_variable(file_content, "Latitude", DEFAULT_LAT_DATA, DEFAULT_FILE_SHAPE,
+                  units="degrees_north", standard_name="latitude", valid_range=(-90., 90.))
+
+
+def _get_dim_names(filename):
+    """Get the dimension names used by this version of the file format."""
+    if "_v1" in filename:
+        return ("z", "number_of_FORs", "number_of_p_levels")
+    return ("z", "Number_of_CrIS_FORs", "Number_of_P_Levels")
+
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler."""
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        file_content = {
-            "/attr/time_coverage_start": "2020-10-20T12:00:00.5Z",
-            "/attr/time_coverage_end": "2020-10-20T12:00:36Z",
-            "/attr/start_orbit_number": 1,
-            "/attr/end_orbit_number": 2,
-            "/attr/platform_name": "NPP",
-            "/attr/instrument_name": "CrIS, ATMS, VIIRS",
-        }
-        for k, units, standard_name in [
-            ("Solar_Zenith", "degrees", "solar_zenith_angle"),
-            ("Topography", "meters", ""),
-            ("Land_Fraction", "1", ""),
-            ("Surface_Pressure", "mb", ""),
-            ("Skin_Temperature", "Kelvin", "surface_temperature"),
-        ]:
-            file_content[k] = DEFAULT_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            file_content[k + "/attr/units"] = units
-            file_content[k + "/attr/valid_range"] = (0., 120.)
-            file_content[k + "/attr/_FillValue"] = -9999.
-            if standard_name:
-                file_content[k + "/attr/standard_name"] = standard_name
-        for k, units, standard_name in [
-            ("Temperature", "Kelvin", "air_temperature"),
-            ("Effective_Pressure", "mb", ""),
-            ("H2O", "1", ""),
-            ("H2O_MR", "g/g", ""),
-            ("O3", "1", ""),
-            ("O3_MR", "1", ""),
-            ("Liquid_H2O", "1", ""),
-            ("Liquid_H2O_MR", "g/g", "cloud_liquid_water_mixing_ratio"),
-            ("CO", "1", ""),
-            ("CO_MR", "1", ""),
-            ("CH4", "1", ""),
-            ("CH4_MR", "1", ""),
-            ("CO2", "1", ""),
-            ("HNO3", "1", ""),
-            ("HNO3_MR", "1", ""),
-            ("N2O", "1", ""),
-            ("N2O_MR", "1", ""),
-            ("SO2", "1", ""),
-            ("SO2_MR", "1", ""),
-        ]:
-            file_content[k] = DEFAULT_PRES_FILE_DATA
-            file_content[k + "/shape"] = DEFAULT_PRES_FILE_SHAPE
-            file_content[k + "/attr/units"] = units
-            file_content[k + "/attr/valid_range"] = (0., 120.)
-            file_content[k + "/attr/_FillValue"] = -9999.
-            if standard_name:
-                file_content[k + "/attr/standard_name"] = standard_name
-        k = "Pressure"
-        file_content[k] = ALL_PRESSURE_LEVELS
-        file_content[k + "/shape"] = DEFAULT_PRES_FILE_SHAPE
-        file_content[k + "/attr/units"] = "mb"
-        file_content[k + "/attr/valid_range"] = (0., 2000.)
-        file_content[k + "/attr/_FillValue"] = -9999.
-
-        k = "Quality_Flag"
-        file_content[k] = DEFAULT_FILE_DATA.astype(np.int32)
-        file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-        file_content[k + "/attr/valid_range"] = (0, 31)
-        file_content[k + "/attr/_FillValue"] = -9999.
-
-        k = "Longitude"
-        file_content[k] = DEFAULT_LON_DATA
-        file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-        file_content[k + "/attr/units"] = "degrees_east"
-        file_content[k + "/attr/valid_range"] = (-180., 180.)
-        file_content[k + "/attr/standard_name"] = "longitude"
-        file_content[k + "/attr/_FillValue"] = -9999.
-
-        k = "Latitude"
-        file_content[k] = DEFAULT_LAT_DATA
-        file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-        file_content[k + "/attr/units"] = "degrees_north"
-        file_content[k + "/attr/valid_range"] = (-90., 90.)
-        file_content[k + "/attr/standard_name"] = "latitude"
-        file_content[k + "/attr/_FillValue"] = -9999.
-
-        attrs = ("_FillValue", "flag_meanings", "flag_values", "units")
-        cris_fors_dim_name = "Number_of_CrIS_FORs"
-        pressure_levels_dim_name = "Number_of_P_Levels"
-        if ("_v1" in filename):
-            cris_fors_dim_name = "number_of_FORs"
-            pressure_levels_dim_name = "number_of_p_levels"
+        file_content = dict(GLOBAL_ATTRS)
+        _add_nonpressure_vars(file_content)
+        _add_pressure_vars(file_content)
+        _add_quality_flag(file_content)
+        _add_navigation_vars(file_content)
         convert_file_content_to_data_array(
-            file_content, attrs=attrs,
-            dims=("z", cris_fors_dim_name, pressure_levels_dim_name))
+            file_content,
+            attrs=("_FillValue", "flag_meanings", "flag_values", "units"),
+            dims=_get_dim_names(filename))
         return file_content
 
 
