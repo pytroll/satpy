@@ -84,8 +84,10 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             var[:] = [7.0, 8.0]
 
         # Create longitude and latitude "interpolated" arrays
-        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude")
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude")
+        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
+                                        dims=("num_pixels", "num_lines"))
+        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
+                                       dims=("num_pixels", "num_lines"))
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
