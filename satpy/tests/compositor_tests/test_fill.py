@@ -104,7 +104,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.11042609], [0.6683502, 1.]], dtype=np.float32)
+        # The day pixel (SZA 80) is masked with NaN; night pixels keep their data
+        expected = np.array([[np.nan, 0.11042609], [0.6683502, 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
@@ -131,7 +132,8 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
             res = comp((self.data_b,))
             res = res.compute()
-        expected = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
+        # The test area is entirely in daylight at this time, so all pixels are masked
+        expected = np.array([[np.nan, np.nan], [np.nan, np.nan]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
@@ -158,11 +160,24 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected_channel_data = np.array([[0., 0.22122373], [0., 0.]], dtype=np.float32)
+        expected_channel_data = np.array([[0., 0.22122373], [np.nan, np.nan]], dtype=np.float32)
         assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel_data)
         assert "A" not in res.bands
+
+    def test_day_only_sza_without_alpha_masks_night_pixels(self):
+        """Night pixels are masked (NaN) in day-only mode without alpha (#3003)."""
+        from satpy.composites.fill import DayNightCompositor
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
+            res = comp((self.data_a, self.sza))
+            res = res.compute()
+        # Bottom row has SZA 94/100 -> night -> must be NaN, not 0
+        assert np.isnan(res.values[:, 1, :]).all()
+        # Top row has SZA 80/86 -> day -> data must be kept
+        assert not np.isnan(res.values[:, 0, :]).any()
 
     def test_day_only_area_with_alpha(self):
         """Test compositor with day portion with alpha_band when SZA data is not provided."""
