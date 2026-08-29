@@ -1,0 +1,37 @@
+reader:
+  name: radar_l1_polar_volume
+  short_name: Radar l1 polar volume in odim hdf5 format
+  long_name: Radar l1 polar volume in odim hdf5 format
+  description: >
+    Radar l1 polar volume in odim hdf5 format
+  sensors: [radar_5605ghz]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    odim_h5_polar_horizontal:
+        file_reader: !!python/name:satpy.readers.radar_l1_polar_volume.OdimH5PolarFileHandler
+        file_patterns: ['{country:2s}{location:3s}_pvol_pn215_{start_time:%Y%m%dT%H%M%SZ}_0x73fc7b.h5']
+# /data/lang/radar/data/2020/03/26/04/00/sehuv_pvol_pn215_20200326T040000Z_0x73fc7b.h5
+datasets:
+  dataset5:
+    name: dataset5
+    polarization: horizontal
+    file_type: odim_h5_polar_horizontal
+    standard_name: reflectivity
+    units: dBz
+    h5_key: data1
+    coordinates: [longitude, latitude]
+
+  longitude:
+    name: longitude
+    polarization: horizontal
+    file_type: odim_h5_polar_horizontal
+    units: degrees_east
+    standard_name: longitude
+
+  latitude:
+    name: latitude
+    polarization: horizontal
+    file_type: odim_h5_polar_horizontal
+    units: degrees_north
+    standard_name: latitude
