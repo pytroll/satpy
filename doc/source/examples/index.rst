@@ -15,6 +15,7 @@ as explanations in the various sections of this documentation.
 
     fci_l1c_natural_color
     vii_l1b_nc
+    mean_time
 
 .. list-table::
     :header-rows: 1
@@ -45,3 +46,5 @@ as explanations in the various sections of this documentation.
       - Generate Natural Color RGB from Meteosat Third Generation (MTG) FCI Level 1c data
     * - :doc:`Reading EPS-SG Visible and Infrared Imager (VII) with Pytroll <vii_l1b_nc>`
       - Read and visualize EPS-SG VII L1B test data and save it to an image
+    * - :doc:`Storing approximate measurement time <mean_time>`
+      - Read, resample, and store the approximate measurement time for supported readers and writers.
