@@ -7,8 +7,8 @@ Documentation: https://www.eumetsat.int/media/44139
 import datetime as dt
 import logging
 
-import dask.array as da
 import numpy as np
+import xarray as xr
 from netCDF4 import default_fillvals
 
 from satpy.readers.core.netcdf import NetCDF4FileHandler
@@ -41,6 +41,12 @@ MWS_CHANNEL_NAMES_TO_NUMBER = {"1": 1, "2": 2, "3": 3, "4": 4,
 MWS_CHANNEL_NAMES = list(MWS_CHANNEL_NAMES_TO_NUMBER.keys())
 MWS_CHANNELS = set(MWS_CHANNEL_NAMES)
 
+# netCDF attributes describing how the data is packed on disk.  They stop being
+# true once the data has been masked and scaled, so they are not passed on.
+PACKING_ATTRIBUTES = ("FillValue", "_FillValue", "missing_value",
+                      "valid_range", "valid_min", "valid_max",
+                      "scale_factor", "add_offset")
+
 
 def get_channel_index_from_name(chname):
     """Get the MWS channel index from the channel name."""
@@ -48,6 +54,67 @@ def get_channel_index_from_name(chname):
     if 0 <= chindex < 24:
         return chindex
     raise AttributeError(f"Channel name {chname!r} not supported")
+
+
+def _get_fill_value(attrs, dtype):
+    """Get the value that marks a missing measurement.
+
+    The netCDF ``FillValue``/``_FillValue`` conventions take precedence.  Real
+    MWS files use ``missing_value`` instead, and files that provide none of
+    them fall back to the netCDF default for the data type.
+
+    """
+    for attr_name in ("FillValue", "_FillValue", "missing_value"):
+        if attr_name in attrs:
+            return attrs[attr_name]
+    return default_fillvals.get(dtype.str[1:], np.nan)
+
+
+def _get_valid_range(attrs):
+    """Get the range of valid measurements, in the units they are stored in.
+
+    Real MWS files use ``valid_min``/``valid_max`` rather than ``valid_range``.
+
+    """
+    if "valid_range" in attrs:
+        return attrs["valid_range"]
+    return [attrs.get("valid_min", -np.inf), attrs.get("valid_max", np.inf)]
+
+
+def mask_and_scale(data, keep_raw_counts=False):
+    """Mask missing measurements and apply the scale factor and offset.
+
+    The netCDF packing attributes describe the data as it is stored on disk and
+    no longer describe the array once it has been masked and scaled, so they
+    are removed rather than passed on.  Data left as raw counts keeps a
+    ``_FillValue`` attribute instead, since NaN can only mark a missing
+    measurement in a float array.
+
+    """
+    attrs = data.attrs
+    fill_value = _get_fill_value(attrs, data.dtype)
+    valid_min, valid_max = _get_valid_range(attrs)
+    scale_factor = attrs.get("scale_factor")
+    add_offset = attrs.get("add_offset")
+
+    # the fill value and the valid range describe the data as it is packed, so
+    # the masking has to happen before the data is scaled
+    new_fill = data.dtype.type(fill_value) if keep_raw_counts else np.float32(np.nan)
+    with xr.set_options(keep_attrs=True):
+        data = data.where(data != fill_value, new_fill)
+        data = data.where((data >= valid_min) & (data <= valid_max), new_fill)
+        if not keep_raw_counts:
+            data = data.astype(np.float32)
+            if scale_factor is not None:
+                data = data * np.float32(scale_factor)
+            if add_offset is not None:
+                data = data + np.float32(add_offset)
+
+    for attr_name in PACKING_ATTRIBUTES:
+        data.attrs.pop(attr_name, None)
+    if keep_raw_counts:
+        data.attrs["_FillValue"] = fill_value
+    return data
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -100,7 +167,8 @@ class MWSL1BFile(NetCDF4FileHandler):
     @property
     def sensor(self):
         """Get the sensor name."""
-        return self["/attr/instrument"]
+        # Satpy sensor names are lowercase by convention
+        return self["/attr/instrument"].lower()
 
     @property
     def platform_name(self):
@@ -177,48 +245,25 @@ class MWSL1BFile(NetCDF4FileHandler):
         (counts) or calibrated in terms of brightness temperature or radiance.
 
         """
-        # Get the dataset
-        # Get metadata for given dataset
         grp_pth = dataset_info["file_key"]
         channel_index = get_channel_index_from_name(key["name"])
 
         data = self[grp_pth][:, :, channel_index]
-        attrs = data.attrs.copy()
+        data = mask_and_scale(data, keep_raw_counts=key["calibration"] == "counts")
 
-        fv = attrs.pop(
-            "FillValue",
-            default_fillvals.get(data.dtype.str[1:], np.nan))
-        vr = attrs.get("valid_range", [-np.inf, np.inf])
-
-        if key["calibration"] == "counts":
-            attrs["_FillValue"] = fv
-            nfv = fv
-        else:
-            nfv = np.nan
-        data = data.where(data >= vr[0], nfv)
-        data = data.where(data <= vr[1], nfv)
-
-        # Manage the attributes of the dataset
-        data.attrs.setdefault("units", None)
-        data.attrs.update(dataset_info)
-
-        dataset_attrs = getattr(data, "attrs", {})
-        dataset_attrs.update(dataset_info)
-        dataset_attrs.update({
-            "platform_name": self.platform_name,
-            "sensor": self.sensor,
-            "orbital_parameters": {"sub_satellite_latitude_start": self.sub_satellite_latitude_start,
-                                   "sub_satellite_longitude_start": self.sub_satellite_longitude_start,
-                                   "sub_satellite_latitude_end": self.sub_satellite_latitude_end,
-                                   "sub_satellite_longitude_end": self.sub_satellite_longitude_end},
-        })
+        # the remaining attributes are added by _manage_attributes
+        data.attrs["orbital_parameters"] = {
+            "sub_satellite_latitude_start": self.sub_satellite_latitude_start,
+            "sub_satellite_longitude_start": self.sub_satellite_longitude_start,
+            "sub_satellite_latitude_end": self.sub_satellite_latitude_end,
+            "sub_satellite_longitude_end": self.sub_satellite_longitude_end,
+        }
 
         try:
-            dataset_attrs.update(key.to_dict())
+            data.attrs.update(key.to_dict())
         except AttributeError:
-            dataset_attrs.update(key)
+            data.attrs.update(key)
 
-        data.attrs.update(dataset_attrs)
         return data
 
     def _get_dataset_aux_data(self, dsname):
@@ -238,13 +283,7 @@ class MWSL1BFile(NetCDF4FileHandler):
             logger.exception("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
             raise
 
-        # Scale the data:
-        if "scale_factor" in variable.attrs and "add_offset" in variable.attrs:
-            missing_value = variable.attrs["missing_value"]
-            variable.data = da.where(variable.data == missing_value, np.nan,
-                                     variable.data * variable.attrs["scale_factor"] + variable.attrs["add_offset"])
-
-        return variable
+        return mask_and_scale(variable)
 
     def _get_global_attributes(self):
         """Create a dictionary of global attributes."""

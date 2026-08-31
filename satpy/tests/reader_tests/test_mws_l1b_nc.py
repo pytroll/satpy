@@ -14,7 +14,7 @@ import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.mws_l1b import MWSL1BFile, get_channel_index_from_name
+from satpy.readers.mws_l1b import PACKING_ATTRIBUTES, MWSL1BFile, get_channel_index_from_name
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -171,12 +171,18 @@ class MWSL1BFakeFileWriter:
         """Write the calibration data group."""
         group = dataset.createGroup("calibration")
         toa_bt = group.createVariable(
-            "mws_toa_brightness_temperature", np.float32, dimensions=("n_scans", "n_fovs", "n_channels",)
+            "mws_toa_brightness_temperature", np.int32, dimensions=("n_scans", "n_fovs", "n_channels",)
         )
-        toa_bt.scale_factor = 1.0  # 1.0E-8
+        toa_bt.scale_factor = 0.001
         toa_bt.add_offset = 0.0
+        toa_bt.valid_min = 50000
+        toa_bt.valid_max = 350000
         toa_bt.missing_value = -2147483648
-        toa_bt[:] = 240.0 * np.ones((N_SCANS, N_FOVS, N_CHANNELS))
+        # write the packed values as-is, the way a real file stores them
+        toa_bt.set_auto_maskandscale(False)
+        data = 240000 * np.ones((N_SCANS, N_FOVS, N_CHANNELS), dtype=np.int32)
+        data[0, :, :] = -2147483648
+        toa_bt[:] = data
 
     @staticmethod
     def _write_measurement_data_group(dataset):
@@ -201,7 +207,7 @@ class TestMwsL1bNCFileHandler:
 
     def test_sensor(self, reader):
         """Test sensor."""
-        assert reader.sensor == "MWS"
+        assert reader.sensor == "mws"
 
     def test_platform_name(self, reader):
         """Test getting the platform name."""
@@ -234,23 +240,28 @@ class TestMwsL1bNCFileHandler:
                                 [24100, 24100]], dtype=np.int32)
         count = dataset[10:12, 12:14].data.compute()
         np.testing.assert_allclose(count, expected_bt)
+        # counts are not scaled, so missing measurements need a fill value
+        assert np.issubdtype(dataset.dtype, np.integer)
+        assert "_FillValue" in dataset.attrs
 
     def test_get_dataset_get_channeldata_bts(self, reader):
-        """Test getting channel data."""
+        """Test getting channel data, which is scaled and masked on the way out."""
         dataset_id = {"name": "1", "units": "K",
                       "calibration": "brightness_temperature"}
         dataset_info = {"file_key": "data/calibration/mws_toa_brightness_temperature"}
 
         dataset = reader.get_dataset(dataset_id, dataset_info)
+        toa_bt = dataset.values
 
-        expected_bt = np.array([[240., 240., 240., 240., 240.],
-                                [240., 240., 240., 240., 240.],
-                                [240., 240., 240., 240., 240.],
-                                [240., 240., 240., 240., 240.],
-                                [240., 240., 240., 240., 240.]], dtype=np.float32)
+        expected_bt = np.full((5, 5), 240., dtype=np.float32)
 
-        toa_bt = dataset[0:5, 0:5].data.compute()
-        np.testing.assert_allclose(toa_bt, expected_bt)
+        assert dataset.dtype == np.float32
+        np.testing.assert_allclose(toa_bt[1:6, 0:5], expected_bt)
+        # the fake file has a single missing scan line
+        assert np.all(np.isnan(toa_bt[0, :]))
+        assert not np.any(np.isnan(toa_bt[1:, :]))
+        # the packing attributes no longer describe the scaled data
+        assert not set(PACKING_ATTRIBUTES).intersection(dataset.attrs)
 
     def test_get_dataset_return_none_if_data_not_exist(self, reader):
         """Test get dataset return none if data does not exist."""
@@ -345,7 +356,7 @@ class TestMwsL1bNCFileHandler:
             "start_time": dt.datetime(2000, 1, 2, 3, 4, 5),
             "end_time": dt.datetime(2000, 1, 2, 4, 5, 6),
             "spacecraft_name": "Metop-SG-A1",
-            "sensor": "MWS",
+            "sensor": "mws",
             "filename_start_time": dt.datetime(2000, 1, 1, 1, 0),
             "filename_end_time": dt.datetime(2000, 1, 1, 2, 0),
             "platform_name": "Metop-SG-A1",
