@@ -512,7 +512,34 @@ class DependencyTree(Tree):
             except KeyError:
                 continue
 
-        raise KeyError("Could not find compositor '{}'".format(key))
+        raise KeyError(self._compositor_not_found_message(key))
+
+    def _compositor_not_found_message(self, key):
+        """Build the error message for a failed compositor lookup, listing tagged variants if any exist."""
+        message = "Could not find compositor '{}'".format(key)
+        tagged_variants = self._matching_tagged_variants(key)
+        if tagged_variants:
+            message += ". Tagged variants are available: {}".format(", ".join(tagged_variants))
+        return message
+
+    @staticmethod
+    def _query_name(key):
+        """Return the query's name, or None if the key has no name field."""
+        try:
+            return key["name"]
+        except (KeyError, TypeError):
+            return None
+
+    def _matching_tagged_variants(self, key):
+        """List the 'name:tag' spellings of tagged compositors whose name matches the given query."""
+        name = self._query_name(key)
+        if name is None:
+            return []
+        variants = {"{}:{}".format(cid["name"], cid["tag"])
+                    for sensor_compositors in self.compositors.values()
+                    for cid in sensor_compositors
+                    if cid.get("name") == name and cid.get("tag") is not None}
+        return sorted(variants)
 
     def _find_compositor_via_preferred_tags(self, key):
         """Try each preferred tag in order and return the first matching compositor.
@@ -522,11 +549,8 @@ class DependencyTree(Tree):
         normal name-based lookup.
         """
         import satpy
-        try:
-            name = key["name"]
-        except (KeyError, TypeError):
-            return None
-        if key.get("tag") is not None:
+        name = self._query_name(key)
+        if name is None or key.get("tag") is not None:
             return None
         for tag in satpy.config.get("preferred_composite_tags", []):
             tagged_query = DataQuery(name=name, tag=tag)

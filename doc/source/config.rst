@@ -288,10 +288,13 @@ Preferred Composite Tags
 
 Ordered list of composite variant tags that Satpy should prefer when resolving
 an unqualified composite name.  When a user requests a composite such as
-``"true_color"`` and this list is non-empty, Satpy will first search for a
-compositor whose ``standard_name`` matches and whose ``tags`` list contains
-the first tag in the preference list, then the second tag, and so on.  If no
-tagged variant is found the normal name-based lookup is used as a fallback.
+``"true_color"`` and this list is non-empty, Satpy tries each tag in the list,
+in order, looking for a compositor with that ``name`` and ``tag``.  If no
+tagged variant is found the untagged variant is used as a fallback.  The
+resolution is done per composite, so a preference like ``["chmi", "wmo"]``
+picks the ``chmi`` variant where one exists, the ``wmo`` variant otherwise,
+and the untagged composite as a last resort.  The preference also applies when
+resolving a composite's plain-name prerequisites.
 
 For example, to prefer Pyspectral-based variants:
 

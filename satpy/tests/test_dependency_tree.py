@@ -118,6 +118,18 @@ class TestGetCompositorByTag:
         assert result.attrs["name"] == "comp1"
         assert result.attrs["tag"] == "wmo"
 
+    def test_plain_query_error_mentions_available_tagged_variants(self):
+        """A failing plain-name lookup names the tagged variants that do exist.
+
+        When 'comp1' exists only as tag='wmo', the KeyError for a plain 'comp1'
+        query should point the user at 'comp1:wmo'.
+        """
+        comp = FakeCompositor(name="comp1", tag="wmo", prerequisites=[])
+        tree = self._make_tree({make_cid(name="comp1", tag="wmo"): comp})
+
+        with pytest.raises(KeyError, match="comp1:wmo"):
+            tree.get_compositor(DataQuery(name="comp1"))
+
     def test_explicit_tag_not_found_raises(self):
         """Requesting a tagged compositor that does not exist raises KeyError."""
         comp = FakeCompositor(name="comp1", prerequisites=[])
@@ -150,6 +162,28 @@ class TestGetCompositorByTag:
             result = tree.get_compositor(DataQuery(name="comp1"))
 
         assert result.attrs["tag"] == "crefl"
+
+    def test_preferred_tags_apply_to_nested_plain_prerequisites(self):
+        """A composite's plain-name prerequisite resolves through preferred_composite_tags.
+
+        comp_parent depends on plain 'comp1'; with preferred_composite_tags=['wmo'] that
+        dependency resolves to the tag='wmo' variant of comp1, so a site-wide preference
+        reaches nested composites too.
+        """
+        parent = FakeCompositor(name="comp_parent", prerequisites=["comp1"])
+        comp1_plain = FakeCompositor(name="comp1", prerequisites=[])
+        comp1_wmo = FakeCompositor(name="comp1", tag="wmo", prerequisites=[])
+        tree = self._make_tree({
+            make_cid(name="comp_parent"): parent,
+            make_cid(name="comp1"): comp1_plain,
+            make_cid(name="comp1", tag="wmo"): comp1_wmo,
+        })
+
+        with satpy.config.set(preferred_composite_tags=["wmo"]):
+            tree.populate_with_keys({"comp_parent"})
+
+        comp1_ids = [node.name for node in tree.trunk() if node.name["name"] == "comp1"]
+        assert comp1_ids == [make_cid(name="comp1", tag="wmo")]
 
     def test_preferred_tag_unavailable_falls_back_to_plain(self):
         """When no preferred-tag variant exists the plain (untagged) compositor is returned."""

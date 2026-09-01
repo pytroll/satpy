@@ -500,10 +500,10 @@ image) for both of the static images::
 Composite variants
 ------------------
 
-.. versionadded:: 0.60
+.. versionadded:: 0.61
 
 Satpy supports defining multiple *variants* of a composite (e.g., one that
-applies WMO-recommended recipe and one that does not).  This feature is controlled by optional
+applies the WMO-recommended recipe and one that does not).  This feature is controlled by optional
 fields in the composite YAML configuration.
 
 Tagging composite variants
@@ -575,15 +575,41 @@ key happens to be ``"true_color_wmo"``.
 Loading a compositor without a tag (``scene.load(["true_color"])``) finds only
 the variant whose DataID has no tag set.  Tagged variants are not included in
 plain-name lookups unless ``preferred_composite_tags`` is configured (see
-below).
+below).  If a composite exists *only* in tagged form, loading it by plain name
+raises a ``KeyError`` listing the available tagged variants (e.g.
+``true_color:wmo``).
+
+The explicit ``name:tag`` syntax is therefore the *strict* way to request a
+variant — it either loads exactly that variant or fails — while
+``preferred_composite_tags`` is the *lenient* way: each composite falls back
+to the untagged variant when no preferred tag matches.
+
+Tagged variants can also be used as prerequisites of other composites:
+
+.. code-block:: yaml
+
+    composites:
+      my_overlay:
+        compositor: !!python/name:satpy.composites.SomeCompositor
+        prerequisites:
+          - true_color:wmo        # depends on the wmo variant explicitly
+          - cloud_mask
+
+A plain-name prerequisite (e.g. ``- true_color``) is resolved through
+``preferred_composite_tags`` as well, so a site-wide preference reaches nested
+composites too.
 
 Dataset name and file output
 """""""""""""""""""""""""""""
 
 The ``tag`` is a separate field in the DataID, not part of the dataset name.
 Writers that use ``{name}`` in their file patterns therefore produce
-``true_color.tif``, not ``true_color:wmo.tif``.  If you need to distinguish
-output files by tag, use a pattern such as ``{name}_{tag}.tif``.
+``true_color.tif``, not ``true_color:wmo.tif``.  This is deliberate: switching
+the preferred variant keeps downstream filenames stable.  If you save several
+variants of the same composite side by side, use a pattern such as
+``{name}_{tag}.tif`` — but note that untagged datasets have no ``tag``
+attribute, so such a pattern only works when everything in that save call is
+tagged (save untagged products in a separate call).
 
 Session-wide tag preferences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -607,6 +633,14 @@ Resolution order for ``preferred_composite_tags``:
 
 An explicit ``name:tag`` in the load call always overrides the session-wide
 preference for that specific dataset.
+
+:meth:`~satpy.scene.Scene.available_composite_names` and
+:meth:`~satpy.scene.Scene.all_composite_names` list one *loadable* spelling per
+composite: the plain name when an untagged variant exists, or the ``name:tag``
+spelling for composites that exist only in tagged form.  Everything these
+methods return can be passed directly to :meth:`~satpy.scene.Scene.load`, and
+scripts that load every available composite keep getting a single product per
+composite name.
 
 The setting can also be provided as an environment variable (comma-separated):
 
@@ -665,7 +699,7 @@ value is the warning message:
           - name: blue
         standard_name: true_color
         warnings:
-          DeprecationWarning: "old_true_color is deprecated, use true_color_wmo instead."
+          DeprecationWarning: "old_true_color is deprecated, use true_color:wmo instead."
 
 The warning is emitted only when the compositor is actually *loaded* (i.e.
 when :meth:`~satpy.scene.Scene.load` is called with the deprecated name), not

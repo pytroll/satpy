@@ -66,6 +66,14 @@ class DelayedGeneration(KeyError):
     pass
 
 
+def _loadable_composite_names(composite_ids):
+    """List one loadable spelling per composite: the plain name, or ``name:tag`` for tagged-only ones."""
+    untagged_names = {x["name"] for x in composite_ids if x.get("tag") is None}
+    tagged_only_spellings = {f"{x['name']}:{x['tag']}" for x in composite_ids
+                             if x.get("tag") is not None and x["name"] not in untagged_names}
+    return sorted(untagged_names | tagged_only_spellings)
+
+
 class Scene:
     """The Almighty Scene Class.
 
@@ -528,16 +536,24 @@ class Scene:
         return self._check_known_composites(available_only=True)
 
     def available_composite_names(self):
-        """Names of all configured composites known to this Scene."""
-        return sorted(set(x["name"] for x in self.available_composite_ids()))
+        """Names of all configured composites known to this Scene, one loadable spelling each.
+
+        Composites with an untagged variant are listed once by their plain name; composites
+        that exist only in tagged form are listed by their loadable ``name:tag`` spelling.
+        """
+        return _loadable_composite_names(self.available_composite_ids())
 
     def all_composite_ids(self):
         """Get all IDs for configured composites."""
         return self._check_known_composites()
 
     def all_composite_names(self):
-        """Get all names for all configured composites."""
-        return sorted(set(x["name"] for x in self.all_composite_ids()))
+        """Get all names for all configured composites, one loadable spelling each.
+
+        Composites with an untagged variant are listed once by their plain name; composites
+        that exist only in tagged form are listed by their loadable ``name:tag`` spelling.
+        """
+        return _loadable_composite_names(self.all_composite_ids())
 
     def all_modifier_names(self):
         """Get names of configured modifier objects."""
