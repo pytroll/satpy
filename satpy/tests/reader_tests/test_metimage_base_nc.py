@@ -488,8 +488,10 @@ def _dummy_interpolated_lonlat():
     values are irrelevant to the test.
     """
     return (
-        xr.DataArray(np.ones((10, 100)), name="longitude"),
-        xr.DataArray(np.ones((10, 100)) * 2., name="latitude"),
+        xr.DataArray(np.ones((10, 100)), name="longitude",
+                     dims=("num_pixels", "num_lines")),
+        xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
+                     dims=("num_pixels", "num_lines")),
     )
 
 
