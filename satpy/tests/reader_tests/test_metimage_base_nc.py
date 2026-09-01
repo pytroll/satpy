@@ -30,10 +30,7 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         _create_metimage_base_nc_file(self.test_file_name)
 
         # Create longitude and latitude "interpolated" arrays
-        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
-                                        dims=("num_pixels", "num_lines"))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
-                                       dims=("num_pixels", "num_lines"))
+        interp_longitude, interp_latitude = _interpolated_lonlat()
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
@@ -417,7 +414,7 @@ class TestBz2Support:
     @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def test_bz2_reading(self, pgi_, metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
         """Test that a bz2-compressed file is transparently decompressed and read correctly."""
-        pgi_.return_value = _dummy_interpolated_lonlat()
+        pgi_.return_value = _interpolated_lonlat()
 
         filetype_info = {
             "cached_longitude": "data/measurement_data/longitude",
@@ -457,7 +454,7 @@ class TestBz2Support:
     @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def test_del_swallows_cleanup_errors(self, pgi_, metimage_base_nc_file_bz2, metimage_filename_info):
         """Test that __del__ never raises, even if removing the decompressed temp file fails."""
-        pgi_.return_value = _dummy_interpolated_lonlat()
+        pgi_.return_value = _interpolated_lonlat()
 
         filetype_info = {
             "cached_longitude": "data/measurement_data/longitude",
@@ -481,14 +478,15 @@ def _metimage_filename_info():
     }
 
 
-def _dummy_interpolated_lonlat():
+def _interpolated_lonlat():
     """Return placeholder longitude/latitude arrays for mocking _perform_geo_interpolation.
 
-    Used where the interpolation output must be valid-shaped but its specific
-    values are irrelevant to the test.
+    Note: the value 250 for longitude is asserted against directly in
+    test_dataset (see: -180 + (250-180)). If you change it,
+    update that assertion too.
     """
     return (
-        xr.DataArray(np.ones((10, 100)), name="longitude",
+        xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
                      dims=("num_pixels", "num_lines")),
         xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
                      dims=("num_pixels", "num_lines")),
