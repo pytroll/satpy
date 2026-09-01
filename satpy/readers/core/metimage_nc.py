@@ -5,6 +5,7 @@
 import datetime as dt
 import logging
 import os
+from contextlib import suppress
 
 import numpy as np
 import xarray as xr
@@ -216,11 +217,9 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
     def __del__(self):
         """Remove the decompressed temp file, if one was created."""
         super().__del__()   # release the netCDF/h5netcdf handle first, so Windows can drop its lock
-        try:
-            if getattr(self, "_unzipped", None):
+        with suppress(AttributeError, OSError):
+            if self._unzipped:
                 os.remove(self._unzipped)
-        except (AttributeError, OSError):
-            pass
 
     @staticmethod
     def wrap_longitude(longitude_array):
