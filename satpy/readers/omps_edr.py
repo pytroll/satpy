@@ -20,6 +20,23 @@ of the "ErrorFlag" values.
 By default no filtering is done related to "ErrorFlag". Refer to algorithm
 documentation for more details on the "ErrorFlag" variable.
 
+Negative SO2 Filtering
+^^^^^^^^^^^^^^^^^^^^^^
+
+The Total SO2 files (V8TOS) include column amount variables whose valid range
+includes negative values (retrieval noise around zero). These negative values
+are typically not useful for display or analysis. Passing
+``filter_negative_so2=True`` will set any value below 0 to the fill value (NaN)
+in addition to the normal valid range filtering. At the time of writing the
+affected variables are "s_ColumnamountSO2_PBL", "s_ColumnamountSO2_TRL",
+"s_ColumnamountSO2_TRM", and "s_ColumnamountSO2_STL".
+
+.. code-block:: python
+
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_negative_so2": True})
+
+By default no filtering of negative values is done.
+
 """
 
 import logging
@@ -35,20 +52,42 @@ from satpy.readers.core.remote import open_file_or_filename
 LOG = logging.getLogger(__name__)
 
 
+def _rename_unit_attr(attrs: dict) -> dict:
+    """Get a copy of ``attrs`` with the non-standard "Unit" attribute renamed to "units".
+
+    The SO2 variables in the V8TOS files use "Unit" instead of the CF standard
+    "units" used by the rest of the variables.
+
+    """
+    attrs = dict(attrs)
+    unit = attrs.pop("Unit", None)
+    if unit is not None and "units" not in attrs:
+        attrs["units"] = unit
+    return attrs
+
+
 class EDRFileHandler(BaseFileHandler):
     """File handler for NOAA JPSS OMPS EDR files."""
 
     y_dim_name = "nTimes"
     x_dim_name = "nIFOV"
     error_flag_var_name = "ErrorFlag"
+    negative_filter_var_prefix = "s_ColumnamountSO2"
 
     def __init__(
-        self, filename, filename_info, filetype_info, filter_by_error_flag: Sequence[int] | None = None, **kwargs
+        self,
+        filename,
+        filename_info,
+        filetype_info,
+        filter_by_error_flag: Sequence[int] | None = None,
+        filter_negative_so2: bool = False,
+        **kwargs,
     ):
         """Initialize the geo filehandler."""
         super(EDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         self.filter_by_error_flag = filter_by_error_flag or []
+        self.filter_negative_so2 = filter_negative_so2
 
         drop_variables = filetype_info.get("drop_variables", None)
         f_obj = open_file_or_filename(self.filename)
@@ -79,18 +118,31 @@ class EDRFileHandler(BaseFileHandler):
             "NOAA21": "NOAA-21",
             "NOAA22": "NOAA-22",
             "NOAA23": "NOAA-23",
+            "NOAA-20": "NOAA-20",
+            "NOAA-21": "NOAA-21",
+            "NOAA-22": "NOAA-22",
+            "NOAA-23": "NOAA-23",
+            "J01": "NOAA-20",
+            "J02": "NOAA-21",
+            # J04 will launch before J03
+            "J04": "NOAA-22",
+            "J03": "NOAA-23",
         }
-        return platform_dict[self.nc.platform]
+        if hasattr(self.nc, "platform"):
+            return platform_dict[self.nc.platform]
+        return platform_dict[self.nc.platform_name]
 
     @property
     def sensor_name(self):
         """Get the sensor name."""
-        return self.nc.instrument.lower()
+        if hasattr(self.nc, "instrument"):
+            return self.nc.instrument.lower()
+        return self.nc.instrument_name.lower()
 
     def get_metadata(self, dataset_id, ds_info):
         """Get the metadata."""
         var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
-        info = getattr(self.nc[var_path], "attrs", {}).copy()
+        info = _rename_unit_attr(getattr(self.nc[var_path], "attrs", {}))
         info.update(ds_info)
 
         info.update(
@@ -112,6 +164,7 @@ class EDRFileHandler(BaseFileHandler):
         metadata = self.get_metadata(dataset_id, ds_info)
         data_arr = self.nc[var_path]
         data_arr = data_arr.rename({self.y_dim_name: "y", self.x_dim_name: "x"})
+        data_arr.attrs = _rename_unit_attr(data_arr.attrs)
         data_arr = self._mask_invalid(data_arr, metadata)
         data_arr.attrs.update(metadata)
         return data_arr
@@ -128,11 +181,20 @@ class EDRFileHandler(BaseFileHandler):
             ds_info["valid_range"] = valid_range
         if "valid_min" in data_arr.attrs and valid_range is None:
             valid_range = (data_arr.attrs["valid_min"], data_arr.attrs["valid_max"])
+        valid_cond = None
         if valid_range is not None:
+            valid_cond = (valid_range[0] <= data_arr) & (data_arr <= valid_range[1])
+        if self._filters_negative_values(data_arr):
+            neg_cond = data_arr >= 0
+            valid_cond = neg_cond if valid_cond is None else (valid_cond & neg_cond)
+        if valid_cond is not None:
             # NOTE: may modify attrs in place
             fill_value = self._handle_fill_value(data_arr)
-            return data_arr.where((valid_range[0] <= data_arr) & (data_arr <= valid_range[1]), fill_value)
+            return data_arr.where(valid_cond, fill_value)
         return data_arr
+
+    def _filters_negative_values(self, data_arr: xr.DataArray) -> bool:
+        return self.filter_negative_so2 and str(data_arr.name).startswith(self.negative_filter_var_prefix)
 
     def _handle_fill_value(self, data_arr: xr.DataArray) -> Any:
         if "_FillValue" in data_arr.attrs and not np.issubdtype(data_arr.dtype, np.floating):
