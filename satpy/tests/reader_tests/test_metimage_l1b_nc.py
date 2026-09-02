@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The metimage_l1b_nc reader tests package.
 
 This version tests the readers for METimage.
@@ -23,145 +6,254 @@ This version tests the readers for METimage.
 
 
 import datetime
-import os
-import unittest
-import uuid
 
+import dask
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.core.metimage import MEAN_EARTH_RADIUS
+from satpy.readers.core.metimage import (
+    MEAN_EARTH_RADIUS,
+    ROWS_PER_SCAN,
+    SCAN_ALT_TIE_POINTS,
+    TIE_POINTS_FACTOR,
+)
 from satpy.readers.metimage_l1b_nc import METimageL1BNCFileHandler
 
-TEST_FILE = "test_file_vii_l1b_nc.nc"
+NUM_SCANS = 25
+NUM_TIE_POINTS_ACT = 10
+NUM_LINES = NUM_SCANS * ROWS_PER_SCAN
+NUM_PIXELS = (NUM_TIE_POINTS_ACT - 1) * TIE_POINTS_FACTOR
+NUM_TIE_POINTS_ALT = NUM_SCANS * SCAN_ALT_TIE_POINTS
 
 
-class TestMETimageL1bNCFileHandler(unittest.TestCase):
-    """Test the METimageL1BNCFileHandler reader."""
+def _create_l1b_file(path, with_tie_points=True):
+    """Write a small METimage L1B file with realistic dimensions and on-disk chunking."""
+    with Dataset(path, "w") as nc:
+        nc.sensing_start_time_utc = "20170920173040.888"
+        nc.sensing_end_time_utc = "20170920174117.555"
+        nc.spacecraft = "SGA1"
+        nc.instrument = "VII"
 
-    def setUp(self):
-        """Set up the test."""
-        # Easiest way to test the reader is to create a test netCDF file on the fly
-        # uses a UUID to avoid permission conflicts during execution of tests in parallel
-        self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
+        data = nc.createGroup("data")
+        data.createDimension("num_chan_solar", 11)
+        data.createDimension("num_chan_thermal", 9)
+        data.createDimension("num_pixels", NUM_PIXELS)
+        data.createDimension("num_lines", NUM_LINES)
 
-        with Dataset(self.test_file_name, "w") as nc:
-            # Create data group
-            g1 = nc.createGroup("data")
+        calibration = data.createGroup("calibration_data")
+        for name, dim, size in (("bt_conversion_a", "num_chan_thermal", 9),
+                                ("bt_conversion_b", "num_chan_thermal", 9),
+                                ("channel_cw_thermal", "num_chan_thermal", 9),
+                                ("band_averaged_solar_irradiance", "num_chan_solar", 11)):
+            var = calibration.createVariable(name, np.float32, dimensions=(dim,))
+            var[:] = np.arange(1, size + 1)
 
-            # Add dimensions to data group
-            g1.createDimension("num_chan_solar", 11)
-            g1.createDimension("num_chan_thermal", 9)
-            g1.createDimension("num_pixels", 72)
-            g1.createDimension("num_lines", 600)
+        quality = nc.createGroup("quality")
+        quality.createDimension("gap_items", 2)
+        for name in ("duration_of_product", "duration_of_data_present",
+                     "duration_of_data_missing", "duration_of_data_degraded"):
+            quality.createVariable(name, np.double, dimensions=())[:] = 1.0
+        for name in ("gap_start_time_utc", "gap_end_time_utc"):
+            quality.createVariable(name, np.double, dimensions=("gap_items",))[:] = [0.0, 0.0]
 
-            # Create calibration_data group
-            g1_1 = g1.createGroup("calibration_data")
+        measurement = data.createGroup("measurement_data")
+        # The real files store one full row of pixels per on-disk chunk.
+        radiance = measurement.createVariable("vii_668", np.float32,
+                                              dimensions=("num_lines", "num_pixels"),
+                                              chunksizes=(1, NUM_PIXELS))
+        radiance[:] = np.arange(NUM_LINES * NUM_PIXELS).reshape(NUM_LINES, NUM_PIXELS)
+        delta_lat = measurement.createVariable("delta_lat", np.float32,
+                                               dimensions=("num_lines", "num_pixels"),
+                                               chunksizes=(1, NUM_PIXELS))
+        delta_lat[:] = 1.0
 
-            # Add variables to data/calibration_data group
-            bt_a = g1_1.createVariable("bt_conversion_a", np.float32, dimensions=("num_chan_thermal",))
-            bt_a[:] = np.arange(9)
-            bt_b = g1_1.createVariable("bt_conversion_b", np.float32, dimensions=("num_chan_thermal",))
-            bt_b[:] = np.arange(9)
-            cw = g1_1.createVariable("channel_cw_thermal", np.float32, dimensions=("num_chan_thermal",))
-            cw[:] = np.arange(9)
-            isi = g1_1.createVariable("band_averaged_solar_irradiance", np.float32, dimensions=("num_chan_solar",))
-            isi[:] = np.arange(11)
+        if not with_tie_points:
+            return
 
-            # Create measurement_data group
-            g1_2 = g1.createGroup("measurement_data")
+        measurement.createDimension("num_tie_points_act", NUM_TIE_POINTS_ACT)
+        measurement.createDimension("num_tie_points_alt", NUM_TIE_POINTS_ALT)
+        tie_shape = (NUM_TIE_POINTS_ALT, NUM_TIE_POINTS_ACT)
+        tie_dims = ("num_tie_points_alt", "num_tie_points_act")
+        lon = measurement.createVariable("longitude", np.float32, dimensions=tie_dims,
+                                         chunksizes=(1, NUM_TIE_POINTS_ACT))
+        lon[:] = np.linspace(-10.0, 10.0, np.prod(tie_shape)).reshape(tie_shape)
+        lat = measurement.createVariable("latitude", np.float32, dimensions=tie_dims,
+                                         chunksizes=(1, NUM_TIE_POINTS_ACT))
+        lat[:] = np.linspace(40.0, 60.0, np.prod(tie_shape)).reshape(tie_shape)
+        # Not used by the reader (yet), but part of the real product.
+        sza = measurement.createVariable("solar_zenith", np.float32, dimensions=tie_dims,
+                                         chunksizes=(1, NUM_TIE_POINTS_ACT))
+        sza[:] = 25.0
 
-            # Add dimensions to data/measurement_data group
-            g1_2.createDimension("num_tie_points_act", 10)
-            g1_2.createDimension("num_tie_points_alt", 100)
 
-            # Add variables to data/measurement_data group
-            sza = g1_2.createVariable("solar_zenith", np.float32,
-                                      dimensions=("num_tie_points_alt", "num_tie_points_act"))
-            sza[:] = 25.0
-            delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_lines", "num_pixels"))
-            delta_lat[:] = 1.0
+def _make_handler(path):
+    return METimageL1BNCFileHandler(
+        filename=str(path),
+        filename_info={
+            "creation_time": datetime.datetime(2017, 9, 22, 22, 40, 10),
+            "sensing_start_time": datetime.datetime(2017, 9, 20, 12, 30, 30),
+            "sensing_end_time": datetime.datetime(2017, 9, 20, 18, 30, 50),
+        },
+        filetype_info={"cached_longitude": "data/measurement_data/longitude",
+                       "cached_latitude": "data/measurement_data/latitude"},
+    )
 
-        self.reader = METimageL1BNCFileHandler(
-            filename=self.test_file_name,
-            filename_info={
-                "creation_time": datetime.datetime(year=2017, month=9, day=22,
-                                                   hour=22, minute=40, second=10),
-                "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
-                                                        hour=12, minute=30, second=30),
-                "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
-                                                      hour=18, minute=30, second=50)
-            },
-            filetype_info={}
-        )
 
-    def tearDown(self):
-        """Remove the previously created test file."""
-        # Catch Windows PermissionError for removing the created test file.
-        try:
-            os.remove(self.test_file_name)
-        except OSError:
-            pass
+def _make_variable():
+    """Create a dataset of ones with the shape and dims the reader produces."""
+    return xr.DataArray(
+        dims=("num_lines", "num_pixels"),
+        name="test_name",
+        attrs={
+            "key_1": "value_1",
+            "key_2": "value_2"
+        },
+        data=da.ones((NUM_LINES, NUM_PIXELS), chunks=(ROWS_PER_SCAN, NUM_PIXELS))
+    )
 
-    def test_calibration_functions(self):
-        """Test the calibration functions."""
-        radiance = np.array([[1.0, 2.0, 5.0], [7.0, 10.0, 20.0]])
 
-        cw = 13.0
-        a = 3.0
-        b = 100.0
-        bt = self.reader._calibrate_bt(radiance, cw, a, b)
-        expected_bt = np.array([[675.04993213, 753.10301462, 894.93149648],
-                                [963.20401882, 1048.95086402, 1270.95546218]])
-        assert np.allclose(bt, expected_bt)
+# NOTE:
+# The tests below use the following fixtures, defined in this module:
+#   metimage_l1b_file - path to a small but structurally realistic L1B netCDF file
+#   reader - a METimageL1BNCFileHandler for that file
 
-        isi = 2.0
-        refl = self.reader._calibrate_refl(radiance, isi)
-        expected_refl = np.array([[157.07963268, 314.15926536, 785.3981634],
-                                  [1099.55742876, 1570.79632679, 3141.59265359]])
-        assert np.allclose(refl, expected_refl)
 
-    def test_functions(self):
-        """Test the functions."""
-        # Checks that the _perform_orthorectification function is correctly executed
-        variable = xr.DataArray(
-            dims=("num_lines", "num_pixels"),
-            name="test_name",
-            attrs={
-                "key_1": "value_1",
-                "key_2": "value_2"
-            },
-            data=da.from_array(np.ones((600, 72)))
-        )
+@pytest.fixture
+def metimage_l1b_file(tmp_path):
+    """Create a small METimage L1B file."""
+    path = tmp_path / "metimage_l1b.nc"
+    _create_l1b_file(path)
+    return path
 
-        orthorect_variable = self.reader._perform_orthorectification(variable, "data/measurement_data/delta_lat")
-        expected_values = np.degrees(np.ones((600, 72)) / MEAN_EARTH_RADIUS) + np.ones((600, 72))
-        assert np.allclose(orthorect_variable.values, expected_values)
 
-        # Checks that the _perform_calibration function is correctly executed in all cases
-        # radiance calibration: return value is simply a copy of the variable
-        return_variable = self.reader._perform_calibration(variable, {"calibration": "radiance"})
-        assert np.all(return_variable == variable)
+@pytest.fixture
+def reader(metimage_l1b_file):
+    """Create a file handler for a small METimage L1B file."""
+    return _make_handler(metimage_l1b_file)
 
-        # invalid calibration: raises a ValueError
-        with pytest.raises(ValueError, match="Unknown calibration invalid for dataset test"):
-            self.reader._perform_calibration(variable,
-                                             {"calibration": "invalid", "name": "test"})
 
-        # brightness_temperature calibration: checks that the return value is correct
-        calibrated_variable = self.reader._perform_calibration(variable,
-                                                               {"calibration": "brightness_temperature",
-                                                                "chan_thermal_index": 3})
-        expected_values = np.full((600, 72), 1101.10413712)
-        assert np.allclose(calibrated_variable.values, expected_values)
+def test_calibrate_bt():
+    """Test the brightness temperature calibration function."""
+    radiance = np.array([[1.0, 2.0, 5.0], [7.0, 10.0, 20.0]])
 
-        # reflectance calibration: checks that the return value is correct
-        calibrated_variable = self.reader._perform_calibration(variable,
-                                                               {"calibration": "reflectance",
-                                                                "wavelength": [0.658, 0.668, 0.678],
-                                                                "chan_solar_index": 2})
-        expected_values = np.full((600, 72), 157.07963268)
-        assert np.allclose(calibrated_variable.values, expected_values)
+    bt = METimageL1BNCFileHandler._calibrate_bt(radiance, 13.0, 3.0, 100.0)
+
+    expected_bt = np.array([[675.04993213, 753.10301462, 894.93149648],
+                            [963.20401882, 1048.95086402, 1270.95546218]])
+    np.testing.assert_allclose(bt, expected_bt)
+
+
+def test_calibrate_refl():
+    """Test the reflectance calibration function."""
+    radiance = np.array([[1.0, 2.0, 5.0], [7.0, 10.0, 20.0]])
+
+    refl = METimageL1BNCFileHandler._calibrate_refl(radiance, 2.0)
+
+    expected_refl = np.array([[157.07963268, 314.15926536, 785.3981634],
+                              [1099.55742876, 1570.79632679, 3141.59265359]])
+    np.testing.assert_allclose(refl, expected_refl)
+
+
+def test_perform_orthorectification(reader):
+    """Test that the orthorectification offsets the variable by the delta in degrees."""
+    variable = _make_variable()
+
+    orthorect_variable = reader._perform_orthorectification(variable, "data/measurement_data/delta_lat")
+
+    expected_values = (np.degrees(np.ones((NUM_LINES, NUM_PIXELS)) / MEAN_EARTH_RADIUS)
+                       + np.ones((NUM_LINES, NUM_PIXELS)))
+    np.testing.assert_allclose(orthorect_variable.values, expected_values)
+
+
+def test_radiance_calibration_returns_input(reader):
+    """Test that the radiance calibration returns a copy of the variable."""
+    variable = _make_variable()
+
+    return_variable = reader._perform_calibration(variable, {"calibration": "radiance"})
+
+    xr.testing.assert_equal(return_variable, variable)
+
+
+def test_invalid_calibration_raises(reader):
+    """Test that an unknown calibration raises a ValueError."""
+    variable = _make_variable()
+
+    with pytest.raises(ValueError, match="Unknown calibration invalid for dataset test"):
+        reader._perform_calibration(variable, {"calibration": "invalid", "name": "test"})
+
+
+def test_brightness_temperature_calibration(reader):
+    """Test that the brightness temperature calibration uses the file coefficients."""
+    variable = _make_variable()
+
+    calibrated_variable = reader._perform_calibration(variable,
+                                                      {"calibration": "brightness_temperature",
+                                                       "chan_thermal_index": 3})
+
+    expected_values = np.full((NUM_LINES, NUM_PIXELS), 1237.52069907)
+    np.testing.assert_allclose(calibrated_variable.values, expected_values)
+
+
+def test_reflectance_calibration(reader):
+    """Test that the reflectance calibration uses the file coefficients."""
+    variable = _make_variable()
+
+    calibrated_variable = reader._perform_calibration(variable,
+                                                      {"calibration": "reflectance",
+                                                       "wavelength": [0.658, 0.668, 0.678],
+                                                       "chan_solar_index": 2})
+
+    expected_values = np.full((NUM_LINES, NUM_PIXELS), 104.71975512)
+    np.testing.assert_allclose(calibrated_variable.values, expected_values)
+
+
+# Row chunks the reader is expected to produce for the test file (600 rows of 72 float32 pixels,
+# 24 rows per scan) at a few dask "array.chunk-size" settings. The test file is small, so small
+# chunk sizes are needed to get more than one chunk out of it. # The 24KiB case is included
+# because its tie point chunking does not line up with whole scans after interpolation.
+CHUNK_CASES = [
+    ("16KiB", (48,) * 12 + (24,)),
+    ("24KiB", (72,) * 8 + (24,)),
+    ("64KiB", (216, 216, 168)),
+]
+
+# Dataset information as the YAML reader builds it from metimage_l1b_nc.yaml. These cover the
+# three ways a dataset reaches the user: read straight from the file, served from the cached
+# interpolated geolocation, and interpolated from tie points on the fly.
+DATASET_INFOS = [
+    {"name": "vii_668", "file_key": "data/measurement_data/vii_668",
+     "calibration": "radiance", "chan_solar_index": 2},
+    {"name": "lon_pixels", "file_key": "cached_longitude", "standard_name": "longitude"},
+    {"name": "lat_pixels", "file_key": "cached_latitude", "standard_name": "latitude"},
+    {"name": "solar_zenith_angle", "file_key": "data/measurement_data/solar_zenith",
+     "standard_name": "solar_zenith_angle", "interpolate": True},
+]
+
+
+@pytest.mark.parametrize(("chunk_size", "expected_row_chunks"), CHUNK_CASES)
+@pytest.mark.parametrize("dataset_info", DATASET_INFOS, ids=lambda info: info["name"])
+def test_datasets_are_chunked_by_whole_scans(metimage_l1b_file, dataset_info,
+                                             chunk_size, expected_row_chunks):
+    """Test that every dataset keeps whole rows of pixels and is chunked in whole scans."""
+    with dask.config.set({"array.chunk-size": chunk_size}):
+        handler = _make_handler(metimage_l1b_file)
+        variable = handler.get_dataset(None, dataset_info)
+
+    assert variable.chunks == (expected_row_chunks, (NUM_PIXELS,))
+
+
+def test_file_without_tie_points_is_still_chunked(tmp_path):
+    """Test that a file without tie point dimensions still chunks its pixel variables."""
+    path = tmp_path / "metimage_l1b_no_tie_points.nc"
+    _create_l1b_file(path, with_tie_points=False)
+
+    with dask.config.set({"array.chunk-size": "64KiB"}):
+        handler = _make_handler(path)
+        variable = handler.get_dataset(None, DATASET_INFOS[0])
+
+    assert handler.longitude is None
+    assert handler.latitude is None
+    assert variable.chunks == ((216, 216, 168), (NUM_PIXELS,))

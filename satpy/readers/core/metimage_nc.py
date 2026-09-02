@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """EUMETSAT EPS-SG METimage (VII) readers base class."""
 
@@ -22,13 +5,25 @@
 import datetime as dt
 import logging
 
+import numpy as np
 import xarray as xr
 from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
-from satpy.readers.core.metimage import PLATFORM_NAME_TRANSLATE, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
+from satpy.readers.core.metimage import (
+    PLATFORM_NAME_TRANSLATE,
+    ROWS_PER_SCAN,
+    SCAN_ALT_TIE_POINTS,
+    TIE_POINTS_FACTOR,
+)
 from satpy.readers.core.netcdf import NetCDF4FileHandler
+from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)
+
+# Row/column dimension name pairs used by the various METimage products. The
+# equivalent renaming is done by ``METimageNCBaseFileHandler._standardize_dims``.
+PIXEL_DIMS = (("num_lines", "num_pixels"), ("num_points_alt", "num_points_act"))
+TIE_POINT_DIMS = ("num_tie_points_alt", "num_tie_points_act")
 
 
 class METimageNCBaseFileHandler(NetCDF4FileHandler):
@@ -54,6 +49,13 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         """Prepare the class for dataset reading."""
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
 
+        # Chunk whole rows of pixels so that dask chunks are aligned to the
+        # on-disk chunks and to the scans of the instrument.
+        # Hold on to row_chunks so we can use it for rechunking interpolated arrays later
+        self._row_chunks, chunks = self._chunks_for_file()
+        if chunks:
+            self._xarray_kwargs["chunks"] = chunks
+
         # Saves the orthorectification flag
         self.orthorect = orthorect and filetype_info.get("orthorect", True)
 
@@ -66,12 +68,88 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
 
             if self.interpolate:
                 self.longitude, self.latitude = self._perform_geo_interpolation(longitude, latitude)
+                self.longitude = self._rechunk_to_pixel_grid(self.longitude)
+                self.latitude = self._rechunk_to_pixel_grid(self.latitude)
             else:
                 self.longitude, self.latitude = longitude, latitude
 
         except KeyError:
             logger.warning("Cached longitude and/or latitude datasets are not correctly defined in YAML file")
             self.longitude, self.latitude = None, None
+
+    def _chunks_for_file(self):
+        """Determine a scan-aligned, whole-row dask chunk size for each dimension.
+
+        Returns:
+            Tuple of the number of pixel rows per chunk and a mapping of
+            dimension name to chunk size suitable for ``xarray.open_dataset``.
+            Both are ``None`` if the file does not use any known pixel
+            dimension names.
+
+        """
+        dim_sizes = self._collect_dim_sizes()
+        row_chunks = num_rows = None
+        # Map dimension names to chunk sizes
+        chunks = {}
+        # Look through all possible 2D image array dims (L1b or L2)
+        for row_dim, col_dim in PIXEL_DIMS:
+            if row_dim not in dim_sizes or col_dim not in dim_sizes:
+                continue
+            num_rows, num_cols = dim_sizes[row_dim], dim_sizes[col_dim]
+            # Use a single dtype for every variable so that all of them are
+            # chunked the same way regardless of their on-disk dtype.
+            row_chunks = normalize_low_res_chunks(
+                ("auto", -1),
+                (num_rows, num_cols),
+                (ROWS_PER_SCAN, num_cols),
+                (1, 1),
+                np.float32,
+            )[0]
+            chunks[row_dim] = row_chunks
+            chunks[col_dim] = -1
+
+        if row_chunks is None:
+            return None, None
+
+        tie_alt, tie_act = TIE_POINT_DIMS
+        if tie_alt in dim_sizes and tie_act in dim_sizes:
+            # Interpolating tie points produces one pixel chunk per tie point
+            # chunk, so scale the tie point chunks down by the same factor.
+            chunks[tie_alt] = max(row_chunks * dim_sizes[tie_alt] // num_rows, 1)
+            chunks[tie_act] = -1
+
+        return row_chunks, chunks
+
+    def _collect_dim_sizes(self) -> dict[str, int]:
+        """Map dimension name to size for every dimension used by a variable.
+
+        ``NetCDF4FileHandler.collect_dimensions`` does not recurse into groups,
+        so the dimensions of a grouped product are not in ``file_content``.
+        The per-variable shape and dimension entries always are.
+
+        """
+        suffix = "/dimensions"
+        dim_sizes: dict[str, int] = {}
+        for key, dim_names in self.file_content.items():
+            if not key.endswith(suffix):
+                continue
+            shape = self.file_content.get(key[:-len(suffix)] + "/shape")
+            if shape is not None and len(shape) == len(dim_names):
+                dim_sizes.update(zip(dim_names, shape))
+        return dim_sizes
+
+    def _rechunk_to_pixel_grid(self, variable):
+        """Chunk an interpolated variable the same way as the pixel variables.
+
+        Interpolation is done with :meth:`xarray.DataArray.interp`, which
+        divides the interpolated dimension evenly by the number of tie point
+        chunks. That does not respect the scans of the instrument, so the
+        result has to be chunked explicitly to match the pixel variables.
+
+        """
+        if self._row_chunks is None:
+            return variable
+        return variable.chunk({"num_lines": self._row_chunks, "num_pixels": -1})
 
     def _standardize_dims(self, variable):
         """Standardize dims to y, x."""
@@ -102,6 +180,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             # If the dataset is marked for interpolation, perform the interpolation from tie points to pixels
             if dataset_info.get("interpolate", False) and self.interpolate:
                 variable = self._perform_interpolation(variable)
+                variable = self._rechunk_to_pixel_grid(variable)
 
             # Perform the calibration if required
             if dataset_info.get("calibration") is not None:
@@ -213,7 +292,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             "filename_start_time": self.filename_info["sensing_start_time"],
             "filename_end_time": self.filename_info["sensing_end_time"],
             "platform_name": self.spacecraft_name,
-            "rows_per_scan": 24
+            "rows_per_scan": ROWS_PER_SCAN
         }
 
         # Add a "quality_group" item to the dictionary with all the variables and attributes

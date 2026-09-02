@@ -26,11 +26,11 @@ dependencies = [
 ]
 readme = "README.rst"
 requires-python = ">=3.12"
-license = { text = "GPLv3" }
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Topic :: Scientific/Engineering"

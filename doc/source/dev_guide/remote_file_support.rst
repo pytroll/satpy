@@ -29,13 +29,13 @@ in every reader. This could look like:
 
 .. code-block:: python
 
-    from satpy._compat importe cached_property
+    from satpy._compat import cached_property
     from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
 
     class Reader(BaseFileHandler):
 
         def __init__(self, filename, filename_info, filetype_info):
-            super(Reader).__init__(filename, filename_info, filetype_info):
+            super().__init__(filename, filename_info, filetype_info)
 
         @cached_property
         def nc(self):

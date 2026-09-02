@@ -193,7 +193,7 @@ assuming a scene loaded in the variable ``scn``.
 
 .. code-block:: python
 
-   from satpy.writers import get_enhanced_image
+   from satpy.enhancements.enhancer import get_enhanced_image
 
    im = get_enhanced_image(scn['natural_color'])
    im.data.plot.imshow(rgb='bands')

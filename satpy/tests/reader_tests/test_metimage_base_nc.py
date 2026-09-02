@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The metimage_base_nc reader tests package."""
 
@@ -101,8 +84,10 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             var[:] = [7.0, 8.0]
 
         # Create longitude and latitude "interpolated" arrays
-        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude")
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude")
+        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
+                                        dims=("num_pixels", "num_lines"))
+        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
+                                       dims=("num_pixels", "num_lines"))
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
