@@ -55,13 +55,11 @@ PLATFORM_MAP = {
 # Map dataset names to equivalent source file header names
 COLUMN_MAP = {
     "frp": "FRP",
-    "fire_confidence": "FIRE_CONFIDENCE",
     "latitude": "LATITUDE",
     "longitude": "LONGITUDE",
     "abs_line": "ABS_LINE",
     "abs_samp": "ABS_SAMP",
 }
-gridded_vars = {"frp", "fire_confidence"}
 
 class FRPFileHandler(BaseFileHandler):
     """ASCII reader for CSV files for LSA SAF Fire Radiative Power product."""
@@ -119,7 +117,7 @@ class FRPFileHandler(BaseFileHandler):
                 data.attrs[key] = dsinfo[key]
 
         # Only the required variables should be mapped on the FCI grid.
-        if name == gridded_vars:
+        if name == "frp":
             data = self.get_array_on_fci_grid(data)
 
         return data

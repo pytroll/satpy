@@ -29,7 +29,7 @@ datasets:
 
   fire_confidence:
     name: fire_confidence
-    file_type: [csv_fci_frp, nc_fci_frp]
+    file_type: nc_fci_frp
     file_key: FIRE_CONFIDENCE
     units: '%'
     resolution: 1000
