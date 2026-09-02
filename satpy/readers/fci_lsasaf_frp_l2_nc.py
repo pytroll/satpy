@@ -13,47 +13,36 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""MTG FCI Fire Radiative Power (FRP) Level-2 (L2) CSV reader.
+"""MTG FCI Fire Radiative Power (FRP) Level-2 (L2) NC reader.
 
 This reader supports reading the frp product from the LSASAF FRPPIXEL based Product.
-It can be used standalone to read the data from the files, or to generate composites
-e.g. with SingleBandCompositor or MaskingCompositor.
+It can be e.g. used with SingleBandCompositor or MaskingCompositor.
 
 More detailed information about the related product and data see:
 https://lsa-saf.eumetsat.int/en/data/products/fire-products/
-
-Per default, the reader reads and loads a 1-D array
-of fire pixels and maps them on a sparse 2-D grid based on the 1 km Full disk
-
-NOTE: The reader currently assumes the product to be full-disc,
-with a 10-minute repeat cycle, and coming from Meteosat-12.
 """
 
 
+from contextlib import suppress
 from datetime import timedelta
 
 import dask.array as da
-import dask.dataframe as dd
 import numpy as np
 import xarray as xr
 
 from satpy.area import get_area_def
+from satpy.readers.core.fci import platform_name_translate
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 # Full-disk 1 km FCI grid
 FRP_GRID_SHAPE = (11136, 11136)
 
-#Derived from PYTROLL_CHUNK_SIZE, else defaults to 128MiB.
+# Derived from PYTROLL_CHUNK_SIZE, else defaults to 128MiB.
 CHUNK_SIZE = get_chunk_size_limit()
 
-# Map internal/platform short names to OSCAR standard platform names
-PLATFORM_MAP = {
-    "MTG": "Meteosat-12",
-}
-
 # Map dataset names to equivalent source file header names
-COLUMN_MAP = {
+VAR_MAP = {
     "frp": "FRP",
     "fire_confidence": "FIRE_CONFIDENCE",
     "latitude": "LATITUDE",
@@ -64,19 +53,56 @@ COLUMN_MAP = {
 gridded_vars = {"frp", "fire_confidence"}
 
 class FRPFileHandler(BaseFileHandler):
-    """ASCII reader for CSV files for LSA SAF Fire Radiative Power product."""
+    """ASCII reader for NC files for LSA SAF Fire Radiative Power product."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
         super().__init__(filename, filename_info, filetype_info)
 
         self.filename_info = filename_info
-        self.platform_name = filename_info.get("platform_name")
-        self.satellite_name = PLATFORM_MAP.get(self.platform_name, self.platform_name)
-        self.file_content = dd.read_csv(
-            filename,
-            usecols=list(COLUMN_MAP.values())
+        self.filename = filename
+        #self.satellite_name = type(self).satellite_name.fget(self)
+
+        # Use xarray's default netcdf4 engine to open the file. Read content lazy via dask arrays.
+        self.root_nc = xr.open_dataset(
+            self.filename,
+            decode_cf=False,
+            mask_and_scale=False,
+            chunks=None
         )
+        self.nc = xr.open_dataset(
+            self.filename,
+            group="ListProduct",
+            decode_cf=True,
+            mask_and_scale=True,
+            chunks={
+                "sample": CHUNK_SIZE,
+                "line": CHUNK_SIZE
+            }
+        )
+        self.global_attrs = {
+            **self.root_nc.attrs,
+            **self.nc.attrs
+        }
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        with suppress(AttributeError, OSError):
+            if self.nc is not None:
+                self.nc.close()
+            if self.root_nc is not None:
+                self.root_nc.close()
+
+    @property
+    def satellite_name(self):
+        """Return spacecraft name."""
+        platform = self.global_attrs.get("platform")
+        return platform_name_translate.get(platform, platform)
+
+    @property
+    def sensor_name(self):
+        """Return instrument name."""
+        return self.global_attrs.get("sensor").lower() or "fci"
 
     @property
     def start_time(self):
@@ -85,33 +111,53 @@ class FRPFileHandler(BaseFileHandler):
 
     @property
     def end_time(self):
-        """Calculate end time 10 minutes after start time."""
-        return self.start_time + timedelta(minutes=10)
+        """Calculate end time 10 minutes after start time, if not defined any else."""
+        try:
+            frequency = float(self.global_attrs.get("product_frequency", "10-min").split("-min")[0])
+        except (AttributeError, TypeError, ValueError):
+            frequency = 10
+        return self.start_time + timedelta(minutes=frequency)
 
     def __contains__(self, item):
         """Check if variable is available in current file."""
-        return item in COLUMN_MAP and COLUMN_MAP[item] in self.file_content.columns
+        return item in VAR_MAP and VAR_MAP[item] in self.nc.data_vars
 
     def __getitem__(self, key):
         """Get file content for dataset key."""
-        return self.file_content[COLUMN_MAP[key]]
+        return self.nc[VAR_MAP[key]]
+
+    def _get_attributes(self):
+        """Create a dictionary of global attributes to be added to all datasets.
+
+        Returns:
+            dict: A dictionary of global attributes.
+                filename: name of the product file
+                satellite_name: name of the satellite
+                sensor: name of sensor
+                platform_name: name of the platform
+                start_time: Begin of Scan
+                end_time: End of Scan (not nominal)
+
+        """
+        attributes = {
+            "filename": self.filename,
+            "satellite_name": self.satellite_name,
+            "sensor": self.sensor_name,
+            "platform_name": self.filename_info.get("platform_name"),
+            "start_time": self.start_time,
+            "end_time": self.end_time
+
+        }
+        return attributes
 
     def get_dataset(self, dsid, dsinfo):
         """Get requested dataset as xarray.DataArray."""
         name = dsid["name"]
-        series = self[name]
-        ds = series.to_dask_array(lengths=True)
-
+        ds = self.nc[VAR_MAP[name]].data
         data = xr.DataArray(
             ds,
             dims=("y",),
-            attrs={
-                "satellite_name": self.satellite_name,
-                "platform_name": self.platform_name,
-                "sensor": "fci",
-                "start_time": self.start_time,
-                "end_time": self.end_time,
-            },
+            attrs=self._get_attributes() #,
         )
 
         for key in ("units", "standard_name", "resolution"):
@@ -119,7 +165,7 @@ class FRPFileHandler(BaseFileHandler):
                 data.attrs[key] = dsinfo[key]
 
         # Only the required variables should be mapped on the FCI grid.
-        if name == gridded_vars:
+        if name in gridded_vars:
             data = self.get_array_on_fci_grid(data)
 
         return data
@@ -140,11 +186,10 @@ class FRPFileHandler(BaseFileHandler):
         # values is a 1-D List of np.ndarray
         values = data_array.data.compute() if hasattr(data_array.data, "compute") else data_array.values
 
-        # Create an empty 1-D nan array for the results
         flattened_result = np.nan * da.zeros((FRP_GRID_SHAPE[0] * FRP_GRID_SHAPE[1]), dtype=data_array.dtype)
-        # Insert the data. Dask doesn't support this for more than one dimension at a time, so ...
-        flattened_result[rows_int * FRP_GRID_SHAPE[1] + cols_int] = values #data_array
-        # ... reshape to final 2D grid
+        flattened_result[rows_int * FRP_GRID_SHAPE[1] + cols_int] = values
+
+        #reshape to final 2D grid
         data_2d = da.reshape(flattened_result, FRP_GRID_SHAPE)
 
         xarr = xr.DataArray(

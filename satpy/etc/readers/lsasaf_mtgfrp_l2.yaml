@@ -13,38 +13,50 @@ file_types:
     file_reader: !!python/name:satpy.readers.fci_lsasaf_frp_l2_csv.FRPFileHandler
     file_patterns:
       - '{facility_or_tool}-509_{platform_name}_MTFRPPIXEL-ListProduct_MTG-{coverage}_{start_time:%Y%m%d%H%M}.csv'
+  nc_fci_frp:
+    file_reader: !!python/name:satpy.readers.fci_lsasaf_frp_l2_nc.FRPFileHandler
+    file_patterns:
+     - 'W_PT-{facility_or_tool},SATELLITE,LSA-509_{platform_name}_MTFRPPIXEL_MTG-{coverage}_{disposition_mode}_LPMG_{start_time:%Y%m%d%H%M%S}.nc'
 
 datasets:
   frp:
     name: frp
     standard_name: fire_radiative_power
-    file_type: csv_fci_frp
+    file_type: [csv_fci_frp, nc_fci_frp]
     file_key: FRP
     resolution: 1000
     units: MW
 
+  fire_confidence:
+    name: fire_confidence
+    file_type: [csv_fci_frp, nc_fci_frp]
+    file_key: FIRE_CONFIDENCE
+    units: '%'
+    resolution: 1000
+    standard_name: fire_confidence
+
   abs_line:
     name: abs_line
     standard_name: pixel_line_number_value_in_fci_projection
-    file_type: csv_fci_frp
+    file_type: [csv_fci_frp, nc_fci_frp]
     file_key: ABS_LINE
 
   abs_samp:
     name: abs_samp
     standard_name: pixel_column_number_value_in_fci_projection
-    file_type: csv_fci_frp
+    file_type: [csv_fci_frp, nc_fci_frp]
     file_key: ABS_SAMP
 
   latitude:
     name: latitude
     standard_name: active_fire_pixel_centre_latitude
-    file_type: csv_fci_frp
+    file_type: [csv_fci_frp, nc_fci_frp]
     file_key: LATITUDE
     units: degrees_north
 
   longitude:
     name: longitude
     standard_name: active_fire_pixel_centre_longitude
-    file_type: csv_fci_frp
+    file_type: [csv_fci_frp, nc_fci_frp]
     file_key: LONGITUDE
     units: degrees_east
