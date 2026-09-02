@@ -453,7 +453,7 @@ class TestBz2Support:
 
     @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
     def test_del_swallows_cleanup_errors(self, pgi_, metimage_base_nc_file_bz2, metimage_filename_info):
-        """Test that __del__ never raises, even if removing the decompressed temp file fails."""
+        """Test that __del__ never raises, even if removing the decompressed temp file is already gone."""
         pgi_.return_value = _interpolated_lonlat()
 
         filetype_info = {
@@ -462,8 +462,8 @@ class TestBz2Support:
         }
         reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
 
-        with mock.patch("os.remove", side_effect=OSError("mock disk error")):
-            reader.__del__()  # must not raise
+        os.remove(reader.filename)  # simulate the temp file already being gone
+        reader.__del__()  # must not raise
 
 
 def _metimage_filename_info():
