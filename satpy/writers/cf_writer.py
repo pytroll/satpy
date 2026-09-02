@@ -271,6 +271,13 @@ class CFWriter(Writer):
         # - This kwargs can contain encoding dictionary
         to_netcdf_kwargs = _sanitize_writer_kwargs(to_netcdf_kwargs)
 
+        # Accept ``fmt`` as an alias for xarray's ``format`` kwarg (issue #2685).
+        fmt = to_netcdf_kwargs.pop("fmt", None)
+        if fmt is not None:
+            if "format" in to_netcdf_kwargs and to_netcdf_kwargs["format"] != fmt:
+                raise ValueError("Both 'fmt' and 'format' were specified with different values")
+            to_netcdf_kwargs["format"] = "NETCDF4" if fmt == "nc" else fmt
+
         # If writing grouped netCDF, create an empty "root" netCDF file
         # - Add the global attributes
         # - All groups will be appended in the for loop below
