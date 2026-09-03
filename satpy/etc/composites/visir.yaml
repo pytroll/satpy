@@ -4,6 +4,9 @@ composite_identification_keys:
     required: true
   resolution:
     transitive: false
+  tag:
+    transitive: false
+    match_empty: false
 
 modifiers:
   sunz_corrected:
