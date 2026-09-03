@@ -35,9 +35,16 @@ logger = logging.getLogger(__name__)
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
 
+    method: str | None = None
+
     def __init__(self, **kwargs):  # noqa: D417
         """Collect custom configuration values."""
         super(SunZenithCorrectorBase, self).__init__(**kwargs)
+
+        if self.method is None:
+            raise ValueError(
+                f"{self.__class__.__name__} must define a 'method'."
+            )
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
@@ -115,6 +122,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     """
 
+    method = "sunz_corrected"
+
     def __init__(
         self,
         correction_limit: float | Literal["__default__"] | None = "__default__",
@@ -142,7 +151,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 2. Change defaults of correction_limit and max_sza to None
                 3. Change _apply_correction() accordingly (e.g. removing use_legacy)
         """
-        self.method = "sunz_corrected"
         self.correction_limit = correction_limit
         self.max_sza = max_sza
         super(SunZenithCorrector, self).__init__(**kwargs)
@@ -193,6 +201,8 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     """
 
+    method = "effective_solar_pathlength_corrected"
+
     def __init__(
         self,
         correction_limit: Optional[float] = None,
@@ -223,7 +233,6 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
                 "``SunZenithCorrector`` with the same ``correction_limit`` and ``max_sza`` parameters."
             warnings.warn(msg, UserWarning, stacklevel=2)
 
-        self.method = "effective_solar_pathlength_corrected"
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
@@ -246,6 +255,8 @@ class SunZenithReducer(SunZenithCorrectorBase):
 
     """
 
+    method = "sunz_reduced"
+
     def __init__(self, correction_limit=80., max_sza=90, strength=1.3, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
@@ -256,7 +267,6 @@ class SunZenithReducer(SunZenithCorrectorBase):
             strength (float): The strength of the non-linear signal reduction.
 
         """
-        self.method = "sunz_reduced"
         self.correction_limit = correction_limit
         self.max_sza = max_sza
         self.strength = strength

@@ -133,8 +133,33 @@ def assert_sunz_modifier_result(res, expected, data_arr, dtype=None, rtol=1e-5):
         assert res.values.dtype == dtype
 
 
+class TestSunZenithCorrectorBase:
+    """Test Sun zenith angle corrector base class."""
+    def test_missing_method(self):
+        """Test that a ValueError is raised if the 'method' attribute is not defined."""
+        from satpy.modifiers.geometry import SunZenithCorrectorBase
+
+        class DummyCorrector(SunZenithCorrectorBase):
+            pass
+
+        with pytest.raises(ValueError, match="DummyCorrector must define a 'method'"):
+            DummyCorrector(name="dummy_test")
+
+
 class TestSunZenithCorrector:
     """Test case for the standard Sun zenith angle corrector."""
+
+    def test_no_method(self, sunz_ds1):
+        """Test default limits when SZA isn't provided."""
+        from satpy.modifiers.geometry import SunZenithCorrector
+        sunz_ds1 = sunz_ds1.astype(np.float32)
+        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+        expected = np.array([[22.401667, 22.31777], [22.437503, 22.353533]])
+        with pytest.warns(UserWarning, match="removed in Satpy v1.0"):
+            res = call_sunz_modifier(comp, sunz_ds1)
+        assert_sunz_modifier_result(res, expected, sunz_ds1)
+        assert "y" in res.coords
+        assert "x" in res.coords
 
     @pytest.mark.parametrize("as_32bit", [False, True])
     def test_default_with_sza_not_provided(self, sunz_ds1, as_32bit):
