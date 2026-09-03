@@ -389,7 +389,7 @@ composites:
       - name: C02
       - name: C05
 
-  ash:
+  ash: &24h_microphysics
     description: >
       Ash RGB, for GOESR: NASA, NOAA
     references:
@@ -946,3 +946,10 @@ composites:
           - name: C05
           - name: C02
     standard_name: day_severe_storms
+
+  24h_microphysics_ash:
+    << : *24h_microphysics
+    standard_name: 24h_microphysics_ash
+    description: >
+      Official WMO 24-hour microphysics ash RGB.  Source:
+      https://wmoomm.sharepoint.com/:b:/s/wmocpdb/EexzMK-JLutNlqR77aiIr8UB2uQvHGE8WfFCq23P03obhQ?e=S9nzet
