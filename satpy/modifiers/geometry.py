@@ -139,20 +139,19 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
         TODO Once Satpy v1.0 has been around long enough we should:
                 1. Remove the config entry "use_legacy_sunz_correction"
-                2. Remove the self.use_legacy flag
-                3. Change defaults of correction_limit and max_sza to None
-                4. Change _apply_correction() accordingly
+                2. Change defaults of correction_limit and max_sza to None
+                3. Change _apply_correction() accordingly (e.g. removing use_legacy)
         """
         self.method = "sunz_corrected"
-        # TODO Change fallback to `False` below in Satpy v1.0
-        self.use_legacy = satpy.config.get("use_legacy_sunz_correction", True)
         self.correction_limit = correction_limit
         self.max_sza = max_sza
         super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
 
-        if (self.correction_limit == "__default__" or self.max_sza == "__default__") and self.use_legacy:
+        # TODO Change fallback to `False` for use_legacy in Satpy v1.0
+        use_legacy = satpy.config.get("use_legacy_sunz_correction", True)
+        if (self.correction_limit == "__default__" or self.max_sza == "__default__") and use_legacy:
             warnings.warn(
                 "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
                 "be removed in Satpy v1.0 to allow computation of the true reflectance with the "
@@ -168,10 +167,10 @@ class SunZenithCorrector(SunZenithCorrectorBase):
             )
 
         if self.correction_limit == "__default__":
-            self.correction_limit = 88.0 if self.use_legacy else None
+            self.correction_limit = 88.0 if use_legacy else None
 
         if self.max_sza == "__default__":
-            self.max_sza = 95.0 if self.use_legacy else None
+            self.max_sza = 95.0 if use_legacy else None
 
         return sunzen_corr_cos(proj, coszen, correction_limit=self.correction_limit, max_sza=self.max_sza)
 
