@@ -648,6 +648,7 @@ def atmospheric_path_length_correction(data: da.Array,
     return da.map_blocks(_atmospheric_path_length_correction_ndarray,
                          data, cos_zen,
                          meta=np.array((), dtype=data.dtype),
+                         dtype=data.dtype,
                          chunks=data.chunks)
 
 
