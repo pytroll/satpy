@@ -32,6 +32,11 @@ TIE_POINT_DIMS = ("num_tie_points_alt", "num_tie_points_act")
 class METimageNCBaseFileHandler(NetCDF4FileHandler):
     """Base reader class for METimage (VII) products in netCDF format.
 
+    Supports both plain and bz2-compressed (.nc.bz2) input files. Compressed
+    files are transparently decompressed to a temporary file on disk before
+    reading; the temp file is removed when the file handler is garbage
+    collected.
+
     Args:
         filename (str): File to read
         filename_info (dict): Dictionary with filename information
