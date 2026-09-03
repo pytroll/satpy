@@ -48,6 +48,8 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
     ]
 
+    _unzipped = None
+
     def __init__(self, filename, filename_info, filetype_info, orthorect=False):
         """Prepare the class for dataset reading."""
         self._unzipped = unzip_file(filename)
@@ -217,7 +219,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
     def __del__(self):
         """Remove the decompressed temp file, if one was created."""
         super().__del__()   # release the netCDF/h5netcdf handle first, so Windows can drop its lock
-        with suppress(AttributeError, OSError):
+        with suppress(OSError):
             if self._unzipped:
                 os.remove(self._unzipped)
 
