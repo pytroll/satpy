@@ -271,6 +271,24 @@ def proj_units_to_meters(proj_str):
     return " ".join(new_parts)
 
 
+def atmospheric_path_length_correction(data, cos_zen, limit=88, max_sza=95):
+    """Deprecated method to apply atmospheric path length correction following the Li and Shibata parameterization."""
+    name = "atmospheric_path_length_correction"
+    new_module = "satpy.modifiers.angles"
+    _import_and_warn_new_location(new_module, name)
+
+    msg = "Please note that the ``limit`` and ``max_sza`` keywords have been deprecated and are no " \
+        f"longer used in {new_module}.{name}. This has been done since the parameterization by Li and Shibata (2006) " \
+        "already accounts for overcorrection at high solar zenith angles. If capping or " \
+        "reduction of the correction is still desirable it can be achieved by using the " \
+        f"{new_module}.sunzen_corr_cos method instead (standard 1/cos(sunz) correction) and the ``correction_limit`` " \
+        "and ``max_sza`` keywords."
+    warnings.warn(msg, UserWarning, stacklevel=2)
+
+    from satpy.modifiers.angles import atmospheric_path_length_correction
+    return atmospheric_path_length_correction(data, cos_zen)
+
+
 def get_satpos(
         data_arr: xr.DataArray,
         preference: Optional[str] = None,
