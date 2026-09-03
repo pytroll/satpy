@@ -671,7 +671,9 @@ def sunzen_reduction(data: da.Array,
                      strength: float = 1.5) -> da.Array:
     """Reduced strength of signal at high sun zenith angles."""
     return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
-                         meta=np.array((), dtype=data.dtype), chunks=data.chunks)
+                         meta=np.array((), dtype=data.dtype),
+                         dtype=data.dtype,
+                         chunks=data.chunks)
 
 
 def _sunzen_reduction_ndarray(data: np.ndarray,
