@@ -411,14 +411,12 @@ def metimage_base_nc_file_bz2(metimage_base_nc_file):
 class TestBz2Support:
     """Test bz2 decompression support for METimageNCBaseFileHandler."""
 
-    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
-    def test_bz2_reading(self, pgi_, metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
+    def test_bz2_reading(self, metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
         """Test that a bz2-compressed file is transparently decompressed and read correctly."""
-        pgi_.return_value = _interpolated_lonlat()
-
         filetype_info = {
             "cached_longitude": "data/measurement_data/longitude",
             "cached_latitude": "data/measurement_data/latitude",
+            "interpolate": False,
         }
         reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
         expected_reader = METimageNCBaseFileHandler(str(metimage_base_nc_file), metimage_filename_info, filetype_info)
@@ -451,14 +449,12 @@ class TestBz2Support:
             METimageNCBaseFileHandler(str(bad_filename), metimage_filename_info, {})
 
 
-    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
-    def test_del_swallows_cleanup_errors(self, pgi_, metimage_base_nc_file_bz2, metimage_filename_info):
+    def test_del_swallows_cleanup_errors(self, metimage_base_nc_file_bz2, metimage_filename_info):
         """Test that __del__ never raises, even if removing the decompressed temp file is already gone."""
-        pgi_.return_value = _interpolated_lonlat()
-
         filetype_info = {
             "cached_longitude": "data/measurement_data/longitude",
             "cached_latitude": "data/measurement_data/latitude",
+            "interpolate": False,
         }
         reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
 
