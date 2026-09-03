@@ -534,10 +534,10 @@ def _get_sensor_angles_ndarray(lons, lats, start_time, sat_lon, sat_lat, sat_alt
         return np.stack([sata, satz])
 
 
-def sunzen_corr_cos(data: xr.DataArray,
-                    cos_zen: xr.DataArray,
+def sunzen_corr_cos(data: da.Array,
+                    cos_zen: da.Array,
                     correction_limit: Optional[float] = None,
-                    max_sza: Optional[float] = None) -> xr.DataArray:
+                    max_sza: Optional[float] = None) -> da.Array:
     """Perform standard Sun zenith angle correction.
 
     The correction is based on the provided cosine of the solar zenith angle
@@ -556,6 +556,16 @@ def sunzen_corr_cos(data: xr.DataArray,
     Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
     """
+    return da.map_blocks(_sunzen_corr_cos_ndarray,
+                         data, cos_zen, correction_limit, max_sza,
+                         meta=np.array((), dtype=data.dtype),
+                         chunks=data.chunks)
+
+
+def _sunzen_corr_cos_ndarray(data: np.ndarray,
+                             cos_zen: np.ndarray,
+                             correction_limit: float,
+                             max_sza: Optional[float]) -> np.ndarray:
     sunz = np.rad2deg(np.arccos(cos_zen))
     corr_standard = (1. / cos_zen)
     corr_at_limit = (
@@ -569,14 +579,16 @@ def sunzen_corr_cos(data: xr.DataArray,
             f"Applying the standard sun-zenith correction [1/cos(sunz)] but setting correction (and reflectance) "
             f"to 0 for angles larger than {max_sza} degrees."
         )
-        return corr_standard.where(sunz <= max_sza, 0)
+        corr = np.where(sunz <= max_sza, corr_standard, 0)
+        return corr
 
     def capped():
         logger.debug(
             f"Applying the standard sun-zenith correction [1/cos(sunz)] but capping the maximum correction "
             f"for angles larger than {correction_limit} degrees."
         )
-        return corr_standard.where(sunz <= correction_limit, corr_at_limit)
+        corr = np.where(sunz <= correction_limit, corr_standard, corr_at_limit)
+        return corr
 
     def reduced():
         logger.debug(
@@ -596,7 +608,8 @@ def sunzen_corr_cos(data: xr.DataArray,
 
         corr_with_reduction = (corr_at_limit * reduction_factor)
 
-        return corr_standard.where(sunz < correction_limit, corr_with_reduction)
+        corr = np.where(sunz <= correction_limit, corr_standard, corr_with_reduction)
+        return corr
 
     # Check if any modification of the standard correction is requested
     if correction_limit is None and max_sza is not None:
@@ -613,13 +626,13 @@ def sunzen_corr_cos(data: xr.DataArray,
     # "night" and space pixels where SZA is invalid
     corr = corr.astype(data.dtype, copy=False)
     corr = corr.clip(0.)
-    corr = corr.where(cos_zen.notnull(), 0)
+    corr[np.isnan(cos_zen)] = 0
 
     return data * corr
 
 
-def atmospheric_path_length_correction(data: xr.DataArray,
-                                       cos_zen: xr.DataArray) -> xr.DataArray:
+def atmospheric_path_length_correction(data: da.Array,
+                                       cos_zen: da.Array) -> da.Array:
     """Perform Sun zenith angle correction following the Li and Shibata parameterization.
 
     This function uses the correction method proposed by
@@ -632,20 +645,38 @@ def atmospheric_path_length_correction(data: xr.DataArray,
     Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
     """
+    return da.map_blocks(_atmospheric_path_length_correction_ndarray,
+                         data, cos_zen,
+                         meta=np.array((), dtype=data.dtype),
+                         chunks=data.chunks)
+
+
+def _atmospheric_path_length_correction_ndarray(data: np.ndarray,
+                                                cos_zen: np.ndarray) -> np.ndarray:
     logger.debug("Applying the effective solar atmospheric path length correction method by Li and Shibata (2006)")
     corr = 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
 
     # Force "night" and space pixels to 0 (where SZA is invalid)
-    corr = corr.where(cos_zen.notnull(), 0)
+    corr[np.isnan(cos_zen)] = 0
 
     return data * corr
 
 
-def sunzen_reduction(data: xr.DataArray,
-                     sunz: xr.DataArray,
+def sunzen_reduction(data: da.Array,
+                     sunz: da.Array,
                      limit: float = 55.,
                      max_sza: float = 90.,
-                     strength: float = 1.5) -> xr.DataArray:
+                     strength: float = 1.5) -> da.Array:
+    """Reduced strength of signal at high sun zenith angles."""
+    return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
+                         meta=np.array((), dtype=data.dtype), chunks=data.chunks)
+
+
+def _sunzen_reduction_ndarray(data: np.ndarray,
+                              sunz: np.ndarray,
+                              limit: float,
+                              max_sza: float,
+                              strength: float) -> np.ndarray:
     """Reduced strength of signal at high sun zenith angles."""
     # compute reduction factor (0.0 - 1.0) between limit and maz_sza
     reduction_factor = (sunz - limit) / (max_sza - limit)
@@ -662,10 +693,10 @@ def sunzen_reduction(data: xr.DataArray,
                 reduction_factor ** strength + (1 - reduction_factor) ** strength)
 
     # compute final correction term, with no reduction (=1.0) for angles < limit
-    corr = reduction_factor.where(sunz >= limit, 1.0)
+    corr = np.where(sunz < limit, 1.0, reduction_factor)
 
     # force "night" pixels to 0 (where SZA is invalid)
-    corr = corr.where(sunz.notnull(), 0)
+    corr[np.isnan(sunz)] = 0
 
     # reduce data signal with correction term
     res = data * corr

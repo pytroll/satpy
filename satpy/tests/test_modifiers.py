@@ -281,7 +281,7 @@ class TestSunZenithCorrector:
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=80)
         with pytest.raises(ValueError, match="`max_sza` must be larger than `correction_limit`"):
-            call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+            call_sunz_modifier(comp, data_arr, sunz_sza, dtype).compute()
 
     def test_incompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""

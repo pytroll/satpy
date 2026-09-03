@@ -184,7 +184,9 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         else:
             max_sza = self.max_sza
 
-        return sunzen_corr_cos(proj, coszen, correction_limit=correction_limit, max_sza=max_sza)
+        res = proj.copy()
+        res.data = sunzen_corr_cos(proj.data, coszen.data, correction_limit=correction_limit, max_sza=max_sza)
+        return res
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
@@ -240,7 +242,9 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        return atmospheric_path_length_correction(proj, coszen)
+        res = proj.copy()
+        res.data = atmospheric_path_length_correction(proj.data, coszen.data)
+        return res
 
 
 class SunZenithReducer(SunZenithCorrectorBase):
@@ -281,10 +285,10 @@ class SunZenithReducer(SunZenithCorrectorBase):
     def _apply_correction(self, proj, coszen):
         logger.debug(f"Applying sun-zenith signal reduction with correction_limit {self.correction_limit} deg,"
                      f" strength {self.strength}, and max_sza {self.max_sza} deg.")
-        sunz = np.rad2deg(np.arccos(coszen))
-        res = sunzen_reduction(proj,
-                               sunz,
-                               limit=self.correction_limit,
-                               max_sza=self.max_sza,
-                               strength=self.strength)
+        res = proj.copy()
+        sunz = np.rad2deg(np.arccos(coszen.data))
+        res.data = sunzen_reduction(proj.data, sunz,
+                                    limit=self.correction_limit,
+                                    max_sza=self.max_sza,
+                                    strength=self.strength)
         return res
