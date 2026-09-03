@@ -176,7 +176,9 @@ class TestSunZenithCorrector:
         assert "x" in res.coords
 
         ds1 = sunz_ds1.copy().drop_vars(("y", "x"))
-        res = call_sunz_modifier(comp, ds1)
+
+        with pytest.warns(UserWarning, match="removed in Satpy v1.0"):
+            res = call_sunz_modifier(comp, ds1)
         res_np = res.compute()
         np.testing.assert_allclose(res_np.values, expected, rtol=1e-5)
         assert res.dtype == res_np.dtype
