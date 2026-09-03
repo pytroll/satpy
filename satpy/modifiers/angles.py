@@ -559,6 +559,7 @@ def sunzen_corr_cos(data: da.Array,
     return da.map_blocks(_sunzen_corr_cos_ndarray,
                          data, cos_zen, correction_limit, max_sza,
                          meta=np.array((), dtype=data.dtype),
+                         dtype=data.dtype,
                          chunks=data.chunks)
 
 
