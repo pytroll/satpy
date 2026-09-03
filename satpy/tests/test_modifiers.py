@@ -201,24 +201,24 @@ class TestSunZenithCorrector:
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
     def test_default_legacy_with_sza_provided(self, data_arr, sunz_sza, dtype):
         """Test default limits using legacy configuration."""
-        satpy.config.set(use_legacy_sunz_correction=True)
-        from satpy.modifiers.geometry import SunZenithCorrector
-        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
-        expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
-        with pytest.warns(UserWarning, match="removed in Satpy v1.0"):
-            res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        with satpy.config.set(use_legacy_sunz_correction=True):
+            from satpy.modifiers.geometry import SunZenithCorrector
+            comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+            expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
+            with pytest.warns(UserWarning, match="removed in Satpy v1.0"):
+                res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+            assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
     def test_default_new_with_sza_provided(self, data_arr, sunz_sza, dtype):
         """Test default limits using new configuration."""
-        satpy.config.set(use_legacy_sunz_correction=False)
-        from satpy.modifiers.geometry import SunZenithCorrector
-        comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
-        expected = np.array([[5.758770, 19.107323], [57.298689, 0.0]], dtype=dtype)
-        res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        with satpy.config.set(use_legacy_sunz_correction=False):
+            from satpy.modifiers.geometry import SunZenithCorrector
+            comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
+            expected = np.array([[5.758770, 19.107323], [57.298689, 0.0]], dtype=dtype)
+            res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype)
+            assert_sunz_modifier_result(res, expected, data_arr, dtype)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
