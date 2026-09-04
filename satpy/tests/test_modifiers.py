@@ -125,13 +125,16 @@ def call_sunz_modifier(comp, data_arr, sunz_sza=None, dtype=None, dtype_sunz=Non
     return comp((data_arr,), **info)
 
 
-def assert_sunz_modifier_result(res, expected, data_arr, dtype=None, rtol=1e-5):
+def assert_sunz_modifier_result(res, expected, data_arr, rtol=1e-5):
     """Helper function for asserting sunz modifier results."""
     np.testing.assert_allclose(res.values, expected, rtol=rtol)
     assert type(res.data) is type(data_arr.data)
-    if dtype is not None:
-        assert res.dtype == dtype
-        assert res.values.dtype == dtype
+
+
+def assert_sunz_modifier_dtype(res, dtype):
+    """Helper function for asserting sunz modifier dtype."""
+    assert res.dtype == dtype
+    assert res.values.dtype == dtype
 
 
 class TestSunZenithCorrectorBase:
@@ -187,7 +190,8 @@ class TestSunZenithCorrector:
         expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
         with pytest.warns(UserWarning, match="removed in Satpy v1.0"):
             res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
@@ -201,7 +205,8 @@ class TestSunZenithCorrector:
             expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
             with pytest.warns(UserWarning, match="removed in Satpy v1.0"):
                 res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-            assert_sunz_modifier_result(res, expected, data_arr, dtype)
+            assert_sunz_modifier_result(res, expected, data_arr)
+            assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -213,7 +218,8 @@ class TestSunZenithCorrector:
             comp = SunZenithCorrector(name="sza_test", modifiers=tuple())
             expected = np.array([[5.758770, 19.107323], [57.298689, 0.0]], dtype=dtype)
             res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-            assert_sunz_modifier_result(res, expected, data_arr, dtype)
+            assert_sunz_modifier_result(res, expected, data_arr)
+            assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -224,7 +230,8 @@ class TestSunZenithCorrector:
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=None, max_sza=None)
         expected = np.array([[5.758770, 19.107323], [57.298689, 0.0]], dtype=dtype)
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -235,7 +242,8 @@ class TestSunZenithCorrector:
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=None, max_sza=88)
         expected = np.array([[5.758770, 19.107323], [0.0, 0.0]], dtype=dtype)
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -246,7 +254,8 @@ class TestSunZenithCorrector:
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=None)
         expected = np.array([[5.758770, 19.107323], [28.653708, 28.653708]], dtype=dtype)
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -257,7 +266,8 @@ class TestSunZenithCorrector:
         comp = SunZenithCorrector(name="sza_test", modifiers=tuple(), correction_limit=88, max_sza=95)
         expected = np.array([[5.758770, 19.107323], [23.133712, 6.372368]], dtype=dtype)
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -270,7 +280,8 @@ class TestSunZenithCorrector:
         data_arr.attrs["modifiers"] = ("effective_solar_pathlength_corrected",)
         expected = data_arr.values
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -326,7 +337,8 @@ class TestEffectiveSolarPathLengthCorrector:
         comp = EffectiveSolarPathLengthCorrector(name="sza_test", modifiers=tuple())
         expected = np.array([[5.595989, 14.823307], [21.973671, 16.988299]], dtype=dtype)
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -339,7 +351,8 @@ class TestEffectiveSolarPathLengthCorrector:
         data_arr.attrs["modifiers"] = ("sunz_corrected",)
         expected = data_arr.values
         res = call_sunz_modifier(comp, data_arr, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
     def test_with_deprecated_correction_limit(self):
         """Test with deprecated correction_limit."""
@@ -374,7 +387,8 @@ class TestEffectiveSolarPathLengthCorrector:
         with pytest.warns(UserWarning, match="has been moved to"):
             with pytest.warns(UserWarning, match="deprecated"):
                 res = atmospheric_path_length_correction(data_arr, cos_zen)
-        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+        assert_sunz_modifier_result(res, expected, data_arr)
+        assert_sunz_modifier_dtype(res, dtype)
 
 
 class TestSunZenithReducer:
@@ -394,7 +408,8 @@ class TestSunZenithReducer:
         """Test default settings with sza data available."""
         expected = np.array([[1.0, 0.176790], [0.036095, 0.0]], dtype=dtype)
         res = call_sunz_modifier(self.default, sunz_ds1, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, sunz_ds1, dtype, rtol=2e-5)
+        assert_sunz_modifier_result(res, expected, sunz_ds1, rtol=2e-5)
+        assert_sunz_modifier_dtype(res, dtype)
 
     @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -402,7 +417,8 @@ class TestSunZenithReducer:
         """Test custom settings with sza data available."""
         expected = np.array([[5.436207e-01, 3.657017e-02], [1.143065e-02, 2.450100e-04]], dtype=dtype)
         res = call_sunz_modifier(self.custom, sunz_ds1, sunz_sza, dtype, dtype_sunz)
-        assert_sunz_modifier_result(res, expected, sunz_ds1, dtype, rtol=2e-5)
+        assert_sunz_modifier_result(res, expected, sunz_ds1, rtol=2e-5)
+        assert_sunz_modifier_dtype(res, dtype)
 
     def test_invalid_max_sza(self):
         """Test invalid max_sza with sza data available."""
