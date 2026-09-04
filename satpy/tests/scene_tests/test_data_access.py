@@ -1,4 +1,5 @@
 """Unit tests for data access methods and properties of the Scene class."""
+import contextlib
 import math
 
 import numpy as np
@@ -6,13 +7,23 @@ import pytest
 import xarray as xr
 from dask import array as da
 
+import satpy
 from satpy import Scene
-from satpy.dataset.dataid import default_id_keys_config
+from satpy.dataset.dataid import DataID, default_id_keys_config
 from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, make_cid, make_dataid
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - include_test_etc
+
+
+def _scene_with_three_datasets():
+    """Create a Scene with three simple 1D datasets in it."""
+    scene = Scene()
+    scene["1"] = xr.DataArray(np.arange(5))
+    scene["2"] = xr.DataArray(np.arange(5))
+    scene["3"] = xr.DataArray(np.arange(5))
+    return scene
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -54,14 +65,25 @@ class TestDataAccessMethods:
         scene["my_ds"] = xr.DataArray([], attrs={"sensor": added_sensor})
         assert scene.sensor_names == exp_sensors
 
-    def test_iter(self):
-        """Test iteration over the scene."""
-        scene = Scene()
-        scene["1"] = xr.DataArray(np.arange(5))
-        scene["2"] = xr.DataArray(np.arange(5))
-        scene["3"] = xr.DataArray(np.arange(5))
-        for x in scene:
-            assert isinstance(x, xr.DataArray)
+    @pytest.mark.parametrize(
+        ("iter_keys", "exp_type", "exp_deprecated"),
+        [
+            (None, xr.DataArray, True),
+            (False, xr.DataArray, False),
+            (True, DataID, False),
+        ]
+    )
+    def test_iter(self, iter_keys, exp_type, exp_deprecated):
+        """Test iteration over the scene for each 'scene_iter_keys' config value."""
+        scene = _scene_with_three_datasets()
+        exp_objs = list(scene.keys()) if exp_type is DataID else list(scene.values())
+        exp_warning = contextlib.nullcontext()
+        if exp_deprecated:
+            exp_warning = pytest.warns(UserWarning, match="Satpy 1.0")
+        with satpy.config.set(scene_iter_keys=iter_keys), exp_warning:
+            objs = list(scene)
+        assert [type(obj) for obj in objs] == [exp_type] * 3
+        assert all(obj is exp_obj for obj, exp_obj in zip(objs, exp_objs, strict=True))
 
     def test_iter_by_area_swath(self):
         """Test iterating by area on a swath."""
