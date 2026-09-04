@@ -273,9 +273,10 @@ def proj_units_to_meters(proj_str):
 
 def atmospheric_path_length_correction(data, cos_zen, limit=88, max_sza=95):
     """Deprecated method to apply atmospheric path length correction following the Li and Shibata parameterization."""
+    # TODO Remove in Satpy v1.0
     name = "atmospheric_path_length_correction"
     new_module = "satpy.modifiers.angles"
-    _import_and_warn_new_location(new_module, name)
+    atmospheric_path_length_correction = _import_and_warn_new_location(new_module, name)
 
     msg = "Please note that the ``limit`` and ``max_sza`` keywords have been deprecated and are no " \
         f"longer used in {new_module}.{name}. This has been done since the parameterization by Li and Shibata (2006) " \
@@ -285,8 +286,9 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88, max_sza=95):
         "and ``max_sza`` keywords."
     warnings.warn(msg, UserWarning, stacklevel=2)
 
-    from satpy.modifiers.angles import atmospheric_path_length_correction
-    return atmospheric_path_length_correction(data, cos_zen)
+    res = data.copy()
+    res.data = atmospheric_path_length_correction(data.data, cos_zen.data)
+    return res
 
 
 def get_satpos(
