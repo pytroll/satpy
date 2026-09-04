@@ -209,7 +209,7 @@ paths should be at the beginning of the list.
 .. _legacy_sunz_correction_setting:
 
 Sun Zenith Angle Correction Reduction Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^s
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **YAML/Config Key**: ``use_legacy_sunz_correction``
 * **Default**: True
