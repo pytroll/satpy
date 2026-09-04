@@ -55,7 +55,7 @@ class SunZenithCorrectorBase(ModifierBase):
         sunz_correction_methods = {"sunz_corrected", "effective_solar_pathlength_corrected"}
         if self.method in sunz_correction_methods:
             for correction in sunz_correction_methods:
-                if vis.attrs.get(correction) or correction in vis.attrs.get("modifiers"):
+                if vis.attrs.get(correction) or correction in vis.attrs.get("modifiers", ()):
                     logger.debug(
                         f"Sun zenith angle correction '{correction}' already applied. "
                         f"Skipping correction '{self.method}'."
