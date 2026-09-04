@@ -13,9 +13,9 @@ composites:
     prerequisites:
       - wavelength: 10.8
       - wavelength: 0.64
-        modifiers: [ sunz_corrected, rayleigh_corrected ]
+        modifiers: [ effective_solar_pathlength_corrected, rayleigh_corrected ]
       - wavelength: 1.6
-        modifiers: [ sunz_corrected ]
+        modifiers: [ effective_solar_pathlength_corrected ]
     standard_name: cloud_phase_distinction
 
   cloud_phase_distinction_raw:

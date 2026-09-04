@@ -255,49 +255,24 @@ def proj_units_to_meters(proj_str):
     return " ".join(new_parts)
 
 
-def _get_sunz_corr_li_and_shibata(cos_zen):
-    return 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
+def atmospheric_path_length_correction(data, cos_zen, limit=88, max_sza=95):
+    """Deprecated method to apply atmospheric path length correction following the Li and Shibata parameterization."""
+    # TODO Remove in Satpy v1.0
+    name = "atmospheric_path_length_correction"
+    new_module = "satpy.modifiers.angles"
+    atmospheric_path_length_correction = _import_and_warn_new_location(new_module, name)
 
+    msg = "Please note that the ``limit`` and ``max_sza`` keywords have been deprecated and are no " \
+        f"longer used in {new_module}.{name}. This has been done since the parameterization by Li and Shibata (2006) " \
+        "already accounts for overcorrection at high solar zenith angles. If capping or " \
+        "reduction of the correction is still desirable it can be achieved by using the " \
+        f"{new_module}.sunzen_corr_cos method instead (standard 1/cos(sunz) correction) and the ``correction_limit`` " \
+        "and ``max_sza`` keywords."
+    warnings.warn(msg, UserWarning, stacklevel=2)
 
-def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
-    """Perform Sun zenith angle correction.
-
-    This function uses the correction method proposed by
-    Li and Shibata (2006): https://doi.org/10.1175/JAS3682.1
-
-    The correction is limited to ``limit`` degrees (default: 88.0 degrees). For
-    larger zenith angles, the correction is the same as at the ``limit`` if
-    ``max_sza`` is `None`. The default behavior is to gradually reduce the
-    correction past ``limit`` degrees up to ``max_sza`` where the correction
-    becomes 0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same
-    shape.
-
-    """
-    # Convert the zenith angle limit to cosine of zenith angle
-    limit_rad = np.deg2rad(limit)
-    limit_cos = np.cos(limit_rad)
-    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
-
-    # Cosine correction
-    corr = _get_sunz_corr_li_and_shibata(cos_zen)
-    # Use constant value (the limit) for larger zenith angles
-    corr_lim = _get_sunz_corr_li_and_shibata(limit_cos)
-
-    if max_sza is not None:
-        # gradually fall off for larger zenith angle
-        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
-        # invert the factor so maximum correction is done at `limit` and falls off later
-        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
-        # make sure we don't make anything negative
-        grad_factor = grad_factor.clip(0.)
-    else:
-        # Use constant value (the limit) for larger zenith angles
-        grad_factor = 1.
-    corr = corr.where(cos_zen > limit_cos, grad_factor * corr_lim)
-    # Force "night" pixels to 0 (where SZA is invalid)
-    corr = corr.where(cos_zen.notnull(), 0)
-
-    return data * corr
+    res = data.copy()
+    res.data = atmospheric_path_length_correction(data.data, cos_zen.data)
+    return res
 
 
 def get_satpos(

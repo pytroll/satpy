@@ -8,11 +8,11 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   green_nocorr:
@@ -33,9 +33,9 @@ composites:
     prerequisites:
       # should we be using the most corrected or least corrected inputs?
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: toa_bidirectional_reflectance
 
   pseudored_nocorr:
@@ -54,7 +54,7 @@ composites:
       - name: pseudored
       - name: green
       - name: C01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_nocorr:
@@ -77,9 +77,9 @@ composites:
     prerequisites:
       - name: C12
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: cloud_phase_distinction
 
   cloud_phase_distinction_raw:
@@ -101,9 +101,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: C07
@@ -133,9 +133,9 @@ composites:
     prerequisites:
       - name: C06
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: land_cloud_fire
 
   land_cloud:
@@ -148,9 +148,9 @@ composites:
     prerequisites:
       - name: C05
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     standard_name: land_cloud
 
   snow:
@@ -163,9 +163,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C07
         modifiers: [nir_reflectance]
     standard_name: snow
@@ -180,7 +180,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C07
         modifiers: [nir_reflectance]
       - name: C12
@@ -211,11 +211,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C05
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C06
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: natural_color
 
   cloud_phase_raw:
@@ -234,9 +234,9 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C03
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: C02
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: green
     standard_name: true_color
 

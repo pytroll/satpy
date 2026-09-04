@@ -31,9 +31,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: S2
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: S3
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - S8
     standard_name: overview
 
@@ -41,18 +41,18 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: S5
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: S3
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: S2
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
 
   day_microphysics:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: S3
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: S7
       modifiers: [nir_reflectance]
     - S8
