@@ -361,6 +361,21 @@ class TestEffectiveSolarPathLengthCorrector:
         with pytest.raises(IncompatibleAreas):
             call_sunz_modifier(comp, sunz_ds2, sunz_sza)
 
+    @pytest.mark.parametrize("dtype_sunz", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_old_import(self, data_arr, sunz_sza, dtype, dtype_sunz):
+        """Test that the deprecated import of atmospheric_path_length_correction works."""
+        from satpy.utils import atmospheric_path_length_correction
+        data_arr = data_arr.astype(dtype)
+        sunz_sza = sunz_sza.astype(dtype_sunz)
+        cos_zen = np.cos(np.deg2rad(sunz_sza))
+        expected = np.array([[5.595989, 14.823307], [21.973671, 16.988299]])
+        with pytest.warns(UserWarning, match="has been moved to"):
+            with pytest.warns(UserWarning, match="deprecated"):
+                res = atmospheric_path_length_correction(data_arr, cos_zen)
+        assert_sunz_modifier_result(res, expected, data_arr, dtype)
+
 
 class TestSunZenithReducer:
     """Test case for the sun zenith reducer."""
