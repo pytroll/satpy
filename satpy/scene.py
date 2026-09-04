@@ -12,6 +12,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, BaseDefinition, CoordinateDefinition, SwathDefinition
 from xarray import DataArray
 
+import satpy
 from satpy.area import get_area_def
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.composites.core import IncompatibleAreas
@@ -22,6 +23,16 @@ from satpy.readers.core.loading import load_readers
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 
 LOG = logging.getLogger(__name__)
+
+_SCENE_ITER_WARNING = (
+    "Iterating over a Scene currently produces the DataArrays it contains. In Satpy 1.0 this will "
+    "change to produce the DataID keys instead, like a dictionary. Use 'Scene.values()' to keep the "
+    "current behavior, or set 'satpy.config.set(scene_iter_keys=True)' to opt in to the new behavior "
+    "now. Set 'satpy.config.set(scene_iter_keys=False)' to keep the current behavior and silence this "
+    "warning; note that the 'scene_iter_keys' option is temporary and will be removed after Satpy 1.0, "
+    "at which point iteration will always produce DataID keys. See "
+    "https://satpy.readthedocs.io/en/stable/config.html#scene-iteration-keys"
+)
 
 
 def _get_area_resolution(area):
@@ -532,9 +543,26 @@ class Scene:
         return "\n".join(res)
 
     def __iter__(self):
-        """Iterate over the datasets."""
-        for x in self._datasets.values():
-            yield x
+        """Iterate over the :class:`~satpy.dataset.dataid.DataID` keys of the datasets in this Scene.
+
+        .. warning::
+
+            Historically this iterated over the ``DataArray`` objects contained in the
+            Scene. Starting in Satpy 1.0 it will iterate over the
+            :class:`~satpy.dataset.dataid.DataID` keys instead, like a dictionary.
+            Which behavior is used can be controlled during the transition with the
+            :ref:`scene_iter_keys <scene_iter_keys_setting>` configuration option. That
+            option is itself temporary and will be removed after Satpy 1.0. Use
+            :meth:`values` if you want the ``DataArray`` objects.
+
+        """
+        iter_keys = satpy.config.get("scene_iter_keys")
+        if iter_keys is None:
+            warnings.warn(_SCENE_ITER_WARNING, UserWarning, stacklevel=2)
+            iter_keys = False
+        if iter_keys:
+            return iter(self._datasets.keys())
+        return iter(self._datasets.values())
 
     def iter_by_area(self):
         """Generate datasets grouped by Area.
@@ -542,7 +570,7 @@ class Scene:
         :return: generator of (area_obj, list of dataset objects)
         """
         datasets_by_area = {}
-        for ds in self:
+        for ds in self._datasets.values():
             a = ds.attrs.get("area")
             dsid = DataID.from_dataarray(ds)
             datasets_by_area.setdefault(a, []).append(dsid)

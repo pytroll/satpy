@@ -147,7 +147,7 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         scn = Scene(reader="ascat_l2_soilmoisture_bufr", filenames=[fname])
         assert "surface_soil_moisture" in scn.available_dataset_names()
         scn.load(scn.available_dataset_names())
-        loaded = [dataset.name for dataset in scn]
+        loaded = [dataset.name for dataset in scn.values()]
         assert sorted(loaded) == sorted(scn.available_dataset_names())
 
     @unittest.skipIf(sys.platform.startswith("win"), "'eccodes' not supported on Windows")

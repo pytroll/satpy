@@ -228,10 +228,10 @@ def _get_test_dataset_calibration(bands=6):
                               dims=("y", "x"),
                               attrs={"calibration": "reflectance"})
 
-    data = xr.concat(scene, "bands", coords="minimal")
+    data = xr.concat(scene.values(), "bands", coords="minimal")
     bands = []
     calibration = []
-    for p in scene:
+    for p in scene.values():
         calibration.append(p.attrs["calibration"])
         bands.append(p.attrs["name"])
     data["bands"] = list(bands)
@@ -298,7 +298,7 @@ def _get_test_dataset_calibration_one_dataset(bands=1):
 
     data = scene["4"]
     calibration = []
-    for p in scene:
+    for p in scene.values():
         calibration.append(p.attrs["calibration"])
     new_attrs = {"name": "datasets",
                  "start_time": dt.datetime.now(dt.timezone.utc),
