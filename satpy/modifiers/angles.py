@@ -667,23 +667,24 @@ def _atmospheric_path_length_correction_ndarray(data: np.ndarray,
 
 
 def sunzen_reduction(data: da.Array,
-                     sunz: da.Array,
+                     cos_zen: da.Array,
                      limit: float = 55.,
                      max_sza: float = 90.,
                      strength: float = 1.5) -> da.Array:
     """Reduced strength of signal at high sun zenith angles."""
-    return da.map_blocks(_sunzen_reduction_ndarray, data, sunz, limit, max_sza, strength,
+    return da.map_blocks(_sunzen_reduction_ndarray, data, cos_zen, limit, max_sza, strength,
                          meta=np.array((), dtype=data.dtype),
                          dtype=data.dtype,
                          chunks=data.chunks)
 
 
 def _sunzen_reduction_ndarray(data: np.ndarray,
-                              sunz: np.ndarray,
+                              cos_zen: np.ndarray,
                               limit: float,
                               max_sza: float,
                               strength: float) -> np.ndarray:
     """Reduced strength of signal at high sun zenith angles."""
+    sunz = np.rad2deg(np.arccos(cos_zen))
     # compute reduction factor (0.0 - 1.0) between limit and maz_sza
     reduction_factor = (sunz - limit) / (max_sza - limit)
     reduction_factor = reduction_factor.clip(0., 1.)
