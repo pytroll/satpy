@@ -56,6 +56,38 @@ class TestEnhancer:
         assert lines[2].startswith("    platform_name=")
 
 
+@pytest.mark.parametrize("dtype", [np.float32, np.int32])
+def test_builtin_default_enhancement(dtype):
+    """Test that the builtin "default" section warns and does a linear stretch.
+
+    Any data that doesn't match a more specific enhancement section falls back
+    to the "default" section of the builtin ``generic.yaml``. That fallback is
+    almost always a mistake on the user's part so it tells them about it, but
+    it still stretches the data regardless of its data type.
+
+    """
+    from satpy.enhancements.enhancer import get_enhanced_image
+
+    data_arr = xr.DataArray(da.arange(10, dtype=dtype).reshape((2, 5)),
+                            attrs={"name": "not_a_configured_name"},
+                            dims=["y", "x"])
+    with pytest.warns(UserWarning, match="No YAML enhancement found for 'not_a_configured_name'"):
+        img = get_enhanced_image(data_arr)
+
+    # a linear stretch of 0-9 with the default 0.5%/99.5% cutoffs
+    np.testing.assert_allclose(img.data.values[0].min(), -0.005050505)
+    np.testing.assert_allclose(img.data.values[0].max(), 1.005050505)
+
+
+def test_builtin_default_enhancement_without_name():
+    """Test that the builtin "default" section warns even without a "name" attribute."""
+    from satpy.enhancements.enhancer import get_enhanced_image
+
+    data_arr = xr.DataArray(da.arange(10.0).reshape((2, 5)), dims=["y", "x"])
+    with pytest.warns(UserWarning, match="No YAML enhancement found for '<unknown>'"):
+        get_enhanced_image(data_arr)
+
+
 def test_xrimage_1d():
     """Conversion to image."""
     p = xr.DataArray(np.arange(25), dims=["y"])
@@ -267,7 +299,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(sensor="test_empty", mode="L", name="1"),
+                       attrs=dict(sensor="test_empty", mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
@@ -281,7 +313,7 @@ enhancements:
 
         from satpy.enhancements.enhancer import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(sensor="test_sensor2", mode="L", name="1"),
+                       attrs=dict(sensor="test_sensor2", mode="L"),
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None

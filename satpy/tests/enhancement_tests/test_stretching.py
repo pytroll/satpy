@@ -6,18 +6,26 @@ import pytest
 from .utils import create_ch1, create_ch2, create_rgb, run_and_check_enhancement, run_and_check_enhancement_with_dtype
 
 
-def test_default_enhancement_warning():
-    """Test that the default enhancement warns for floating point data."""
+@pytest.mark.parametrize(
+    ("name", "exp_msg"),
+    [
+        ("NAME", "TEST NAME"),
+        (None, "TEST <unknown>"),
+    ],
+)
+def test_warn(name, exp_msg):
+    """Test that the warning enhancement formats the message with the data's attributes."""
     from trollimage.xrimage import XRImage
 
-    from satpy.enhancements.contrast import warn_if_float_debug_otherwise
+    from satpy.enhancements.contrast import warn
 
     ch1 = create_ch1()
-    ch1.attrs["name"] = "NAME"
+    if name is not None:
+        ch1.attrs["name"] = name
     img = XRImage(ch1)
 
-    with pytest.warns(UserWarning, match="TEST NAME"):
-        warn_if_float_debug_otherwise(img, msg="TEST {name}")
+    with pytest.warns(UserWarning, match=exp_msg):
+        warn(img, msg="TEST {name}")
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])

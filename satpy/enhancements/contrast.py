@@ -23,29 +23,26 @@ if typing.TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 
 
-def warn_if_float_debug_otherwise(img, msg=""):
-    """Perform no enhancement but emit a warning if data is floating point.
+class _MissingAttrs(dict):
+    """Mapping that produces a placeholder for attributes a ``DataArray`` doesn't have."""
 
-    The warning message is specified by the ``msg`` keyword argument
-    and can be a format string. Keyword arguments for the message
-    formatting are taken from the underlying ``DataArray``s ``.attrs``
-    dictionary.
+    def __missing__(self, key):
+        return "<unknown>"
+
+
+def warn(img: XRImage, msg: str = "") -> XRImage:
+    """Perform no enhancement but emit a warning.
+
+    The warning message is specified by the ``msg`` keyword argument and is
+    formatted with :meth:`str.format_map`. Format fields are taken from the
+    underlying ``DataArray``s ``.attrs`` dictionary. Any field that isn't in
+    ``.attrs`` is rendered as ``<unknown>`` so a missing attribute can never
+    turn a warning into an error.
 
     """
-    formatted_msg = msg.format(**img.data.attrs)
-    if np.issubdtype(img.data.dtype, np.floating):
-        warnings.warn(formatted_msg, UserWarning, stacklevel=2)
-    else:
-        LOG.debug(formatted_msg)
+    formatted_msg = msg.format_map(_MissingAttrs(img.data.attrs))
+    warnings.warn(formatted_msg, UserWarning, stacklevel=2)
     return img
-
-
-def stretch_if_floating(img, **kwargs):
-    """Perform a regular linear stretch but warn about no other enhancement."""
-    # if np.issubdtype(img.data.dtype, np.floating):
-    #     return stretch(img, **kwargs)
-    # return img
-    return stretch(img, **kwargs)
 
 
 def stretch(img, **kwargs):
