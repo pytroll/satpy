@@ -157,8 +157,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
 
-        # TODO Change fallback to `False` for use_legacy in Satpy v1.0
-        use_legacy = satpy.config.get("use_legacy_sunz_correction", True)
+        use_legacy = satpy.config.get("use_legacy_sunz_correction")
         if (self.correction_limit == "__default__" or self.max_sza == "__default__") and use_legacy:
             warnings.warn(
                 "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
