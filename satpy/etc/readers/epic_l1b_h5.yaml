@@ -11,20 +11,23 @@ reader:
   reader: !!python/name:satpy.readers.core.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
-    h5_std:
-        file_reader: !!python/name:satpy.readers.epic_l1b_h5.DscovrEpicL1BH5FileHandler
-        file_patterns: [
-          "{sensor:4s}_1b_{nominal_time:%Y%m%d%H%M%S}_{version:2s}.h5"
-        ]
-
+  h5_std:
+    file_reader: !!python/name:satpy.readers.epic_l1b_h5.DscovrEpicL1BH5FileHandler
+    file_patterns:
+      ["{sensor:4s}_1b_{nominal_time:%Y%m%d%H%M%S}_{version:2s}.h5"]
 
 datasets:
   B317:
     name: B317
     wavelength: [0.3174, 0.3175, 0.3176]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -36,8 +39,13 @@ datasets:
     name: B325
     wavelength: [0.3249, 0.325, 0.3251]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -49,8 +57,13 @@ datasets:
     name: B340
     wavelength: [0.3397, 0.340, 0.3403]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -62,8 +75,13 @@ datasets:
     name: B388
     wavelength: [0.3877, 0.388, 0.3883]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -75,8 +93,13 @@ datasets:
     name: B443
     wavelength: [0.442, 0.443, 0.444]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -88,8 +111,13 @@ datasets:
     name: B551
     wavelength: [0.550, 0.551, 0.552]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -101,8 +129,13 @@ datasets:
     name: B680
     wavelength: [0.678, 0.680, 0.682]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -114,8 +147,13 @@ datasets:
     name: B688
     wavelength: [0.6773, 0.6875, 0.6777]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -127,8 +165,13 @@ datasets:
     name: B764
     wavelength: [0.7638, 0.764, 0.7642]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
@@ -140,15 +183,19 @@ datasets:
     name: B780
     wavelength: [0.7792, 0.7795, 0.7798]
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       counts:
         standard_name: counts
         units: count
     file_type: h5_std
     file_key: Band780nm/Image
-
 
   longitude:
     name: longitude
@@ -199,16 +246,16 @@ datasets:
     file_key: Band688nm/Geolocation/Earth/ViewAngleAzimuth
 
   satellite_refraction_angle:
-    name:   satellite_refraction_angle
-    standard_name:   satellite_refraction_angle
+    name: satellite_refraction_angle
+    standard_name: satellite_refraction_angle
     long_name: "Satellite refraction angle"
     units: degree
     file_type: h5_std
     file_key: Band688nm/Geolocation/Earth/ViewAngleRefraction
 
   earth_mask:
-    name:     earth_mask
-    standard_name:     earth_mask
+    name: earth_mask
+    standard_name: earth_mask
     long_name: "Satellite refraction angle"
     units: degree
     file_type: h5_std

@@ -135,6 +135,17 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get a data array."""
+        # 8< v1.0
+        import warnings
+        if ds_id.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for INSAT3D L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         resolution = ds_id["resolution"]
         ds = self.datatree[str(resolution)]
         if ds_id["name"] in ["longitude", "latitude"]:
@@ -146,7 +157,11 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
             calibration = ""
         elif ds_id["calibration"] == "radiance":
             calibration = "_RADIANCE"
-        elif ds_id["calibration"] == "reflectance":
+        elif ds_id["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             calibration = "_ALBEDO"
         elif ds_id["calibration"] == "brightness_temperature":
             calibration = "_TEMP"

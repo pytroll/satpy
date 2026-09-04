@@ -236,6 +236,7 @@ default_id_keys_config = {"name": {
                           "calibration": {
                               "enum": [
                                   "reflectance",
+                                  "unnormalized_reflectance",
                                   "brightness_temperature",
                                   "radiance",
                                   "radiance_wavenumber",
