@@ -4,6 +4,8 @@
 
 import datetime as dt
 import logging
+import os
+from contextlib import suppress
 
 import numpy as np
 import xarray as xr
@@ -16,6 +18,7 @@ from satpy.readers.core.metimage import (
     TIE_POINTS_FACTOR,
 )
 from satpy.readers.core.netcdf import NetCDF4FileHandler
+from satpy.readers.core.utils import unzip_file
 from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,11 @@ TIE_POINT_DIMS = ("num_tie_points_alt", "num_tie_points_act")
 
 class METimageNCBaseFileHandler(NetCDF4FileHandler):
     """Base reader class for METimage (VII) products in netCDF format.
+
+    Supports both plain and bz2-compressed (.nc.bz2) input files. Compressed
+    files are transparently decompressed to a temporary file on disk before
+    reading; the temp file is removed when the file handler is garbage
+    collected.
 
     Args:
         filename (str): File to read
@@ -45,8 +53,13 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
     ]
 
+    _unzipped = None
+
     def __init__(self, filename, filename_info, filetype_info, orthorect=False):
         """Prepare the class for dataset reading."""
+        self._unzipped = unzip_file(filename)
+        if self._unzipped:
+            filename = self._unzipped
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
@@ -207,6 +220,13 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    def __del__(self):
+        """Remove the decompressed temp file, if one was created."""
+        super().__del__()   # release the netCDF/h5netcdf handle first, so Windows can drop its lock
+        with suppress(OSError):
+            if self._unzipped:
+                os.remove(self._unzipped)
 
     @staticmethod
     def wrap_longitude(longitude_array):

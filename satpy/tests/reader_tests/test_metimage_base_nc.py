@@ -1,6 +1,7 @@
 
 """The metimage_base_nc reader tests package."""
 
+import bz2
 import datetime
 import os
 import unittest
@@ -14,7 +15,7 @@ from netCDF4 import Dataset
 
 from satpy.readers.core.metimage_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
 
-TEST_FILE = "test_file_vii_base_nc.nc"
+TEST_FILE = "test_file_metimage_base_nc.nc"
 
 
 class TestMETimageNCBaseFileHandler(unittest.TestCase):
@@ -26,79 +27,14 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
         # Easiest way to test the reader is to create a test netCDF file on the fly
         # uses a UUID to avoid permission conflicts during execution of tests in parallel
         self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
-
-        with Dataset(self.test_file_name, "w") as nc:
-            # Add global attributes
-            nc.sensing_start_time_utc = "20170920173040.888"
-            nc.sensing_end_time_utc = "20170920174117.555"
-            nc.spacecraft = "SGA1"
-            nc.instrument = "test_instrument"
-
-            # Create data group
-            g1 = nc.createGroup("data")
-
-            # Add dimensions to data group
-            g1.createDimension("num_pixels", 10)
-            g1.createDimension("num_lines", 100)
-
-            # Create data/measurement_data group
-            g1_1 = g1.createGroup("measurement_data")
-
-            # Add dimensions to data/measurement_data group
-            g1_1.createDimension("num_tie_points_act", 10)
-            g1_1.createDimension("num_tie_points_alt", 100)
-
-            # Add variables to data/measurement_data group
-            tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
-            tpw[:] = 1.
-            tpw.test_attr = "attr"
-            tpw.valid_min = -10.0
-            tpw.valid_max = 10.0
-            lon = g1_1.createVariable("longitude",
-                                      np.float32,
-                                      dimensions=("num_tie_points_act", "num_tie_points_alt"))
-            lon[:] = 200.
-            lat = g1_1.createVariable("latitude",
-                                      np.float32,
-                                      dimensions=("num_tie_points_act", "num_tie_points_alt"))
-            lat[:] = 10.
-
-            # Create quality group
-            g2 = nc.createGroup("quality")
-
-            # Add dimensions to quality group
-            g2.createDimension("gap_items", 2)
-
-            # Add variables to quality group
-            var = g2.createVariable("duration_of_product", np.double, dimensions=())
-            var[:] = 1.0
-            var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
-            var[:] = 2.0
-            var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
-            var[:] = 3.0
-            var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
-            var[:] = 4.0
-            var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
-            var[:] = [5.0, 6.0]
-            var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
-            var[:] = [7.0, 8.0]
+        _create_metimage_base_nc_file(self.test_file_name)
 
         # Create longitude and latitude "interpolated" arrays
-        interp_longitude = xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
-                                        dims=("num_pixels", "num_lines"))
-        interp_latitude = xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
-                                       dims=("num_pixels", "num_lines"))
+        interp_longitude, interp_latitude = _interpolated_lonlat()
         pgi_.return_value = (interp_longitude, interp_latitude)
 
         # Filename info valid for all readers
-        filename_info = {
-            "creation_time": datetime.datetime(year=2017, month=9, day=22,
-                                               hour=22, minute=40, second=10),
-            "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
-                                                    hour=12, minute=30, second=30),
-            "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
-                                                  hour=18, minute=30, second=50)
-        }
+        filename_info = _metimage_filename_info()
         self.filename_info = filename_info
 
         # Create a reader
@@ -441,3 +377,167 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
                                                      "interpolate": True})
         # Checks that the function returns None
         assert longitude is None
+
+
+# --- bz2 decompression support ---------------------------------------------
+# Written as plain pytest functions (rather than TestMETimageNCBaseFileHandler
+# methods) specifically to use tmp_path fixtures for automatic, cross-platform
+# temp-file cleanup -- fixture injection doesn't work inside unittest.TestCase
+# methods, so these live at module scope instead.
+
+@pytest.fixture
+def metimage_filename_info():
+    """Return a filename_info dict valid for the base-class reader."""
+    return _metimage_filename_info()
+
+
+@pytest.fixture
+def metimage_base_nc_file(tmp_path):
+    """Create a small METimage netCDF test file and return its path."""
+    filename = tmp_path / TEST_FILE
+    _create_metimage_base_nc_file(filename)
+    return filename
+
+
+@pytest.fixture
+def metimage_base_nc_file_bz2(metimage_base_nc_file):
+    """Compress the netCDF fixture into a .bz2 file alongside it."""
+    bz2_filename = metimage_base_nc_file.parent / (metimage_base_nc_file.name + ".bz2")
+    with open(metimage_base_nc_file, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
+        f_out.write(f_in.read())
+    return bz2_filename
+
+
+def test_bz2_reading(metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
+    """Test that a bz2-compressed file is transparently decompressed and read correctly."""
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+        "interpolate": False,
+    }
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
+    expected_reader = METimageNCBaseFileHandler(str(metimage_base_nc_file), metimage_filename_info, filetype_info)
+
+    # Should have decompressed to a separate temp file, not read the .bz2 directly
+    assert reader.filename != str(metimage_base_nc_file_bz2)
+
+    # Cross-check against the uncompressed-file reader
+    assert reader.spacecraft_name == expected_reader.spacecraft_name
+    assert reader.start_time == expected_reader.start_time
+
+    variable = reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    expected = expected_reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    assert np.allclose(variable.values, expected.values)
+    # Not asserting the decompressed temp file is deleted immediately here -- cleanup
+    # timing depends on __del__/gc timing and, on Windows, on the underlying file handle
+    # being released first. The actual contract we care about (cleanup never raises,
+    # even if it fails) is covered separately by test_del_swallows_cleanup_errors.
+
+
+@mock.patch("satpy.readers.core.utils.which", return_value=None)
+def test_corrupt_bz2_raises(which_, tmp_path, metimage_filename_info):
+    """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
+    bad_filename = tmp_path / "corrupt.nc.bz2"
+    bad_filename.write_bytes(b"not a real bz2 stream")
+
+    with pytest.raises(OSError):   # noqa: PT011 -- underlying error (WinError 32 vs pbzip2 vs
+                                # "invalid data stream") varies by OS/locale/pbzip2 install;
+                                # see satpy/readers/core/utils.py::unzip_file
+        METimageNCBaseFileHandler(str(bad_filename), metimage_filename_info, {})
+
+
+def test_del_swallows_cleanup_errors(metimage_base_nc_file_bz2, metimage_filename_info):
+    """Test that __del__ never raises, even if removing the decompressed temp file is already gone."""
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+        "interpolate": False,
+    }
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
+
+    os.remove(reader.filename)  # simulate the temp file already being gone
+    reader.__del__()  # must not raise
+
+
+def _metimage_filename_info():
+    """Return a filename_info dict valid for the base-class reader."""
+    return {
+        "creation_time": datetime.datetime(year=2017, month=9, day=22,
+                                           hour=22, minute=40, second=10),
+        "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
+                                                hour=12, minute=30, second=30),
+        "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
+                                              hour=18, minute=30, second=50),
+    }
+
+
+def _interpolated_lonlat():
+    """Return placeholder longitude/latitude arrays for mocking _perform_geo_interpolation.
+
+    Note: the value 250 for longitude is asserted against directly in
+    test_dataset (see: -180 + (250-180)). If you change it,
+    update that assertion too.
+    """
+    return (
+        xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
+                     dims=("num_pixels", "num_lines")),
+        xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
+                     dims=("num_pixels", "num_lines")),
+    )
+
+
+def _create_metimage_base_nc_file(filename):
+    """Create a small METimage base netCDF test file at the given path."""
+    with Dataset(filename, "w") as nc:
+        # Add global attributes
+        nc.sensing_start_time_utc = "20170920173040.888"
+        nc.sensing_end_time_utc = "20170920174117.555"
+        nc.spacecraft = "SGA1"
+        nc.instrument = "test_instrument"
+
+        # Create data group
+        g1 = nc.createGroup("data")
+
+        # Add dimensions to data group
+        g1.createDimension("num_pixels", 10)
+        g1.createDimension("num_lines", 100)
+
+        # Create data/measurement_data group
+        g1_1 = g1.createGroup("measurement_data")
+
+        # Add dimensions to data/measurement_data group
+        g1_1.createDimension("num_tie_points_act", 10)
+        g1_1.createDimension("num_tie_points_alt", 100)
+
+        # Add variables to data/measurement_data group
+        tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
+        tpw[:] = 1.
+        tpw.test_attr = "attr"
+        tpw.valid_min = -10.0
+        tpw.valid_max = 10.0
+        lon = g1_1.createVariable("longitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lon[:] = 200.
+        lat = g1_1.createVariable("latitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lat[:] = 10.
+
+        # Create quality group
+        g2 = nc.createGroup("quality")
+
+        # Add dimensions to quality group
+        g2.createDimension("gap_items", 2)
+
+        # Add variables to quality group
+        var = g2.createVariable("duration_of_product", np.double, dimensions=())
+        var[:] = 1.0
+        var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
+        var[:] = 2.0
+        var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
+        var[:] = 3.0
+        var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
+        var[:] = 4.0
+        var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [5.0, 6.0]
+        var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [7.0, 8.0]
