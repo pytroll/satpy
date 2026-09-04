@@ -1,5 +1,6 @@
 """Test CREFL rayleigh correction functions."""
 import unittest
+import warnings
 
 import numpy as np
 import pytest
@@ -61,3 +62,33 @@ def test_runner_class_for_metimage(sensor):
     from satpy.modifiers._crefl_utils import _METimageCREFLRunner, _runner_class_for_sensor
 
     assert _runner_class_for_sensor(sensor) is _METimageCREFLRunner
+
+
+def test_space_mask_height_nan_geolocation():
+    """Test that NaN geolocation is handled without warning and produces zero height."""
+    from satpy.modifiers._crefl_utils import _space_mask_height
+
+    avg_elevation = np.arange(10 * 20, dtype=np.float64).reshape((10, 20))
+    lon, lat = np.meshgrid(
+        np.linspace(-170.0, 170.0, 5, dtype=np.float64),
+        np.linspace(80.0, -80.0, 4, dtype=np.float64),
+    )
+    space_mask = np.zeros(lon.shape, dtype=bool)
+    space_mask[0, 0] = True
+    space_mask[2, 3] = True
+    lon[space_mask] = np.nan
+    lat[space_mask] = np.nan
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        height = _space_mask_height(lon, lat, avg_elevation)
+
+    assert height.shape == lon.shape
+    np.testing.assert_array_equal(height[space_mask], 0.0)
+    exp_valid = avg_elevation[
+        ((90.0 - lat[~space_mask]) * 10 / 180.0).astype(np.int32),
+        ((lon[~space_mask] + 180.0) * 20 / 360.0).astype(np.int32),
+    ]
+    np.testing.assert_allclose(height[~space_mask], exp_valid)
+    # the test elevation has no negative values, so nothing else should be zeroed
+    assert (height[~space_mask] != 0.0).sum() == (exp_valid != 0.0).sum()

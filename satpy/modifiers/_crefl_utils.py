@@ -501,15 +501,16 @@ def _single_sensor_name(sensor_name: str | set[str] | frozenset[str]) -> str:
 def _space_mask_height(lon, lat, avg_elevation):
     row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0)
     col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0)
+    # conditions need to be this way to include NaNs
+    bad_mask = ~((lon >= -180) | (lon <= 180) | (lat >= -90) | (lat <= 90))
+    # convert any NaNs to valid indexes before casting to integers, casting
+    # NaN to an integer is undefined and warns "invalid value encountered in cast"
+    row[bad_mask] = 0.0
+    col[bad_mask] = 0.0
     np.clip(row, 0, avg_elevation.shape[0] - 1, out=row)
     np.clip(col, 0, avg_elevation.shape[1] - 1, out=col)
     row = row.astype(np.int32)
     col = col.astype(np.int32)
-    # conditions need to be this way to include NaNs
-    bad_mask = ~((lon >= -180) | (lon <= 180) | (lat >= -90) | (lat <= 90))
-    # convert any NaNs to valid indexes
-    row[bad_mask] = 0
-    col[bad_mask] = 0
 
     height = avg_elevation[row, col]
     # negative heights aren't allowed, clip to 0
