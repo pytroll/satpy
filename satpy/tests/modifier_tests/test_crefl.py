@@ -60,14 +60,15 @@ def _create_fake_dem_file(dem_fn, var_name, fill_value):
     h.end()
 
 
-def _make_viirs_xarray(data, area, name, standard_name, wavelength=None, units="degrees", calibration=None):
+def _make_viirs_xarray(data, area, name, standard_name, wavelength=None, units="degrees", calibration=None,
+                       sensor="viirs", platform_name="Suomi-NPP", resolution=371):
     return xr.DataArray(data, dims=("y", "x"),
                         attrs={
                             "start_orbit": 1708, "end_orbit": 1708, "wavelength": wavelength,
                             "modifiers": None, "calibration": calibration,
-                            "resolution": 371, "name": name,
-                            "standard_name": standard_name, "platform_name": "Suomi-NPP",
-                            "polarization": None, "sensor": "viirs", "units": units,
+                            "resolution": resolution, "name": name,
+                            "standard_name": standard_name, "platform_name": platform_name,
+                            "polarization": None, "sensor": sensor, "units": units,
                             "start_time": dt.datetime(2012, 2, 25, 18, 1, 24, 570942),
                             "end_time": dt.datetime(2012, 2, 25, 18, 11, 21, 175760), "area": area,
                             "ancillary_variables": []
@@ -322,6 +323,63 @@ class TestReflectanceCorrectorModifier:
         assert data.shape == (3, 5)
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [25.43670075, 52.93221561, 77.91226236])
+
+    @pytest.mark.parametrize(
+        ("url", "dem_mock_cm", "dem_sds"),
+        [
+            (None, mock_cmgdem, "average elevation"),
+            ("CMGDEM.hdf", mock_cmgdem, "averaged elevation"),
+        ])
+    def test_reflectance_corrector_metimage(self, tmpdir, url, dem_mock_cm, dem_sds):
+        """Test ReflectanceCorrector modifier with METimage data."""
+        from satpy.modifiers._crefl import ReflectanceCorrector
+        from satpy.tests.utils import make_dsq
+
+        ref_cor = ReflectanceCorrector(
+            optional_prerequisites=[
+                make_dsq(name="satellite_azimuth_angle"), make_dsq(name="satellite_zenith_angle"),
+                make_dsq(name="solar_azimuth_angle"), make_dsq(name="solar_zenith_angle")],
+            name="vii_668", prerequisites=[], wavelength=(0.658, 0.668, 0.678), resolution=500,
+            calibration="reflectance",
+            modifiers=("sunz_corrected", "rayleigh_corrected_crefl"),
+            sensor="metimage", url=url, dem_sds=dem_sds)
+
+        assert ref_cor.attrs["modifiers"] == ("sunz_corrected", "rayleigh_corrected_crefl")
+        assert ref_cor.attrs["calibration"] == "reflectance"
+        assert ref_cor.attrs["wavelength"] == (0.658, 0.668, 0.678)
+        assert ref_cor.attrs["name"] == "vii_668"
+        assert ref_cor.attrs["resolution"] == 500
+        assert ref_cor.attrs["sensor"] == "metimage"
+
+        area, data = self.data_area_ref_corrector()
+        kwargs = {"sensor": "metimage", "platform_name": "Metop-SG-A1", "resolution": 500}
+        c01 = _make_viirs_xarray(data, area, "vii_668", "toa_bidirectional_reflectance",
+                                 wavelength=(0.658, 0.668, 0.678), units="%", calibration="reflectance",
+                                 **kwargs)
+        c02 = _make_viirs_xarray(data, area, "satellite_azimuth_angle", "sensor_azimuth_angle", **kwargs)
+        c03 = _make_viirs_xarray(data, area, "satellite_zenith_angle", "sensor_zenith_angle", **kwargs)
+        c04 = _make_viirs_xarray(data, area, "solar_azimuth_angle", "solar_azimuth_angle", **kwargs)
+        c05 = _make_viirs_xarray(data, area, "solar_zenith_angle", "solar_zenith_angle", **kwargs)
+
+        with dem_mock_cm(tmpdir, url), assert_maximum_dask_computes(0):
+            res = ref_cor([c01], [c02, c03, c04, c05])
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["wavelength"] == (0.658, 0.668, 0.678)
+        assert res.attrs["modifiers"] == ("sunz_corrected", "rayleigh_corrected_crefl",)
+        assert res.attrs["name"] == "vii_668"
+        assert res.attrs["platform_name"] == "Metop-SG-A1"
+        assert res.attrs["sensor"] == "metimage"
+        assert res.attrs["units"] == "%"
+        assert res.attrs["area"] == area
+        data = res.values
+        assert data.shape == (3, 5)
+        # METimage borrows the MODIS coefficients and the MODIS atmosphere
+        # equations, so "vii_668" must produce exactly the same result as MODIS
+        # band "1" does in ``test_reflectance_corrector_modis``.
+        assert abs(np.mean(data) - 52.09372623964498) < 1e-6
+        np.testing.assert_allclose(np.unique(data), [25.43670075, 52.93221561, 77.91226236])
 
     def test_reflectance_corrector_bad_prereqs(self):
         """Test ReflectanceCorrector modifier with wrong number of inputs."""

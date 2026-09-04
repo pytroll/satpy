@@ -27,6 +27,11 @@ written by Ralph Kuehn and Min Oo at SSEC. Additional modifications were
 performed by Martin Raspaud, David Hoese, and Will Roberts to make the code
 work together and be more dask compatible.
 
+METimage (Metop-SG) is supported by reusing the coefficients of the
+corresponding MODIS band. No CREFL coefficients have been published for
+METimage, so this is an approximation; see ``_METimageCoefficients`` for the
+band mapping and its limitations.
+
 The AHI/ABI implementation is based on the MODIS collection 6 algorithm, where
 a spherical-shell atmosphere was assumed rather than a plane-parallel. See
 Appendix A in: "The Collection 6 MODIS aerosol products over land and ocean"
@@ -245,6 +250,100 @@ class _MODISCoefficients(_Coefficients):
     COEFF_INDEX_MAP[250] = COEFF_INDEX_MAP[1000]
 
 
+class _METimageCoefficients(_Coefficients):
+    # No CREFL coefficients have been published for METimage, so the MODIS
+    # coefficients are used instead. Note that the MODIS ``aH2O`` values are
+    # negative because MODIS uses them in log space; they are only valid when
+    # paired with ``_MODISAtmosphereVariables`` (see ``_METimageCREFLRunner``).
+    #
+    # Each METimage band is paired with the MODIS land band that plays the same
+    # role in an RGB composite: red -> band 1, green -> band 4, blue -> band 3,
+    # and so on. See the alternative mapping below for the caveats.
+    LUTS = _MODISCoefficients.LUTS
+    # Map of pixel resolutions -> wavelength -> coefficient index
+    # Map of pixel resolutions -> band name -> coefficient index
+    COEFF_INDEX_MAP = {
+        500: {
+            WavelengthRange(0.658, 0.668, 0.678): 0,  # MODIS band 1 (0.645um)
+            "vii_668": 0,
+            WavelengthRange(0.855, 0.865, 0.875): 1,  # MODIS band 2 (0.8585um)
+            "vii_865": 1,
+            WavelengthRange(0.428, 0.443, 0.458): 2,  # MODIS band 3 (0.469um)
+            "vii_443": 2,
+            WavelengthRange(0.545, 0.555, 0.565): 3,  # MODIS band 4 (0.555um)
+            "vii_555": 3,
+            WavelengthRange(1.230, 1.240, 1.250): 4,  # MODIS band 5 (1.240um)
+            "vii_1240": 4,
+            WavelengthRange(1.620, 1.630, 1.640): 5,  # MODIS band 6 (1.640um)
+            "vii_1630": 5,
+            WavelengthRange(2.225, 2.250, 2.275): 6,  # MODIS band 7 (2.130um)
+            "vii_2250": 6,
+        }
+    }
+
+    # ------------------------------------------------------------------------
+    # ALTERNATIVE MAPPING - matched on wavelength instead of on band role.
+    #
+    # The LUTs above are not limited to the seven MODIS land bands. As the
+    # module docstring notes, CREFL covers "bands 1 through 16", so the arrays
+    # also hold the narrow MODIS ocean color bands. Inverting each ``taur0``
+    # through the Hansen and Travis (1974) Rayleigh formula recovers the band
+    # centers in order, which identifies index 8 as MODIS band 9 (0.442um) and
+    # index 12 as MODIS band 13 (0.666um). Those are near-exact matches for
+    # ``vii_443`` and ``vii_668``, whereas MODIS bands 3 and 1 are not:
+    #
+    #   band       mapping below   taur0     correct taur0   error
+    #   vii_443    MODIS band 3    0.19325   0.23605         -18% (under-corrects)
+    #   vii_668    MODIS band 1    0.05100   0.04415         +15% (over-corrects)
+    #   vii_443    MODIS band 9    0.23750   0.23605          +1%
+    #   vii_668    MODIS band 13   0.04460   0.04415          +1%
+    #
+    # Rayleigh optical depth scales roughly as wavelength^-4, so pairing bands
+    # by role rather than by wavelength leaves a large ``taur0`` error in
+    # exactly the two bands that matter most for true color. Under-correcting
+    # the blue band leaves residual Rayleigh scattering in the image, and
+    # because that residual scales with air mass it appears as a blue cast that
+    # brightens toward the edges of the swath rather than as a flat color
+    # shift. Over-correcting the red band darkens it. The net effect works
+    # against making METimage true color resemble MODIS or VIIRS.
+    #
+    # Ozone improves as well: ``aO3`` for ``vii_668`` would drop from 0.0715
+    # (right for 0.645um, near the peak of the Chappuis band) to 0.0485 (right
+    # for 0.667um), worth about 1.5% in transmittance.
+    #
+    # The cost is that the ocean color bands are narrow enough to have no water
+    # vapor correction at all (``aH2O`` is 0 for indices 7 through 15), so
+    # ``vii_668`` would lose the ~1.5% correction it inherits from MODIS band
+    # 1. The Rayleigh gain is an order of magnitude larger.
+    #
+    # ``vii_865`` stays on MODIS band 2 in both mappings. MODIS band 16
+    # (index 15, 0.866um) is the closer wavelength match, but it is another
+    # narrow ocean color band with no water vapor term. METimage's 20nm-wide
+    # 865 band sits between MODIS band 2 (35nm) and band 16 (15nm), and band
+    # 2's ~2% water vapor correction is worth more there than a ``taur0``
+    # change of 0.0008.
+    #
+    # COEFF_INDEX_MAP = {
+    #     500: {
+    #         WavelengthRange(0.428, 0.443, 0.458): 8,  # MODIS band 9 (0.443um)
+    #         "vii_443": 8,
+    #         WavelengthRange(0.545, 0.555, 0.565): 3,  # MODIS band 4 (0.555um)
+    #         "vii_555": 3,
+    #         WavelengthRange(0.658, 0.668, 0.678): 12,  # MODIS band 13 (0.667um)
+    #         "vii_668": 12,
+    #         WavelengthRange(0.855, 0.865, 0.875): 1,  # MODIS band 2 (0.8585um)
+    #         "vii_865": 1,
+    #         WavelengthRange(1.230, 1.240, 1.250): 4,  # MODIS band 5 (1.240um)
+    #         "vii_1240": 4,
+    #         WavelengthRange(1.620, 1.630, 1.640): 5,  # MODIS band 6 (1.640um)
+    #         "vii_1630": 5,
+    #         WavelengthRange(2.225, 2.250, 2.275): 6,  # MODIS band 7 (2.130um)
+    #         "vii_2250": 6,
+    #     }
+    # }
+    # ------------------------------------------------------------------------
+
+
 def run_crefl(refl,
               sensor_azimuth,
               sensor_zenith,
@@ -331,8 +430,9 @@ class _ABICREFLRunner(_CREFLRunner):
 
 class _VIIRSMODISCREFLRunner(_CREFLRunner):
     def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        sensor_name = _single_sensor_name(self._refl.attrs["sensor"])
         return da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
-                             height, self._refl.attrs.get("sensor"), *coeffs,
+                             height, sensor_name, *coeffs,
                              meta=np.ndarray((), dtype=self._refl.dtype),
                              chunks=self._refl.chunks, dtype=self._refl.dtype,
                              )
@@ -358,18 +458,44 @@ class _MODISCREFLRunner(_VIIRSMODISCREFLRunner):
         return super()._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
 
 
+class _METimageCREFLRunner(_VIIRSMODISCREFLRunner):
+    @property
+    def coeffs_cls(self) -> Type[_Coefficients]:
+        return _METimageCoefficients
+
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        # NOTE: The inherited ``_run_crefl`` passes the "metimage" sensor name
+        # down to the low-level function, which selects
+        # ``_MODISAtmosphereVariables`` for anything that isn't "viirs". That is
+        # intentional here: the borrowed MODIS coefficients use the MODIS
+        # log-space water vapor convention and the MODIS ozone amount.
+        LOG.debug("Using METimage CREFL algorithm with MODIS coefficients")
+        return super()._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
+
+
 _SENSOR_TO_RUNNER = {
     "abi": _ABICREFLRunner,
     "viirs": _VIIRSCREFLRunner,
     "modis": _MODISCREFLRunner,
+    "metimage": _METimageCREFLRunner,
 }
 
 
-def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
+def _runner_class_for_sensor(sensor_name: str | set[str] | frozenset[str]) -> Type[_CREFLRunner]:
+    single_name = _single_sensor_name(sensor_name)
     try:
-        return _SENSOR_TO_RUNNER[sensor_name]
+        return _SENSOR_TO_RUNNER[single_name.lower()]
     except KeyError:
-        raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {sensor_name}.")
+        raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {single_name}.")
+
+
+def _single_sensor_name(sensor_name: str | set[str] | frozenset[str]) -> str:
+    """Get a single sensor name from an attribute that may be a string or a collection of strings."""
+    if isinstance(sensor_name, str):
+        return sensor_name
+    if len(sensor_name) != 1:
+        raise NotImplementedError(f"Don't know how to apply CREFL to data from sensors {sensor_name}.")
+    return next(iter(sensor_name))
 
 
 def _space_mask_height(lon, lat, avg_elevation):
