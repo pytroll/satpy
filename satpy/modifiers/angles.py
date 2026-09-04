@@ -659,6 +659,7 @@ def atmospheric_path_length_correction(data: da.Array,
 def _atmospheric_path_length_correction_ndarray(data: np.ndarray,
                                                 cos_zen: np.ndarray) -> np.ndarray:
     corr = 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
+    corr = corr.astype(data.dtype, copy=False)
 
     # Force "night" and space pixels to 0 (where SZA is invalid)
     corr[np.isnan(cos_zen)] = 0
@@ -701,6 +702,7 @@ def _sunzen_reduction_ndarray(data: np.ndarray,
 
     # compute final correction term, with no reduction (=1.0) for angles < limit
     corr = np.where(sunz < limit, 1.0, reduction_factor)
+    corr = corr.astype(data.dtype, copy=False)
 
     # force "night" pixels to 0 (where SZA is invalid)
     corr[np.isnan(sunz)] = 0
