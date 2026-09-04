@@ -232,8 +232,7 @@ emits a ``UserWarning`` before doing anything else::
    https://satpy.readthedocs.io/en/stable/enhancements.html for documentation
    on defining an enhancement.
 
-The warning is not a failure and the data is still enhanced exactly as it
-always has been (a dynamic linear stretch, whatever the data type). It is
+The warning is not a failure and the data is still enhanced. It is
 telling you that the scaling applied to your image was chosen from the data
 itself rather than from a configuration, so it will change from one set of
 input files to the next.
