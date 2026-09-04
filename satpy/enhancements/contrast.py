@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import typing
+import warnings
 from collections import namedtuple
 from numbers import Number
 from typing import Optional
@@ -20,6 +21,28 @@ if typing.TYPE_CHECKING:
     from trollimage.xrimage import XRImage
 
 LOG = logging.getLogger(__name__)
+
+
+class _MissingAttrs(dict):
+    """Mapping that produces a placeholder for attributes a ``DataArray`` doesn't have."""
+
+    def __missing__(self, key):
+        return "<unknown>"
+
+
+def warn(img: XRImage, msg: str = "") -> XRImage:
+    """Perform no enhancement but emit a warning.
+
+    The warning message is specified by the ``msg`` keyword argument and is
+    formatted with :meth:`str.format_map`. Format fields are taken from the
+    underlying ``DataArray``s ``.attrs`` dictionary. Any field that isn't in
+    ``.attrs`` is rendered as ``<unknown>`` so a missing attribute can never
+    turn a warning into an error.
+
+    """
+    formatted_msg = msg.format_map(_MissingAttrs(img.data.attrs))
+    warnings.warn(formatted_msg, UserWarning, stacklevel=2)
+    return img
 
 
 def stretch(img, **kwargs):
