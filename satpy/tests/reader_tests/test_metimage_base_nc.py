@@ -408,58 +408,55 @@ def metimage_base_nc_file_bz2(metimage_base_nc_file):
     return bz2_filename
 
 
-class TestBz2Support:
-    """Test bz2 decompression support for METimageNCBaseFileHandler."""
+def test_bz2_reading(metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
+    """Test that a bz2-compressed file is transparently decompressed and read correctly."""
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+        "interpolate": False,
+    }
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
+    expected_reader = METimageNCBaseFileHandler(str(metimage_base_nc_file), metimage_filename_info, filetype_info)
 
-    def test_bz2_reading(self, metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
-        """Test that a bz2-compressed file is transparently decompressed and read correctly."""
-        filetype_info = {
-            "cached_longitude": "data/measurement_data/longitude",
-            "cached_latitude": "data/measurement_data/latitude",
-            "interpolate": False,
-        }
-        reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
-        expected_reader = METimageNCBaseFileHandler(str(metimage_base_nc_file), metimage_filename_info, filetype_info)
+    # Should have decompressed to a separate temp file, not read the .bz2 directly
+    assert reader.filename != str(metimage_base_nc_file_bz2)
 
-        # Should have decompressed to a separate temp file, not read the .bz2 directly
-        assert reader.filename != str(metimage_base_nc_file_bz2)
+    # Cross-check against the uncompressed-file reader
+    assert reader.spacecraft_name == expected_reader.spacecraft_name
+    assert reader.start_time == expected_reader.start_time
 
-        # Cross-check against the uncompressed-file reader
-        assert reader.spacecraft_name == expected_reader.spacecraft_name
-        assert reader.start_time == expected_reader.start_time
-
-        variable = reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
-        expected = expected_reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
-        assert np.allclose(variable.values, expected.values)
-        # Not asserting the decompressed temp file is deleted immediately here -- cleanup
-        # timing depends on __del__/gc timing and, on Windows, on the underlying file handle
-        # being released first. The actual contract we care about (cleanup never raises,
-        # even if it fails) is covered separately by test_del_swallows_cleanup_errors.
+    variable = reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    expected = expected_reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    assert np.allclose(variable.values, expected.values)
+    # Not asserting the decompressed temp file is deleted immediately here -- cleanup
+    # timing depends on __del__/gc timing and, on Windows, on the underlying file handle
+    # being released first. The actual contract we care about (cleanup never raises,
+    # even if it fails) is covered separately by test_del_swallows_cleanup_errors.
 
 
-    @mock.patch("satpy.readers.core.utils.which", return_value=None)
-    def test_corrupt_bz2_raises(self, which_, tmp_path, metimage_filename_info):
-        """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
-        bad_filename = tmp_path / "corrupt.nc.bz2"
-        bad_filename.write_bytes(b"not a real bz2 stream")
+@mock.patch("satpy.readers.core.utils.which", return_value=None)
+def test_corrupt_bz2_raises(which_, tmp_path, metimage_filename_info):
+    """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
+    bad_filename = tmp_path / "corrupt.nc.bz2"
+    bad_filename.write_bytes(b"not a real bz2 stream")
 
-        with pytest.raises(OSError):   # noqa: PT011 -- underlying error (WinError 32 vs pbzip2 vs
-                                    # "invalid data stream") varies by OS/locale/pbzip2 install;
-                                    # see satpy/readers/core/utils.py::unzip_file
-            METimageNCBaseFileHandler(str(bad_filename), metimage_filename_info, {})
+    with pytest.raises(OSError):   # noqa: PT011 -- underlying error (WinError 32 vs pbzip2 vs
+                                # "invalid data stream") varies by OS/locale/pbzip2 install;
+                                # see satpy/readers/core/utils.py::unzip_file
+        METimageNCBaseFileHandler(str(bad_filename), metimage_filename_info, {})
 
 
-    def test_del_swallows_cleanup_errors(self, metimage_base_nc_file_bz2, metimage_filename_info):
-        """Test that __del__ never raises, even if removing the decompressed temp file is already gone."""
-        filetype_info = {
-            "cached_longitude": "data/measurement_data/longitude",
-            "cached_latitude": "data/measurement_data/latitude",
-            "interpolate": False,
-        }
-        reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
+def test_del_swallows_cleanup_errors(metimage_base_nc_file_bz2, metimage_filename_info):
+    """Test that __del__ never raises, even if removing the decompressed temp file is already gone."""
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+        "interpolate": False,
+    }
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
 
-        os.remove(reader.filename)  # simulate the temp file already being gone
-        reader.__del__()  # must not raise
+    os.remove(reader.filename)  # simulate the temp file already being gone
+    reader.__del__()  # must not raise
 
 
 def _metimage_filename_info():
