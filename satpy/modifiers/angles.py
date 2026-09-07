@@ -595,7 +595,7 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
                              cos_zen: np.ndarray,
                              method: str,
                              correction_limit: float,
-                             max_sza: Optional[float]) -> np.ndarray:
+                             max_sza: float) -> np.ndarray:
     sunz = np.rad2deg(np.arccos(cos_zen))
     corr_standard = (1. / cos_zen)
     corr_at_limit = (
@@ -611,11 +611,6 @@ def _sunzen_corr_cos_ndarray(data: np.ndarray,
     elif method == "capped":
         corr = np.where(sunz <= correction_limit, corr_standard, corr_at_limit)
     elif method == "reduced":
-        if correction_limit is None or max_sza is None:
-            raise ValueError(
-                "Both `correction_limit` and `max_sza` are required for gradually "
-                "reducing the correction at large solar zenith angles.")
-
         reduction_factor = (sunz - correction_limit) / (max_sza - correction_limit)
 
         # invert the factor so maximum correction is done at `limit` and falls off later
