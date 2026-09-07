@@ -81,7 +81,7 @@ the defined temperature ranges.  Beyond those limits the image clipped to
 the specified colors.
 
     >>> import numpy as np
-    >>> from satpy.composites.core import BWCompositor
+    >>> from satpy.composites.core import SingleBandCompositor
     >>> from satpy.enhancements.colormap import colorize
     >>> from trollimage.xrimage import XRImage
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])

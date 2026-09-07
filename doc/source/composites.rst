@@ -489,7 +489,7 @@ image) for both of the static images::
       standard_name: static_day
       operations:
       - name: stretch
-        method: !!python/name:satpy.enhancements.stretching.stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]

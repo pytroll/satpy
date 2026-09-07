@@ -112,7 +112,7 @@ custom composites is shown below.
     description = "Example Satpy plugin package definition."
     version = "1.0.0"
     readme = "README.md"
-    license = {text = "GPL-3.0-or-later"}
+    license = "Apache-2.0"
     requires-python = ">=3.8"
     dependencies = [
         "satpy",
@@ -202,14 +202,9 @@ Licenses
 
 Disclaimer: We are not lawyers.
 
-Satpy source code is under the GPLv3 license. This license requires any
-derivative works to also be GPLv3 or GPLv3 compatible. It is our understanding
-that importing a Python module could be considered "linking" that source code
-to your own (thus being a derivative work) and would therefore require your
-code to be licensed with a GPLv3-compatible license. It is currently only
-possible to make a Satpy-compatible plugin without importing Satpy if it
-contains only enhancements. Writers and compositors are possible without
-subclassing, but are likely difficult to implement. Readers are even more
-difficult to implement without using Satpy's base classes and utilities.
-It is also our understanding that if your custom Satpy plugin code is not
-publicly released then it does not need to be GPLv3.
+Satpy source code is under the Apache 2.0 license. This is a permissive
+license, so plugins importing Satpy are free to choose whatever license
+suits them, including proprietary ones. The Apache 2.0 license does require
+that modified versions of Satpy's own files carry prominent notices stating
+that they were changed, and that the license and any notices are passed on
+with redistributed copies.
