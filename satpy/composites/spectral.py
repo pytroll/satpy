@@ -158,8 +158,8 @@ class NDVIHybridGreen(SpectralBlender):
         # Copy should remain `True` as dask operations require copies to be made
         ndvi.data = np.nan_to_num(ndvi.data, True, self.ndvi_min)
 
-        # Compute pixel-level NIR blend fractions from ndvi using third-order polynomial
-        fraction = self.a + self.b * ndvi + self.c * ndvi**2 + self.d * ndvi**3
+        # Compute pixel-level NIR blend fractions from NDVI using third-order polynomial
+        fraction = self.a + ndvi * (self.b + ndvi * (self.c + self.d * ndvi))
         fraction = fraction.clip(0.0, 1.0)
 
         # Prepare input as required by parent class (SpectralBlender)
