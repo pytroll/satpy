@@ -133,9 +133,7 @@ class NDVIHybridGreen(SpectralBlender):
                 UserWarning,
                 stacklevel=2,
             )
-
-        for name in deprecated_args:
-            kwargs.pop(name, None)
+            kwargs.pop(name)
 
         self.ndvi_min = 0.1
         self.ndvi_max = 0.9
