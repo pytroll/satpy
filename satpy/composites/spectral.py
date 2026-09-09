@@ -121,7 +121,7 @@ class NDVIHybridGreen(SpectralBlender):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize class and set the NDVI limits for the correction.
+        """Initialize class and set the NDVI limits and regression coefficients for the correction.
 
         Also issue warning if any deprecated arguments from earlier implementation of the correction
         are used.
@@ -157,7 +157,7 @@ class NDVIHybridGreen(SpectralBlender):
         # Copy should remain `True` as dask operations require copies to be made
         ndvi.data = np.nan_to_num(ndvi.data, True, self.ndvi_min)
 
-        # Compute pixel-level NIR blend fractions from ndvi
+        # Compute pixel-level NIR blend fractions from ndvi using third-order polynomial
         fraction = self.a + self.b * ndvi + self.c * ndvi**2 + self.d * ndvi**3
         fraction = fraction.clip(0.0, 1.0)
 
