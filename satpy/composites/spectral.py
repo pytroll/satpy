@@ -129,7 +129,7 @@ class NDVIHybridGreen(SpectralBlender):
         deprecated_args = {"ndvi_min", "ndvi_max", "limits", "strength"}
         for name in deprecated_args & kwargs.keys():
             warnings.warn(
-                f"'{name}' is deprecated for NDVIHybridGreen and will be ignored.",
+                f"'{name}' has been deprecated for the NDVIHybridGreen Compositor and will be ignored.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -139,6 +139,10 @@ class NDVIHybridGreen(SpectralBlender):
 
         self.ndvi_min = 0.1
         self.ndvi_max = 0.9
+        self.a = 0.3940
+        self.b = -1.3701
+        self.c = 2.0206
+        self.d = -1.0349
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
@@ -154,7 +158,7 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi.data = np.nan_to_num(ndvi.data, True, self.ndvi_min)
 
         # Compute pixel-level NIR blend fractions from ndvi
-        fraction = -1.0349*ndvi**3 + 2.0206*ndvi**2 - 1.3701*ndvi + 0.3940
+        fraction = self.a + self.b * ndvi + self.c * ndvi**2 + self.d * ndvi**3
         fraction = fraction.clip(0.0, 1.0)
 
         # Prepare input as required by parent class (SpectralBlender)
