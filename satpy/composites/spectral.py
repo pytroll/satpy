@@ -147,6 +147,7 @@ class NDVIHybridGreen(SpectralBlender):
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Construct the NDVI hybrid green channel."""
+        LOG.info("Applying NDVI hybrid green correction.")
         projectables = self.match_data_arrays(projectables)
 
         ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
