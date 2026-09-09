@@ -41,9 +41,11 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attrs"]
 
-    Note that loading datasets requires reopening the original file
-    (unless those datasets are cached, see below), but to get just the
-    shape of the dataset append "/shape" to the item string:
+    Note that loading datasets requires opening the original file with
+    ``xarray`` (unless those datasets are cached, see below). That dataset is
+    then held open for the lifetime of this file handler; call ``close`` to
+    release it sooner. To get just the shape of the dataset append "/shape" to
+    the item string:
 
         wrapper["group/subgroup/var_name/shape"]
 
@@ -74,6 +76,9 @@ class NetCDF4FileHandler(BaseFileHandler):
     """
 
     file_handle = None
+    # ``xarray.Dataset`` objects held open for the lifetime of this file
+    # handler, keyed by group name. See ``_open_xr_dataset``.
+    _open_datasets = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
@@ -183,11 +188,30 @@ class NetCDF4FileHandler(BaseFileHandler):
                 variable_names.append(var)
         return variable_names
 
-    def __del__(self):
-        """Delete the file handler."""
+    def close(self):
+        """Close every file object this file handler is holding open.
+
+        Called automatically when the file handler is deleted. Call it directly
+        to release the file before then, for example to write to it.
+
+        """
         if self.file_handle is not None:
             with suppress(RuntimeError):
                 self.file_handle.close()
+        self._close_open_datasets()
+
+    def __del__(self):
+        """Delete the file handler."""
+        self.close()
+
+    def _close_open_datasets(self):
+        """Close the datasets held open by ``_open_xr_dataset``."""
+        if not self._open_datasets:
+            return
+        for nc in self._open_datasets.values():
+            with suppress(RuntimeError):
+                nc.close()
+        self._open_datasets.clear()
 
     def _collect_global_attrs(self, obj):
         """Collect all the global attributes for the provided file object."""
@@ -276,29 +300,43 @@ class NetCDF4FileHandler(BaseFileHandler):
             val = self._get_var_from_xr(group, key)
         return val
 
+    def _open_xr_dataset(self, group):
+        """Get the dataset for ``group``, opening and remembering it if needed.
+
+        The dataset is held open for the lifetime of this file handler. Opening
+        and closing it once per variable instead would give every returned lazy
+        array its own ``CachingFileManager``, and every manager its own entry in
+        xarray's global file cache. That cache is an LRU of ``file_cache_maxsize``
+        entries (128 by default), so reading more variables than that starts
+        evicting entries and closing netCDF4 handles that sibling arrays of the
+        same file are still reading through, which segfaults in libhdf5.
+
+        """
+        if self._open_datasets is None:
+            self._open_datasets = {}
+        if group not in self._open_datasets:
+            self._open_datasets[group] = xr.open_dataset(
+                self.filename, group=group, **self._xarray_kwargs)
+        return self._open_datasets[group]
+
     def _get_group(self, key, val):
         """Get a group from the netcdf file."""
         # Full groups are conveniently read with xr even if file_handle is available
-        with xr.open_dataset(self.filename, group=key,
-                             **self._xarray_kwargs) as nc:
-            val = nc
-        return val
+        # Copied so callers can modify metadata without touching the shared dataset.
+        return self._open_xr_dataset(key).copy()
 
     def _get_var_from_xr(self, group, key):
-        with xr.open_dataset(self.filename, group=group,
-                             **self._xarray_kwargs) as nc:
-            val = nc[key]
-            # Even though `chunks` is specified in the kwargs, xarray
-            # uses dask.arrays only for data variables that have at least
-            # one dimension; for zero-dimensional data variables (scalar),
-            # it uses its own lazy loading for scalars.  When those are
-            # accessed after file closure, xarray reopens the file without
-            # closing it again.  This will leave potentially many open file
-            # objects (which may in turn trigger a Segmentation Fault:
-            # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
-            if not val.chunks:
-                val.load()
-        return val
+        nc = self._open_xr_dataset(group)
+        val = nc[key]
+        # Even though `chunks` is specified in the kwargs, xarray
+        # uses dask.arrays only for data variables that have at least
+        # one dimension; for zero-dimensional data variables (scalar),
+        # it uses its own lazy loading for scalars.  Loading them now keeps
+        # them usable once this file handler and its datasets are gone.
+        if not val.chunks:
+            val.load()
+        # Copied so callers can modify metadata without touching the shared dataset.
+        return val.copy(deep=False)
 
     def _get_var_from_filehandle(self, group, key):
         # Not getting coordinates as this is more work, therefore more
