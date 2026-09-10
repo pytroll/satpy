@@ -4,7 +4,7 @@ enhancements:
     standard_name: ndvi_msi
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
         - min_value: -1
@@ -63,7 +63,7 @@ enhancements:
     standard_name: ndmi_msi
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - min_value: -0.8
@@ -90,7 +90,7 @@ enhancements:
     standard_name: ndwi_msi
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - min_value: -0.8
@@ -139,7 +139,7 @@ enhancements:
     standard_name: ndsi_msi
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - values: [0]
@@ -149,7 +149,7 @@ enhancements:
     standard_name: aot_msi
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - colors: rdylgn
@@ -161,7 +161,7 @@ enhancements:
     standard_name: wvp_msi
     operations:
     - name: colorize
-      method: !!python/name:satpy.enhancements.colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
       kwargs:
         palettes:
         - colors: rdylbu
@@ -175,7 +175,7 @@ enhancements:
     standard_name: scl_msi
     operations:
     - name: palettize
-      method: !!python/name:satpy.enhancements.palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
         - values: [

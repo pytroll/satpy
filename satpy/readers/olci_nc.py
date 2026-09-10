@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Sentinel-3 OLCI reader.
 
 This reader supports an optional argument to choose the 'engine' for reading
@@ -47,8 +30,8 @@ import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
-from satpy.readers import open_file_or_filename
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.utils import angle2xyz, get_legacy_chunk_size, xyz2angle
 
 # the order of the L1B quality flags are from highest 32nd bit to the lowest 1 bit

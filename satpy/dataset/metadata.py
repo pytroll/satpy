@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Utilities for merging metadata from various sources."""
 
@@ -26,7 +9,7 @@ from operator import eq, is_
 
 import numpy as np
 
-from satpy.writers.utils import flatten_dict
+from satpy.utils import flatten_dict
 
 
 def combine_metadata(*metadata_objects, average_times=None):
@@ -148,7 +131,7 @@ def average_datetimes(datetime_list):
         time zone (UTC).
 
     Args:
-        datetime_list (iterable): Datetime objects to average
+        datetime_list (Iterable): Datetime objects to average
 
     Returns: Average datetime as a datetime object
 
@@ -199,8 +182,9 @@ def _all_arrays_equal(arrays):
 
     If the arrays are lazy, just check if they have the same identity.
     """
-    if hasattr(arrays[0], "compute"):
+    if getattr(arrays[0], "chunks", None) is not None:
         return _all_identical(arrays)
+
     return _all_values_equal(arrays)
 
 

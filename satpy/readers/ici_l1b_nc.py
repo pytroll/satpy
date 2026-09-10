@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2022 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """EUMETSAT EPS-SG Ice Cloud Imager (ICI) Level 1B products reader.
 
@@ -37,7 +20,7 @@ import numpy as np
 import xarray as xr
 from geotiepoints.geointerpolator import GeoInterpolator
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -292,13 +275,13 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             b: temperature coefficient [K].
 
         Returns:
-            DataArray: array containing the calibrated brightness
+            array containing the calibrated brightness
                 temperature values.
 
         """
         return b + (a * C2 * cw / np.log(1 + C1 * cw ** 3 / radiance))
 
-    def _calibrate(self, variable, dataset_info):
+    def _calibrate(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
 
         Args:
@@ -306,7 +289,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             dataset_info: dictionary of information about the dataset.
 
         Returns:
-            DataArray: array containing the calibrated values and all the
+            array containing the calibrated values and all the
                 original metadata.
 
         """
@@ -325,7 +308,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
         return calibrated_variable
 
-    def _orthorectify(self, variable, orthorect_data_name):
+    def _orthorectify(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
         """Perform the orthorectification.
 
         Args:
@@ -335,7 +318,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 in the product.
 
         Returns:
-            DataArray: array containing the corrected values and all the
+            array containing the corrected values and all the
                 original metadata.
 
         """

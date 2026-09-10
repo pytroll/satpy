@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to GEOCAT HDF4 or NetCDF4 products.
 
 Note: GEOCAT files do not currently have projection information or precise
@@ -37,7 +20,7 @@ import numpy as np
 from pyproj import Proj
 from pyresample import geometry
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -168,7 +151,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         information down the chain.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """
@@ -204,7 +187,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         for var_name, val in self.file_content.items():
             if var_name in handled_variables:
                 continue
-            if isinstance(val, netCDF4.Variable):
+            if self.accessor.is_variable(val):
                 ds_info = {
                     "file_type": self.filetype_info["file_type"],
                     "resolution": res,

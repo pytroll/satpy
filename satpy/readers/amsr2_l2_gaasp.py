@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """GCOM-W1 AMSR2 Level 2 files from the GAASP software.
 
@@ -35,6 +18,21 @@ southern hemisphere or both depending on what files are provided to Satpy, this
 reader appends a `_NH` and `_SH` suffix to all variable names that are
 dynamically discovered from the provided files.
 
+Data Quality Filtering
+^^^^^^^^^^^^^^^^^^^^^^
+
+Some variables can be filtered based on Quality Control (QC) variables in the
+data files. At the time of writing the only supported filtering is the "WSPD"
+variable from the "OCEAN" files using the "WSPD_QC" variable. Where the QC
+variable is non-zero the WSPD data is set to NaN. By default no filtering is
+applied. To enable filtering pass the keyword arguments to the ``Scene``::
+
+    scn = Scene(reader="amsr2_l2_gaasp", filenames=[...],
+                reader_kwargs={"filter_wind_speed": True})
+
+Note that many variables in the GAASP data files already have additional
+quality filtering applied by the algorithm.
+
 """
 
 import datetime as dt
@@ -47,7 +45,7 @@ from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
 from satpy._compat import cached_property
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -74,6 +72,11 @@ class GAASPFileHandler(BaseFileHandler):
         "Number_of_low_rez_FOVs": 10000,
     }
 
+    def __init__(self, filename, filename_info, filetype_info, filter_wind_speed=False):
+        """Initialize file reading and store filter keyword arguments."""
+        super().__init__(filename, filename_info, filetype_info)
+        self.filter_wind_speed = filter_wind_speed
+
     @cached_property
     def nc(self):
         """Get the xarray dataset for this file."""
@@ -81,6 +84,7 @@ class GAASPFileHandler(BaseFileHandler):
                   self.y_dims + self.x_dims + self.time_dims}
         nc = xr.open_dataset(self.filename,
                              decode_cf=True,
+                             decode_timedelta=False,
                              mask_and_scale=False,
                              chunks=chunks)
 
@@ -129,7 +133,8 @@ class GAASPFileHandler(BaseFileHandler):
         add_offset = attrs.pop("add_offset", 0.)
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
-            data_arr = data_arr * scale_factor + add_offset
+            new_dtype = np.float32 if np.issubdtype(data_arr.dtype, np.integer) else data_arr.dtype.type
+            data_arr = data_arr * new_dtype(scale_factor) + new_dtype(add_offset)
         return data_arr, attrs
 
     @staticmethod
@@ -149,12 +154,13 @@ class GAASPFileHandler(BaseFileHandler):
         is_int = np.issubdtype(data_arr.dtype, np.integer)
         has_flag_comment = "comment" in attrs
         if is_int and has_flag_comment:
-            # category product
+            # category or timedelta product
             fill_out = fill_value
             attrs["_FillValue"] = fill_out
         else:
             fill_out = self._nan_for_dtype(data_arr.dtype)
         if fill_value is not None:
+            data_arr.data.compute().astype("float32")
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
         return data_arr, attrs
 
@@ -165,6 +171,7 @@ class GAASPFileHandler(BaseFileHandler):
         attrs = data_arr.attrs.copy()
         data_arr, attrs = self._scale_data(data_arr, attrs)
         data_arr, attrs = self._fill_data(data_arr, attrs)
+        data_arr = self._filter_by_qc(orig_var_name, data_arr)
 
         attrs.update({
             "platform_name": self.platform_name,
@@ -179,6 +186,13 @@ class GAASPFileHandler(BaseFileHandler):
         data_arr = data_arr.reset_coords(drop=True)
         data_arr.attrs = attrs
         return data_arr
+
+    def _filter_by_qc(self, orig_var_name: str, data_arr: xr.DataArray) -> xr.DataArray:
+        if orig_var_name == "WSPD" and self.filter_wind_speed:
+            wspd_qc = self.nc["WSPD_QC"]
+            data_arr = data_arr.where(wspd_qc == 0)
+        return data_arr
+
 
     def _available_if_this_file_type(self, configured_datasets):
         for is_avail, ds_info in (configured_datasets or []):
@@ -234,7 +248,7 @@ class GAASPFileHandler(BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
 
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        See :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for more information.
 
         """

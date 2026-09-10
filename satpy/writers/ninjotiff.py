@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for TIFF images compatible with the NinJo visualization tool (NinjoTIFFs).
 
 NinjoTIFFs can be color images or monochromatic. For monochromatic images, the
@@ -84,7 +67,7 @@ import pyninjotiff.ninjotiff as nt
 import xarray as xr
 from trollimage.xrimage import invert_scale_offset
 
-from satpy.writers import ImageWriter
+from satpy.writers.core.image import ImageWriter
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +85,7 @@ def convert_units(dataset, in_unit, out_unit):
     returns the input dataset.
 
     Args:
-        dataset (xarray DataArray):
+        dataset (xarray.DataArray):
             Dataarray for which to convert the units.
         in_unit (str):
             Unit for input data.
@@ -175,7 +158,7 @@ class NinjoTIFFWriter(ImageWriter):
                     )
         if img.mode.startswith("P"):
             img.data = img.data.astype(np.uint8)
-        return nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)
+        return [nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)]
 
     def save_dataset(
         self, dataset, filename=None, fill_value=None, compute=True,

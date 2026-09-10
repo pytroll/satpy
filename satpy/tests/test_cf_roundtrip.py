@@ -1,25 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test roundripping the cf writer and reader."""
 
 import os
 
 import numpy as np
+import pytest
 
 from satpy import Scene
 from satpy.tests.reader_tests.test_viirs_compact import fake_dnb, fake_dnb_file  # noqa
@@ -29,6 +13,9 @@ from satpy.tests.reader_tests.test_viirs_compact import fake_dnb, fake_dnb_file 
 # - tmp_path
 
 
+# ignore that the "coordinates" added by the reader aren't found in the existing list of variables
+# the correct lon/lat coordinates are listed in the final netcdf file
+@pytest.mark.filterwarnings("ignore:Coordinate .*itude_dnb.* referenced by dataarray DNB:UserWarning")
 def test_cf_roundtrip(fake_dnb_file, tmp_path):  # noqa
     """Test the cf writing reading cycle."""
     dnb_filename = os.fspath(fake_dnb_file)

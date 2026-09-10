@@ -1,18 +1,3 @@
-# Copyright (c) 2010-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for Scene creation."""
 
 import os
@@ -97,7 +82,7 @@ class TestScene:
 
     def test_init_with_fsfile(self):
         """Test initialisation with FSFile objects."""
-        from satpy.readers import FSFile
+        from satpy.readers.core.remote import FSFile
 
         # We should not mock _create_reader_instances here, because in
         # https://github.com/pytroll/satpy/issues/1605 satpy fails with
@@ -124,13 +109,13 @@ class TestScene:
 
     def test_create_reader_instances_with_reader_kwargs(self):
         """Test creating a reader instance with reader kwargs."""
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
         reader_kwargs = {"calibration_type": "gsics"}
         filter_parameters = {"area": "euron1"}
         reader_kwargs2 = {"calibration_type": "gsics", "filter_parameters": filter_parameters}
 
         rinit = spy_decorator(FileYAMLReader.create_filehandlers)
-        with mock.patch("satpy.readers.yaml_reader.FileYAMLReader.create_filehandlers", rinit):
+        with mock.patch("satpy.readers.core.yaml_reader.FileYAMLReader.create_filehandlers", rinit):
             scene = Scene(filenames=["fake1_1.txt"],
                           reader="fake1",
                           filter_parameters={"area": "euron1"},
@@ -146,8 +131,8 @@ class TestScene:
 
     def test_create_multiple_reader_different_kwargs(self, include_test_etc):
         """Test passing different kwargs to different readers."""
-        from satpy.readers import load_reader
-        with mock.patch.object(satpy.readers, "load_reader", wraps=load_reader) as lr:
+        from satpy.readers.core.loading import load_reader
+        with mock.patch.object(satpy.readers.core.loading, "load_reader", wraps=load_reader) as lr:
             Scene(filenames={"fake1_1ds": ["fake1_1ds_1.txt"],
                              "fake2_1ds": ["fake2_1ds_1.txt"]},
                   reader_kwargs={

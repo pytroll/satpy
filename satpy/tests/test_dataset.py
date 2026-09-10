@@ -1,18 +1,3 @@
-# Copyright (c) 2015-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Test objects and functions in the dataset module."""
 
@@ -292,6 +277,22 @@ class TestCombineMetadata(unittest.TestCase):
                          {"valid_range": da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
         result = combine_metadata(*test_metadata)
         assert "valid_range" not in result
+
+    def test_combine_xarray_arrays(self):
+        """Test combining values that are non daskified xarray dataArrays."""
+        import xarray as xr
+
+        from satpy.dataset.metadata import combine_metadata
+
+        test_metadata = [{"valid_range": xr.DataArray(np.array([0., 0.00032], dtype=np.float32),
+                         attrs={"_FillValue": -9999})},
+                         {"valid_range": xr.DataArray(np.array([0., 0.00032], dtype=np.float32),
+                         attrs={"_FillValue": -9999})},
+                         {"valid_range": xr.DataArray(np.array([0., 0.00032], dtype=np.float32),
+                         attrs={"_FillValue": -9999})}]
+        result = combine_metadata(*test_metadata)
+        assert np.allclose(result["valid_range"], xr.DataArray(np.array([0., 0.00032], dtype=np.float32),
+                         attrs={"_FillValue": -9999}))
 
     def test_combine_real_world_mda(self):
         """Test with real data."""

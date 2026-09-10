@@ -28,7 +28,7 @@ modifiers:
 composites:
 
   overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: S2
       modifiers: [sunz_corrected]
@@ -38,7 +38,7 @@ composites:
     standard_name: overview
 
   natural_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: S5
       modifiers: [sunz_corrected]
@@ -49,7 +49,7 @@ composites:
     standard_name: natural_color
 
   day_microphysics:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: S3
       modifiers: [sunz_corrected]

@@ -48,13 +48,13 @@ Compression
 -----------
 
 Gzip-compressed VISSR files can be decompressed on the fly using
-:class:`~satpy.readers.FSFile`:
+:class:`~satpy.readers.core.remote.FSFile`:
 
 .. code-block:: python
 
     import fsspec
     from satpy import Scene
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     filename = "VISSR_19960217_2331_IR1.A.IMG.gz"
     open_file = fsspec.open(filename, compression="gzip")
@@ -158,12 +158,12 @@ import numba
 import numpy as np
 import xarray as xr
 
-import satpy.readers._geos_area as geos_area
+import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms5_vissr_navigation as nav
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import generic_open
 from satpy.readers.hrit_jma import mjd2datetime64
-from satpy.readers.utils import generic_open
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()

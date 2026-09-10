@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for GERB L2 HR HDF5 reader."""
 
 import h5py
@@ -22,7 +5,6 @@ import numpy as np
 import pytest
 
 from satpy import Scene
-from satpy.tests.utils import xfail_h5py_unstable_numpy2
 
 FNAME = "G4_SEV4_L20_HR_SOL_TH_20190606_130000_V000.hdf"
 
@@ -44,7 +26,7 @@ def write_h5_null_string_att(loc_id, name, s):
     at.write(np.array(s, dtype=f"|S{len(s)+1}"))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     """Create a dummy HDF5 file for the GERB L2 HR product."""
     filename = tmp_path_factory.mktemp("data") / FNAME
@@ -121,11 +103,12 @@ def gerb_l2_hr_h5_dummy_file(tmp_path_factory):
     return filename
 
 
-@pytest.mark.xfail(xfail_h5py_unstable_numpy2(), reason="h5py doesn't include numpy 2 fix")
 @pytest.mark.parametrize("name", ["Solar Flux", "Thermal Flux", "Solar Radiance", "Thermal Radiance"])
-def test_dataset_load(gerb_l2_hr_h5_dummy_file, name):
+@pytest.mark.parametrize("area", [None, "msg_seviri_iodc_9km"])
+def test_dataset_load(gerb_l2_hr_h5_dummy_file, name, area):
     """Test loading the solar flux component."""
-    scene = Scene(reader="gerb_l2_hr_h5", filenames=[gerb_l2_hr_h5_dummy_file])
+    scene = Scene(reader="gerb_l2_hr_h5", filenames=[gerb_l2_hr_h5_dummy_file],
+                  reader_kwargs={"area": area})
     scene.load([name])
     assert scene[name].shape == (1237, 1237)
     assert np.nanmax((scene[name].to_numpy().flatten() - 0.25)) < 1e-6

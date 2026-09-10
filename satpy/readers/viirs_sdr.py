@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2011-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to VIIRS SDR format.
 
 This reader implements the support of VIIRS SDR files as produced by CSPP and CLASS.
@@ -37,8 +20,8 @@ from glob import glob
 
 import numpy as np
 
-from satpy.readers.viirs_atms_sdr_base import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.core.viirs_atms_sdr import ATMS_DATASET_KEYS, DATASET_KEYS, VIIRS_DATASET_KEYS, JPSS_SDR_FileHandler
+from satpy.readers.core.yaml_reader import FileYAMLReader
 
 NO_DATE = dt.datetime(1958, 1, 1)
 EPSILON_TIME = dt.timedelta(days=2)
@@ -190,10 +173,10 @@ class VIIRSSDRReader(FileYAMLReader):
         """Initialize file reader and adjust geolocation preferences.
 
         Args:
-            config_files (iterable): yaml config files passed to base class
-            use_tc (boolean): If `True` use the terrain corrected
-                              files. If `False`, switch to non-TC files. If
-                              `None` (default), use TC if available, non-TC otherwise.
+            config_files (Iterable): yaml config files passed to base class
+            use_tc (bool): If `True` use the terrain corrected
+                           files. If `False`, switch to non-TC files. If
+                           `None` (default), use TC if available, non-TC otherwise.
 
         """
         super().__init__(config_files, **kwargs)

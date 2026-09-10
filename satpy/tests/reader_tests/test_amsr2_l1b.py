@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.amsr2_l1b module."""
 
 import os
@@ -119,7 +102,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
@@ -131,7 +114,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
     def test_load_basic(self):
         """Test loading of basic channels."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",
@@ -165,7 +148,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
     def test_load_89ghz(self):
         """Test loading of 89GHz channels."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5",

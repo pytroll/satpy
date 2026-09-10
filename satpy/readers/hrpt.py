@@ -1,26 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2009-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reading and calibrating hrpt avhrr data.
-
-Todo:
-- AMSU
-- Compare output with AAPP
 
 Reading:
 http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c4/sec4-1.htm#t413-1
@@ -43,27 +22,27 @@ from pyorbital.orbital import Orbital
 
 from satpy._compat import cached_property
 from satpy.readers.aapp_l1b import get_avhrr_lac_chunks
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
 
-dtype = np.dtype([("frame_sync", ">u2", (6, )),
-                  ("id", [("id", ">u2"),
-                          ("spare", ">u2")]),
-                  ("timecode", ">u2", (4, )),
-                  ("telemetry", [("ramp_calibration", ">u2", (5, )),
-                                 ("PRT", ">u2", (3, )),
-                                 ("ch3_patch_temp", ">u2"),
-                                 ("spare", ">u2"), ]),
-                  ("back_scan", ">u2", (10, 3)),
-                  ("space_data", ">u2", (10, 5)),
-                  ("sync", ">u2"),
-                  ("TIP_data", ">u2", (520, )),
-                  ("spare", ">u2", (127, )),
-                  ("image_data", ">u2", (2048, 5)),
-                  ("aux_sync", ">u2", (100, ))])
+scanline_dtype = np.dtype([("frame_sync", ">u2", (6, )),
+                           ("id", [("id", ">u2"),
+                                   ("spare", ">u2")]),
+                           ("timecode", ">u2", (4, )),
+                           ("telemetry", [("ramp_calibration", ">u2", (5, )),
+                                          ("PRT", ">u2", (3, )),
+                                          ("ch3_patch_temp", ">u2"),
+                                          ("spare", ">u2"), ]),
+                           ("back_scan", ">u2", (10, 3)),
+                           ("space_data", ">u2", (10, 5)),
+                           ("sync", ">u2"),
+                           ("TIP_data", ">u2", (520, )),
+                           ("spare", ">u2", (127, )),
+                           ("image_data", ">u2", (2048, 5)),
+                           ("aux_sync", ">u2", (100, ))])
 
 
 def time_seconds(tc_array, year):
@@ -131,7 +110,7 @@ class HRPTFile(BaseFileHandler):
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: "counts" for i in AVHRR_CHANNEL_NAMES}
 
-        self.year = filename_info.get("start_time", dt.datetime.utcnow()).year
+        self.year = filename_info["start_time"].year
 
     @cached_property
     def times(self):
@@ -151,9 +130,9 @@ class HRPTFile(BaseFileHandler):
     def read(self):
         """Read the file."""
         with open(self.filename, "rb") as fp_:
-            data = np.memmap(fp_, dtype=dtype, mode="r")
+            data = np.memmap(fp_, dtype=scanline_dtype, mode="r")
         if np.all(np.median(data["frame_sync"], axis=0) > 1024):
-            data = self._data.newbyteorder()
+            data = data.view(data.dtype.newbyteorder())
         return data
 
     @cached_property
@@ -209,7 +188,7 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_thermal_channel(self, data, key):
         """Calibrate a thermal channel."""
-        from pygac.calibration import calibrate_thermal
+        from pygac.calibration.noaa import calibrate_thermal
         line_numbers = (
             np.round((self.times - self.times[-1]) /
                      np.timedelta64(166666667, "ns"))).astype(int)
@@ -223,7 +202,7 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_solar_channel(self, data, key):
         """Calibrate a solar channel."""
-        from pygac.calibration import calibrate_solar
+        from pygac.calibration.noaa import calibrate_solar
         julian_days = ((np.datetime64(self.start_time)
                         - np.datetime64(str(self.year) + "-01-01T00:00:00"))
                        / np.timedelta64(1, "D"))
@@ -234,7 +213,7 @@ class HRPTFile(BaseFileHandler):
     @cached_property
     def calibrator(self):
         """Create a calibrator for the data."""
-        from pygac.calibration import Calibrator
+        from pygac.calibration.noaa import Calibrator
         pg_spacecraft = "".join(self.platform_name.split()).lower()
         return Calibrator(pg_spacecraft)
 

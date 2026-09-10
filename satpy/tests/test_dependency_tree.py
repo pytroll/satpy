@@ -1,18 +1,3 @@
-# Copyright (c) 2020-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the dependency tree class and dependencies."""
 
 import os
@@ -119,10 +104,10 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
         """Test a modis overview dependency calculation with resolution fixed to 1000m."""
         from satpy import DataQuery
         from satpy._config import PACKAGE_CONFIG_PATH
-        from satpy.composites import GenericCompositor
+        from satpy.composites.core import GenericCompositor
         from satpy.dataset import DatasetDict
         from satpy.modifiers.geometry import SunZenithCorrector
-        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.readers.core.yaml_reader import FileYAMLReader
 
         config_file = os.path.join(PACKAGE_CONFIG_PATH, "readers", "modis_l1b.yaml")
         self.reader_instance = FileYAMLReader.from_config_files(config_file)
@@ -167,7 +152,7 @@ class TestMultipleSensors(unittest.TestCase):
 
     def setUp(self):
         """Set up the test tree."""
-        from satpy.composites import CompositeBase
+        from satpy.composites.core import CompositeBase
         from satpy.dataset.data_dict import DatasetDict
         from satpy.modifiers import ModifierBase
 

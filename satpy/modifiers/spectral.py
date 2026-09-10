@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes dealing with spectral domain changes or corrections."""
 
 import logging
@@ -66,7 +49,9 @@ class NIRReflectance(ModifierBase):
 
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
-        projectables = self.match_data_arrays(projectables)
+        matched_data_arrs = self.match_data_arrays(projectables + optional_datasets)
+        projectables = matched_data_arrs[:len(projectables)]
+        optional_datasets = matched_data_arrs[len(projectables):]
         inputs = self._get_nir_inputs(projectables, optional_datasets)
         return self._get_reflectance_as_dataarray(*inputs)
 

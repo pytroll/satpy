@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader."""
 
 import datetime as dt
@@ -23,10 +6,10 @@ import logging
 import numpy as np
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler, open_dataset
-from satpy.readers.seviri_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.file_handlers import BaseFileHandler, open_dataset
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     SATNUM,
     CalibParams,
@@ -53,13 +36,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`. Note that there is only one set of
+    See :mod:`satpy.readers.core.seviri`. Note that there is only one set of
     calibration coefficients available in the netCDF files and therefore there
     is no `calib_mode` argument.
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 
@@ -175,7 +158,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
         dataset = self.calibrate(dataset, dataset_id)
         is_calibration = dataset_id["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
-        if (is_calibration and self.mask_bad_quality_scan_lines):  # noqa: E129
+        if (is_calibration and self.mask_bad_quality_scan_lines):
             dataset = self._mask_bad_quality(dataset, dataset_info)
 
         self._update_attrs(dataset, dataset_info)

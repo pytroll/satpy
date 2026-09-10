@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for netCDF4/CF.
 
 Example usage
@@ -161,7 +146,7 @@ import xarray as xr
 from packaging.version import InvalidVersion, Version
 
 from satpy.cf.coords import EPOCH  # noqa: F401 (for backward compatibility)
-from satpy.writers import Writer
+from satpy.writers.core.base import Writer
 
 logger = logging.getLogger(__name__)
 
@@ -245,19 +230,19 @@ class CFWriter(Writer):
                 The group name `None` corresponds to the root of the file, i.e., no group will be created.
                 Warning: The results will not be fully CF compliant!
             header_attrs: Global attributes to be included.
-            engine (str, optional): Module to be used for writing netCDF files. Follows xarray's
+            engine (str, Optional): Module to be used for writing netCDF files. Follows xarray's
                 :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
-            epoch (str, optional): Reference time for encoding of time coordinates.
+            epoch (str, Optional): Reference time for encoding of time coordinates.
                 If None, the default reference time is defined using `from satpy.cf.coords import EPOCH`.
-            flatten_attrs (bool, optional): If True, flatten dict-type attributes.
-            exclude_attrs (list, optional): List of dataset attributes to be excluded.
-            include_lonlats (bool, optional): Always include latitude and longitude coordinates,
+            flatten_attrs (bool, Optional): If True, flatten dict-type attributes.
+            exclude_attrs (list, Optional): List of dataset attributes to be excluded.
+            include_lonlats (bool, Optional): Always include latitude and longitude coordinates,
                 even for datasets with area definition.
-            pretty (bool, optional): Don't modify coordinate names, if possible.
+            pretty (bool, Optional): Don't modify coordinate names, if possible.
                 Makes the file prettier, but possibly less consistent.
-            include_orig_name (bool, optional): Include the original dataset name as a variable
+            include_orig_name (bool, Optional): Include the original dataset name as a variable
                 attribute in the final netCDF.
-            numeric_name_prefix (str, optional): Prefix to add to each variable with a name starting with a digit.
+            numeric_name_prefix (str, Optional): Prefix to add to each variable with a name starting with a digit.
                 Use '' or None to leave this out.
         """
         from satpy.cf.datasets import collect_cf_datasets
@@ -321,7 +306,7 @@ class CFWriter(Writer):
         """Convert the dataarray to something cf-compatible.
 
         Args:
-            dataarray (xr.DataArray):
+            dataarray (xarray.DataArray):
                 The data array to be converted.
             epoch (str):
                 Reference time for encoding of time coordinates.

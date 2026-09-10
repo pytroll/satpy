@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """HRIT format reader.
 
@@ -30,8 +13,8 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hrit_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hrit import (
     HRITFileHandler,
     ancillary_text,
     annotation_header,
@@ -249,7 +232,7 @@ C2 = 1.43877523
 
 
 # Defined in MSG Level 1.5 Image Data Format Description
-# https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+# https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05105_msg_img_data_e7c8b315e6.pdf
 SPACECRAFTS = {19001: "Electro-L N1",
                19002: "Electro-L N2",
                19003: "Electro-L N3"}

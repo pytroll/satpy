@@ -1,21 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2023 Satpy Developers
-
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Test common VIIRS/ATMS SDR reader functions."""
 
@@ -26,7 +8,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.viirs_atms_sdr_base import _get_file_units, _get_scale_factors_for_units
+from satpy.readers.core.viirs_atms_sdr import _get_file_units, _get_scale_factors_for_units
 from satpy.tests.utils import make_dataid
 
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)

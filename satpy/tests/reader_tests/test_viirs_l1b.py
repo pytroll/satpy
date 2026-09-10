@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_l1b module."""
 
 import datetime as dt
@@ -36,16 +19,17 @@ DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
-
 class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler."""
 
     M_REFL_BANDS = [f"M{band_num:02d}" for band_num in range(1, 12)]
     M_BT_BANDS = [f"M{band_num:02d}" for band_num in range(12, 17)]
     M_BANDS = M_REFL_BANDS + M_BT_BANDS
+    M_BANDS_FLAG = [f"{band}_quality_flags" for band in M_BANDS]
     I_REFL_BANDS = [f"I{band_num:02d}" for band_num in range(1, 4)]
     I_BT_BANDS = [f"I{band_num:02d}" for band_num in range(4, 6)]
     I_BANDS = I_REFL_BANDS + I_BT_BANDS
+    I_BANDS_FLAG = [f"{band}_quality_flags" for band in I_BANDS]
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
@@ -65,6 +49,9 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
             "/attr/orbit_number": 26384,
             "/attr/instrument": "VIIRS",
             "/attr/platform": "Suomi-NPP",
+            "/attr/DayNightFlag": "Day",
+            "/attr/startDirection": "Descending",
+            "/attr/endDirection": "Ascending",
         }
         self._fill_contents_with_default_data(file_content, file_type)
         self._set_dataset_specific_metadata(file_content)
@@ -87,9 +74,13 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
         elif file_type == "vl1bm":
             for m_band in self.M_BANDS:
                 file_content[f"observation_data/{m_band}"] = DEFAULT_FILE_DATA
+            for m_band_flag in self.M_BANDS_FLAG:
+                file_content[f"observation_data/{m_band_flag}"] = DEFAULT_FILE_DATA
         elif file_type == "vl1bi":
             for i_band in self.I_BANDS:
                 file_content[f"observation_data/{i_band}"] = DEFAULT_FILE_DATA
+            for i_band_flag in self.I_BANDS_FLAG:
+                file_content[f"observation_data/{i_band_flag}"] = DEFAULT_FILE_DATA
         elif file_type == "vl1bd":
             file_content["observation_data/DNB_observations"] = DEFAULT_FILE_DATA
             file_content["observation_data/DNB_observations/attr/units"] = "Watts/cm^2/steradian"
@@ -119,11 +110,15 @@ class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
                 file_content[k + "/attr/units"] = "degrees_north"
             elif k.endswith("zenith") or k.endswith("azimuth"):
                 file_content[k + "/attr/units"] = "degrees"
-            file_content[k + "/attr/valid_min"] = 0
-            file_content[k + "/attr/valid_max"] = 65534
-            file_content[k + "/attr/_FillValue"] = 65535
-            file_content[k + "/attr/scale_factor"] = 1.1
-            file_content[k + "/attr/add_offset"] = 0.1
+
+            if k.endswith("quality_flags"):
+                file_content[k + "/attr/units"] = "none"
+            else:
+                file_content[k + "/attr/valid_min"] = 0
+                file_content[k + "/attr/valid_max"] = 65534
+                file_content[k + "/attr/_FillValue"] = 65535
+                file_content[k + "/attr/scale_factor"] = 1.1
+                file_content[k + "/attr/add_offset"] = 0.1
 
 
 class FakeNetCDF4FileHandlerNight(FakeNetCDF4FileHandlerDay):
@@ -161,7 +156,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -173,7 +168,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_available_datasets_m_bands(self):
         """Test available datasets for M band files."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -183,11 +178,11 @@ class TestVIIRSL1BReaderDay:
         avail_names = r.available_dataset_names
         angles = {"satellite_azimuth_angle", "satellite_zenith_angle", "solar_azimuth_angle", "solar_zenith_angle"}
         geo = {"m_lon", "m_lat"}
-        assert set(avail_names) == set(self.fake_cls.M_BANDS) | angles | geo
+        assert set(avail_names) == set(self.fake_cls.M_BANDS) | angles | geo | set(self.fake_cls.M_BANDS_FLAG)
 
     def test_load_every_m_band_bt(self):
         """Test loading all M band brightness temperatures."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -212,7 +207,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
@@ -243,7 +238,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dataid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -275,12 +270,17 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
             assert v.attrs["sensor"] == "viirs"
+            assert v.attrs["day_night"] == "Day"
+            assert v.attrs["orbital_parameters"]["start_direction"] == "Descending"
+            assert v.attrs["orbital_parameters"]["end_direction"] == "Ascending"
+            assert v.attrs["orbital_parameters"]["start_orbit"] == 26384
+            assert v.attrs["orbital_parameters"]["end_orbit"] == 26384
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs
 
     def test_load_i_band_angles(self):
         """Test loading all M bands as radiances."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dataid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -305,7 +305,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BD_snpp_d20161130_t012400_c20161130054822.nc",
@@ -326,7 +326,7 @@ class TestVIIRSL1BReaderDay:
 
     def test_load_dnb_angles(self):
         """Test loading all DNB angle datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "VL1BD_snpp_d20161130_t012400_c20161130054822.nc",
@@ -346,6 +346,30 @@ class TestVIIRSL1BReaderDay:
             assert v.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 2
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 2
+            assert v.attrs["sensor"] == "viirs"
+            assert "scale_factor" not in v.attrs
+            assert "add_offset" not in v.attrs
+
+    def test_available_datasets_quality_flags(self):
+        """Test that <name>_quality_flags datasets are available when present."""
+        from satpy.readers.core.loading import load_reader
+
+        # Load the reader with fake file contents
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            "VL1BI_snpp_d20161130_t012400_c20161130054822.nc",
+            "VL1BM_snpp_d20161130_t012400_c20161130054822.nc",
+            "VGEOI_snpp_d20161130_t012400_c20161130054822.nc",
+            "VGEOM_snpp_d20161130_t012400_c20161130054822.nc",
+        ])
+        r.create_filehandlers(loadables)
+
+        datasets = r.load(["I01_quality_flags",
+                           "M01_quality_flags",
+                           ])
+        assert len(datasets) == 2
+        for v in datasets.values():
+            assert v.attrs["units"] == "1"
             assert v.attrs["sensor"] == "viirs"
             assert "scale_factor" not in v.attrs
             assert "add_offset" not in v.attrs

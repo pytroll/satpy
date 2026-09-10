@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The HRIT msg reader tests package."""
 
@@ -32,8 +15,7 @@ import xarray as xr
 from numpy import testing as npt
 from pyproj import CRS
 
-import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
-from satpy.readers import FSFile
+import satpy.tests.reader_tests.seviri_l1b_hrit_setup as setup
 from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
@@ -66,7 +48,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         })
         self.reader.fill_hrv = True
 
-    @mock.patch("satpy.readers.hrit_base.np.memmap")
+    @mock.patch("satpy.readers.core.hrit.np.memmap")
     def test_read_hrv_band(self, memmap):
         """Test reading the hrv band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
@@ -183,7 +165,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
         assert area.area_id == "msg_seviri_rss_3km"
 
-    @mock.patch("satpy.readers.hrit_base.np.memmap")
+    @mock.patch("satpy.readers.core.hrit.np.memmap")
     def test_read_band(self, memmap):
         """Test reading a band."""
         nbits = self.reader.mda["number_of_bits_per_pixel"]
@@ -305,7 +287,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         self.reader = fh.prologue_
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the prologue file handler accepts extra keyword arguments."""
 
@@ -338,7 +320,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     """Test the HRIT epilogue file handler."""
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def setUp(self, init, *mocks):
         """Set up the test case."""
 
@@ -353,7 +335,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
                                                  calib_mode="nominal")
 
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue")
-    @mock.patch("satpy.readers.hrit_base.HRITFileHandler.__init__", autospec=True)
+    @mock.patch("satpy.readers.core.hrit.HRITFileHandler.__init__", autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the epilogue file handler accepts extra keyword arguments."""
 
@@ -509,17 +491,16 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_equal(res, expected)
 
 
-@pytest.fixture(scope="session")
-def prologue_file(session_tmp_path, prologue_header_contents):
+@pytest.fixture(scope="module")
+def prologue_file(session_tmp_path):
     """Create a dummy prologue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_prologue
-    header = prologue_header_contents
+    header = prologue_header_contents()
     contents = np.void(1, dtype=hrit_prologue)
     contents["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"] = 324
     return create_file(session_tmp_path / "prologue", header + [contents])
 
 
-@pytest.fixture(scope="session")
 def prologue_header_contents():
     """Get the contents of the header."""
     return [
@@ -537,16 +518,15 @@ def prologue_header_contents():
     ]
 
 
-@pytest.fixture(scope="session")
-def epilogue_file(session_tmp_path, epilogue_header_contents):
+@pytest.fixture(scope="module")
+def epilogue_file(session_tmp_path):
     """Create a dummy epilogue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue
-    header = epilogue_header_contents
+    header = epilogue_header_contents()
     contents = np.void(1, dtype=hrit_epilogue)
     return create_file(session_tmp_path / "epilogue", header + [contents])
 
 
-@pytest.fixture(scope="session")
 def epilogue_header_contents():
     """Get the contents of the header."""
     return [
@@ -569,7 +549,7 @@ def create_file(filename, file_contents):
     return filename
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def segment_file(session_tmp_path):
     """Create a segment_file."""
     cols = 3712
@@ -622,7 +602,7 @@ def test_read_real_segment(prologue_file, epilogue_file, segment_file):
     res.compute()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file, segment_file):
     """Return the fsspec paths to the given seviri hrit files inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_hrit.zip"
@@ -634,6 +614,8 @@ def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file,
 
 def test_read_real_segment_zipped(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as FSFile."""
+    from satpy.readers.core.remote import FSFile
+
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))
     prologue_fh = HRITMSGPrologueFileHandler(prologue, info, dict())
@@ -657,8 +639,11 @@ def to_upath(fsfile):
     return path
 
 
+@pytest.mark.filterwarnings("ignore:UPath 'zip' filesystem not explicitly implemented:UserWarning")
 def test_read_real_segment_zipped_with_upath(compressed_seviri_hrit_files):
     """Test reading a remote hrit segment passed as UPath."""
+    from satpy.readers.core.remote import FSFile
+
     info = dict(start_time=dt.datetime(2018, 2, 28, 15, 0), service="")
 
     prologue = FSFile(fsspec.open(compressed_seviri_hrit_files["prologue"]))

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Unit tests for saving animations using Multiscene."""
 
@@ -53,7 +36,7 @@ class TestMultiSceneSave(unittest.TestCase):
         except OSError:
             pass
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_mp4_distributed(self):
         """Save a series of fake scenes to an mp4 video."""
         from satpy import MultiScene
@@ -115,7 +98,7 @@ class TestMultiSceneSave(unittest.TestCase):
         assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
         assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_mp4_no_distributed(self):
         """Save a series of fake scenes to an mp4 video when distributed isn't available."""
         from satpy import MultiScene
@@ -155,7 +138,7 @@ class TestMultiSceneSave(unittest.TestCase):
         assert filenames[1] == "test_save_mp4_ds2_20180101_00_20180102_12.mp4"
         assert filenames[2] == "test_save_mp4_ds3_20180102_00_20180102_12.mp4"
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_simple(self):
         """Save a series of fake scenes to an PNG images."""
         from satpy import MultiScene
@@ -186,7 +169,7 @@ class TestMultiSceneSave(unittest.TestCase):
         # 2 for each scene
         assert save_datasets.call_count == 2
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_distributed_delayed(self):
         """Test distributed save for writers returning delayed obejcts e.g. simple_image."""
         from dask.delayed import Delayed
@@ -221,7 +204,7 @@ class TestMultiSceneSave(unittest.TestCase):
         # 2 for each scene
         assert save_datasets.call_count == 2
 
-    @mock.patch("satpy.multiscene._multiscene.get_enhanced_image", _fake_get_enhanced_image)
+    @mock.patch("satpy.enhancements.enhancer.get_enhanced_image", _fake_get_enhanced_image)
     def test_save_datasets_distributed_source_target(self):
         """Test distributed save for writers returning sources and targets e.g. geotiff writer."""
         import dask.array as da
@@ -249,7 +232,7 @@ class TestMultiSceneSave(unittest.TestCase):
         source_mock.__class__ = da.Array
         target_mock = mock.MagicMock()
         with mock.patch("satpy.multiscene._multiscene.Scene.save_datasets") as save_datasets:
-            save_datasets.return_value = [(source_mock, target_mock)]  # some arbitrary return value
+            save_datasets.return_value = ([source_mock], [target_mock])  # some arbitrary return value
             # force order of datasets by specifying them
             with pytest.raises(NotImplementedError):
                 mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=["ds1", "ds2", "ds3"],
@@ -302,7 +285,7 @@ class TestMultiSceneSave(unittest.TestCase):
         assert new_scn1["4"].shape == (92, 357)
 
 
-@mock.patch("satpy.multiscene._multiscene.get_enhanced_image")
+@mock.patch("satpy.enhancements.enhancer.get_enhanced_image")
 def test_save_mp4(smg, tmp_path):
     """Save a series of fake scenes to an mp4 video."""
     from satpy import MultiScene

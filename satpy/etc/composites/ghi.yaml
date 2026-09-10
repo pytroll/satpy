@@ -2,7 +2,7 @@ sensor_name: visir/ghi
 
 composites:
   true_color:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C04
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -13,7 +13,7 @@ composites:
     standard_name: true_color
 
   true_color_nocorr:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C04
       - name: C03

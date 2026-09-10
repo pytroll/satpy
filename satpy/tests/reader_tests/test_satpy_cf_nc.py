@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for the CF reader."""
 
@@ -39,7 +22,7 @@ def _create_test_netcdf(filename, resolution=742):
     size = 2
     if resolution == 371:
         size = 4
-    data_visir = np.array(np.arange(1, size * size + 1)).reshape(size, size)
+    data_visir = np.array(np.arange(1.0, size * size + 1)).reshape(size, size)
     lat = 33.0 * data_visir
     lon = -13.0 * data_visir
 
@@ -89,7 +72,7 @@ def _create_test_netcdf(filename, resolution=742):
     return filename
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def area():
     """Get area definition."""
     area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
@@ -105,7 +88,7 @@ def area():
     return area
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def common_attrs(area):
     """Get common dataset attributes."""
     return {
@@ -118,7 +101,7 @@ def common_attrs(area):
     }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def xy_coords(area):
     """Get projection coordinates."""
     x, y = area.get_proj_coords()
@@ -127,7 +110,7 @@ def xy_coords(area):
     return x, y
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def vis006(xy_coords, common_attrs):
     """Get VIS006 dataset."""
     x, y = xy_coords
@@ -157,31 +140,33 @@ def vis006(xy_coords, common_attrs):
         }
     }
     coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
-    vis006 = xr.DataArray(np.array([[1, 2], [3, 4]]),
+    vis006 = xr.DataArray(np.array([[1.0, 2.0], [3.0, 4.0]]),
                           dims=("y", "x"),
                           coords=coords,
                           attrs=attrs)
     return vis006
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def ir_108(xy_coords):
     """Get IR_108 dataset."""
     x, y = xy_coords
     coords = {"y": y, "x": x, "acq_time": ("y", [1, 2])}
     attrs = {"name": "image1", "id_tag": "ch_tb11", "coordinates": "lat lon"}
-    ir_108 = xr.DataArray(np.array([[1, 2], [3, 4]]),
+    ir_108 = xr.DataArray(np.array([[1.0, 2.0], [3.0, 4.0]]),
                           dims=("y", "x"),
                           coords=coords,
                           attrs=attrs)
     return ir_108
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def qual_flags(xy_coords):
     """Get quality flags."""
-    qual_data = [[1, 2, 3, 4, 5, 6, 7],
-                 [1, 2, 3, 4, 5, 6, 7]]
+    qual_data = np.array(
+        [[1, 2, 3, 4, 5, 6, 7],
+         [1, 2, 3, 4, 5, 6, 7]],
+        dtype=np.int8)
     x, y = xy_coords
     z = [1, 2, 3, 4, 5, 6, 7]
     coords = {"y": y, "z": z, "acq_time": ("y", [1, 2])}
@@ -193,7 +178,7 @@ def qual_flags(xy_coords):
     return qual_f
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def lonlats(xy_coords):
     """Get longitudes and latitudes."""
     x, y = xy_coords
@@ -209,7 +194,7 @@ def lonlats(xy_coords):
     return lon, lat
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def prefix_data(xy_coords, area):
     """Get dataset whose name should be prefixed."""
     x, y = xy_coords
@@ -220,14 +205,14 @@ def prefix_data(xy_coords, area):
              "calibration": "reflectance",
              "wavelength": WavelengthRange(min=0.58, central=0.63, max=0.68, unit="µm"),
              "area": area}
-    prefix_data = xr.DataArray(np.array([[1, 2], [3, 4]]),
+    prefix_data = xr.DataArray(np.array([[1.0, 2.0], [3.0, 4.0]]),
                                dims=("y", "x"),
                                coords={"y": y, "x": x},
                                attrs=attrs)
     return prefix_data
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def swath_data(prefix_data, lonlats):
     """Get swath data."""
     lon, lat = lonlats
@@ -237,7 +222,7 @@ def swath_data(prefix_data, lonlats):
     return swath_data
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def datasets(vis006, ir_108, qual_flags, lonlats, prefix_data, swath_data):
     """Get datasets belonging to the scene."""
     lon, lat = lonlats
@@ -250,7 +235,7 @@ def datasets(vis006, ir_108, qual_flags, lonlats, prefix_data, swath_data):
             "qual_flags": qual_flags}
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def cf_scene(datasets, common_attrs):
     """Create a cf scene."""
     scene = Scene()
@@ -265,7 +250,7 @@ def cf_scene(datasets, common_attrs):
 @pytest.fixture
 def nc_filename(tmp_path):
     """Create an nc filename for viirs m band."""
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.timezone.utc)
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-mband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
 
@@ -273,7 +258,7 @@ def nc_filename(tmp_path):
 @pytest.fixture
 def nc_filename_i(tmp_path):
     """Create an nc filename for viirs i band."""
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.timezone.utc)
     filename = f"testingcfwriter{now:%Y%j%H%M%S}-viirs-iband-20201007075915-20201007080744.nc"
     return str(tmp_path / filename)
 

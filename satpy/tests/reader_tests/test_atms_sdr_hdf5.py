@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2022-2023 Pytroll developers
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Module for testing the ATMS SDR HDF5 reader."""
 
@@ -26,9 +9,9 @@ import numpy as np
 import pytest
 
 from satpy._config import config_search_paths
-from satpy.readers import load_reader
 from satpy.readers.atms_sdr_hdf5 import ATMS_CHANNEL_NAMES
-from satpy.readers.viirs_atms_sdr_base import DATASET_KEYS
+from satpy.readers.core.loading import load_reader
+from satpy.readers.core.viirs_atms_sdr import DATASET_KEYS
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -260,7 +243,7 @@ class TestATMS_SDR_Reader:
 
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.viirs_atms_sdr_base import JPSS_SDR_FileHandler
+        from satpy.readers.core.viirs_atms_sdr import JPSS_SDR_FileHandler
 
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -274,7 +257,7 @@ class TestATMS_SDR_Reader:
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "/path/to/atms/sdr/data/SATMS_j01_d20221220_t0910240_e0921356_b26361_c20221220100456348770_cspp_dev.h5",
@@ -308,7 +291,7 @@ class TestATMS_SDR_Reader:
                              )
     def test_load_all_bands(self, files, expected):
         """Load brightness temperatures for all 22 ATMS channels, with/without geolocation."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames(files)
         r.create_filehandlers(loadables)

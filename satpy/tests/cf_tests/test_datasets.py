@@ -1,23 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests CF-compliant Dataset(s) creation."""
 import datetime
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -40,7 +24,7 @@ class TestCollectCfDataset:
             area_extent=[-1, -1, 1, 1])
 
         # Define test datasets
-        data = [[1, 2], [3, 4]]
+        data = da.from_array([[1.0, 2.0], [3.0, 4.0]])
         y = [1, 2]
         x = [1, 2]
         time = [1, 2]
@@ -73,7 +57,7 @@ class TestCollectCfDataset:
         """Test collecting CF datasets with latitude named lat."""
         from satpy.cf.datasets import _collect_cf_dataset
 
-        data = [[75, 2], [3, 4]]
+        data = da.from_array([[75.0, 2.0], [3.0, 4.0]])
         y = [1, 2]
         x = [1, 2]
         geos = AreaDefinition(
@@ -129,7 +113,7 @@ class TestCollectCfDataset:
         from satpy.tests.utils import make_fake_scene
 
         scn = make_fake_scene(
-            {"ketolysis": np.arange(25).reshape(5, 5)},
+            {"ketolysis": np.arange(25.0).reshape(5, 5)},
             daskify=True,
             area=create_area_def("mavas", 4326, shape=(5, 5),
                                  center=(0, 0), resolution=(1, 1)))

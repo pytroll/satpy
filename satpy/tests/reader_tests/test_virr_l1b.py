@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test for readers/virr_l1b.py."""
 import os
 import unittest
@@ -163,7 +146,7 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def test_fy3b_file(self):
         """Test that FY3B files are recognized."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(["tf2018359214943.FY3B-L_VIRRX_L1B.HDF"])
         assert 1 == len(FY3B_file)
@@ -174,7 +157,7 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def test_fy3c_file(self):
         """Test that FY3C files are recognized."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(["tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF",
                                                               "tf2018359143912.FY3C-L_VIRRX_L1B.HDF"])

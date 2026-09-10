@@ -1,21 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2018-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Unit tests for blending datasets with the Multiscene object."""
 
@@ -28,7 +10,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 from satpy import DataQuery, Scene
-from satpy.multiscene import stack, timeseries
+from satpy.multiscene.blend_funcs import stack, timeseries
 from satpy.tests.multiscene_tests.test_utils import (
     DEFAULT_SHAPE,
     _create_test_area,
@@ -412,7 +394,7 @@ class TestTemporalRGB:
 
     def test_nominal(self, nominal_data, expected_result):
         """Test that nominal usage with 3 datasets works."""
-        from satpy.multiscene import temporal_rgb
+        from satpy.multiscene.blend_funcs import temporal_rgb
 
         res = temporal_rgb(nominal_data)
 
@@ -420,10 +402,19 @@ class TestTemporalRGB:
 
     def test_extra_datasets(self, nominal_data, expected_result):
         """Test that only the first three arrays affect the usage."""
-        from satpy.multiscene import temporal_rgb
+        from satpy.multiscene.blend_funcs import temporal_rgb
 
         da4 = xr.DataArray([0, 0, 1], attrs={"start_time": dt.datetime(2023, 5, 22, 12, 0, 0)})
 
         res = temporal_rgb(nominal_data + [da4,])
 
         self._assert_results(res, nominal_data[-1].attrs["start_time"], expected_result)
+
+
+@pytest.mark.parametrize("func", ["stack", "temporal_rgb", "timeseries"])
+def test_blend_funcs_warns(func):
+    """Test that there's a warning when importing from ABI base from the old location."""
+    from satpy import multiscene
+
+    with pytest.warns(UserWarning, match=".*has been moved.*"):
+        getattr(multiscene, func)

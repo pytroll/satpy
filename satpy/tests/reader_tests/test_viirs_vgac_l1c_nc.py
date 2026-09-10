@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2023- Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The viirs_vgac_l1b_nc reader tests package.
 
@@ -34,7 +17,7 @@ from netCDF4 import Dataset
 @pytest.fixture
 def nc_filename(tmp_path):
     """Create an nc test data file and return its filename."""
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.timezone.utc)
     filename = f"VGAC_VJ10XMOD_A{now:%Y%j_%H%M}_n004946_K005.nc"
     filename_str = str(tmp_path / filename)
     # Create test data

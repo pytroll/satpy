@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.clavrx module."""
 
 import os
@@ -141,7 +124,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
@@ -153,7 +136,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
     def test_available_datasets(self):
         """Test available_datasets with fake variables from YAML."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf",
@@ -221,7 +204,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         """Test availability of aliased dataset."""
         import xarray as xr
 
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -238,7 +221,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         """Test loading all test datasets."""
         import xarray as xr
 
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch("satpy.readers.clavrx.SDS", xr.DataArray):
             loadables = r.select_files_from_pathnames([

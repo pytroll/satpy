@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021, 2024, 2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Setup and configuration for all reader tests."""
 
@@ -63,6 +46,20 @@ def make_fake_angles(geo_size, geo_dims, shape):
     """Return fake sun-satellite angle array."""
     maxval = 36000
     dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int32")
+    return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
+
+
+def make_fake_lsm(geo_size, geo_dims, shape):
+    """Return fake land surface type data array."""
+    maxval = 1
+    dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int16")
+    return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
+
+
+def make_fake_dem(geo_size, geo_dims, shape):
+    """Return fake DEM data array."""
+    maxval = 10000
+    dummy_array = (np.arange(0, geo_size) * maxval/geo_size).astype("int16")
     return xr.DataArray(dummy_array.reshape(shape), dims=geo_dims)
 
 
@@ -137,6 +134,9 @@ def aws_eps_sterna_mwr_level1_file(fake_mwr_data_array, eps_sterna=True, l1b=Tru
     ds[f"data/navigation/{prefix}solar_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape)
     ds[f"data/navigation/{prefix}satellite_azimuth_angle"] = make_fake_angles(geo_size, geo_dims, shape)
     ds[f"data/navigation/{prefix}satellite_zenith_angle"] = make_fake_angles(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}surface_type"] = make_fake_lsm(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}terrain_elevation"] = make_fake_dem(geo_size, geo_dims, shape)
+    ds[f"data/navigation/{prefix}not_implemented_yet"] = make_fake_dem(geo_size, geo_dims, shape)
     if l1b:
         ds["status/satellite/subsat_latitude_end"] = np.array(22.39)
         ds["status/satellite/subsat_longitude_start"] = np.array(304.79)

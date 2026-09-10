@@ -1,0 +1,524 @@
+
+"""The metimage_base_nc reader tests package."""
+
+import bz2
+import datetime
+import os
+import unittest
+import uuid
+from unittest import mock
+
+import numpy as np
+import pytest
+import xarray as xr
+from netCDF4 import Dataset
+
+from satpy.readers.core.metimage_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, METimageNCBaseFileHandler
+
+TEST_FILE = "test_file_metimage_base_nc.nc"
+
+
+class TestMETimageNCBaseFileHandler(unittest.TestCase):
+    """Test the METimageNCBaseFileHandler reader."""
+
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_geo_interpolation")
+    def setUp(self, pgi_):
+        """Set up the test."""
+        # Easiest way to test the reader is to create a test netCDF file on the fly
+        # uses a UUID to avoid permission conflicts during execution of tests in parallel
+        self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
+        _create_metimage_base_nc_file(self.test_file_name)
+
+        # Create longitude and latitude "interpolated" arrays
+        interp_longitude, interp_latitude = _interpolated_lonlat()
+        pgi_.return_value = (interp_longitude, interp_latitude)
+
+        # Filename info valid for all readers
+        filename_info = _metimage_filename_info()
+        self.filename_info = filename_info
+
+        # Create a reader
+        self.reader = METimageNCBaseFileHandler(
+            filename=self.test_file_name,
+            filename_info=filename_info,
+            filetype_info={
+                "cached_longitude": "data/measurement_data/longitude",
+                "cached_latitude": "data/measurement_data/latitude"
+            }
+        )
+
+        # Create a second reader where orthorectification and interpolation are inhibited
+        # by means of the filetype_info flags
+        self.reader_2 = METimageNCBaseFileHandler(
+            filename=self.test_file_name,
+            filename_info=filename_info,
+            filetype_info={
+                "cached_longitude": "data/measurement_data/longitude",
+                "cached_latitude": "data/measurement_data/latitude",
+                "interpolate": False,
+                "orthorect": False
+            },
+            orthorect=True
+        )
+
+        # Create a third reader without defining cached latitude and longitude
+        # by means of the filetype_info flags
+        self.reader_3 = METimageNCBaseFileHandler(
+            filename=self.test_file_name,
+            filename_info=filename_info,
+            filetype_info={},
+            orthorect=True
+        )
+
+    def tearDown(self):
+        """Remove the previously created test file."""
+        # Catch Windows PermissionError for removing the created test file.
+        try:
+            os.remove(self.test_file_name)
+        except OSError:
+            pass
+
+    def test_file_reading(self):
+        """Test the file product reading."""
+        # Checks that the basic functionalities are correctly executed
+        expected_start_time = datetime.datetime(year=2017, month=9, day=20,
+                                                hour=17, minute=30, second=40, microsecond=888000)
+        assert self.reader.start_time == expected_start_time
+
+        expected_end_time = datetime.datetime(year=2017, month=9, day=20,
+                                              hour=17, minute=41, second=17, microsecond=555000)
+        assert self.reader.end_time == expected_end_time
+
+        assert self.reader.spacecraft_name == "Metop-SG-A1"
+        # the netCDF instrument attribute is VII, so we hardcode metimage instead
+        assert self.reader.sensor == "metimage"
+        assert self.reader.ssp_lon is None
+
+        # Checks that the global attributes are correctly read
+        expected_global_attributes = {
+            "filename": self.test_file_name,
+            "start_time": expected_start_time,
+            "end_time": expected_end_time,
+            "spacecraft_name": "Metop-SG-A1",
+            "ssp_lon": None,
+            "sensor": "metimage",
+            "filename_start_time": datetime.datetime(year=2017, month=9, day=20,
+                                                     hour=12, minute=30, second=30),
+            "filename_end_time": datetime.datetime(year=2017, month=9, day=20,
+                                                   hour=18, minute=30, second=50),
+            "platform_name": "Metop-SG-A1",
+            "quality_group": {
+                "duration_of_product": 1.,
+                "duration_of_data_present": 2.,
+                "duration_of_data_missing": 3.,
+                "duration_of_data_degraded": 4.,
+                "gap_start_time_utc": (5., 6.),
+                "gap_end_time_utc": (7., 8.)
+            },
+            "rows_per_scan": 24
+        }
+
+        global_attributes = self.reader._get_global_attributes()
+        # Since the global_attributes dictionary contains numpy arrays,
+        # it is not possible to peform a simple equality test
+        # Must iterate on all keys to confirm that the dictionaries are equal
+        assert global_attributes.keys() == expected_global_attributes.keys()
+        for key in expected_global_attributes:
+            if key not in ["quality_group"]:
+                # Quality check must be valid for both iterable and not iterable elements
+                try:
+                    equal = all(global_attributes[key] == expected_global_attributes[key])
+                except (TypeError, ValueError):
+                    equal = global_attributes[key] == expected_global_attributes[key]
+                assert equal
+            else:
+                assert global_attributes[key].keys() == expected_global_attributes[key].keys()
+                for inner_key in global_attributes[key]:
+                    # Equality check must be valid for both iterable and not iterable elements
+                    try:
+                        equal = all(global_attributes[key][inner_key] == expected_global_attributes[key][inner_key])
+                    except (TypeError, ValueError):
+                        equal = global_attributes[key][inner_key] == expected_global_attributes[key][inner_key]
+                    assert equal
+
+    def test_start_end_time_additional_formats(self):
+        """Test parsing additional datetime formats."""
+        time_cases = [
+            (
+                "2017-09-20T17:30:40.888000",
+                datetime.datetime(2017, 9, 20, 17, 30, 40, 888000),
+                "2017-09-20T17:41:17.555000",
+                datetime.datetime(2017, 9, 20, 17, 41, 17, 555000),
+            ),
+            (
+                "2017-09-20 17:30:40",
+                datetime.datetime(2017, 9, 20, 17, 30, 40),
+                "2017-09-20 17:41:17",
+                datetime.datetime(2017, 9, 20, 17, 41, 17),
+            ),
+        ]
+
+        for start_str, expected_start, end_str, expected_end in time_cases:
+            with Dataset(self.test_file_name, "r+") as nc:
+                nc.sensing_start_time_utc = start_str
+                nc.sensing_end_time_utc = end_str
+
+            reader = METimageNCBaseFileHandler(
+                filename=self.test_file_name,
+                filename_info=self.filename_info,
+                filetype_info={},
+            )
+
+            assert reader.start_time == expected_start
+            assert reader.end_time == expected_end
+
+    def test_bad_start_end_time(self):
+        """Test parsing a bad datetime format."""
+        with Dataset(self.test_file_name, "r+") as nc:
+            nc.sensing_start_time_utc = "201709201730"
+            nc.sensing_end_time_utc = "201709201740"
+
+        reader = METimageNCBaseFileHandler(
+            filename=self.test_file_name,
+            filename_info=self.filename_info,
+            filetype_info={},
+        )
+
+        with pytest.raises(ValueError, match="Unrecognized datetime format"):
+            reader.start_time
+        with pytest.raises(ValueError, match="Unrecognized datetime format"):
+            reader.end_time
+
+    @mock.patch("satpy.readers.core.metimage_nc.tie_points_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.tie_points_geo_interpolation")
+    def test_functions(self, tpgi_, tpi_):
+        """Test the functions."""
+        with pytest.raises(NotImplementedError):
+            self.reader._perform_orthorectification(mock.Mock(), mock.Mock())
+
+        with pytest.raises(NotImplementedError):
+            self.reader._perform_calibration(mock.Mock(), mock.Mock())
+
+        # Checks that the _perform_interpolation function is correctly executed
+        variable = xr.DataArray(
+            dims=("y", "x"),
+            name="test_name",
+            attrs={
+                "key_1": "value_1",
+                "key_2": "value_2"
+            },
+            data=np.zeros((10, 100)),
+        )
+        tpi_.return_value = [xr.DataArray(
+            dims=("num_tie_points_act", "num_tie_points_alt"),
+            data=np.ones((10, 100))
+        )]
+
+        return_value = self.reader._perform_interpolation(variable)
+
+        tpi_.assert_called_with([variable], SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR)
+        assert np.allclose(return_value, np.ones((10, 100)))
+        assert return_value.attrs == {"key_1": "value_1", "key_2": "value_2"}
+        assert return_value.name == "test_name"
+        assert return_value.dims == ("num_pixels", "num_lines")
+
+        # Checks that the _perform_geo_interpolation function is correctly executed
+        variable_lon = xr.DataArray(
+            dims=("y", "x"),
+            name="test_lon",
+            attrs={
+                "key_1": "value_lon_1",
+                "key_2": "value_lon_2"
+            },
+            data=np.zeros((10, 100))
+        )
+        variable_lat = xr.DataArray(
+            dims=("y", "x"),
+            name="test_lat",
+            attrs={
+                "key_1": "value_lat_1",
+                "key_2": "value_lat_2"
+            },
+            data=np.ones((10, 100)) * 2.
+        )
+
+        tpgi_.return_value = (
+            xr.DataArray(
+                dims=("num_tie_points_act", "num_tie_points_alt"),
+                data=np.ones((10, 100))
+            ),
+            xr.DataArray(
+                dims=("num_tie_points_act", "num_tie_points_alt"),
+                data=6 * np.ones((10, 100))
+            )
+        )
+
+        return_lon, return_lat = self.reader._perform_geo_interpolation(variable_lon, variable_lat)
+
+        tpgi_.assert_called_with(variable_lon, variable_lat, SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR)
+
+        assert np.allclose(return_lon, np.ones((10, 100)))
+        assert return_lon.attrs == {"key_1": "value_lon_1", "key_2": "value_lon_2"}
+        assert return_lon.name == "test_lon"
+        assert return_lon.dims == ("num_pixels", "num_lines")
+
+        assert np.allclose(return_lat, 6 * np.ones((10, 100)))
+        assert return_lat.attrs == {"key_1": "value_lat_1", "key_2": "value_lat_2"}
+        assert return_lat.name == "test_lat"
+        assert return_lat.dims == ("num_pixels", "num_lines")
+
+    def test_standardize_dims(self):
+        """Test the standardize dims function."""
+        test_variable = xr.DataArray(
+            dims=("num_pixels", "num_lines"),
+            name="test_data",
+            attrs={
+                "key_1": "value_lat_1",
+                "key_2": "value_lat_2"
+            },
+            data=np.ones((10, 100)) * 1.
+        )
+        out_variable = self.reader._standardize_dims(test_variable)
+        assert np.allclose(out_variable.values, np.ones((100, 10)))
+        assert out_variable.dims == ("y", "x")
+        assert out_variable.attrs["key_1"] == "value_lat_1"
+
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_calibration")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_interpolation")
+    @mock.patch("satpy.readers.core.metimage_nc.METimageNCBaseFileHandler._perform_orthorectification")
+    def test_dataset(self, po_, pi_, pc_):
+        """Test the execution of the get_dataset function."""
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        variable = self.reader.get_dataset(None, {"file_key": "data/measurement_data/tpw",
+                                                  "calibration": None})
+        pc_.assert_not_called()
+        pi_.assert_not_called()
+        po_.assert_not_called()
+
+        assert np.allclose(variable.values, np.ones((100, 10)))
+        assert variable.dims == ("y", "x")
+        assert variable.attrs["test_attr"] == "attr"
+        assert variable.attrs["units"] is None
+        assert "valid_min" not in variable.attrs
+
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        # and required calibration and interpolation
+        self.reader.get_dataset(None, {"file_key": "data/measurement_data/tpw",
+                                       "calibration": "reflectance",
+                                       "interpolate": True,
+                                       "standard_name": "longitude"})
+        pc_.assert_called()
+        pi_.assert_called()
+        po_.assert_not_called()
+
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        # and required orthorectification
+        self.reader.orthorect = True
+        self.reader.get_dataset(None, {"file_key": "data/measurement_data/tpw",
+                                       "calibration": None,
+                                       "orthorect_data": "test_orthorect_data"})
+        po_.assert_called()
+
+        # Checks the correct execution of the get_dataset function with an invalid file_key
+        invalid_dataset = self.reader.get_dataset(None, {"file_key": "test_invalid", "calibration": None})
+        # Checks that the function returns None
+        assert invalid_dataset is None
+
+        pc_.reset_mock()
+        pi_.reset_mock()
+        po_.reset_mock()
+
+        # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
+        longitude = self.reader.get_dataset(None, {"file_key": "cached_longitude",
+                                                   "calibration": "reflectance",
+                                                   "interpolate": True})
+        pc_.assert_not_called()
+        pi_.assert_not_called()
+        assert longitude[0, 0] == -110.0  # -180 + (250-180)
+
+        # Checks the correct execution of the get_dataset function with a 'cached_latitude' file_key
+        latitude = self.reader.get_dataset(None, {"file_key": "cached_latitude",
+                                                  "calibration": None})
+        assert latitude[0, 0] == 2.0
+
+        # Repeats some check with the reader where orthorectification and interpolation are inhibited
+        # by means of the filetype_info flags
+
+        pc_.reset_mock()
+        pi_.reset_mock()
+        po_.reset_mock()
+
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        # and required calibration and interpolation
+        self.reader_2.get_dataset(None, {"file_key": "data/measurement_data/tpw",
+                                         "calibration": "reflectance",
+                                         "interpolate": True,
+                                         "standard_name": "longitude"})
+        pc_.assert_called()
+        pi_.assert_not_called()
+        po_.assert_not_called()
+
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        # and required orthorectification
+        self.reader_2.get_dataset(None, {"file_key": "data/measurement_data/tpw",
+                                         "calibration": None,
+                                         "orthorect_data": "test_orthorect_data"})
+        po_.assert_not_called()
+
+        # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
+        longitude = self.reader_2.get_dataset(None, {"file_key": "cached_longitude",
+                                                     "calibration": None})
+        assert longitude[0, 0] == -160.0  # -180 + (200-180)
+
+        # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
+        # in a reader without defined longitude
+        longitude = self.reader_3.get_dataset(None, {"file_key": "cached_longitude",
+                                                     "calibration": "reflectance",
+                                                     "interpolate": True})
+        # Checks that the function returns None
+        assert longitude is None
+
+
+@pytest.fixture
+def metimage_filename_info():
+    """Return a filename_info dict valid for the base-class reader."""
+    return _metimage_filename_info()
+
+
+@pytest.fixture
+def metimage_base_nc_file(tmp_path):
+    """Create a small METimage netCDF test file and return its path."""
+    filename = tmp_path / TEST_FILE
+    _create_metimage_base_nc_file(filename)
+    return filename
+
+
+@pytest.fixture
+def metimage_base_nc_file_bz2(metimage_base_nc_file):
+    """Compress the netCDF fixture into a .bz2 file alongside it."""
+    bz2_filename = metimage_base_nc_file.parent / (metimage_base_nc_file.name + ".bz2")
+    with open(metimage_base_nc_file, "rb") as f_in, bz2.open(bz2_filename, "wb") as f_out:
+        f_out.write(f_in.read())
+    return bz2_filename
+
+
+def _metimage_filename_info():
+    """Return a filename_info dict valid for the base-class reader."""
+    return {
+        "creation_time": datetime.datetime(year=2017, month=9, day=22,
+                                           hour=22, minute=40, second=10),
+        "sensing_start_time": datetime.datetime(year=2017, month=9, day=20,
+                                                hour=12, minute=30, second=30),
+        "sensing_end_time": datetime.datetime(year=2017, month=9, day=20,
+                                              hour=18, minute=30, second=50),
+    }
+
+
+def _interpolated_lonlat():
+    """Return placeholder longitude/latitude arrays for mocking _perform_geo_interpolation.
+
+    Note: the value 250 for longitude is asserted against directly in
+    test_dataset (see: -180 + (250-180)). If you change it,
+    update that assertion too.
+    """
+    return (
+        xr.DataArray(np.ones((10, 100)) * 250, name="longitude",
+                     dims=("num_pixels", "num_lines")),
+        xr.DataArray(np.ones((10, 100)) * 2., name="latitude",
+                     dims=("num_pixels", "num_lines")),
+    )
+
+
+def _create_metimage_base_nc_file(filename):
+    """Create a small METimage base netCDF test file at the given path."""
+    with Dataset(filename, "w") as nc:
+        # Add global attributes
+        nc.sensing_start_time_utc = "20170920173040.888"
+        nc.sensing_end_time_utc = "20170920174117.555"
+        nc.spacecraft = "SGA1"
+        nc.instrument = "test_instrument"
+
+        # Create data group
+        g1 = nc.createGroup("data")
+
+        # Add dimensions to data group
+        g1.createDimension("num_pixels", 10)
+        g1.createDimension("num_lines", 100)
+
+        # Create data/measurement_data group
+        g1_1 = g1.createGroup("measurement_data")
+
+        # Add dimensions to data/measurement_data group
+        g1_1.createDimension("num_tie_points_act", 10)
+        g1_1.createDimension("num_tie_points_alt", 100)
+
+        # Add variables to data/measurement_data group
+        tpw = g1_1.createVariable("tpw", np.float32, dimensions=("num_pixels", "num_lines"))
+        tpw[:] = 1.
+        tpw.test_attr = "attr"
+        tpw.valid_min = -10.0
+        tpw.valid_max = 10.0
+        lon = g1_1.createVariable("longitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lon[:] = 200.
+        lat = g1_1.createVariable("latitude", np.float32,
+                                  dimensions=("num_tie_points_act", "num_tie_points_alt"))
+        lat[:] = 10.
+
+        # Create quality group
+        g2 = nc.createGroup("quality")
+
+        # Add dimensions to quality group
+        g2.createDimension("gap_items", 2)
+
+        # Add variables to quality group
+        var = g2.createVariable("duration_of_product", np.double, dimensions=())
+        var[:] = 1.0
+        var = g2.createVariable("duration_of_data_present", np.double, dimensions=())
+        var[:] = 2.0
+        var = g2.createVariable("duration_of_data_missing", np.double, dimensions=())
+        var[:] = 3.0
+        var = g2.createVariable("duration_of_data_degraded", np.double, dimensions=())
+        var[:] = 4.0
+        var = g2.createVariable("gap_start_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [5.0, 6.0]
+        var = g2.createVariable("gap_end_time_utc", np.double, dimensions=("gap_items",))
+        var[:] = [7.0, 8.0]
+
+
+def test_bz2_reading(metimage_base_nc_file, metimage_base_nc_file_bz2, metimage_filename_info):
+    """Test that a bz2-compressed file is transparently decompressed and read correctly."""
+    filetype_info = {
+        "cached_longitude": "data/measurement_data/longitude",
+        "cached_latitude": "data/measurement_data/latitude",
+        "interpolate": False,
+    }
+    reader = METimageNCBaseFileHandler(str(metimage_base_nc_file_bz2), metimage_filename_info, filetype_info)
+    expected_reader = METimageNCBaseFileHandler(str(metimage_base_nc_file), metimage_filename_info, filetype_info)
+
+    # Should have decompressed to a separate temp file, not read the .bz2 directly
+    assert reader.filename != str(metimage_base_nc_file_bz2)
+
+    # Cross-check against the uncompressed-file reader
+    assert reader.spacecraft_name == expected_reader.spacecraft_name
+    assert reader.start_time == expected_reader.start_time
+
+    variable = reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    expected = expected_reader.get_dataset(None, {"file_key": "data/measurement_data/tpw", "calibration": None})
+    assert np.allclose(variable.values, expected.values)
+    # Not asserting the decompressed temp file is deleted immediately here -- cleanup
+    # timing depends on __del__/gc timing and, on Windows, on the underlying file handle
+    # being released first. The actual contract we care about (cleanup never raises,
+    # even if it fails) is covered separately by test_del_swallows_cleanup_errors.
+
+
+@mock.patch("satpy.readers.core.utils.which", return_value=None)
+def test_corrupt_bz2_raises(which_, tmp_path, metimage_filename_info):
+    """Test that a corrupt .bz2 file raises OSError rather than a confusing error."""
+    bad_filename = tmp_path / "corrupt.nc.bz2"
+    bad_filename.write_bytes(b"not a real bz2 stream")
+
+    with pytest.raises(OSError):   # noqa: PT011 -- underlying error (WinError 32 vs pbzip2 vs
+                                # "invalid data stream") varies by OS/locale/pbzip2 install;
+                                # see satpy/readers/core/utils.py::unzip_file
+        METimageNCBaseFileHandler(str(bad_filename), metimage_filename_info, {})

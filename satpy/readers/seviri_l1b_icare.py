@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 r"""Interface to SEVIRI L1B data from ICARE (Lille).
 
@@ -75,8 +58,8 @@ import datetime as dt
 
 import numpy as np
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hdf4_utils import HDF4FileHandler
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.hdf4 import HDF4FileHandler
 
 
 class SEVIRI_ICARE(HDF4FileHandler):

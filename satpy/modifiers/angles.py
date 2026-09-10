@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilties for getting various angles for a dataset.."""
 from __future__ import annotations
 
@@ -25,7 +8,7 @@ import shutil
 import warnings
 from functools import update_wrapper
 from glob import glob
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TypeAlias
 
 import dask
 import numpy as np
@@ -39,7 +22,7 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefi
 import satpy
 from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
-PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
+PRGeometry: TypeAlias = SwathDefinition | AreaDefinition | StackedAreaDefinition
 
 # Arbitrary time used when computing sensor angles that is passed to
 # pyorbital's get_observer_look function.
@@ -76,7 +59,7 @@ class ZarrCacheHelper:
             use to determine if caching should be done.
         uncacheable_arg_types: Types that if present in the passed arguments
             should trigger caching to *not* happen. By default this includes
-            ``SwathDefinition``, ``xr.DataArray``, and ``da.Array`` objects.
+            ``SwathDefinition``, ``xr.DataArray``, and ``dask.array.Array`` objects.
         sanitize_args_func: Optional function to call to sanitize provided
             arguments before they are considered for caching. This can be used
             to make arguments more "cacheable" by replacing them with similar
@@ -131,7 +114,7 @@ class ZarrCacheHelper:
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
             shutil.rmtree(zarr_dir, ignore_errors=True)
 
-    def _zarr_pattern(self, arg_hash, cache_version: Union[None, int, str] = None) -> str:
+    def _zarr_pattern(self, arg_hash, cache_version: None | int | str = None) -> str:
         if cache_version is None:
             cache_version = self._cache_version
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
@@ -361,7 +344,7 @@ def compute_relative_azimuth(
         sat_azi, sun_azi,
         dtype=sat_azi.dtype,
         meta=np.array((), dtype=sat_azi.dtype),
-        name="relative_azimuth",
+        token="relative_azimuth",  # nosec: B106
     )
     if xarray_dims is None:
         return rel_azi
@@ -432,7 +415,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
 
 
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
-def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
+def _get_valid_lonlats(area: PRGeometry, chunks: int | str | tuple = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         # NOTE: This defaults to 64-bit floats due to needed precision for X/Y coordinates
         lons, lats = area.get_lonlats(chunks=chunks)

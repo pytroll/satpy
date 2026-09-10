@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2014-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Advanced Himawari Imager (AHI) standard format data reader.
 
@@ -63,15 +46,16 @@ import datetime as dt
 import logging
 import os
 import warnings
+import weakref
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import (
+from satpy.readers.core._geos_area import get_area_definition, get_area_extent
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import (
     apply_rad_correction,
     get_earth_radius,
     get_geostationary_mask,
@@ -357,6 +341,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
+        # Register cleanup to be called when garbage collected
+        weakref.finalize(self, self._cleanup)
+
         self.is_zipped = False
         self._unzipped = unzip_file(self.filename, prefix=str(filename_info["segment"]).zfill(2))
         # Assume file is not zipped
@@ -402,8 +389,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.user_calibration = user_calibration
         self._round_actual_position = round_actual_position
 
-    def __del__(self):
-        """Delete the object."""
+    def _cleanup(self):
+        """Delete unzipped file."""
         if self.is_zipped and os.path.exists(self.filename):
             os.remove(self.filename)
 

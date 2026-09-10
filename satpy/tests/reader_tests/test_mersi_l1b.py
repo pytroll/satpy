@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'mersi2_l1b' reader."""
 import os
 from unittest import mock
@@ -431,7 +414,7 @@ def _assert_bands_mda_as_exp(res, band_list, exp_result):
 
 def _test_find_files_and_readers(reader_config, filenames):
     """Test file and reader search."""
-    from satpy.readers import load_reader
+    from satpy.readers.core.loading import load_reader
     reader = load_reader(reader_config)
     files = reader.select_files_from_pathnames(filenames)
     # Make sure we have some files
@@ -670,7 +653,7 @@ class TestMERSIRML1B(MERSIL1BTester):
 
     def test_500m_resolution(self):
         """Test loading data when all resolutions are available."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = self.filenames_500m
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -693,7 +676,7 @@ class TestMERSIRML1B(MERSIL1BTester):
 
     def test_rad_calib(self):
         """Test loading data at radiance calibration."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dataid
         filenames = self.filenames_500m
         reader = load_reader(self.reader_configs)

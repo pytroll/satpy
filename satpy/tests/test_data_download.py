@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test for ancillary data downloading."""
 
 from unittest import mock
@@ -48,7 +31,7 @@ class UnfriendlyModifier(ModifierBase, DataDownloadMixin):
 
 
 def _setup_custom_composite_config(base_dir):
-    from satpy.composites import StaticImageCompositor
+    from satpy.composites.aux_data import StaticImageCompositor
     from satpy.modifiers.atmosphere import ReflectanceCorrector
     composite_config = base_dir.mkdir("composites").join("visir.yaml")
     with open(composite_config, "w") as comp_file:
@@ -84,7 +67,7 @@ def _setup_custom_reader_config(base_dir):
         comp_file.write("""
 reader:
   name: "fake"
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   data_files:
     - url: {}
       known_hash: null
@@ -102,7 +85,7 @@ def _setup_custom_writer_config(base_dir):
         comp_file.write("""
 writer:
   name: "fake"
-  writer: !!python/name:satpy.writers.Writer
+  writer: !!python/name:satpy.writers.core.base.Writer
   data_files:
     - url: {}
       known_hash: null

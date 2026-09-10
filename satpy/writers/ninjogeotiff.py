@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for GeoTIFF images with tags for the NinJo visualization tool.
 
 Starting with NinJo 7, NinJo is able to read standard GeoTIFF images,
@@ -67,7 +50,7 @@ Moreover, two keyword arguments are no longer supported because
 their functionality has become redundant.  This applies to
 ``ch_min_measurement_unit`` and ``ch_max_measurement_unit``.
 Instead, pass those values in source units to the
-:func:`~satpy.enhancements.stretch` enhancement with the ``min_stretch``
+:func:`~satpy.enhancements.contrast.stretch` enhancement with the ``min_stretch``
 and ``max_stretch`` arguments.
 
 For images where the pixel value corresponds directly to a physical value,
@@ -439,14 +422,14 @@ class NinJoTagGenerator:
     def get_min_gray_value(self):
         """Calculate minimum gray value."""
         return self.image._scale_to_dtype(
-            self.dataset.min(),
+            self.dataset.min(keep_attrs=False),
             np.uint8,
             self.fill_value).astype(np.uint8)
 
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
         return self.image._scale_to_dtype(
-            self.dataset.max(),
+            self.dataset.max(keep_attrs=False),
             np.uint8,
             self.fill_value).astype(np.uint8)
 

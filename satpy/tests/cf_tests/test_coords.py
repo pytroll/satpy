@@ -1,21 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF processing of time information (coordinates and dimensions)."""
+import datetime as dt
 import logging
 
 import numpy as np
@@ -30,6 +14,77 @@ from pyresample import AreaDefinition
 
 class TestCFtime:
     """Test cases for CF time dimension and coordinates."""
+
+    @pytest.fixture
+    def times(self):
+        """Get time coordinate."""
+        return np.array(["2018-05-30T10:00:00", "2018-05-30T10:15:00"], dtype="datetime64[ns]")
+
+    @pytest.fixture
+    def data_array_with_attrs(self, times):
+        """Make fake data array with time attributes."""
+        return xr.DataArray(
+            np.array([[1, 2], [3, 4]]),
+            dims=["time", "y"],
+            coords={"time": times},
+            attrs={
+                "start_time": dt.datetime(2018, 5, 30, 10),
+                "end_time": dt.datetime(2018,5, 30, 10, 28, 33)
+            }
+        )
+
+    @pytest.fixture
+    def data_array_without_attrs(self, data_array_with_attrs):
+        """Make fake data array without attributes."""
+        arr = data_array_with_attrs.copy()
+        arr.attrs = {}
+        return arr
+
+    @pytest.fixture
+    def fake_dataset(self, data_array_with_attrs, data_array_without_attrs):
+        """Make fake dataset."""
+        return xr.Dataset(
+            {
+                "with_attrs": data_array_with_attrs,
+                "without_attrs": data_array_without_attrs
+            }
+        )
+
+    @pytest.fixture
+    def dataset_exp(self, times, data_array_with_attrs, data_array_without_attrs):
+        """Make expected dataset with time bounds."""
+        time_bounds_exp = xr.DataArray(
+            np.array([
+                ["2018-05-30T10:00:00", "2018-05-30T10:15:00"],
+                ["2018-05-30T10:15:00", "2018-05-30T10:28:33"]
+            ], dtype="datetime64[ns]"),
+            dims=("time", "bnds_1d"),
+            coords={"time": times},
+            name="time_bnds"
+        )
+        return xr.Dataset(
+            {
+                "with_attrs": data_array_with_attrs,
+                "without_attrs": data_array_without_attrs,
+                "time_bnds": time_bounds_exp
+            },
+            coords={
+                "time": xr.DataArray(
+                    times,
+                    dims="time",
+                    attrs={
+                        "bounds": "time_bnds",
+                        "standard_name": "time"
+                    }
+                )
+            }
+        )
+
+    def test_adding_time_bounds_to_timeseries(self, fake_dataset, dataset_exp):
+        """Test adding time bounds for multiple timesteps."""
+        from satpy.cf.coords import add_time_bounds_dimension
+        ds_with_bounds = add_time_bounds_dimension(fake_dataset)
+        xr.testing.assert_identical(ds_with_bounds, dataset_exp)
 
     def test_add_time_bounds_dimension(self):
         """Test addition of CF-compliant time attributes."""
@@ -46,12 +101,10 @@ class TestCFtime:
         ds = add_time_bounds_dimension(ds)
 
         assert "bnds_1d" in ds.dims
-        assert ds.dims["bnds_1d"] == 2
+        assert ds.sizes["bnds_1d"] == 2
         assert "time_bnds" in list(ds.data_vars)
         assert "bounds" in ds["time"].attrs
         assert "standard_name" in ds["time"].attrs
-
-    # set_cf_time_info
 
 
 class TestCFcoords:
@@ -89,7 +142,8 @@ class TestCFcoords:
             "lat": xr.DataArray(data=lat, dims=("y", "x"))
         }
 
-        datasets = add_coordinates_attrs_coords(datasets)
+        with pytest.warns(UserWarning, match="""Coordinate \"not_exist\" referenced"""):
+            datasets = add_coordinates_attrs_coords(datasets)
 
         # Check that link has been established correctly and 'coordinate' atrribute has been dropped
         assert "lon" in datasets["var1"].coords

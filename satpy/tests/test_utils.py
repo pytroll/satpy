@@ -1,18 +1,3 @@
-# Copyright (c) 2019-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of utils."""
 from __future__ import annotations
 
@@ -28,7 +13,6 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 from satpy.utils import (
     angle2xyz,
     datetime64_to_pydatetime,
@@ -202,7 +186,6 @@ class TestGetSatPos:
         with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
             get_satpos(data_arr)
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield does not support numpy 2 yet")
     def test_get_satpos_from_satname(self, caplog):
         """Test getting satellite position from satellite name only."""
         import pyorbital.tlefile
@@ -224,7 +207,7 @@ class TestGetSatPos:
             assert "Orbital parameters missing from metadata" in caplog.text
             np.testing.assert_allclose(
                 (lon, lat, alt),
-                (119.39533705010592, -1.1491628298731498, 35803.19986408156),
+                (119.39533705010592, -1.1491628298731498, 35803199.86408156),
                 rtol=1e-4,
             )
 
@@ -332,7 +315,7 @@ def test_debug_on(caplog):
     assert "But now it's just got SILLY." in caplog.text
     debug_on(True)
     # test that logging on and deprecation warnings on
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(DeprecationWarning, match="Stop that! It's SILLY."):
         depwarn()
     assert warnings.filters != filts_before
     debug_off()  # other tests assume debugging is off
@@ -521,7 +504,7 @@ def test_convert_remote_files_to_fsspec_mixed_sources():
 
     Case with mixed local and remote files.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
@@ -537,7 +520,7 @@ def test_convert_remote_files_to_fsspec_filename_dict():
 
     Case where filenames is a dictionary mapping readers and filenames.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = {
@@ -557,7 +540,7 @@ def test_convert_remote_files_to_fsspec_fsfile():
 
     Case where the some of the files are already FSFile objects.
     """
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
     from satpy.utils import convert_remote_files_to_fsspec
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
@@ -653,3 +636,14 @@ def test_find_in_ancillary():
 def test_datetime64_to_pydatetime(dt64, expected):
     """Test conversion from datetime64 to Python datetime."""
     assert datetime64_to_pydatetime(dt64) == expected
+
+
+def test_flatten_dict():
+    """Test dictionary flattening."""
+    from satpy.utils import flatten_dict
+    d = {"a": 1, "b": {"c": 1, "d": {"e": 1, "f": {"g": [1, 2]}}}}
+    expected = {"a": 1,
+                "b_c": 1,
+                "b_d_e": 1,
+                "b_d_f_g": [1, 2]}
+    assert flatten_dict(d) == expected

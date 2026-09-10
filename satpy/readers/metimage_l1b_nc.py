@@ -1,0 +1,126 @@
+"""EUMETSAT EPS-SG METimage (VII) Level 1B products reader.
+
+The ``metimage_l1b_nc`` reader reads and calibrates EPS-SG METimage L1b image data in netCDF format. The format is
+explained in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
+Note that METimage is the official name of the instrument, while VII is the old name used during the mission (design).
+The name VII is currently still used in the filenames as well as in official system documentation
+(e.g. the format specs).
+
+.. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
+
+"""
+
+import logging
+
+import numpy as np
+import xarray as xr
+
+from satpy.readers.core.metimage import C1, C2, MEAN_EARTH_RADIUS
+from satpy.readers.core.metimage_nc import METimageNCBaseFileHandler
+
+logger = logging.getLogger(__name__)
+
+
+class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
+    """Reader class for METimage (VII) L1B products in netCDF format."""
+
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Read the calibration data and prepare the class for dataset reading."""
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+
+        # Read the variables which are required for the calibration
+        self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
+        self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
+        self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
+        self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
+        # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
+        # (the values in the product file are on tie points and in degrees,
+        # therefore interpolation and conversion to radians are required)
+
+    def _perform_calibration(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
+        """Perform the calibration.
+
+        Args:
+            variable: xarray DataArray containing the dataset to calibrate.
+            dataset_info: dictionary of information about the dataset.
+
+        Returns:
+            array containing the calibrated values and all the original metadata.
+
+        """
+        calibration_name = dataset_info["calibration"]
+        if calibration_name == "brightness_temperature":
+            # Extract the values of calibration coefficients for the current channel
+            chan_index = dataset_info["chan_thermal_index"]
+            cw = self._channel_cw_thermal[chan_index]
+            a = self._bt_conversion_a[chan_index]
+            b = self._bt_conversion_b[chan_index]
+            # Perform the calibration
+            calibrated_variable = self._calibrate_bt(variable, cw, a, b)
+            calibrated_variable.attrs = variable.attrs
+        elif calibration_name == "reflectance":
+            # Extract the values of calibration coefficients for the current channel
+            chan_index = dataset_info["chan_solar_index"]
+            isi = self._integrated_solar_irradiance[chan_index]
+            # Perform the calibration
+            calibrated_variable = self._calibrate_refl(variable, isi)
+            calibrated_variable.attrs = variable.attrs
+        elif calibration_name == "radiance":
+            calibrated_variable = variable
+        else:
+            raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info["name"]))
+
+        return calibrated_variable
+
+    def _perform_orthorectification(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
+        """Perform the orthorectification.
+
+        Args:
+            variable: xarray DataArray containing the dataset to correct for orthorectification.
+            orthorect_data_name: name of the orthorectification correction data in the product.
+
+        Returns:
+            array containing the corrected values and all the original metadata.
+
+        """
+        try:
+            orthorect_data = self[orthorect_data_name]
+            # Convert the orthorectification delta values from meters to degrees
+            # based on the simplified formula using mean Earth radius
+            variable += np.degrees(orthorect_data / MEAN_EARTH_RADIUS)
+        except KeyError:
+            logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
+        return variable
+
+    @staticmethod
+    def _calibrate_bt(radiance: np.ndarray, cw: float, a: float, b: float) -> np.ndarray:
+        """Perform the calibration to brightness temperature.
+
+        Args:
+            radiance: numpy ndarray containing the radiance values.
+            cw: center wavelength [μm].
+            a: temperature coefficient [-].
+            b: temperature coefficient [K].
+
+        Returns:
+            array containing the calibrated brightness temperature values.
+
+        """
+        log_expr = np.log(1.0 + C1 / ((cw ** 5) * radiance))
+        bt_values = b + (a * C2 / (cw * log_expr))
+        return bt_values
+
+    @staticmethod
+    def _calibrate_refl(radiance: np.ndarray, isi: float) -> np.ndarray:
+        """Perform the calibration to reflectance.
+
+        Args:
+            radiance: numpy ndarray containing the radiance values.
+            isi: integrated solar irradiance [W/(m2 * μm)].
+
+        Returns:
+            array containing the calibrated reflectance values.
+
+        """
+        refl_values = (np.pi / isi) * radiance * 100.0
+        return refl_values

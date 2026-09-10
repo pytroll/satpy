@@ -71,6 +71,7 @@ Documentation
     writing
     multiscene
     dev_guide/index
+    readers_formats
 
 .. toctree::
     :maxdepth: 1

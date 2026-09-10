@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Configuration directory and file handling."""
 from __future__ import annotations
 
@@ -107,12 +90,12 @@ if _ancpath is not None and _data_dir is None:
 config = Config("satpy", defaults=[_CONFIG_DEFAULTS], paths=_CONFIG_PATHS)
 
 
-def get_config_path_safe():
+def get_config_path_safe() -> list[str]:
     """Get 'config_path' and check for proper 'list' type."""
     config_path = config.get("config_path")
     if not isinstance(config_path, list):
-        raise ValueError("Satpy config option 'config_path' must be a "
-                         "list, not '{}'".format(type(config_path)))
+        raise ValueError("Satpy config option 'config_path' must be a " +
+                         f"list, not '{type(config_path)}'.")
     return config_path
 
 
@@ -155,7 +138,7 @@ def _entry_point_module(entry_point):
         return entry_point.value.split(":")[0].strip()
 
 
-def config_search_paths(filename, search_dirs=None, **kwargs):
+def config_search_paths(filename: str, search_dirs: list[str] | None = None, **kwargs) -> list[str]:
     """Get series of configuration base paths where Satpy configs are located."""
     if search_dirs is None:
         search_dirs = get_config_path_safe()[::-1]

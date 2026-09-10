@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2022 Satpy Developers
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Passive Microwave instrument and channel specific features."""
 
@@ -94,13 +77,13 @@ class FrequencyQuadrupleSideBand(FrequencyBandBaseArithmetics, FrequencyQuadrupl
         """Return if two channel frequencies are equal.
 
         Args:
-            other (tuple or scalar): (central frq, side band frq, side-side band frq,
-            and band width frq) or scalar frq
+            other (tuple[numbers.Number] or numbers.Number): (central frq, side band frq, side-side band frq,
+                and band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is a
-            tuple equal to self, or if other is a number contained by self.
-            False otherwise.
+            (bool): True if other is a scalar and min <= other <= max, or if other is a
+                tuple equal to self, or if other is a number contained by self.
+                False otherwise.
 
         """
         if other is None:
@@ -223,12 +206,13 @@ class FrequencyDoubleSideBand(FrequencyBandBaseArithmetics, FrequencyDoubleSideB
         """Return if two channel frequencies are equal.
 
         Args:
-            other (tuple or scalar): (central frq, side band frq and band width frq) or scalar frq
+            other (tuple[numbers.Number] or numbers.Number): (central frq, side band frq and band width frq)
+                or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is a
-            tuple equal to self, or if other is a number contained by self.
-            False otherwise.
+            (bool): True if other is a scalar and min <= other <= max, or if other is a
+                tuple equal to self, or if other is a number contained by self.
+                False otherwise.
 
         """
         if other is None:
@@ -352,12 +336,12 @@ class FrequencyRange(FrequencyBandBaseArithmetics, FrequencyRangeBase):
         """Check wether two channel frequencies are equal.
 
         Args:
-            other (tuple or scalar): (central frq, band width frq) or scalar frq
+            other (tuple[numbers.Number] or numbers.Number): (central frq, band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is a
-            tuple equal to self, or if other is a number contained by self.
-            False otherwise.
+            (bool): True if other is a scalar and min <= other <= max, or if other is a
+                tuple equal to self, or if other is a number contained by self.
+                False otherwise.
 
         """
         if other is None:

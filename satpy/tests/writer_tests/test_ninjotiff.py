@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the NinJoTIFF writer."""
 
 import sys
@@ -95,7 +78,7 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         nt.save.assert_called()
         assert nt.save.mock_calls[0][2]["compute"] is False
         assert nt.save.mock_calls[0][2]["ch_min_measurement_unit"] < nt.save.mock_calls[0][2]["ch_max_measurement_unit"]
-        assert ret == nt.save.return_value
+        assert ret == [nt.save.return_value]
 
     def test_convert_units_self(self):
         """Test that unit conversion to themselves do nothing."""

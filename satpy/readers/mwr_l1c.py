@@ -1,17 +1,3 @@
-# Copyright (c) 2024 - 2025 Pytroll Developers
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for the Arctic Weather Satellite (AWS) MWR level-1c data.
 
 MWR = Microwave Radiometer, onboard AWS and EPS-Sterna
@@ -44,13 +30,21 @@ Here is an example how to read the data in satpy:
 
 from satpy.readers.mwr_l1b import MWR_CHANNEL_NAMES, AWS_EPS_Sterna_BaseFileHandler, mask_and_scale
 
+NAVIGATION_DATASET_NAMES = ["satellite_zenith_angle",
+                            "solar_azimuth_angle",
+                            "solar_zenith_angle",
+                            "satellite_azimuth_angle",
+                            "surface_type",
+                            "terrain_elevation",
+                            "longitude",
+                            "latitude"]
 
 class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
     """Class implementing the AWS L1c Filehandler.
 
     This class implements the ESA Arctic Weather Satellite (AWS) Level-1b
-    NetCDF reader. It is designed to be used through the :class:`~satpy.Scene`
-    class using the :mod:`~satpy.Scene.load` method with the reader
+    NetCDF reader. It is designed to be used through the :class:`Scene <satpy.scene.Scene>`
+    class using the :mod:`Scene.load <satpy.scene.Scene.load>` method with the reader
     ``"aws_l1c_nc"``.
 
     """
@@ -70,9 +64,8 @@ class AWS_MWR_L1CFile(AWS_EPS_Sterna_BaseFileHandler):
         """Get the data."""
         if dataset_id["name"] in MWR_CHANNEL_NAMES:
             data_array = self._get_channel_data(dataset_id, dataset_info)
-        elif (dataset_id["name"] in ["longitude", "latitude",
-                                     "solar_azimuth_angle", "solar_zenith_angle",
-                                     "satellite_zenith_angle", "satellite_azimuth_angle"]):
+
+        elif dataset_id["name"] in NAVIGATION_DATASET_NAMES:
             data_array = self._get_navigation_data(dataset_id, dataset_info)
         else:
             raise NotImplementedError(f"Dataset {dataset_id['name']} not available or not supported yet!")

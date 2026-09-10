@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """SLSTR L1b reader."""
 
@@ -28,7 +11,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -36,11 +19,13 @@ logger = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {"S3A": "Sentinel-3A",
-                  "S3B": "Sentinel-3B"}
+                  "S3B": "Sentinel-3B",
+                  "S3C": "Sentinel-3C",
+                  "S3D": "Sentinel-3D"}
 
 # These are the default channel adjustment factors.
-# Defined in the product notice: S3.PN-SLSTR-L1.08
-# https://sentinel.esa.int/documents/247904/2731673/Sentinel-3A-and-3B-SLSTR-Product-Notice-Level-1B-SL-1-RBT-at-NRT-and-NTC.pdf
+# Defined in the product notice: S3.PN-SLSTR-L1.10
+# https://user.eumetsat.int/s3/eup-strapi-media/S3_PN_SLSTR_L1_10_i1r0_SLSTR_L1_PB_SL_L1_004_05_00_fbf01b8813.pdf
 CHANCALIB_FACTORS = {"S1_nadir": 0.97,
                      "S2_nadir": 0.98,
                      "S3_nadir": 0.98,
@@ -136,6 +121,7 @@ class NCSLSTR1B(BaseFileHandler):
                                   chunks={"columns": CHUNK_SIZE,
                                           "rows": CHUNK_SIZE})
         self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        self.baseline = filename_info["baseline"]
         self.channel = filename_info["dataset_name"]
         self.stripe = filename_info["stripe"]
         views = {"n": "nadir", "o": "oblique"}
@@ -195,11 +181,14 @@ class NCSLSTR1B(BaseFileHandler):
                 self.view != key["view"].name):
             return
         logger.debug("Reading %s.", key["name"])
-        if key["calibration"] == "brightness_temperature":
-            variable = self.nc["{}_BT_{}{}".format(self.channel, self.stripe, self.view[0])]
+        chan_type = "BT" if key["calibration"] == "brightness_temperature" else "radiance"
+        variable = self.nc[f"{self.channel}_{chan_type}_{self.stripe}{self.view[0]}"]
+        # Processing baseline version 005 and above already include the radiance adjustment factor
+        # Therefore, unless user supplies their own, do not apply here.
+        if self.baseline < 5 or self.usercalib is not None:
+            radiances = self._apply_radiance_adjustment(variable)
         else:
-            variable = self.nc["{}_radiance_{}{}".format(self.channel, self.stripe, self.view[0])]
-        radiances = self._apply_radiance_adjustment(variable)
+            radiances = variable
         units = variable.attrs["units"]
         if key["calibration"] == "reflectance":
             # TODO take into account sun-earth distance
@@ -273,6 +262,30 @@ class NCSLSTRAngles(BaseFileHandler):
         self.carti = self._loadcart(carti_file)
         self.cartx = self._loadcart(cartx_file)
 
+    @staticmethod
+    def _interp_data(indata, full_grid, tie_grid, ds_name):
+        """Interpolate data from tie point grid to full image grid."""
+        from scipy.interpolate import RectBivariateSpline
+
+        # Check if we are interpolating angles
+        if "angle" in ds_name:
+            # If we are interpolating the angles, we need to do so with the sine and cosine to prevent
+            # interpolation artifacts such as values <0 or >360.
+            indat = indata[:, ::-1]
+            sin_angles = np.sin(np.radians(indat))
+            cos_angles = np.cos(np.radians(indat))
+            sin_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], sin_angles)
+            cos_interp = RectBivariateSpline(tie_grid[1], tie_grid[0], cos_angles)
+            values_sin = sin_interp.ev(full_grid[1], full_grid[0])
+            values_cos = cos_interp.ev(full_grid[1], full_grid[0])
+            values = np.degrees(np.arctan2(values_sin, values_cos)) % 360
+        else:
+            # Otherwise, interpolate as normal.
+            spl = RectBivariateSpline(tie_grid[1], tie_grid[0], indata[:, ::-1])
+            values = spl.ev(full_grid[1], full_grid[0])
+        return values
+
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if not key["view"].name.startswith(self.view[0]):
@@ -305,11 +318,11 @@ class NCSLSTRAngles(BaseFileHandler):
             variable = variable.fillna(0)
             variable.attrs["resolution"] = key.get("resolution", 1000)
 
-            from scipy.interpolate import RectBivariateSpline
-            spl = RectBivariateSpline(
-                tie_y, tie_x, variable.data[:, ::-1])
-
-            values = spl.ev(full_y, full_x)
+            # Interpolate the data to the full image grid
+            values = self._interp_data(variable.data,
+                                       [full_x, full_y],
+                                       [tie_x, tie_y],
+                                       key["name"])
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                                     dims=["y", "x"], attrs=variable.attrs)

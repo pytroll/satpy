@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes for corrections based on sun and other angles."""
 
 from __future__ import annotations
@@ -101,8 +84,9 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
         Args:
             correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. Pixels beyond this limit have a
-                constant correction applied. Default 88.
+                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
+                constant correction applied. Otherwise, the correction is gradually reduced to 0 at
+                ``max_sza``. Default 88.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 
@@ -147,8 +131,9 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
         Args:
             correction_limit (float): Maximum solar zenith angle to apply the
-                correction in degrees. Pixels beyond this limit have a
-                constant correction applied. Default 88.
+                correction in degrees. If ``max_sza`` is ``None``, pixels beyond this limit have a
+                constant correction applied. Otherwise, the correction is gradually reduced to 0 at
+                ``max_sza``. Default 88.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 

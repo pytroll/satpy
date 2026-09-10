@@ -1,20 +1,7 @@
-# Copyright (c) 2019-2023 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for the FCI L2 products in NetCDF4 format."""
 
+import datetime as dt
 import logging
 from contextlib import suppress
 
@@ -24,15 +11,16 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_geos_area_naming, make_ext
-from satpy.readers.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.resample import get_area_def
-from satpy.utils import get_legacy_chunk_size
+from satpy.area import get_area_def
+from satpy.readers.core._geos_area import get_geos_area_naming, make_ext
+from satpy.readers.core.eum import get_service_mode
+from satpy.readers.core.fci import platform_name_translate
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.utils import get_chunk_size_limit
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 SSP_DEFAULT = 0.0
 
@@ -43,7 +31,8 @@ class FciL2CommonFunctions(object):
     @property
     def spacecraft_name(self):
         """Return spacecraft name."""
-        return self.nc.attrs["platform"]
+        return platform_name_translate.get(
+            self.nc.attrs["platform"], self.nc.attrs["platform"])
 
     @property
     def sensor_name(self):
@@ -52,15 +41,22 @@ class FciL2CommonFunctions(object):
 
     @property
     def ssp_lon(self):
-        """Return longitude at subsatellite point."""
+        """Return central longitude of GEOS projection grid.
+
+        This is needed to compute the area definition for the gridded products (pixel-based and segmented).
+        For the AMV product it is not needed and therefore no warning is issued if missing.
+        """
         try:
             return float(self.nc["mtg_geos_projection"].attrs["longitude_of_projection_origin"])
         except (KeyError, AttributeError):
-            logger.warning(f"ssp_lon could not be obtained from file content, using default value "
-                           f"of {SSP_DEFAULT} degrees east instead")
+            if self.product_type != "amv":
+                logger.warning(
+                    f"ssp_lon could not be obtained from file content, "
+                    f"using default value of {SSP_DEFAULT} degrees east instead"
+                )
             return SSP_DEFAULT
 
-    def _get_global_attributes(self, product_type="pixel"):
+    def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets.
 
         Returns:
@@ -72,28 +68,30 @@ class FciL2CommonFunctions(object):
                 platform_name: name of the platform
             Only for AMVs product:
                 channel: channel at which the AMVs have been retrieved
-
+                time_parameters: dictionary of time attributes (currently only wind_time)
 
         """
         attributes = {
             "filename": self.filename,
-            "spacecraft_name": self.spacecraft_name,
-            "sensor": self.sensor_name,
-            "platform_name": self.spacecraft_name,
+            "spacecraft_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name),
             "ssp_lon": self.ssp_lon,
+            "sensor": self.sensor_name,
+            "platform_name": platform_name_translate.get(self.spacecraft_name, self.spacecraft_name)
         }
 
-        if product_type=="amv":
+        if self.product_type == "amv":
             attributes["channel"] = self.filename_info["channel"]
+            attributes["time_parameters"] = {}
+            attributes["time_parameters"]["wind_time"] = self.wind_time
 
         return attributes
 
-    def _set_attributes(self, variable, dataset_info, product_type="pixel"):
+    def _set_attributes(self, variable, dataset_info):
         """Set dataset attributes."""
-        if product_type in ["pixel", "segmented"]:
-            if product_type == "pixel":
+        if self.product_type in ["pixel", "segmented"]:
+            if self.product_type == "pixel":
                 xdim, ydim = "number_of_columns", "number_of_rows"
-            elif product_type == "segmented":
+            elif self.product_type == "segmented":
                 xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
 
             if dataset_info["nc_key"] not in ["product_quality",
@@ -108,7 +106,7 @@ class FciL2CommonFunctions(object):
             del variable.attrs["unit"]
 
         variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes(product_type=product_type))
+        variable.attrs.update(self._get_global_attributes())
 
         import_enum_information = dataset_info.get("import_enum_information", False)
         if import_enum_information:
@@ -176,8 +174,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, with_area_definition=True):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.product_type = "pixel"
 
-        # Use xarray's default netcdf4 engine to open the fileq
+        # Use xarray's default netcdf4 engine to open the file
         self.nc = xr.open_dataset(
             self.filename,
             decode_cf=True,
@@ -248,7 +247,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Compute the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_extent = self._get_area_extent()
@@ -339,6 +338,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, with_area_definition=False):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.product_type = "segmented"
+
         # Use xarray's default netcdf4 engine to open the file
         self.nc = xr.open_dataset(
             self.filename,
@@ -392,7 +393,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if "fill_value" in dataset_info:
             variable = self._mask_data(variable, dataset_info["fill_value"])
 
-        variable = self._set_attributes(variable, dataset_info, product_type="segmented")
+        variable = self._set_attributes(variable, dataset_info)
 
         return variable
 
@@ -400,7 +401,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         """Construct the area definition.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         res = dataset_id["resolution"]
@@ -453,6 +454,7 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
+        self.product_type = "amv"
 
     @cached_property
     def nc(self):
@@ -467,6 +469,22 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             }
         )
 
+    @property
+    def wind_time(self):
+        """Return wind time as a datetime object.
+
+        This quantity represents the start_time of the second image used
+        for the AMV tracking, and is already present as a wind_time dataset
+        in units of Seconds since 2000-01-01 00:00:00.0.
+        """
+        ref = dt.datetime(2000,1,1,0,0,0)
+        try:
+            secs_since_ref = self.nc["wind_time"].data.item()
+            return ref + dt.timedelta(seconds=secs_since_ref)
+        except KeyError:
+            logger.warning("wind_time dataset not found. Setting wind_time to None.")
+            return None
+
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the nc_key in dataset_info."""
         var_key = dataset_info["nc_key"]
@@ -479,6 +497,6 @@ class FciL2NCAMVFileHandler(FciL2CommonFunctions, BaseFileHandler):
             return None
 
         # Manage the attributes of the dataset
-        variable = self._set_attributes(variable, dataset_info, product_type="amv")
+        variable = self._set_attributes(variable, dataset_info)
 
         return variable

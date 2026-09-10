@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the HDF-EOS base functionality."""
 
 import unittest
@@ -671,13 +654,13 @@ class TestReadMDA(unittest.TestCase):
 
     def test_read_mda(self):
         """Test reading basic metadata."""
-        from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
+        from satpy.readers.core.hdfeos import HDFEOSBaseFileReader
         res = HDFEOSBaseFileReader.read_mda(nrt_mda)
         assert res == nrt_mda_dict
 
     def test_read_mda_geo_resolution(self):
         """Test reading geo resolution."""
-        from satpy.readers.hdfeos_base import HDFEOSGeoReader
+        from satpy.readers.core.hdfeos import HDFEOSGeoReader
         resolution_l1b = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl1b)
             )

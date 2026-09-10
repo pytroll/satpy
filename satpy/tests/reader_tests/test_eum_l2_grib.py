@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """EUM L2 GRIB-reader test package."""
 
@@ -111,9 +94,9 @@ def common_checks(ec_, reader, mock_file, dataset_id):
 def test_seviri_data_reading(da_, xr_, setup_reader):
     """Test the reading of data from the product."""
     from satpy.readers.eum_l2_grib import EUML2GribFileHandler
-    from satpy.utils import get_legacy_chunk_size
+    from satpy.utils import get_chunk_size_limit
     ec_ = setup_reader
-    chunk_size = get_legacy_chunk_size()
+    chunk_size = get_chunk_size_limit()
 
     with mock.patch("builtins.open", mock.mock_open()) as mock_file:
         with mock.patch("satpy.readers.eum_l2_grib.ec", ec_):
@@ -214,9 +197,9 @@ def test_seviri_data_reading(da_, xr_, setup_reader):
 def test_fci_data_reading(da_, xr_, setup_reader):
     """Test the reading of fci data from the product."""
     from satpy.readers.eum_l2_grib import EUML2GribFileHandler
-    from satpy.utils import get_legacy_chunk_size
+    from satpy.utils import get_chunk_size_limit
     ec_ = setup_reader
-    chunk_size = get_legacy_chunk_size()
+    chunk_size = get_chunk_size_limit()
 
     with mock.patch("builtins.open", mock.mock_open()) as mock_file:
         with mock.patch("satpy.readers.eum_l2_grib.ec", ec_):

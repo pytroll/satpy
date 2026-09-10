@@ -49,7 +49,7 @@ composites:
     standard_name: toa_bidirectional_reflectance
 
   true_color:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: pseudored
       - name: green
@@ -58,7 +58,7 @@ composites:
     standard_name: true_color
 
   true_color_nocorr:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: pseudored_nocorr
       - name: green_nocorr
@@ -73,7 +73,7 @@ composites:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
       Cloud Type recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13_A&RevisionSelectionMethod=LatestReleased&Rendition=Web
     ## it uses the default used in etc/enhancements/generic.yaml
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C12
       - name: C02
@@ -85,7 +85,7 @@ composites:
   cloud_phase_distinction_raw:
     description: >
       same as cloud_phase_distinction
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C12
       - name: C02
@@ -98,13 +98,13 @@ composites:
     references:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DaySnowFogRGB_final_v2.pdf
     ## it uses the default used in etc/enhancements/generic.yaml of snow_defaul
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
         modifiers: [sunz_corrected]
       - name: C05
         modifiers: [sunz_corrected]
-      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
           - name: C07
           - name: C12
@@ -116,7 +116,7 @@ composites:
     references:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
     ## adapted from etc/composites/viirs.yaml
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C07
       - name: C06
@@ -129,7 +129,7 @@ composites:
       Day Land Cloud Fire RGB, for GOESR: NASA, NOAA
     references:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C06
       - name: C03
@@ -144,7 +144,7 @@ composites:
     references:
       CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
 
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C05
       - name: C03
@@ -160,7 +160,7 @@ composites:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
       Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/visir.yaml
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
         modifiers: [sunz_corrected]
@@ -177,7 +177,7 @@ composites:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
       Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     ## adapted from etc/composites/ahi.yaml
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
         modifiers: [sunz_corrected]
@@ -192,7 +192,7 @@ composites:
     references:
       Quick Guide: http://www.virtuallab.bom.gov.au/files/3114/7884/4308/NewRGBProductsNov2016RFGmeeting.pdf
     ## adapted from etc/composites/ahi.yaml
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C03
       - name: C06
@@ -208,7 +208,7 @@ composites:
       EUMETRAIN Quick Guide: https://resources.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
       Recipe : https://resources.eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
       Cloud Phase recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13&RevisionSelectionMethod=LatestReleased&Rendition=Web
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C05
         modifiers: [sunz_corrected]
@@ -221,7 +221,7 @@ composites:
   cloud_phase_raw:
     description: >
       same as cloud_phase
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: C05
       - name: C06
@@ -231,7 +231,7 @@ composites:
   color_infrared:
     description: >
       Similar to landsat and sentinel 2 combinations for enhance vegetation
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.resolution.SelfSharpenedRGB
     prerequisites:
       - name: C03
         modifiers: [sunz_corrected, rayleigh_corrected]
@@ -239,3 +239,20 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green
     standard_name: true_color
+
+  day_severe_storms:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: C09
+          - name: C10
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C13
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: C05
+          - name: C02
+    standard_name: day_severe_storms

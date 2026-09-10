@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """VIIRS Active Fires reader.
 
 This module implements readers for VIIRS Active Fires NetCDF and
@@ -24,8 +7,9 @@ ASCII files.
 import dask.dataframe as dd
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.dataset.dataid import DataID
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 # map platform attributes to Oscar standard name
 PLATFORM_MAP = {
@@ -46,15 +30,15 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             auto_maskandscale=auto_maskandscale, xarray_kwargs=xarray_kwargs)
         self.prefix = filetype_info.get("variable_prefix")
 
-    def get_dataset(self, dsid, dsinfo):  # noqa: D417
+    def get_dataset(self, dsid: DataID, dsinfo: dict) -> xr.DataArray:  # noqa: D417
         """Get requested data as DataArray.
 
         Args:
-            dsid: Dataset ID
-            param2: Dataset Information
+            dsid: DataID to load data for
+            dsinfo: Dataset information
 
         Returns:
-            Dask DataArray: Data
+            DataArray of the loaded variable
 
         """
         key = dsinfo.get("file_key", dsid["name"]).format(variable_prefix=self.prefix)

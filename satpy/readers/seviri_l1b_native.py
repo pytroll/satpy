@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 r"""SEVIRI Level 1.5 native format reader.
 
@@ -95,7 +78,7 @@ References:
 .. _EUMETSAT Product Navigator:
     https://navigator.eumetsat.int/product/EO:EUM:DAT:MSG:HRSEVIRI
 .. _MSG Level 1.5 Native Format File Definition:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
+    https://user.eumetsat.int/s3/eup-strapi-media/pdf_fg15_msg_native_format_15_6b513c5bb3.pdf
 """
 
 import datetime as dt
@@ -108,10 +91,10 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy._compat import cached_property
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import (
+from satpy.readers.core._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode, recarray2dict, time_cds_short
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.seviri import (
     CHANNEL_NAMES,
     HRV_NUM_COLUMNS,
     HRV_NUM_LINES,
@@ -137,13 +120,13 @@ from satpy.readers.seviri_base import (
     pad_data_vertically,
     round_nom_time,
 )
+from satpy.readers.core.utils import fromfile, generic_open, reduce_mda
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
     GSDTRecords,
     get_native_header,
     native_trailer,
 )
-from satpy.readers.utils import fromfile, generic_open, reduce_mda
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger("native_msg")
@@ -156,7 +139,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     **Padding channel data to full disk**
 
@@ -171,7 +154,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     **Metadata**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.core.seviri`.
 
     """
 

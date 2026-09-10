@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ami_l1b reader tests package."""
 import contextlib
 from typing import Iterator
@@ -204,7 +187,7 @@ class TestAMIL1bNetCDF:
 
     def test_filename_grouping(self):
         """Test that filenames are grouped properly."""
-        from satpy.readers import group_files
+        from satpy.readers.core.grouping import group_files
         filenames = [
             "gk2a_ami_le1b_ir087_fd020ge_201909300300.nc",
             "gk2a_ami_le1b_ir096_fd020ge_201909300300.nc",
@@ -256,7 +239,7 @@ class TestAMIL1bNetCDF:
         with raises(ValueError, match="_bad_ invalid value for .*"):
             _ = make_dataid(name="VI006", calibration="_bad_")
 
-    @mock.patch("satpy.readers.abi_base.geometry.AreaDefinition")
+    @mock.patch("satpy.readers.core.abi.geometry.AreaDefinition")
     def test_get_area_def(self, adef, fake_vis_reader):
         """Test the area generation."""
         fake_vis_reader.get_area_def(None)

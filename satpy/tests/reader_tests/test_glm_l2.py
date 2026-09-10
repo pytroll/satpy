@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The glm_l2 reader tests package."""
 
 import os
@@ -115,7 +98,7 @@ def setup_fake_dataset():
 class TestGLML2FileHandler(unittest.TestCase):
     """Tests for the GLM L2 reader."""
 
-    @mock.patch("satpy.readers.abi_base.xr")
+    @mock.patch("satpy.readers.core.abi.xr")
     def setUp(self, xr_):
         """Create a fake file handler to test."""
         from satpy.readers.glm_l2 import NCGriddedGLML2
@@ -203,11 +186,11 @@ class TestGLML2Reader(unittest.TestCase):
 
     yaml_file = "glm_l2.yaml"
 
-    @mock.patch("satpy.readers.abi_base.xr")
+    @mock.patch("satpy.readers.core.abi.xr")
     def setUp(self, xr_):
         """Create a fake reader to test."""
         from satpy._config import config_search_paths
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         fake_dataset = setup_fake_dataset()
         xr_.open_dataset.return_value = fake_dataset

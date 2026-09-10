@@ -1,17 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 """Tests for the angles in modifiers."""
 
@@ -164,7 +150,7 @@ class TestAngleGeneration:
         with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
             angles = get_angles(data)
             assert all(isinstance(x, xr.DataArray) for x in angles)
-            da.compute(angles)
+            da.compute(*tuple(x.data for x in angles))
 
         # get_observer_look should have been called once per array chunk
         assert gol.call_count == exp_calls
@@ -197,9 +183,9 @@ class TestAngleGeneration:
         with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
                 satpy.config.set(sensor_angles_position_preference=forced_preference):
             angles1 = get_angles(input_data1)
-            da.compute(angles1)
+            da.compute(*tuple(x.data for x in angles1))
             angles2 = get_angles(input_data2)
-            da.compute(angles2)
+            da.compute(*tuple(x.data for x in angles2))
 
         # get_observer_look should have been called once per array chunk
         assert gol.call_count == input_data1.data.blocks.size * 2
@@ -261,7 +247,7 @@ class TestAngleGeneration:
                 res2 = get_angles(new_data)
             self._check_cached_result(res2, exp_zarr_chunks)
 
-            res_numpy, res2_numpy = da.compute(res, res2)
+            res_numpy, res2_numpy = da.compute(tuple(x.data for x in res), tuple(x.data for x in res2))
             for r1, r2 in zip(res_numpy[:2], res2_numpy[:2]):
                 _assert_allclose_if(not additional_cache, r1, r2)
             for r1, r2 in zip(res_numpy[2:], res2_numpy[2:]):
@@ -331,7 +317,7 @@ class TestAngleGeneration:
         def _fake_func(array):
             return array + 1
 
-        with pytest.warns(UserWarning), \
+        with pytest.warns(UserWarning, match=".*unhashable argument.*"), \
                 satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
             _fake_func(da.zeros(100))
 

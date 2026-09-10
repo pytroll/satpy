@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020, 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.hy2_scat_l2b_h5 module."""
 
 import os
@@ -390,7 +373,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_geo(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -406,7 +389,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_geo_nsoas(self):
         """Test loading data from nsoas file."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "H2B_OPER_SCA_L2B_OR_20210803T100304_20210803T104601_13905_pwp_250_07_owv.h5", ]
 
@@ -422,7 +405,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_data_selection(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -439,7 +422,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_data_all_ambiguities(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -464,7 +447,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_load_data_row_times(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -479,7 +462,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_reading_attrs(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 
@@ -494,7 +477,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def test_reading_attrs_nsoas(self):
         """Test loading data."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "H2B_OPER_SCA_L2B_OR_20210803T100304_20210803T104601_13905_pwp_250_07_owv.h5", ]
 
@@ -511,7 +494,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         """Test platform_name."""
         import datetime as dt
 
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5", ]
 

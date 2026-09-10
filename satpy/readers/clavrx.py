@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to CLAVR-X HDF4 products."""
 
 from __future__ import annotations
@@ -29,8 +12,8 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hdf4_utils import SDS, HDF4FileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.hdf4 import SDS, HDF4FileHandler
 from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
@@ -491,7 +474,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
 
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        See :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for more information.
 
         """

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The agri_l1 reader tests package."""
 
 import os
@@ -214,7 +197,7 @@ class Test_HDF_GHI_L1_cal:
     def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.fy4_base import FY4Base
+        from satpy.readers.core.fy4 import FY4Base
         from satpy.readers.ghi_l1 import HDF_GHI_L1
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -318,7 +301,7 @@ class Test_HDF_GHI_L1_cal:
         assert res[band_name].dtype == np.float32
 
     def _create_reader_for_resolutions(self, *resolutions):
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         filenames = _create_filenames_from_resolutions(*resolutions)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)

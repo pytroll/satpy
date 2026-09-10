@@ -1,28 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_l2_jrr module.
 
 Note: This is adapted from the test_slstr_l2.py code.
 """
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import shutil
+import warnings
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Iterable
 
@@ -188,7 +174,8 @@ def _create_veg_index_variables() -> dict[str, xr.DataArray]:
         bad_qf_start = 4  # 0.5x the last test pixel set in "vi_data" above (I-band versus M-band index)
         if qf_num == 1:
             qf_data[:, :] |= 0b00000010  # medium cloud mask quality everywhere
-            qf_data[0, bad_qf_start] |= 0b11000000  # sun glint
+            # qf_data[0, bad_qf_start] |= 0b11000000  # sun glint
+            qf_data[0, bad_qf_start] |= 0b00001100  # cloudy
             qf_data[0, bad_qf_start + 1] |= 0b00001100  # cloudy
             qf_data[0, bad_qf_start + 2] = 0b00000001  # low cloud mask quality
         elif qf_num == 2:
@@ -286,6 +273,29 @@ def volcanic_ash_file(tmp_path_factory: TempPathFactory) -> Path:
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
+@pytest.fixture(scope="module")
+def cloud_phase_file(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake AOD VIIRs EDR file."""
+    fn = f"JRR-CloudPhase_v3r2_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307231023395.nc"
+
+    # get lon/lat variables
+    data_vars = _create_continuous_variables([])
+    phase_data = (RANDOM_GEN.random((M_ROWS, M_COLS)) * 6).astype(np.int8)
+    cloud_phase = xr.DataArray(
+        phase_data,
+        dims=("Rows", "Columns"),
+        attrs={
+            "valid_range": [np.int8(0), np.int8(5)],
+            "units": "1",
+            "coordinates": "Longitude Latitude",
+        },
+    )
+    cloud_phase.encoding["_FillValue"] = np.int8(-128)
+    cloud_phase.encoding["dtype"] = np.int8
+    data_vars["CloudPhase"] = cloud_phase
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
+
+
 def _create_continuous_variables(
         var_names: Iterable[str],
         data_attrs: None | dict = None
@@ -366,6 +376,16 @@ def test_available_datasets(aod_file):
     assert fake_availables[0][0] is None
 
 
+@contextlib.contextmanager
+def set_chunk_size(bytes_in_m_row: int) -> Iterator[None]:
+    """Set dask chunks and ignore expected performance warning."""
+    with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}), \
+            warnings.catch_warnings():
+        # we're setting the dask chunks
+        warnings.filterwarnings("ignore", message="The specified chunks separate the stored", category=UserWarning)
+        yield
+
+
 class TestVIIRSJRRReader:
     """Test the VIIRS JRR L2 reader."""
 
@@ -384,7 +404,7 @@ class TestVIIRSJRRReader:
             data_files = [data_files]
         is_multiple = len(data_files) > 1
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=data_files)
             scn.load(["surf_refl_I01", "surf_refl_M01"])
         assert scn.start_time == START_TIME
@@ -412,7 +432,7 @@ class TestVIIRSJRRReader:
             data_files = [data_files]
         is_multiple = len(data_files) > 1
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=data_files,
                         reader_kwargs={"filter_veg": filter_veg})
             scn.load(["NDVI", "EVI", "surf_refl_qf1"])
@@ -431,11 +451,22 @@ class TestVIIRSJRRReader:
         """Test datasets from cloud height files."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=[data_file])
             scn.load(var_names)
         for var_name in var_names:
             _check_continuous_data_arr(scn[var_name])
+
+    def test_get_dataset_category(self, cloud_phase_file):
+        """Test loading category (integer) data products."""
+        from satpy import Scene
+        bytes_in_m_row = 4 * 3200
+        with set_chunk_size(bytes_in_m_row):
+            scn = Scene(reader="viirs_edr", filenames=[cloud_phase_file])
+            scn.load(["CloudPhase"])
+        data_arr = scn["CloudPhase"]
+        _array_checks(data_arr, dtype=np.int8)
+        _shared_metadata_checks(data_arr)
 
     @pytest.mark.parametrize(
         ("aod_qc_filter", "exp_masked_pixel"),
@@ -449,7 +480,7 @@ class TestVIIRSJRRReader:
         """Test that the AOD product can be loaded and filtered."""
         from satpy import Scene
         bytes_in_m_row = 4 * 3200
-        with dask.config.set({"array.chunk-size": f"{bytes_in_m_row * 4}B"}):
+        with set_chunk_size(bytes_in_m_row):
             scn = Scene(reader="viirs_edr", filenames=[aod_file], reader_kwargs={"aod_qc_filter": aod_qc_filter})
             scn.load(["AOD550"])
         _check_continuous_data_arr(scn["AOD550"])
@@ -571,6 +602,8 @@ def _array_checks(data_arr: xr.DataArray, dtype: npt.Dtype = np.float32, multipl
     assert data_arr.attrs["area"].shape == data_arr.shape
     assert isinstance(data_arr.data, da.Array)
     assert np.issubdtype(data_arr.data.dtype, dtype)
+    data_np = data_arr.data.compute()
+    assert data_np.dtype == data_arr.dtype
     is_mband_res = _is_mband_res(data_arr)
     shape_multiplier = 1 + int(multiple_files)
     exp_shape = (M_ROWS * shape_multiplier, M_COLS) if is_mband_res else (I_ROWS * shape_multiplier, I_COLS)
@@ -602,6 +635,13 @@ def _shared_metadata_checks(data_arr: xr.DataArray) -> None:
         valid_range = data_arr.attrs["valid_range"]
         assert isinstance(valid_range, tuple)
         assert len(valid_range) == 2
+
+    if np.issubdtype(data_arr.dtype, np.floating):
+        # floating point arrays always use NaN as fill and should not specify it in attrs
+        assert "_FillValue" not in data_arr.attrs
+    if "_FillValue" in data_arr.attrs:
+        # make sure fill vlaue is scalar
+        assert not hasattr(data_arr.attrs["_FillValue"], "shape")
 
 
 def _is_mband_res(data_arr: xr.DataArray) -> bool:

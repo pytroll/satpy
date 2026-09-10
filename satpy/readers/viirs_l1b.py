@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2011-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to VIIRS L1B format."""
 
 import datetime as dt
@@ -22,7 +5,7 @@ import logging
 
 import numpy as np
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -182,12 +165,18 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         i = getattr(self[var_path], "attrs", {})
         i.update(ds_info)
         i.update(dataset_id.to_dict())
+        orb_param = {"start_direction": self["/attr/startDirection"],
+                     "end_direction": self["/attr/endDirection"],
+                     "start_orbit": self.start_orbit_number,
+                     "end_orbit": self.end_orbit_number,}
         i.update({
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
+            "day_night": self["/attr/DayNightFlag"],
+            "orbital_parameters": orb_param,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
@@ -249,7 +238,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         """Generate dataset info and their availablity.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
 
         """
@@ -264,6 +253,26 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             var_path = self._dataset_name_to_var_path(ds_info["name"], ds_info)
             is_in_file = var_path in self
             yield ft_matches and is_in_file, ds_info
+
+            # Handle the _quality_flags dataset
+            qf_name = ds_info["name"] + "_quality_flags"
+
+            # Create a copy and override file_key if not explicitly provided
+            qf_ds_info = ds_info.copy()
+            qf_ds_info["name"] = qf_name
+            qf_ds_info["file_key"] = f"observation_data/{qf_name}"
+            qf_var_path = self._dataset_name_to_var_path(qf_name, qf_ds_info)
+
+            if qf_var_path in self:
+                qf_info = {
+                    "name": qf_name,
+                    "file_type": ds_info["file_type"],
+                    "resolution": ds_info.get("resolution"),
+                    "coordinates": ds_info.get("coordinates") or [],
+                    "units": "1",
+                    "standard_name": "quality_flag",
+                }
+                yield True, qf_info
 
     @staticmethod
     def _dataset_name_to_var_path(dataset_name: str, ds_info: dict) -> str:

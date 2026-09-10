@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advanced Himawari Imager (AHI) gridded format data reader.
 
 This data comes in a flat binary format on a fixed grid, and needs to have
@@ -40,8 +23,8 @@ import xarray as xr
 from platformdirs import AppDirs
 from pyresample import geometry
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import unzip_file
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import unzip_file
 from satpy.utils import get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -157,7 +140,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Uncompress downloaded LUTs, which are a tarball."""
         import tarfile
         tar = tarfile.open(tarred_file)
-        tar.extractall(outdir)  # nosec
+        tar.extractall(outdir, filter="data")
         tar.close()
         os.remove(tarred_file)
 

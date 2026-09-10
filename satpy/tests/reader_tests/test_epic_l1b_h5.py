@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The epic_l1b_h5 reader tests package."""
 
 import os
@@ -69,7 +52,7 @@ class TestEPICL1bReader:
 
     def _setup_h5(self, setup_hdf5_file):
         """Initialise reader for the tests."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         test_reader = load_reader(self.reader_configs)
         loadables = test_reader.select_files_from_pathnames([setup_hdf5_file])
         test_reader.create_filehandlers(loadables)

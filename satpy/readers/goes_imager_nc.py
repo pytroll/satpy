@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for GOES 8-15 imager data in netCDF format.
 
@@ -233,9 +216,9 @@ import numpy as np
 import pyresample.geometry
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import bbox, get_geostationary_angle_extent
 from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
-from satpy.readers.utils import bbox, get_geostationary_angle_extent
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -976,7 +959,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         information down the chain.
 
         See
-        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        :meth:`satpy.readers.core.file_handlers.BaseFileHandler.available_datasets`
         for details.
         """
         res = self.resolution
@@ -1352,7 +1335,7 @@ def test_coefs(ir_url, vis_url):
         vis_url: Path or URL to HTML page with VIS coefficients
 
     Raises:
-        ValueError if coefficients don't match the reference
+        (Exception) ValueError: if coefficients don't match the reference
     """
     reader = GOESCoefficientReader(ir_url=ir_url, vis_url=vis_url)
 

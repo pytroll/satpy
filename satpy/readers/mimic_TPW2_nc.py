@@ -1,23 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of Satpy.
-#
-# Satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# Satpy.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
 
 """Reader for Mimic TPW data in netCDF format from SSEC.
 
@@ -38,7 +18,7 @@ import numpy as np
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
+from satpy.readers.core.netcdf import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +65,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         # Iterate over dataset contents
         for var_name, val in self.file_content.items():
             # Only evaluate variables
-            if isinstance(val, netCDF4.Variable):
+            if self.accessor.is_variable(val):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))

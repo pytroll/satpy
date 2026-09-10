@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for the LI instrument."""
 
 import logging
@@ -22,7 +5,7 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy.composites import CompositeBase
+from satpy.composites.core import CompositeBase
 
 LOG = logging.getLogger(__name__)
 
@@ -44,7 +27,7 @@ class LightningTimeCompositor(CompositeBase):
           self.reference_time_attr = self.attrs["reference_time"]
 
 
-      def _normalize_time(self, data:xr.DataArray, attrs:dict) -> xr.DataArray:
+      def _normalize_time(self, data: xr.DataArray, attrs: dict) -> xr.DataArray:
           """Normalize the time in the range between [end_time, end_time - time_range].
 
           The range of the normalised data is between 0 and 1 where 0 corresponds to the date end_time - time_range
@@ -53,11 +36,11 @@ class LightningTimeCompositor(CompositeBase):
           The dates that are earlier to end_time - time_range are set to NaN.
 
           Args:
-              data (xr.DataArray): datas containing dates to be normalised
-              attrs (dict): Attributes suited to the flash_age composite
+              data: datas containing dates to be normalised
+              attrs: Attributes suited to the flash_age composite
 
           Returns:
-              xr.DataArray: Normalised time
+              Normalised time
           """
           # Compute the maximum time value
           end_time = np.array(np.datetime64(data.attrs[self.reference_time_attr]))
@@ -83,14 +66,14 @@ class LightningTimeCompositor(CompositeBase):
               if key not in existing_attrs and val is not None:
                   existing_attrs[key] = val
 
-      def _redefine_metadata(self,attrs:dict)->dict:
+      def _redefine_metadata(self, attrs: dict) -> dict:
           """Modify the standard_name and name metadatas.
 
           Args:
-              attrs (dict): data's attributes
+              attrs: data's attributes
 
           Returns:
-              dict: updated attributes
+              updated attributes
           """
           attrs["name"] = self.standard_name
           attrs["standard_name"] = self.standard_name

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2024-2025 Satpy developers
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for ESA Arctic Weather Satellite (AWS) level-1c file reading."""
 
@@ -22,7 +5,7 @@
 import numpy as np
 import pytest
 
-from satpy.tests.reader_tests.conftest import make_fake_angles, make_fake_mwr_l1c_lonlats
+from satpy.tests.reader_tests.conftest import make_fake_angles, make_fake_dem, make_fake_lsm, make_fake_mwr_l1c_lonlats
 
 PLATFORM_NAME = "AWS1"
 
@@ -33,6 +16,9 @@ fake_sun_azi_data = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
 fake_sun_zen_data = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
 fake_sat_azi_data = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
 fake_sat_zen_data = make_fake_angles(geo_size, geo_dims, shape=(10, 145))
+
+fake_lsm_data = make_fake_lsm(geo_size, geo_dims, shape=(10, 145))
+fake_dem_data = make_fake_dem(geo_size, geo_dims, shape=(10, 145))
 
 
 def test_get_channel_data(aws_mwr_l1c_handler, fake_mwr_data_array):
@@ -93,3 +79,26 @@ def test_get_viewing_geometry_data(aws_mwr_l1c_handler, id_name, file_key, fake_
     assert "y" in res.dims
     assert res.dims == ("y", "x")
     assert "standard_name" in res.attrs
+
+@pytest.mark.parametrize(("id_name", "file_key", "fake_array"),
+                         [("surface_type", "data/navigation/aws_surface_type", fake_lsm_data),
+                          ("terrain_elevation", "data/navigation/aws_terrain_elevation", fake_dem_data)])
+def test_get_lsm_or_dem_data(aws_mwr_l1c_handler, id_name, file_key, fake_array):
+    """Test retrieving the lsm and dem data."""
+    dset_id = dict(name=id_name)
+    dataset_info = dict(file_key=file_key, standard_name=id_name)
+    res = aws_mwr_l1c_handler.get_dataset(dset_id, dataset_info)
+    np.testing.assert_allclose(res, fake_array)
+    assert "x" in res.dims
+    assert "y" in res.dims
+    assert res.dims == ("y", "x")
+    assert "standard_name" in res.attrs
+
+@pytest.mark.parametrize(("id_name", "file_key", "fake_array"),
+                         [("unknwon_dataset", "data/navigation/not_implemented_yet", fake_dem_data)])
+def test_dataset_name_not_implemented(aws_mwr_l1c_handler, id_name, file_key, fake_array):
+    """Test retrieving a dataset for which reading is yet not implemented."""
+    dset_id = dict(name=id_name)
+    dataset_info = dict(file_key=file_key, standard_name=id_name)
+    with pytest.raises(NotImplementedError, match="Dataset unknwon_dataset not available or not supported yet!"):
+        _ = aws_mwr_l1c_handler.get_dataset(dset_id, dataset_info)

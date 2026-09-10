@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """VIIRS Active Fires Tests.
 
 This module implements tests for VIIRS Active Fires NetCDF and ASCII file
@@ -31,7 +14,7 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
@@ -174,7 +157,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
@@ -185,7 +168,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def test_load_dataset(self):
         """Test loading all datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
@@ -231,7 +214,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
@@ -242,7 +225,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def test_load_dataset(self):
         """Test loading all datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc"
@@ -289,7 +272,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
 
     def test_init(self, mock_obj):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
@@ -300,7 +283,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
 
     def test_load_dataset(self, csv_mock):
         """Test loading all datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
@@ -345,7 +328,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
 
     def test_init(self, mock_obj):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"
@@ -356,7 +339,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
 
     def test_load_dataset(self, mock_obj):
         """Test loading all datasets."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             "AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt"

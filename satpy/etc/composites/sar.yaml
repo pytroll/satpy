@@ -95,7 +95,7 @@ composites:
     standard_name: sar-ice-log
 
   green-sar:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: measurement
       polarization: vh

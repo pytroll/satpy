@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.grib module."""
 
 import os
@@ -222,7 +205,7 @@ class TestGRIBReader:
         sys.modules["pygrib"] = self.orig_pygrib
 
     def _get_test_datasets(self, dataids, fake_pygrib=None):
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         if fake_pygrib is None:
             fake_pygrib = FakeGRIB()
 
@@ -261,7 +244,7 @@ class TestGRIBReader:
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         with mock.patch("satpy.readers.grib.pygrib") as pg:
             pg.open.return_value = FakeGRIB()
             r = load_reader(self.reader_configs)
@@ -275,7 +258,7 @@ class TestGRIBReader:
 
     def test_file_pattern(self):
         """Test matching of file patterns."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
 
         filenames = [
                 "quinoa.grb",

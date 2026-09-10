@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test objects and functions in the satpy.config module."""
 from __future__ import annotations
 
@@ -30,7 +13,7 @@ from unittest import mock
 import pytest
 
 import satpy
-from satpy import DatasetDict
+from satpy import DatasetDict, available_writers
 from satpy._config import cached_entry_point
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
@@ -50,7 +33,7 @@ class TestBuiltinAreas(unittest.TestCase):
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import get_area_file
+        from satpy.area import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -82,7 +65,7 @@ class TestBuiltinAreas(unittest.TestCase):
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
 
-        from satpy.resample import get_area_file
+        from satpy.area import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -172,7 +155,7 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
 
     composites:
         fake_composite:
-            compositor: !!python/name:satpy.composites.GenericCompositor
+            compositor: !!python/name:satpy.composites.core.GenericCompositor
             prerequisites:
             - 3.9
             - 10.8
@@ -200,7 +183,7 @@ def _write_fake_reader_yaml(yaml_filename: str) -> None:
 reader:
     name: {reader_name}
     sensors: [fake_sensor]
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 datasets: {{}}
 """)
 
@@ -222,7 +205,7 @@ def _write_fake_writer_yaml(yaml_filename: str) -> None:
         comps_file.write(f"""
 writer:
     name: {writer_name}
-    writer: !!python/name:satpy.writers.Writer
+    writer: !!python/name:satpy.writers.core.base.Writer
 """)
 
 
@@ -249,7 +232,7 @@ enhancements:
         name: fake_name
         operations:
         - name: stretch
-          method: !!python/name:satpy.enhancements.stretch
+          method: !!python/name:satpy.enhancements.contrast.stretch
           kwargs:
             stretch: crude
             min_stretch: -100.0
@@ -263,7 +246,7 @@ enhancements:
     default:
         operations:
         - name: stretch
-          method: !!python/name:satpy.enhancements.stretch
+          method: !!python/name:satpy.enhancements.contrast.stretch
           kwargs:
             stretch: crude
             min_stretch: -1.0
@@ -324,25 +307,24 @@ class TestPluginsConfigs:
     @pytest.mark.parametrize("specified_reader", [None, "fake_reader"])
     def test_plugin_reader_configs(self, fake_reader_plugin_etc_path, specified_reader):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.readers import configs_for_reader
+        from satpy.readers.core.config import configs_for_reader
         reader_yaml_path = fake_reader_plugin_etc_path / "readers" / "fake_reader.yaml"
         self._get_and_check_reader_writer_configs(specified_reader, configs_for_reader, reader_yaml_path)
 
     def test_plugin_reader_available_readers(self, fake_reader_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.readers import available_readers
+        from satpy.readers.core.config import available_readers
         self._check_available_component(available_readers, "fake_reader")
 
     @pytest.mark.parametrize("specified_writer", [None, "fake_writer"])
     def test_plugin_writer_configs(self, fake_writer_plugin_etc_path, specified_writer):
         """Test that writers can be loaded from plugin entry points."""
-        from satpy.writers import configs_for_writer
+        from satpy.writers.core.config import configs_for_writer
         writer_yaml_path = fake_writer_plugin_etc_path / "writers" / "fake_writer.yaml"
         self._get_and_check_reader_writer_configs(specified_writer, configs_for_writer, writer_yaml_path)
 
     def test_plugin_writer_available_writers(self, fake_writer_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
-        from satpy.writers import available_writers
         self._check_available_component(available_writers, "fake_writer")
 
     @staticmethod
@@ -371,7 +353,7 @@ class TestPluginsConfigs:
         import xarray as xr
         from trollimage.xrimage import XRImage
 
-        from satpy.writers import Enhancer
+        from satpy.enhancements.enhancer import Enhancer
 
         data_arr = xr.DataArray(
             da.zeros((10, 10), dtype=np.float32),

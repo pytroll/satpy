@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF encoding."""
 import logging
 
@@ -68,9 +53,12 @@ def _set_default_time_encoding(encoding, dataset):
             dtnp64 = dataset["time"].data
 
         default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
-        time_enc = {"units": default.attrs["units"], "calendar": default.attrs["calendar"]}
+        time_enc = {"units": default.attrs["units"],
+                    "dtype": "float64",
+                    "calendar": default.attrs["calendar"]}
         time_enc.update(encoding.get("time", {}))
         bounds_enc = {"units": time_enc["units"],
+                      "dtype": "float64",
                       "calendar": time_enc["calendar"],
                       "_FillValue": None}
         encoding["time"] = time_enc

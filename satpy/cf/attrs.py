@@ -1,22 +1,7 @@
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """CF processing of attributes."""
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import json
 import logging
 from collections import OrderedDict
@@ -24,7 +9,7 @@ from collections import OrderedDict
 import numpy as np
 import xarray as xr
 
-from satpy.writers.utils import flatten_dict
+from satpy.utils import flatten_dict
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +70,7 @@ def _encode_object(obj):
     """Try to encode `obj` as a netCDF/Zarr compatible datatype which most closely resembles the object's nature.
 
     Raises:
-        ValueError if no such datatype could be found
+        ValueError: if no such datatype could be found
     """
     is_nonbool_int = isinstance(obj, int) and not isinstance(obj, (bool, np.bool_))
     is_encode_type = isinstance(obj, (float, str, np.integer, np.floating))
@@ -209,7 +194,7 @@ def _format_prerequisites_attrs(data_arr: xr.DataArray) -> None:
 
 def _add_history(attrs):
     """Add 'history' attribute to dictionary."""
-    _history_create = "Created by pytroll/satpy on {}".format(datetime.datetime.utcnow())
+    _history_create = "Created by pytroll/satpy on {}".format(dt.datetime.now(dt.timezone.utc))
     if "history" in attrs:
         if isinstance(attrs["history"], list):
             attrs["history"] = "".join(attrs["history"])

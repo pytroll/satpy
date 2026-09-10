@@ -1,6 +1,13 @@
 Auxiliary Data Download
 =======================
 
+.. note::
+
+   All the base classes and reader utility functions have been moved
+   to :mod:`satpy.readers.core` sub-package. Importing from the old
+   location will issue a warning. The old import paths will work until
+   they will be removed in Satpy 1.0.
+
 Sometimes Satpy components need some extra data files to get their work
 done properly. These include files like Look Up Tables (LUTs), coefficients,
 or Earth model data (ex. elevations). This includes any file that would be too
@@ -40,15 +47,15 @@ component like readers, writers, and compositors. The lower-level
 :func:`~satpy.aux_download.register_file` function can be used for any other
 use case.
 
-The :class:`~satpy.aux_download.DataMixIn` class is automatically included
-in the :class:`~satpy.readers.yaml_reader.FileYAMLReader` and
-:class:`~satpy.writers.Writer` base classes. For any other component (like
+The :class:`~satpy.aux_download.DataDownloadMixin` class is automatically included
+in the :class:`~satpy.readers.core.yaml_reader.FileYAMLReader` and
+:class:`~satpy.writers.core.base.Writer` base classes. For any other component (like
 a compositor) you should include it as another parent class:
 
 .. code-block:: python
 
     from satpy.aux_download import DataDownloadMixin
-    from satpy.composites import GenericCompositor
+    from satpy.composites.core import GenericCompositor
 
     class MyCompositor(GenericCompositor, DataDownloadMixin):
         """Compositor that uses downloaded files."""

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2012-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for aapp level 1b data.
 
@@ -35,7 +18,7 @@ import numpy as np
 import xarray as xr
 from dask import delayed
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_size_limit
 
 CHANNEL_DTYPE = np.float32
@@ -654,15 +637,23 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
         cwnum = cwnum / 1.0e2
     else:
         cwnum = cwnum / 1.0e3
-
     bandcor_2 = radtempcnv[0, irchn, 1] / 1e5
     bandcor_3 = radtempcnv[0, irchn, 2] / 1e6
+    return da.map_blocks(_ir_calibrate_numpy,
+                         rad, mask, cwnum, bandcor_2, bandcor_3,
+                         dtype=rad.dtype,
+                         meta=np.ndarray((), dtype=rad.dtype))
 
+
+
+def _ir_calibrate_numpy(rad, mask, cwnum, bandcor_2, bandcor_3):
+    """Calibrate for IR bands as numpy arrays to avoid dividing by 0."""
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833
 
+    good_rad = rad[mask]
     t_planck = (ir_const_2 * cwnum) / \
-        np.log(1 + ir_const_1 * cwnum * cwnum * cwnum / rad)
+               np.log(1 + ir_const_1 * cwnum * cwnum * cwnum / good_rad)
 
     # Band corrections applied to t_planck to get correct
     # brightness temperature for channel:
@@ -671,6 +662,6 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
     else:  # AAPP 1 to 4
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
-    # Mask unnaturally low values
-
-    return da.where(mask, tb_, np.nan)
+    tb = np.full(rad.shape, np.float32(np.nan), dtype=np.float32)
+    tb[mask] = tb_
+    return tb

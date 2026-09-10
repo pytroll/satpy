@@ -3,7 +3,7 @@ sensor_name: visir/avhrr-3
 composites:
 
   nwc_pps_ct_masked_ir:
-    compositor: !!python/name:satpy.composites.MaskingCompositor
+    compositor: !!python/name:satpy.composites.mask.MaskingCompositor
     prerequisites:
     - 10.8
     - ct

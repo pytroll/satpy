@@ -1,18 +1,3 @@
-# Copyright (c) 2010-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for data access methods and properties of the Scene class."""
 import math
 
@@ -166,17 +151,13 @@ class TestDataAccessMethods:
     def test_getitem_slices(self):
         """Test __getitem__ with slices."""
         from pyresample.geometry import AreaDefinition, SwathDefinition
-        from pyresample.utils import proj4_str_to_dict
         scene1 = Scene()
         scene2 = Scene()
-        proj_dict = proj4_str_to_dict("+proj=lcc +datum=WGS84 +ellps=WGS84 "
-                                      "+lon_0=-95. +lat_0=25 +lat_1=25 "
-                                      "+units=m +no_defs")
         area_def = AreaDefinition(
             "test",
             "test",
             "test",
-            proj_dict,
+            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
             200,
             400,
             (-1000., -1500., 1000., 1500.),

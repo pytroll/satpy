@@ -1,6 +1,7 @@
 """Tests for the CAMEL L3 netCDF reader."""
 
 import datetime as dt
+import os
 
 import numpy as np
 import pytest
@@ -59,22 +60,28 @@ def camel_l3_filehandler(fname):
     return fh
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def camel_filename(tmp_path_factory):
     """Create a fake camel l3 file."""
-    return _make_ds(global_attrs, tmp_path_factory)
+    fname = _make_ds(global_attrs, tmp_path_factory)
+    yield fname
+    os.unlink(fname)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def camel_filename_bad1(tmp_path_factory):
     """Create a fake camel l3 file."""
-    return _make_ds(bad_attrs1, tmp_path_factory)
+    fname = _make_ds(bad_attrs1, tmp_path_factory)
+    yield fname
+    os.unlink(fname)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def camel_filename_bad2(tmp_path_factory):
     """Create a fake camel l3 file."""
-    return _make_ds(bad_attrs2, tmp_path_factory)
+    fname = _make_ds(bad_attrs2, tmp_path_factory)
+    yield fname
+    os.unlink(fname)
 
 
 def test_startend(camel_filename):
@@ -86,7 +93,7 @@ def test_startend(camel_filename):
 
 def test_camel_l3_area_def(camel_filename, caplog):
     """Test reader handles area definition correctly."""
-    ps = "+proj=longlat +datum=WGS84 +no_defs +type=crs"
+    from pyproj.crs import CRS
 
     # Check case where input data is correct size.
     fh = camel_l3_filehandler(camel_filename)
@@ -96,7 +103,7 @@ def test_camel_l3_area_def(camel_filename, caplog):
     assert area_def.height == dimensions["latitude"]
     assert np.allclose(area_def.area_extent, exp_ext)
 
-    assert area_def.proj4_string == ps
+    assert area_def.crs == CRS.from_epsg(4326)
 
 
 def test_bad_longitude(camel_filename_bad1):

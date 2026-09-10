@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from satpy import Scene
-from satpy.resample import get_area_def
+from satpy.area import get_area_def
 
 # real shape is 916, 1902
 SHAPE_SC = (916, 1902)
@@ -17,7 +17,7 @@ AREA_X_OFFSET = 1211
 AREA_Y_OFFSET = 62
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sc_h5_file(tmp_path_factory):
     """Create a fake HSAF SC HDF5 file."""
     filename = tmp_path_factory.mktemp("data") / "h10_20221115_day_merged.H5"

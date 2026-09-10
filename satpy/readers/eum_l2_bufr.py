@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """SEVIRI L2 BUFR format reader.
 
@@ -32,12 +15,12 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers._geos_area import get_geos_area_naming
-from satpy.readers.eum_base import get_service_mode, recarray2dict
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import mpef_product_header
-from satpy.resample import get_area_def
-from satpy.utils import get_legacy_chunk_size
+from satpy.area import get_area_def
+from satpy.readers.core._geos_area import get_geos_area_naming
+from satpy.readers.core.eum import get_service_mode, recarray2dict
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.seviri import mpef_product_header
+from satpy.utils import get_chunk_size_limit
 
 try:
     import eccodes as ec
@@ -47,14 +30,14 @@ except ImportError:
 
 logger = logging.getLogger("EumetsatL2Bufr")
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 SSP_DEFAULT = 0.0
 BUFR_FILL_VALUE = -1.e+100
 
 data_center_dict = {55: {"ssp": "E0415", "name": "MSG1"}, 56: {"ssp": "E0455", "name": "MSG2"},
                     57: {"ssp": "E0095", "name": "MSG3"}, 70: {"ssp": "E0000", "name": "MSG4"},
-                    71: {"ssp": "E0000", "name": "MTGi1"}}
+                    71: {"ssp": "E0000", "name": "MTGi1"}, 73: {"ssp": "E0000", "name": "MTGi2"}}
 
 # Sensor resolution (pixel size in m) used to deermine product segment sizes
 resolution_dict = {"fci": 2000, "seviri": 3000}
@@ -290,7 +273,7 @@ class EumetsatL2BufrFileHandler(BaseFileHandler):
         """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
 
         Returns:
-            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+            A pyresample AreaDefinition object containing the area definition.
 
         """
         area_naming_input_dict = {"platform_name": self.platform_name[:3].lower(),

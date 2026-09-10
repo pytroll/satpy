@@ -1,25 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for the ABI instrument."""
 
 import logging
 
-from satpy.composites import GenericCompositor
+from satpy.composites.core import GenericCompositor
 
 LOG = logging.getLogger(__name__)
 
@@ -47,7 +30,7 @@ class SimulatedGreen(GenericCompositor):
 
         Args:
             name (str): Name of this composite
-            fractions (iterable): Fractions of each input band to include in the result.
+            fractions (Iterable): Fractions of each input band to include in the result.
 
         """
         self.fractions = fractions
