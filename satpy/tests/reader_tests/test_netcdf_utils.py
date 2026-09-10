@@ -361,6 +361,47 @@ class TestNetCDF4FileHandler:
         # the variable is still readable, the file is simply reopened
         assert file_handler["ds2_f"].shape == (10, 100)
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize(("strategy", "cache_handle", "exp_new_cache_entries"), [
+        ("per_group", False, 2),
+        ("datatree", False, 1),
+        ("shared_store", False, 1),
+        ("file_handle", True, 0),
+    ])
+    def test_xarray_open_strategies(self, netcdf_file, engine, strategy, cache_handle, exp_new_cache_entries):
+        """Test that every xarray open strategy reads the same data and holds the expected number of files open."""
+        from xarray.backends.file_manager import FILE_CACHE
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        num_cached_before = len(FILE_CACHE)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=cache_handle, engine=engine,
+                                          xarray_open_strategy=strategy)
+        expected = np.arange(10. * 100).reshape((10, 100))
+        for var_name in ("test_group/ds1_f", "ds2_f"):
+            data = file_handler[var_name]
+            assert data.dims == ("rows", "cols")
+            assert data.attrs["test_attr_str"] == "test_string"
+            np.testing.assert_array_equal(data.values, expected)
+        # a second access must not open anything new
+        file_handler["ds2_i"]
+        assert len(FILE_CACHE) - num_cached_before == exp_new_cache_entries
+
+        file_handler.close()
+        assert len(FILE_CACHE) == num_cached_before
+        assert not file_handler._open_datasets
+        assert file_handler._root_store is None
+        assert file_handler._datatree is None
+
+    def test_invalid_xarray_open_strategy(self, netcdf_file):
+        """Test that unknown or incompatible open strategies are rejected."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        with pytest.raises(ValueError, match="Unknown xarray_open_strategy"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, xarray_open_strategy="magic")
+        with pytest.raises(ValueError, match="requires cache_handle=True"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, xarray_open_strategy="file_handle")
+
     def test_group_attrs_are_not_shared(self, netcdf_file):
         """Test that modifying a returned group does not affect later reads."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
