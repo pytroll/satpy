@@ -25,6 +25,7 @@ This is how to read them with Satpy:
     scene = Scene(filenames, reader="gms1-4-vissr_l1b")
     scene.load(["VIS"])
 
+
 References:
 ~~~~~~~~~~~
 
@@ -38,6 +39,7 @@ following references:
     https://www.data.jma.go.jp/mscweb/en/operation/fig/VISSR_FORMAT_GMS-4.pdf
 .. _GMS User Guide:
     https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
+
 
 Compression
 -----------
@@ -56,6 +58,7 @@ Gzip-compressed VISSR files can be decompressed on the fly using
     fs_file = FSFile(open_file)
     scene = Scene([fs_file], reader="gms1-4-vissr_l1b")
     scene.load(["IR"])
+
 
 Calibration
 -----------
@@ -85,14 +88,14 @@ oversampling ratio from each file's own ``sampling_angle_ir``/
 ``sampling_angle_vis`` and ``stepping_angle_ir``/``stepping_angle_vis``
 fields rather than assuming a constant. Nominal nadir resolution is
 ~1.25 km for VIS and ~5 km for IR.
- 
+
 This cannot be represented by a pyresample area definition, so each dataset
 is accompanied by 2-dimensional longitude and latitude coordinates. For
 resampling purpose a full disc area definition with uniform sampling is provided
 via
- 
+
 .. code-block:: python
- 
+
     scene[dataset].attrs["area_def_uniform_sampling"]
 
 
@@ -213,7 +216,7 @@ class GmsVissrFileHandler(BaseFileHandler):
         data_array.attrs["sensor"] = "VISSR"
 
         nadir_resolution = (
-            float(self._l1b.coord[f"sampling_angle_{self._l1b.channel.lower()}"])
+            float(self._l1b.coord[f"stepping_angle_{self._l1b.channel.lower()}"])
             * float(self._l1b.mode["satellite_height"])
         )
         data_array.coords["longitude"].attrs["resolution"] = nadir_resolution
@@ -417,9 +420,22 @@ class GmsVissrL1bFile:
         channel = channel or self.channel
         suffix = f"{'ir' if channel == 'IR' else 'vis'}{'_solar' if solar else ''}"
 
+        spinning_rate = float(self.mode["spin_rate"])
+        if spinning_rate <= 0:
+            # mode["spin_rate"] isn't populated in some older GMS-1/2/3
+            # archives. The coordinate conversion parameters segment carries
+            # its own per-file "daily mean spin rate" telemetry (word 130).
+            spinning_rate = float(self.coord["daily_mean_spin_rate"])
+        if spinning_rate <= 0:
+            raise ValueError(
+                "Neither mode['spin_rate'] nor coord['daily_mean_spin_rate'] "
+                "is populated in this file -- can't navigate without a real "
+                "spin rate."
+            )
+
         scan_params = nav_shared.ScanningParameters(
             start_time_of_scan=float(self.coord["scheduled_observation_time"]),
-            spinning_rate=float(self.mode["spin_rate"]),
+            spinning_rate=spinning_rate,
             num_sensors=float(self.coord[f"num_sensors_{suffix}"]),
             sampling_angle=float(self.coord[f"sampling_angle_{suffix}"]),
         )
@@ -575,24 +591,15 @@ class AreaDefEstimator:
         }
 
     def _get_shape_dict(self, dataset_id):
-        upper = int(self.l1b.mode["upper_limit_of_scan_number"])
-        lower = int(self.l1b.mode["lower_limit_of_scan_number"])
-        base_size = abs(upper - lower) + 1
-        if base_size <= 1:
+        size = self.l1b.n_lines
+        if size <= 1:
             raise ValueError(
-                f"Implausible scan extent (upper={upper}, lower={lower}) "
-                f"from the mode block -- can't build a uniform-sampling "
-                f"area definition from this."
+                f"Implausible dataset shape (n_lines={size}) -- can't "
+                f"build a uniform-sampling area definition from this."
             )
 
         suffix = "ir" if self.l1b.channel == "IR" else "vis"
         stepping_angle = float(self.l1b.coord[f"stepping_angle_{suffix}"])
-        if self.l1b.channel == fmt.VIS_CHANNEL:
-            stepping_angle_ir = float(self.l1b.coord["stepping_angle_ir"])
-            ratio = stepping_angle_ir / stepping_angle if stepping_angle > 0 else 2.0
-        else:
-            ratio = 1.0
-        size = int(round(base_size * ratio))
 
         line_pixel_offset = 0.5 * size
         lfac_cfac = geos_area.sampling_to_lfac_cfac(stepping_angle)
