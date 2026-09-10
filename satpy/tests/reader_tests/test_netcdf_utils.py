@@ -266,6 +266,30 @@ class TestNetCDF4FileHandler:
         data2 = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert np.all(data == data2)
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize(("var_name", "expected"), [
+        ("test_group/ds1_f", np.arange(10. * 100).reshape((10, 100))),
+        ("ds2_s", np.arange(10)),
+        ("ds2_sc", 42),
+    ])
+    def test_get_and_cache_npxr_without_file_handle(self, netcdf_file, engine, var_name, expected):
+        """Test that get_and_cache_npxr() reads variables after the file handle was closed.
+
+        With ``cache_handle=False`` the variable objects collected in
+        ``__init__`` belong to a closed file, so the data has to be read
+        through xarray instead.
+        """
+        import xarray as xr
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, engine=engine)
+
+        data = file_handler.get_and_cache_npxr(var_name)
+        assert isinstance(data, xr.DataArray)
+        assert data.chunks is None
+        np.testing.assert_array_equal(data.values, expected)
+        assert var_name in file_handler.cached_file_content
+
     def test_file_opened_once_per_group(self, netcdf_file, monkeypatch):
         """Test that reading many variables only opens each group once.
 
