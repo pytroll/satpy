@@ -370,6 +370,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         v = self.file_content[var_name]
         if isinstance(v, xr.DataArray):
             val = v
+        elif self.file_handle is None and self.accessor.is_variable(v):
+            # The variable object belongs to the file handle that was closed
+            # at the end of ``__init__`` (``cache_handle=False``) and can't be
+            # read from anymore. Read the data through xarray instead.
+            val = self[var_name].load()
         else:
             try:
                 val = get_data_as_xarray(v)
