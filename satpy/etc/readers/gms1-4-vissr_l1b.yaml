@@ -9,7 +9,7 @@ reader:
     - https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
 
   status: Alpha
-  supports_fsspec: false
+  supports_fsspec: true
   sensors: [gms1-4-vissr]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
@@ -17,12 +17,14 @@ file_types:
     gms1_4_vissr_vis:
         file_reader: !!python/name:satpy.readers.gms.gms1_4_vissr_l1b.GmsVissrFileHandler
         file_patterns:
-        - 'VS{start_time:%y%m%d}.{extra}'
+        - 'VS{start_time:%y%m%d}.{mode}'
+        - 'VS{start_time:%y%m%d}.{mode}.gz'
 
     gms1_4_vissr_ir:
         file_reader: !!python/name:satpy.readers.gms.gms1_4_vissr_l1b.GmsVissrFileHandler
         file_patterns:
-        - 'IR{start_time:%y%m%d}.{extra}'
+        - 'IR{start_time:%y%m%d}.{mode}'
+        - 'IR{start_time:%y%m%d}.{mode}.gz'
 
 datasets:
   VIS:

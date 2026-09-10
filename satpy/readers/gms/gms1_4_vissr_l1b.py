@@ -21,10 +21,9 @@ This is how to read them with Satpy:
     from satpy import Scene
     import glob
 
-    filenames = glob.glob(""/data/VS*")
+    filenames = glob.glob("/data/VS*")
     scene = Scene(filenames, reader="gms1-4-vissr_l1b")
     scene.load(["VIS"])
-
 
 References:
 ~~~~~~~~~~~
@@ -40,6 +39,23 @@ following references:
 .. _GMS User Guide:
     https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
 
+Compression
+-----------
+
+Gzip-compressed VISSR files can be decompressed on the fly using
+:class:`~satpy.readers.core.remote.FSFile`:
+
+.. code-block:: python
+
+    import fsspec
+    from satpy import Scene
+    from satpy.readers.core.remote import FSFile
+
+    filename = "IR901110.Z23.gz"
+    open_file = fsspec.open(filename, compression="gzip")
+    fs_file = FSFile(open_file)
+    scene = Scene([fs_file], reader="gms1-4-vissr_l1b")
+    scene.load(["IR"])
 
 Calibration
 -----------
@@ -57,18 +73,26 @@ VISSR images are oversampled and not rectified.
 
 Oversampling
 ~~~~~~~~~~~~
-VISSR oversamples the viewed scene in E-W direction by a factor of ~2:
-IR/VIS pixels are 1.46/2.92 urad on a side, but the instrument samples every
-4.8/2.4 urad in E-W direction. That means pixels are actually overlapping on
-the ground.
-
+Like other VISSR archive formats, GMS-1..4 VISSR oversamples the viewed scene
+in the E-W (pixel) direction: each channel's stepping angle (line-to-line)
+and sampling angle (pixel-to-pixel) are stored as telemetry in every file's
+coordinate transformation parameters block, and the sampling angle is
+smaller than the pixel's own angular size -- so consecutive pixels overlap
+on the ground rather than tiling it exactly. Unlike GMS-5, the JMA VISSR
+format spec does not publish fixed IR/VIS angle values for GMS-1..4 (they
+vary slightly file to file), so this reader always derives the actual
+oversampling ratio from each file's own ``sampling_angle_ir``/
+``sampling_angle_vis`` and ``stepping_angle_ir``/``stepping_angle_vis``
+fields rather than assuming a constant. Nominal nadir resolution is
+~1.25 km for VIS and ~5 km for IR.
+ 
 This cannot be represented by a pyresample area definition, so each dataset
 is accompanied by 2-dimensional longitude and latitude coordinates. For
 resampling purpose a full disc area definition with uniform sampling is provided
 via
-
+ 
 .. code-block:: python
-
+ 
     scene[dataset].attrs["area_def_uniform_sampling"]
 
 
@@ -122,11 +146,13 @@ On demand a special Typhoon schedule would be activated between
 03:00 and 05:00 UTC.
 """
 
+import os
 import numpy as np
 import dask.array as da
 import xarray as xr
 
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.utils import generic_open
 from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.utils import datetime64_to_pydatetime
 import satpy.readers.core._geos_area as geos_area
@@ -142,9 +168,10 @@ def _mjd_to_datetime(mjd):
 class GmsVissrFileHandler(BaseFileHandler):
     """File handler for GMS-1..4 native VISSR archive files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, mask_space=True):
         super().__init__(filename, filename_info, filetype_info)
         self._l1b = GmsVissrL1bFile(filename)
+        self._mask_space = mask_space
 
     @property
     def start_time(self):
@@ -177,13 +204,20 @@ class GmsVissrFileHandler(BaseFileHandler):
         if requested_channel != self._l1b.channel:
             return None
 
-        data_array = self._l1b.get_dataset()
+        data_array = self._l1b.get_dataset(mask_space=self._mask_space)
         data_array.name = ds_info.get("name", self._l1b.channel)
         data_array.attrs.update(ds_info)
         data_array.attrs["start_time"] = self.start_time
         data_array.attrs["end_time"] = self.end_time
         data_array.attrs["platform_name"] = self._platform_name()
         data_array.attrs["sensor"] = "VISSR"
+
+        nadir_resolution = (
+            float(self._l1b.coord[f"sampling_angle_{self._l1b.channel.lower()}"])
+            * float(self._l1b.mode["satellite_height"])
+        )
+        data_array.coords["longitude"].attrs["resolution"] = nadir_resolution
+        data_array.coords["latitude"].attrs["resolution"] = nadir_resolution
 
         from pyresample.geometry import SwathDefinition
         swath_def = SwathDefinition(
@@ -274,20 +308,23 @@ class GmsVissrL1bFile:
     DataArrays."""
 
     def __init__(self, path, line_chunks=64):
-        name = path.split("/")[-1].upper()
+        name = os.path.basename(os.fspath(path)).upper()
         if name.startswith("VS"):
             self.channel = fmt.VIS_CHANNEL
         elif name.startswith("IR"):
             self.channel = fmt.IR_CHANNEL
         else:
-            import os
-            size = os.path.getsize(path)
+            try:
+                size = os.path.getsize(path)
+            except (TypeError, OSError):
+                with generic_open(path, "rb") as f:
+                    size = len(f.read())
             self.channel = (fmt.VIS_CHANNEL
                              if size % fmt.VIS_BLOCK_LEN == 0
                              else fmt.IR_CHANNEL)
 
         self.path = path
-        with open(path, "rb") as f:
+        with generic_open(path, "rb") as f:
             self._raw = f.read()
 
         spec = fmt.IMAGE_DATA[self.channel]
