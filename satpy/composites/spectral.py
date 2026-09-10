@@ -137,10 +137,7 @@ class NDVIHybridGreen(SpectralBlender):
 
         self.ndvi_min = 0.1
         self.ndvi_max = 0.9
-        self.a = 0.3940
-        self.b = -1.3701
-        self.c = 2.0206
-        self.d = -1.0349
+        self.poly_coefs = (-1.0349, 2.0206, -1.3701, 0.3940)
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
@@ -157,7 +154,8 @@ class NDVIHybridGreen(SpectralBlender):
         ndvi.data = np.nan_to_num(ndvi.data, True, self.ndvi_min)
 
         # Compute pixel-level NIR blend fractions from NDVI using third-order polynomial
-        fraction = self.a + ndvi * (self.b + ndvi * (self.c + self.d * ndvi))
+        coef_3, coef_2, coef_1, coef_0 = self.poly_coefs
+        fraction = ((coef_3 * ndvi + coef_2) * ndvi + coef_1) * ndvi + coef_0
         fraction = fraction.clip(0.0, 1.0)
 
         # Prepare input as required by parent class (SpectralBlender)
