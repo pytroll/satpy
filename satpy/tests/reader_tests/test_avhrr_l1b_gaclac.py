@@ -596,6 +596,28 @@ class TestGetDataset(GACLACFilePatcher):
 
         self._check_get_channel_calls(fh, get_channel)
 
+    @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__", return_value=None)
+    @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel", return_value=np.ones((3, 3)))
+    def test_the_navigation_record_is_forwarded(self, get_channel, *mocks):
+        """The reader's whole navigation record travels on, not a chosen few of its facts.
+
+        pygac gathers what it fitted, and how far the result can be trusted, into one
+        mapping. Naming its members here instead means a fact added at the other end
+        is dropped in silence until someone edits this list: that is how the count of
+        control points came to be missing from products while sitting on the dataset
+        all along. Forwarding the record itself makes this list a one-time cost.
+        """
+        pygac_reader = _get_reader_mocked()
+        fh = self._create_file_handler(pygac_reader)
+        record = {"gcp_count": 431, "schema_version": 3}
+        fh.cal_ds = xr.Dataset(attrs={"navigation": record})
+
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name="1", calibration="reflectance")
+        res = fh.get_dataset(key, {"name": "1", "standard_name": "my_standard_name"})
+
+        assert res.attrs["navigation"] == record
+
     @staticmethod
     def _check_get_channel_calls(fh, get_channel):
         """Check _get_channel() calls."""

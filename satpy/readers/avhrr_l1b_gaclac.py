@@ -289,6 +289,10 @@ class GACLACFile(BaseFileHandler):
             res.attrs["estimated_attitude_in_degrees"] = self.cal_ds.attrs["estimated_attitude_in_degrees"]
         with suppress(KeyError):
             res.attrs["estimated_time_offset_in_seconds"] = self.cal_ds.attrs["estimated_time_offset_in_seconds"]
+        with suppress(KeyError):
+            # The whole record, so a fact added at the reader's end is not dropped
+            # here until someone remembers to name it.
+            res.attrs["navigation"] = self.cal_ds.attrs["navigation"]
 
         return res
 
