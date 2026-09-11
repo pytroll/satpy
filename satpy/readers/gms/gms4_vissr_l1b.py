@@ -256,25 +256,12 @@ class GmsVissrFileHandler(BaseFileHandler):
 
 
 def _lookup_calibration_value(block, lut, mask):
-    """Look up calibrated values for a raw-counts block via the file's own calibration LUT.
-
-    Module-level (not a class method or nested closure) so dask can
-    serialize this for the distributed scheduler -- Satpy normally uses
-    dask's threaded scheduler, where this wouldn't matter, but a local
-    function silently breaks the distributed scheduler case.
-    """
+    """Look up calibrated values for a raw-counts block via the file's own calibration LUT."""
     return lut[block.astype(np.int64) & mask]
 
 
 class Calibrator:
-    """Calibrate GMS-1..4 VISSR counts to reflectance (%) or brightness temperature (K).
-
-    The calibration LUT itself is always float32 (both
-    VIS_CALIBRATION_TABLE.brightness_albedo_conversion_table and
-    IR_CALIBRATION.conversion_table_of_equivalent_black_body_temperature
-    are R4/">f4" in the format spec), so lookups naturally produce
-    float32 without any explicit casting.
-    """
+    """Calibrate GMS-1..4 VISSR counts to reflectance (%) or brightness temperature (K)."""
 
     def __init__(self, calib_table, channel):
         """Store the file's own calibration LUT and the channel it applies to."""
@@ -312,11 +299,7 @@ def _read_struct(raw, offset, dtype):
 
 
 class GmsVissrL1bFile:
-    """Load a single IR or VIS GMS-1..4 archive file.
-
-    Exposes calibrated radiance/reflectance and lon/lat as dask-backed
-    xarray DataArrays.
-    """
+    """Load a single IR or VIS GMS-1..4 archive file."""
 
     def __init__(self, path, line_chunks=64):
         """Detect the file's channel (VIS/IR) and parse its header blocks."""
@@ -380,11 +363,7 @@ class GmsVissrL1bFile:
 
     # -----------------------------------------------------------------
     def pixel_counts_dask(self):
-        """Return raw 0-255 (IR) / 0-63 (VIS) pixel counts as a dask array.
-
-        Chunked by line -- the unit of work that matches how navigation
-        and calibration both operate (per-line satellite state).
-        """
+        """Return raw 0-255 (IR) / 0-63 (VIS) pixel counts as a dask array."""
         return da.from_array(self._pixels_np, chunks=(self._line_chunks, self.n_pixels))
 
     def calibration_lut(self):
@@ -395,12 +374,7 @@ class GmsVissrL1bFile:
             return self.calibration["vis1_calibration_table"]["brightness_albedo_conversion_table"]
 
     def get_earth_mask(self):
-        """Return a boolean mask, True = earth disk, False = space, per scan line.
-
-        Ported from GMS-5's SpaceMasker (gms5_vissr_l1b.py), using the
-        LCW's west_side_earth_edge/east_side_earth_edge fields we
-        already parse.
-        """
+        """Return a boolean mask, True = earth disk, False = space, per scan line."""
         fill_value = -1
         west, east = self._earth_edges_for_mask(fill_value)
 
@@ -427,11 +401,7 @@ class GmsVissrL1bFile:
         return west, east
 
     def calibrated_dask(self):
-        """Return calibrated physical values as a lazy dask array.
-
-        Kelvin for IR, albedo % 0-100 for VIS, via the Calibrator class
-        above.
-        """
+        """Return calibrated physical values as a lazy dask array."""
         calibrator = Calibrator(self.calibration_lut(), self.channel)
         counts = self.pixel_counts_dask()
         calibration_level = "brightness_temperature" if self.channel == fmt.IR_CHANNEL else "reflectance"
@@ -527,11 +497,7 @@ class GmsVissrL1bFile:
         return nav_shared.PredictedNavigationParameters(attitude=attitude_prediction, orbit=orbit_prediction)
 
     def navigate_dask(self):
-        """Return lat/lon as dask arrays, via the SHARED navigation module.
-
-        This is the path get_dataset() actually uses -- confirmed
-        end-to-end against a real Satpy Scene.load().
-        """
+        """Return lat/lon as dask arrays, via the navigation module."""
         nav_params = self._build_navigation_parameters()
         lines = self.line_numbers.astype(np.float64) - 1.0  # see _build_navigation_parameters note on +1 convention
         pixels = np.arange(self.n_pixels, dtype=np.float64)
@@ -544,10 +510,7 @@ class GmsVissrL1bFile:
 
     # -----------------------------------------------------------------
     def get_dataset(self, mask_space=True):
-        """Return an xarray.DataArray of calibrated values, space-masked.
-
-        Dask-backed, with lon/lat as dask-backed 2D coords.
-        """
+        """Return an xarray.DataArray of calibrated values, space-masked."""
         data = self.calibrated_dask()
         if mask_space:
             earth_mask = da.from_array(self.get_earth_mask(), chunks=(self._line_chunks, self.n_pixels))
@@ -571,14 +534,7 @@ class GmsVissrL1bFile:
 
 
 class AreaDefEstimator:
-    """Estimate a uniform-sampling AreaDefinition for GMS-1..4 VISSR images.
-
-    Square by design, sized from the file's own real per-file line count
-    (self.l1b.n_lines) rather than a hardcoded full_disk_size, since
-    GMS-1..4 archive files are not always full-disk. See
-    ``_get_shape_dict`` for why n_lines (not the raw, oversampled
-    n_pixels) is the right basis for both axes.
-    """
+    """Estimate a uniform-sampling AreaDefinition for GMS-1..4 VISSR images."""
 
     def __init__(self, l1b_file, platform_name):
         """Store the parsed L1b file and platform name used for area naming."""
