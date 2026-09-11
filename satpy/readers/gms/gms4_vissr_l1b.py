@@ -163,10 +163,11 @@ import os
 
 import dask.array as da
 import numpy as np
+import xarray as xr
+
 import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms4_vissr_format as fmt
 import satpy.readers.gms.gms_vissr_navigation as nav_shared
-import xarray as xr
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
 from satpy.readers.hrit_jma import mjd2datetime64
@@ -266,8 +267,7 @@ def _lookup_calibration_value(block, lut, mask):
 
 
 class Calibrator:
-    """Calibrate GMS-1..4 VISSR counts to reflectance (%) or brightness temperature (K).
-    """
+    """Calibrate GMS-1..4 VISSR counts to reflectance (%) or brightness temperature (K)."""
 
     def __init__(self, calib_table, channel):
         """Store the file's own calibration LUT and the channel it applies to."""
@@ -588,7 +588,10 @@ class AreaDefEstimator:
         return proj_dict
 
     def _get_name_dict(self, dataset_id):
-        resolution = dataset_id.get("resolution") if hasattr(dataset_id, "get") else getattr(dataset_id, "resolution", None)
+        if hasattr(dataset_id, "get"):
+            resolution = dataset_id.get("resolution")
+        else:
+            resolution = getattr(dataset_id, "resolution", None)
         name_dict = geos_area.get_geos_area_naming({
             "platform_name": self.platform_name,
             "instrument_name": "VISSR",
