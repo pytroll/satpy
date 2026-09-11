@@ -81,7 +81,7 @@ datasets:
   qind:
     name: qind
     file_key: qind
-    file_type: [hsaf_h60_nc, hsaf_h63_nc, hsaf_h90_nc]
+    file_type: [hsaf_h60_nc, hsaf_h63_nc, hsaf_h90_nc, hsaf_h40b_nc]
     standard_name: quality_index
     long_name: "Pixel Quality Index"
     units: "%"
