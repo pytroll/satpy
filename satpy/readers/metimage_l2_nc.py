@@ -26,6 +26,7 @@ class METimageL2NCFileHandler(METimageNCBaseFileHandler):
         """
         try:
             orthorect_data = self[orthorect_data_name]
+            # in the L2 case, the orthorectification correction data is already in degrees and can be applied directly
             variable += orthorect_data
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
