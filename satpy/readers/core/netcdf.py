@@ -258,23 +258,71 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self._get_group(key, val)
         return val
 
+    @staticmethod
+    def _is_compound_dtype(dtype):
+        """Return True for NumPy structured/compound dtypes."""
+        return getattr(dtype, "names", None) is not None
+
+
+    def _get_compound_var(self, group, key):
+        """Load a compound NetCDF variable directly via netCDF4.
+
+        Compound variables may fail when loaded through
+        xarray.open_dataset() because some attributes have
+        unsupported datatypes. In that case we bypass xarray
+        completely and construct the DataArray ourselves.
+        """
+        fh = self.accessor.create_file_handle(self.filename)
+
+        try:
+            if group is None:
+                g = fh
+            else:
+                g = fh[group]
+
+            v = g[key]
+
+            attrs = self.accessor.get_object_attrs(v)
+
+            arr = xr.DataArray(
+                da.from_array(v),
+                dims=v.dimensions,
+                attrs=attrs,
+                name=v.name,
+            )
+
+            arr._compound_file_handle = fh
+            return arr
+
+        except Exception:
+            fh.close()
+            raise
+
+
     def _get_variable(self, key, val):
         """Get a variable from the netcdf file."""
         if key in self.cached_file_content:
             return self.cached_file_content[key]
-        # these datasets are closed and inaccessible when the file is
-        # closed, need to reopen
-        # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
+
         parts = key.rsplit("/", 1)
         if len(parts) == 2:
             group, key = parts
         else:
             group = None
+
+        #
+        # Structured NetCDF compound types are readable
+        # through netCDF4 but may fail through the xarray
+        # backend because some compound-variable attributes
+        # aren't supported.
+        #
+        if self._is_compound_dtype(val.dtype):
+            return self._get_compound_var(group, key)
+
         if self.file_handle is not None:
-            val = self._get_var_from_filehandle(group, key)
-        else:
-            val = self._get_var_from_xr(group, key)
-        return val
+            return self._get_var_from_filehandle(group, key)
+
+        return self._get_var_from_xr(group, key)
 
     def _get_group(self, key, val):
         """Get a group from the netcdf file."""
