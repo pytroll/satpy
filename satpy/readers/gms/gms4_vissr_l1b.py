@@ -2,7 +2,7 @@
 
 Introduction
 ------------
-The ``gms1_4_vissr_l1b`` reader can decode, navigate and calibrate Level 1B data
+The ``gms4_vissr_l1b`` reader can decode, navigate and calibrate Level 1B data
 from the Visible and Infrared Spin Scan Radiometer (VISSR) in `VISSR
 archive format`. Corresponding platforms are GMS-1 to GMS-4
 (Japanese Geostationary Meteorological Satellite).
@@ -22,7 +22,7 @@ This is how to read them with Satpy:
     import glob
 
     filenames = glob.glob("/data/VS*")
-    scene = Scene(filenames, reader="gms1-4-vissr_l1b")
+    scene = Scene(filenames, reader="gms4-vissr_l1b")
     scene.load(["VIS"])
 
 
@@ -56,7 +56,7 @@ Gzip-compressed VISSR files can be decompressed on the fly using
     filename = "IR901110.Z23.gz"
     open_file = fsspec.open(filename, compression="gzip")
     fs_file = FSFile(open_file)
-    scene = Scene([fs_file], reader="gms1-4-vissr_l1b")
+    scene = Scene([fs_file], reader="gms4-vissr_l1b")
     scene.load(["IR"])
 
 
@@ -145,7 +145,7 @@ To turn off masking, set ``mask_space=False`` upon scene creation:
 
     filenames = glob.glob("VS*")
     scene = satpy.Scene(filenames,
-                        reader="gms1-4-vissr_l1b",
+                        reader="gms4-vissr_l1b",
                         reader_kwargs={"mask_space": False})
     scene.load(["VIS"])
 
@@ -164,7 +164,7 @@ import os
 import dask.array as da
 import numpy as np
 import satpy.readers.core._geos_area as geos_area
-import satpy.readers.gms.gms1_4_vissr_format as fmt
+import satpy.readers.gms.gms4_vissr_format as fmt
 import satpy.readers.gms.gms_vissr_navigation as nav_shared
 import xarray as xr
 from satpy.readers.core.file_handlers import BaseFileHandler
