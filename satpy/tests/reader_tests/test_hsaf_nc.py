@@ -108,6 +108,7 @@ class TestHSAFNCReader:
             (FILE_PARAMS[FILE_TYPE_H60], 1),
             (FILE_PARAMS[FILE_TYPE_H63], 1),
             (FILE_PARAMS[FILE_TYPE_H90], 1),
+            (FILE_PARAMS[FILE_TYPE_H40B], 1),
         ],
     )
     def test_reader_creation(self, file_type, expected_loadables):
@@ -130,6 +131,10 @@ class TestHSAFNCReader:
             LoadDatasetsParams(
                 FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km", "Meteosat-9"
             ),
+            LoadDatasetsParams(
+                FILE_PARAMS[FILE_TYPE_H40B], ["rr", "qind"], "mm/h", 2000, "mtg_fci_fdss_2km", "Meteosat-12"
+            ),
+            
         ],
     )
     def test_load_datasets(self, params):
