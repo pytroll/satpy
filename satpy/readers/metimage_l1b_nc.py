@@ -84,7 +84,11 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
             orthorect_data = self[orthorect_data_name]
             # Convert the orthorectification delta values from meters to degrees
             # based on the simplified formula using mean Earth radius
-            variable += np.degrees(orthorect_data / MEAN_EARTH_RADIUS)
+            divisor = MEAN_EARTH_RADIUS
+            if orthorect_data_name == "data/measurement_data/delta_lon_E_dem":
+                divisor *= np.cos(np.radians(self.latitude))
+            variable += np.degrees(orthorect_data / divisor)
+
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
         return variable
