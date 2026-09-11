@@ -56,10 +56,10 @@ file_types:
   hsaf_h40b_nc:
     file_patterns:
       - 'W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_{start_time:%Y%m%d%H%M}_PINFCI.nc'
-    area: mtg_fci_fdss_2km 
+    area: mtg_fci_fdss_2km
     resolution: 2000
     end_time_delta_min: 10
-    file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler 
+    file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
 
 datasets:
   acc_rr:
