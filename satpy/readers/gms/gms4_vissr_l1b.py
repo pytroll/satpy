@@ -176,22 +176,22 @@ from satpy.utils import datetime64_to_pydatetime
 
 def _mjd_to_datetime(mjd):
     return datetime64_to_pydatetime(mjd2datetime64(np.array(mjd)))
-
-
+ 
+ 
 class GmsVissrFileHandler(BaseFileHandler):
     """File handler for GMS-1..4 native VISSR archive files."""
-
+ 
     def __init__(self, filename, filename_info, filetype_info, mask_space=True):
         """Open *filename* and parse its header blocks (mode, coordinate conversion, calibration, etc.)."""
         super().__init__(filename, filename_info, filetype_info)
         self._l1b = GmsVissrL1bFile(filename)
         self._mask_space = mask_space
-
+ 
     @property
     def start_time(self):
         """Nominal start time of the scan, from the file's own scheduled_observation_time telemetry."""
         return _mjd_to_datetime(float(self._l1b.coord["scheduled_observation_time"]))
-
+ 
     @property
     def end_time(self):
         """Nominal end time of the scan, from the last valid per-line scan_time in the LCW."""
@@ -200,24 +200,24 @@ class GmsVissrFileHandler(BaseFileHandler):
             if last_valid.size:
                 return _mjd_to_datetime(float(last_valid.max()))
         return self.start_time
-
+ 
     @property
     def sensor_names(self):
         """Set of sensor names this file handler provides data for."""
         return {"VISSR"}
-
+ 
     def combine_info(self, all_infos):
         """Combine per-file info dicts; GMS-1..4 archives are always a single VIS+IR file pair, never segmented."""
         if len(all_infos) == 1:
             return all_infos[0]
         return super().combine_info(all_infos)
-
+ 
     def get_dataset(self, dataset_id, ds_info):
         """Return the calibrated DataArray for *dataset_id*, or None if this file doesn't hold that channel."""
         requested_channel = ds_info.get("name", getattr(dataset_id, "name", None))
         if requested_channel != self._l1b.channel:
             return None
-
+ 
         data_array = self._l1b.get_dataset(mask_space=self._mask_space)
         data_array.name = ds_info.get("name", self._l1b.channel)
         data_array.attrs.update(ds_info)
@@ -225,59 +225,59 @@ class GmsVissrFileHandler(BaseFileHandler):
         data_array.attrs["end_time"] = self.end_time
         data_array.attrs["platform_name"] = self._platform_name()
         data_array.attrs["sensor"] = "VISSR"
-
+ 
         nadir_resolution = (
             float(self._l1b.coord[f"stepping_angle_{self._l1b.channel.lower()}"])
             * float(self._l1b.mode["satellite_height"])
         )
         data_array.coords["longitude"].attrs["resolution"] = nadir_resolution
         data_array.coords["latitude"].attrs["resolution"] = nadir_resolution
-
+ 
         data_array.coords["longitude"].attrs["standard_name"] = "longitude"
         data_array.coords["latitude"].attrs["standard_name"] = "latitude"
-
+ 
         try:
             data_array.attrs["area_def_uniform_sampling"] = self._get_area_def_uniform_sampling(dataset_id)
         except (KeyError, ValueError, ZeroDivisionError) as e:
             data_array.attrs["area_def_uniform_sampling"] = None
             data_array.attrs["area_def_uniform_sampling_error"] = str(e)
-
+ 
         return data_array
-
+ 
     def _get_area_def_uniform_sampling(self, dataset_id):
         estimator = AreaDefEstimator(self._l1b, self._platform_name())
         return estimator.get_area_def_uniform_sampling(dataset_id)
-
+ 
     def _platform_name(self):
         name = bytes(self._l1b.mode["satellite_name"]).split(b"\x00")[0].decode("ascii", "replace").strip()
         if name:
             return name
         return "GMS (satellite unknown -- mode block unavailable/unparsed)"
-
-
+ 
+ 
 def _lookup_calibration_value(block, lut, mask):
     """Look up calibrated values for a raw-counts block via the file's own calibration LUT.
-
+ 
     Module-level (not a class method or nested closure) so dask can
     serialize this for the distributed scheduler -- Satpy normally uses
     dask's threaded scheduler, where this wouldn't matter, but a local
     function silently breaks the distributed scheduler case.
     """
     return lut[block.astype(np.int64) & mask]
-
-
+ 
+ 
 class Calibrator:
     """Calibrate GMS-1..4 VISSR counts to reflectance (%) or brightness temperature (K)."""
-
+ 
     def __init__(self, calib_table, channel):
         """Store the file's own calibration LUT and the channel it applies to."""
         self._calib_table = calib_table
         self._channel = channel
         self._mask = 0xFF if channel == fmt.IR_CHANNEL else 0x3F
-
+ 
     def calibrate(self, counts, calibration):
         """Transform counts (a dask array of raw pixel values) to the given calibration level.
-
+ 
         *calibration* is one of "counts" (pass through unchanged),
         "reflectance" (VIS, % 0-100), or "brightness_temperature" (IR, K).
         """
@@ -286,31 +286,31 @@ class Calibrator:
         res = self._calibrate(counts)
         res = self._postproc(res, calibration)
         return res
-
+ 
     def _calibrate(self, counts):
         lookup = functools.partial(_lookup_calibration_value, lut=self._calib_table, mask=self._mask)
         return counts.map_blocks(lookup, dtype=np.float32, meta=np.array((), dtype=np.float32))
-
+ 
     def _postproc(self, res, calibration):
         if calibration == "reflectance":
             res = self._convert_to_percent(res)
         return res
-
+ 
     def _convert_to_percent(self, res):
         return res * 100
-
-
+ 
+ 
 def _read_struct(raw, offset, dtype):
     return np.frombuffer(raw[offset:offset + dtype.itemsize], dtype=dtype, count=1)[0]
-
-
+ 
+ 
 class GmsVissrL1bFile:
     """Load a single IR or VIS GMS-1..4 archive file.
-
+ 
     Exposes calibrated radiance/reflectance and lon/lat as dask-backed
     xarray DataArrays.
     """
-
+ 
     def __init__(self, path, line_chunks=64):
         """Detect the file's channel (VIS/IR) and parse its header blocks."""
         name = os.path.basename(os.fspath(path)).upper()
@@ -327,14 +327,14 @@ class GmsVissrL1bFile:
             self.channel = (fmt.VIS_CHANNEL
                              if size % fmt.VIS_BLOCK_LEN == 0
                              else fmt.IR_CHANNEL)
-
+ 
         self.path = path
         with generic_open(path, "rb") as f:
             self._raw = f.read()
-
+ 
         spec = fmt.IMAGE_DATA[self.channel]
         params = spec["params"]
-
+ 
         self.mode = _read_struct(self._raw, params["mode"]["offset"], params["mode"]["dtype"])
         self.coord = _read_struct(self._raw, params["coordinate_conversion"]["offset"],
                                    params["coordinate_conversion"]["dtype"])
@@ -344,80 +344,84 @@ class GmsVissrL1bFile:
                                     params["orbit_prediction_1"]["dtype"])
         self.orbit2 = _read_struct(self._raw, params["orbit_prediction_2"]["offset"],
                                     params["orbit_prediction_2"]["dtype"])
-
+ 
         cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
         self.calibration = _read_struct(self._raw, params[cal_key]["offset"],
                                          params[cal_key]["dtype"])
-
+ 
         self._line_chunks = line_chunks
         self._parse_image_data(spec)
-
+ 
     # -----------------------------------------------------------------
     def _parse_image_data(self, spec):
         data_dtype = spec["dtype"]
         offset = spec["offset"]
         pair_bytes = data_dtype.itemsize * 2  # 2 lines per raw block
         n_pairs = (len(self._raw) - offset) // pair_bytes
-
+ 
         arr = np.frombuffer(
             self._raw[offset:offset + n_pairs * pair_bytes],
             dtype=data_dtype, count=n_pairs * 2,
         )
-
+ 
         self.line_numbers = arr["LCW"]["line_number"].astype(np.int64)
         self.scan_times = arr["LCW"]["scan_time"].astype(np.float64)
         self.west_earth_edges = arr["LCW"]["west_side_earth_edge"].astype(np.int32)
         self.east_earth_edges = arr["LCW"]["east_side_earth_edge"].astype(np.int32)
         self._pixels_np = arr["image_data"]  # (nlines, npix) uint8
         self.n_lines, self.n_pixels = self._pixels_np.shape
-
+ 
     # -----------------------------------------------------------------
     def pixel_counts_dask(self):
         """Return raw 0-255 (IR) / 0-63 (VIS) pixel counts as a dask array.
-
+ 
         Chunked by line -- the unit of work that matches how navigation
         and calibration both operate (per-line satellite state).
         """
         return da.from_array(self._pixels_np, chunks=(self._line_chunks, self.n_pixels))
-
+ 
     def calibration_lut(self):
         """Return this file's own calibration lookup table for its channel."""
         if self.channel == fmt.IR_CHANNEL:
             return self.calibration["conversion_table_of_equivalent_black_body_temperature"]
         else:
             return self.calibration["vis1_calibration_table"]["brightness_albedo_conversion_table"]
-
+ 
     def get_earth_mask(self):
         """Return a boolean mask, True = earth disk, False = space, per scan line.
-
+ 
         Ported from GMS-5's SpaceMasker (gms5_vissr_l1b.py), using the
         LCW's west_side_earth_edge/east_side_earth_edge fields we
         already parse.
         """
         fill_value = -1
+        west, east = self._earth_edges_for_mask(fill_value)
+ 
+        valid = (west != fill_value) & (east != fill_value)
+        w = np.maximum(west, 0)
+        e = np.minimum(east, self.n_pixels - 1)
+        valid &= (w <= e)
+ 
+        pixel_idx = np.arange(self.n_pixels)
+        return valid[:, None] & (pixel_idx[None, :] >= w[:, None]) & (pixel_idx[None, :] <= e[:, None])
+ 
+    def _earth_edges_for_mask(self, fill_value):
+        """Return west/east earth-edge arrays, oversampling-corrected for VIS."""
         west = self.west_earth_edges.copy()
         east = self.east_earth_edges.copy()
-        if self.channel == fmt.VIS_CHANNEL:
-            sampling_angle_ir = float(self.coord["sampling_angle_ir"])
-            sampling_angle_vis = float(self.coord["sampling_angle_vis"])
-            ratio = sampling_angle_ir / sampling_angle_vis if sampling_angle_vis > 0 else 2.0
-            west = np.where(west != fill_value, (west * ratio).astype(np.int32), west)
-            east = np.where(east != fill_value, (east * ratio).astype(np.int32), east)
-
-        mask = np.zeros((self.n_lines, self.n_pixels), dtype=bool)
-        for line in range(self.n_lines):
-            w, e = west[line], east[line]
-            if w == fill_value or e == fill_value:
-                continue
-            w = max(w, 0)
-            e = min(e, self.n_pixels - 1)
-            if w <= e:
-                mask[line, w:e + 1] = True
-        return mask
-
+        if self.channel != fmt.VIS_CHANNEL:
+            return west, east
+ 
+        sampling_angle_ir = float(self.coord["sampling_angle_ir"])
+        sampling_angle_vis = float(self.coord["sampling_angle_vis"])
+        ratio = sampling_angle_ir / sampling_angle_vis if sampling_angle_vis > 0 else 2.0
+        west = np.where(west != fill_value, (west * ratio).astype(np.int32), west)
+        east = np.where(east != fill_value, (east * ratio).astype(np.int32), east)
+        return west, east
+ 
     def calibrated_dask(self):
         """Return calibrated physical values as a lazy dask array.
-
+ 
         Kelvin for IR, albedo % 0-100 for VIS, via the Calibrator class
         above.
         """
@@ -425,11 +429,11 @@ class GmsVissrL1bFile:
         counts = self.pixel_counts_dask()
         calibration_level = "brightness_temperature" if self.channel == fmt.IR_CHANNEL else "reflectance"
         return calibrator.calibrate(counts, calibration_level)
-
+ 
     def _build_navigation_parameters(self, channel=None, solar=False):
         channel = channel or self.channel
         suffix = f"{'ir' if channel == 'IR' else 'vis'}{'_solar' if solar else ''}"
-
+ 
         spinning_rate = float(self.mode["spin_rate"])
         if spinning_rate <= 0:
             # mode["spin_rate"] isn't populated in some older GMS-1/2/3
@@ -442,14 +446,14 @@ class GmsVissrL1bFile:
                 "is populated in this file -- can't navigate without a real "
                 "spin rate."
             )
-
+ 
         scan_params = nav_shared.ScanningParameters(
             start_time_of_scan=float(self.coord["scheduled_observation_time"]),
             spinning_rate=spinning_rate,
             num_sensors=float(self.coord[f"num_sensors_{suffix}"]),
             sampling_angle=float(self.coord[f"sampling_angle_{suffix}"]),
         )
-
+ 
         misalignment = np.ascontiguousarray(
             np.asarray(self.coord["matrix_of_misalignment"], dtype=np.float64)
             .reshape(3, 3, order="F")
@@ -459,27 +463,27 @@ class GmsVissrL1bFile:
             sampling_angle=float(self.coord[f"sampling_angle_{suffix}"]),
             misalignment=misalignment,
         )
-
+ 
         image_offset = nav_shared.ImageOffset(
             line_offset=float(self.coord[f"central_line_{suffix}"]),
             pixel_offset=float(self.coord[f"central_pixel_{suffix}"]),
         )
-
+ 
         earth_ellipsoid = nav_shared.EarthEllipsoid(
             flattening=nav_shared.EARTH_FLATTENING,
             equatorial_radius=nav_shared.EARTH_EQUATORIAL_RADIUS,
         )
-
+ 
         proj_params = nav_shared.ProjectionParameters(
             image_offset=image_offset,
             scanning_angles=scanning_angles,
             earth_ellipsoid=earth_ellipsoid,
         )
-
+ 
         static = nav_shared.StaticNavigationParameters(proj_params=proj_params, scan_params=scan_params)
         predicted = self._build_predicted_navigation_params()
         return nav_shared.ImageNavigationParameters(static=static, predicted=predicted)
-
+ 
     def _build_predicted_navigation_params(self):
         at = self.attitude["data"]
         attitudes = nav_shared.Attitude(
@@ -491,10 +495,10 @@ class GmsVissrL1bFile:
             prediction_times=at["prediction_time_mjd"].astype(np.float64),
             attitude=attitudes,
         )
-
+ 
         o1, o2 = self.orbit1["data"], self.orbit2["data"]
         combined = np.concatenate([o1[:8], o2])
-
+ 
         orbit_angles = nav_shared.OrbitAngles(
             greenwich_sidereal_time=np.deg2rad(combined["greenwich_sidereal_time"].astype(np.float64)),
             declination_from_sat_to_sun=np.deg2rad(combined["declination_sat_to_sun"].astype(np.float64)),
@@ -514,10 +518,10 @@ class GmsVissrL1bFile:
             nutation_precession=np.ascontiguousarray(npa),
         )
         return nav_shared.PredictedNavigationParameters(attitude=attitude_prediction, orbit=orbit_prediction)
-
+ 
     def navigate_dask(self):
         """Return lat/lon as dask arrays, via the SHARED navigation module.
-
+ 
         This is the path get_dataset() actually uses -- confirmed
         end-to-end against a real Satpy Scene.load().
         """
@@ -525,16 +529,16 @@ class GmsVissrL1bFile:
         lines = self.line_numbers.astype(np.float64) - 1.0  # see _build_navigation_parameters note on +1 convention
         pixels = np.arange(self.n_pixels, dtype=np.float64)
         lons, lats = nav_shared.get_lons_lats(lines, pixels, nav_params)
-
+ 
         chunks = (self._line_chunks, self.n_pixels)
         lats = lats.rechunk(chunks) if hasattr(lats, "rechunk") else da.from_array(lats, chunks=chunks)
         lons = lons.rechunk(chunks) if hasattr(lons, "rechunk") else da.from_array(lons, chunks=chunks)
         return lats, lons
-
+ 
     # -----------------------------------------------------------------
     def get_dataset(self, mask_space=True):
         """Return an xarray.DataArray of calibrated values, space-masked.
-
+ 
         Dask-backed, with lon/lat as dask-backed 2D coords.
         """
         data = self.calibrated_dask()
@@ -557,36 +561,36 @@ class GmsVissrL1bFile:
             },
         )
         return da_out
-
-
+ 
+ 
 class AreaDefEstimator:
     """Estimate a uniform-sampling AreaDefinition for GMS-1..4 VISSR images.
-
+ 
     Square by design, sized from the file's own real per-file line count
     (self.l1b.n_lines) rather than a hardcoded full_disk_size, since
     GMS-1..4 archive files are not always full-disk. See
     ``_get_shape_dict`` for why n_lines (not the raw, oversampled
     n_pixels) is the right basis for both axes.
     """
-
+ 
     def __init__(self, l1b_file, platform_name):
         """Store the parsed L1b file and platform name used for area naming."""
         self.l1b = l1b_file
         self.platform_name = platform_name
-
+ 
     def get_area_def_uniform_sampling(self, dataset_id):
         """Build and return the uniform-sampling AreaDefinition for *dataset_id*."""
         proj_dict = self._get_proj_dict(dataset_id)
         extent = geos_area.get_area_extent(proj_dict)
         return geos_area.get_area_definition(proj_dict, extent)
-
+ 
     def _get_proj_dict(self, dataset_id):
         proj_dict = {}
         proj_dict.update(self._get_name_dict(dataset_id))
         proj_dict.update(self._get_proj4_dict())
         proj_dict.update(self._get_shape_dict(dataset_id))
         return proj_dict
-
+ 
     def _get_name_dict(self, dataset_id):
         if hasattr(dataset_id, "get"):
             resolution = dataset_id.get("resolution")
@@ -604,7 +608,7 @@ class AreaDefEstimator:
             "p_id": name_dict["area_id"],
             "a_desc": name_dict["description"],
         }
-
+ 
     def _get_proj4_dict(self):
         return {
             "ssp_lon": float(self.l1b.mode["ssp_longitude"]),
@@ -612,7 +616,7 @@ class AreaDefEstimator:
             "b": nav_shared.EARTH_POLAR_RADIUS,
             "h": float(self.l1b.mode["satellite_height"]),
         }
-
+ 
     def _get_shape_dict(self, dataset_id):
         size = self.l1b.n_lines
         if size <= 1:
@@ -620,10 +624,10 @@ class AreaDefEstimator:
                 f"Implausible dataset shape (n_lines={size}) -- can't "
                 f"build a uniform-sampling area definition from this."
             )
-
+ 
         suffix = "ir" if self.l1b.channel == "IR" else "vis"
         stepping_angle = float(self.l1b.coord[f"stepping_angle_{suffix}"])
-
+ 
         line_pixel_offset = 0.5 * size
         lfac_cfac = geos_area.sampling_to_lfac_cfac(stepping_angle)
         return {
