@@ -19,6 +19,7 @@ from satpy.readers.core.loading import load_reader
 FILE_TYPE_H60 = "hsaf_h60_nc"
 FILE_TYPE_H63 = "hsaf_h63_nc"
 FILE_TYPE_H90 = "hsaf_h90_nc"
+FILE_TYPE_H40B = "hsaf_h40b_nc"
 
 # parameters per file type
 FILE_PARAMS = {
@@ -36,6 +37,11 @@ FILE_PARAMS = {
         "fake_file": "h90_20251105_0000_fdk.nc",
         "yaml_file": "hsaf_nc.yaml",
         "platform": "MSG2",
+    },
+    FILE_TYPE_H40B: {
+        "fake_file": "W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_202511050000_PINFCI.nc",
+        "yaml_file": "hsaf_nc.yaml",
+        "platform": "MTG-I1",
     }
 }
 
