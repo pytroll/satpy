@@ -482,6 +482,21 @@ class TestReadingGacFile:
         assert scene["qual_flags"].shape == (expect.num_lines, 7)
         assert scene["qual_flags"].dims == ("y", "num_flags")
 
+    def test_quality_flag_columns_say_which_flag_they_hold(self, stub: Path, reader_kwargs: dict):
+        """Each column is labelled, so the table can be read without pygac's source at hand."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["qual_flags"])
+        assert list(scene["qual_flags"]["num_flags"].values) == [
+            "Scan line number",
+            "Fatal error flag",
+            "Insufficient data for calibration",
+            "Earth location data not available",
+            "Solar contamination of blackbody in channels 3",
+            "Solar contamination of blackbody in channels 4",
+            "Solar contamination of blackbody in channels 5",
+        ]
+
     def test_get_latlon_without_interp(self, stub: Path, params: TestParams, expect: Expectations, tle_dir: Path):
         """Test getting lat/lon coordinates without interpolation.
 

@@ -226,7 +226,15 @@ class GACLACFile(BaseFileHandler):
         elif ds_name == "qual_flags":
             data = self._get_qual_flags()
             xdim = "num_flags"
-            xcoords = None
+            xcoords = [
+                "Scan line number",
+                "Fatal error flag",
+                "Insufficient data for calibration",
+                "Earth location data not available",
+                "Solar contamination of blackbody in channels 3",
+                "Solar contamination of blackbody in channels 4",
+                "Solar contamination of blackbody in channels 5",
+            ]
         elif ds_name in ["random_uncertainty",
                          "systematic_uncertainty",
                          "channel_covariance_ratio",
