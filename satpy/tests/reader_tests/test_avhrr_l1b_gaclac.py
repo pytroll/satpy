@@ -105,6 +105,24 @@ class TestGACLACFile:
                 assert fh.reader_class is reader_cls
 
 
+    def test_a_metop_pass_named_by_station_is_read_as_avhrr3(self):
+        """A Metop file named for its station is still Metop, whatever the name shape.
+
+        The platform is taken from the filename, and the same platform is written two
+        ways: ``M2`` in the classic name and ``M02`` in the station one. Only the first
+        was recognised, so the second fell through to the oldest reader in the list and
+        met a header it could not decode -- a failure that names the data set rather
+        than the platform, and so says nothing about what actually went wrong.
+        """
+        from pygac.lac_klm import LACKLMReader
+        from trollsift import parse
+
+        pattern = "{platform_id:3s}_{start_time:%Y%m%d%H%M}{end_time:%S}.{station:3s}.l1b"
+        name = "M02_20120227102121.BRN.l1b"
+        fh = GACLACFile(name, parse(pattern, name), {})
+
+        assert fh.reader_class is LACKLMReader
+
     def test_init_eosip(self):
         """Test GACLACFile initialization."""
         from pygac.lac_pod import LACPODReader

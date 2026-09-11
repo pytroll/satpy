@@ -161,6 +161,7 @@ class GACLACFile(BaseFileHandler):
             "M1",
             "M2",
             "M3",
+            "M02",
             "MOB",
             "MOA",
             "MOC",
