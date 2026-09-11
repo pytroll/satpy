@@ -79,6 +79,7 @@ jobs:
           --only-binary ":all:" \
           --no-deps --pre --upgrade \
           matplotlib \
+          meson-python \
           numpy \
           pandas \
           scipy
