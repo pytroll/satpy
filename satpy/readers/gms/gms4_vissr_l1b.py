@@ -287,11 +287,9 @@ class Calibrator:
 
     def _postproc(self, res, calibration):
         if calibration == "reflectance":
-            res = self._convert_to_percent(res)
+            # convert to percent
+            return res * 100
         return res
-
-    def _convert_to_percent(self, res):
-        return res * 100
 
 
 def _read_struct(raw, offset, dtype):
