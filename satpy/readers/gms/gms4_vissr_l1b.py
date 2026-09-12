@@ -158,7 +158,6 @@ On demand a special Typhoon schedule would be activated between
 
 """
 
-import functools
 import os
 
 import dask.array as da
