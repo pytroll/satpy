@@ -282,8 +282,13 @@ class Calibrator:
         return res
 
     def _calibrate(self, counts):
-        lookup = functools.partial(_lookup_calibration_value, lut=self._calib_table, mask=self._mask)
-        return counts.map_blocks(lookup, dtype=np.float32, meta=np.array((), dtype=np.float32))
+        return counts.map_blocks(
+            _lookup_calibration_value,
+            lut=self._calib_table,
+            mask=self._mask,
+            dtype=np.float32,
+            meta=np.array((), dtype=np.float32),
+        )
 
     def _postproc(self, res, calibration):
         if calibration == "reflectance":
@@ -340,7 +345,6 @@ class GmsVissrL1bFile:
         self._line_chunks = line_chunks
         self._parse_image_data(spec)
 
-    # -----------------------------------------------------------------
     def _parse_image_data(self, spec):
         data_dtype = spec["dtype"]
         offset = spec["offset"]
@@ -359,7 +363,6 @@ class GmsVissrL1bFile:
         self._pixels_np = arr["image_data"]  # (nlines, npix) uint8
         self.n_lines, self.n_pixels = self._pixels_np.shape
 
-    # -----------------------------------------------------------------
     def pixel_counts_dask(self):
         """Return raw 0-255 (IR) / 0-63 (VIS) pixel counts as a dask array."""
         return da.from_array(self._pixels_np, chunks=(self._line_chunks, self.n_pixels))
@@ -506,7 +509,6 @@ class GmsVissrL1bFile:
         lons = lons.rechunk(chunks) if hasattr(lons, "rechunk") else da.from_array(lons, chunks=chunks)
         return lats, lons
 
-    # -----------------------------------------------------------------
     def get_dataset(self, mask_space=True):
         """Return an xarray.DataArray of calibrated values, space-masked."""
         data = self.calibrated_dask()
