@@ -5,7 +5,7 @@ import gzip
 import numpy as np
 import pytest
 
-import satpy.readers.gms.gms4_vissr_format as fmt
+import satpy.readers.gms.gms1_4_vissr_format as fmt
 import satpy.readers.gms.gms4_vissr_l1b as vissr
 from satpy.tests.utils import make_dataid
 
@@ -123,17 +123,21 @@ class VissrFileWriter:
         self.image_data_offset = fmt.IMAGE_DATA[channel]["offset"]
         self.image_data_dtype = fmt.IMAGE_DATA[channel]["dtype"]
 
-    def write(self, filename, mode_block, coord_block, cal_block, lines):
-        """Write mode/coordinate-conversion/calibration blocks and image data lines to *filename*."""
-        cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
+    def write(self, filename, contents):
+        """Write mode/coordinate-conversion/calibration blocks and image data lines to *filename*.
+
+        *contents* is a dict with keys "mode", "coordinate_conversion",
+        "calibration", "image_data" -- see the file_contents fixture.
+        """
         # Written in ascending-offset order (NOT a "logical" order): the
         # calibration block's real offset sits before
         # coordinate_conversion's in both channels' actual file layout.
         with self.open_function(filename, "wb") as fd:
-            self._write_at(fd, self.params["mode"]["offset"], mode_block)
-            self._write_at(fd, self.params[cal_key]["offset"], cal_block)
-            self._write_at(fd, self.params["coordinate_conversion"]["offset"], coord_block)
-            self._write_at(fd, self.image_data_offset, lines)
+            self._write_at(fd, self.params["mode"]["offset"], contents["mode"])
+            cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
+            self._write_at(fd, self.params[cal_key]["offset"], contents["calibration"])
+            self._write_at(fd, self.params["coordinate_conversion"]["offset"], contents["coordinate_conversion"])
+            self._write_at(fd, self.image_data_offset, contents["image_data"])
 
     @staticmethod
     def _write_at(fd, offset, struct_array):
@@ -218,6 +222,17 @@ def image_lines(channel):
 
 
 @pytest.fixture
+def file_contents(mode_block, coord_block, cal_block, image_lines):
+    """Bundle the blocks that make up a VISSR file's contents into one dict."""
+    return {
+        "mode": mode_block,
+        "coordinate_conversion": coord_block,
+        "calibration": cal_block,
+        "image_data": image_lines,
+    }
+
+
+@pytest.fixture
 def vissr_filename(tmp_path, channel, with_compression):
     """Construct a real, channel-appropriately-prefixed test filename."""
     prefix = "IR" if channel == fmt.IR_CHANNEL else "VS"
@@ -228,10 +243,9 @@ def vissr_filename(tmp_path, channel, with_compression):
 
 
 @pytest.fixture
-def vissr_file(vissr_filename, channel, open_function, mode_block, coord_block, cal_block, image_lines):
+def vissr_file(vissr_filename, channel, open_function, file_contents):
     """Write a real VISSR test file to disk and return its path."""
-    writer = VissrFileWriter(channel, open_function)
-    writer.write(vissr_filename, mode_block, coord_block, cal_block, image_lines)
+    VissrFileWriter(channel, open_function).write(vissr_filename, file_contents)
     return vissr_filename
 
 
@@ -313,12 +327,17 @@ class TestSpinRateFallback:
     """
 
     @pytest.fixture
+    def zero_mode_spin_rate_contents(self, file_contents):
+        """Get file_contents with mode.spin_rate zeroed out, simulating the real GMS-3 archive gap."""
+        file_contents["mode"]["spin_rate"] = 0.0
+        return file_contents
+
+    @pytest.fixture
     def file_handler_with_zero_mode_spin_rate(
-        self, vissr_filename, channel, open_function, mode_block, coord_block, cal_block, image_lines
+        self, vissr_filename, channel, open_function, zero_mode_spin_rate_contents
     ):
         """Get a real file handler built from a file where mode.spin_rate reads back as 0."""
-        mode_block["spin_rate"] = 0.0  # simulate the real GMS-3 archive gap
-        VissrFileWriter(channel, open_function).write(vissr_filename, mode_block, coord_block, cal_block, image_lines)
+        VissrFileWriter(channel, open_function).write(vissr_filename, zero_mode_spin_rate_contents)
         return vissr.GmsVissrFileHandler(vissr_filename, {}, {})
 
     def test_falls_back_to_daily_mean_spin_rate(self, file_handler_with_zero_mode_spin_rate, dataset_id):
@@ -345,16 +364,16 @@ class TestSpinRateFallback:
         nav_params = file_handler_with_zero_mode_spin_rate._l1b._build_navigation_parameters()
         assert nav_params.static.scan_params.spinning_rate == pytest.approx(100.37372693)
 
-    def test_raises_when_neither_spin_rate_source_is_populated(
-        self, vissr_filename, channel, open_function, mode_block, coord_block, cal_block, image_lines, dataset_id
-    ):
-        """Test that a clear error is raised (not a silent bad value) when both sources are missing."""
-        mode_block["spin_rate"] = 0.0
-        coord_block["daily_mean_spin_rate"] = 0.0
-        writer = VissrFileWriter(channel, open_function)
-        writer.write(vissr_filename, mode_block, coord_block, cal_block, image_lines)
+    @pytest.fixture
+    def no_spin_rate_vissr_file(self, vissr_filename, channel, open_function, zero_mode_spin_rate_contents):
+        """Write a file where NEITHER spin rate source is populated."""
+        zero_mode_spin_rate_contents["coordinate_conversion"]["daily_mean_spin_rate"] = 0.0
+        VissrFileWriter(channel, open_function).write(vissr_filename, zero_mode_spin_rate_contents)
+        return vissr_filename
 
-        handler = vissr.GmsVissrFileHandler(vissr_filename, {}, {})
+    def test_raises_when_neither_spin_rate_source_is_populated(self, no_spin_rate_vissr_file, dataset_id):
+        """Test that a clear error is raised (not a silent bad value) when both sources are missing."""
+        handler = vissr.GmsVissrFileHandler(no_spin_rate_vissr_file, {}, {})
         with pytest.raises(ValueError, match="spin rate"):
             handler.get_dataset(dataset_id, {"name": dataset_id["name"]})
 
@@ -362,18 +381,18 @@ class TestSpinRateFallback:
 class TestChannelDetection:
     """Test GmsVissrL1bFile's filename-based channel sniffing."""
 
-    def test_detects_ir_from_prefix(self, tmp_path, mode_block, coord_block, cal_block, image_lines):
+    def test_detects_ir_from_prefix(self, tmp_path, file_contents):
         """Test that a filename starting with IR is detected as the IR channel."""
         path = tmp_path / "IR901110.Z23"
-        VissrFileWriter(fmt.IR_CHANNEL, open).write(path, mode_block, coord_block, cal_block, image_lines)
+        VissrFileWriter(fmt.IR_CHANNEL, open).write(path, file_contents)
         l1b = vissr.GmsVissrL1bFile(path)
         assert l1b.channel == fmt.IR_CHANNEL
 
-    def test_detects_vis_from_prefix(self, tmp_path, mode_block, coord_block, cal_block, image_lines, channel):
+    def test_detects_vis_from_prefix(self, tmp_path, file_contents, channel):
         """Test that a filename starting with VS is detected as the VIS channel."""
         if channel != fmt.VIS_CHANNEL:
             pytest.skip("only meaningful for the VIS-shaped fixture data")
         path = tmp_path / "VS901110.Z23"
-        VissrFileWriter(fmt.VIS_CHANNEL, open).write(path, mode_block, coord_block, cal_block, image_lines)
+        VissrFileWriter(fmt.VIS_CHANNEL, open).write(path, file_contents)
         l1b = vissr.GmsVissrL1bFile(path)
         assert l1b.channel == fmt.VIS_CHANNEL
