@@ -258,6 +258,25 @@ class TestNIRReflectance:
                 "units": "K",
             })
 
+    def _bad_optional(self, kind):
+        """Build an optional dataset that the modifier should refuse."""
+        if kind == "sunz_wrong_shape":
+            arr = np.array([[1.0, 2.0, 3.0, 4.0], [3.0, 4.0, 5.0, 6.0]], dtype=np.float32)
+            return xr.DataArray(da.from_array(arr), dims=["y", "x"],
+                                attrs={"standard_name": "solar_zenith_angle", "area": self.area_hr})
+        if kind == "co2_wrong_shape":
+            arr = np.arange(240.0, 256.0, dtype=np.float32).reshape(4, 4)
+            return xr.DataArray(da.from_array(arr), dims=["y", "x"],
+                                attrs={"area": self.area_hr, "start_time": self.start_time,
+                                       "wavelength": (12.0, 13.0, 14.0), "units": "K"})
+        if kind == "sunz_other_area":
+            other = AreaDefinition("test", "", "", {"proj": "merc"}, 2, 2, (-1000, -1000, 1000, 1000))
+            return xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                                attrs={"standard_name": "solar_zenith_angle", "area": other})
+        if kind == "sunz_no_area":
+            return xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                                attrs={"standard_name": "solar_zenith_angle"})
+        raise ValueError(f"unknown kind {kind}")
 
     @pytest.mark.parametrize(
         ("include_sunz", "include_co2", "exp_res"),
@@ -325,87 +344,27 @@ class TestNIRReflectance:
         calculator.assert_called_with("Meteosat-11", "seviri", "IR_039", **exp_call_kwargs)
 
     @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
-    def test_nir_multiple_resolutions(self, modifier_name):
-        """Check that multiple resolutions in the optional datasets produce an IncompatibleArea.
-
-        Both modifiers consume the optional datasets in ``_get_nir_inputs``, so both must
-        reject a mismatched one. Only ``NIRReflectance`` used to, which is the bug behind
-        GH#2460: the emissive variant let the mismatch through and failed later with a
-        broadcasting error from pyspectral.
-        """
+    @pytest.mark.parametrize(
+        ("kind", "exp_exception", "exp_match"),
+        [
+            ("sunz_wrong_shape", "IncompatibleAreas", None),
+            ("co2_wrong_shape", "IncompatibleAreas", None),
+            ("sunz_other_area", "IncompatibleAreas", None),
+            ("sunz_no_area", ValueError, "Missing 'area' attribute"),
+        ],
+    )
+    def test_nir_rejects_mismatched_optional_dataset(self, modifier_name, kind, exp_exception, exp_match):
+        """Check that an optional dataset that does not match the projectables is refused."""
         from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers import spectral
 
-        # make sunz that is twice as many pixels
-        sunz_arr = np.array([
-            [1.0, 2.0, 3.0, 4.0],
-            [3.0, 4.0, 5.0, 6.0],
-        ], dtype=np.float32)
-        sunz = xr.DataArray(da.from_array(sunz_arr), dims=["y", "x"])
-        sunz.attrs["standard_name"] = "solar_zenith_angle"
-        sunz.attrs["area"] = self.area_hr
+        if exp_exception == "IncompatibleAreas":
+            exp_exception = IncompatibleAreas
 
         comp = getattr(spectral, modifier_name)(name="test")
         info = {"modifiers": None}
-        with pytest.raises(IncompatibleAreas):
-            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
-
-    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
-    def test_nir_multiple_resolutions_co2(self, modifier_name):
-        """Check that a mismatched CO2 correction dataset is rejected too.
-
-        ``_get_tb13_4_from_optionals`` reads this one, so it is a second way for an
-        unchecked optional dataset to reach the computation.
-        """
-        from satpy.composites.core import IncompatibleAreas
-        from satpy.modifiers import spectral
-
-        co2_arr = np.arange(240.0, 256.0, dtype=np.float32).reshape(4, 4)
-        co2 = xr.DataArray(da.from_array(co2_arr), dims=["y", "x"])
-        co2.attrs.update({"area": self.area_hr, "start_time": self.start_time,
-                          "wavelength": (12.0, 13.0, 14.0), "units": "K"})
-
-        comp = getattr(spectral, modifier_name)(name="test")
-        info = {"modifiers": None}
-        with pytest.raises(IncompatibleAreas):
-            comp([self.nir, self.ir_], optional_datasets=[co2], **info)
-
-    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
-    def test_nir_same_shape_different_area(self, modifier_name):
-        """Check that an optional dataset with a matching shape but a different area is rejected.
-
-        This is the quiet version of the bug: the shapes broadcast happily, so nothing
-        raises and the modifier silently derives a product from a sun zenith angle that
-        belongs somewhere else.
-        """
-        from satpy.composites.core import IncompatibleAreas
-        from satpy.modifiers import spectral
-
-        area_shifted = AreaDefinition("test", "", "", {"proj": "merc"}, 2, 2, (-1000, -1000, 1000, 1000))
-        sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
-                            attrs={"standard_name": "solar_zenith_angle", "area": area_shifted})
-
-        comp = getattr(spectral, modifier_name)(name="test")
-        info = {"modifiers": None}
-        with pytest.raises(IncompatibleAreas):
-            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
-
-    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
-    def test_nir_optional_dataset_without_area(self, modifier_name):
-        """Check that an optional dataset with no area raises rather than being used.
-
-        Note that this is a ``ValueError`` and not an ``IncompatibleAreas``, so unlike the
-        other mismatches it is not something the dependency tree can recover from.
-        """
-        from satpy.modifiers import spectral
-
-        sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
-                            attrs={"standard_name": "solar_zenith_angle"})
-
-        comp = getattr(spectral, modifier_name)(name="test")
-        info = {"modifiers": None}
-        with pytest.raises(ValueError, match="Missing 'area' attribute"):
-            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
+        with pytest.raises(exp_exception, match=exp_match):
+            comp([self.nir, self.ir_], optional_datasets=[self._bad_optional(kind)], **info)
 
     @pytest.mark.parametrize(
         ("modifier_name", "exp_res", "exp_units"),
