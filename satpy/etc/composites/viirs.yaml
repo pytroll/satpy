@@ -36,7 +36,7 @@ modifiers:
     prerequisites:
     - name: I01
       resolution: 371
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     optional_prerequisites:
     - name: satellite_azimuth_angle
       resolution: 371
@@ -54,7 +54,7 @@ modifiers:
     prerequisites:
     - name: M05
       resolution: 742
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
       resolution: 742
@@ -72,7 +72,7 @@ modifiers:
     prerequisites:
     - name: M05
       resolution: 742
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
       resolution: 742
@@ -90,7 +90,7 @@ modifiers:
     prerequisites:
     - name: M05
       resolution: 742
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
       resolution: 742
@@ -101,6 +101,19 @@ modifiers:
     - name: solar_zenith_angle
       resolution: 742
 
+  # Although the `effective_solar_pathlength_corrected` is now the recommended solar zenith
+  # angle correction modifier for (RGB) imagery (agreed during RGB workshop in Norrkoeping
+  # 2025 and introduced in Satpy wiht PR3397), we need to keep using the `sunz_corrected` and
+  # `sunz_corrected_iband` modifiers (that call the SunZenithCorrector class) for VIIRS data
+  # given that the SDR data come with the `1/cos(sunz)` normalization already applied, whereas
+  # the L1B data do not. Consequently, the `sunz_corrected`/`sunz_corrected_iband`
+  # modifier is attached to the dataset when loading VIIRS SDR data. Hence, if we would
+  # use the `effective_solar_pathlength_corrected` modifier in the recipes defined below,
+  # we would not be able to load composites using VIIRS SDR data since satpy would not
+  # be able to find the "base" dataset with no modifiers applied, but only the one with
+  # the `sunz_corrected`/`sunz_corrected_iband` modifier applied. When fixing #3411, we should
+  # change the recipes also for the VIIRS to use the `effective_solar_pathlength_corrected`/
+  # `effective_solar_pathlength_corrected_iband` modifiers instead.
   sunz_corrected:
     modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     prerequisites:
@@ -109,18 +122,6 @@ modifiers:
 
   sunz_corrected_iband:
     modifier: !!python/name:satpy.modifiers.SunZenithCorrector
-    prerequisites:
-    - name: solar_zenith_angle
-      resolution: 371
-
-  effective_solar_pathlength_corrected:
-    modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
-    prerequisites:
-    - name: solar_zenith_angle
-      resolution: 742
-
-  effective_solar_pathlength_corrected_iband:
-    modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 371
@@ -163,14 +164,14 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected_iband]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: true_color
     high_resolution_band: red
 
@@ -178,14 +179,14 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
       - name: M05
-        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
       - name: M04
-        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
       - name: M03
-        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     optional_prerequisites:
       - name: I01
-        modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected_crefl_iband]
+        modifiers: [sunz_corrected_iband, rayleigh_corrected_crefl_iband]
     standard_name: true_color
     high_resolution_band: red
 
@@ -193,58 +194,58 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_lowres_crefl:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     standard_name: true_color
 
   true_color_lowres_land:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_land]
+      modifiers: [sunz_corrected, rayleigh_corrected_land]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_land]
+      modifiers: [sunz_corrected, rayleigh_corrected_land]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_land]
+      modifiers: [sunz_corrected, rayleigh_corrected_land]
     standard_name: true_color
 
   true_color_lowres_marine_tropical:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+      modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+      modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+      modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
     standard_name: true_color
 
   false_color:
     compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
     - name: M11
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M07
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I02
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     standard_name: false_color
     high_resolution_band: green
 
@@ -286,9 +287,9 @@ composites:
     - name: M12
       modifiers: [nir_reflectance_lowres]
     - name: M11
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M10
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     standard_name: fire_temperature
     name: fire_temperature_39refl
 
@@ -296,14 +297,14 @@ composites:
     compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
     - name: M10
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M07
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected_iband]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: natural_color
     high_resolution_band: blue
 
@@ -311,11 +312,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: I03
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     - name: I02
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     - name: I01
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     standard_name: natural_color
 
   natural_color_surf:
@@ -369,22 +370,22 @@ composites:
     compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: M10
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M07
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     standard_name: natural_color
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     standard_name: true_color
 
   overview:
@@ -421,7 +422,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M07
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M12
       modifiers: [nir_reflectance_lowres]
     - M15
@@ -431,7 +432,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: I02
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     - name: I04
       modifiers: [nir_reflectance_hires]
     - I05
@@ -522,9 +523,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: M07
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M10
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M12
       modifiers: [nir_reflectance_lowres]
     standard_name: snow
@@ -533,9 +534,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: I02
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     - name: I03
-      modifiers: [effective_solar_pathlength_corrected_iband]
+      modifiers: [sunz_corrected_iband]
     - name: I04
       modifiers: [nir_reflectance_hires]
     standard_name: snow
@@ -544,9 +545,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: I02
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
       - name: I03
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
       - name: I04
         modifiers: [nir_reflectance_hires]
     standard_name: snow
@@ -599,29 +600,29 @@ composites:
     compositor: !!python/name:satpy.composites.viirs.SnowAge
     prerequisites:
     - name: M07
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M08
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M09
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M10
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     - name: M11
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
     standard_name: snow_age
 
   ocean_color:
     compositor: !!python/name:satpy.composites.resolution.RatioSharpenedRGB
     prerequisites:
     - name: M05
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M04
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M03
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected_iband]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: ocean_color
     high_resolution_band: red
 
@@ -639,9 +640,9 @@ composites:
     prerequisites:
       - name: M15
       - name: I01
-        modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected]
+        modifiers: [sunz_corrected_iband, rayleigh_corrected]
       - name: I03
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
     standard_name: cloud_phase_distinction
 
   day_cloud_type_distinction:
@@ -656,9 +657,9 @@ composites:
     prerequisites:
       - name: M15
       - name: I01
-        modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected]
+        modifiers: [sunz_corrected_iband, rayleigh_corrected]
       - name: I03
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
     standard_name: day_cloud_type_distinction
 
   cloud_phase_distinction_raw:
@@ -695,9 +696,9 @@ composites:
     prerequisites:
       - name: M09
       - name: I01
-        modifiers: [effective_solar_pathlength_corrected_iband, rayleigh_corrected]
+        modifiers: [sunz_corrected_iband, rayleigh_corrected]
       - name: I03
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
     standard_name: day_cloud_type
 
   cloud_phase:
@@ -709,11 +710,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: I03
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
       - name: M11
-        modifiers: [effective_solar_pathlength_corrected]
+        modifiers: [sunz_corrected]
       - name: M05
-        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: cloud_phase
 
   cloud_phase_raw:
@@ -735,11 +736,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: M09
-        modifiers: [effective_solar_pathlength_corrected]
+        modifiers: [sunz_corrected]
       - name: I01
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
       - name: I03
-        modifiers: [effective_solar_pathlength_corrected_iband]
+        modifiers: [sunz_corrected_iband]
     standard_name: cimss_cloud_type
 
   cimss_cloud_type_raw:
