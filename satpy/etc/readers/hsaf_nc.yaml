@@ -55,7 +55,10 @@ file_types:
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
   hsaf_h40b_nc:
     file_patterns:
+    # internally compressed
       - 'W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_{start_time:%Y%m%d%H%M}_PINFCI.nc'
+    # externally compressed
+      - 'W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_{start_time:%Y%m%d%H%M}_PINFCI.nc.gz'
     area: mtg_fci_fdss_2km
     resolution: 2000
     end_time_delta_min: 10
