@@ -49,11 +49,30 @@ class NIRReflectance(ModifierBase):
 
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
-        matched_data_arrs = self.match_data_arrays(projectables + optional_datasets)
-        projectables = matched_data_arrs[:len(projectables)]
-        optional_datasets = matched_data_arrs[len(projectables):]
+        projectables, optional_datasets = self._match_projectables_and_optionals(projectables, optional_datasets)
         inputs = self._get_nir_inputs(projectables, optional_datasets)
         return self._get_reflectance_as_dataarray(*inputs)
+
+    def _match_projectables_and_optionals(self, projectables, optional_datasets):
+        """Check the geometry of the projectables and the optional datasets together.
+
+        The optional datasets are consumed by :meth:`_get_nir_inputs` just like the
+        projectables are, so they must take part in the compatibility check. Leaving
+        them out lets a mismatched optional dataset through to the computation, where
+        it fails as an opaque broadcasting error instead of ``IncompatibleAreas``.
+
+        Args:
+            projectables: The required input arrays.
+            optional_datasets: The optional input arrays, or ``None``.
+
+        Returns:
+            The matched projectables and the matched optional datasets.
+
+        """
+        optional_datasets = optional_datasets or []
+        num_projectables = len(projectables)
+        matched_data_arrs = self.match_data_arrays(list(projectables) + list(optional_datasets))
+        return matched_data_arrs[:num_projectables], matched_data_arrs[num_projectables:]
 
     def _get_reflectance_as_dataarray(self, nir, da_tb11, da_tb13_4, da_sun_zenith):
         """Get the reflectance as a dataarray."""
@@ -143,7 +162,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
-        projectables = self.match_data_arrays(projectables)
+        projectables, optional_datasets = self._match_projectables_and_optionals(projectables, optional_datasets)
         inputs = self._get_nir_inputs(projectables, optional_datasets)
         return self._get_emissivity_as_dataarray(*inputs)
 
