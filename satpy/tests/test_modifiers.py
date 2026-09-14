@@ -210,7 +210,7 @@ class TestSunZenithReducer:
 
 
 class TestNIRReflectance:
-    """Test NIR reflectance compositor."""
+    """Test the NIR reflectance modifier and, where behaviour is shared, its emissive subclass."""
 
     def setup_method(self):
         """Set up the test case for the NIRReflectance compositor."""
@@ -324,10 +324,17 @@ class TestNIRReflectance:
         assert res.attrs["sun_zenith_masking_limit"] == exp_call_kwargs["masking_limit"]
         calculator.assert_called_with("Meteosat-11", "seviri", "IR_039", **exp_call_kwargs)
 
-    def test_nir_multiple_resolutions(self):
-        """Check that multiple resolutions in the optional datasets produce an IncompatibleArea."""
+    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
+    def test_nir_multiple_resolutions(self, modifier_name):
+        """Check that multiple resolutions in the optional datasets produce an IncompatibleArea.
+
+        Both modifiers consume the optional datasets in ``_get_nir_inputs``, so both must
+        reject a mismatched one. Only ``NIRReflectance`` used to, which is the bug behind
+        GH#2460: the emissive variant let the mismatch through and failed later with a
+        broadcasting error from pyspectral.
+        """
         from satpy.composites.core import IncompatibleAreas
-        from satpy.modifiers.spectral import NIRReflectance
+        from satpy.modifiers import spectral
 
         # make sunz that is twice as many pixels
         sunz_arr = np.array([
@@ -338,10 +345,92 @@ class TestNIRReflectance:
         sunz.attrs["standard_name"] = "solar_zenith_angle"
         sunz.attrs["area"] = self.area_hr
 
-        comp = NIRReflectance(name="test")
+        comp = getattr(spectral, modifier_name)(name="test")
         info = {"modifiers": None}
         with pytest.raises(IncompatibleAreas):
             comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
+
+    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
+    def test_nir_multiple_resolutions_co2(self, modifier_name):
+        """Check that a mismatched CO2 correction dataset is rejected too.
+
+        ``_get_tb13_4_from_optionals`` reads this one, so it is a second way for an
+        unchecked optional dataset to reach the computation.
+        """
+        from satpy.composites.core import IncompatibleAreas
+        from satpy.modifiers import spectral
+
+        co2_arr = np.arange(240.0, 256.0, dtype=np.float32).reshape(4, 4)
+        co2 = xr.DataArray(da.from_array(co2_arr), dims=["y", "x"])
+        co2.attrs.update({"area": self.area_hr, "start_time": self.start_time,
+                          "wavelength": (12.0, 13.0, 14.0), "units": "K"})
+
+        comp = getattr(spectral, modifier_name)(name="test")
+        info = {"modifiers": None}
+        with pytest.raises(IncompatibleAreas):
+            comp([self.nir, self.ir_], optional_datasets=[co2], **info)
+
+    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
+    def test_nir_same_shape_different_area(self, modifier_name):
+        """Check that an optional dataset with a matching shape but a different area is rejected.
+
+        This is the quiet version of the bug: the shapes broadcast happily, so nothing
+        raises and the modifier silently derives a product from a sun zenith angle that
+        belongs somewhere else.
+        """
+        from satpy.composites.core import IncompatibleAreas
+        from satpy.modifiers import spectral
+
+        area_shifted = AreaDefinition("test", "", "", {"proj": "merc"}, 2, 2, (-1000, -1000, 1000, 1000))
+        sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                            attrs={"standard_name": "solar_zenith_angle", "area": area_shifted})
+
+        comp = getattr(spectral, modifier_name)(name="test")
+        info = {"modifiers": None}
+        with pytest.raises(IncompatibleAreas):
+            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
+
+    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
+    def test_nir_optional_dataset_without_area(self, modifier_name):
+        """Check that an optional dataset with no area raises rather than being used.
+
+        Note that this is a ``ValueError`` and not an ``IncompatibleAreas``, so unlike the
+        other mismatches it is not something the dependency tree can recover from.
+        """
+        from satpy.modifiers import spectral
+
+        sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                            attrs={"standard_name": "solar_zenith_angle"})
+
+        comp = getattr(spectral, modifier_name)(name="test")
+        info = {"modifiers": None}
+        with pytest.raises(ValueError, match="Missing 'area' attribute"):
+            comp([self.nir, self.ir_], optional_datasets=[sunz], **info)
+
+    @pytest.mark.parametrize(
+        ("modifier_name", "exp_res", "exp_units"),
+        [
+            ("NIRReflectance",
+             np.array([[4.251828, 4.639434], [5.0589, 5.514466]], dtype=np.float32), "%"),
+            ("NIREmissivePartFromReflectance",
+             np.array([[272.51868, 274.42377], [276.31915, 278.20343]], dtype=np.float32), "K"),
+        ]
+    )
+    def test_nir_no_optional_datasets(self, modifier_name, exp_res, exp_units, tmp_path):
+        """Check that omitting the optional datasets entirely still produces the right values."""
+        from pyspectral.testing import mock_tb_conversion
+
+        from satpy.modifiers import spectral
+
+        comp = getattr(spectral, modifier_name)(name="test")
+        info = {"modifiers": None}
+        with mock_tb_conversion(tb2rad_dir=tmp_path, central_wavelengths={"IR_039": 3.9}):
+            res = comp([self.nir, self.ir_], optional_datasets=None, **info)
+
+        res_np = res.data.compute()
+        assert res_np.dtype == self.nir.dtype
+        assert res.attrs["units"] == exp_units
+        np.testing.assert_allclose(res_np, exp_res, atol=2e-6)
 
 
 class TestNIREmissivePartFromReflectance(unittest.TestCase):
