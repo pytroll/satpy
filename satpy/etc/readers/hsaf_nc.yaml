@@ -3,7 +3,7 @@ reader:
   short_name: Hydrology SAF
   long_name: "H SAF products in NetCDF4 format"
   description: |
-    Reader configuration for H SAF H60/H60B, H63 and H90 NetCDF files
+    Reader configuration for H SAF H60/H60B, H63, H90 and H40B NetCDF files
     containing rain rate (rr and acc_rr) and quality index (qind).
   status: Alpha
   supports_fsspec: false
