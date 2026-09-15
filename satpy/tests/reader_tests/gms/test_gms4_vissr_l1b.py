@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import satpy.readers.gms.gms1_4_vissr_format as fmt
 import satpy.readers.gms.gms4_vissr_l1b as vissr
+
 from satpy.tests.utils import make_dataid
 
 IR_BLOCK_LEN = fmt.IR_BLOCK_LEN
