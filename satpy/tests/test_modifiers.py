@@ -55,6 +55,14 @@ CO2_ATTRS = {"wavelength": (12.0, 13.0, 14.0), "units": "K",
              "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)}
 
 
+def _optional_dataset(shape, attrs, area=None):
+    """Get an optional dataset for the NIR modifiers, with an area if one is given."""
+    data = da.arange(shape[0] * shape[1], dtype=np.float32).reshape(shape)
+    if area is not None:
+        attrs = dict(attrs, area=area)
+    return xr.DataArray(data, dims=["y", "x"], attrs=attrs)
+
+
 def _shared_sunz_attrs(area_def):
     attrs = {"area": area_def,
              "start_time": dt.datetime(2018, 1, 1, 18),
@@ -332,24 +340,18 @@ class TestNIRReflectance:
 
     @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
     @pytest.mark.parametrize(
-        ("shape", "area", "attrs", "exp_exception", "exp_match"),
+        ("optional", "exp_exception", "exp_match"),
         [
-            ((2, 4), _sunz_bigger_area_def(), SUNZ_ATTRS, IncompatibleAreas, None),
-            ((4, 4), _sunz_bigger_area_def(), CO2_ATTRS, IncompatibleAreas, None),
-            ((2, 2), _sunz_shifted_area_def(), SUNZ_ATTRS, IncompatibleAreas, None),
-            ((2, 2), None, SUNZ_ATTRS, ValueError, "Missing 'area' attribute"),
+            (_optional_dataset((2, 4), SUNZ_ATTRS, _sunz_bigger_area_def()), IncompatibleAreas, None),
+            (_optional_dataset((4, 4), CO2_ATTRS, _sunz_bigger_area_def()), IncompatibleAreas, None),
+            (_optional_dataset((2, 2), SUNZ_ATTRS, _sunz_shifted_area_def()), IncompatibleAreas, None),
+            (_optional_dataset((2, 2), SUNZ_ATTRS), ValueError, "Missing 'area' attribute"),
         ],
         ids=["sunz_bigger_shape", "co2_bigger_shape", "sunz_shifted_area", "sunz_no_area"],
     )
-    def test_nir_rejects_mismatched_optional_dataset(self, modifier_name, shape, area, attrs,
-                                                     exp_exception, exp_match):
+    def test_nir_rejects_mismatched_optional_dataset(self, modifier_name, optional, exp_exception, exp_match):
         """Check that an optional dataset that does not match the projectables is refused."""
         from satpy.modifiers import spectral
-
-        if area is not None:
-            attrs = dict(attrs, area=area)
-        data = da.arange(shape[0] * shape[1], dtype=np.float32).reshape(shape)
-        optional = xr.DataArray(data, dims=["y", "x"], attrs=attrs)
 
         comp = getattr(spectral, modifier_name)(name="test")
         info = {"modifiers": None}
