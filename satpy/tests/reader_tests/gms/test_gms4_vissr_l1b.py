@@ -4,6 +4,7 @@ import gzip
 
 import numpy as np
 import pytest
+
 import satpy.readers.gms.gms1_4_vissr_format as fmt
 import satpy.readers.gms.gms4_vissr_l1b as vissr
 
