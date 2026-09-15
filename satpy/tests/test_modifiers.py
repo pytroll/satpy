@@ -203,4 +203,3 @@ class TestSunZenithReducer:
         from satpy.modifiers.geometry import SunZenithReducer
         with pytest.raises(ValueError, match="`max_sza` must be defined when using the SunZenithReducer."):
             SunZenithReducer(name="sza_reduction_test_invalid", modifiers=tuple(), max_sza=None)
-
