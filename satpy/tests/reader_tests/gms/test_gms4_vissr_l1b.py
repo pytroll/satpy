@@ -1,11 +1,12 @@
 """Unit tests for the GMS-1..4 VISSR reader."""
 
+import collections
 import gzip
 
 import numpy as np
 import pytest
 
-import satpy.readers.gms.gms1_4_vissr_format as fmt
+import satpy.readers.gms.gms4_vissr_format as fmt
 import satpy.readers.gms.gms4_vissr_l1b as vissr
 from satpy.tests.utils import make_dataid
 
@@ -38,25 +39,31 @@ class TestEarthMask:
         """Pin this class to the IR channel only (see class docstring)."""
         return fmt.IR_CHANNEL
 
+    EarthEdgeScenario = collections.namedtuple("EarthEdgeScenario", ["west", "east", "expected_row"])
+
     @pytest.mark.parametrize(
-        ("west", "east", "expected_row"),
+        "scenario",
         [
-            pytest.param(0, NUM_TEST_PIXELS - 1, [True] * NUM_TEST_PIXELS, id="normal_full_range"),
-            pytest.param(-1, -1, [False] * NUM_TEST_PIXELS, id="fill_value_both_sides"),
-            pytest.param(-1, 2, [False] * NUM_TEST_PIXELS, id="fill_value_west_only"),
-            pytest.param(10, 12, [False] * NUM_TEST_PIXELS, id="out_of_range_same_side_w_gt_e_after_clamp"),
+            pytest.param(
+                EarthEdgeScenario(0, NUM_TEST_PIXELS - 1, [True] * NUM_TEST_PIXELS), id="normal_full_range"
+            ),
+            pytest.param(EarthEdgeScenario(-1, -1, [False] * NUM_TEST_PIXELS), id="fill_value_both_sides"),
+            pytest.param(EarthEdgeScenario(-1, 2, [False] * NUM_TEST_PIXELS), id="fill_value_west_only"),
+            pytest.param(
+                EarthEdgeScenario(10, 12, [False] * NUM_TEST_PIXELS), id="out_of_range_same_side_w_gt_e_after_clamp"
+            ),
         ],
     )
-    def test_earth_mask(self, tmp_path, file_contents, west, east, expected_row):
+    def test_earth_mask(self, tmp_path, file_contents, scenario):
         """Test get_earth_mask() from a real file on disk, for each edge-case scenario."""
-        file_contents["image_data"]["LCW"]["west_side_earth_edge"] = west
-        file_contents["image_data"]["LCW"]["east_side_earth_edge"] = east
+        file_contents["image_data"]["LCW"]["west_side_earth_edge"] = scenario.west
+        file_contents["image_data"]["LCW"]["east_side_earth_edge"] = scenario.east
         path = tmp_path / "IR901110.Z23"
         VissrFileWriter(fmt.IR_CHANNEL, open).write(path, file_contents)
 
         l1b = vissr.GmsVissrL1bFile(path)
         mask = l1b.get_earth_mask()
-        np.testing.assert_array_equal(mask[0], np.array(expected_row, dtype=bool))
+        np.testing.assert_array_equal(mask[0], np.array(scenario.expected_row, dtype=bool))
 
 
 @pytest.fixture(params=[True, False])
@@ -118,6 +125,9 @@ class VissrFileWriter:
         *contents* is a dict with keys "mode", "coordinate_conversion",
         "calibration", "image_data" -- see the file_contents fixture.
         """
+        # Written in ascending-offset order (NOT a "logical" order): the
+        # calibration block's real offset sits before
+        # coordinate_conversion's in both channels' actual file layout.
         with self.open_function(filename, "wb") as fd:
             self._write_at(fd, self.params["mode"]["offset"], contents["mode"])
             cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
