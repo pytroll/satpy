@@ -11,6 +11,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 from pytest_lazy_fixtures import lf as lazy_fixture
 
+from satpy.composites.core import IncompatibleAreas
 from satpy.tests.utils import RANDOM_GEN
 
 
@@ -30,6 +31,14 @@ def _sunz_bigger_area_def():
     return bigger_area
 
 
+def _sunz_shifted_area_def():
+    """Get area with the same shape as 'sunz_area_def' but a different extent."""
+    shifted_area = AreaDefinition("test", "test", "test",
+                                  {"proj": "merc"}, 2, 2,
+                                  (-1000, -1000, 1000, 1000))
+    return shifted_area
+
+
 def _sunz_stacked_area_def():
     """Get fake stacked area for testing sunz generation."""
     area1 = AreaDefinition("test", "test", "test",
@@ -39,6 +48,11 @@ def _sunz_stacked_area_def():
                            {"proj": "merc"}, 2, 1,
                            (-2000, -2000, 2000, 0))
     return StackedAreaDefinition(area1, area2)
+
+
+SUNZ_ATTRS = {"standard_name": "solar_zenith_angle"}
+CO2_ATTRS = {"wavelength": (12.0, 13.0, 14.0), "units": "K",
+             "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)}
 
 
 def _shared_sunz_attrs(area_def):
@@ -221,13 +235,6 @@ class TestNIRReflectance:
             2,
             (-2000, -2000, 2000, 2000),
         )
-        self.area_hr = AreaDefinition(
-            "test", "", "",
-            {"proj": "merc"},
-            4,
-            4,
-            (-2000, -2000, 2000, 2000),
-        )
 
         self.start_time = dt.datetime(2020, 1, 1, 12, 0, 0)
         self.metadata = {"platform_name": "Meteosat-11",
@@ -257,26 +264,6 @@ class TestNIRReflectance:
                 "wavelength": (12.0, 13.0, 14.0),
                 "units": "K",
             })
-
-    def _bad_optional(self, kind):
-        """Build an optional dataset that the modifier should refuse."""
-        if kind == "sunz_wrong_shape":
-            arr = np.array([[1.0, 2.0, 3.0, 4.0], [3.0, 4.0, 5.0, 6.0]], dtype=np.float32)
-            return xr.DataArray(da.from_array(arr), dims=["y", "x"],
-                                attrs={"standard_name": "solar_zenith_angle", "area": self.area_hr})
-        if kind == "co2_wrong_shape":
-            arr = np.arange(240.0, 256.0, dtype=np.float32).reshape(4, 4)
-            return xr.DataArray(da.from_array(arr), dims=["y", "x"],
-                                attrs={"area": self.area_hr, "start_time": self.start_time,
-                                       "wavelength": (12.0, 13.0, 14.0), "units": "K"})
-        if kind == "sunz_other_area":
-            other = AreaDefinition("test", "", "", {"proj": "merc"}, 2, 2, (-1000, -1000, 1000, 1000))
-            return xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
-                                attrs={"standard_name": "solar_zenith_angle", "area": other})
-        if kind == "sunz_no_area":
-            return xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
-                                attrs={"standard_name": "solar_zenith_angle"})
-        raise ValueError(f"unknown kind {kind}")
 
     @pytest.mark.parametrize(
         ("include_sunz", "include_co2", "exp_res"),
@@ -345,26 +332,29 @@ class TestNIRReflectance:
 
     @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
     @pytest.mark.parametrize(
-        ("kind", "exp_exception", "exp_match"),
+        ("shape", "area", "attrs", "exp_exception", "exp_match"),
         [
-            ("sunz_wrong_shape", "IncompatibleAreas", None),
-            ("co2_wrong_shape", "IncompatibleAreas", None),
-            ("sunz_other_area", "IncompatibleAreas", None),
-            ("sunz_no_area", ValueError, "Missing 'area' attribute"),
+            ((2, 4), _sunz_bigger_area_def(), SUNZ_ATTRS, IncompatibleAreas, None),
+            ((4, 4), _sunz_bigger_area_def(), CO2_ATTRS, IncompatibleAreas, None),
+            ((2, 2), _sunz_shifted_area_def(), SUNZ_ATTRS, IncompatibleAreas, None),
+            ((2, 2), None, SUNZ_ATTRS, ValueError, "Missing 'area' attribute"),
         ],
+        ids=["sunz_bigger_shape", "co2_bigger_shape", "sunz_shifted_area", "sunz_no_area"],
     )
-    def test_nir_rejects_mismatched_optional_dataset(self, modifier_name, kind, exp_exception, exp_match):
+    def test_nir_rejects_mismatched_optional_dataset(self, modifier_name, shape, area, attrs,
+                                                     exp_exception, exp_match):
         """Check that an optional dataset that does not match the projectables is refused."""
-        from satpy.composites.core import IncompatibleAreas
         from satpy.modifiers import spectral
 
-        if exp_exception == "IncompatibleAreas":
-            exp_exception = IncompatibleAreas
+        if area is not None:
+            attrs = dict(attrs, area=area)
+        data = da.arange(shape[0] * shape[1], dtype=np.float32).reshape(shape)
+        optional = xr.DataArray(data, dims=["y", "x"], attrs=attrs)
 
         comp = getattr(spectral, modifier_name)(name="test")
         info = {"modifiers": None}
         with pytest.raises(exp_exception, match=exp_match):
-            comp([self.nir, self.ir_], optional_datasets=[self._bad_optional(kind)], **info)
+            comp([self.nir, self.ir_], optional_datasets=[optional], **info)
 
     @pytest.mark.parametrize(
         ("modifier_name", "exp_res", "exp_units"),
