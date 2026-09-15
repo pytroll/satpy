@@ -2,7 +2,7 @@
 
 Introduction
 ------------
-The ``gms4_vissr_l1b`` reader can decode, navigate and calibrate Level 1B data
+The ``gms1_4_vissr_l1b`` reader can decode, navigate and calibrate Level 1B data
 from the Visible and Infrared Spin Scan Radiometer (VISSR) in `VISSR
 archive format`. Corresponding platforms are GMS-1 to GMS-4
 (Japanese Geostationary Meteorological Satellite).
@@ -22,7 +22,7 @@ This is how to read them with Satpy:
     import glob
 
     filenames = glob.glob("/data/VS*")
-    scene = Scene(filenames, reader="gms4-vissr_l1b")
+    scene = Scene(filenames, reader="gms1-4-vissr_l1b")
     scene.load(["VIS"])
 
 
@@ -77,9 +77,7 @@ Some older GMS-1/2/3 archive files don't populate the mode block's
 ``spin_rate`` telemetry field (it reads back as 0, which is physically
 impossible for a spin-scan imager). When that happens, this reader falls
 back to the coordinate conversion parameters segment's own
-``daily_mean_spin_rate`` field -- real, file-specific telemetry that was
-confirmed populated on multiple satellites (GMS-1 and GMS-3) even when
-the mode block's own value wasn't.
+``daily_mean_spin_rate`` field.
 
 
 Oversampling
@@ -145,7 +143,7 @@ To turn off masking, set ``mask_space=False`` upon scene creation:
 
     filenames = glob.glob("VS*")
     scene = satpy.Scene(filenames,
-                        reader="gms4-vissr_l1b",
+                        reader="gms1-4-vissr_l1b",
                         reader_kwargs={"mask_space": False})
     scene.load(["VIS"])
 
@@ -260,7 +258,7 @@ def _lookup_calibration_value(block, lut, mask):
 
 
 class Calibrator:
-    """Calibrate GMS-1..4 VISSR counts to reflectance (%) or brightness temperature (K)."""
+    """Calibrate GMS-1..4 VISSR counts to unnormalized reflectance (%) or brightness temperature (K)."""
 
     def __init__(self, calib_table, channel):
         """Store the file's own calibration LUT and the channel it applies to."""
@@ -269,11 +267,7 @@ class Calibrator:
         self._mask = 0xFF if channel == fmt.IR_CHANNEL else 0x3F
 
     def calibrate(self, counts, calibration):
-        """Transform counts (a dask array of raw pixel values) to the given calibration level.
-
-        *calibration* is one of "counts" (pass through unchanged),
-        "reflectance" (VIS, % 0-100), or "brightness_temperature" (IR, K).
-        """
+        """Transform counts (a dask array of raw pixel values) to the given calibration level."""
         if calibration == "counts":
             return counts
         res = self._calibrate(counts)
@@ -290,7 +284,7 @@ class Calibrator:
         )
 
     def _postproc(self, res, calibration):
-        if calibration == "reflectance":
+        if calibration == "unnormalized_reflectance":
             # convert to percent
             return res * 100
         return res
@@ -401,10 +395,14 @@ class GmsVissrL1bFile:
         return west, east
 
     def calibrated_dask(self):
-        """Return calibrated physical values as a lazy dask array."""
+        """Return calibrated physical values as a lazy dask array.
+
+        Kelvin for IR, albedo % 0-100 for VIS, via the Calibrator class
+        above.
+        """
         calibrator = Calibrator(self.calibration_lut(), self.channel)
         counts = self.pixel_counts_dask()
-        calibration_level = "brightness_temperature" if self.channel == fmt.IR_CHANNEL else "reflectance"
+        calibration_level = "brightness_temperature" if self.channel == fmt.IR_CHANNEL else "unnormalized_reflectance"
         return calibrator.calibrate(counts, calibration_level)
 
     def _build_navigation_parameters(self, channel=None, solar=False):

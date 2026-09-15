@@ -36,8 +36,8 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
     file_type: gms4_vissr_vis
 

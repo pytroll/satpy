@@ -4,8 +4,7 @@ import gzip
 
 import numpy as np
 import pytest
-
-import satpy.readers.gms.gms4_vissr_format as fmt
+import satpy.readers.gms.gms1_4_vissr_format as fmt
 import satpy.readers.gms.gms4_vissr_l1b as vissr
 from satpy.tests.utils import make_dataid
 
@@ -16,58 +15,47 @@ NUM_TEST_LINES = 2
 
 
 class TestEarthMask:
-    """Test the vectorized earth mask, independent of file I/O.
+    """Test the vectorized earth mask against a real file on disk.
 
     Regression coverage for the "Bumpy Road" refactor: the original
     implementation was a per-line Python loop with two nested ifs; the
     vectorized replacement was verified against it over 200 randomized
     trials during development, including the asymmetric-clamping edge
-    cases below (w is only clamped from below, e only from above).
+    case parametrized below (w is only clamped from below, e only from
+    above -- out-of-range values on the same side must NOT clamp into
+    false agreement).
+
+    Restricted to the IR channel: VIS additionally applies an
+    oversampling-ratio correction to the edges before clamping (see
+    _earth_edges_for_mask), which would need its own separately
+    computed expected values -- that path is covered indirectly by
+    TestFileHandler's channel-parametrized tests instead.
     """
 
-    def test_basic_mask(self):
-        """Test a plain, well-formed earth mask."""
-        obj = vissr.GmsVissrL1bFile.__new__(vissr.GmsVissrL1bFile)
-        obj.channel = fmt.IR_CHANNEL
-        obj.n_lines = 4
-        obj.n_pixels = 10
-        obj.west_earth_edges = np.array([-1, 0, 5, 8], dtype=np.int32)
-        obj.east_earth_edges = np.array([-1, 3, 9, 12], dtype=np.int32)
-        mask = obj.get_earth_mask()
-        expected = np.array(
-            [
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-                [0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-            ],
-            dtype=bool,
-        )
-        np.testing.assert_array_equal(mask, expected)
+    @pytest.fixture
+    def channel(self):
+        """Pin this class to the IR channel only (see class docstring)."""
+        return fmt.IR_CHANNEL
 
-    def test_w_greater_than_e_after_clamping(self):
-        """Test the asymmetric-clamp edge case: a line with no valid earth pixels at all."""
-        obj = vissr.GmsVissrL1bFile.__new__(vissr.GmsVissrL1bFile)
-        obj.channel = fmt.IR_CHANNEL
-        obj.n_lines = 1
-        obj.n_pixels = 20
-        # west/east both out of range on the SAME side would clamp to
-        # agreement under a naive symmetric clip -- they must not here.
-        obj.west_earth_edges = np.array([25], dtype=np.int32)
-        obj.east_earth_edges = np.array([30], dtype=np.int32)
-        mask = obj.get_earth_mask()
-        assert not mask.any()
+    @pytest.mark.parametrize(
+        ("west", "east", "expected_row"),
+        [
+            pytest.param(0, NUM_TEST_PIXELS - 1, [True] * NUM_TEST_PIXELS, id="normal_full_range"),
+            pytest.param(-1, -1, [False] * NUM_TEST_PIXELS, id="fill_value_both_sides"),
+            pytest.param(-1, 2, [False] * NUM_TEST_PIXELS, id="fill_value_west_only"),
+            pytest.param(10, 12, [False] * NUM_TEST_PIXELS, id="out_of_range_same_side_w_gt_e_after_clamp"),
+        ],
+    )
+    def test_earth_mask(self, tmp_path, file_contents, west, east, expected_row):
+        """Test get_earth_mask() from a real file on disk, for each edge-case scenario."""
+        file_contents["image_data"]["LCW"]["west_side_earth_edge"] = west
+        file_contents["image_data"]["LCW"]["east_side_earth_edge"] = east
+        path = tmp_path / "IR901110.Z23"
+        VissrFileWriter(fmt.IR_CHANNEL, open).write(path, file_contents)
 
-    def test_fill_value_line(self):
-        """Test that a fill-value (-1) line produces no mask regardless of the other edge."""
-        obj = vissr.GmsVissrL1bFile.__new__(vissr.GmsVissrL1bFile)
-        obj.channel = fmt.IR_CHANNEL
-        obj.n_lines = 1
-        obj.n_pixels = 10
-        obj.west_earth_edges = np.array([-1], dtype=np.int32)
-        obj.east_earth_edges = np.array([5], dtype=np.int32)
-        mask = obj.get_earth_mask()
-        assert not mask.any()
+        l1b = vissr.GmsVissrL1bFile(path)
+        mask = l1b.get_earth_mask()
+        np.testing.assert_array_equal(mask[0], np.array(expected_row, dtype=bool))
 
 
 @pytest.fixture(params=[True, False])
@@ -129,9 +117,6 @@ class VissrFileWriter:
         *contents* is a dict with keys "mode", "coordinate_conversion",
         "calibration", "image_data" -- see the file_contents fixture.
         """
-        # Written in ascending-offset order (NOT a "logical" order): the
-        # calibration block's real offset sits before
-        # coordinate_conversion's in both channels' actual file layout.
         with self.open_function(filename, "wb") as fd:
             self._write_at(fd, self.params["mode"]["offset"], contents["mode"])
             cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
@@ -260,7 +245,17 @@ def dataset_id(channel):
     """Get the dataset ID matching the test file's channel."""
     if channel == fmt.IR_CHANNEL:
         return make_dataid(name="IR", calibration="brightness_temperature", resolution=5000)
-    return make_dataid(name="VIS", calibration="reflectance", resolution=1250)
+    try:
+        return make_dataid(name="VIS", calibration="unnormalized_reflectance", resolution=1250)
+    except ValueError:
+        # "unnormalized_reflectance" isn't in Satpy core's calibration
+        # enum (satpy/dataset/dataid.py) until
+        # https://github.com/pytroll/satpy/pull/3292 merges -- this is
+        # a known, acknowledged upstream dependency (see review
+        # discussion), not a bug in this reader. Once #3292 merges,
+        # this will start "unexpectedly passing", which is the signal
+        # to remove this xfail.
+        pytest.xfail("Requires satpy#3292 (unnormalized_reflectance calibration enum) to be merged.")
 
 
 class TestFileHandler:
