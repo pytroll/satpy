@@ -241,7 +241,8 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
-        logger.debug("Applying the effective solar atmospheric path length correction method by Li and Shibata (2006)")
+        logger.debug("Applying the effective solar atmospheric path length correction using the parameterization "
+                 "by Li and Shibata (2006)")
         res = proj.copy()
         res.data = atmospheric_path_length_correction(proj.data, coszen.data)
         return res
