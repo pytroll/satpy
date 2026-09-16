@@ -75,6 +75,36 @@ def _make_viirs_xarray(data, area, name, standard_name, wavelength=None, units="
                         })
 
 
+def _create_ref_cor(**kwargs):
+    """Create a ReflectanceCorrector with the standard angle prerequisites."""
+    from satpy.modifiers._crefl import ReflectanceCorrector
+    from satpy.tests.utils import make_dsq
+    return ReflectanceCorrector(
+        optional_prerequisites=[
+            make_dsq(name="satellite_azimuth_angle"),
+            make_dsq(name="satellite_zenith_angle"),
+            make_dsq(name="solar_azimuth_angle"),
+            make_dsq(name="solar_zenith_angle")
+        ],
+        prerequisites=[],
+        calibration="reflectance",
+        **kwargs)
+
+
+def _make_band_and_angles(data, area, sensor, platform_name, name, wavelength, resolution):
+    """Create a reflectance band and the four angle arrays needed by the modifier."""
+    kwargs = {"sensor": sensor, "platform_name": platform_name, "resolution": resolution}
+    band = _make_viirs_xarray(data, area, name, "toa_bidirectional_reflectance",
+                              wavelength=wavelength, units="%", calibration="reflectance", **kwargs)
+    angles = [
+        _make_viirs_xarray(data, area, "satellite_azimuth_angle", "sensor_azimuth_angle", **kwargs),
+        _make_viirs_xarray(data, area, "satellite_zenith_angle", "sensor_zenith_angle", **kwargs),
+        _make_viirs_xarray(data, area, "solar_azimuth_angle", "solar_azimuth_angle", **kwargs),
+        _make_viirs_xarray(data, area, "solar_zenith_angle", "solar_zenith_angle", **kwargs),
+    ]
+    return band, angles
+
+
 class TestReflectanceCorrectorModifier:
     """Test the CREFL modifier."""
 
@@ -187,35 +217,36 @@ class TestReflectanceCorrectorModifier:
             ("CMGDEM.hdf", mock_cmgdem, "averaged elevation"),
             ("tbase.hdf", mock_tbase, "Elevation"),
         ])
-    def test_reflectance_corrector_viirs(self, tmpdir, url, dem_mock_cm, dem_sds):
-        """Test ReflectanceCorrector modifier with VIIRS data."""
-        from satpy.modifiers._crefl import ReflectanceCorrector
+    @pytest.mark.parametrize(
+        ("sensor", "platform_name", "name", "wavelength", "resolution", "modifiers", "exp_mean", "exp_unique"),
+        [
+            pytest.param("viirs", "Suomi-NPP", "I01", (0.6, 0.64, 0.68), 371,
+                         ("sunz_corrected_iband", "rayleigh_corrected_crefl_iband"),
+                         51.12750267805715, [25.20341703, 52.38819447, 75.79089654], id="viirs"),
+            pytest.param("modis", "EOS-Aqua", "1", (0.62, 0.645, 0.67), 500,
+                         ("sunz_corrected", "rayleigh_corrected_crefl"),
+                         52.09372623964498, [25.43670075, 52.93221561, 77.91226236], id="modis"),
+            # METimage borrows the MODIS coefficients and the MODIS atmosphere
+            # equations, so "vii_668" must produce exactly the same result as
+            # MODIS band "1".
+            pytest.param("metimage", "Metop-SG-A1", "vii_668", (0.658, 0.668, 0.678), 500,
+                         ("sunz_corrected", "rayleigh_corrected_crefl"),
+                         52.09372623964498, [25.43670075, 52.93221561, 77.91226236], id="metimage"),
+        ])
+    def test_reflectance_corrector_polar(self, tmpdir, sensor, platform_name, name, wavelength, resolution,
+                                         modifiers, exp_mean, exp_unique, url, dem_mock_cm, dem_sds):
+        """Test ReflectanceCorrector modifier with polar-orbiter data (VIIRS, MODIS, METimage)."""
         from satpy.tests.utils import make_dsq
 
-        ref_cor = ReflectanceCorrector(
-            optional_prerequisites=[
-                make_dsq(name="satellite_azimuth_angle"),
-                make_dsq(name="satellite_zenith_angle"),
-                make_dsq(name="solar_azimuth_angle"),
-                make_dsq(name="solar_zenith_angle")
-            ],
-            name="I01",
-            prerequisites=[],
-            wavelength=(0.6, 0.64, 0.68),
-            resolution=371,
-            calibration="reflectance",
-            modifiers=("sunz_corrected_iband", "rayleigh_corrected_crefl_iband"),
-            sensor="viirs",
-            url=url,
-            dem_sds=dem_sds,
-        )
+        ref_cor = _create_ref_cor(name=name, wavelength=wavelength, resolution=resolution, modifiers=modifiers,
+                                  sensor=sensor, url=url, dem_sds=dem_sds)
 
-        assert ref_cor.attrs["modifiers"] == ("sunz_corrected_iband", "rayleigh_corrected_crefl_iband")
+        assert ref_cor.attrs["modifiers"] == modifiers
         assert ref_cor.attrs["calibration"] == "reflectance"
-        assert ref_cor.attrs["wavelength"] == (0.6, 0.64, 0.68)
-        assert ref_cor.attrs["name"] == "I01"
-        assert ref_cor.attrs["resolution"] == 371
-        assert ref_cor.attrs["sensor"] == "viirs"
+        assert ref_cor.attrs["wavelength"] == wavelength
+        assert ref_cor.attrs["name"] == name
+        assert ref_cor.attrs["resolution"] == resolution
+        assert ref_cor.attrs["sensor"] == sensor
         assert ref_cor.attrs["prerequisites"] == []
         assert ref_cor.attrs["optional_prerequisites"] == [
             make_dsq(name="satellite_azimuth_angle"),
@@ -224,162 +255,30 @@ class TestReflectanceCorrectorModifier:
             make_dsq(name="solar_zenith_angle")]
 
         area, data = self.data_area_ref_corrector()
-        c01 = _make_viirs_xarray(data, area, "I01", "toa_bidirectional_reflectance",
-                                 wavelength=(0.6, 0.64, 0.68), units="%",
-                                 calibration="reflectance")
-        c02 = _make_viirs_xarray(data, area, "satellite_azimuth_angle", "sensor_azimuth_angle")
-        c03 = _make_viirs_xarray(data, area, "satellite_zenith_angle", "sensor_zenith_angle")
-        c04 = _make_viirs_xarray(data, area, "solar_azimuth_angle", "solar_azimuth_angle")
-        c05 = _make_viirs_xarray(data, area, "solar_zenith_angle", "solar_zenith_angle")
+        c01, angles = _make_band_and_angles(data, area, sensor, platform_name, name, wavelength, resolution)
 
         with dem_mock_cm(tmpdir, url), assert_maximum_dask_computes(0):
-            res = ref_cor([c01], [c02, c03, c04, c05])
+            res = ref_cor([c01], angles)
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
-        assert res.attrs["wavelength"] == (0.6, 0.64, 0.68)
-        assert res.attrs["modifiers"] == ("sunz_corrected_iband", "rayleigh_corrected_crefl_iband")
+        assert res.attrs["wavelength"] == wavelength
+        assert res.attrs["modifiers"] == modifiers
         assert res.attrs["calibration"] == "reflectance"
-        assert res.attrs["resolution"] == 371
-        assert res.attrs["name"] == "I01"
+        assert res.attrs["resolution"] == resolution
+        assert res.attrs["name"] == name
         assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
-        assert res.attrs["platform_name"] == "Suomi-NPP"
-        assert res.attrs["sensor"] == "viirs"
+        assert res.attrs["platform_name"] == platform_name
+        assert res.attrs["sensor"] == sensor
         assert res.attrs["units"] == "%"
         assert res.attrs["start_time"] == dt.datetime(2012, 2, 25, 18, 1, 24, 570942)
         assert res.attrs["end_time"] == dt.datetime(2012, 2, 25, 18, 11, 21, 175760)
         assert res.attrs["area"] == area
         assert res.attrs["ancillary_variables"] == []
         data = res.values
-        assert abs(np.mean(data) - 51.12750267805715) < 1e-6
         assert data.shape == (3, 5)
-        unique = np.unique(data)
-        np.testing.assert_allclose(unique, [25.20341703, 52.38819447, 75.79089654])
-
-    def test_reflectance_corrector_modis(self):
-        """Test ReflectanceCorrector modifier with MODIS data."""
-        from satpy.modifiers._crefl import ReflectanceCorrector
-        from satpy.tests.utils import make_dsq
-        sataa_did = make_dsq(name="satellite_azimuth_angle")
-        satza_did = make_dsq(name="satellite_zenith_angle")
-        solaa_did = make_dsq(name="solar_azimuth_angle")
-        solza_did = make_dsq(name="solar_zenith_angle")
-        ref_cor = ReflectanceCorrector(
-            optional_prerequisites=[sataa_did, satza_did, solaa_did, solza_did], name="1",
-            prerequisites=[], wavelength=(0.62, 0.645, 0.67), resolution=250, calibration="reflectance",
-            modifiers=("sunz_corrected", "rayleigh_corrected_crefl"), sensor="modis")
-        assert ref_cor.attrs["modifiers"] == ("sunz_corrected", "rayleigh_corrected_crefl")
-        assert ref_cor.attrs["calibration"] == "reflectance"
-        assert ref_cor.attrs["wavelength"] == (0.62, 0.645, 0.67)
-        assert ref_cor.attrs["name"] == "1"
-        assert ref_cor.attrs["resolution"] == 250
-        assert ref_cor.attrs["sensor"] == "modis"
-        assert ref_cor.attrs["prerequisites"] == []
-        assert ref_cor.attrs["optional_prerequisites"] == [
-            make_dsq(name="satellite_azimuth_angle"),
-            make_dsq(name="satellite_zenith_angle"),
-            make_dsq(name="solar_azimuth_angle"),
-            make_dsq(name="solar_zenith_angle")]
-
-        area, dnb = self.data_area_ref_corrector()
-
-        def make_xarray(name, calibration, wavelength=None, modifiers=None, resolution=1000):
-            return xr.DataArray(dnb,
-                                dims=("y", "x"),
-                                attrs={
-                                    "wavelength": wavelength, "level": None, "modifiers": modifiers,
-                                    "calibration": calibration, "resolution": resolution,
-                                    "name": name, "coordinates": ["longitude", "latitude"],
-                                    "platform_name": "EOS-Aqua", "polarization": None, "sensor": "modis",
-                                    "units": "%", "start_time": dt.datetime(2012, 8, 13, 18, 46, 1, 439838),
-                                    "end_time": dt.datetime(2012, 8, 13, 18, 57, 47, 746296), "area": area,
-                                    "ancillary_variables": []
-                                })
-
-        c01 = make_xarray("1", "reflectance", wavelength=(0.62, 0.645, 0.67), modifiers="sunz_corrected",
-                          resolution=500)
-        c02 = make_xarray("satellite_azimuth_angle", None)
-        c03 = make_xarray("satellite_zenith_angle", None)
-        c04 = make_xarray("solar_azimuth_angle", None)
-        c05 = make_xarray("solar_zenith_angle", None)
-        res = ref_cor([c01], [c02, c03, c04, c05])
-
-        assert isinstance(res, xr.DataArray)
-        assert isinstance(res.data, da.Array)
-        assert res.attrs["wavelength"] == (0.62, 0.645, 0.67)
-        assert res.attrs["modifiers"] == ("sunz_corrected", "rayleigh_corrected_crefl",)
-        assert res.attrs["calibration"] == "reflectance"
-        assert res.attrs["resolution"] == 500
-        assert res.attrs["name"] == "1"
-        assert res.attrs["platform_name"] == "EOS-Aqua"
-        assert res.attrs["sensor"] == "modis"
-        assert res.attrs["units"] == "%"
-        assert res.attrs["start_time"] == dt.datetime(2012, 8, 13, 18, 46, 1, 439838)
-        assert res.attrs["end_time"] == dt.datetime(2012, 8, 13, 18, 57, 47, 746296)
-        assert res.attrs["area"] == area
-        assert res.attrs["ancillary_variables"] == []
-        data = res.values
-        assert abs(np.mean(data) - 52.09372623964498) < 1e-6
-        assert data.shape == (3, 5)
-        unique = np.unique(data)
-        np.testing.assert_allclose(unique, [25.43670075, 52.93221561, 77.91226236])
-
-    @pytest.mark.parametrize(
-        ("url", "dem_mock_cm", "dem_sds"),
-        [
-            (None, mock_cmgdem, "average elevation"),
-            ("CMGDEM.hdf", mock_cmgdem, "averaged elevation"),
-        ])
-    def test_reflectance_corrector_metimage(self, tmpdir, url, dem_mock_cm, dem_sds):
-        """Test ReflectanceCorrector modifier with METimage data."""
-        from satpy.modifiers._crefl import ReflectanceCorrector
-        from satpy.tests.utils import make_dsq
-
-        ref_cor = ReflectanceCorrector(
-            optional_prerequisites=[
-                make_dsq(name="satellite_azimuth_angle"), make_dsq(name="satellite_zenith_angle"),
-                make_dsq(name="solar_azimuth_angle"), make_dsq(name="solar_zenith_angle")],
-            name="vii_668", prerequisites=[], wavelength=(0.658, 0.668, 0.678), resolution=500,
-            calibration="reflectance",
-            modifiers=("sunz_corrected", "rayleigh_corrected_crefl"),
-            sensor="metimage", url=url, dem_sds=dem_sds)
-
-        assert ref_cor.attrs["modifiers"] == ("sunz_corrected", "rayleigh_corrected_crefl")
-        assert ref_cor.attrs["calibration"] == "reflectance"
-        assert ref_cor.attrs["wavelength"] == (0.658, 0.668, 0.678)
-        assert ref_cor.attrs["name"] == "vii_668"
-        assert ref_cor.attrs["resolution"] == 500
-        assert ref_cor.attrs["sensor"] == "metimage"
-
-        area, data = self.data_area_ref_corrector()
-        kwargs = {"sensor": "metimage", "platform_name": "Metop-SG-A1", "resolution": 500}
-        c01 = _make_viirs_xarray(data, area, "vii_668", "toa_bidirectional_reflectance",
-                                 wavelength=(0.658, 0.668, 0.678), units="%", calibration="reflectance",
-                                 **kwargs)
-        c02 = _make_viirs_xarray(data, area, "satellite_azimuth_angle", "sensor_azimuth_angle", **kwargs)
-        c03 = _make_viirs_xarray(data, area, "satellite_zenith_angle", "sensor_zenith_angle", **kwargs)
-        c04 = _make_viirs_xarray(data, area, "solar_azimuth_angle", "solar_azimuth_angle", **kwargs)
-        c05 = _make_viirs_xarray(data, area, "solar_zenith_angle", "solar_zenith_angle", **kwargs)
-
-        with dem_mock_cm(tmpdir, url), assert_maximum_dask_computes(0):
-            res = ref_cor([c01], [c02, c03, c04, c05])
-
-        assert isinstance(res, xr.DataArray)
-        assert isinstance(res.data, da.Array)
-        assert res.attrs["wavelength"] == (0.658, 0.668, 0.678)
-        assert res.attrs["modifiers"] == ("sunz_corrected", "rayleigh_corrected_crefl",)
-        assert res.attrs["name"] == "vii_668"
-        assert res.attrs["platform_name"] == "Metop-SG-A1"
-        assert res.attrs["sensor"] == "metimage"
-        assert res.attrs["units"] == "%"
-        assert res.attrs["area"] == area
-        data = res.values
-        assert data.shape == (3, 5)
-        # METimage borrows the MODIS coefficients and the MODIS atmosphere
-        # equations, so "vii_668" must produce exactly the same result as MODIS
-        # band "1" does in ``test_reflectance_corrector_modis``.
-        assert abs(np.mean(data) - 52.09372623964498) < 1e-6
-        np.testing.assert_allclose(np.unique(data), [25.43670075, 52.93221561, 77.91226236])
+        np.testing.assert_allclose(np.mean(data), exp_mean, rtol=1e-8)
+        np.testing.assert_allclose(np.unique(data), exp_unique)
 
     def test_reflectance_corrector_bad_prereqs(self):
         """Test ReflectanceCorrector modifier with wrong number of inputs."""
@@ -388,6 +287,7 @@ class TestReflectanceCorrectorModifier:
         pytest.raises(ValueError, ref_cor, [1], [2, 3, 4], match="Not sure how to handle provided dependencies..*")
         pytest.raises(ValueError, ref_cor, [1, 2, 3, 4], [], match="Not sure how to handle provided dependencies..*")
         pytest.raises(ValueError, ref_cor, [], [1, 2, 3, 4], match="Not sure how to handle provided dependencies..*")
+
 
     @pytest.mark.parametrize(
         ("url", "dem_mock_cm", "dem_sds"),
@@ -403,39 +303,16 @@ class TestReflectanceCorrectorModifier:
         same an error is raised.
 
         """
-        from satpy.modifiers._crefl import ReflectanceCorrector
-        from satpy.tests.utils import make_dsq
-
-        ref_cor = ReflectanceCorrector(
-            optional_prerequisites=[
-                make_dsq(name="satellite_azimuth_angle"),
-                make_dsq(name="satellite_zenith_angle"),
-                make_dsq(name="solar_azimuth_angle"),
-                make_dsq(name="solar_zenith_angle")
-            ],
-            name="I01",
-            prerequisites=[],
-            wavelength=(0.6, 0.64, 0.68),
-            resolution=371,
-            calibration="reflectance",
-            modifiers=("sunz_corrected_iband", "rayleigh_corrected_crefl_iband"),
-            sensor="viirs",
-            url=url,
-            dem_sds=dem_sds,
-        )
+        ref_cor = _create_ref_cor(name="I01", wavelength=(0.6, 0.64, 0.68), resolution=371,
+                                  modifiers=("sunz_corrected_iband", "rayleigh_corrected_crefl_iband"),
+                                  sensor="viirs", url=url, dem_sds=dem_sds)
 
         area, data = self.data_area_ref_corrector()
-        c01 = _make_viirs_xarray(data, area, "I01", "toa_bidirectional_reflectance",
-                                 wavelength=(0.6, 0.64, 0.68), units="%",
-                                 calibration="reflectance")
-        c02 = _make_viirs_xarray(data, area, "satellite_azimuth_angle", "sensor_azimuth_angle")
-        c02.data = c02.data.rechunk((1, -1))
-        c03 = _make_viirs_xarray(data, area, "satellite_zenith_angle", "sensor_zenith_angle")
-        c04 = _make_viirs_xarray(data, area, "solar_azimuth_angle", "solar_azimuth_angle")
-        c05 = _make_viirs_xarray(data, area, "solar_zenith_angle", "solar_zenith_angle")
+        c01, angles = _make_band_and_angles(data, area, "viirs", "Suomi-NPP", "I01", (0.6, 0.64, 0.68), 371)
+        angles[0].data = angles[0].data.rechunk((1, -1))
 
         with dem_mock_cm(tmpdir, url):
-            res = ref_cor([c01], [c02, c03, c04, c05])
+            res = ref_cor([c01], angles)
 
         # make sure it can actually compute
         res.compute()
