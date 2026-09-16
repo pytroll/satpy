@@ -72,7 +72,7 @@ for mod_name in MOCK_MODULES:
 
 autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mipp", "netCDF4",
                         "pygac", "pygrib", "pyhdf", "pyninjotiff",
-                        "pyorbital", "pyspectral", "rasterio", "trollimage",
+                        "pyorbital", "pyspectral", "rasterio", "trollimage", "rioxarray",
                         "zarr"]
 autodoc_type_aliases = {
     "ArrayLike": "numpy.typing.ArrayLike",
@@ -87,8 +87,21 @@ nitpick_ignore_regex = [
     ("py:class", r"numpy\.uint8"),
     ("py:class", r"numpy\.uint16"),
     ("py:class", r"numpy\.uint32"),
+    ("py:data", r"typing\.Union"),
+    ("py:class", r"pathlib\._local\.Path"),
+    ("py:class", r"upath\.core\.UPath"),
 ]
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
+
+# sphinx-autodoc-typehints executes the body of every ``if TYPE_CHECKING:`` block it finds so the names
+# inside become resolvable, then warns about any statement that will not run. A guard exists precisely so
+# its contents need not be runtime-valid, so third-party guards we do not control routinely trip this:
+# upath imports pydantic, trollsift imports _typeshed, xarray writes TypeVar(bound="DataArray" | Dataset).
+# None are actionable here. Read the Docs builds with ``fail_on_warning: true``, so the warnings would
+# break the build; suppress them there and leave them visible locally, where they cost nothing.
+# See https://github.com/tox-dev/sphinx-autodoc-typehints/issues/741 -- drop this once a release fixes it.
+if os.environ.get("READTHEDOCS") == "True":
+    suppress_warnings = ["sphinx_autodoc_typehints.guarded_import"]
 
 # auto generate reader table from reader config files
 with open("reader_table.rst", mode="w") as f:

@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Unit testing for enhancement color mapping functions."""
 
@@ -42,16 +27,16 @@ class TestEnhancementsConvolution:
         """Test the lookup enhancement function."""
         from satpy.enhancements.colormap import lookup
         expected = np.array([[
-            [0., 0., 0., 0.333333, 0.705882],
+            [np.nan, 0., 0., 0.333333, 0.705882],
             [1., 1., 1., 1., 1.]]])
         lut = np.arange(256.)
         run_and_check_enhancement(lookup, self.ch1, expected, luts=lut)
 
-        expected = np.array([[[0., 0., 0., 0.333333, 0.705882],
+        expected = np.array([[[np.nan, 0., 0., 0.333333, 0.705882],
                               [1., 1., 1., 1., 1.]],
-                             [[0., 0., 0., 0.333333, 0.705882],
+                             [[np.nan, 0., 0., 0.333333, 0.705882],
                               [1., 1., 1., 1., 1.]],
-                             [[0., 0., 0., 0.333333, 0.705882],
+                             [[np.nan, 0., 0., 0.333333, 0.705882],
                               [1., 1., 1., 1., 1.]]])
         lut = np.arange(256.)
         lut = np.vstack((lut, lut, lut)).T

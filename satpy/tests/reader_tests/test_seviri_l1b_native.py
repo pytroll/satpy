@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
 from __future__ import annotations
@@ -1271,7 +1254,7 @@ def test_read_header():
     assert actual == expected
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tmp_seviri_nat_filename(session_tmp_path):
     """Create a fully-qualified filename for a seviri native format file."""
     full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
@@ -1279,7 +1262,7 @@ def tmp_seviri_nat_filename(session_tmp_path):
     return full_file_path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def compressed_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     """Return the fsspec path to the given seviri native file inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_native.zip"

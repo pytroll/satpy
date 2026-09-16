@@ -78,8 +78,8 @@ to solve your problem (trying different test cases, environments, etc).
 Being respectful includes following the style of the existing code for any
 code submissions. Please follow
 `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guidelines and
-limit lines of code to 80 characters whenever possible and when it doesn't
-hurt readability. Satpy follows
+limit lines of code to 120 characters, which is what ruff enforces (see
+``pyproject.toml``). Satpy follows
 `Google Style Docstrings <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_
 for all code API documentation. When in doubt use the existing code as a
 guide for how coding should be done.

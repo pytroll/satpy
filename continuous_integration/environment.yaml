@@ -9,7 +9,7 @@ dependencies:
   - donfig
   - platformdirs
   - toolz
-  - Cython
+  - cython
   - numba
   - sphinx
   - cartopy
@@ -58,6 +58,7 @@ dependencies:
   - ephem
   - bokeh
   - pytest-xdist
+  - cftime
   - pip:
       - pytest-lazy-fixtures
       - trollsift

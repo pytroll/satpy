@@ -160,13 +160,15 @@ class NetCDF4FileHandler(BaseFileHandler):
         for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
             parts = itm.split("/")
             grp = file_handle
+            is_attribute = False
             for p in parts[:-1]:
                 if p == "attr":
                     n = "/".join(parts)
                     self.file_content[n] = self._get_attr_value(grp, parts[-1])
+                    is_attribute = True
                     break
                 grp = grp[p]
-            if p != "attr":
+            if not is_attribute:
                 var_obj = grp[parts[-1]]
                 self._collect_variable_info(itm, var_obj)
                 self.collect_dimensions(itm, grp)
@@ -391,7 +393,7 @@ def get_accessor_and_filehandle_from_engines(filename, *engines):
     """Choose an accessor from the first possible engine, and return in along with the file handle."""
     for engine in engines:
         try:
-            LOG.info(f"Trying reading nc file with {engine} engine…")
+            LOG.debug(f"Trying reading nc file with {engine} engine…")
             return get_accessor_and_filehandle_from_engine(filename, engine)
         except Exception as err:
             LOG.warning(f"Cannot use {engine} engine to read nc file.")

@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Lookups, colorization and colormaps."""
 
@@ -41,12 +26,16 @@ def lookup(img, **kwargs):
 @on_separate_bands
 @using_map_blocks
 def _lookup_table(band_data, luts=None, index=-1):
+    # Save positions of NaNs
+    nans = np.isfinite(band_data)
     # NaN/null values will become 0
     lut = luts[:, index] if len(luts.shape) == 2 else luts
     band_data = band_data.clip(0, lut.size - 1)
     # Convert to uint8, with NaN/null values changed into 0
     band_data = np.nan_to_num(band_data).astype(np.uint8)
-    return lut[band_data]
+    # Lookup data, but with replaced NaNs from saved positions
+    res = np.where(nans, lut[band_data], np.nan)
+    return res
 
 
 def colorize(img, **kwargs):  # noqa: D417

@@ -49,6 +49,7 @@ file_types:
       - 'CRMEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
       - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
       - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+      - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.nat'
       - '{spacecraft:4s}-SEVI-MSGCRMN-{id1:4s}-{id2:4s}-{start_time:%Y%m%d%H%M%S}.000000000Z-NA.grb'
 
   # EUMETSAT MSG SEVIRI L2 Active Fire Monitoring product

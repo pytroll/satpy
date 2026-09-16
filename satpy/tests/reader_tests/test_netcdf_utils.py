@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.core.netcdf module."""
 
 import os
@@ -174,6 +157,22 @@ class TestNetCDF4FileHandler:
         assert len(file_handler.file_content) == 2
         assert "test_group/attr/test_attr_str" in file_handler.file_content
         assert "attr/test_attr_str" in file_handler.file_content
+
+    @pytest.mark.parametrize(
+        ("required_variables", "expected_variable"),
+        [
+            (["ds2_f"], "ds2_f"),
+            (["attr/test_attr_str", "ds2_i"], "ds2_i"),
+        ],
+    )
+    def test_listed_root_variables(self, netcdf_file, required_variables, expected_variable):
+        """Test collection of required variables located at the NetCDF root."""
+        filetype_info = {"required_netcdf_variables": required_variables}
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
+
+        assert expected_variable in file_handler.file_content
+        assert file_handler.file_content[expected_variable + "/shape"] == (10, 100)
 
     def test_listed_variables_with_composing(self, netcdf_file):
         """Test that composing for listed variables is performed."""

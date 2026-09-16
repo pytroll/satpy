@@ -1,7 +1,7 @@
-EPS-SG VII netCDF Example
+EPS-SG METimage netCDF Example
 ===============================
 
-Satpy includes a reader for the EPS-SG Visible and Infrared Imager (VII)
+Satpy includes a reader for the EPS-SG METimage (VII)
 Level 1b data. The following Python code snippet shows an example on how to use
 Satpy to read a channel and resample and save the image over the European area.
 
@@ -20,7 +20,7 @@ Satpy to read a channel and resample and save the image over the European area.
     filenames = glob.glob('/path/to/VII/data/W_xx-eumetsat-darmstadt,SAT,SGA1-VII-1B-RAD_C_EUMT_20191007055100*')
 
     # create a VII scene from the selected granule(s)
-    scn = Scene(filenames=filenames, reader='vii_l1b_nc')
+    scn = Scene(filenames=filenames, reader='metimage_l1b_nc')
 
     # print available dataset names for this scene
     print(scn.available_dataset_names())

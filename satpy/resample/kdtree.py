@@ -28,6 +28,7 @@ BIL_COORDINATES = {"bilinear_s": ("x1", ),
                    "out_coords_x": ("x2", ),
                    "out_coords_y": ("y2", )}
 
+
 class KDTreeResampler(PRBaseResampler):
     """Resample using a KDTree-based nearest neighbor algorithm.
 
