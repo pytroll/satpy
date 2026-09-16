@@ -547,8 +547,8 @@ def sunzen_corr_cos(data: da.Array,
     Through different combinations of the ``correction_limit`` and ``max_sza``
     parameters, the correction can be capped or reduced at higher solar zenith angles.
     See class definition of SunZenithCorrector for more details on how these parameters
-    can be used to tweak the correction. The typical historical use case is to avoid
-    over-correction at high solar zenith angles for improved (RGB) imagery, but not the
+    can be used to tweak the correction. The typical historical use case was to avoid
+    over-correction at high solar zenith angles for improved (RGB) imagery, but now the
     effective pathlength parameterization by Li and Shibata (2006) is recommended
     when computing the reflectance for (RGB) imagery. This parameterization is availalbe
     through the EffectiveSolarPathLengthCorrector class.
