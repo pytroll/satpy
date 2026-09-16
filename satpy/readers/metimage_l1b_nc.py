@@ -32,7 +32,8 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
         self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
         self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
         self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
-        # Test data has been seen for both variants below...
+        # Operational products name this variable in lowercase; pre-launch test
+        # data (2021-era "_T_" dissemination granules) used a leading capital B.
         try:
             self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
         except KeyError:
@@ -72,12 +73,17 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
         elif calibration_name == "radiance":
             calibrated_variable = variable
         elif calibration_name == "counts":
-            # xarray automatically applies scale_factor and add_offset when reading the netCDF.
-            # To get raw counts, reverse this process using the original parameters.
+            # xarray automatically applies scale_factor and add_offset when reading the netCDF,
+            # masking _FillValue pixels to NaN. To get raw counts, reverse the scaling using the
+            # original parameters and restore the original fill value at masked pixels.
             scale_factor = variable.encoding.get("scale_factor", variable.attrs.get("scale_factor", 1.0))
             add_offset = variable.encoding.get("add_offset", variable.attrs.get("add_offset", 0.0))
 
-            calibrated_variable = (variable - add_offset) / scale_factor
+            calibrated_variable = ((variable - add_offset) / scale_factor).round()
+
+            fill_value = variable.encoding.get("_FillValue", variable.attrs.get("_FillValue"))
+            if fill_value is not None:
+                calibrated_variable = calibrated_variable.fillna(fill_value)
 
             # Cast back to the original integer datatype (e.g., uint16) for strict counts
             original_dtype = variable.encoding.get("dtype", variable.dtype)
