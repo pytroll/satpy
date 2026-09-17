@@ -815,6 +815,28 @@ class ModuleTestFCIL1cNcReader:
 class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
     """Test FCI L1c NetCDF reader with nominal data."""
 
+    def test_time_units_are_preserved_from_file(self, reader_configs, FakeFCIFileHandlerFDHSI_fixture):
+        """Test that full CF time units from the source file are preserved."""
+        fh_param = FakeFCIFileHandlerFDHSI_fixture
+        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
+        file_handler = reader.file_handlers[fh_param["filetype"]][0]
+        expected_units = "seconds since 2000-01-01 00:00:00.0"
+        source_time = xr.DataArray([0.0], attrs={"units": expected_units})
+
+        time_datasets = [(data_id, info) for data_id, info in reader.all_ids.items()
+                         if data_id["name"].endswith("_time")]
+        assert len(time_datasets) == 36
+        assert {data_id["name"] for data_id, _ in time_datasets} == {
+            f"{channel}_time" for channel in LIST_TOTAL_CHANNEL}
+        for data_id, info in time_datasets:
+            loaded_time = source_time.copy()
+            loaded_time.attrs = file_handler._set_and_cleanup_attributes(
+                loaded_time.attrs, info=info)
+            assert loaded_time.attrs["units"] == expected_units
+
+        reflectance_id = reader.get_dataset_key("vis_06", calibration="reflectance", resolution=1000)
+        assert reader.all_ids[reflectance_id]["units"] == "%"
+
     @pytest.mark.parametrize("filenames", [TEST_FILENAMES[filename] for filename in TEST_FILENAMES.keys()])
     def test_file_pattern(self, reader_configs, filenames):
         """Test file pattern matching."""

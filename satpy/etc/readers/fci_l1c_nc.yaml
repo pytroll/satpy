@@ -778,7 +778,6 @@ datasets:
 
   vis_04_time:
     name: vis_04_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
@@ -786,7 +785,6 @@ datasets:
 
   vis_05_time:
     name: vis_05_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
@@ -794,7 +792,6 @@ datasets:
 
   vis_06_time:
     name: vis_06_time
-    units: s
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
@@ -803,7 +800,6 @@ datasets:
 
   vis_08_time:
     name: vis_08_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
@@ -811,7 +807,6 @@ datasets:
 
   vis_09_time:
     name: vis_09_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
@@ -819,7 +814,6 @@ datasets:
 
   nir_13_time:
     name: nir_13_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
@@ -827,7 +821,6 @@ datasets:
 
   nir_16_time:
     name: nir_16_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
@@ -835,7 +828,6 @@ datasets:
 
   nir_22_time:
     name: nir_22_time
-    units: s
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
@@ -844,7 +836,6 @@ datasets:
 
   ir_38_time:
     name: ir_38_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_hrfi }
@@ -853,7 +844,6 @@ datasets:
 
   wv_63_time:
     name: wv_63_time
-    units: s
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
@@ -861,7 +851,6 @@ datasets:
 
   wv_73_time:
     name: wv_73_time
-    units: s
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
@@ -869,7 +858,6 @@ datasets:
 
   ir_87_time:
     name: ir_87_time
-    units: s
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
@@ -877,7 +865,6 @@ datasets:
 
   ir_97_time:
     name: ir_97_time
-    units: s
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
@@ -885,7 +872,6 @@ datasets:
 
   ir_105_time:
     name: ir_105_time
-    units: s
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_hrfi }
@@ -894,7 +880,6 @@ datasets:
 
   ir_123_time:
     name: ir_123_time
-    units: s
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
@@ -902,7 +887,6 @@ datasets:
 
   ir_133_time:
     name: ir_133_time
-    units: s
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
