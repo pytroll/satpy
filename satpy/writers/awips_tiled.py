@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The AWIPS Tiled writer is used to create AWIPS-compatible tiled NetCDF4 files.
 
 The Advanced Weather Interactive Processing System (AWIPS) is a
@@ -1493,7 +1476,8 @@ class AWIPSTiledWriter(Writer):
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
         # use the first data array as a "representative" for the group
         ds_info = data_arrs[0].attrs.copy()
-        del ds_info["valid_range"]  # remove variable-specific metadata that may contain dask arrays
+        for possible_dask_attr in ("valid_range", "valid_min", "valid_max"):
+            ds_info.pop(possible_dask_attr, None)  # remove variable-specific metadata that may contain dask arrays
         # we want to use our own creation_time
         ds_info["creation_time"] = creation_time
         if source_name is not None:
