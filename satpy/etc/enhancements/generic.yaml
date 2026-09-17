@@ -1078,12 +1078,11 @@ enhancements:
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
     operations:
-      - name: stretch
-        method: !!python/name:satpy.enhancements.contrast.stretch
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
-          stretch: crude
-          min_stretch: [310, 0]
-          max_stretch: [190, 1]
+          palettes:
+            - {colors: [[255, 255, 255]]}
 
   geo_color_low_clouds:
     standard_name: geo_color_low_clouds
