@@ -14,37 +14,36 @@ file_types:
     rows_per_scan: 10
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_1000M_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_1000M_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_1000M_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_1000M_L1B.{ext:3s}"
 
   mersi3_l1b_250:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0250M_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0250M_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_0250M_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_0250M_L1B.{ext:3s}"
 
   mersi3_l1b_1000_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEO1K_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEO1K_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_GEO1K_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_GEO1K_L1B.{ext:3s}"
 
   mersi3_l1b_250_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOQK_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOQK_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_GEOQK_L1B.{ext:3s}'
-
+      - "{filename_mda}_MERSI_GEOQK_L1B.{ext:3s}"
 
 # NOTE: OSCAR website currently has bands in wavelength order
 #       https://www.wmo-sat.info/oscar/instruments/view/279
@@ -52,8 +51,8 @@ file_types:
 #       The slides at the below link have band 5 and 19 swapped:
 #       http://www.wmo.int/pages/prog/sat/meetings/documents/IPET-SUP-4_Doc_05-04_FY-3D-ppt.pdf
 datasets:
-  '1':
-    name: '1'
+  "1":
+    name: "1"
     wavelength: [0.445, 0.470, 0.495]
     resolution:
       1000:
@@ -69,17 +68,22 @@ datasets:
         calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '2':
-    name: '2'
+  "2":
+    name: "2"
     wavelength: [0.525, 0.550, 0.575]
     resolution:
       1000:
@@ -95,17 +99,22 @@ datasets:
         calibration_index: 1
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '3':
-    name: '3'
+  "3":
+    name: "3"
     wavelength: [0.625, 0.650, 0.675]
     resolution:
       1000:
@@ -125,13 +134,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '4':
-    name: '4'
+  "4":
+    name: "4"
     wavelength: [0.840, 0.865, 0.890]
     resolution:
       1000:
@@ -151,14 +160,14 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '5':
-    name: '5'
-    wavelength: [1.37, 1.38, 1.39]  # or 30nm bandwidth?
+  "5":
+    name: "5"
+    wavelength: [1.37, 1.38, 1.39] # or 30nm bandwidth?
     resolution: 1000
     file_type: mersi3_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -171,13 +180,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '6':
-    name: '6'
+  "6":
+    name: "6"
     wavelength: [1.615, 1.640, 1.665]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -191,13 +200,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '7':
-    name: '7'
+  "7":
+    name: "7"
     wavelength: [2.105, 2.130, 2.155]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -211,13 +220,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '8':
-    name: '8'
+  "8":
+    name: "8"
     wavelength: [0.402, 0.412, 0.422]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -231,13 +240,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '9':
-    name: '9'
+  "9":
+    name: "9"
     wavelength: [0.433, 0.443, 0.453]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -251,13 +260,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '10':
-    name: '10'
+  "10":
+    name: "10"
     wavelength: [0.480, 0.490, 0.500]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -271,13 +280,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '11':
-    name: '11'
+  "11":
+    name: "11"
     wavelength: [0.545, 0.555, 0.565]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -291,13 +300,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '12':
-    name: '12'
+  "12":
+    name: "12"
     wavelength: [0.660, 0.670, 0.680]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -311,13 +320,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '13':
-    name: '13'
+  "13":
+    name: "13"
     wavelength: [0.699, 0.709, 0.719]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -331,13 +340,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '14':
-    name: '14'
+  "14":
+    name: "14"
     wavelength: [0.736, 0.746, 0.756]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -351,13 +360,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '15':
-    name: '15'
+  "15":
+    name: "15"
     wavelength: [0.855, 0.865, 0.875]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -371,13 +380,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '16':
-    name: '16'
+  "16":
+    name: "16"
     wavelength: [0.895, 0.905, 0.915]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -391,13 +400,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '17':
-    name: '17'
+  "17":
+    name: "17"
     wavelength: [0.926, 0.936, 0.946]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -411,13 +420,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '18':
-    name: '18'
+  "18":
+    name: "18"
     wavelength: [0.915, 0.940, 0.965]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -431,14 +440,14 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '19':
-    name: '19'
-    wavelength: [1.23, 1.24, 1.25]  # or 1.03um?
+  "19":
+    name: "19"
+    wavelength: [1.23, 1.24, 1.25] # or 1.03um?
     resolution: 1000
     file_type: mersi3_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -451,13 +460,13 @@ datasets:
         units: "%"
         standard_name: toa_bidirectional_reflectance
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '20':
-    name: '20'
+  "20":
+    name: "20"
     wavelength: [3.710, 3.800, 3.890]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -471,13 +480,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '21':
-    name: '21'
+  "21":
+    name: "21"
     wavelength: [3.9725, 4.050, 4.1275]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -491,13 +500,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '22':
-    name: '22'
+  "22":
+    name: "22"
     wavelength: [6.950, 7.20, 7.450]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -511,13 +520,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '23':
-    name: '23'
+  "23":
+    name: "23"
     wavelength: [8.400, 8.550, 8.700]
     resolution: 1000
     file_type: mersi3_l1b_1000
@@ -531,13 +540,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '24':
-    name: '24'
+  "24":
+    name: "24"
     wavelength: [10.300, 10.800, 11.300]
     resolution:
       1000:
@@ -557,13 +566,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '25':
-    name: '25'
+  "25":
+    name: "25"
     wavelength: [11.500, 12.000, 12.500]
     resolution:
       1000:
@@ -583,7 +592,7 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"

@@ -14,19 +14,19 @@ file_types:
     rows_per_scan: 10
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0500M_V1.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0500M_V1.{ext:3s}"
 
   mersi_rm_l1b_500_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOHK_V1.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOHK_V1.{ext:3s}"
 
 # NOTE: Min/max wavelengths are defined here as the wavelength associated with a 1% SRF.
 datasets:
-  '1':
-    name: '1'
+  "1":
+    name: "1"
     wavelength: [0.60, 0.648, 0.70]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -36,17 +36,22 @@ datasets:
     calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '2':
-    name: '2'
+  "2":
+    name: "2"
     wavelength: [0.82, 0.862, 0.91]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -56,17 +61,22 @@ datasets:
     calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '3':
-    name: '3'
+  "3":
+    name: "3"
     wavelength: [0.89, 0.935, 0.97]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -76,17 +86,22 @@ datasets:
     calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '4':
-    name: '4'
+  "4":
+    name: "4"
     wavelength: [1.33, 1.377, 1.42]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -96,17 +111,22 @@ datasets:
     calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '5':
-    name: '5'
+  "5":
+    name: "5"
     wavelength: [1.58, 1.638, 1.69]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -116,17 +136,22 @@ datasets:
     calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
-  '6':
-    name: '6'
+  "6":
+    name: "6"
     wavelength: [3.64, 3.809, 3.99]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -140,10 +165,10 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '7':
-    name: '7'
+  "7":
+    name: "7"
     wavelength: [10.08, 10.736, 11.62]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -157,10 +182,10 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '8':
-    name: '8'
+  "8":
+    name: "8"
     wavelength: [11.31, 12.019, 12.81]
     resolution: 500
     file_type: mersi_rm_l1b_500
@@ -174,7 +199,7 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
 
   longitude:
