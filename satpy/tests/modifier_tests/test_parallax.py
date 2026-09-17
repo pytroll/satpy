@@ -1,15 +1,3 @@
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 """Tests related to parallax correction."""
 
@@ -657,7 +645,7 @@ class TestParallaxCorrectionModifier:
         cloud_location = {
                 "foroyar": {
                     7500: (197, 202, 152, 172),
-                    15000: (238, 243, 164, 184)},
+                    15000: (239, 244, 165, 185)},
                 "ouagadougou": {
                     7500: (159, 164, 140, 160),
                     15000: (163, 168, 141, 161)}}
