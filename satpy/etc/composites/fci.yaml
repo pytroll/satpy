@@ -337,6 +337,12 @@ composites:
         standard_name: land_water_mask
         url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
         known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+    optional_prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: ir_105
+          - name: ir_87
+      - satellite_zenith_angle
 
   geo_color_background_with_low_clouds:
     compositor: !!python/name:satpy.composites.fill.BackgroundCompositor

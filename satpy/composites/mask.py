@@ -11,6 +11,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.dataset import combine_metadata
+from satpy.modifiers.angles import get_satellite_zenith_angle
 
 from .core import CompositeBase, GenericCompositor, SingleBandCompositor
 
@@ -485,7 +486,7 @@ class LowCloudCompositor(CloudCompositor):
         super().__init__(name, transition_min=transition_min, transition_max=transition_max,
                          transition_gamma=transition_gamma, invert_alpha=invert_alpha, **kwargs)
 
-    def __call__(self, projectables, **kwargs):
+    def __call__(self, projectables, optional_datasets=[], **kwargs):
         """Generate the composite.
 
         `projectables` is expected to be a list or tuple with the following three elements:
@@ -495,41 +496,44 @@ class LowCloudCompositor(CloudCompositor):
           - index 2: Land-Sea-Mask.
         """
         LOG.debug("Applying detection scheme for low-level clouds and fog (night-time only)")
-        projectables = self.match_data_arrays(projectables)
-        if len(projectables) == 3:
-            ir105_ir38, bt_win, lsm = projectables
-            ir105_ir87 = None
-        elif len(projectables) == 4:
-            ir105_ir38, bt_win, lsm, ir105_ir87 = projectables
-        else:
-            raise ValueError(
-                f"Expected at 3 or 4 datasets (IR105-IR38, IR105, Land-Water Mask and optionally IR105-IR87), "
-                f"got {len(projectables)}"
-            )
+        if len(projectables) != 3:
+            raise ValueError(f"Expected 3 datasets, got {len(projectables)}")
+
+        datasets = self.match_data_arrays(projectables + optional_datasets)
+        split_window_low_clouds, window, lsm = datasets[:3]
+        split_window_bare_soil = datasets[3] if len(datasets) > 3 else None
+        satz = datasets[4] if len(datasets) > 4 else None
+
+        if split_window_bare_soil is not None and satz is None:
+            LOG.debug("Computing satellite zenith angle")
+            satz = get_satellite_zenith_angle(window)
+            sec = 1. / np.cos(np.deg2rad(satz))
 
         lsm = lsm.squeeze(drop=True)
         lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
         is_land = lsm.isin(self.values_land)
         is_water = lsm.isin(self.values_water)
 
-        cloud_over_land = is_land & (ir105_ir38 >= self.limit_land)
-        cloud_over_water = is_water & (ir105_ir38 >= self.limit_water)
-        possible_noise = bt_win < 230
+        cloud_over_land = is_land & (split_window_low_clouds >= self.limit_land)
+        cloud_over_water = is_water & (split_window_low_clouds >= self.limit_water)
+        possible_noise = window < 230
 
-        mask = (cloud_over_land | cloud_over_water) & ~possible_noise
+        low_cloud_mask = (cloud_over_land | cloud_over_water) & ~possible_noise
 
-        # Detection of bare soil which have similar signal as low clouds in IR105-IR38 difference
-        # and should be filtered out.
-        if isinstance(ir105_ir87, xr.DataArray):
-            bare_soil = is_land & (ir105_ir87 > self.limits_bare_soil[0])
-            mask &= ~bare_soil
+        # Given that bare soil can have similar signal as low clouds in the IR10.5-IR3.8 split-window difference, we can
+        # use the IR10.5-IR8.7 split-window difference to identify bare soil and remove from the low cloud mask
+        if split_window_bare_soil is not None:
+            bare_soil = is_land & (
+                split_window_bare_soil > self.limits_bare_soil[0] + self.limits_bare_soil[1] * (sec - 1)
+            )
+            low_cloud_mask &= ~bare_soil
         else:
             LOG.debug(
-                "No IR10.5-IR8.7 difference data were provided, low-level cloud false alarms are likely to "
-                "appear over arid surfaces."
+                "No IR10.5-IR8.7 split-window difference data were provided. Low-level cloud false alarms are likely "
+                "to appear over arid surface types."
             )
 
         # Call CloudCompositor for the detected low clouds
-        res = super().__call__([ir105_ir38.where(mask)], **kwargs)
+        res = super().__call__([split_window_low_clouds.where(low_cloud_mask)], **kwargs)
 
         return res
