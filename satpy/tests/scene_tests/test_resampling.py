@@ -273,15 +273,10 @@ class TestSceneResampling:
         rs.side_effect = self._fake_resample_dataset_force_20x20
         proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
                     "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
-        target_area = AreaDefinition("test", "test", "test", proj_str, 4, 4, (-1000., -1500., 1000., 1500.))
+        # target covers the lower-left quadrant of the source areas so that reduction actually slices
+        target_area = AreaDefinition("test", "test", "test", proj_str, 4, 4, (-1000., -1500., 0., 0.))
         area_def = AreaDefinition("test", "test", "test", proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
-        area_def.get_area_slices = mock.MagicMock()
-        get_area_slices = area_def.get_area_slices
-        get_area_slices.return_value = (slice(0, 3, None), slice(0, 3, None))
         area_def_big = AreaDefinition("test", "test", "test", proj_str, 10, 10, (-1000., -1500., 1000., 1500.))
-        area_def_big.get_area_slices = mock.MagicMock()
-        get_area_slices_big = area_def_big.get_area_slices
-        get_area_slices_big.return_value = (slice(0, 6, None), slice(0, 6, None))
 
         # Test that data reduction can be disabled
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
@@ -292,18 +287,17 @@ class TestSceneResampling:
             attrs=scene["comp19"].attrs.copy())
         scene["comp19_big"].attrs["area"] = area_def_big
         scene["comp19_copy"] = scene["comp19"].copy()
-        orig_slice_data = scene._slice_data
-        # we force the below order of processing to test that success isn't
-        # based on data of the same resolution being processed together
-        test_order = [
-            make_cid(**scene["comp19"].attrs),
-            make_cid(**scene["comp19_big"].attrs),
-            make_cid(**scene["comp19_copy"].attrs),
-        ]
-        with mock.patch("satpy.scene.Scene._slice_data") as slice_data, \
-                mock.patch("satpy.dataset.dataset_walker") as ds_walker:
-            ds_walker.return_value = test_order
-            slice_data.side_effect = orig_slice_data
+        # DataArray.copy() deep-copies attrs, so the copy gets an equal-but-distinct
+        # area object. We force them to the exact same instance so the mock of
+        # get_area_slices below also sees comp19_copy's area getting called (the cache would work either way)
+        scene["comp19_copy"].attrs["area"] = area_def
+        # datasets are processed in insertion order, so data of the same
+        # resolution (comp19 and comp19_copy) are not processed together
+        assert [ds_id["name"] for ds_id in scene.keys()] == ["comp19", "comp19_big", "comp19_copy"]
+        with mock.patch.object(scene, "_slice_data", wraps=scene._slice_data) as slice_data, \
+                mock.patch.object(area_def, "get_area_slices", wraps=area_def.get_area_slices) as get_area_slices, \
+                mock.patch.object(area_def_big, "get_area_slices",
+                                  wraps=area_def_big.get_area_slices) as get_area_slices_big:
             scene.resample(target_area, reduce_data=False)
             slice_data.assert_not_called()
             get_area_slices.assert_not_called()
