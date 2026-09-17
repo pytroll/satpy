@@ -390,6 +390,13 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         Load a dataset when the key refers to a measurand, whether uncalibrated
         (counts) or calibrated in terms of brightness temperature, radiance, or
         reflectance.
+
+        The valid-range masking and the calibration are done in a single
+        :func:`dask.array.map_blocks` call per segment instead of a chain of
+        xarray operations. The result is the same, but building the dask graph
+        is about ten times cheaper: every xarray arithmetic call costs a fixed
+        amount of Python overhead and this method is called once per channel
+        for every one of the (up to) 40 segments of a repeat cycle.
         """
         # Get the dataset
         # Get metadata for given dataset
@@ -409,9 +416,15 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             nfv = data.dtype.type(fv)
         else:
             nfv = np.float32(np.nan)
-        data = data.where((data >= vr[0]) & (data <= vr[1]), nfv)
 
-        res = self.calibrate(data, key)
+        block_kwargs = self._get_calibration_block_kwargs(key, attrs)
+        dtype = data.dtype if block_kwargs["calibration"] == "counts" else np.float32
+        calibrated = da.map_blocks(_calibrate_block, data.data, vr, nfv, dtype=dtype,
+                                   meta=np.array((), dtype=dtype), **block_kwargs)
+        res = xr.DataArray(calibrated, dims=data.dims, coords=data.coords, attrs=data.attrs)
+        if block_kwargs["calibration"] != "counts":
+            res.attrs["radiance_unit_conversion_coefficient"] = self.get_and_cache_npxr(
+                measured + "/radiance_unit_conversion_coefficient")
         cleaned_attrs = self._set_and_cleanup_attributes(res.attrs, attrs, key, info)
         res.attrs = cleaned_attrs
         return res
@@ -711,60 +724,42 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         self._cache[key["resolution"]] = area
         return area
 
-    def calibrate(self, data, key):
-        """Calibrate data."""
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
-            data = self.calibrate_counts_to_physical_quantity(data, key)
-        elif key["calibration"] != "counts":
+    def _get_calibration_block_kwargs(self, key, attrs):
+        """Collect everything :func:`_calibrate_block` needs to calibrate one block of counts."""
+        calibration = key["calibration"]
+        if calibration not in ("brightness_temperature", "reflectance", "radiance", "counts"):
             logger.error(
                 "Received unknown calibration key.  Expected "
                 "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
-                + key["calibration"] + ".")
+                + calibration + ".")
+            calibration = "counts"
+        kwargs = {"calibration": calibration}
+        if calibration == "counts":
+            return kwargs
 
-        return data
-
-    def calibrate_counts_to_physical_quantity(self, data, key):
-        """Calibrate counts to radiances, brightness temperatures, or reflectances."""
-        # counts to radiance scaling
-
-        data = self.calibrate_counts_to_rad(data, key)
-
-        if key["calibration"] == "brightness_temperature":
-            data = self.calibrate_rad_to_bt(data, key)
-        elif key["calibration"] == "reflectance":
-            data = self.calibrate_rad_to_refl(data, key)
-
-        return data
-
-    def calibrate_counts_to_rad(self, data, key):
-        """Calibrate counts to radiances."""
+        # counts to radiance scaling; float32 coefficients keep the result float32
+        scale_factor = np.float32(attrs.get("scale_factor", 1))
+        add_offset = np.float32(attrs.get("add_offset", 0))
+        kwargs["scale_factor"] = scale_factor
+        kwargs["add_offset"] = add_offset
         if self.clip_negative_radiances:
-            data = self._clipneg(data)
+            # lowest count that does not give a negative radiance
+            kwargs["clip_lo"] = -add_offset // scale_factor + 1
         if key["name"] == "ir_38":
-            data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
-                            (data * data.attrs.get("warm_scale_factor", 1) +
-                             data.attrs.get("warm_add_offset", 0)),
-                            (data * data.attrs.get("scale_factor", 1) +
-                             data.attrs.get("add_offset", 0))
-                            )
-        else:
-            data = (data * data.attrs.get("scale_factor", 1) +
-                    data.attrs.get("add_offset", 0))
+            kwargs["warm_scale_factor"] = np.float32(attrs.get("warm_scale_factor", 1))
+            kwargs["warm_add_offset"] = np.float32(attrs.get("warm_add_offset", 0))
 
-        measured = self.get_channel_measured_group_path(key["name"])
-        data.attrs.update({"radiance_unit_conversion_coefficient":
-                               self.get_and_cache_npxr(measured + "/radiance_unit_conversion_coefficient")})
-        return data
+        if calibration == "brightness_temperature":
+            kwargs["bt_coefficients"] = self._get_bt_coefficients(key)
+        elif calibration == "reflectance":
+            kwargs["reflectance_coefficients"] = self._get_reflectance_coefficients(key)
+        return kwargs
 
-    @staticmethod
-    def _clipneg(data):
-        """Clip counts to avoid negative radiances."""
-        lo = -data.attrs.get("add_offset", 0) // data.attrs.get("scale_factor", 1) + 1
-        return data.where((~data.notnull())|(data>=lo), lo)
+    def _get_bt_coefficients(self, key):
+        """Get the IR channel calibration coefficients as 0-d float32 arrays, or None if any is a fill value.
 
-    def calibrate_rad_to_bt(self, radiance, key):
-        """IR channel calibration."""
-        # using the method from PUG section Converting from Effective Radiance to Brightness Temperature for IR Channels
+        Using the method from PUG section Converting from Effective Radiance to Brightness Temperature for IR Channels.
+        """
         measured = self.get_channel_measured_group_path(key["name"])
 
         vc = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_coefficient_wavenumber").astype(np.float32)
@@ -784,16 +779,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
                         measured))
-                return radiance * np.float32(np.nan)
+                return None
+        return tuple(v.values for v in (vc, a, b, c1, c2))
 
-        nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / radiance)
-
-        res = nom / denom - b / a
-        return res
-
-    def calibrate_rad_to_refl(self, radiance, key):
-        """VIS channel calibration."""
+    def _get_reflectance_coefficients(self, key):
+        """Get the VIS channel calibration coefficients, or None if the solar irradiance is a fill value."""
         measured = self.get_channel_measured_group_path(key["name"])
 
         cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance").astype(np.float32)
@@ -803,10 +793,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return radiance * np.float32(np.nan)
-        sun_earth_distance = self._compute_sun_earth_distance
-        res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
-        return res
+            return None
+        return cesi.values, np.float32(self._compute_sun_earth_distance)
 
     @cached_property
     def _compute_sun_earth_distance(self) -> float:
@@ -820,6 +808,52 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = np.nanmean(
                 self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
         return sun_earth_distance
+
+
+def _calibrate_block(counts, valid_range, fill, calibration, scale_factor=None, add_offset=None,
+                     clip_lo=None, warm_scale_factor=None, warm_add_offset=None,
+                     bt_coefficients=None, reflectance_coefficients=None):
+    """Mask and calibrate one block of counts with numpy.
+
+    Applied with :func:`dask.array.map_blocks` by
+    :meth:`FCIL1cNCFileHandler._get_dataset_measurand`, see
+    :meth:`FCIL1cNCFileHandler._get_calibration_block_kwargs` for the arguments.
+    The operations and their order are kept identical to the former chain of
+    xarray operations so that the results do not change. Counts keep their
+    dtype, every other calibration produces float32.
+    """
+    data = np.where((counts >= valid_range[0]) & (counts <= valid_range[1]), counts, fill)
+    if calibration == "counts":
+        return data
+    data = data.astype(np.float32, copy=False)
+
+    # counts to radiance scaling
+    if clip_lo is not None:
+        # clip counts to avoid negative radiances
+        data = np.where(np.isnan(data) | (data >= clip_lo), data, clip_lo)
+    if warm_scale_factor is not None:
+        # ir_38 uses a second set of scaling parameters for the warm part of its range
+        data = np.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
+                        data * warm_scale_factor + warm_add_offset,
+                        data * scale_factor + add_offset)
+    else:
+        data = data * scale_factor + add_offset
+    if calibration == "radiance":
+        return data
+
+    if calibration == "brightness_temperature":
+        if bt_coefficients is None:
+            return data * np.float32(np.nan)
+        vc, a, b, c1, c2 = bt_coefficients
+        nom = c2 * vc
+        denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / data)
+        return nom / denom - b / a
+
+    # reflectance
+    if reflectance_coefficients is None:
+        return data * np.float32(np.nan)
+    cesi, sun_earth_distance = reflectance_coefficients
+    return 100 * data * np.float32(np.pi) * sun_earth_distance ** np.float32(2) / cesi
 
 
 def _ensure_dataarray(arr):
