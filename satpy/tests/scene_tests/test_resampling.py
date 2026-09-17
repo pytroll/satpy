@@ -314,37 +314,53 @@ class TestSceneResampling:
             assert get_area_slices.call_count == 2
             assert get_area_slices_big.call_count == 2
 
-    def test_resample_ancillary(self):
-        """Test that the Scene reducing data does not affect final output."""
+    @pytest.mark.parametrize("anc_kind", ["in_scene", "not_in_scene", "no_area"])
+    def test_resample_ancillary(self, anc_kind):
+        """Test that ancillary variables are resampled once and re-attached to their resampled parents.
+
+        Two datasets share the same ancillary variable, which is either also
+        loaded in the Scene, not loaded in the Scene, or has no area and is
+        therefore not resampled. A dataset without an area is also included to
+        check that it is passed through untouched.
+
+        """
         from pyresample.geometry import AreaDefinition
 
-        area_def = AreaDefinition(
-            "test",
-            "test",
-            "test",
-            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
-            5,
-            5,
-            (-1000., -1500., 1000., 1500.),
-        )
+        proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                    "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
+        area_def = AreaDefinition("test", "test", "test", proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
+        dst_area = AreaDefinition("dst", "dst", "dst", proj_str, 2, 2, (-1000., -1500., 0., 0.))
         scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
-
-        scene.load(["comp19", "comp20"])
+        scene.load(["comp19", "comp20"] if anc_kind == "in_scene" else ["comp19"])
         scene["comp19"].attrs["area"] = area_def
-        scene["comp19"].attrs["ancillary_variables"] = [scene["comp20"]]
-        scene["comp20"].attrs["area"] = area_def
+        scene["comp19_2"] = scene["comp19"].copy()
+        if anc_kind == "in_scene":
+            anc = scene["comp20"]
+            anc.attrs["area"] = area_def
+        elif anc_kind == "not_in_scene":
+            anc = xr.DataArray(da.zeros((5, 5), dtype=np.float32), dims=("y", "x"),
+                               attrs={"name": "anc", "area": area_def})
+        else:
+            anc = xr.DataArray(da.arange(3, dtype=np.float32), dims=("y",), attrs={"name": "anc"})
+        scene["comp19"].attrs["ancillary_variables"] = [anc]
+        scene["comp19_2"].attrs["ancillary_variables"] = [anc]
+        scene["no_area"] = xr.DataArray(da.arange(5, dtype=np.float32), dims=("y",), attrs={"name": "no_area"})
 
-        dst_area = AreaDefinition(
-            "dst",
-            "dst",
-            "dst",
-            "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs",
-            2,
-            2,
-            (-1000., -1500., 0., 0.),
-        )
         new_scene = scene.resample(dst_area)
-        assert new_scene["comp20"] is new_scene["comp19"].attrs["ancillary_variables"][0]
+
+        new_anc = new_scene["comp19"].attrs["ancillary_variables"][0]
+        assert new_scene["comp19_2"].attrs["ancillary_variables"][0] is new_anc
+        if anc_kind == "no_area":
+            assert new_anc is anc
+            assert "area" not in new_anc.attrs
+        else:
+            assert new_anc is not anc
+            assert new_anc.attrs["area"] == dst_area
+        if anc_kind == "in_scene":
+            assert new_scene["comp20"] is new_anc
+        else:
+            assert "anc" not in new_scene
+        assert new_scene["no_area"] is scene["no_area"]
 
     def test_resample_multi_ancillary(self):
         """Test that multiple ancillary variables are retained after resampling.
@@ -393,6 +409,72 @@ class TestSceneResampling:
         assert new_scene1["comp19"].shape == (20, 20, 3)
         assert new_scene2["comp19"].shape == (20, 20, 3)
         assert new_scene3["comp19"].shape == (20, 20, 3)
+
+    @pytest.mark.parametrize(
+        ("resample_kwargs", "exp_factor"),
+        [
+            ({}, None),
+            ({"resampler": "nearest"}, None),
+            ({"resampler": "gradient_search"}, 2),
+            ({"resampler": "gradient_search", "shape_divisible_by": 4}, 4),
+        ]
+    )
+    @mock.patch("satpy.resample.base.resample_dataset")
+    def test_resample_reduce_data_shape_divisible_by(self, rs, resample_kwargs, exp_factor):
+        """Test that data reduction slices are made divisible by a factor for the gradient search resampler."""
+        from pyresample.geometry import AreaDefinition
+
+        rs.side_effect = self._fake_resample_dataset
+        proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                    "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
+        target_area = AreaDefinition("test", "test", "test", proj_str, 4, 4, (-1000., -1500., 0., 0.))
+        area_def = AreaDefinition("test", "test", "test", proj_str, 20, 20, (-1000., -1500., 1000., 1500.))
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp19"])
+        scene["comp19"].attrs["area"] = area_def
+
+        with mock.patch.object(area_def, "get_area_slices", wraps=area_def.get_area_slices) as get_area_slices:
+            scene.resample(target_area, **resample_kwargs)
+
+        get_area_slices.assert_called_once_with(target_area, shape_divisible_by=exp_factor)
+        assert rs.call_count == 1
+
+    @pytest.mark.parametrize("dst_type", ["area_def", "name", "dynamic"])
+    @mock.patch("satpy.resample.base.resample_dataset")
+    def test_resample_destination_types(self, rs, dst_type):
+        """Test that the destination can be an AreaDefinition, an area name, or a DynamicAreaDefinition."""
+        from pyresample.geometry import AreaDefinition, DynamicAreaDefinition
+
+        rs.side_effect = self._fake_resample_dataset_force_20x20
+        proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                    "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
+        area_def = AreaDefinition("test", "test", "test", proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
+        target_area = AreaDefinition("target", "target", "target", proj_str, 4, 4, (-1000., -1500., 0., 0.))
+        if dst_type == "area_def":
+            destination = target_area
+            exp_area = target_area
+        elif dst_type == "name":
+            destination = "target"
+            exp_area = target_area
+        else:
+            destination = DynamicAreaDefinition("dyn", "dyn", proj_str, resolution=100.)
+            exp_area = destination.freeze(area_def)
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp19"])
+        scene["comp19"].attrs["area"] = area_def
+
+        # parsing the builtin areas.yaml is slow, so just check that the lookup is used
+        with mock.patch("satpy.scene.get_area_def", return_value=target_area) as get_area_def:
+            new_scene = scene.resample(destination)
+
+        if dst_type == "name":
+            get_area_def.assert_called_once_with("target")
+        else:
+            get_area_def.assert_not_called()
+        new_area = new_scene["comp19"].attrs["area"]
+        assert isinstance(new_area, AreaDefinition)
+        assert new_area == exp_area
+        assert rs.call_args.args[1] is new_area
 
     @mock.patch("satpy.resample.base.resample_dataset")
     def test_no_generate_comp10(self, rs):
