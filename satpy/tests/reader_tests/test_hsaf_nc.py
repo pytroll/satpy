@@ -41,7 +41,7 @@ FILE_PARAMS = {
     FILE_TYPE_H40B: {
         "fake_file": "W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_202511050000_PINFCI.nc",
         "yaml_file": "hsaf_nc.yaml",
-        "platform": "MTG-I1",
+        "platform": "MTG1",
     }
 }
 
