@@ -4,6 +4,7 @@ import datetime as dt
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pygac.gac_klm
@@ -103,6 +104,27 @@ class TestGACLACFile:
                 assert fh.start_time < fh.end_time
                 assert fh.reader_class is reader_cls
 
+
+    @pytest.mark.parametrize("name", ["M01_20160327202953.BRN.l1b",
+                                      "M02_20120227102121.BRN.l1b",
+                                      "M03_20200401210726.BRN.l1b"])
+    def test_a_metop_pass_named_by_station_is_read_as_avhrr3(self, name):
+        """A Metop file named for its station is still Metop, whatever the name shape.
+
+        The platform is taken from the filename, and the same platform is written two
+        ways: ``M2`` in the classic name and ``M02`` in the station one. Only the first
+        was recognised, so the second fell through to the oldest reader in the list and
+        met a header it could not decode -- a failure that names the data set rather
+        than the platform, and so says nothing about what actually went wrong. All three
+        Metops are named this way in the record, so all three are checked here.
+        """
+        from pygac.lac_klm import LACKLMReader
+        from trollsift import parse
+
+        pattern = "{platform_id:3s}_{start_time:%Y%m%d%H%M}{end_time:%S}.{station:3s}.l1b"
+        fh = GACLACFile(name, parse(pattern, name), {})
+
+        assert fh.reader_class is LACKLMReader
 
     def test_init_eosip(self):
         """Test GACLACFile initialization."""
@@ -460,6 +482,21 @@ class TestReadingGacFile:
         assert scene["qual_flags"].shape == (expect.num_lines, 7)
         assert scene["qual_flags"].dims == ("y", "num_flags")
 
+    def test_quality_flag_columns_say_which_flag_they_hold(self, stub: Path, reader_kwargs: dict):
+        """Each column is labelled, so the table can be read without pygac's source at hand."""
+        scene = Scene(filenames=[stub], reader="avhrr_l1b_gaclac",
+                      reader_kwargs=reader_kwargs)
+        scene.load(["qual_flags"])
+        assert list(scene["qual_flags"]["num_flags"].values) == [
+            "Scan line number",
+            "Fatal error flag",
+            "Insufficient data for calibration",
+            "Earth location data not available",
+            "Solar contamination of blackbody in channels 3",
+            "Solar contamination of blackbody in channels 4",
+            "Solar contamination of blackbody in channels 5",
+        ]
+
     def test_get_latlon_without_interp(self, stub: Path, params: TestParams, expect: Expectations, tle_dir: Path):
         """Test getting lat/lon coordinates without interpolation.
 
@@ -496,3 +533,44 @@ def test_all_data_masked_out(tmp_dir: Path, tle_dir: Path):
     scene.load(["1"])
     with pytest.raises(KeyError):
         scene["1"].compute()
+
+
+class TestNavigationRecordForwarding:
+    """Test that what pygac recorded about the navigation travels on."""
+
+    @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__", return_value=None)
+    @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel", return_value=np.ones((3, 3)))
+    def test_the_navigation_record_is_forwarded(self, get_channel, *mocks):
+        """The whole record travels on, not a chosen few of its facts.
+
+        pygac gathers what it fitted, and how far the result can be trusted, into one
+        mapping. Naming its members here instead means a fact added at the other end
+        is dropped in silence until someone edits this list: that is how the count of
+        control points came to be missing from delivered products while sitting on the
+        dataset all along. Forwarding the record itself makes this list a one-time cost.
+        """
+        from satpy.tests.utils import make_dataid
+        record = {"gcp_count": 431, "schema_version": 3}
+        fh = self._file_handler_carrying(record)
+
+        res = fh.get_dataset(make_dataid(name="1", calibration="reflectance"),
+                             {"name": "1", "standard_name": "my_standard_name"})
+
+        assert res.attrs["navigation"] == record
+
+    @staticmethod
+    def _file_handler_carrying(record):
+        """Return a file handler whose calibrated dataset holds *record*."""
+        reader = mock.MagicMock(spacecraft_name="spacecraft_name", meta_data={"foo": "bar"})
+        reader.mask = [0, 0]
+        reader.get_times.return_value = np.arange(3)
+        reader.get_tle_lines.return_value = "tle"
+        fh = GACLACFile()
+        for name, value in {"reader": reader, "chn_dict": {"1": 0},
+                            "start_line": None, "end_line": None,
+                            "strip_invalid_coords": False,
+                            "filename_info": {"orbit_number": 123},
+                            "sensor": "sensor"}.items():
+            setattr(fh, name, value)
+        fh.cal_ds = xr.Dataset(attrs={"navigation": record})
+        return fh
