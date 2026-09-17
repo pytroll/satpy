@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Iterator
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -234,6 +235,46 @@ class TestDatasetDict(unittest.TestCase):
         d[0.5] = {"calibration": "radiance"}
         assert d[0.5]["resolution"] == 500
         assert d[0.5]["name"] == "testh"
+
+    def test_setitem_dataarray(self):
+        """Test that DataArray values get their attrs updated with the resolved DataID."""
+        d = self.test_dict
+        data_arr = xr.DataArray(da.zeros((2, 2)), dims=("y", "x"), attrs={"name": "test2", "calibration": "radiance"})
+        d["test2"] = data_arr
+        assert d["test2"] is data_arr
+        assert data_arr.attrs["_satpy_id"] == make_dataid(name="test2", wavelength=(1, 1.5, 2), resolution=1000)
+        assert data_arr.attrs["resolution"] == 1000
+
+    def test_setitem_non_dataid_key_non_dict_value(self):
+        """Test that a non-DataID key requires a dict or DataArray value."""
+        d = self.test_dict
+        with pytest.raises(ValueError, match="Key must be a DataID"):
+            d["new_ds"] = "not a dict"
+
+    def test_get(self):
+        """Test get method of DatasetDict."""
+        d = self.test_dict
+        assert d.get("test") == "1"
+        assert d.get("test", "default") == "1"
+        assert d.get("not_in_dict") is None
+        assert d.get("not_in_dict", "default") == "default"
+
+    def test_contains_other_types(self):
+        """Test that objects that can't be interpreted as keys are simply not contained."""
+        d = self.test_dict
+        assert object() not in d
+
+    def test_delitem(self):
+        """Test delitem method of DatasetDict."""
+        d = self.test_dict
+        del d["test"]
+        assert "test" not in d
+        assert len(d) == len(self.regular_dict) - 1
+        key = make_dataid(name="test2", wavelength=(1, 1.5, 2), resolution=1000)
+        del d[key]
+        assert key not in d
+        with pytest.raises(KeyError):
+            del d["test"]
 
 
 class TestReaderLoader(unittest.TestCase):

@@ -1,15 +1,29 @@
 """Classes and functions related to a dictionary with DataID keys."""
 
+from __future__ import annotations
+
+import numbers
+from collections.abc import Iterable, Iterator
+from typing import Any, Literal, TypeVar, overload
+
 import numpy as np
 
-from .dataid import DataID, create_filtered_query, minimal_default_keys_config
+from .dataid import DataID, DataQuery, WavelengthRange, create_filtered_query, minimal_default_keys_config
+
+_V = TypeVar("_V")
+_T = TypeVar("_T")
+
+#: Anything that can be used to look up a dataset: a full or partial
+#: :class:`~satpy.dataset.dataid.DataID`, a :class:`~satpy.dataset.dataid.DataQuery`,
+#: a dataset name, or a wavelength.
+DataKey = DataID | DataQuery | str | float | numbers.Number
 
 
 class TooManyResults(KeyError):
     """Special exception when one key maps to multiple items in the container."""
 
 
-def get_best_dataset_key(key, choices):
+def get_best_dataset_key(key: DataQuery, choices: Iterable[DataID]) -> list[DataID]:
     """Choose the "best" `DataID` from `choices` based on `key`.
 
     To see how the keys are sorted, refer to `:meth:satpy.datasets.DataQuery.sort_dataids`.
@@ -34,8 +48,18 @@ def get_best_dataset_key(key, choices):
         return [choice for choice, distance in zip(sorted_choices, distances) if distance == distances[0]]
 
 
-def get_key(key, key_container, num_results=1, best=True, query=None,  # noqa: D417
-            **kwargs):
+@overload
+def get_key(key: DataKey, key_container: Iterable[DataID], num_results: Literal[1] = 1, best: bool = True,
+            query: DataQuery | dict[str, Any] | None = None, **kwargs: Any) -> DataID: ...
+
+
+@overload
+def get_key(key: DataKey, key_container: Iterable[DataID], num_results: int, best: bool = True,
+            query: DataQuery | dict[str, Any] | None = None, **kwargs: Any) -> list[DataID]: ...
+
+
+def get_key(key: DataKey, key_container: Iterable[DataID], num_results: int = 1, best: bool = True,  # noqa: D417
+            query: DataQuery | dict[str, Any] | None = None, **kwargs: Any) -> DataID | list[DataID]:
     """Get the fully-specified key best matching the provided key.
 
     Only the best match is returned if `best` is `True` (default). See
@@ -45,10 +69,12 @@ def get_key(key, key_container, num_results=1, best=True, query=None,  # noqa: D
     at once without having to filter by multiple `key` inputs.
 
     Args:
-        key (DataID): DataID of query parameters to use for
-                         searching. Any parameter that is `None`
-                         is considered a wild card and any match is
-                         accepted.
+        key (DataID, DataQuery, str, or float): DataID or DataQuery of
+                         query parameters to use for searching. Any
+                         parameter that is `None` is considered a wild
+                         card and any match is accepted. Can also be a
+                         string representing the dataset name or a
+                         number representing the dataset wavelength.
         key_container (dict or set): Container of DataID objects that
                                      uses hashing to quickly access items.
         num_results (int): Number of results to return. Use `0` for all
@@ -83,19 +109,19 @@ def get_key(key, key_container, num_results=1, best=True, query=None,  # noqa: D
             found when `num_results` is `1`.
 
     """
-    key = create_filtered_query(key, query)
+    data_query = create_filtered_query(key, query)
 
-    res = key.filter_dataids(key_container)
+    res = data_query.filter_dataids(key_container)
     if not res:
-        raise KeyError("No dataset matching '{}' found".format(str(key)))
+        raise KeyError("No dataset matching '{}' found".format(str(data_query)))
 
     if best:
-        res = get_best_dataset_key(key, res)
+        res = get_best_dataset_key(data_query, res)
 
     if num_results == 1 and not res:
-        raise KeyError("No dataset matching '{}' found".format(str(key)))
+        raise KeyError("No dataset matching '{}' found".format(str(data_query)))
     if num_results == 1 and len(res) != 1:
-        raise TooManyResults("No unique dataset matching {}".format(str(key)))
+        raise TooManyResults("No unique dataset matching {}".format(str(data_query)))
     if num_results == 1:
         return res[0]
     if num_results == 0:
@@ -104,14 +130,28 @@ def get_key(key, key_container, num_results=1, best=True, query=None,  # noqa: D
     return res[:num_results]
 
 
-class DatasetDict(dict):
+class DatasetDict(dict[DataID, _V]):
     """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DataID.
 
     Note: Internal dictionary keys are `DataID` objects.
 
     """
 
-    def keys(self, names=False, wavelengths=False):
+    # Unlike ``dict.keys`` this returns a sorted list (or a generator of
+    # names/wavelengths) rather than a live ``dict_keys`` view, so the
+    # signature is intentionally incompatible with the supertype.
+    @overload  # type: ignore[override]
+    def keys(self) -> list[DataID]: ...
+
+    @overload
+    def keys(self, names: Literal[True], wavelengths: bool = False) -> Iterator[str | None]: ...
+
+    @overload
+    def keys(self, names: Literal[False] = False, *, wavelengths: Literal[True]
+             ) -> Iterator[WavelengthRange | None]: ...
+
+    def keys(self, names: bool = False, wavelengths: bool = False
+             ) -> list[DataID] | Iterator[str | None] | Iterator[WavelengthRange | None]:
         """Give currently contained keys."""
         # sort keys so things are a little more deterministic (.keys() is not)
         keys = sorted(super(DatasetDict, self).keys())
@@ -122,16 +162,23 @@ class DatasetDict(dict):
         else:
             return keys
 
-    def get_key(self, match_key, num_results=1, best=True, **dfilter):  # noqa: D417
+    @overload
+    def get_key(self, match_key: DataKey, num_results: Literal[1] = 1, best: bool = True, **dfilter: Any) -> DataID: ...
+
+    @overload
+    def get_key(self, match_key: DataKey, num_results: int, best: bool = True, **dfilter: Any) -> list[DataID]: ...
+
+    def get_key(self, match_key: DataKey, num_results: int = 1, best: bool = True,  # noqa: D417
+                **dfilter: Any) -> DataID | list[DataID]:
         """Get multiple fully-specified keys that match the provided query.
 
         Args:
-            key (DataID): DataID of query parameters to use for
-                          searching. Any parameter that is `None`
-                          is considered a wild card and any match is
-                          accepted. Can also be a string representing the
-                          dataset name or a number representing the dataset
-                          wavelength.
+            key (DataID, DataQuery, str, or float): DataID or DataQuery of
+                          query parameters to use for searching. Any
+                          parameter that is `None` is considered a wild
+                          card and any match is accepted. Can also be a
+                          string representing the dataset name or a number
+                          representing the dataset wavelength.
             num_results (int): Number of results to return. If `0` return all,
                                if `1` return only that element, otherwise
                                return a list of matching keys.
@@ -141,28 +188,36 @@ class DatasetDict(dict):
         return get_key(match_key, self.keys(), num_results=num_results,
                        best=best, **dfilter)
 
-    def getitem(self, item):
+    def getitem(self, item: DataID) -> _V:
         """Get Node when we know the *exact* DataID."""
         return super(DatasetDict, self).__getitem__(item)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: DataKey) -> _V:
         """Get item from container."""
-        try:
-            # short circuit - try to get the object without more work
-            return super(DatasetDict, self).__getitem__(item)
-        except KeyError:
-            key = self.get_key(item)
-            return super(DatasetDict, self).__getitem__(key)
+        if isinstance(item, DataID):
+            try:
+                # short circuit - try to get the object without more work
+                return super(DatasetDict, self).__getitem__(item)
+            except KeyError:
+                pass
+        key = self.get_key(item)
+        return super(DatasetDict, self).__getitem__(key)
 
-    def get(self, key, default=None):
+    @overload
+    def get(self, key: DataKey, default: None = None) -> _V | None: ...
+
+    @overload
+    def get(self, key: DataKey, default: _V | _T) -> _V | _T: ...
+
+    def get(self, key: DataKey, default: _V | _T | None = None) -> _V | _T | None:
         """Get value with optional default."""
         try:
-            key = self.get_key(key)
+            dataid = self.get_key(key)
         except KeyError:
             return default
-        return super(DatasetDict, self).get(key, default)
+        return super(DatasetDict, self).get(dataid, default)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: DataKey, value: _V) -> None:
         """Support assigning 'Dataset' objects or dictionaries of metadata."""
         if hasattr(value, "attrs"):
             # xarray.DataArray objects
@@ -174,27 +229,22 @@ class DatasetDict(dict):
             key = self._create_dataid_key(key, value_info)
 
         # update the 'value' with the information contained in the key
-        try:
-            new_info = key.to_dict()
-        except AttributeError:
-            new_info = key
         if isinstance(value_info, dict):
-            value_info.update(new_info)
-            if isinstance(key, DataID):
-                value_info["_satpy_id"] = key
+            value_info.update(key.to_dict())
+            value_info["_satpy_id"] = key
 
         return super(DatasetDict, self).__setitem__(key, value)
 
-    def _create_dataid_key(self, key, value_info):
+    def _create_dataid_key(self, key: DataKey, value_info: Any) -> DataID:
         """Create a DataID key from dictionary."""
         if not isinstance(value_info, dict):
             raise ValueError("Key must be a DataID when value is not an xarray DataArray or dict")
-        old_key = key
         try:
-            key = self.get_key(key)
+            return self.get_key(key)
         except KeyError:
-            if isinstance(old_key, str):
-                new_name = old_key
+            new_name: str | None
+            if isinstance(key, str):
+                new_name = key
             else:
                 new_name = value_info.get("name")
             # this is a new key and it's not a full DataID tuple
@@ -203,10 +253,9 @@ class DatasetDict(dict):
                                  "values should be set.")
             id_keys = self._create_id_keys_from_dict(value_info)
             value_info["name"] = new_name
-            key = DataID(id_keys, **value_info)
-        return key
+            return DataID(id_keys, **value_info)
 
-    def _create_id_keys_from_dict(self, value_info_dict):
+    def _create_id_keys_from_dict(self, value_info_dict: dict[str, Any]) -> dict[str, Any]:
         """Create id_keys from dict."""
         try:
             id_keys = value_info_dict["_satpy_id"].id_keys
@@ -217,23 +266,27 @@ class DatasetDict(dict):
                 id_keys = minimal_default_keys_config
         return id_keys
 
-    def contains(self, item):
+    def contains(self, item: DataID) -> bool:
         """Check contains when we know the *exact* DataID."""
         return super(DatasetDict, self).__contains__(item)
 
-    def __contains__(self, item):
+    def __contains__(self, item: object) -> bool:
         """Check if item exists in container."""
+        if not isinstance(item, (DataID, DataQuery, str, float, numbers.Number)):
+            return super(DatasetDict, self).__contains__(item)
         try:
             key = self.get_key(item)
         except KeyError:
             return False
         return super(DatasetDict, self).__contains__(key)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: DataKey) -> None:
         """Delete item from container."""
-        try:
-            # short circuit - try to get the object without more work
-            return super(DatasetDict, self).__delitem__(key)
-        except KeyError:
-            key = self.get_key(key)
-            return super(DatasetDict, self).__delitem__(key)
+        if isinstance(key, DataID):
+            try:
+                # short circuit - try to get the object without more work
+                return super(DatasetDict, self).__delitem__(key)
+            except KeyError:
+                pass
+        dataid = self.get_key(key)
+        return super(DatasetDict, self).__delitem__(dataid)
