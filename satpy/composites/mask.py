@@ -464,7 +464,7 @@ class LowCloudCompositor(CloudCompositor):
             warnings.warn(
                 "'range_land' is deprecated and will be removed in a future version. "
                 "Please use 'limit_land' instead as low-level cloud detection threshold over land.",
-                DeprecationWarning,
+                UserWarning,
                 stacklevel=2,
             )
 
@@ -472,7 +472,7 @@ class LowCloudCompositor(CloudCompositor):
             warnings.warn(
                 "'range_water' is deprecated and will be removed in a future version. "
                 "Please use 'limit_water' instead as low-level cloud detection threshold over water.",
-                DeprecationWarning,
+                UserWarning,
                 stacklevel=2,
             )
 
@@ -494,25 +494,42 @@ class LowCloudCompositor(CloudCompositor):
           - index 1. Brightness temperature of the window channel (used to filter out noise-induced false alarms).
           - index 2: Land-Sea-Mask.
         """
-        if len(projectables) != 3:
-            raise ValueError(f"Expected 3 datasets, got {len(projectables)}")
-
+        LOG.debug("Applying detection scheme for low-level clouds and fog (night-time only)")
         projectables = self.match_data_arrays(projectables)
-        btd, bt_win, lsm = projectables
+        if len(projectables) == 3:
+            ir105_ir38, bt_win, lsm = projectables
+            ir105_ir87 = None
+        elif len(projectables) == 4:
+            ir105_ir38, bt_win, lsm, ir105_ir87 = projectables
+        else:
+            raise ValueError(
+                f"Expected at 3 or 4 datasets (IR105-IR38, IR105, Land-Water Mask and optionally IR105-IR87), "
+                f"got {len(projectables)}"
+            )
+
         lsm = lsm.squeeze(drop=True)
         lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
+        is_land = lsm.isin(self.values_land)
+        is_water = lsm.isin(self.values_water)
 
-        # Detection of low-level clouds over land and water. Also filter out cold clouds
-        # to avoid spurious false alarms caused by noise in the 3.9um channel
-        mask_land = lsm.isin(self.values_land) & (btd >= self.limit_land)
-        mask_water = lsm.isin(self.values_water) & (btd >= self.limit_water)
-        mask_warm = bt_win >= 230
-        mask = (mask_land | mask_water) & mask_warm
+        cloud_over_land = is_land & (ir105_ir38 >= self.limit_land)
+        cloud_over_water = is_water & (ir105_ir38 >= self.limit_water)
+        possible_noise = bt_win < 230
 
-        # Call CloudCompositor for the detected low cloud
-        res = super().__call__([btd.where(mask)], **kwargs)
+        mask = (cloud_over_land | cloud_over_water) & ~possible_noise
 
-        # NEEDED?
-        res.loc["A"] = res.sel(bands="A").where(mask, 0.0)
+        # Detection of bare soil which have similar signal as low clouds in IR105-IR38 difference
+        # and should be filtered out.
+        if isinstance(ir105_ir87, xr.DataArray):
+            bare_soil = is_land & (ir105_ir87 > self.limits_bare_soil[0])
+            mask &= ~bare_soil
+        else:
+            LOG.debug(
+                "No IR10.5-IR8.7 difference data were provided, low-level cloud false alarms are likely to "
+                "appear over arid surfaces."
+            )
+
+        # Call CloudCompositor for the detected low clouds
+        res = super().__call__([ir105_ir38.where(mask)], **kwargs)
 
         return res
