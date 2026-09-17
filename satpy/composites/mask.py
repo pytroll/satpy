@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import dask.array as da
 import numpy as np
@@ -434,9 +435,14 @@ class LowCloudCompositor(CloudCompositor):
     """
 
     def __init__(self, name, values_land=(1,), values_water=(0,),  # noqa: D417
-                 range_land=(0.0, 4.0),
-                 range_water=(0.0, 4.0),
+                 limit_land=1.5,
+                 limit_water=0.0,
+                 limits_bare_soil=(4.1, 1.5),
+                 transition_min=0,
+                 transition_max=5.0,
                  transition_gamma=1.0,
+                 range_land=None,
+                 range_water=None,
                  invert_alpha=True, **kwargs):
         """Init info.
 
@@ -454,16 +460,29 @@ class LowCloudCompositor(CloudCompositor):
             invert_alpha (bool): Invert the alpha channel to make low data values transparent
                                  and high data values opaque.
         """
-        if len(range_land) != 2:
-            raise ValueError(f"Expected 2 `range_land` values, got {len(range_land)}")
-        if len(range_water) != 2:
-            raise ValueError(f"Expected 2 `range_water` values, got {len(range_water)}")
+        if range_land is not None:
+            warnings.warn(
+                "'range_land' is deprecated and will be removed in a future version. "
+                "Please use 'limit_land' instead as low-level cloud detection threshold over land.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        if range_water is not None:
+            warnings.warn(
+                "'range_water' is deprecated and will be removed in a future version. "
+                "Please use 'limit_water' instead as low-level cloud detection threshold over water.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         self.values_land = values_land if type(values_land) in [list, tuple] else [values_land]
         self.values_water = values_water if type(values_water) in [list, tuple] else [values_water]
-        self.range_land = range_land
-        self.range_water = range_water
-        super().__init__(name, transition_min=None, transition_max=None,
+        self.limit_land = limit_land
+        self.limit_water = limit_water
+        self.limits_bare_soil = limits_bare_soil
+
+        super().__init__(name, transition_min=transition_min, transition_max=transition_max,
                          transition_gamma=transition_gamma, invert_alpha=invert_alpha, **kwargs)
 
     def __call__(self, projectables, **kwargs):
@@ -483,19 +502,17 @@ class LowCloudCompositor(CloudCompositor):
         lsm = lsm.squeeze(drop=True)
         lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
 
-        # Call CloudCompositor for land surface pixels
-        self.transition_min, self.transition_max = self.range_land
-        res = super().__call__([btd.where(lsm.isin(self.values_land))], **kwargs)
+        # Detection of low-level clouds over land and water. Also filter out cold clouds
+        # to avoid spurious false alarms caused by noise in the 3.9um channel
+        mask_land = lsm.isin(self.values_land) & (btd >= self.limit_land)
+        mask_water = lsm.isin(self.values_water) & (btd >= self.limit_water)
+        mask_warm = bt_win >= 230
+        mask = (mask_land | mask_water) & mask_warm
 
-        # Call CloudCompositor for /water surface pixels
-        self.transition_min, self.transition_max = self.range_water
-        res_water = super().__call__([btd.where(lsm.isin(self.values_water))], **kwargs)
+        # Call CloudCompositor for the detected low cloud
+        res = super().__call__([btd.where(mask)], **kwargs)
 
-        # Compine resutls for land and water surface pixels
-        res = res.where(lsm.isin(self.values_land), res_water)
-
-        # Make pixels with cold window channel brightness temperatures transparent to avoid spurious false
-        # alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
-        res.loc["A"] = res.sel(bands="A").where(bt_win >= 230, 0.0)
+        # NEEDED?
+        res.loc["A"] = res.sel(bands="A").where(mask, 0.0)
 
         return res
