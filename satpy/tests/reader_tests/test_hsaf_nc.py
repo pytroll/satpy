@@ -151,7 +151,7 @@ class TestHSAFNCReader:
         assert datasets[params.loadable_ids[1]].shape == DEFAULT_SHAPE
         assert np.issubdtype(datasets[params.loadable_ids[0]].dtype, np.floating)
         assert np.issubdtype(datasets[params.loadable_ids[1]].dtype, np.integer)
-       
+
         data = datasets[params.loadable_ids[0]]
         assert data.attrs["platform_name"] == params.platform
         assert data.attrs["units"] == params.unit
