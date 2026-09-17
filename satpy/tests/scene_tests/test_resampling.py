@@ -542,8 +542,8 @@ class TestSceneAggregation:
 
     def test_aggregate(self):
         """Test the aggregate method."""
-        x_size = 3712
-        y_size = 3712
+        x_size = 372
+        y_size = 372
 
         scene1 = self._create_test_data(x_size, y_size)
 
@@ -553,8 +553,8 @@ class TestSceneAggregation:
 
     def test_custom_aggregate(self):
         """Test the aggregate method with custom function."""
-        x_size = 3712
-        y_size = 3712
+        x_size = 372
+        y_size = 372
 
         scene1 = self._create_test_data(x_size, y_size)
 
@@ -579,15 +579,15 @@ class TestSceneAggregation:
             y_size,
             area_extent,
         )
-        scene1["1"] = xr.DataArray(np.ones((y_size, x_size)),
+        scene1["1"] = xr.DataArray(da.ones((y_size, x_size), chunks=128),
                                    attrs={"_satpy_id_keys": default_id_keys_config})
-        scene1["2"] = xr.DataArray(np.ones((y_size, x_size)),
+        scene1["2"] = xr.DataArray(da.ones((y_size, x_size), chunks=128),
                                    dims=("y", "x"),
                                    attrs={"_satpy_id_keys": default_id_keys_config})
-        scene1["3"] = xr.DataArray(np.ones((y_size, x_size)),
+        scene1["3"] = xr.DataArray(da.ones((y_size, x_size), chunks=128),
                                    dims=("y", "x"),
                                    attrs={"area": area_def, "_satpy_id_keys": default_id_keys_config})
-        scene1["4"] = xr.DataArray(np.ones((y_size, x_size)),
+        scene1["4"] = xr.DataArray(da.ones((y_size, x_size), chunks=128),
                                    dims=("y", "x"),
                                    attrs={"area": area_def, "standard_name": "backscatter",
                                           "_satpy_id_keys": default_id_keys_config})
@@ -605,8 +605,8 @@ class TestSceneAggregation:
 
     def test_aggregate_with_boundary(self):
         """Test aggregation with boundary argument."""
-        x_size = 3711
-        y_size = 3711
+        x_size = 371
+        y_size = 371
 
         scene1 = self._create_test_data(x_size, y_size)
 
