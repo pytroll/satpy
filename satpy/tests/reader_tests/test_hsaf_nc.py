@@ -134,7 +134,7 @@ class TestHSAFNCReader:
             LoadDatasetsParams(
                 FILE_PARAMS[FILE_TYPE_H40B], ["rr", "qind"], "mm/h", 2000, "mtg_fci_fdss_2km", "Meteosat-12"
             ),
-            
+
         ],
     )
     def test_load_datasets(self, params):
