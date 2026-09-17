@@ -139,11 +139,11 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["calibration"] == "brightness_temperature"
         assert res.attrs["units"] == "K"
 
-    def test_reflectance_warns(self):
+    def test_reflectance_warns(self, file_handler):
         """Test that asking for reflectance as calibration issues a warning."""
         did = make_dataid(name="1", calibration="reflectance")
         with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
-            _ = self.fh.get_dataset(did, {})
+            _ = file_handler.get_dataset(did, {})
 
     def test_get_dataset_radiance(self, file_handler):
         """Test loading a data array with radiance calibration."""
