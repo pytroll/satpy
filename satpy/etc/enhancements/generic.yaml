@@ -1094,6 +1094,20 @@ enhancements:
           palettes:
             - {colors: [[140.25, 191.25, 249.9]]}
 
+  geo_color_city_lights:
+    standard_name: geo_color_city_lights
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [340, 340, 340]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
+      kwargs:
+        gamma: [0.5, 0.5, 0.5]
+
   geo_color_day_night_blend:
     standard_name: geo_color_day_night_blend
     operations:
