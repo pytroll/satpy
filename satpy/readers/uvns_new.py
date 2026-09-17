@@ -29,10 +29,12 @@ from typing import Any, Iterable, Mapping
 
 import numpy as np
 import xarray as xr
-
+import dask.array as da
+import netCDF4
 import satpy
 
 from satpy.readers.core.netcdf import NetCDF4FileHandler
+from satpy.readers.core.netcdf import H5NetcdfAccessor
 
 from pyresample.geometry import SwathDefinition
 
@@ -62,6 +64,22 @@ SYNTHETIC_DIMENSION_PREFIXES = (
     "phony_dim",
     "phony_dimension",
 )
+
+
+_DTYPE_TO_FILL_KEY = {
+    np.dtype("int8"): "i1",
+    np.dtype("uint8"): "u1",
+    np.dtype("int16"): "i2",
+    np.dtype("uint16"): "u2",
+    np.dtype("int32"): "i4",
+    np.dtype("uint32"): "u4",
+    np.dtype("int64"): "i8",
+    np.dtype("uint64"): "u8",
+    np.dtype("float32"): "f4",
+    np.dtype("float64"): "f8",
+}
+
+
 
 
 @dataclass(frozen=True)
@@ -537,6 +555,9 @@ class UVNSFileHandler(NetCDF4FileHandler):
         engine="netcdf4",
     ):
         """Initialise the file handler and build the dynamic registry."""
+
+        engine="h5netcdf"
+        xarray_kwargs={'chunks':None}
         super().__init__(
             filename,
             filename_info,
@@ -544,6 +565,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
             engine=engine,
         )
 
+        print(f'Filename: {filename}')
         self._records = self._build_variable_records()
         self._name_registry = DatasetNameRegistry(self._records)
         self._records = self._assign_dataset_names(self._records)
@@ -552,6 +574,14 @@ class UVNSFileHandler(NetCDF4FileHandler):
             self._name_registry,
         )
         self._dataset_infos = self._build_dataset_infos()
+
+    def _get_fallback_handle(self):
+        if not hasattr(self, "_fallback_file_handle"):
+            self._fallback_accessor = H5NetcdfAccessor()
+            self._fallback_file_handle = (
+                self._fallback_accessor.create_file_handle(self.filename)
+            )
+        return self._fallback_file_handle
 
     @property
     def start_time(self):
@@ -705,6 +735,253 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         return dataset_infos
 
+
+    ###### Overrideen inheritance methods. #######
+    ######
+    ######
+    def _get_var_from_xr(self, group, key, **kwargs_override):
+
+        kwargs = dict(self._xarray_kwargs)
+        kwargs.update(kwargs_override)
+
+        with xr.open_dataset(
+            self.filename,
+            group=group,
+            **kwargs,
+        ) as nc:
+
+            val = nc[key]
+
+            if not val.chunks:
+                val.load()
+
+        return val
+
+    def _get_var_from_netcdf4(self, group, key):
+        return self._get_var_from_xr(
+            group,
+            key,
+            engine="netcdf4",
+        )
+
+    '''
+    def _get_var_from_hdf5(self, group, key):
+        """Load a variable directly from the underlying HDF5/NetCDF4 file.
+
+        Used as a fallback when the normal NetCDF4/xarray loading path
+        fails for unsupported datatypes or metadata.
+        """
+        print('_get_var_from_hdf5')
+        print('arr = xr.DataArray(v[:], ...')
+
+        fh       = self._get_fallback_handle()
+
+        if group is None:
+            g = fh
+        else:
+            g = fh[group]
+
+        v = g[key]
+
+        accessor = self._fallback_accessor
+        attrs = accessor.get_object_attrs(v)
+
+        arr = xr.DataArray(
+            da.from_array(v),
+            dims=v.dimensions,
+            attrs=attrs,
+            name=v.name,
+        )
+
+        self._fallback_file_handle.close()
+        del self._fallback_file_handle
+
+        print("FALLBACK CLOSED")
+
+        arr.attrs["_fallback"] = True
+
+        return arr
+    '''
+
+    def _check_var_validity(self, key):
+        v = self.file_content[key]
+
+        print("VAR TYPE:", type(v))
+
+        try:
+            print("VAR NAME:", v.name)
+            print("NAME OK")
+        except Exception as e:
+            print("NAME FAILED:", e)
+
+        try:
+            print("VAR SHAPE:", v.shape)
+            print("SHAPE OK")
+        except Exception as e:
+            print("SHAPE FAILED:", e)
+
+        try:
+            print("VAR DTYPE:", v.dtype)
+            print("DTYPE OK")
+        except Exception as e:
+            print("DTYPE FAILED:", e)
+
+        try:
+            print("VAR DIMENSIONS:", v.dimensions)
+            print("DIMS OK")
+        except Exception as e:
+            print("DIMS FAILED:", e)
+
+            print("GROUP:", v.group())
+
+        print("GROUP PATH:", v.group().path)
+
+        try:
+            print("FILEPATH:", v.group().filepath())
+        except Exception as e:
+            print("FILEPATH FAILED:", e)
+
+
+        grp = v.group()
+
+        print(type(grp))
+
+        try:
+            print(grp.variables.keys())
+            print("GROUP LIVE")
+        except Exception as e:
+            print("GROUP DEAD", e)
+
+        try:
+            print(v[:5])
+            print("READ OK")
+        except Exception as e:
+            print("READ FAIL", e)
+
+
+    def _get_variable(self, key, val):
+        """Get a variable from the file."""
+
+        if key in self.cached_file_content:
+            return self.cached_file_content[key]
+
+        parts = key.rsplit("/", 1)
+
+        if len(parts) == 2:
+            group, key_name = parts
+        else:
+            group = None
+            key_name = key
+
+        try:
+
+            if self.file_handle is not None:
+                result = self._get_var_from_filehandle(
+                    group,
+                    key_name,
+                )
+            else:
+                result = self._get_var_from_xr(
+                    group,
+                    key_name,
+                )
+
+        except Exception as exc:
+
+            logger.warning(
+                "Primary load failed for %s: %s",
+                key,
+                exc,
+            )
+
+            #
+            # First attempt: CF time repair.
+            #
+            if self._is_time_decode_error(exc):
+
+                logger.warning(
+                    "Attempting CF time repair for %s",
+                    key,
+                )
+
+                try:
+
+                    result = self._get_var_from_cf_time_repair(
+                        group,
+                        key_name,
+                    )
+
+                except Exception as repair_exc:
+
+                    logger.warning(
+                        "CF time repair failed for %s: %s",
+                        key,
+                        repair_exc,
+                    )
+
+                else:
+
+                    self.cached_file_content[key] = result
+                    return result
+
+            #
+            # Second attempt: dimension/scalar collision repair.
+            #
+            elif self._is_dimension_scalar_error(exc):
+
+                logger.warning(
+                    "Attempting dimension repair for %s",
+                    key,
+                )
+
+                try:
+
+                    result = self._get_var_from_dimension_repair(
+                        group,
+                        key_name,
+                    )
+
+                except Exception as repair_exc:
+
+                    logger.warning(
+                        "Dimension repair failed for %s: %s",
+                        key,
+                        repair_exc,
+                    )
+
+                else:
+
+                    self.cached_file_content[key] = result
+                    return result
+
+            #
+            # Third attempt: netCDF4 backend.
+            #
+            try:
+
+                result = self._get_var_from_netcdf4(
+                    group,
+                    key_name,
+                )
+
+            except Exception as exc2:
+
+                logger.warning(
+                    "netCDF4 retry failed for %s: %s",
+                    key,
+                    exc2,
+                )
+
+                raise
+
+
+        self.cached_file_content[key] = result
+
+        return result
+
+    ##############################################
+
+
     def available_datasets(self, configured_datasets=None):
         """Report configured and dynamically discovered datasets."""
         handled_paths: set[str] = set()
@@ -755,6 +1032,48 @@ class UVNSFileHandler(NetCDF4FileHandler):
             ].copy()
 
     def get_dataset(self, ds_id, ds_info):
+        file_key = DatasetNameRegistry.normalise_path(
+            ds_info.get("file_key", ds_id["name"])
+        )
+
+        print("GET_DATASET START", ds_id["name"])
+        print("FILE KEY", file_key)
+
+        print("BEFORE self[file_key]")
+        data = self[file_key]
+        if data is None:
+            raise RuntimeError(
+                f"{file_key} returned None"
+            )
+        print("AFTER self[file_key]")
+
+        print("BEFORE _normalise_dimensions")
+        data = self._normalise_dimensions(data)
+        print("AFTER _normalise_dimensions")
+
+        print("BEFORE attr normalisation")
+        attrs = AttributeNormalizer.normalise_attrs(data.attrs)
+        print("AFTER attr normalisation")
+
+        attrs.update(
+            self._public_dataset_metadata(ds_info)
+        )
+
+        print("BEFORE assign attrs")
+        data.attrs = attrs
+        print("AFTER assign attrs")
+
+        if data.name != ds_id["name"]:
+            print("BEFORE rename")
+            data = data.rename(ds_id["name"])
+            print("AFTER rename")
+
+        print("GET_DATASET END", ds_id["name"])
+
+        return data
+
+    '''
+    def get_dataset(self, ds_id, ds_info):
         """Load one previously discovered dataset."""
         file_key = DatasetNameRegistry.normalise_path(
             ds_info.get("file_key", ds_id["name"])
@@ -791,6 +1110,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
             data = data.rename(ds_id["name"])
 
         return data
+    '''
 
     def _get_indexed_variable_attrs(
         self,
@@ -946,3 +1266,185 @@ class UVNSFileHandler(NetCDF4FileHandler):
             for key, value in ds_info.items()
             if key not in internal_keys
         }
+
+    ### Specific Modifications and Repairs
+    ###
+    def _is_time_decode_error(self, exc):
+        msg = str(exc)
+
+        return (
+            "unable to decode time units" in msg
+            or "decode_cf_datetime" in msg
+            or "OutOfBoundsTimedelta" in msg
+        )
+
+    def _is_dimension_scalar_error(self, exc):
+
+        return (
+            "already exists as a scalar variable"
+            in str(exc)
+        )
+
+    def _get_var_from_cf_time_repair(
+        self,
+        group,
+        key,
+        **kwargs_override,
+    ):
+        """Recover from CF time decoding failures caused by
+        undeclared default NetCDF fill values.
+        """
+
+        kwargs = dict(self._xarray_kwargs)
+        kwargs.update(kwargs_override)
+
+        #
+        # Open raw.
+        #
+        kwargs["decode_times"] = False
+
+        with xr.open_dataset(
+            self.filename,
+            group=group,
+            **kwargs,
+        ) as ds:
+
+            ds = self._mask_implicit_fill_values(ds)
+
+            #
+            # Retry standard CF decoding.
+            #
+            ds = xr.decode_cf(ds)
+
+            val = ds[key]
+
+            if not val.chunks:
+                val.load()
+
+            val.attrs["_cf_time_repair"] = True
+
+            return val
+
+    def _mask_implicit_fill_values(self, ds):
+        """Mask implicit NetCDF default fill values.
+
+        This is only intended as preparation for CF decoding when
+        decode_times=True has failed.
+        """
+
+        ds = ds.copy()
+
+        for name in ds.data_vars:
+
+            var = ds[name]
+
+            #
+            # Respect explicit metadata.
+            #
+            if (
+                "_FillValue" in var.attrs
+                or "missing_value" in var.attrs
+            ):
+                continue
+
+            dtype = np.dtype(var.dtype)
+
+            fill_key = _DTYPE_TO_FILL_KEY.get(dtype)
+
+            if fill_key is None:
+                continue
+
+            fill_value = netCDF4.default_fillvals[fill_key]
+
+            #
+            # Cheap detection.
+            #
+            try:
+                has_fill = bool(
+                    (var == fill_value).any().compute()
+                )
+            except Exception:
+                continue
+
+            if not has_fill:
+                continue
+
+            logger.warning(
+                "Masking implicit NetCDF fill value %r "
+                "for variable %r",
+                fill_value,
+                name,
+            )
+
+            ds[name] = var.where(var != fill_value)
+
+        return ds
+
+    def _get_var_from_dimension_repair(
+        self,
+        group,
+        key,
+        **kwargs_override,
+    ):
+        bad_vars = self._remove_dimension_size_scalars(group)
+
+        kwargs = dict(self._xarray_kwargs)
+        kwargs.update(kwargs_override)
+
+        with xr.open_dataset(
+            self.filename,
+            group=group,
+            drop_variables=bad_vars,
+            **kwargs,
+        ) as ds:
+
+            val = ds[key]
+
+            if not val.chunks:
+                val.load()
+
+            val.attrs["_dimension_repair"] = True
+
+            return val
+
+
+    def _remove_dimension_size_scalars(self, group):
+        """Identify scalar variables that duplicate dimension sizes."""
+
+        ds = netCDF4.Dataset(self.filename)
+
+        try:
+
+            g = ds if group is None else ds[group]
+
+            bad_vars = []
+
+            for name, var in g.variables.items():
+
+                if name not in g.dimensions:
+                    continue
+
+                if var.shape != ():
+                    continue
+
+                try:
+                    value = var[...].item()
+                except Exception:
+                    continue
+
+                dim_size = len(g.dimensions[name])
+
+                if value == dim_size:
+
+                    logger.warning(
+                        "Detected dimension-size scalar: %s=%s",
+                        name,
+                        value,
+                    )
+
+                    bad_vars.append(name)
+
+            return bad_vars
+
+        finally:
+            ds.close()
