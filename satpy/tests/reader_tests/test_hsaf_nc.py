@@ -48,7 +48,7 @@ FILE_PARAMS = {
 # Avoid too many arguments for test_load_datasets
 LoadDatasetsParams = namedtuple(
     "LoadDatasetsParams",
-    ["file_type", "loadable_ids", "unit", "resolution", "area_name", "platform"]
+    ["file_type", "loadable_ids", "unit", "resolution", "area_name", "platform", "end_time_delta_min",]
 )
 
 # constants for fake test data
@@ -123,16 +123,16 @@ class TestHSAFNCReader:
         "params",
         [
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"], "mm/h", 3000, "msg_seviri_fes_3km", "Meteosat-10"
+                FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"], "mm/h", 3000, "msg_seviri_fes_3km", "Meteosat-10", 15
             ),
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"], "mm/h", 3000, "msg_seviri_iodc_3km", "Meteosat-9"
+                FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"], "mm/h", 3000, "msg_seviri_iodc_3km", "Meteosat-9", 15
             ),
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km", "Meteosat-9"
+                FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km", "Meteosat-9", 15
             ),
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H40B], ["rr", "qind"], "mm/h", 2000, "mtg_fci_fdss_2km", "Meteosat-12"
+                FILE_PARAMS[FILE_TYPE_H40B], ["rr", "qind"], "mm/h", 2000, "mtg_fci_fdss_2km", "Meteosat-12", 10
             ),
 
         ],
@@ -151,13 +151,15 @@ class TestHSAFNCReader:
         assert datasets[params.loadable_ids[1]].shape == DEFAULT_SHAPE
         assert np.issubdtype(datasets[params.loadable_ids[0]].dtype, np.floating)
         assert np.issubdtype(datasets[params.loadable_ids[1]].dtype, np.integer)
-
+       
         data = datasets[params.loadable_ids[0]]
         assert data.attrs["platform_name"] == params.platform
         assert data.attrs["units"] == params.unit
         assert data.attrs["resolution"] == params.resolution
         assert data.attrs["start_time"] == dt.datetime(2025, 11, 5, 0, 0)
-        assert data.attrs["end_time"] == dt.datetime(2025, 11, 5, 0, 15)
+        assert data.attrs["end_time"] == dt.datetime(2025, 11, 5, 0, 0) + dt.timedelta(
+            minutes=params.end_time_delta_min
+        )
         assert data.attrs["area"].area_id == params.area_name
         assert data.dims == ("y", "x")
 
