@@ -307,7 +307,7 @@ composites:
       surface terrain layer with city lights (NASA Black Marble).
     references:
       Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
-    lim_low: 78
+    lim_low: 82
     lim_high: 88
     standard_name: geo_color_day_night_blend
     prerequisites:
