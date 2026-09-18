@@ -321,6 +321,20 @@ composites:
     - cma
     standard_name: pps_cma
 
+  pps_adcot:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - adcot
+    - adcot
+    standard_name: pps_adcot
+
+  pps_cbh:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
+    prerequisites:
+    - cbh_alti
+    - cma
+    standard_name: pps_cbh
+
   pps_ct:
     compositor: !!python/name:satpy.composites.cloud_products.CloudCompositorCommonMask
     prerequisites:
