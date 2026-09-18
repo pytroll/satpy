@@ -85,6 +85,13 @@ arrays. Under each of this, a few options are available:
  - `transitive`: whether the key is to be passed when looking for dependencies of composites/modifiers.
    Here for example, a composite that has in a given calibration type will pass this calibration
    type requirement to its dependencies.
+ - `match_empty`: whether a ``None`` (absent) value in a ``DataID`` counts as a wildcard when matching
+   against a ``DataQuery``. Defaults to ``True`` (standard wildcard behaviour). When set to ``False``,
+   ``None`` is treated as a concrete "no value" and a ``DataQuery`` that requests a specific value for
+   this key will *not* match a ``DataID`` whose value is ``None``; likewise a ``DataID`` with a set
+   value will not match a query that does not mention the key at all. This is useful for discriminating
+   keys like ``tag``, where ``DataID(name='true_color')`` and ``DataID(name='true_color', tag='wmo')``
+   should be considered distinct datasets rather than one being a less-specific version of the other.
 
 
 If the definition of the metadata keys need to be done in python rather than in a yaml file, it will
