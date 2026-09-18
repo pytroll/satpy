@@ -63,9 +63,9 @@ Gzip-compressed VISSR files can be decompressed on the fly using
 Calibration
 -----------
 
-Sensor counts are calibrated by looking up reflectance/temperature values in the
-calibration tables included in each file. See section 2.2 in the VISSR user
-guide.
+Sensor counts are calibrated by looking up unnormalized reflectance/temperature
+values in the calibration tables included in each file. See section 2.2 in the
+VISSR user guide.
 
 
 Navigation
