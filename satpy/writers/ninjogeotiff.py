@@ -421,7 +421,7 @@ class NinJoTagGenerator:
         image.
         """
         mean_time = get_mean_time(self.dataset)
-        return (mean_time - np.datetime64(self._epoch)).astype("m8[s]").astype("int64")
+        return (mean_time - np.datetime64(self._epoch.replace(tzinfo=None))).astype("m8[s]").astype("int64")
 
     def get_earth_radius_large(self):
         """Return the Earth semi-major axis in metre."""

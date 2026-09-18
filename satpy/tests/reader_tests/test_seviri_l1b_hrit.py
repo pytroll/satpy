@@ -689,8 +689,8 @@ def test_track_time(prologue_file, segment_file, epilogue_file):
                                      track_time=True)
     fake_acq_time = (np.datetime64("2022-02-22T22:00:00") +
                      np.linspace(0, 900, 464).astype("m8[s]"))
-    fake_acq_time[:2] = np.datetime64("NaT")
-    fake_acq_time[-2:] = np.datetime64("NaT")
+    fake_acq_time[:2] = np.datetime64("NaT", "s")
+    fake_acq_time[-2:] = np.datetime64("NaT", "s")
     with mock.patch("satpy.readers.seviri_l1b_hrit.get_cds_time") as srsg:
         srsg.return_value = fake_acq_time
         res = filehandler.get_dataset(dict(name="VIS008", calibration="counts"),

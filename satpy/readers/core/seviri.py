@@ -427,7 +427,7 @@ def get_cds_time(days, msecs):
     nsecs = 1000000 * msecs.astype("timedelta64[ns]")
     time = np.datetime64("1958-01-01").astype("datetime64[ms]") + \
         days.astype("timedelta64[D]") + nsecs
-    time[time == np.datetime64("1958-01-01 00:00")] = np.datetime64("NaT")
+    time[time == np.datetime64("1958-01-01 00:00")] = np.datetime64("NaT", "ns")
 
     if len(time) == 1:
         return time[0]
