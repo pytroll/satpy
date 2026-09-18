@@ -361,7 +361,7 @@ class HighCloudCompositor(CloudCompositor):
                          of where abs(latitude).
     """
 
-    def __init__(self, name, transition_min_limits=(190., 220.), latitude_min_limits=(30., 60.),  # noqa: D417
+    def __init__(self, name, transition_min_limits=(210., 230.), latitude_min_limits=(30., 60.),  # noqa: D417
                  transition_max=300, transition_gamma=1.0, **kwargs):
         """Collect custom configuration values.
 
