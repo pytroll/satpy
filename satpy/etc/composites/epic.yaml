@@ -12,7 +12,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - name: B680
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -24,11 +24,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - name: B680
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: B551
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
       - name: B443
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_raw:

@@ -206,6 +206,33 @@ merging of configuration files, they are merged in reverse order. This means
 "base" configuration paths should be at the end of the list and custom/user
 paths should be at the beginning of the list.
 
+.. _legacy_sunz_correction_setting:
+
+Sun Zenith Angle Correction Reduction Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **YAML/Config Key**: ``use_legacy_sunz_correction``
+* **Default**: True
+
+By default a reduction is applied to the standard Sun zenith angle correction (``sunz_corrected`` modifier) to avoid overcorrection at high solar zenith angles.
+This reduction will be removed in Satpy v1.0 to allow computation of the true reflectance with the default configuration of the ``sunz_corrected`` modifier.
+
+To avoid overcorrection at high angles in (RGB) imagery, it is recommended to use the ``effective_solar_pathlength_corrected`` modifier instead (now used for most built-in composites in Satpy).
+
+To retain the current reduction also after upgrading to Satpy v1.0, either do:
+
+.. code-block:: python
+
+    import satpy
+    satpy.config.set(use_legacy_sunz_correction=True)
+
+or explicitly set ``correction_limit: 88.0`` and ``max_sza: 95`` in a local definition of the modifier. To opt in to the new behaviour before Satpy v1.0, do
+
+.. code-block:: python
+
+    import satpy
+    satpy.config.set(use_legacy_sunz_correction=False)
+
 .. _data_dir_setting:
 
 Data Directory
@@ -221,7 +248,7 @@ defaults to a different path depending on your operating system following the
 `platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user data dir".
 
-.. _download_aux_setting:
+.. _demo_data_dir_setting:
 
 Demo Data Directory
 ^^^^^^^^^^^^^^^^^^^
@@ -232,6 +259,8 @@ Demo Data Directory
 
 Directory where demo data functions will download data files to. Available
 demo data functions can be found in :mod:`satpy.demo` subpackage.
+
+.. _download_aux_setting:
 
 Download Auxiliary Data
 ^^^^^^^^^^^^^^^^^^^^^^^
