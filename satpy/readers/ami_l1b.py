@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Advanced Meteorological Imager reader for the Level 1b NetCDF4 format."""
 
@@ -186,6 +169,9 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
+        # 8< v1.0
+        _warn_if_reflectance(dataset_id)
+        # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
         data = self.nc[file_key]
         # hold on to attributes for later
@@ -210,14 +196,24 @@ class AMIL1bNetCDF(BaseFileHandler):
         gain = self.nc.attrs["DN_to_Radiance_Gain"]
         offset = self.nc.attrs["DN_to_Radiance_Offset"]
 
-        if dataset_id["calibration"] in ("radiance", "reflectance", "brightness_temperature"):
+        if dataset_id["calibration"] in (
+                "radiance",
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance",
+                "brightness_temperature"):
             data = gain * data + offset
             data = self._clip_negative_radiance(data, gain, offset)
             if self.calib_mode == "GSICS":
                 data = self._apply_gsics_rad_correction(data)
             elif isinstance(self.user_calibration, dict):
                 data = self._apply_user_rad_correction(data)
-        if dataset_id["calibration"] == "reflectance":
+        if dataset_id["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             # depends on the radiance calibration above
             rad_to_alb = self.nc.attrs["Radiance_to_Albedo_c"]
             if ds_info.get("units") == "%":
@@ -298,3 +294,16 @@ class AMIL1bNetCDF(BaseFileHandler):
                                                              self.user_calibration)
         data = apply_rad_correction(data, rad_slope, rad_offset)
         return data
+
+# 8< v1.0
+def _warn_if_reflectance(dataset_id):
+    import warnings
+    if dataset_id["calibration"] == "reflectance":
+        warnings.warn(
+            "The 'reflectance' calibration for AMI L1b is missing Solar Zenith Angle (SZA) "
+            "normalization and is actually unnormalized reflectance. To reflect this, "
+            "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+            "The underlying data remain identical.",
+            DeprecationWarning,
+            stacklevel=2)
+# >8 v1.0

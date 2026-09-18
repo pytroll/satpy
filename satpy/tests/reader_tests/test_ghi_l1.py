@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The agri_l1 reader tests package."""
 
 import os
@@ -248,25 +231,58 @@ class Test_HDF_GHI_L1_cal:
 
     def test_ghi_all_bands_have_right_units(self):
         """Test all bands have the right units."""
+        from satpy.tests.utils import make_dsq
+
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
-        band_names = ALL_BAND_NAMES
-        res = reader.load(band_names)
+        dsqs = []
+        for band in ALL_BAND_NAMES:
+            if band < "C07":
+                dsqs.append(make_dsq(name=band, calibration="unnormalized_reflectance"))
+            else:
+                dsqs.append(band)
+
+        res = reader.load(dsqs)
         assert len(res) == 7
 
-        for band_name in band_names:
+        for band_name in ALL_BAND_NAMES:
             assert res[band_name].shape == (2, 5)
             self._check_units(band_name, res)
 
-    def test_ghi_orbital_parameters_are_correct(self):
-        """Test orbital parameters are set correctly."""
+    # 8< v1.0
+    def test_reflectance_warns(self):
+        """Test that requesting reflectance issues a warning."""
+        from satpy.tests.utils import make_dsq
+
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
-        band_names = ALL_BAND_NAMES
-        res = reader.load(band_names)
+        dsqs = []
+        for band in ALL_BAND_NAMES:
+            if band < "C07":
+                dsqs.append(make_dsq(name=band, calibration="reflectance"))
+            else:
+                dsqs.append(band)
+
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = reader.load(dsqs)
+    # >8 v1.0
+
+    def test_ghi_orbital_parameters_are_correct(self):
+        """Test orbital parameters are set correctly."""
+        from satpy.tests.utils import make_dsq
+
+        reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
+
+        dsqs = []
+        for band in ALL_BAND_NAMES:
+            if band < "C07":
+                dsqs.append(make_dsq(name=band, calibration="unnormalized_reflectance"))
+            else:
+                dsqs.append(band)
+        res = reader.load(dsqs)
 
         # check whether the data type of orbital_parameters is float
-        orbital_parameters = res[band_names[0]].attrs["orbital_parameters"]
+        orbital_parameters = res[ALL_BAND_NAMES[0]].attrs["orbital_parameters"]
         for attr in orbital_parameters:
             assert isinstance(orbital_parameters[attr], float)
         assert orbital_parameters["satellite_nominal_latitude"] == 0.
@@ -283,7 +299,10 @@ class Test_HDF_GHI_L1_cal:
             ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < "C07":
-                assert len(res) == 2
+                # 8< v1.0
+                assert len(res) == 3
+                # >8 v1.0
+                # assert len(res) == 2
             else:
                 assert len(res) == 3
 
@@ -331,11 +350,18 @@ class Test_HDF_GHI_L1_cal:
     @pytest.mark.parametrize("resolution_to_test", RESOLUTION_LIST)
     def test_ghi_for_one_resolution(self, resolution_to_test):
         """Test loading data when only one resolution is available."""
+        from satpy.tests.utils import make_dsq
         reader = self._create_reader_for_resolutions(resolution_to_test)
         available_datasets = reader.available_dataset_ids
         band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
+        dsqs = []
+        for band in band_names:
+            if band < "C07":
+                dsqs.append(make_dsq(name=band, calibration="unnormalized_reflectance"))
+            else:
+                dsqs.append(band)
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
-        res = reader.load(band_names)
+        res = reader.load(dsqs)
         assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
         for band_name in band_names:
@@ -352,7 +378,7 @@ class Test_HDF_GHI_L1_cal:
     @staticmethod
     def _check_units(band_name, result):
         if band_name <= "C06":
-            assert result[band_name].attrs["calibration"] == "reflectance"
+            assert result[band_name].attrs["calibration"] == "unnormalized_reflectance"
         else:
             assert result[band_name].attrs["calibration"] == "brightness_temperature"
         if band_name <= "C06":
@@ -376,6 +402,9 @@ class Test_HDF_GHI_L1_cal:
             ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < "C07":
-                assert len(res) == 2
+                # 8< v1.0
+                assert len(res) == 3
+                # >8 v1.0
+                # assert len(res) == 2
             else:
                 assert len(res) == 3

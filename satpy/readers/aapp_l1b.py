@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2012-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for aapp level 1b data.
 
@@ -313,10 +296,14 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         if calib_coeffs is None:
             calib_coeffs = {}
 
-        units = {"reflectance": "%",
-                 "brightness_temperature": "K",
-                 "counts": "",
-                 "radiance": "W*m-2*sr-1*cm ?"}
+        units = {
+            # 8< v1.0
+            "reflectance": "%",
+            # >8 v1.0
+            "unnormalized_reflectance": "%",
+            "brightness_temperature": "K",
+            "counts": "",
+            "radiance": "W*m-2*sr-1*cm ?"}
 
         if dataset_id["name"] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
@@ -544,12 +531,29 @@ def _vis_calibrate(data,
                    mask=True):
     """Calibrate visible channel data.
 
-    *calib_type* in count, reflectance, radiance.
+    *calib_type* in count, unnormalized_reflectance, radiance.
 
     """
+    # 8< v1.0
+    import warnings
+    if calib_type == "reflectance":
+        warnings.warn(
+                "The 'reflectance' calibration for AVHRR AAPP L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+    # >8 v1.0
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
-    if calib_type not in ["counts", "radiance", "reflectance"]:
+    if calib_type not in [
+            "counts",
+            "radiance",
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "unnormalized_reflectance"]:
         raise ValueError("Calibration " + calib_type + " unknown!")
 
     channel_data = data["hrpt"][:, :, chn]
@@ -597,10 +601,11 @@ def _vis_calibrate(data,
         # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
         # them to real numbers which are applied to the measured counts. The coefficient is different depending on
         # whether the counts are less than or greater than the high-gain/low-gain transition value (nominally 500).
-        # The slope for visible channels should always be positive (reflectance increases with count). With the
-        # pre-launch coefficients the channel 2, 3a slope is always positive but with the operational coefs the stored
-        # number in the high-reflectance regime overflows the maximum 2147483647, i.e. it is negative when
-        # interpreted as a signed integer. So you have to modify it. Also chanel 1 is treated the same way in AAPP.
+        # The slope for visible channels should always be positive (unnormalized_reflectance increases with count).
+        # With the pre-launch coefficients the channel 2, 3a slope is always positive but with the operational coefs
+        # the stored number in the high-unnormalized_reflectance regime overflows the maximum 2147483647, i.e. it is
+        # negative when interpreted as a signed integer. So you have to modify it. Also chanel 1 is treated the same
+        # way in AAPP.
         slope2 = da.where(slope2 < 0, slope2 + 0.4294967296, slope2)
 
     channel = da.where(channel <= intersection[:, None],

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for MODIS L1b HDF reader."""
 
 from __future__ import annotations
@@ -186,7 +169,7 @@ class TestModisL1b:
         scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file)
         dataset_name = "1"
         with dask.config.set({"array.chunk-size": "1 MiB"}):
-            scene.load([dataset_name])
+            scene.load([dataset_name], calibration="unnormalized_reflectance")
         dataset = scene[dataset_name]
         assert dataset[0, 0] == 300.0
         assert dataset.shape == _shape_for_resolution(1000)
@@ -200,7 +183,7 @@ class TestModisL1b:
                       reader_kwargs={"mask_saturated": mask_saturated})
         dataset_name = "2"
         with dask.config.set({"array.chunk-size": "1 MiB"}):
-            scene.load([dataset_name])
+            scene.load([dataset_name], calibration="unnormalized_reflectance")
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs["resolution"] == 1000
@@ -218,3 +201,13 @@ class TestModisL1b:
             # albedos are converted to %
             assert data[-1, -2] >= 32767 * 100.0  # saturation
             assert data[-1, -3] >= 32767 * 100.0  # can't aggregate
+
+    # 8< v1.0
+    def test_reflectance_warns(self, modis_l1b_nasa_mod021km_file):
+        """Test asking for reflectance issues a warning."""
+        scene = Scene(reader="modis_l1b", filenames=modis_l1b_nasa_mod021km_file)
+        dataset_name = "1"
+        with dask.config.set({"array.chunk-size": "1 MiB"}):
+            with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+                scene.load([dataset_name], calibration="reflectance")
+    # >8 v1.0

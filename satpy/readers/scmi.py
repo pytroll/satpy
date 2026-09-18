@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """SCMI NetCDF4 Reader.
 
@@ -45,6 +28,10 @@ import datetime as dt
 import logging
 import os
 
+# 8< v1.0
+import warnings
+
+# >8 v1.0
 import numpy as np
 import xarray as xr
 from pyresample import geometry
@@ -133,6 +120,16 @@ class SCMIFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug("Reading in get_dataset %s.", key["name"])
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for SCMI ABI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         var_name = info.get("file_key", self.filetype_info.get("file_key"))
         if var_name:
             data = self[var_name]
@@ -149,7 +146,12 @@ class SCMIFileHandler(BaseFileHandler):
         offset = data.attrs.pop("add_offset", 0)
         units = data.attrs.get("units", 1)
         # the '*1' unit is some weird convention added/needed by AWIPS
-        if units in ["1", "*1"] and key["calibration"] == "reflectance":
+        if units in ["1", "*1"] and key["calibration"] in (
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance",
+                ):
             data *= 100
             factor *= 100  # used for valid_min/max
             data.attrs["units"] = "%"

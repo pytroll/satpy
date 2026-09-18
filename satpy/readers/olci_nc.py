@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Sentinel-3 OLCI reader.
 
 This reader supports an optional argument to choose the 'engine' for reading
@@ -40,6 +23,7 @@ References:
 
 
 import logging
+import warnings
 from functools import reduce
 
 import dask.array as da
@@ -226,11 +210,25 @@ class NCOLCI1B(NCOLCIChannelBase):
         else:
             dataset = self.nc[self.channel + "_radiance"]
 
-            if key["calibration"] == "reflectance":
+            if key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
                 idx = int(key["name"][2:]) - 1
                 sflux = self._get_solar_flux(idx)
                 dataset = dataset / sflux * np.pi * 100
                 dataset.attrs["units"] = "%"
+            # 8< v1.0
+            if key["calibration"] == "reflectance":
+                warnings.warn(
+                    "The 'reflectance' calibration for OLCI is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
 
         dataset.attrs["platform_name"] = self.platform_name
         dataset.attrs["sensor"] = self.sensor

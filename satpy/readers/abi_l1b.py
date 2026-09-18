@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advance Baseline Imager reader for the Level 1b format.
 
 The files read by this reader are described in the official PUG document:
@@ -45,6 +28,17 @@ class NC_ABI_L1B(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug("Reading in get_dataset %s.", key["name"])
+        # 8< v1.0
+        import warnings
+        if key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for ABI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
 
         # For raw cal, don't apply scale and offset, return raw file counts
         if key["calibration"] == "counts":
@@ -55,7 +49,10 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         # mapping of calibration types to calibration functions
         cal_dictionary = {
+            "unnormalized_reflectance": self._vis_calibrate,
+            # 8< v1.0
             "reflectance": self._vis_calibrate,
+            # >8 v1.0
             "brightness_temperature": self._ir_calibrate,
             "radiance": self._rad_calibrate,
             "counts": self._raw_calibrate,
@@ -131,7 +128,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         return res
 
     def _vis_calibrate(self, data):
-        """Calibrate visible channels to reflectance."""
+        """Calibrate visible channels to unnormalized_reflectance."""
         solar_irradiance = self["esun"]
         esd = self["earth_sun_distance_anomaly_in_AU"]
 
@@ -140,8 +137,8 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res = data * np.float32(factor)
         res.attrs = data.attrs
         res.attrs["units"] = "1"
-        res.attrs["long_name"] = "Bidirectional Reflectance"
-        res.attrs["standard_name"] = "toa_bidirectional_reflectance"
+        res.attrs["long_name"] = "Product of cosine of solar zenith angle and TOA bidirectional reflectance"
+        res.attrs["standard_name"] = "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"
         return res
 
     def _get_minimum_radiance(self, data):

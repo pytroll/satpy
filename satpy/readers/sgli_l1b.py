@@ -1,18 +1,3 @@
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """GCOM-C SGLI L1b reader.
 
@@ -30,6 +15,7 @@ https://gportal.jaxa.jp/gpr/assets/mng_upload/GCOM-C/SGLI_Level1_Product_Format_
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import dask.array as da
 import h5py
@@ -124,10 +110,24 @@ class HDF5SGLI(BaseFileHandler):
         attrs = dataset.attrs
         if calibration == "counts":
             return dataset
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             calibrated = (dataset * attrs["Slope_reflectance"] + attrs["Offset_reflectance"]) * 100
         elif calibration == "radiance":
             calibrated = dataset * attrs["Slope"] + attrs["Offset"]
+        # 8< v1.0
+        if calibration == "reflectance":
+            warn(
+                "The 'reflectance' calibration for SGLI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         missing, _ = self.get_missing_and_saturated(attrs)
         return calibrated.where(dataset < missing)
 

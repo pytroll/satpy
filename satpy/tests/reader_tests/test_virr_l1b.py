@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test for readers/virr_l1b.py."""
 import os
 import unittest
@@ -140,10 +123,17 @@ class TestVIRRL1BReader(unittest.TestCase):
             assert datetime.datetime(2018, 12, 25, 21, 47, 28, 254000) == attributes["end_time"]
             assert (19, 20) == datasets[dataset["name"]].shape
             assert ("y", "x") == datasets[dataset["name"]].dims
+            # 8< v1.0
             if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
                 self._band_helper(attributes, "%", "reflectance",
                                   "toa_bidirectional_reflectance", "virr_l1b",
                                   7, 1000)
+            # >8 v1.0
+            # WARN: v1.0 uncomment this
+            # if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
+            #     self._band_helper(attributes, "%", "unnormalized_reflectance",
+            #                       "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
+            #                       "virr_l1b", 7, 1000)
             elif dataset["name"] in ["3", "4", "5"]:
                 self._band_helper(attributes, Emissive_units, "brightness_temperature",
                                   "toa_brightness_temperature", "virr_l1b", 3, 1000)

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The abi_l1b reader tests package."""
 
@@ -139,10 +122,13 @@ def generate_l1b_filename(chan_name: str) -> str:
 
 @pytest.fixture
 def c01_refl(tmp_path) -> xr.DataArray:
-    """Load c01 reflectances."""
+    """Load c01 unnormalized_reflectance."""
     with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
-        return reader.load(["C01"])["C01"]
+        # 8< v1.0
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+        # >8 v1.0
+            return reader.load(["C01"])["C01"]
 
 
 @pytest.fixture
@@ -443,8 +429,8 @@ def test_vis_calibrate(c01_refl):
     np.testing.assert_allclose(data_np[0, :10], expected, equal_nan=True)
     assert "scale_factor" not in res.attrs
     assert "_FillValue" not in res.attrs
-    assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
-    assert res.attrs["long_name"] == "Bidirectional Reflectance"
+    assert res.attrs["standard_name"] == "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"  # noqa
+    assert res.attrs["long_name"] == "Product of cosine of solar zenith angle and TOA bidirectional reflectance" # noqa
 
 
 def test_raw_calibrate(c01_counts):

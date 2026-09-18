@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The ahi_hsd reader tests package."""
 
@@ -376,7 +359,7 @@ class TestAHIHSDFileHandler:
                     key,
                     {
                         "units": "%",
-                        "standard_name": "toa_bidirectional_reflectance",
+                        "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
                         "wavelength": 2,
                         "resolution": 1000,
                     })
@@ -498,11 +481,20 @@ class TestAHICalibration(unittest.TestCase):
                                calibration="brightness_temperature")
         np.testing.assert_allclose(bt, bt_exp)
 
+        # 8< v1.0
         # Reflectance
         refl_exp = np.array([[2.92676, 2.214325],
                              [1.50189, 0.]])
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            refl = self.fh.calibrate(data=self.counts, calibration="reflectance")
+        assert np.allclose(refl, refl_exp)
+        # >8 v1.0
+
+        # unnormalized_reflectance
+        refl_exp = np.array([[2.92676, 2.214325],
+                             [1.50189, 0.]])
         refl = self.fh.calibrate(data=self.counts,
-                                 calibration="reflectance")
+                                 calibration="unnormalized_reflectance")
         assert np.allclose(refl, refl_exp)
 
     def test_updated_calibrate(self):

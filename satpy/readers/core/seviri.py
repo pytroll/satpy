@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Common functionality for SEVIRI L1.5 data readers.
 
@@ -696,7 +679,10 @@ class SEVIRICalibrationHandler:
         """Calibrate the given data."""
         if calibration == "counts":
             res = data
-        elif calibration in ["radiance", "reflectance",
+        elif calibration in ["radiance", "unnormalized_reflectance",
+                             # 8< v1.0
+                             "reflectance",
+                             # >8 v1.0
                              "brightness_temperature"]:
             coefs = self.get_coefs()
             res = self._algo.convert_to_radiance(
@@ -711,7 +697,11 @@ class SEVIRICalibrationHandler:
                 )
             )
 
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             solar_irradiance = CALIB[self._scan_params.platform_id][self._scan_params.channel_name]["F"]
             res = self._algo.vis_calibrate(res, solar_irradiance)
         elif calibration == "brightness_temperature":

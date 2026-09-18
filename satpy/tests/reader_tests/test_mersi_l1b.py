@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'mersi2_l1b' reader."""
 import os
 from unittest import mock
@@ -671,6 +654,7 @@ class TestMERSIRML1B(MERSIL1BTester):
     def test_500m_resolution(self):
         """Test loading data when all resolutions are available."""
         from satpy.readers.core.loading import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = self.filenames_500m
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -679,13 +663,17 @@ class TestMERSIRML1B(MERSIL1BTester):
         # Make sure we have some files
         assert reader.file_handlers
 
-        res = reader.load(["1", "2", "4", "7"])
+        ds_ids = []
+        for band_name in ["1", "2", "4"]:
+            ds_ids.append(make_dataid(name=band_name, calibration="unnormalized_reflectance"))
+        ds_ids.append(make_dataid(name="7"))
+        res = reader.load(ds_ids)
         assert len(res) == 4
-        assert res["4"].shape == (2 * 10, 4096)
-        assert res["1"].attrs["calibration"] == "reflectance"
+        assert res["1"].shape == (2 * 10, 4096)
+        assert res["1"].attrs["calibration"] == "unnormalized_reflectance"
         assert res["1"].attrs["units"] == "%"
         assert res["2"].shape == (2 * 10, 4096)
-        assert res["2"].attrs["calibration"] == "reflectance"
+        assert res["2"].attrs["calibration"] == "unnormalized_reflectance"
         assert res["2"].attrs["units"] == "%"
         assert res["7"].shape == (20, 2048 * 2)
         assert res["7"].attrs["calibration"] == "brightness_temperature"
@@ -713,3 +701,17 @@ class TestMERSIRML1B(MERSIL1BTester):
             assert res[band_name].shape == (20, 4096)
             assert res[band_name].attrs["calibration"] == "radiance"
             assert res[band_name].attrs["units"] == "mW/ (m2 cm-1 sr)"
+
+    # 8< v1.0
+    def test_reflectance_warns(self):
+        """Test that loading reflectances issue a warning."""
+        from satpy.readers.core.loading import load_reader
+        from satpy.tests.utils import make_dataid
+        filenames = self.filenames_500m
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(files)
+
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = reader.load([make_dataid(name="1", calibration="reflectance")])
+    # >8 v1.0

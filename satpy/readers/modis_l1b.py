@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Modis level 1b hdf-eos format reader.
 
@@ -178,7 +161,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         return index
 
     def _fill_saturated(self, array, valid_max):
-        """Replace saturation-related values with max reflectance.
+        """Replace saturation-related values with max unnormalized_reflectance.
 
         If the file handler was created with ``mask_saturated`` set to
         ``True`` then all invalid/fill values are set to NaN. If ``False``
@@ -223,7 +206,11 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             projectable = calibrate_bt(array, var_attrs, index, key["name"])
             info.setdefault("units", "K")
             info.setdefault("standard_name", "toa_brightness_temperature")
-        elif key["calibration"] == "reflectance":
+        elif key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             projectable = calibrate_refl(array, var_attrs, index)
             info.setdefault("units", "%")
             info.setdefault("standard_name",
@@ -254,6 +241,17 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for MODIS L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         if key["name"] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
@@ -279,7 +277,7 @@ def calibrate_refl(array, attributes, index):
     """Calibration for reflective channels."""
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
-    # convert to reflectance and convert from 1 to %
+    # convert to unnormalized_reflectance and convert from 1 to %
     array = (array - offset)
     array = array * (scale * 100)  # avoid extra dask tasks by combining scalars
     return array

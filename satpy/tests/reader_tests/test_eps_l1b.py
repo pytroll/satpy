@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the eps l1b format."""
 
 from tempfile import mkstemp
@@ -121,13 +104,13 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
 
     def test_dataset(self, file_handler):
         """Test getting a dataset."""
-        did = make_dataid(name="1", calibration="reflectance")
+        did = make_dataid(name="1", calibration="unnormalized_reflectance")
         res = file_handler.get_dataset(did, {})
         assert isinstance(res, xr.DataArray)
         assert res.attrs["platform_name"] == "Metop-C"
         assert res.attrs["sensor"] == "avhrr-3"
         assert res.attrs["name"] == "1"
-        assert res.attrs["calibration"] == "reflectance"
+        assert res.attrs["calibration"] == "unnormalized_reflectance"
         assert res.attrs["units"] == "%"
 
         did = make_dataid(name="4", calibration="brightness_temperature")
@@ -138,6 +121,12 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert res.attrs["name"] == "4"
         assert res.attrs["calibration"] == "brightness_temperature"
         assert res.attrs["units"] == "K"
+
+    def test_reflectance_warns(self, file_handler):
+        """Test that asking for reflectance as calibration issues a warning."""
+        did = make_dataid(name="1", calibration="reflectance")
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = file_handler.get_dataset(did, {})
 
     def test_get_dataset_radiance(self, file_handler):
         """Test loading a data array with radiance calibration."""

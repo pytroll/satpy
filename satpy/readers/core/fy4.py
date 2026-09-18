@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Base reader for the L1 HDF data from the AGRI and GHI instruments aboard the FengYun-4A/B satellites.
 
@@ -119,8 +102,8 @@ class FY4Base(HDF5FileHandler):
         return lut[block]
 
     @cached_property
-    def reflectance_coeffs(self):
-        """Retrieve the reflectance calibration coefficients from the HDF file."""
+    def unnormalized_reflectance_coeffs(self):
+        """Retrieve the unnormalized_reflectance calibration coefficients from the HDF file."""
         # using the corresponding SCALE and OFFSET
         if self.PLATFORM_ID == "FY-4A":
             cal_coef = "CALIBRATION_COEF(SCALE+OFFSET)"
@@ -132,6 +115,17 @@ class FY4Base(HDF5FileHandler):
 
     def calibrate(self, data, ds_info, ds_name, file_key):
         """Calibrate the data."""
+        # 8< v1.0
+        import warnings
+        if ds_info.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for FY-4 is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         # Check if calibration is present, if not assume dataset is an angle
         calibration = ds_info.get("calibration")
         # Return raw data in case of counts or no calibration
@@ -139,9 +133,13 @@ class FY4Base(HDF5FileHandler):
             data.attrs["units"] = ds_info["units"]
             ds_info["valid_range"] = data.attrs["valid_range"]
             ds_info["fill_value"] = data.attrs["FillValue"].item()
-        elif calibration == "reflectance":
+        elif calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             channel_index = int(file_key[-2:]) - 1
-            data = self.calibrate_to_reflectance(data, channel_index, ds_info)
+            data = self.calibrate_to_unnormalized_reflectance(data, channel_index, ds_info)
         elif calibration == "brightness_temperature":
             data = self.calibrate_to_bt(data, ds_info, ds_name)
         elif calibration == "radiance":
@@ -154,14 +152,14 @@ class FY4Base(HDF5FileHandler):
             data.attrs["_FillValue"] = data.attrs["FillValue"].item()
         return data
 
-    def calibrate_to_reflectance(self, data, channel_index, ds_info):
-        """Calibrate to reflectance [%]."""
-        logger.debug("Calibrating to reflectances")
+    def calibrate_to_unnormalized_reflectance(self, data, channel_index, ds_info):
+        """Calibrate to unnormalized_reflectance [%]."""
+        logger.debug("Calibrating to unnormalized_reflectance")
         # using the corresponding SCALE and OFFSET
         if self.sensor != "AGRI" and self.sensor != "GHI":
             raise ValueError(f"Unsupported sensor type: {self.sensor}")
 
-        coeffs = self.reflectance_coeffs
+        coeffs = self.unnormalized_reflectance_coeffs
         num_channel = coeffs.shape[0]
 
         if self.sensor == "AGRI" and num_channel == 1:
