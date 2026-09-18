@@ -116,18 +116,10 @@ def get_entry_points_config_dirs(group_name: str, include_config_path: bool = Tr
 def cached_entry_point(group_name: str) -> Iterable[EntryPoint]:
     """Return entry_point for specified ``group``.
 
-    This is a dummy proxy to allow caching and provide compatibility between
-    versions of Python and importlib_metadata.
+    This is a dummy proxy to allow caching.
 
     """
-    try:
-        # mypy in pre-commit currently checks for Python 3.8 compatibility
-        # this line is for Python 3.10+ so it will fail checks
-        return entry_points(group=group_name)  # type: ignore
-    except TypeError:
-        # Python <3.10
-        entry_points_list = entry_points()
-        return entry_points_list.get(group_name, [])
+    return entry_points(group=group_name)
 
 
 def _entry_point_module(entry_point):
