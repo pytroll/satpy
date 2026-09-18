@@ -1,6 +1,7 @@
 """Helpers for reading netcdf-based files."""
 
 import logging
+import os
 from contextlib import suppress
 
 import dask.array as da
@@ -41,9 +42,11 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attrs"]
 
-    Note that loading datasets requires reopening the original file
-    (unless those datasets are cached, see below), but to get just the
-    shape of the dataset append "/shape" to the item string:
+    Note that loading datasets requires opening the original file with
+    ``xarray`` (unless those datasets are cached, see below). That dataset is
+    then held open for the lifetime of this file handler; call ``close`` to
+    release it sooner. To get just the shape of the dataset append "/shape" to
+    the item string:
 
         wrapper["group/subgroup/var_name/shape"]
 
@@ -58,7 +61,27 @@ class NetCDF4FileHandler(BaseFileHandler):
     variable, a dask array will be created "manually". This may be useful if
     you have a dataset distributed over many files, such as for FCI. Note
     that the coordinates will be missing in this case. If you use this option,
-    ``xarray_kwargs`` will have no effect.
+    ``xarray_kwargs`` will have no effect (unless ``xarray_open_strategy`` is
+    ``"file_handle"``, see below).
+
+    When variables are read with xarray, ``xarray_open_strategy`` selects how
+    the ``xarray.Dataset`` for a group is created. Every strategy holds the
+    datasets open for the lifetime of this file handler:
+
+    - ``"per_group"`` (default): ``xarray.open_dataset(filename, group=...)``
+      for every group that is accessed. Each call opens the file again and
+      takes its own slot in xarray's global file cache
+      (``xarray.set_options(file_cache_maxsize=...)``, 128 by default).
+    - ``"datatree"``: ``xarray.open_datatree(filename)`` once, opening (and
+      decoding) every group in the file, and serve groups from that tree.
+    - ``"shared_store"``: open the file once as an xarray backend store and
+      derive a child store per accessed group, so all groups share one file
+      cache slot and only the accessed groups are decoded.
+    - ``"file_handle"``: like ``"shared_store"`` but wrap the netCDF4/h5netcdf
+      handle that is already open thanks to ``cache_handle=True`` (required)
+      instead of opening the file again. Variables are then read with xarray
+      rather than being wrapped in a dask array "manually". Note that arrays
+      created this way can't be pickled (e.g. for dask distributed workers).
 
     Args:
         filename (str): File to read.
@@ -70,19 +93,30 @@ class NetCDF4FileHandler(BaseFileHandler):
         cache_handle (bool): Keep files open for lifetime of filehandler.
         engine (str or list of str): The engine to use for reading, either "netcdf4" or "h5netcdf". As a list, will try
             each engine until one works.
+        xarray_open_strategy (str): How to open ``xarray.Dataset`` objects for the groups of the file. One of
+            "per_group" (default), "datatree", "shared_store" or "file_handle". See above.
 
     """
 
     file_handle = None
+    # ``xarray.Dataset`` objects held open for the lifetime of this file
+    # handler, keyed by group name. See ``_open_xr_dataset``.
+    _open_datasets = None
+    # Backend store or datatree the datasets above are derived from for the
+    # "shared_store"/"file_handle" and "datatree" open strategies.
+    _root_store = None
+    _datatree = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=False, engine="netcdf4"):
+                 cache_var_size=0, cache_handle=False, engine="netcdf4",
+                 xarray_open_strategy="per_group"):
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info)
         self.file_content = {}
         self.cached_file_content = {}
         self.engine = engine
+        self._xarray_open_strategy = _validate_xarray_open_strategy(xarray_open_strategy, cache_handle)
         try:
             self.accessor, file_handle = self.get_accessor_and_filehandle()
         except IOError:
@@ -183,11 +217,35 @@ class NetCDF4FileHandler(BaseFileHandler):
                 variable_names.append(var)
         return variable_names
 
-    def __del__(self):
-        """Delete the file handler."""
+    def close(self):
+        """Close every file object this file handler is holding open.
+
+        Called automatically when the file handler is deleted. Call it directly
+        to release the file before then, for example to write to it.
+
+        """
         if self.file_handle is not None:
             with suppress(RuntimeError):
                 self.file_handle.close()
+        self._close_open_datasets()
+
+    def __del__(self):
+        """Delete the file handler."""
+        self.close()
+
+    def _close_open_datasets(self):
+        """Close the datasets held open by ``_open_xr_dataset`` and what they were derived from."""
+        for nc in (self._open_datasets or {}).values():
+            with suppress(RuntimeError):
+                nc.close()
+        if self._open_datasets:
+            self._open_datasets.clear()
+        for obj in (self._datatree, self._root_store):
+            if obj is not None:
+                with suppress(RuntimeError):
+                    obj.close()
+        self._datatree = None
+        self._root_store = None
 
     def _collect_global_attrs(self, obj):
         """Collect all the global attributes for the provided file object."""
@@ -270,35 +328,79 @@ class NetCDF4FileHandler(BaseFileHandler):
             group, key = parts
         else:
             group = None
-        if self.file_handle is not None:
+        if self.file_handle is not None and self._xarray_open_strategy != "file_handle":
             val = self._get_var_from_filehandle(group, key)
         else:
             val = self._get_var_from_xr(group, key)
         return val
 
+    def _open_xr_dataset(self, group):
+        """Get the dataset for ``group``, opening and remembering it if needed.
+
+        The dataset is held open for the lifetime of this file handler. Opening
+        and closing it once per variable instead would give every returned lazy
+        array its own ``CachingFileManager``, and every manager its own entry in
+        xarray's global file cache. That cache is an LRU of ``file_cache_maxsize``
+        entries (128 by default), so reading more variables than that starts
+        evicting entries and closing netCDF4 handles that sibling arrays of the
+        same file are still reading through, which segfaults in libhdf5.
+
+        """
+        if self._open_datasets is None:
+            self._open_datasets = {}
+        if group not in self._open_datasets:
+            self._open_datasets[group] = self._open_xr_dataset_for_group(group)
+        return self._open_datasets[group]
+
+    def _open_xr_dataset_for_group(self, group):
+        """Open the dataset for ``group`` following ``xarray_open_strategy``."""
+        strategy = self._xarray_open_strategy
+        if strategy == "per_group":
+            return xr.open_dataset(self.filename, group=group, **self._xarray_kwargs)
+        if strategy == "datatree":
+            if self._datatree is None:
+                self._datatree = xr.open_datatree(self.filename, **self._xarray_kwargs)
+            return self._datatree[group or "/"].to_dataset(inherit=False)
+        # "shared_store" and "file_handle": one backend store for the whole
+        # file, child stores share its file manager (and file cache slot).
+        if self._root_store is None:
+            self._root_store = self._create_root_store()
+        store = self._root_store.get_child_store(group) if group else self._root_store
+        kwargs = {key: val for key, val in self._xarray_kwargs.items() if key != "engine"}
+        return xr.open_dataset(store, **kwargs)
+
+    def _create_root_store(self):
+        """Create the xarray backend store of the whole file for the store based open strategies."""
+        from xarray.backends import H5NetCDFStore, NetCDF4DataStore
+
+        store_cls = NetCDF4DataStore if self.accessor.engine == "netcdf4" else H5NetCDFStore
+        if self._xarray_open_strategy == "file_handle":
+            # xarray wraps the already open handle instead of opening the file again
+            return store_cls(self.file_handle)
+        filename = open_file_or_filename(self.filename) if store_cls is H5NetCDFStore else self.filename
+        if isinstance(filename, os.PathLike):
+            # xarray only uses its (cached) file manager for string paths
+            filename = os.fspath(filename)
+        return store_cls.open(filename, mode="r")
+
     def _get_group(self, key, val):
         """Get a group from the netcdf file."""
         # Full groups are conveniently read with xr even if file_handle is available
-        with xr.open_dataset(self.filename, group=key,
-                             **self._xarray_kwargs) as nc:
-            val = nc
-        return val
+        # Copied so callers can modify metadata without touching the shared dataset.
+        return self._open_xr_dataset(key).copy()
 
     def _get_var_from_xr(self, group, key):
-        with xr.open_dataset(self.filename, group=group,
-                             **self._xarray_kwargs) as nc:
-            val = nc[key]
-            # Even though `chunks` is specified in the kwargs, xarray
-            # uses dask.arrays only for data variables that have at least
-            # one dimension; for zero-dimensional data variables (scalar),
-            # it uses its own lazy loading for scalars.  When those are
-            # accessed after file closure, xarray reopens the file without
-            # closing it again.  This will leave potentially many open file
-            # objects (which may in turn trigger a Segmentation Fault:
-            # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
-            if not val.chunks:
-                val.load()
-        return val
+        nc = self._open_xr_dataset(group)
+        val = nc[key]
+        # Even though `chunks` is specified in the kwargs, xarray
+        # uses dask.arrays only for data variables that have at least
+        # one dimension; for zero-dimensional data variables (scalar),
+        # it uses its own lazy loading for scalars.  Loading them now keeps
+        # them usable once this file handler and its datasets are gone.
+        if not val.chunks:
+            val.load()
+        # Copied so callers can modify metadata without touching the shared dataset.
+        return val.copy(deep=False)
 
     def _get_var_from_filehandle(self, group, key):
         # Not getting coordinates as this is more work, therefore more
@@ -332,6 +434,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         v = self.file_content[var_name]
         if isinstance(v, xr.DataArray):
             val = v
+        elif self.file_handle is None and self.accessor.is_variable(v):
+            # The variable object belongs to the file handle that was closed
+            # at the end of ``__init__`` (``cache_handle=False``) and can't be
+            # read from anymore. Read the data through xarray instead.
+            val = self[var_name].load()
         else:
             try:
                 val = get_data_as_xarray(v)
@@ -346,6 +453,17 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def _get_object_attrs(self, obj):
         return self.accessor.get_object_attrs(obj)
+
+XARRAY_OPEN_STRATEGIES = ("per_group", "datatree", "shared_store", "file_handle")
+
+
+def _validate_xarray_open_strategy(strategy, cache_handle):
+    if strategy not in XARRAY_OPEN_STRATEGIES:
+        raise ValueError(f"Unknown xarray_open_strategy {strategy!r}, expected one of {XARRAY_OPEN_STRATEGIES}")
+    if strategy == "file_handle" and not cache_handle:
+        raise ValueError("xarray_open_strategy='file_handle' requires cache_handle=True")
+    return strategy
+
 
 def _compose_replacement_names(variable_name_replacements, var, variable_names):
     for key in variable_name_replacements:

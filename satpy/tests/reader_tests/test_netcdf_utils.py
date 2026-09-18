@@ -266,6 +266,153 @@ class TestNetCDF4FileHandler:
         data2 = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert np.all(data == data2)
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize(("var_name", "expected"), [
+        ("test_group/ds1_f", np.arange(10. * 100).reshape((10, 100))),
+        ("ds2_s", np.arange(10)),
+        ("ds2_sc", 42),
+    ])
+    def test_get_and_cache_npxr_without_file_handle(self, netcdf_file, engine, var_name, expected):
+        """Test that get_and_cache_npxr() reads variables after the file handle was closed.
+
+        With ``cache_handle=False`` the variable objects collected in
+        ``__init__`` belong to a closed file, so the data has to be read
+        through xarray instead.
+        """
+        import xarray as xr
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, engine=engine)
+
+        data = file_handler.get_and_cache_npxr(var_name)
+        assert isinstance(data, xr.DataArray)
+        assert data.chunks is None
+        np.testing.assert_array_equal(data.values, expected)
+        assert var_name in file_handler.cached_file_content
+
+    def test_file_opened_once_per_group(self, netcdf_file, monkeypatch):
+        """Test that reading many variables only opens each group once.
+
+        Opening (and closing) the file for every variable gives each returned
+        lazy array its own entry in xarray's global file cache. Once that LRU
+        cache overflows it closes handles that sibling arrays are still reading
+        through, which segfaults in libhdf5.
+
+        """
+        import xarray as xr
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        groups = []
+        real_open_dataset = xr.open_dataset
+
+        def counting_open_dataset(*args, **kwargs):
+            groups.append(kwargs.get("group"))
+            return real_open_dataset(*args, **kwargs)
+
+        monkeypatch.setattr(xr, "open_dataset", counting_open_dataset)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
+        for var in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "ds2_s"):
+            for _ in range(3):
+                file_handler[var]
+
+        assert set(groups) == {None, "test_group"}
+        assert len(groups) == 2
+
+    def test_file_cache_does_not_grow_with_variables(self, netcdf_file):
+        """Test that repeated variable access does not fill xarray's file cache."""
+        from xarray.backends.file_manager import FILE_CACHE
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
+        file_handler["ds2_f"]
+        num_cached = len(FILE_CACHE)
+        for _ in range(20):
+            file_handler["ds2_f"]
+            file_handler["ds2_i"]
+
+        assert len(FILE_CACHE) == num_cached
+
+    def test_variable_attrs_are_not_shared(self, netcdf_file):
+        """Test that modifying a returned variable does not affect later reads."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
+        first = file_handler["ds2_f"]
+        first.attrs["test_attr_str"] = "modified"
+        first.attrs["extra_attr"] = "added"
+
+        second = file_handler["ds2_f"]
+        assert second.attrs["test_attr_str"] == "test_string"
+        assert "extra_attr" not in second.attrs
+
+    def test_close_releases_open_datasets(self, netcdf_file):
+        """Test that close() releases the datasets held open for reading."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
+        file_handler["ds2_f"]
+        assert file_handler._open_datasets
+
+        file_handler.close()
+
+        assert not file_handler._open_datasets
+        # the variable is still readable, the file is simply reopened
+        assert file_handler["ds2_f"].shape == (10, 100)
+
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize(("strategy", "cache_handle", "exp_new_cache_entries"), [
+        ("per_group", False, 2),
+        ("datatree", False, 1),
+        ("shared_store", False, 1),
+        ("file_handle", True, 0),
+    ])
+    def test_xarray_open_strategies(self, netcdf_file, engine, strategy, cache_handle, exp_new_cache_entries):
+        """Test that every xarray open strategy reads the same data and holds the expected number of files open."""
+        from xarray.backends.file_manager import FILE_CACHE
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        num_cached_before = len(FILE_CACHE)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=cache_handle, engine=engine,
+                                          xarray_open_strategy=strategy)
+        expected = np.arange(10. * 100).reshape((10, 100))
+        for var_name in ("test_group/ds1_f", "ds2_f"):
+            data = file_handler[var_name]
+            assert data.dims == ("rows", "cols")
+            assert data.attrs["test_attr_str"] == "test_string"
+            np.testing.assert_array_equal(data.values, expected)
+        # a second access must not open anything new
+        file_handler["ds2_i"]
+        assert len(FILE_CACHE) - num_cached_before == exp_new_cache_entries
+
+        file_handler.close()
+        assert len(FILE_CACHE) == num_cached_before
+        assert not file_handler._open_datasets
+        assert file_handler._root_store is None
+        assert file_handler._datatree is None
+
+    def test_invalid_xarray_open_strategy(self, netcdf_file):
+        """Test that unknown or incompatible open strategies are rejected."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        with pytest.raises(ValueError, match="Unknown xarray_open_strategy"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, xarray_open_strategy="magic")
+        with pytest.raises(ValueError, match="requires cache_handle=True"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, xarray_open_strategy="file_handle")
+
+    def test_group_attrs_are_not_shared(self, netcdf_file):
+        """Test that modifying a returned group does not affect later reads."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
+        first = file_handler["test_group"]
+        first.attrs["extra_attr"] = "added"
+
+        second = file_handler["test_group"]
+        assert "extra_attr" not in second.attrs
+
 class TestNetCDF4FsspecFileHandler:
     """Test the remote reading class."""
 
