@@ -677,6 +677,208 @@ class TestBucketFraction(unittest.TestCase):
         assert np.all(res.coords["categories"] == np.array([0, 1, 2]))
 
 
+PROJ_STR = "+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs"
+
+
+def _fake_resample_dataset(dataset, destination_area, **kwargs):
+    """Pretend to resample by only shallow-copying attrs, the way :func:`resample_dataset` does."""
+    res = dataset.copy(deep=False)
+    res.attrs = dataset.attrs.copy()
+    res.attrs["area"] = destination_area
+    return res
+
+
+def _make_data_array(name, area, anc_vars=None):
+    attrs = {"name": name}
+    if area is not None:
+        attrs["area"] = area
+    if anc_vars is not None:
+        attrs["ancillary_variables"] = anc_vars
+    if area is None:
+        return xr.DataArray(da.arange(5, dtype=np.float32), dims=("y",), attrs=attrs)
+    shape = area.shape
+    return xr.DataArray(da.arange(np.prod(shape), dtype=np.float32).reshape(shape), dims=("y", "x"), attrs=attrs)
+
+
+class TestDatasetResampler:
+    """Test the DatasetResampler helper that Scene.resample builds on."""
+
+    @pytest.fixture
+    def src_area(self):
+        """Get a 10x10 source area."""
+        from pyresample.geometry import AreaDefinition
+        return AreaDefinition("src", "src", "src", PROJ_STR, 10, 10, (-1000., -1500., 1000., 1500.))
+
+    @pytest.fixture
+    def src_area2(self):
+        """Get a second, distinct, 5x5 source area."""
+        from pyresample.geometry import AreaDefinition
+        return AreaDefinition("src2", "src2", "src2", PROJ_STR, 5, 5, (-1000., -1500., 1000., 1500.))
+
+    @pytest.fixture
+    def dst_area(self):
+        """Get a destination area covering the lower-left quadrant of the source areas."""
+        from pyresample.geometry import AreaDefinition
+        return AreaDefinition("dst", "dst", "dst", PROJ_STR, 4, 4, (-1000., -1500., 0., 0.))
+
+    @pytest.fixture
+    def resample_dataset(self):
+        """Replace resample_dataset with a fake that does no real resampling."""
+        with mock.patch("satpy.resample.base.resample_dataset", side_effect=_fake_resample_dataset) as rs:
+            yield rs
+
+    def test_reduction_cached_per_source_area(self, src_area, src_area2, dst_area, resample_dataset):
+        """Test that area slicing is computed once per source area and reused for other datasets."""
+        from satpy.resample.base import DatasetResampler
+
+        ds_resampler = DatasetResampler(dst_area)
+        with mock.patch.object(src_area, "get_area_slices", wraps=src_area.get_area_slices) as gas, \
+                mock.patch.object(src_area2, "get_area_slices", wraps=src_area2.get_area_slices) as gas2, \
+                mock.patch.object(DatasetResampler, "_slice_data", wraps=DatasetResampler._slice_data) as slice_data:
+            res1 = ds_resampler.resample(_make_data_array("ds1", src_area))
+            res2 = ds_resampler.resample(_make_data_array("ds2", src_area))
+            res3 = ds_resampler.resample(_make_data_array("ds3", src_area2))
+
+        assert gas.call_count == 1
+        assert gas2.call_count == 1
+        assert slice_data.call_count == 3
+        # cache is keyed by the original area and the reduced area is what gets resampled
+        (slices, reduced_area) = ds_resampler._reductions[src_area]
+        assert reduced_area != src_area
+        assert reduced_area.shape < src_area.shape
+        for call, exp_reduced in zip(resample_dataset.call_args_list,
+                                     [reduced_area, reduced_area, ds_resampler._reductions[src_area2][1]]):
+            sent_dataset = call.args[0]
+            assert sent_dataset.attrs["area"] is exp_reduced
+            assert sent_dataset.shape == exp_reduced.shape
+        for res in (res1, res2, res3):
+            assert res.attrs["area"] is dst_area
+
+    def test_resampler_reused_per_source_area(self, src_area, src_area2, dst_area, resample_dataset):
+        """Test that one resampler is created per source area and exposed by its cache key."""
+        from satpy.resample.base import DatasetResampler, prepare_resampler, resamplers_cache
+
+        ds_resampler = DatasetResampler(dst_area, resampler="nearest")
+        with mock.patch("satpy.resample.base.prepare_resampler", wraps=prepare_resampler) as prep:
+            ds_resampler.resample(_make_data_array("ds1", src_area))
+            ds_resampler.resample(_make_data_array("ds2", src_area))
+            ds_resampler.resample(_make_data_array("ds3", src_area2))
+
+        assert prep.call_count == 2
+        resamplers = ds_resampler.resamplers
+        assert len(resamplers) == 2
+        for key, resampler in resamplers.items():
+            assert resamplers_cache[key] is resampler
+        used = [call.kwargs["resampler"] for call in resample_dataset.call_args_list]
+        assert used[0] is used[1]
+        assert used[2] is not used[0]
+        assert set(used) == set(resamplers.values())
+
+    def test_reduce_data_disabled(self, src_area, dst_area, resample_dataset):
+        """Test that no slicing happens when data reduction is disabled."""
+        from satpy.resample.base import DatasetResampler
+
+        ds_resampler = DatasetResampler(dst_area, reduce_data=False)
+        data_arr = _make_data_array("ds1", src_area)
+        with mock.patch.object(src_area, "get_area_slices") as gas:
+            ds_resampler.resample(data_arr)
+        gas.assert_not_called()
+        assert resample_dataset.call_args.args[0] is data_arr
+        assert ds_resampler._reductions == {}
+
+    def test_swath_source_not_reduced(self, dst_area, resample_dataset):
+        """Test that sources that can't be sliced (swaths) are resampled without reduction."""
+        from pyresample.geometry import SwathDefinition
+
+        from satpy.resample.base import DatasetResampler
+
+        lons = xr.DataArray(da.linspace(-100., -90., 25, dtype=np.float32).reshape(5, 5), dims=("y", "x"))
+        lats = xr.DataArray(da.linspace(20., 30., 25, dtype=np.float32).reshape(5, 5), dims=("y", "x"))
+        swath = SwathDefinition(lons, lats)
+        data_arr = _make_data_array("ds1", swath)
+
+        ds_resampler = DatasetResampler(dst_area)
+        res = ds_resampler.resample(data_arr)
+
+        assert resample_dataset.call_args.args[0] is data_arr
+        assert res.attrs["area"] is dst_area
+        assert ds_resampler._reductions == {}
+
+    @pytest.mark.parametrize(
+        ("resample_kwargs", "exp_factor"),
+        [
+            ({}, None),
+            ({"resampler": "nearest"}, None),
+            ({"resampler": "gradient_search"}, 2),
+            ({"resampler": "gradient_search", "shape_divisible_by": 4}, 4),
+        ]
+    )
+    def test_shape_divisible_by(self, src_area, dst_area, resample_dataset, resample_kwargs, exp_factor):
+        """Test that reduction slices are made divisible by a factor for the gradient search resampler."""
+        from satpy.resample.base import DatasetResampler
+
+        ds_resampler = DatasetResampler(dst_area, **resample_kwargs)
+        with mock.patch.object(src_area, "get_area_slices", wraps=src_area.get_area_slices) as gas, \
+                mock.patch("satpy.resample.base.prepare_resampler", return_value=("key", "resampler")):
+            ds_resampler.resample(_make_data_array("ds1", src_area))
+        gas.assert_called_once_with(dst_area, shape_divisible_by=exp_factor)
+
+    def test_ancillary_variables(self, src_area, dst_area, resample_dataset):
+        """Test that ancillary variables are resampled once and attached to every resampled parent."""
+        from satpy.resample.base import DatasetResampler
+
+        anc = _make_data_array("anc", src_area)
+        anc_no_area = _make_data_array("anc_no_area", None)
+        ds1 = _make_data_array("ds1", src_area, anc_vars=[anc, anc_no_area, "not_a_data_array"])
+        ds2 = _make_data_array("ds2", src_area, anc_vars=[anc])
+        src_anc_list = ds1.attrs["ancillary_variables"]
+
+        ds_resampler = DatasetResampler(dst_area)
+        res1 = ds_resampler.resample(ds1)
+        res2 = ds_resampler.resample(ds2)
+        res_anc = ds_resampler.resample(anc)
+
+        assert resample_dataset.call_count == 3
+        new_anc = res1.attrs["ancillary_variables"][0]
+        assert new_anc is not anc
+        assert new_anc.attrs["area"] is dst_area
+        assert res2.attrs["ancillary_variables"][0] is new_anc
+        assert res_anc is new_anc
+        assert res1.attrs["ancillary_variables"][1] is anc_no_area
+        assert res1.attrs["ancillary_variables"][2] == "not_a_data_array"
+        # the inputs must not be modified
+        assert ds1.attrs["ancillary_variables"] is src_anc_list
+        assert src_anc_list[0] is anc
+        assert ds2.attrs["ancillary_variables"][0] is anc
+
+    def test_no_area_dataset_passthrough(self, src_area, dst_area, resample_dataset):
+        """Test that datasets without an area are returned untouched, ancillary variables included."""
+        from satpy.resample.base import DatasetResampler
+
+        anc = _make_data_array("anc", src_area)
+        data_arr = _make_data_array("no_area", None, anc_vars=[anc])
+
+        ds_resampler = DatasetResampler(dst_area)
+        res = ds_resampler.resample(data_arr)
+
+        assert res is data_arr
+        assert res.attrs["ancillary_variables"][0] is anc
+        resample_dataset.assert_not_called()
+
+    def test_slice_data_shape_mismatch(self, src_area, dst_area):
+        """Test that slicing data that doesn't match its area raises an error."""
+        from satpy.resample.base import DatasetResampler
+
+        slices = (slice(0, 5), slice(0, 5))
+        reduced_area = src_area[slices[1], slices[0]]
+        data_arr = _make_data_array("ds1", src_area)
+        assert DatasetResampler._slice_data(data_arr, slices, reduced_area).shape == (5, 5)
+        with pytest.raises(RuntimeError):
+            DatasetResampler._slice_data(data_arr, (slice(0, 4), slice(0, 5)), reduced_area)
+        with pytest.raises(RuntimeError):
+            DatasetResampler._slice_data(data_arr, (slice(0, 5), slice(0, 4)), reduced_area)
+
+
 @pytest.mark.parametrize("name",
                          ["KDTreeResampler",
                           "BilinearResampler",

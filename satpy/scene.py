@@ -1,7 +1,6 @@
 """Scene object to hold satellite data."""
 from __future__ import annotations
 
-import dataclasses
 import logging
 import os
 import warnings
@@ -48,19 +47,6 @@ class DelayedGeneration(KeyError):
     """Mark that a dataset can't be generated without further modification."""
 
     pass
-
-
-@dataclasses.dataclass
-class _ResamplingContext:
-    """Holds configuration and mutable state for a single resampling operation."""
-
-    new_scn: Any
-    destination_area: Any
-    reduce_data: bool
-    resample_kwargs: dict
-    resampled_datasets: dict = dataclasses.field(default_factory=dict)
-    resamplers: dict = dataclasses.field(default_factory=dict)
-    reductions: dict = dataclasses.field(default_factory=dict)
 
 
 class Scene:
@@ -846,84 +832,19 @@ class Scene:
         """Check if the dataset is in the scene."""
         return name in self._datasets
 
-    def _slice_data(self, source_area, slices, dataset):
-        """Slice the data to reduce it."""
-        slice_x, slice_y = slices
-        dataset = dataset.isel(x=slice_x, y=slice_y)
-        if ("x", source_area.width) not in dataset.sizes.items():
-            raise RuntimeError
-        if ("y", source_area.height) not in dataset.sizes.items():
-            raise RuntimeError
-        dataset.attrs["area"] = source_area
-
-        return dataset
-
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
                          **resample_kwargs):
-        """Resample `datasets` to the `destination` area.
+        """Resample the datasets of `new_scn` in place to the `destination_area`."""
+        from satpy.resample.base import DatasetResampler
 
-        If data reduction is enabled, some local caching is performed in order to
-        avoid recomputation of area intersections.
-        """
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
-        context = _ResamplingContext(
-            new_scn=new_scn,
-            destination_area=destination_area,
-            reduce_data=reduce_data,
-            resample_kwargs=resample_kwargs,
-        )
-        datasets = list(new_scn._datasets.values())
-        for dataset, parent_dataset in dataset_walker(datasets):
-            self._process_one_dataset(dataset, parent_dataset, context)
-
-    def _process_one_dataset(self, dataset, parent_dataset, context):
-        """Process a single dataset during resampling and update new_scn in-place."""
-        ds_id = DataID.from_dataarray(dataset)
-        resampled_parent = self._get_resampled_parent(context.resampled_datasets, parent_dataset)
-
-        if ds_id in context.resampled_datasets:
-            replace_anc(context.resampled_datasets[ds_id], resampled_parent)
-            if ds_id in context.new_scn._datasets:
-                context.new_scn._datasets[ds_id] = context.resampled_datasets[ds_id]
-            return
-
-        if dataset.attrs.get("area") is None:
-            if parent_dataset is None:
-                context.new_scn._datasets[ds_id] = dataset
-            else:
-                replace_anc(dataset, resampled_parent)
-            return
-
-        dataset, source_area = self._reduce_data(dataset, context.destination_area,
-                                                 context.reduce_data, context.reductions,
-                                                 context.resample_kwargs)
-
-        LOG.debug("Resampling %s", ds_id)
-        res = self._resample_dataset(source_area, context.destination_area, dataset,
-                                     context.resamplers, context.resample_kwargs)
-
-        context.resampled_datasets[ds_id] = res
-        if ds_id in context.new_scn._datasets:
-            context.new_scn._datasets[ds_id] = res
-        if parent_dataset is not None:
-            replace_anc(res, resampled_parent)
-
-    @staticmethod
-    def _get_resampled_parent(resampled_datasets, parent_dataset):
-        """Return the already-resampled version of the parent dataset, or None."""
-        if parent_dataset is not None:
-            return resampled_datasets[DataID.from_dataarray(parent_dataset)]
-        return None
-
-    def _resample_dataset(self, source_area, destination_area, dataset, resamplers, resample_kwargs):
-        from satpy.resample.base import resample_dataset
-
-        self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
-        kwargs = resample_kwargs.copy()
-        kwargs["resampler"] = resamplers[source_area]
-        res = resample_dataset(dataset, destination_area, **kwargs)
-
-        return res
+        ds_resampler = DatasetResampler(destination_area, reduce_data=reduce_data, **resample_kwargs)
+        for ds_id, data_arr in list(new_scn._datasets.items()):
+            # don't use `Scene.__setitem__` so the wishlist/dependency tree are not affected
+            new_scn._datasets[ds_id] = ds_resampler.resample(data_arr)
+        # keep strong references so the global weak resampler cache
+        # (satpy.resample.base.resamplers_cache) keeps them for the lifetime of this Scene
+        self._resamplers.update(ds_resampler.resamplers)
 
     def _get_finalized_destination_area(self, destination_area, new_scn):
         if isinstance(destination_area, str):
@@ -936,55 +857,6 @@ class Scene:
                 raise ValueError("No dataset areas available to freeze "
                                  "DynamicAreaDefinition.")
         return destination_area
-
-    def _prepare_resampler(self, source_area, destination_area, resamplers, resample_kwargs):
-        from satpy.resample.base import prepare_resampler
-
-        if source_area not in resamplers:
-            key, resampler = prepare_resampler(
-                source_area, destination_area, **resample_kwargs)
-            resamplers[source_area] = resampler
-            self._resamplers[key] = resampler
-
-    def _reduce_data(self, dataset, destination_area, reduce_data, reductions, resample_kwargs):
-        source_area = dataset.attrs["area"]
-        if not reduce_data:
-            LOG.debug("Data reduction disabled by the user")
-            return dataset, source_area
-
-        try:
-            slices, reduced_area = self._get_source_dest_slices(
-                source_area, destination_area, reductions, resample_kwargs)
-        except NotImplementedError:
-            LOG.info("Not reducing data before resampling.")
-        else:
-            source_area = reduced_area
-            dataset = self._slice_data(source_area, slices, dataset)
-
-        return dataset, source_area
-
-    @staticmethod
-    def _get_source_dest_slices(source_area, destination_area, reductions, resample_kwargs):
-        """Get the slices and the reduced source area, reusing previous reductions of the same area."""
-        try:
-            return reductions[source_area]
-        except KeyError:
-            pass
-
-        if resample_kwargs.get("resampler") == "gradient_search":
-            factor = resample_kwargs.get("shape_divisible_by", 2)
-        else:
-            factor = None
-        try:
-            slice_x, slice_y = source_area.get_area_slices(
-                destination_area, shape_divisible_by=factor)
-        except TypeError:
-            slice_x, slice_y = source_area.get_area_slices(
-                destination_area)
-
-        reduction = (slice_x, slice_y), source_area[slice_y, slice_x]
-        reductions[source_area] = reduction
-        return reduction
 
     def resample(
             self,

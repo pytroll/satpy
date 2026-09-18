@@ -270,6 +270,8 @@ class TestSceneResampling:
         """Test that the Scene can be reduced or not reduced during resampling."""
         from pyresample.geometry import AreaDefinition
 
+        from satpy.resample.base import DatasetResampler
+
         rs.side_effect = self._fake_resample_dataset_force_20x20
         proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
                     "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
@@ -294,7 +296,7 @@ class TestSceneResampling:
         # datasets are processed in insertion order, so data of the same
         # resolution (comp19 and comp19_copy) are not processed together
         assert [ds_id["name"] for ds_id in scene.keys()] == ["comp19", "comp19_big", "comp19_copy"]
-        with mock.patch.object(scene, "_slice_data", wraps=scene._slice_data) as slice_data, \
+        with mock.patch.object(DatasetResampler, "_slice_data", wraps=DatasetResampler._slice_data) as slice_data, \
                 mock.patch.object(area_def, "get_area_slices", wraps=area_def.get_area_slices) as get_area_slices, \
                 mock.patch.object(area_def_big, "get_area_slices",
                                   wraps=area_def_big.get_area_slices) as get_area_slices_big:
@@ -361,6 +363,31 @@ class TestSceneResampling:
         else:
             assert "anc" not in new_scene
         assert new_scene["no_area"] is scene["no_area"]
+        # the source Scene must not be modified
+        assert scene["comp19"].attrs["ancillary_variables"][0] is anc
+        assert scene["comp19_2"].attrs["ancillary_variables"][0] is anc
+
+    def test_resample_no_area_dataset_with_ancillary(self):
+        """Test that a dataset without an area is passed through untouched even if it has ancillary variables."""
+        from pyresample.geometry import AreaDefinition
+
+        proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                    "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
+        area_def = AreaDefinition("test", "test", "test", proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
+        dst_area = AreaDefinition("dst", "dst", "dst", proj_str, 2, 2, (-1000., -1500., 0., 0.))
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp19"])
+        scene["comp19"].attrs["area"] = area_def
+        anc = xr.DataArray(da.zeros((5, 5), dtype=np.float32), dims=("y", "x"),
+                           attrs={"name": "anc", "area": area_def})
+        scene["no_area"] = xr.DataArray(da.arange(5, dtype=np.float32), dims=("y",),
+                                        attrs={"name": "no_area", "ancillary_variables": [anc]})
+
+        new_scene = scene.resample(dst_area)
+
+        assert new_scene["comp19"].attrs["area"] == dst_area
+        assert new_scene["no_area"] is scene["no_area"]
+        assert new_scene["no_area"].attrs["ancillary_variables"][0] is anc
 
     def test_resample_multi_ancillary(self):
         """Test that multiple ancillary variables are retained after resampling.
