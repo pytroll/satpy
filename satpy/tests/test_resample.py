@@ -971,7 +971,10 @@ def test_resample_time_coordinate(scene_with_time_coords, reduce_data):
     """Test that resampling retains the time coordinate."""
     from pyresample import create_area_def
 
-    ar2 = create_area_def("test", 4087, shape=(4, 4), resolution=1200, center=(100, 100))
+    # The centre is offset so that no destination pixel centre is exactly equidistant from two
+    # source pixel centres, which would make the nearest-neighbour choice depend on floating point noise.
+    # Destination centres are at {-1650, -450, 750, 1950}, picking source rows 0, 1, 2, 4 and columns 0, 2, 3, 4.
+    ar2 = create_area_def("test", 4087, shape=(4, 4), resolution=1200, center=(150, 150))
     ls = scene_with_time_coords.resample(ar2, resampler="nearest",
                                          reduce_data=reduce_data)
     assert "time" not in ls["ir"].coords  # drop by default
@@ -985,7 +988,7 @@ def test_resample_time_coordinate(scene_with_time_coords, reduce_data):
     assert "time" in ls["ir"].coords
     assert ls["ir"].coords["time"].sizes == ls["ir"].sizes
     assert ls["ir"].coords["time"].dtype == scene_with_time_coords["ir"].coords["time"].dtype
-    np.testing.assert_allclose(ls["ir"].coords["time"].mean(), 449.75)
+    np.testing.assert_allclose(ls["ir"].coords["time"].mean(), 412.3125)
 
 
 def test_slice_scene_time_coordinate(scene_with_time_coords):
