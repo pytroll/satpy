@@ -256,17 +256,7 @@ def dataset_id(channel):
     """Get the dataset ID matching the test file's channel."""
     if channel == fmt.IR_CHANNEL:
         return make_dataid(name="IR", calibration="brightness_temperature", resolution=5000)
-    try:
-        return make_dataid(name="VIS", calibration="unnormalized_reflectance", resolution=1250)
-    except ValueError:
-        # "unnormalized_reflectance" isn't in Satpy core's calibration
-        # enum (satpy/dataset/dataid.py) until
-        # https://github.com/pytroll/satpy/pull/3292 merges -- this is
-        # a known, acknowledged upstream dependency (see review
-        # discussion), not a bug in this reader. Once #3292 merges,
-        # this will start "unexpectedly passing", which is the signal
-        # to remove this xfail.
-        pytest.xfail("Requires satpy#3292 (unnormalized_reflectance calibration enum) to be merged.")
+    return make_dataid(name="VIS", calibration="unnormalized_reflectance", resolution=1250)
 
 
 class TestFileHandler:
