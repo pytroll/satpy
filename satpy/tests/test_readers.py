@@ -217,15 +217,9 @@ class TestDatasetDict(unittest.TestCase):
         """Test keys method of DatasetDict."""
         from satpy.tests.utils import DataID
         d = self.test_dict
-        assert len(d.keys()) == len(self.regular_dict.keys())
+        assert d.keys() == self.regular_dict.keys()
+        assert list(d.keys()) == list(self.regular_dict.keys())
         assert all(isinstance(x, DataID) for x in d.keys())
-        name_keys = d.keys(names=True)
-        assert sorted(set(name_keys))[:4] == ["test", "test2", "test3", "test4"]
-        wl_keys = tuple(d.keys(wavelengths=True))
-        assert (0, 0.5, 1) in wl_keys
-        assert (1, 1.5, 2, "µm") in wl_keys
-        assert (1.2, 1.7, 2.2, "µm") in wl_keys
-        assert None in wl_keys
 
     def test_setitem(self):
         """Test setitem method of DatasetDict."""

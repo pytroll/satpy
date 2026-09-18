@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import numbers
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from typing import Any, Literal, TypeVar, overload
 
 import numpy as np
 
-from .dataid import DataID, DataQuery, WavelengthRange, create_filtered_query, minimal_default_keys_config
+from .dataid import DataID, DataQuery, create_filtered_query, minimal_default_keys_config
 
 _V = TypeVar("_V")
 _T = TypeVar("_T")
@@ -136,31 +136,6 @@ class DatasetDict(dict[DataID, _V]):
     Note: Internal dictionary keys are `DataID` objects.
 
     """
-
-    # Unlike ``dict.keys`` this returns a sorted list (or a generator of
-    # names/wavelengths) rather than a live ``dict_keys`` view, so the
-    # signature is intentionally incompatible with the supertype.
-    @overload  # type: ignore[override]
-    def keys(self) -> list[DataID]: ...
-
-    @overload
-    def keys(self, names: Literal[True], wavelengths: bool = False) -> Iterator[str | None]: ...
-
-    @overload
-    def keys(self, names: Literal[False] = False, *, wavelengths: Literal[True]
-             ) -> Iterator[WavelengthRange | None]: ...
-
-    def keys(self, names: bool = False, wavelengths: bool = False
-             ) -> list[DataID] | Iterator[str | None] | Iterator[WavelengthRange | None]:
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        keys = sorted(super(DatasetDict, self).keys())
-        if names:
-            return (k.get("name") for k in keys)
-        elif wavelengths:
-            return (k.get("wavelength") for k in keys)
-        else:
-            return keys
 
     @overload
     def get_key(self, match_key: DataKey, num_results: Literal[1] = 1, best: bool = True, **dfilter: Any) -> DataID: ...
