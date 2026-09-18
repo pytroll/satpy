@@ -833,12 +833,14 @@ class Scene:
         return name in self._datasets
 
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
+                         resample_coords=False,
                          **resample_kwargs):
         """Resample the datasets of `new_scn` in place to the `destination_area`."""
         from satpy.resample.base import DatasetResampler
 
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
-        ds_resampler = DatasetResampler(destination_area, reduce_data=reduce_data, **resample_kwargs)
+        ds_resampler = DatasetResampler(destination_area, reduce_data=reduce_data,
+                                        resample_coords=resample_coords, **resample_kwargs)
         for ds_id, data_arr in list(new_scn._datasets.items()):
             # don't use `Scene.__setitem__` so the wishlist/dependency tree are not affected
             new_scn._datasets[ds_id] = ds_resampler.resample(data_arr)
@@ -866,6 +868,7 @@ class Scene:
             unload: bool = True,
             resampler: str | None = None,
             reduce_data: bool = True,
+            resample_coords: bool = False,
             **resample_kwargs,
     ) -> Scene:
         """Resample datasets and return a new scene.
@@ -894,6 +897,11 @@ class Scene:
                 information.
             reduce_data: Reduce data by matching the input and output
                 areas and slicing the data arrays (default: True)
+            resample_coords: If true, resample coordinates with (y, x)
+                dimensions.  If false (default), drop those coordinates.  Such
+                coordinates might be time coordinates if a scene was created
+                while passing ``track_time=True`` to the readers and those
+                readers support doing so.
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
                 documentation :mod:`here <satpy.resample>` for available
@@ -904,7 +912,8 @@ class Scene:
             destination = self.finest_area(datasets)
         new_scn = self.copy(datasets=datasets)
         self._resampled_scene(new_scn, destination, resampler=resampler,
-                              reduce_data=reduce_data, **resample_kwargs)
+                              reduce_data=reduce_data,
+                              resample_coords=resample_coords, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)

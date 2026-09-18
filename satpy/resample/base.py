@@ -205,15 +205,20 @@ class DatasetResampler:
         destination_area: The area to resample all datasets to.
         reduce_data: Slice source data to the part covering the destination
             area before resampling (default: True).
+        resample_coords: Also resample coordinates that share all of the
+            dataset's dimensions (for example a per-pixel ``time`` coordinate)
+            and attach them to the resampled dataset. If False (default) such
+            coordinates are dropped.
         resample_kwargs: Keyword arguments passed to :func:`prepare_resampler`
             and :func:`resample_dataset`, for example ``resampler="nearest"``.
 
     """
 
-    def __init__(self, destination_area, reduce_data=True, **resample_kwargs):
+    def __init__(self, destination_area, reduce_data=True, resample_coords=False, **resample_kwargs):
         """Set up caches for a resampling operation to *destination_area*."""
         self.destination_area = destination_area
         self.reduce_data = reduce_data
+        self.resample_coords = resample_coords
         self.resample_kwargs = resample_kwargs
         # source_area -> ((slice_x, slice_y), reduced_area)
         self._reductions = {}
@@ -244,6 +249,8 @@ class DatasetResampler:
 
         LOG.debug("Resampling %s", ds_id)
         res = self._reduce_and_resample(dataset)
+        if self.resample_coords:
+            self._resample_coords(dataset, res)
 
         anc_vars = dataset.attrs.get("ancillary_variables")
         if anc_vars:
@@ -258,6 +265,17 @@ class DatasetResampler:
         kwargs = self.resample_kwargs.copy()
         kwargs["resampler"] = self._get_resampler(source_area)
         return resample_dataset(reduced, self.destination_area, **kwargs)
+
+    def _resample_coords(self, orig_dataset, res):
+        """Resample the coordinates of *orig_dataset* that span all of its dims and attach them to *res*."""
+        for coord_name, coord in orig_dataset.coords.items():
+            if coord.dims != orig_dataset.dims:
+                continue
+            LOG.debug("Resampling coordinate %s", coord_name)
+            # shallow copy so the source dataset's coordinate attrs are untouched
+            coord = coord.copy(deep=False)
+            coord.attrs["area"] = orig_dataset.attrs["area"]
+            res.coords[coord_name] = self._reduce_and_resample(coord)
 
     def _resample_ancillary(self, anc):
         if not hasattr(anc, "attrs"):

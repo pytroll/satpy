@@ -236,22 +236,66 @@ def aod_file(tmp_path_factory: TempPathFactory) -> Path:
 
 @pytest.fixture(scope="module")
 def lst_file(tmp_path_factory: TempPathFactory) -> Path:
-    """Generate fake VLST EDR file."""
+    """Generate fake v2r0 LST EDR file with scale factors in separate variables."""
     fn = f"LST_v2r0_npp_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202307241854058.nc"
-    data_vars = _create_lst_variables()
+    data_vars = _create_lst_variables(cf_scaling=False)
     return _create_fake_file(tmp_path_factory, fn, data_vars)
 
 
-def _create_lst_variables() -> dict[str, xr.DataArray]:
-    data_vars = _create_continuous_variables(("VLST",))
+@pytest.fixture(scope="module")
+def lst_v2r2_file(tmp_path_factory: TempPathFactory) -> Path:
+    """Generate fake v2r2 LST EDR file with CF scale_factor/add_offset attributes."""
+    fn = f"LST_v2r2_j01_s{START_TIME:%Y%m%d%H%M%S}0_e{END_TIME:%Y%m%d%H%M%S}0_c202609052112285.nc"
+    data_vars = _create_lst_variables(cf_scaling=True)
+    return _create_fake_file(tmp_path_factory, fn, data_vars)
 
-    # VLST scale factors
-    data_vars["VLST"].data = (data_vars["VLST"].data / 0.0001).astype(np.int16)
-    data_vars["VLST"].encoding.pop("scale_factor")
-    data_vars["VLST"].encoding.pop("add_offset")
-    data_vars["LST_ScaleFact"] = xr.DataArray(np.float32(0.0001))
-    data_vars["LST_Offset"] = xr.DataArray(np.float32(0.0))
 
+# (variable name, scale factor, offset, valid_range in raw units, integer dtype)
+LST_V2R0_SCALED_VARS = (
+    ("VLST", np.float32(0.005), np.float32(200.0), (2600, 28600), np.int16),
+    ("emis_m15", np.float32(0.001), np.float32(0.9), (-100, 100), np.int8),
+)
+LST_V2R2_SCALED_VARS = (
+    ("LST", np.float32(0.005), np.float32(200.0), (2600, 28600), np.int16),
+    ("emis_m15", np.float32(0.001), np.float32(0.9), (-100, 100), np.int8),
+    ("LST_Err", np.float32(0.05), np.float32(5.0), None, np.int8),
+)
+# v2r0 files store scale factor and offset in separate scalar variables
+LST_V2R0_SCALE_VAR_NAMES = {
+    "VLST": ("LST_ScaleFact", "LST_Offset"),
+    "emis_m15": ("LSE_ScaleFact", "LSE_Offset"),
+}
+
+
+def _create_lst_variables(cf_scaling: bool) -> dict[str, xr.DataArray]:
+    # get lon/lat variables
+    data_vars = _create_continuous_variables([])
+    scaled_vars = LST_V2R2_SCALED_VARS if cf_scaling else LST_V2R0_SCALED_VARS
+    for var_name, scale_factor, add_offset, valid_range, dtype in scaled_vars:
+        if valid_range is not None:
+            # fill the valid range without going outside it
+            raw_min, raw_max = valid_range
+        else:
+            # no valid range so scaled data should be between 0 and 1 (see _check_continuous_data_arr)
+            raw_min, raw_max = (0 - add_offset) / scale_factor, (1 - add_offset) / scale_factor
+        raw_data = (RANDOM_GEN.random((M_ROWS, M_COLS)) * (raw_max - raw_min) + raw_min).astype(dtype)
+        attrs = {"units": "Kelvin", "coordinates": "Longitude Latitude"}
+        if valid_range is not None:
+            attrs["valid_range"] = np.array(valid_range, dtype=dtype)
+        if cf_scaling:
+            # xarray packs unscaled floats to integers on write
+            raw_data = raw_data.astype(np.float32) * scale_factor + add_offset
+        data_arr = xr.DataArray(raw_data, dims=("Rows", "Columns"), attrs=attrs)
+        data_arr.encoding["_FillValue"] = np.iinfo(dtype).min
+        data_arr.encoding["dtype"] = dtype
+        if cf_scaling:
+            data_arr.encoding["scale_factor"] = scale_factor
+            data_arr.encoding["add_offset"] = add_offset
+        else:
+            scale_var_name, offset_var_name = LST_V2R0_SCALE_VAR_NAMES[var_name]
+            data_vars[scale_var_name] = xr.DataArray(scale_factor)
+            data_vars[offset_var_name] = xr.DataArray(add_offset)
+        data_vars[var_name] = data_arr
     return data_vars
 
 
@@ -444,7 +488,8 @@ class TestVIIRSJRRReader:
         ("var_names", "data_file"),
         [
             (("CldTopTemp", "CldTopHght", "CldTopPres"), lazy_fixture("cloud_height_file")),
-            (("VLST",), lazy_fixture("lst_file")),
+            (("VLST", "emis_m15"), lazy_fixture("lst_file")),
+            (("LST", "emis_m15", "LST_Err"), lazy_fixture("lst_v2r2_file")),
         ]
     )
     def test_get_dataset_generic(self, var_names, data_file):
@@ -456,6 +501,26 @@ class TestVIIRSJRRReader:
             scn.load(var_names)
         for var_name in var_names:
             _check_continuous_data_arr(scn[var_name])
+
+    @pytest.mark.parametrize(
+        ("var_name", "data_file"),
+        [
+            ("VLST", lazy_fixture("lst_file")),
+            ("LST", lazy_fixture("lst_v2r2_file")),
+        ]
+    )
+    def test_lst_valid_range_scaled(self, var_name, data_file):
+        """Test that LST valid_range is scaled with the data and doesn't mask everything."""
+        from satpy import Scene
+        bytes_in_m_row = 4 * 3200
+        with set_chunk_size(bytes_in_m_row):
+            scn = Scene(reader="viirs_edr", filenames=[data_file])
+            scn.load([var_name])
+        data_arr = scn[var_name]
+        valid_range = data_arr.attrs["valid_range"]
+        assert valid_range == pytest.approx((213.0, 343.0))
+        assert all(isinstance(val, float) for val in valid_range)
+        assert not np.isnan(data_arr.data.compute()).any()
 
     def test_get_dataset_category(self, cloud_phase_file):
         """Test loading category (integer) data products."""

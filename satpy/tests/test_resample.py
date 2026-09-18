@@ -865,6 +865,50 @@ class TestDatasetResampler:
         assert res.attrs["ancillary_variables"][0] is anc
         resample_dataset.assert_not_called()
 
+    @pytest.mark.parametrize("reduce_data", [True, False])
+    def test_resample_coords(self, src_area, dst_area, resample_dataset, reduce_data):
+        """Test that coordinates spanning all of the dataset's dims are resampled when asked for."""
+        from satpy.resample.base import DatasetResampler
+
+        data_arr = _make_data_array("ds1", src_area)
+        time_coord = xr.DataArray(da.arange(100, dtype=np.uint16).reshape(10, 10), dims=("y", "x"),
+                                  attrs={"units": "seconds since 2000-01-01"})
+        data_arr.coords["time"] = time_coord
+        data_arr.coords["scanline"] = ("y", np.arange(10))
+
+        ds_resampler = DatasetResampler(dst_area, reduce_data=reduce_data, resample_coords=True)
+        res = ds_resampler.resample(data_arr)
+
+        # the dataset and the 2D coordinate are resampled, the 1D coordinate is not
+        assert resample_dataset.call_count == 2
+        resampled_data, resampled_coord = (call.args[0] for call in resample_dataset.call_args_list)
+        assert resampled_coord.dims == ("y", "x")
+        # the coordinate is reduced the same way as the data
+        assert resampled_coord.shape == resampled_data.shape
+        assert resampled_coord.attrs["area"] == resampled_data.attrs["area"]
+        assert resampled_coord.attrs["area"].shape == resampled_data.shape
+        assert res.coords["time"].attrs["area"] is dst_area
+        assert res.coords["time"].attrs["units"] == "seconds since 2000-01-01"
+        assert res.coords["time"].shape == res.shape
+        assert res.coords["time"].dtype == np.uint16
+        # the source dataset's coordinate must not be modified
+        assert "area" not in data_arr.coords["time"].attrs
+        assert "area" not in time_coord.attrs
+
+    def test_resample_coords_disabled(self, src_area, dst_area, resample_dataset):
+        """Test that coordinates are not resampled by default."""
+        from satpy.resample.base import DatasetResampler
+
+        data_arr = _make_data_array("ds1", src_area)
+        data_arr.coords["time"] = (("y", "x"), da.arange(100, dtype=np.uint16).reshape(10, 10))
+
+        ds_resampler = DatasetResampler(dst_area)
+        ds_resampler.resample(data_arr)
+
+        resample_dataset.assert_called_once()
+        assert resample_dataset.call_args.args[0].attrs["name"] == "ds1"
+        assert "area" not in data_arr.coords["time"].attrs
+
     def test_slice_data_shape_mismatch(self, src_area, dst_area):
         """Test that slicing data that doesn't match its area raises an error."""
         from satpy.resample.base import DatasetResampler
@@ -902,3 +946,52 @@ def test_moved_import_warns(name):
     import satpy.resample
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         _ = getattr(satpy.resample, name)
+
+
+@pytest.fixture
+def scene_with_time_coords():
+    """Return a scene with time coordinates."""
+    from pyresample import create_area_def
+
+    from satpy.tests.utils import make_fake_scene
+
+    ar1 = create_area_def("test", 4087, shape=(5, 5), resolution=1000, center=(0, 0))
+
+    sc = make_fake_scene(
+            {"ir": np.arange(25, dtype="f4").reshape(5, 5)},
+            area=ar1)
+    sc["ir"].coords["time"] = (
+            ("y", "x"),
+            np.linspace(0, 900, 25, dtype="uint16").reshape(5, 5))
+    sc["ir"].coords["time"].attrs["units"] = "seconds since 2222-02-22T22:22:22"
+    return sc
+
+@pytest.mark.parametrize("reduce_data", [True, False])
+def test_resample_time_coordinate(scene_with_time_coords, reduce_data):
+    """Test that resampling retains the time coordinate."""
+    from pyresample import create_area_def
+
+    ar2 = create_area_def("test", 4087, shape=(4, 4), resolution=1200, center=(100, 100))
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest",
+                                         reduce_data=reduce_data)
+    assert "time" not in ls["ir"].coords  # drop by default
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest",
+                                         resample_coords=False,
+                                         reduce_data=reduce_data)
+    assert "time" not in ls["ir"].coords
+    ls = scene_with_time_coords.resample(ar2, resampler="nearest",
+                                         resample_coords=True,
+                                         reduce_data=reduce_data)
+    assert "time" in ls["ir"].coords
+    assert ls["ir"].coords["time"].sizes == ls["ir"].sizes
+    assert ls["ir"].coords["time"].dtype == scene_with_time_coords["ir"].coords["time"].dtype
+    np.testing.assert_allclose(ls["ir"].coords["time"].mean(), 449.75)
+
+
+def test_slice_scene_time_coordinate(scene_with_time_coords):
+    """Test that slicing retains the time coordinate."""
+    # this test function may fit better elsewhere, but shares a fixture with
+    # test_resample_time_coordinate
+    sc2 = scene_with_time_coords[::2, ::2]
+    assert "time" in sc2["ir"].coords
+    assert sc2["ir"].coords["time"].sizes == sc2["ir"].sizes
