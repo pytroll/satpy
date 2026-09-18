@@ -445,7 +445,7 @@ class LowCloudCompositor(CloudCompositor):
     def __init__(self, name, values_land=(1,), values_water=(0,),  # noqa: D417
                  threshold_land=1.5,
                  threshold_water=0.0,
-                 thresholds_bare_soil=(4.1, 1.5),
+                 thresholds_bare_soil=(2.5, 1.5),
                  transition_min=0,
                  transition_max=5.0,
                  transition_gamma=1.0,
