@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy.dataset import combine_metadata
+from satpy.modifiers.angles import get_satellite_zenith_angle
 
 from .core import CompositeBase, GenericCompositor, SingleBandCompositor
 
@@ -415,87 +417,167 @@ class HighCloudCompositor(CloudCompositor):
 
 
 class LowCloudCompositor(CloudCompositor):
-    """Detect low-level clouds based on thresholding and use it as a mask for compositing during night-time.
+    """Detect low-level clouds based on thresholding for night-time compositing.
 
-    This compositor computes the brightness temperature difference between a window channel (e.g. 10.5 micron)
-    and the near-infrared channel e.g. (3.8 micron) and uses this brightness temperature difference, `BTD`, to
-    create a partially transparent mask for compositing.
+    This compositor takes the brightness temperature difference (BTD) between a window channel around 10.5 micron
+    and a near-infrared channel around 3.8 micron and uses thresholding to detect low-level clouds and fog. Separate
+    detection thresholds are used for land and water surface types, requiring a land-sea mask as an input. A
+    window-channel brightness temperature is also used to filter out very cold pixels, which can otherwise produce
+    noise-induced false alarms.
 
-    Pixels with `BTD` values below a given threshold  will be transparent, whereas pixels with `BTD` values
-    above another threshold will be opaque. The transparency of all other `BTD` values will be a linear
-    function of the `BTD` value itself. Two sets of thresholds are used, one set for land surface types
-    (`range_land`) and another one for water surface types (`range_water`), respectively. Hence,
-    this compositor requires a land-water-mask as a prerequisite input. This follows the GeoColor
-    implementation of night-time low-level clouds in Miller et al. (2020, :doi:`10.1175/JTECH-D-19-0134.1`), but
-    with some adjustments to the thresholds based on recent developments and feedback from CIRA.
+    Pixels with a BTD above the relevant surface-dependent threshold are considered cloudy and the resulting cloud
+    mask is passed to :class:`CloudCompositor`, which computes the alpha channel as a function of the BTD and the
+    alpha limits `transition_min` and `transition_max` to create a semi-transparent low cloud cloud composite.
 
-    Please note that the spectral test and thus the output of the compositor (using the expected input data) is
-    only applicable during night-time.
+    An optional second split-window difference (using two window channels around 10.5 and 8.7 microns) can be used to
+    identify bare soil and remove associated false cloud detections. If this input is provided, the satellite zenith
+    angle is also used to account for the increased split-window difference towards larger viewing angles. If the
+    satellite zenith angle is not provided as an optional input, it will be computed on the fly.
+
+    This follows the GeoColor implementation of night-time low-level clouds in Miller et al. (2020,
+    :doi:`10.1175/JTECH-D-19-0134.1`) including some modifications described in Strandgren et al. (2026, in
+    preparation).
+
+    The spectral tests and thus the output of this compositor (using the expected input data) is only applicable during
+    night-time.
+
     """
-
     def __init__(self, name, values_land=(1,), values_water=(0,),  # noqa: D417
-                 range_land=(0.0, 4.0),
-                 range_water=(0.0, 4.0),
+                 threshold_land=1.5,
+                 threshold_water=0.0,
+                 thresholds_bare_soil=(2.5, 1.5),
+                 transition_min=0,
+                 transition_max=5.0,
                  transition_gamma=1.0,
+                 range_land=None,
+                 range_water=None,
                  invert_alpha=True, **kwargs):
-        """Init info.
-
-        Collect custom configuration values.
+        """Initialize the compositor.
 
         Args:
-            values_land (list): List of values used to identify land surface pixels in the land-water-mask.
-            values_water (list): List of values used to identify water surface pixels in the land-water-mask.
-            range_land (tuple): Threshold values used for masking low-level clouds from the brightness temperature
-                                difference over land surface types.
-            range_water (tuple): Threshold values used for masking low-level clouds from the brightness temperature
-                                 difference over water.
-            transition_gamma (float): Gamma correction to apply to the alpha channel within the brightness
-                                      temperature difference range.
-            invert_alpha (bool): Invert the alpha channel to make low data values transparent
-                                 and high data values opaque.
-        """
-        if len(range_land) != 2:
-            raise ValueError(f"Expected 2 `range_land` values, got {len(range_land)}")
-        if len(range_water) != 2:
-            raise ValueError(f"Expected 2 `range_water` values, got {len(range_water)}")
+            name: Name of the compositor.
+            values_land (list): Values in the land-sea mask identifying land surface pixels.
+            values_water (list): Values in the land-sea mask identifying water surface pixels.
+            threshold_land (float): BTD threshold above which low-level clouds are detected over land.
+            threshold_water (float): BTD threshold above which low-level clouds are detected over water.
+            thresholds_bare_soil (tuple): Two coefficients used to identify bare soil from the optional second
+                                          split-window difference. The first value is the base threshold and
+                                          the second value describes its dependence on satellite zenith angle.
+            transition_min (float): Lower limit of the BTD-to-alpha computation (fully transparent).
+            transition_max (float): Upper limit of the BTD-to-alpha computation (fully opaque).
+            transition_gamma (float): Gamma correction applied to the alpha channel within the transition range.
+            range_land (tuple): Deprecated. Previously used to specify the land threshold and alpha range.
+                                If provided, a warning is issued and the value is ignored.
+            range_water (tuple): Deprecated. Previously used to specify the water threshold and alpha range.
+                                 If provided, a warning is issued and the value is ignored.
+            invert_alpha (bool): Invert the alpha channel so that low data values are transparent and high data values
+                                are opaque.
+            **kwargs: Additional arguments passed to :class:`CloudCompositor`.
 
-        self.values_land = values_land if type(values_land) in [list, tuple] else [values_land]
-        self.values_water = values_water if type(values_water) in [list, tuple] else [values_water]
-        self.range_land = range_land
-        self.range_water = range_water
-        super().__init__(name, transition_min=None, transition_max=None,
+        """
+        if range_land is not None:
+            warnings.warn(
+                "'range_land' is deprecated and will be removed in a future version. "
+                "Please use 'limit_land' instead as low-level cloud detection threshold over land.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        if range_water is not None:
+            warnings.warn(
+                "'range_water' is deprecated and will be removed in a future version. "
+                "Please use 'limit_water' instead as low-level cloud detection threshold over water.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        self.values_land = self._normalize_surface_type_values(values_land)
+        self.values_water = self._normalize_surface_type_values(values_water)
+        self.threshold_land = threshold_land
+        self.threshold_water = threshold_water
+        self.thresholds_bare_soil = thresholds_bare_soil
+
+        super().__init__(name, transition_min=transition_min, transition_max=transition_max,
                          transition_gamma=transition_gamma, invert_alpha=invert_alpha, **kwargs)
 
-    def __call__(self, projectables, **kwargs):
-        """Generate the composite.
+    @staticmethod
+    def _normalize_surface_type_values(values):
+        """Convert a single surface value to a list."""
+        return values if isinstance(values, (list, tuple)) else [values]
 
-        `projectables` is expected to be a list or tuple with the following three elements:
-          - index 0: Brightness temperature difference between a window channel (e.g. 10.5 micron) and a
-                     near-infrared channel e.g. (3.8 micron).
-          - index 1. Brightness temperature of the window channel (used to filter out noise-induced false alarms).
-          - index 2: Land-Sea-Mask.
+    def _get_low_cloud_mask(self, split_window_low_clouds, is_land, is_water):
+        """Determine low-level cloud and fog pixels from the IR10.5-IR3.8 split-window difference."""
+        cloud_over_land = is_land & (split_window_low_clouds >= self.threshold_land)
+        cloud_over_water = is_water & (split_window_low_clouds >= self.threshold_water)
+
+        return (cloud_over_land | cloud_over_water)
+
+    def _remove_noise(self, low_cloud_mask, window):
+        """Exclude very cold pixels which may contain noisy false alarms in the IR10.5-IR3.8 split-window difference."""
+        possible_noise = window < 230
+
+        return low_cloud_mask & ~possible_noise
+
+    def _remove_bare_soil(self, low_cloud_mask, split_window_bare_soil, window, satz, is_land):
+        """Remove bare-soil false alarms using the IR10.5-IR8.7 split-window difference."""
+        if split_window_bare_soil is None:
+            LOG.debug(
+                "No IR10.5-IR8.7 split-window difference data were provided. Low-level cloud false alarms are likely "
+                "to appear over arid surface types."
+            )
+            return low_cloud_mask
+
+        if satz is None:
+            LOG.debug("Computing satellite zenith angle")
+            satz = get_satellite_zenith_angle(window)
+
+        sec = 1. / np.cos(np.deg2rad(satz))
+
+        threshold_base, threshold_sec = self.thresholds_bare_soil
+
+        bare_soil = is_land & (
+            split_window_bare_soil > threshold_base + threshold_sec * (sec - 1)
+        )
+
+        return low_cloud_mask & ~bare_soil
+
+    def __call__(self, projectables, optional_datasets=[], **kwargs):
+        """Generate the low-level cloud composite.
+
+        Args:
+            projectables: Three datasets containing:
+                0. Brightness temperature difference between a window channel around 10.5 micron and a
+                   near-infrared channel around 3.8 micron).
+                1. Brightness temperature of the window channel, used to filter noise-induced false alarms.
+                2. Land-sea mask used to distinguish between land and water detection thresholds.
+            optional_datasets: Optional datasets containing:
+                0. Brightness temperature difference between the window channel and a second infrared channel
+                   around 8.7 microns, used to identify and remove bare-soil false alarms.
+                1. Satellite zenith angle, used to increase the bare soil with increasing atmospheric path length.
+                   If not provided, it is computed from the window-channel data when the optional bare-soil
+                   split-window difference is available.
+            **kwargs: Additional arguments passed to :class:`CloudCompositor`.
+
+        Returns:
+            The composited low-level cloud mask.
         """
+        LOG.debug("Applying detection scheme for low-level clouds and fog (night-time only)")
+
         if len(projectables) != 3:
             raise ValueError(f"Expected 3 datasets, got {len(projectables)}")
 
-        projectables = self.match_data_arrays(projectables)
-        btd, bt_win, lsm = projectables
+        datasets = self.match_data_arrays(projectables + optional_datasets)
+        split_window_low_clouds, window, lsm = datasets[:3]
+        split_window_bare_soil = datasets[3] if len(datasets) > 3 else None
+        satz = datasets[4] if len(datasets) > 4 else None
+
         lsm = lsm.squeeze(drop=True)
         lsm = lsm.round()  # Make sure to have whole numbers in case of smearing from resampling
+        is_land = lsm.isin(self.values_land)
+        is_water = lsm.isin(self.values_water)
 
-        # Call CloudCompositor for land surface pixels
-        self.transition_min, self.transition_max = self.range_land
-        res = super().__call__([btd.where(lsm.isin(self.values_land))], **kwargs)
+        low_cloud_mask = self._get_low_cloud_mask(split_window_low_clouds, is_land, is_water)
+        low_cloud_mask = self._remove_noise(low_cloud_mask, window)
+        low_cloud_mask = self._remove_bare_soil(low_cloud_mask, split_window_bare_soil, window, satz, is_land)
 
-        # Call CloudCompositor for /water surface pixels
-        self.transition_min, self.transition_max = self.range_water
-        res_water = super().__call__([btd.where(lsm.isin(self.values_water))], **kwargs)
-
-        # Compine resutls for land and water surface pixels
-        res = res.where(lsm.isin(self.values_land), res_water)
-
-        # Make pixels with cold window channel brightness temperatures transparent to avoid spurious false
-        # alarms caused by noise in the 3.9um channel that can occur for very cold cloud tops
-        res.loc["A"] = res.sel(bands="A").where(bt_win >= 230, 0.0)
-
-        return res
+        return super().__call__([split_window_low_clouds.where(low_cloud_mask)], **kwargs)
