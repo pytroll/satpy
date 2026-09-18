@@ -242,11 +242,8 @@ class DatasetResampler:
         if dataset.attrs.get("area") is None:
             return dataset
 
-        reduced, source_area = self._reduce_data(dataset)
         LOG.debug("Resampling %s", ds_id)
-        kwargs = self.resample_kwargs.copy()
-        kwargs["resampler"] = self._get_resampler(source_area)
-        res = resample_dataset(reduced, self.destination_area, **kwargs)
+        res = self._reduce_and_resample(dataset)
 
         anc_vars = dataset.attrs.get("ancillary_variables")
         if anc_vars:
@@ -254,6 +251,13 @@ class DatasetResampler:
             res.attrs["ancillary_variables"] = [self._resample_ancillary(anc) for anc in anc_vars]
         self._resampled[ds_id] = res
         return res
+
+    def _reduce_and_resample(self, dataset):
+        """Reduce *dataset* to the destination area and resample it (no memoization)."""
+        reduced, source_area = self._reduce_data(dataset)
+        kwargs = self.resample_kwargs.copy()
+        kwargs["resampler"] = self._get_resampler(source_area)
+        return resample_dataset(reduced, self.destination_area, **kwargs)
 
     def _resample_ancillary(self, anc):
         if not hasattr(anc, "attrs"):
