@@ -9,6 +9,7 @@ from weakref import WeakValueDictionary
 
 import numpy as np
 
+from satpy.dataset import DataID
 from satpy.utils import get_legacy_chunk_size
 
 LOG = getLogger(__name__)
@@ -190,3 +191,150 @@ def resample_dataset(dataset, destination_area, **kwargs):
     new_data.attrs.update(area=destination_area)
 
     return new_data
+
+
+class DatasetResampler:
+    """Resample many datasets to one destination area, reusing work between them.
+
+    Datasets sharing a source area reuse the same data-reduction slices and the
+    same resampler instance. Ancillary variables are resampled once (memoized by
+    :class:`~satpy.dataset.dataid.DataID`) and re-attached to every resampled
+    parent. Datasets without an ``area`` attribute are returned unchanged.
+
+    Args:
+        destination_area: The area to resample all datasets to.
+        reduce_data: Slice source data to the part covering the destination
+            area before resampling (default: True).
+        resample_coords: Also resample coordinates that share all of the
+            dataset's dimensions (for example a per-pixel ``time`` coordinate)
+            and attach them to the resampled dataset. If False (default) such
+            coordinates are dropped.
+        resample_kwargs: Keyword arguments passed to :func:`prepare_resampler`
+            and :func:`resample_dataset`, for example ``resampler="nearest"``.
+
+    """
+
+    def __init__(self, destination_area, reduce_data=True, resample_coords=False, **resample_kwargs):
+        """Set up caches for a resampling operation to *destination_area*."""
+        self.destination_area = destination_area
+        self.reduce_data = reduce_data
+        self.resample_coords = resample_coords
+        self.resample_kwargs = resample_kwargs
+        # source_area -> ((slice_x, slice_y), reduced_area)
+        self._reductions = {}
+        # source_area -> (resamplers_cache key, resampler instance)
+        self._resamplers = {}
+        # DataID -> resampled DataArray
+        self._resampled = {}
+
+    @property
+    def resamplers(self):
+        """Resampler instances created so far, keyed by their ``resamplers_cache`` key."""
+        return dict(self._resamplers.values())
+
+    def resample(self, dataset):
+        """Resample *dataset* and its ancillary variables.
+
+        Results are memoized by DataID, so a dataset (typically an ancillary
+        variable) that is encountered multiple times is only resampled once and
+        the same resampled object is returned each time.
+        """
+        ds_id = DataID.from_dataarray(dataset)
+        try:
+            return self._resampled[ds_id]
+        except KeyError:
+            pass
+        if dataset.attrs.get("area") is None:
+            return dataset
+
+        LOG.debug("Resampling %s", ds_id)
+        res = self._reduce_and_resample(dataset)
+        if self.resample_coords:
+            self._resample_coords(dataset, res)
+
+        anc_vars = dataset.attrs.get("ancillary_variables")
+        if anc_vars:
+            # new list on the (already copied) attrs so the source dataset is untouched
+            res.attrs["ancillary_variables"] = [self._resample_ancillary(anc) for anc in anc_vars]
+        self._resampled[ds_id] = res
+        return res
+
+    def _reduce_and_resample(self, dataset):
+        """Reduce *dataset* to the destination area and resample it (no memoization)."""
+        reduced, source_area = self._reduce_data(dataset)
+        kwargs = self.resample_kwargs.copy()
+        kwargs["resampler"] = self._get_resampler(source_area)
+        return resample_dataset(reduced, self.destination_area, **kwargs)
+
+    def _resample_coords(self, orig_dataset, res):
+        """Resample the coordinates of *orig_dataset* that span all of its dims and attach them to *res*."""
+        for coord_name, coord in orig_dataset.coords.items():
+            if coord.dims != orig_dataset.dims:
+                continue
+            LOG.debug("Resampling coordinate %s", coord_name)
+            # shallow copy so the source dataset's coordinate attrs are untouched
+            coord = coord.copy(deep=False)
+            coord.attrs["area"] = orig_dataset.attrs["area"]
+            res.coords[coord_name] = self._reduce_and_resample(coord)
+
+    def _resample_ancillary(self, anc):
+        if not hasattr(anc, "attrs"):
+            return anc
+        return self.resample(anc)
+
+    def _get_resampler(self, source_area):
+        """Get the resampler for *source_area*, creating it on first use."""
+        try:
+            return self._resamplers[source_area][1]
+        except KeyError:
+            key, resampler = prepare_resampler(source_area, self.destination_area, **self.resample_kwargs)
+            self._resamplers[source_area] = (key, resampler)
+            return resampler
+
+    def _reduce_data(self, dataset):
+        """Slice *dataset* to the part of its area covering the destination area."""
+        source_area = dataset.attrs["area"]
+        if not self.reduce_data:
+            LOG.debug("Data reduction disabled by the user")
+            return dataset, source_area
+
+        try:
+            slices, reduced_area = self._get_reduction(source_area)
+        except NotImplementedError:
+            LOG.info("Not reducing data before resampling.")
+            return dataset, source_area
+        return self._slice_data(dataset, slices, reduced_area), reduced_area
+
+    def _get_reduction(self, source_area):
+        """Get the slices and reduced area for *source_area*, reusing previous results."""
+        try:
+            return self._reductions[source_area]
+        except KeyError:
+            pass
+
+        if self.resample_kwargs.get("resampler") == "gradient_search":
+            factor = self.resample_kwargs.get("shape_divisible_by", 2)
+        else:
+            factor = None
+        try:
+            slice_x, slice_y = source_area.get_area_slices(self.destination_area, shape_divisible_by=factor)
+        except TypeError:
+            # BaseDefinition (e.g. SwathDefinition) does not accept shape_divisible_by
+            # and only raises NotImplementedError when called without it
+            slice_x, slice_y = source_area.get_area_slices(self.destination_area)
+
+        reduction = (slice_x, slice_y), source_area[slice_y, slice_x]
+        self._reductions[source_area] = reduction
+        return reduction
+
+    @staticmethod
+    def _slice_data(dataset, slices, reduced_area):
+        """Slice the data to reduce it."""
+        slice_x, slice_y = slices
+        dataset = dataset.isel(x=slice_x, y=slice_y)
+        if ("x", reduced_area.width) not in dataset.sizes.items():
+            raise RuntimeError
+        if ("y", reduced_area.height) not in dataset.sizes.items():
+            raise RuntimeError
+        dataset.attrs["area"] = reduced_area
+        return dataset
