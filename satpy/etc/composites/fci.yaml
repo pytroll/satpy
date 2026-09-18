@@ -316,7 +316,10 @@ composites:
 
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
-    compositor: !!python/name:satpy.composites.mask.HighCloudCompositor
+    compositor: !!python/name:satpy.composites.mask.CloudCompositor
+    transition_min: 190
+    transition_max: 300
+    transition_gamma: 1.0
     prerequisites:
       - name: ir_105
 
