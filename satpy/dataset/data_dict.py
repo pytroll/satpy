@@ -111,17 +111,6 @@ class DatasetDict(dict):
 
     """
 
-    def keys(self, names=False, wavelengths=False):
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        keys = sorted(super(DatasetDict, self).keys())
-        if names:
-            return (k.get("name") for k in keys)
-        elif wavelengths:
-            return (k.get("wavelength") for k in keys)
-        else:
-            return keys
-
     def get_key(self, match_key, num_results=1, best=True, **dfilter):  # noqa: D417
         """Get multiple fully-specified keys that match the provided query.
 
