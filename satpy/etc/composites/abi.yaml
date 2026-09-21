@@ -881,7 +881,7 @@ composites:
   # GeoColor Night-time
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
-    compositor: !!python/name:satpy.composites.mask..CloudCompositor
+    compositor: !!python/name:satpy.composites.mask.CloudCompositor
     transition_min: 190
     transition_max: 300
     transition_gamma: 1.0
