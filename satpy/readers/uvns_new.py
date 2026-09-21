@@ -852,10 +852,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         size = np.prod(record.shape)
 
-        if record.is_vlen_string :
-            print(key)
-            assert False
-
         if record.is_vlen_string  or  size < LAZY_LIMIT:
             kwargs["chunks"] = None
 
