@@ -465,6 +465,28 @@ composites:
       - true_color_ndvi_green
       - geo_color_night
 
+  geo_color_no_lights:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    description: >
+      Similar to geo_color, but without the background city lights (black marble).
+    lim_low: 82
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color_ndvi_green
+      - geo_color_night_no_lights
+
+  geo_color_no_blue:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    description: >
+      Similar to geo_color, but without the blue colorization of low-level clouds.
+    lim_low: 82
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color_ndvi_green
+      - geo_color_night_no_blue
+
   # GeoColor Night-time
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
@@ -510,6 +532,33 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
+
+  geo_color_black:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    standard_name: geo_color_black
+    prerequisites:
+      - B13
+
+  geo_color_black_with_low_clouds:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - geo_color_black
+
+  geo_color_night_no_lights:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_black_with_low_clouds
+
+  geo_color_night_no_blue:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_city_lights
 
   day_severe_storms:
     compositor: !!python/name:satpy.composites.core.GenericCompositor

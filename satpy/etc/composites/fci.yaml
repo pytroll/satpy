@@ -318,8 +318,6 @@ composites:
     compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     description: >
       Similar to geo_color, but without the background city lights (black marble).
-    references:
-      Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
     lim_low: 82
     lim_high: 88
     standard_name: geo_color_day_night_blend
@@ -331,8 +329,6 @@ composites:
     compositor: !!python/name:satpy.composites.fill.DayNightCompositor
     description: >
       Similar to geo_color, but without the blue colorization of low-level clouds.
-    references:
-      Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
     lim_low: 82
     lim_high: 88
     standard_name: geo_color_day_night_blend
