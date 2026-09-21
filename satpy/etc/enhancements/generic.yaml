@@ -1093,6 +1093,15 @@ enhancements:
           palettes:
             - {colors: [[140.25, 191.25, 249.9]]}
 
+  geo_color_black:
+    standard_name: geo_color_black
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
+        kwargs:
+          palettes:
+            - {colors: [[0, 0, 0]]}
+
   geo_color_city_lights:
     standard_name: geo_color_city_lights
     operations:
