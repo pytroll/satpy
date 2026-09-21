@@ -27,19 +27,26 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
+import h5py
+import h5netcdf
+import netCDF4
+
 import numpy as np
 import xarray as xr
 import dask.array as da
-import netCDF4
 import satpy
+from xarray.backends.h5netcdf_ import H5NetCDFArrayWrapper
 
 from satpy.readers.core.netcdf import NetCDF4FileHandler
 from satpy.readers.core.netcdf import H5NetcdfAccessor
 
 from pyresample.geometry import SwathDefinition
+from ._h5netcdf_vlen_patch import apply_h5netcdf_vlen_patch
+
 
 logger = logging.getLogger(__name__)
 
+apply_h5netcdf_vlen_patch()
 
 DIMENSION_RENAMES = {
     "scanline": "y",
@@ -79,7 +86,7 @@ _DTYPE_TO_FILL_KEY = {
     np.dtype("float64"): "f8",
 }
 
-
+LAZY_LIMIT = 1
 
 
 @dataclass(frozen=True)
@@ -93,6 +100,7 @@ class VariableRecord:
     shape: tuple[int, ...]
     dtype: str
     attrs: Mapping[str, Any]
+    is_vlen_string: bool = False
 
 
 class AttributeNormalizer:
@@ -569,11 +577,45 @@ class UVNSFileHandler(NetCDF4FileHandler):
         self._records = self._build_variable_records()
         self._name_registry = DatasetNameRegistry(self._records)
         self._records = self._assign_dataset_names(self._records)
+
+        for path, rec in self._records.items():
+            if rec.is_vlen_string:
+                print("VLEN RECORD:", path)
+
         self._coordinate_resolver = CoordinateResolver(
             self._records,
             self._name_registry,
         )
         self._dataset_infos = self._build_dataset_infos()
+
+    # Inherited
+    def _collect_variable_info(self, var_name, var_obj):
+
+        super()._collect_variable_info(var_name, var_obj)
+
+        if self.accessor.engine == "h5netcdf":
+            try:
+
+                info = h5py.check_string_dtype(var_obj._h5ds.dtype)
+
+                is_vlen_string = (
+                    info is not None and
+                    info.length is None
+                )
+
+                if is_vlen_string:
+                    print(f'VLEN STRING == True')
+
+                self.file_content[
+                    var_name + "/is_vlen_string"
+                ] = is_vlen_string
+
+            except Exception:
+                self.file_content[
+                    var_name + "/is_vlen_string"
+                ] = False
+            else:
+                print('PASS VLEN STRING')
 
     def _get_fallback_handle(self):
         if not hasattr(self, "_fallback_file_handle"):
@@ -646,6 +688,11 @@ class UVNSFileHandler(NetCDF4FileHandler):
                 dimensions,
             )
 
+            is_vlen_string = self.file_content.get(
+                raw_path + "/is_vlen_string",
+                False,
+            )
+
             records[path] = VariableRecord(
                 path=path,
                 name=path.rsplit("/", 1)[-1],
@@ -653,6 +700,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
                 dimensions=dimensions,
                 shape=shape,
                 dtype=dtype,
+                is_vlen_string=is_vlen_string,
                 attrs=attrs,
             )
 
@@ -671,6 +719,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
                 dimensions=record.dimensions,
                 shape=record.shape,
                 dtype=record.dtype,
+                is_vlen_string=record.is_vlen_string,
                 attrs=record.attrs,
             )
             for path, record in records.items()
@@ -735,6 +784,48 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         return dataset_infos
 
+    def _read_aligned_compound(self, group, key):
+        """Read a compound variable directly when h5netcdf's dtype_view
+        does not match the underlying HDF5 datatype.
+        """
+
+        ds = netCDF4.Dataset(self.filename)
+
+        try:
+            grp = ds if group is None else ds[group]
+
+            var = grp.variables[key]
+
+            data = var[...]
+
+            attrs = {}
+
+            for attr_name in var.ncattrs():
+                try:
+                    attrs[attr_name] = var.getncattr(attr_name)
+                except Exception:
+                    logger.warning(
+                        "Skipping unreadable attribute %r on %r",
+                        attr_name,
+                        key,
+                    )
+
+            logger.warning(
+                "Compound repair path used for %s "
+                "(dtype=%s)",
+                key,
+                data.dtype,
+            )
+
+            return xr.DataArray(
+                data=data,
+                dims=var.dimensions,
+                attrs=attrs,
+                name=key,
+            )
+
+        finally:
+            ds.close()
 
     ###### Overrideen inheritance methods. #######
     ######
@@ -742,7 +833,70 @@ class UVNSFileHandler(NetCDF4FileHandler):
     def _get_var_from_xr(self, group, key, **kwargs_override):
 
         kwargs = dict(self._xarray_kwargs)
+        print(kwargs)
         kwargs.update(kwargs_override)
+        print("OPENING XARRAY")
+        print(kwargs)
+        print("GROUP:", group)
+        print("KEY:", key)
+        print("ENGINE:", kwargs.get("engine"))
+        #if group == "status/instrument":
+        #    kwargs["chunks"] = None
+        #    kwargs["decode_vlen_strings"] = False
+
+        print("CHUNKS:", kwargs.get("chunks"))
+
+        file_key = key if group is None else f"{group}/{key}"
+
+        record = self._records[file_key]
+
+        size = np.prod(record.shape)
+
+        if record.is_vlen_string :
+            print(key)
+            assert False
+
+        if record.is_vlen_string  or  size < LAZY_LIMIT:
+            kwargs["chunks"] = None
+
+        engine = kwargs.get("engine")
+
+        if (
+            engine == "h5netcdf"
+            and self._has_h5netcdf_dtype_view_bug(
+                group,
+                key,
+            )
+        ):
+            logger.warning(
+                "Detected mismatched h5netcdf dtype_view "
+                "for %s, using direct compound reader",
+                file_key,
+            )
+
+            return self._read_aligned_compound(
+                group,
+                key,
+            )
+
+        print("BEFORE XR.OPEN_DATASET")
+
+        try:
+
+            nc = xr.open_dataset(
+                self.filename,
+                group=group,
+                **kwargs,
+            )
+
+            print("XR.OPEN_DATASET OK")
+
+        except Exception as e:
+
+            print("XR.OPEN_DATASET FAILED")
+            print(type(e))
+            print(repr(e))
+            raise
 
         with xr.open_dataset(
             self.filename,
@@ -750,58 +904,43 @@ class UVNSFileHandler(NetCDF4FileHandler):
             **kwargs,
         ) as nc:
 
+
+            print("VARIABLES")
+            print(list(nc.variables))
+
+            print("DATA_VARS")
+            print(list(nc.data_vars))
+
+            print("KEY", key)
+            print("KEY EXISTS", key in nc.variables)
+
             val = nc[key]
 
-            if not val.chunks:
-                val.load()
+            print("VAL:", val)
+            print("DATA:", type(val.data))
+            print("DATA DTYPE:", val.data.dtype)
 
+            if hasattr(val.data, "_meta"):
+                print("META:", val.data._meta)
+                print("META DTYPE:", val.data._meta.dtype)
+        print("RETURNING", key)
+        print(type(val))
+        print(val)
         return val
 
     def _get_var_from_netcdf4(self, group, key):
-        return self._get_var_from_xr(
+
+        print("NETCDF4 FALLBACK", group, key)
+
+        result = self._get_var_from_xr(
             group,
             key,
             engine="netcdf4",
         )
 
-    '''
-    def _get_var_from_hdf5(self, group, key):
-        """Load a variable directly from the underlying HDF5/NetCDF4 file.
+        print("NETCDF4 RESULT", type(result))
 
-        Used as a fallback when the normal NetCDF4/xarray loading path
-        fails for unsupported datatypes or metadata.
-        """
-        print('_get_var_from_hdf5')
-        print('arr = xr.DataArray(v[:], ...')
-
-        fh       = self._get_fallback_handle()
-
-        if group is None:
-            g = fh
-        else:
-            g = fh[group]
-
-        v = g[key]
-
-        accessor = self._fallback_accessor
-        attrs = accessor.get_object_attrs(v)
-
-        arr = xr.DataArray(
-            da.from_array(v),
-            dims=v.dimensions,
-            attrs=attrs,
-            name=v.name,
-        )
-
-        self._fallback_file_handle.close()
-        del self._fallback_file_handle
-
-        print("FALLBACK CLOSED")
-
-        arr.attrs["_fallback"] = True
-
-        return arr
-    '''
+        return result
 
     def _check_var_validity(self, key):
         v = self.file_content[key]
@@ -858,6 +997,27 @@ class UVNSFileHandler(NetCDF4FileHandler):
         except Exception as e:
             print("READ FAIL", e)
 
+    def _get_var_from_netcdf4_direct(self, group, key):
+
+        ds = netCDF4.Dataset(self.filename)
+
+        try:
+
+            grp = ds if group is None else ds[group]
+
+            var = grp.variables[key]
+
+            data = var[...]
+
+            return xr.DataArray(
+                data=data,
+                dims=var.dimensions,
+                name=key,
+            )
+
+        finally:
+            ds.close()
+
 
     def _get_variable(self, key, val):
         """Get a variable from the file."""
@@ -873,106 +1033,126 @@ class UVNSFileHandler(NetCDF4FileHandler):
             group = None
             key_name = key
 
-        try:
+        file_key = (
+            f"{group}/{key_name}"
+            if group is not None
+            else key_name
+        )
 
-            if self.file_handle is not None:
-                result = self._get_var_from_filehandle(
-                    group,
-                    key_name,
-                )
-            else:
-                result = self._get_var_from_xr(
-                    group,
-                    key_name,
-                )
-
-        except Exception as exc:
+        if self._is_compound_record(file_key):
 
             logger.warning(
-                "Primary load failed for %s: %s",
-                key,
-                exc,
+                "Loading compound variable via netCDF4: %s",
+                file_key,
             )
 
-            #
-            # First attempt: CF time repair.
-            #
-            if self._is_time_decode_error(exc):
+            result = self._get_var_from_netcdf4(
+                group,
+                key_name,
+            )
 
-                logger.warning(
-                    "Attempting CF time repair for %s",
-                    key,
-                )
+        else:
 
-                try:
-
-                    result = self._get_var_from_cf_time_repair(
-                        group,
-                        key_name,
-                    )
-
-                except Exception as repair_exc:
-
-                    logger.warning(
-                        "CF time repair failed for %s: %s",
-                        key,
-                        repair_exc,
-                    )
-
-                else:
-
-                    self.cached_file_content[key] = result
-                    return result
-
-            #
-            # Second attempt: dimension/scalar collision repair.
-            #
-            elif self._is_dimension_scalar_error(exc):
-
-                logger.warning(
-                    "Attempting dimension repair for %s",
-                    key,
-                )
-
-                try:
-
-                    result = self._get_var_from_dimension_repair(
-                        group,
-                        key_name,
-                    )
-
-                except Exception as repair_exc:
-
-                    logger.warning(
-                        "Dimension repair failed for %s: %s",
-                        key,
-                        repair_exc,
-                    )
-
-                else:
-
-                    self.cached_file_content[key] = result
-                    return result
-
-            #
-            # Third attempt: netCDF4 backend.
-            #
             try:
 
-                result = self._get_var_from_netcdf4(
-                    group,
-                    key_name,
-                )
+                if self.file_handle is not None:
+                    result = self._get_var_from_filehandle(
+                        group,
+                        key_name,
+                    )
+                else:
+                    result = self._get_var_from_xr(
+                        group,
+                        key_name,
+                    )
 
-            except Exception as exc2:
+            except Exception as exc:
 
                 logger.warning(
-                    "netCDF4 retry failed for %s: %s",
+                    "Primary load failed for %s: %s",
                     key,
-                    exc2,
+                    exc,
                 )
 
-                raise
+                #
+                # First attempt: CF time repair.
+                #
+                if self._is_time_decode_error(exc):
+
+                    logger.warning(
+                        "Attempting CF time repair for %s",
+                        key,
+                    )
+
+                    try:
+
+                        result = self._get_var_from_cf_time_repair(
+                            group,
+                            key_name,
+                        )
+
+                    except Exception as repair_exc:
+
+                        logger.warning(
+                            "CF time repair failed for %s: %s",
+                            key,
+                            repair_exc,
+                        )
+
+                    else:
+
+                        self.cached_file_content[key] = result
+                        return result
+
+                #
+                # Second attempt: dimension/scalar collision repair.
+                #
+                elif self._is_dimension_scalar_error(exc):
+
+                    logger.warning(
+                        "Attempting dimension repair for %s",
+                        key,
+                    )
+
+                    try:
+
+                        result = self._get_var_from_dimension_repair(
+                            group,
+                            key_name,
+                        )
+
+                    except Exception as repair_exc:
+
+                        logger.warning(
+                            "Dimension repair failed for %s: %s",
+                            key,
+                            repair_exc,
+                        )
+
+                    else:
+
+                        self.cached_file_content[key] = result
+                        return result
+
+                #
+                # Third attempt: netCDF4 backend.
+                #
+                try:
+
+                    result = self._get_var_from_netcdf4(
+                        group,
+                        key_name,
+                    )
+
+                except Exception as exc2:
+
+                    logger.warning(
+                        "netCDF4 retry failed for %s: %s",
+                        key,
+                        exc2,
+                    )
+
+                    raise
 
 
         self.cached_file_content[key] = result
@@ -1041,6 +1221,9 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         print("BEFORE self[file_key]")
         data = self[file_key]
+        print("RETURN TYPE", type(data))
+        print("RETURN DTYPE", getattr(data, "dtype", None))
+        print("RETURN NAME", getattr(data, "name", None))
         if data is None:
             raise RuntimeError(
                 f"{file_key} returned None"
@@ -1215,17 +1398,66 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
     @staticmethod
     def _normalise_dimensions(data):
-        """Rename supported spatial dimensions to Satpy conventions."""
+        """Rename dimensions to Satpy/xarray conventions."""
+
         rename_mapping = {
             old_name: new_name
             for old_name, new_name in DIMENSION_RENAMES.items()
             if old_name in data.dims
         }
 
-        if not rename_mapping:
+        if rename_mapping:
+            data = data.rename(rename_mapping)
+
+        counts = Counter(data.dims)
+
+        duplicates = {
+            dim
+            for dim, count in counts.items()
+            if count > 1
+        }
+
+        if not duplicates:
             return data
 
-        return data.rename(rename_mapping)
+        seen = Counter()
+        new_dims = []
+
+        for dim in data.dims:
+
+            if dim not in duplicates:
+                new_dims.append(dim)
+                continue
+
+            idx = seen[dim]
+
+            if idx == 0:
+                suffix = "x"
+            elif idx == 1:
+                suffix = "y"
+            elif idx == 2:
+                suffix = "z"
+            else:
+                suffix = str(idx)
+
+            new_dims.append(
+                f"{dim}_{suffix}"
+            )
+
+            seen[dim] += 1
+
+        logger.warning(
+            "Normalising duplicate dimensions %r -> %r",
+            data.dims,
+            tuple(new_dims),
+        )
+
+        return xr.DataArray(
+            data=data.data,
+            dims=tuple(new_dims),
+            attrs=data.attrs,
+            name=data.name,
+        )
 
     @staticmethod
     def _complete_coordinate_standard_name(
@@ -1285,6 +1517,52 @@ class UVNSFileHandler(NetCDF4FileHandler):
             in str(exc)
         )
 
+    def _is_compound_record(self, file_key):
+
+        return False
+
+        record = self._records.get(file_key)
+
+        print("COMPOUND CHECK", file_key)
+
+        print("DTYPE:", record.dtype)
+
+        if record is None:
+            return False
+
+        dtype = record.dtype
+
+        return (
+            "names" in dtype
+            and "formats" in dtype
+        )
+
+    def _has_h5netcdf_dtype_view_bug(self, group, key):
+
+        fh = self._get_fallback_handle()
+
+        grp = fh if group is None else fh[group]
+
+        var = grp.variables[key]
+
+        dtype = var._h5ds.dtype
+
+        if dtype.fields is None:
+            return False
+
+        view = var.datatype.dtype_view
+
+        if view is None:
+            return False
+
+        if dtype.names != view.names:
+            return True
+
+        if dtype.itemsize != view.itemsize:
+            return True
+
+        return False
+
     def _get_var_from_cf_time_repair(
         self,
         group,
@@ -1302,7 +1580,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         # Open raw.
         #
         kwargs["decode_times"] = False
-
+        print('IN _get_var_from_cf_time_repair')
         with xr.open_dataset(
             self.filename,
             group=group,
@@ -1318,9 +1596,9 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
             val = ds[key]
 
-            if not val.chunks:
-                val.load()
-
+            #if not val.chunks or val.size < LAZY_LIMIT:
+            #    val.load()
+            val.load()
             val.attrs["_cf_time_repair"] = True
 
             return val
@@ -1391,6 +1669,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         kwargs = dict(self._xarray_kwargs)
         kwargs.update(kwargs_override)
 
+        print('IN  _get_var_from_dimension_repair')
         with xr.open_dataset(
             self.filename,
             group=group,
@@ -1400,7 +1679,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
             val = ds[key]
 
-            if not val.chunks:
+            if not val.chunks or val.size < LAZY_LIMIT:
                 val.load()
 
             val.attrs["_dimension_repair"] = True
