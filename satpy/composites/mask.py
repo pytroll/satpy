@@ -580,4 +580,7 @@ class LowCloudCompositor(CloudCompositor):
         low_cloud_mask = self._remove_noise(low_cloud_mask, window)
         low_cloud_mask = self._remove_bare_soil(low_cloud_mask, split_window_bare_soil, window, satz, is_land)
 
-        return super().__call__([split_window_low_clouds.where(low_cloud_mask)], **kwargs)
+        res = super().__call__([split_window_low_clouds], **kwargs)
+        res.loc["A"] = res.sel(bands="A").where(low_cloud_mask, 0.0)
+
+        return res
