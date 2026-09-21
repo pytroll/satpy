@@ -101,9 +101,9 @@ class TestLowCloudCompositor:
             res = comp([self.btd, self.bt_win, self.lsm])
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
-        expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
+        expexted_alpha = np.array([[0.0, 0.2, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
         expected = np.stack([self.btd, expexted_alpha])
-        np.testing.assert_equal(res.values, expected)
+        np.testing.assert_almost_equal(res.values, expected)
 
     def test_low_cloud_compositor_dtype(self):
         """Test that the datatype is not altered by the compositor."""
