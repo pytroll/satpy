@@ -110,9 +110,7 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
     from satpy.enhancements.enhancer import get_enhanced_image
     case = _NWCSAFCase(*_nwcsaf_geo_props[data])
     sc = _create_fake_nwcsaf_scene(tmp_path, case)
-    vmin, vmax = case.valid_range
-    fake_data = da.linspace(vmin, vmax, 4, chunks=2, dtype=case.dtype).reshape(2, 2)
-    _add_fake_nwcsaf_datasets(sc, case, fake_data, fake_area)
+    fake_data = _add_fake_nwcsaf_datasets(sc, case, fake_area)
 
     def _fake_get_varname(info, info_type="file_key"):
         return case.file_varname or case.varname
@@ -152,8 +150,13 @@ def _create_fake_nwcsaf_scene(tmp_path, case):
     return Scene(filenames=[os.fspath(fk)], reader=[reader])
 
 
-def _add_fake_nwcsaf_datasets(sc, case, fake_data, fake_area):
-    """Add the fake data, palette and optional status flag datasets to the Scene."""
+def _add_fake_nwcsaf_datasets(sc, case, fake_area):
+    """Add the fake data, palette and optional status flag datasets to the Scene.
+
+    Returns the fake data array so the enhanced image can be compared against it.
+    """
+    vmin, vmax = case.valid_range
+    fake_data = da.linspace(vmin, vmax, 4, chunks=2, dtype=case.dtype).reshape(2, 2)
     sc[case.palette_name] = xr.DataArray(
         da.tile(da.arange(256), [3, 1]).T,
         dims=("pal02_colors", "pal_RGB"))
@@ -174,6 +177,7 @@ def _add_fake_nwcsaf_datasets(sc, case, fake_data, fake_area):
             "scaled_FillValue": 123,
             "ancillary_variables": ancvars,
             "valid_range": case.valid_range})
+    return fake_data
 
 
 def _assert_nwcsaf_colorized(im, case, fake_data):
