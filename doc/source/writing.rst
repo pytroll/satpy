@@ -17,10 +17,10 @@ One common parameter across almost all Writers is ``filename`` and
     ...     filename="{name}_{start_time:%Y%m%d_%H%M%S}.tif",
     ...     base_dir="/tmp/my_ouput_dir")
 
-.. versionchanged:: 0.10
-
-    The `file_pattern` keyword argument was renamed to `filename` to match
-    the `save_dataset` method"s keyword argument.
+The ``filename`` argument can specify Python string formatting fields.
+Those fields are mostly filled by attributes available or the individual
+datasets.  Following Python string formatting rules, attributes of
+attributes can be referenced as well, for example ``area.name``.
 
 .. _writer_table:
 
@@ -53,7 +53,7 @@ One common parameter across almost all Writers is ``filename`` and
       -
     * - GeoTIFF with NinJo tags (from NinJo 7)
       - :class:`ninjogeotiff <satpy.writers.ninjogeotiff.NinJoGeoTIFFWriter>`
-      - Beta
+      - Nominal
       -
 
 Available Writers
