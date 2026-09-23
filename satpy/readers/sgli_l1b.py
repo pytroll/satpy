@@ -164,7 +164,7 @@ class HDF5SGLI(BaseFileHandler):
         lons = self.h5file["Geometry_data/Longitude"]
         lats = self.h5file["Geometry_data/Latitude"]
         attrs = lons.attrs
-        resampling_interval = attrs["Resampling_interval"]
+        resampling_interval = attrs["Resampling_interval"].item()
         if resampling_interval != 1:
             lons, lats = self.interpolate_spherical(lons, lats, resampling_interval)
         if key["name"].startswith("longitude"):
@@ -177,8 +177,8 @@ class HDF5SGLI(BaseFileHandler):
         """Interpolate spherical coordinates."""
         from geotiepoints.geointerpolator import GeoSplineInterpolator
 
-        full_shape = (self.h5file["Image_data"].attrs["Number_of_lines"],
-                      self.h5file["Image_data"].attrs["Number_of_pixels"])
+        full_shape = (self.h5file["Image_data"].attrs["Number_of_lines"].item(),
+                      self.h5file["Image_data"].attrs["Number_of_pixels"].item())
 
         tie_lines = np.arange(0, polar_angle.shape[0] * resampling_interval, resampling_interval)
         tie_cols = np.arange(0, polar_angle.shape[1] * resampling_interval, resampling_interval)
@@ -227,7 +227,7 @@ class HDF5SGLI(BaseFileHandler):
 
     def get_full_angles(self, azi, zen, attrs):
         """Interpolate angle arrays."""
-        resampling_interval = attrs["Resampling_interval"]
+        resampling_interval = attrs["Resampling_interval"].item()
         if resampling_interval != 1:
             zen = zen[:] - 90
             new_azi, new_zen = self.interpolate_spherical(azi, zen, resampling_interval)

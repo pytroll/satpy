@@ -120,3 +120,4 @@ The following people have made contributions to this project:
 - [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
 - [Göte Kleringer (Grukank)](https://github.com/Grukank)
 - [Kin Largadas (KNLargadas)](https://github.com/KNLargadas)
+- [Danny Kilkenny](https://github.com/DKilkenny)

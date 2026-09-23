@@ -12,6 +12,7 @@ A wide variety of such products exist and, at present, only a subset are support
  - Aerosol optical depth: JRR-AOD_v2r3_j01_s202112250807275_e202112250808520_c202112250839550.nc
  - Surface reflectance: SurfRefl_v1r1_j01_s202112250807275_e202112250808520_c202112250845080.nc
  - Land Surface Temperature: LST_v2r0_npp_s202307241724558_e202307241726200_c202307241854058.nc
+ - Land Surface Temperature: LST_v2r2_j01_s202609052026342_e202609052027587_c202609052112285.nc
 
 All products use the same base reader ``viirs_edr`` and can be read through satpy with::
 
@@ -361,7 +362,17 @@ class VIIRSSurfaceReflectanceWithVIHandler(VIIRSJRRFileHandler):
 
 
 class VIIRSLSTHandler(VIIRSJRRFileHandler):
-    """File handler to handle LST file scale factor and offset weirdness."""
+    """File handler to handle LST file scale factor and offset weirdness.
+
+    LST files older than v2r2 store the scale factor and offset of some
+    variables in separate scalar variables (ex. ``LST_ScaleFact`` and
+    ``LST_Offset``) instead of the CF standard ``scale_factor`` and
+    ``add_offset`` attributes. Newer files use the CF attributes which xarray
+    applies automatically when the file is opened. In both cases the
+    ``valid_range`` attribute is in the unscaled integer units of the file and
+    must be scaled to match the data.
+
+    """
 
     _manual_scalings = {
         "VLST": ("LST_ScaleFact", "LST_Offset"),
@@ -380,13 +391,31 @@ class VIIRSLSTHandler(VIIRSJRRFileHandler):
 
     def _scale_data(self):
         for var_name in list(self.nc.variables.keys()):
-            if var_name not in self._manual_scalings:
-                continue
             data_arr = self.nc[var_name]
-            scale_factor = self.nc[self._manual_scalings[var_name][0]]
-            add_offset = self.nc[self._manual_scalings[var_name][1]]
-            data_arr.data = data_arr.data * scale_factor.data + add_offset.data
+            if "scale_factor" in data_arr.encoding:
+                # v2r2+: CF attributes already applied by xarray's mask_and_scale
+                scale_factor = data_arr.encoding["scale_factor"]
+                add_offset = data_arr.encoding.get("add_offset", 0)
+            elif self._manual_scalings.get(var_name, (None,))[0] in self.nc:
+                # < v2r2: scale factor and offset are separate scalar variables
+                scale_name, offset_name = self._manual_scalings[var_name]
+                scale_factor = self.nc[scale_name].data
+                add_offset = self.nc[offset_name].data
+                data_arr.data = data_arr.data * scale_factor + add_offset
+            else:
+                continue
+            self._scale_valid_range(data_arr, scale_factor, add_offset)
             self.nc[var_name] = data_arr
+
+    @staticmethod
+    def _scale_valid_range(data_arr: xr.DataArray, scale_factor, add_offset) -> None:
+        valid_range = data_arr.attrs.get("valid_range")
+        if valid_range is None:
+            return
+        # Compute in the data's dtype so the endpoints match exactly what the
+        # scaled data produces for the raw min/max values
+        scaled = np.asarray(valid_range, dtype=data_arr.dtype) * scale_factor + add_offset
+        data_arr.attrs["valid_range"] = tuple(scaled.astype(data_arr.dtype).tolist())
 
 
 class VIIRSAODHandler(VIIRSJRRFileHandler):
