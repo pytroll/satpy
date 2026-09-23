@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -81,7 +82,7 @@ class ColormapCompositor(GenericCompositor):
         compositor: !!python/name:satpy.composites.core.SingleBandCompositor
         prerequisites:
         - ctth_alti
-        tandard_name: cloud_top_height
+        standard_name: cloud_top_height
 
     and the enhancement::
 
@@ -97,6 +98,16 @@ class ColormapCompositor(GenericCompositor):
                 min_value: 0
                 max_value: 255
     """
+
+    def __init__(self, name, **kwargs):
+        """Initialize the compositor and warn that it is deprecated."""
+        warnings.warn(
+            f"'{self.__class__.__name__}' is deprecated and will be removed in a future version of Satpy. "
+            "Use a 'SingleBandCompositor' with a 'colorize' or 'palettize' enhancement instead.",
+            UserWarning,
+            stacklevel=2,
+        )
+        super().__init__(name, **kwargs)
 
     @staticmethod
     def build_colormap(palette, dtype, info):

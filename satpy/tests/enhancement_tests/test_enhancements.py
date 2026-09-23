@@ -1,6 +1,7 @@
 """Unit testing the enhancements functions, e.g. cira_stretch."""
 
 import os
+from typing import NamedTuple
 from unittest import mock
 
 import dask.array as da
@@ -14,6 +15,24 @@ def fake_area():
     """Return a fake 2×2 area."""
     from pyresample.geometry import create_area_def
     return create_area_def("wingertsberg", 4087, area_extent=[-2_000, -2_000, 2_000, 2_000], shape=(2, 2))
+
+
+class _NWCSAFCase(NamedTuple):
+    """Properties of a fake NWCSAF product used to test its composite and enhancement."""
+
+    flavor: str
+    varname: str
+    file_varname: str | None  # name in the file if it differs from varname
+    palette_name: str
+    status_name: str | None
+    composite: str
+    file_label: str
+    dtype: str
+
+    @property
+    def valid_range(self):
+        """Get the valid range of the fake data."""
+        return (0, 100) if self.dtype == "uint8" else (-100, 1000)
 
 
 _nwcsaf_geo_props = {
@@ -81,85 +100,107 @@ _nwcsaf_geo_props = {
                        "rdt_cell_type", "RDT-CW", "uint8"),
 }
 
+_nwcsaf_colorized = {"ctth_alti_pps", "cmic_reff_pps", "cmic_cot_pps", "cmic_cwp_pps",
+                     "cmic_lwp_pps", "cmic_iwp_pps"}
 
-@pytest.mark.parametrize(
-    "data",
-    ["cma_geo", "cma_pps", "cma_extended_pps", "cmaprob_pps", "ct_geo",
-     "ct_pps", "ctth_alti_geo", "ctth_alti_pps", "ctth_pres_geo",
-     "ctth_pres_pps", "ctth_tempe_geo", "ctth_tempe_pps",
-     "cmic_phase_geo", "cmic_phase_pps", "cmic_reff_geo",
-     "cmic_reff_pps", "cmic_cot_geo", "cmic_cot_pps", "cmic_cwp_pps",
-     "cmic_lwp_geo", "cmic_lwp_pps", "cmic_iwp_geo", "cmic_iwp_pps",
-     "pc", "crr", "crr_accum", "ishai_tpw", "ishai_shw", "ishai_li",
-     "ci_prob30", "ci_prob60", "ci_prob90", "asii_turb_trop_prob",
-     "MapCellCatType"]
-)
+
+@pytest.mark.parametrize("data", _nwcsaf_geo_props.keys())
 def test_nwcsaf_comps(fake_area, tmp_path, data):
     """Test loading NWCSAF composites."""
-    from satpy import Scene
     from satpy.enhancements.enhancer import get_enhanced_image
-    (flavour, dvname, altname, palettename, statusname, comp, filelabel, dtp) = _nwcsaf_geo_props[data]
-    rng = (0, 100) if dtp == "uint8" else (-100, 1000)
-    if flavour == "geo":
-        fn = f"S_NWC_{filelabel:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
+    case = _NWCSAFCase(*_nwcsaf_geo_props[data])
+    sc = _create_fake_nwcsaf_scene(tmp_path, case)
+    fake_data = _add_fake_nwcsaf_datasets(sc, case, fake_area)
+
+    def _fake_get_varname(info, info_type="file_key"):
+        return case.file_varname or case.varname
+
+    with mock.patch("satpy.readers.nwcsaf_nc.NcNWCSAF._get_varname_in_file") as srnN_:
+        srnN_.side_effect = _fake_get_varname
+        sc.load([case.composite])
+    im = get_enhanced_image(sc[case.composite])
+    if data in _nwcsaf_colorized:
+        _assert_nwcsaf_colorized(im, case, fake_data)
+    else:
+        _assert_nwcsaf_palettized(im, case, fake_data)
+
+
+def _create_fake_nwcsaf_scene(tmp_path, case):
+    """Create a Scene from a minimal fake NWCSAF file, otherwise satpy won't load the composite."""
+    from satpy import Scene
+    if case.flavor == "geo":
+        fn = f"S_NWC_{case.file_label:s}_MSG2_MSG-N-VISIR_20220124T094500Z.nc"
         reader = "nwcsaf-geo"
         id_ = {"satellite_identifier": "MSG4"}
     else:
-        fn = f"S_NWC_{filelabel:s}_noaa20_00000_20230301T1200213Z_20230301T1201458Z.nc"
+        fn = f"S_NWC_{case.file_label:s}_noaa20_00000_20230301T1200213Z_20230301T1201458Z.nc"
         reader = "nwcsaf-pps_nc"
         id_ = {"platform": "NOAA-20"}
     fk = tmp_path / fn
-    # create a minimally fake netCDF file, otherwise satpy won't load the
-    # composite
     ds = xr.Dataset(
         coords={"nx": [0], "ny": [0]},
         attrs={
             "source": "satpy unit test",
             "time_coverage_start": "0001-01-01T00:00:00Z",
             "time_coverage_end": "0001-01-01T01:00:00Z",
+            **id_,
         }
     )
-    ds.attrs.update(id_)
     ds.to_netcdf(fk)
-    sc = Scene(filenames=[os.fspath(fk)], reader=[reader])
-    sc[palettename] = xr.DataArray(
+    return Scene(filenames=[os.fspath(fk)], reader=[reader])
+
+
+def _add_fake_nwcsaf_datasets(sc, case, fake_area):
+    """Add the fake data, palette and optional status flag datasets to the Scene.
+
+    Returns the fake data array so the enhanced image can be compared against it.
+    """
+    vmin, vmax = case.valid_range
+    fake_data = da.linspace(vmin, vmax, 4, chunks=2, dtype=case.dtype).reshape(2, 2)
+    sc[case.palette_name] = xr.DataArray(
         da.tile(da.arange(256), [3, 1]).T,
         dims=("pal02_colors", "pal_RGB"))
-    fake_alti = da.linspace(rng[0], rng[1], 4, chunks=2, dtype=dtp).reshape(2, 2)
-    ancvars = [sc[palettename]]
-    if statusname is not None:
-        sc[statusname] = xr.DataArray(
+    ancvars = [sc[case.palette_name]]
+    if case.status_name is not None:
+        sc[case.status_name] = xr.DataArray(
             da.zeros(shape=(2, 2), dtype="uint8"),
             attrs={
                 "area": fake_area,
                 "_FillValue": 123},
             dims=("y", "x"))
-        ancvars.append(sc[statusname])
-    sc[dvname] = xr.DataArray(
-        fake_alti,
+        ancvars.append(sc[case.status_name])
+    sc[case.varname] = xr.DataArray(
+        fake_data,
         dims=("y", "x"),
         attrs={
             "area": fake_area,
             "scaled_FillValue": 123,
             "ancillary_variables": ancvars,
-            "valid_range": rng})
+            "valid_range": case.valid_range})
+    return fake_data
 
-    def _fake_get_varname(info, info_type="file_key"):
-        return altname or dvname
 
-    with mock.patch("satpy.readers.nwcsaf_nc.NcNWCSAF._get_varname_in_file") as srnN_:
-        srnN_.side_effect = _fake_get_varname
-        sc.load([comp])
-    im = get_enhanced_image(sc[comp])
-    if flavour == "geo":
-        assert im.mode == "P"
-        np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
-        if dtp == "float64":
-            np.testing.assert_allclose(
-                im.data.sel(bands="P"),
-                ((fake_alti - rng[0]) * (255 / np.ptp(rng))).round())
-        else:
-            np.testing.assert_allclose(im.data.sel(bands="P"), fake_alti)
+def _assert_nwcsaf_colorized(im, case, fake_data):
+    """Check a colorized image, where the fake gray ramp palette makes every band the normalized data."""
+    vmin, vmax = case.valid_range
+    assert im.mode == "RGB"
+    expected = (fake_data - vmin) / (vmax - vmin)
+    for band in "RGB":
+        np.testing.assert_allclose(im.data.sel(bands=band), expected, rtol=1e-6)
+
+
+def _assert_nwcsaf_palettized(im, case, fake_data):
+    """Check a palettized image.
+
+    Only the GEO values are checked as some PPS composites alter the data before palettizing.
+    """
+    assert im.mode == "P"
+    np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
+    if case.flavor != "geo":
+        return
+    vmin, vmax = case.valid_range
+    expected = ((fake_data - vmin) * (255 / (vmax - vmin))).round() if case.dtype == "float64" else fake_data
+    np.testing.assert_allclose(im.data.sel(bands="P"), expected)
 
 
 @pytest.mark.parametrize("name",

@@ -5,6 +5,7 @@ import unittest
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -14,7 +15,8 @@ class TestColormapCompositor(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         from satpy.composites.lookup import ColormapCompositor
-        self.colormap_compositor = ColormapCompositor("test_cmap_compositor")
+        with pytest.warns(UserWarning, match="'ColormapCompositor' is deprecated"):
+            self.colormap_compositor = ColormapCompositor("test_cmap_compositor")
 
     def test_build_colormap_with_int_data_and_without_meanings(self):
         """Test colormap building."""
@@ -39,7 +41,8 @@ class TestPaletteCompositor(unittest.TestCase):
     def test_call(self):
         """Test palette compositing."""
         from satpy.composites.lookup import PaletteCompositor
-        cmap_comp = PaletteCompositor("test_cmap_compositor")
+        with pytest.warns(UserWarning, match="'PaletteCompositor' is deprecated"):
+            cmap_comp = PaletteCompositor("test_cmap_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=["value", "band"])
         palette.attrs["palette_meanings"] = [2, 3, 4]
@@ -61,7 +64,8 @@ class TestColorizeCompositor(unittest.TestCase):
     def test_colorize_no_fill(self):
         """Test colorizing."""
         from satpy.composites.lookup import ColorizeCompositor
-        colormap_composite = ColorizeCompositor("test_color_compositor")
+        with pytest.warns(UserWarning, match="'ColorizeCompositor' is deprecated"):
+            colormap_composite = ColorizeCompositor("test_color_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=["value", "band"])
         palette.attrs["palette_meanings"] = [2, 3, 4]
@@ -82,7 +86,8 @@ class TestColorizeCompositor(unittest.TestCase):
     def test_colorize_with_interpolation(self):
         """Test colorizing with interpolation."""
         from satpy.composites.lookup import ColorizeCompositor
-        colormap_composite = ColorizeCompositor("test_color_compositor")
+        with pytest.warns(UserWarning, match="'ColorizeCompositor' is deprecated"):
+            colormap_composite = ColorizeCompositor("test_color_compositor")
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=["value", "band"])
         palette.attrs["palette_meanings"] = [2, 3, 4]
