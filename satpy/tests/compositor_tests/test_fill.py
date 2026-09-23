@@ -30,7 +30,7 @@ class TestDayNightCompositor(unittest.TestCase):
         a[:, 1, 0] = 0.3
         a[:, 1, 1] = 0.4
         a = da.from_array(a, a.shape)
-        self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time},
+        self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time, "standard_name": "image_ready"},
                                    coords={"bands": bands}, dims=("bands", "y", "x"))
         b = np.zeros((3, 2, 2), dtype=np.float32)
         b[:, 0, 0] = np.nan
@@ -38,7 +38,7 @@ class TestDayNightCompositor(unittest.TestCase):
         b[:, 1, 0] = 0.50
         b[:, 1, 1] = 0.75
         b = da.from_array(b, b.shape)
-        self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time},
+        self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time, "standard_name": "image_ready"},
                                    coords={"bands": bands}, dims=("bands", "y", "x"))
 
         sza = np.array([[80., 86.], [94., 100.]], dtype=np.float32)
@@ -65,7 +65,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
             res = comp((self.data_a, self.data_b, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.22122374], [0.5, 1.]], dtype=np.float32)
+        expected = np.array([[0.1, 0.216648], [0.5, 0.75]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
 
@@ -77,7 +77,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_night")
             res = comp((self.data_a, self.data_b))
             res = res.compute()
-        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_channel = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
         assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel)
@@ -90,7 +90,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
             res = comp((self.data_b, self.sza))
             res = res.compute()
-        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_red_channel = np.array([[np.nan, 0.25], [0.5, 0.75]], dtype=np.float32)
         expected_alpha = np.array([[0., 0.3329599], [1., 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
@@ -104,7 +104,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected = np.array([[0., 0.11042609], [0.6683502, 1.]], dtype=np.float32)
+        expected = np.array([[0., 0.06659198], [0.3, 0.4]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
         assert "A" not in res.bands
@@ -117,7 +117,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
             res = comp((self.data_b,))
             res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_l_channel = np.array([[np.nan, 0.25], [0.5, 0.75]], dtype=np.float32)
         expected_alpha = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
@@ -144,7 +144,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_red_channel = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
         expected_alpha = np.array([[1., 0.6670401], [0., 0.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
@@ -158,7 +158,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
             res = comp((self.data_a, self.sza))
             res = res.compute()
-        expected_channel_data = np.array([[0., 0.22122373], [0., 0.]], dtype=np.float32)
+        expected_channel_data = np.array([[0.1, 0.13340802], [0., 0.]], dtype=np.float32)
         assert res.dtype == np.float32
         for i in range(3):
             np.testing.assert_allclose(res.values[i], expected_channel_data)
@@ -172,7 +172,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_a,))
             res = res.compute()
-        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected_l_channel = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
         expected_alpha = np.array([[1., 1.], [1., 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
@@ -186,7 +186,7 @@ class TestDayNightCompositor(unittest.TestCase):
             comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
             res = comp((self.data_b,))
             res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_l_channel = np.array([[np.nan, 0.25], [0.5, 0.75]], dtype=np.float32)
         expected_alpha = np.array([[np.nan, 1.], [1., 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_l_channel)
@@ -200,7 +200,7 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
         res_dask = comp((self.data_a,))
         res = res_dask.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+        expected = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
         assert res_dask.dtype == res.dtype
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected)
