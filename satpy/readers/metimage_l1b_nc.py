@@ -33,9 +33,6 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
         self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
         self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
         self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
-        # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
-        # (the values in the product file are on tie points and in degrees,
-        # therefore interpolation and conversion to radians are required)
 
     def _perform_calibration(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
@@ -87,7 +84,11 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
             orthorect_data = self[orthorect_data_name]
             # Convert the orthorectification delta values from meters to degrees
             # based on the simplified formula using mean Earth radius
-            variable += np.degrees(orthorect_data / MEAN_EARTH_RADIUS)
+            divisor = MEAN_EARTH_RADIUS
+            if orthorect_data_name == "data/measurement_data/delta_lon_E_dem":
+                divisor *= np.cos(np.radians(self.latitude))
+            variable += np.degrees(orthorect_data / divisor)
+
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
         return variable
