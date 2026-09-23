@@ -303,7 +303,8 @@ enhancements:
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
-        get_enhanced_image(ds, enhance=e)
+        with pytest.warns(UserWarning, match="No YAML enhancement found"):
+            get_enhanced_image(ds, enhance=e)
         assert (set(pathlib.Path(config) for config in e.sensor_enhancement_configs) ==
                 {test_configs_path / self.ENH_FN3})
 
@@ -317,7 +318,8 @@ enhancements:
                        dims=["y", "x"])
         e = Enhancer()
         assert e.enhancement_tree is not None
-        get_enhanced_image(ds, enhance=e)
+        with pytest.warns(UserWarning, match="No YAML enhancement found"):
+            get_enhanced_image(ds, enhance=e)
         assert (set(pathlib.Path(config) for config in e.sensor_enhancement_configs) ==
                 {test_configs_path / self.ENH_FN2,
                  test_configs_path / self.ENH_ENH_FN2})
