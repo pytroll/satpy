@@ -1,21 +1,37 @@
 """Base resampling functionality."""
+from __future__ import annotations
+
 import hashlib
 import json
+import typing
 import warnings
 from contextlib import suppress
+from functools import lru_cache
 from importlib import import_module
 from logging import getLogger
 from weakref import WeakValueDictionary
 
 import numpy as np
 
+from satpy.dataset import DataID
 from satpy.utils import get_legacy_chunk_size
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any
+
+    import xarray as xr
+    from pyresample.geometry import AreaDefinition, BaseDefinition
+    from pyresample.resampler import BaseResampler as PRBaseResampler
 
 LOG = getLogger(__name__)
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
 resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
+
+#: Default maximum number of entries kept in each :class:`DatasetResampler` cache.
+CACHE_SIZE = 100
 
 
 def _hash_dict(the_dict, the_hash=None):
@@ -190,3 +206,143 @@ def resample_dataset(dataset, destination_area, **kwargs):
     new_data.attrs.update(area=destination_area)
 
     return new_data
+
+
+class DatasetResampler:
+    """Resample many datasets to one destination area, reusing work between them.
+
+    Datasets sharing a source area reuse the same data-reduction slices and the
+    same resampler instance. Ancillary variables shared by datasets resampled in
+    the same :meth:`resample_all` call are resampled once and re-attached to
+    every resampled parent. Datasets without an ``area`` attribute are returned
+    unchanged.
+
+    Args:
+        destination_area: The area to resample all datasets to.
+        reduce_data: Slice source data to the part covering the destination
+            area before resampling (default: True).
+        cache_size: Maximum number of source areas to keep reduction slices and
+            resampler instances for (default: :data:`CACHE_SIZE`). Resampler
+            instances can hold large precomputed index arrays, so a long lived
+            instance resampling from many source areas may want a lower value.
+        resample_kwargs: Keyword arguments passed to :func:`prepare_resampler`
+            and :func:`resample_dataset`, for example ``resampler="nearest"``.
+
+    """
+
+    def __init__(
+            self,
+            destination_area: BaseDefinition,
+            reduce_data: bool = True,
+            cache_size: int = CACHE_SIZE,
+            **resample_kwargs: Any,
+    ) -> None:
+        """Set up caches for a resampling operation to *destination_area*."""
+        self.destination_area = destination_area
+        self.reduce_data = reduce_data
+        self.resample_kwargs = resample_kwargs
+        # source_area -> ((slice_x, slice_y), reduced_area)
+        self._get_reduction = lru_cache(maxsize=cache_size)(self._get_reduction_uncached)
+        # source_area -> resampler instance
+        self._get_resampler = lru_cache(maxsize=cache_size)(self._get_resampler_uncached)
+
+    def resample_all(self, datasets: Iterable[xr.DataArray]) -> list[xr.DataArray]:
+        """Resample every dataset of *datasets* to the destination area.
+
+        An ancillary variable shared by several of the datasets is resampled
+        only once and the same resampled object is attached to each of its
+        resampled parents. A dataset that is also an ancillary variable of
+        another dataset in *datasets* is the same object in both places.
+        """
+        resampled: dict[DataID, xr.DataArray] = {}
+        return [self._resample(dataset, resampled) for dataset in datasets]
+
+    def resample(self, dataset: xr.DataArray) -> xr.DataArray:
+        """Resample *dataset* and its ancillary variables.
+
+        Use :meth:`resample_all` to share resampled ancillary variables between
+        multiple datasets; nothing is remembered between separate calls to this
+        method.
+        """
+        return self._resample(dataset, {})
+
+    def _resample(self, dataset: xr.DataArray, resampled: dict[DataID, xr.DataArray]) -> xr.DataArray:
+        """Resample *dataset*, reusing anything already in the *resampled* memo."""
+        ds_id = DataID.from_dataarray(dataset)
+        try:
+            return resampled[ds_id]
+        except KeyError:
+            pass
+        if dataset.attrs.get("area") is None:
+            return dataset
+
+        LOG.debug("Resampling %s", ds_id)
+        res = self._reduce_and_resample(dataset)
+
+        anc_vars = dataset.attrs.get("ancillary_variables")
+        if anc_vars:
+            # new list on the (already copied) attrs so the source dataset is untouched
+            res.attrs["ancillary_variables"] = [self._resample_ancillary(anc, resampled) for anc in anc_vars]
+        resampled[ds_id] = res
+        return res
+
+    def _reduce_and_resample(self, dataset: xr.DataArray) -> xr.DataArray:
+        """Reduce *dataset* to the destination area and resample it (no memoization)."""
+        reduced, source_area = self._reduce_data(dataset)
+        kwargs = self.resample_kwargs.copy()
+        kwargs["resampler"] = self._get_resampler(source_area)
+        return resample_dataset(reduced, self.destination_area, **kwargs)
+
+    def _resample_ancillary(self, anc: Any, resampled: dict[DataID, xr.DataArray]) -> Any:
+        if not hasattr(anc, "attrs"):
+            return anc
+        return self._resample(anc, resampled)
+
+    def _get_resampler_uncached(self, source_area: BaseDefinition) -> PRBaseResampler:
+        """Create the resampler going from *source_area* to the destination area."""
+        # we don't use the first argument (cache key)
+        _, resampler = prepare_resampler(source_area, self.destination_area, **self.resample_kwargs)
+        return resampler
+
+    def _reduce_data(self, dataset: xr.DataArray) -> tuple[xr.DataArray, BaseDefinition]:
+        """Slice *dataset* to the part of its area covering the destination area."""
+        source_area = dataset.attrs["area"]
+        if not self.reduce_data:
+            LOG.debug("Data reduction disabled by the user")
+            return dataset, source_area
+
+        try:
+            slices, reduced_area = self._get_reduction(source_area)
+        except NotImplementedError:
+            LOG.info("Not reducing data before resampling.")
+            return dataset, source_area
+        return self._slice_data(dataset, slices, reduced_area), reduced_area
+
+    def _get_reduction_uncached(self, source_area: BaseDefinition) -> tuple[tuple[slice, slice], AreaDefinition]:
+        """Compute the slices and the reduced version of *source_area*."""
+        if self.resample_kwargs.get("resampler") == "gradient_search":
+            factor = self.resample_kwargs.get("shape_divisible_by", 2)
+        else:
+            factor = None
+        try:
+            # only AreaDefinition accepts `shape_divisible_by`, hence the ignore
+            slice_x, slice_y = source_area.get_area_slices(  # type: ignore[call-arg]
+                self.destination_area, shape_divisible_by=factor)
+        except TypeError:
+            # BaseDefinition (e.g. SwathDefinition) does not accept shape_divisible_by
+            # and only raises NotImplementedError when called without it
+            slice_x, slice_y = source_area.get_area_slices(self.destination_area)
+
+        return (slice_x, slice_y), source_area[slice_y, slice_x]
+
+    @staticmethod
+    def _slice_data(dataset: xr.DataArray, slices: tuple[slice, slice], reduced_area: AreaDefinition) -> xr.DataArray:
+        """Slice the data to reduce it."""
+        slice_x, slice_y = slices
+        dataset = dataset.isel(x=slice_x, y=slice_y)
+        if ("x", reduced_area.width) not in dataset.sizes.items():
+            raise RuntimeError
+        if ("y", reduced_area.height) not in dataset.sizes.items():
+            raise RuntimeError
+        dataset.attrs["area"] = reduced_area
+        return dataset
