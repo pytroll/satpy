@@ -201,10 +201,8 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
         for key in self.accessor.get_object_attrs(obj):
-            print("COLLECTING", name, key)
             fc_key = f"{name}/attr/{key}"
             value = self._get_attr_value(obj, key)
-            print("STORING", fc_key)
             self.file_content[fc_key] = value
 
     def _get_attr_value(self, obj, key):
@@ -264,29 +262,19 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Get a variable from the netcdf file."""
         if key in self.cached_file_content:
             return self.cached_file_content[key]
-
+        # these datasets are closed and inaccessible when the file is
+        # closed, need to reopen
+        # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
         parts = key.rsplit("/", 1)
         if len(parts) == 2:
             group, key = parts
         else:
             group = None
-
-        '''
-        #
-        # Structured NetCDF compound types are readable
-        # through netCDF4 but may fail through the xarray
-        # backend because some compound-variable attributes
-        # aren't supported.
-        #
-        if self._is_compound_dtype(val.dtype):
-            print("COMPOUND PATH:", key)
-            return self._get_compound_var(group, key)
-        '''
-
         if self.file_handle is not None:
-            return self._get_var_from_filehandle(group, key)
-
-        return self._get_var_from_xr(group, key)
+            val = self._get_var_from_filehandle(group, key)
+        else:
+            val = self._get_var_from_xr(group, key)
+        return val
 
     def _get_group(self, key, val):
         """Get a group from the netcdf file."""
@@ -295,7 +283,6 @@ class NetCDF4FileHandler(BaseFileHandler):
                              **self._xarray_kwargs) as nc:
             val = nc
         return val
-
 
     def _get_var_from_xr(self, group, key):
         with xr.open_dataset(self.filename, group=group,
@@ -438,58 +425,25 @@ class NetCDF4Accessor:
         return isinstance(obj, netCDF4.Group)
 
     @staticmethod
-    def _get_h5_attr(obj, attname):
-        """Fallback attribute reader using h5py."""
-        import h5py
-
-        full_path = f"{obj.group().path}/{obj.name}"
-
-        with h5py.File(obj.group().filepath(), "r") as fh:
-            return fh[full_path].attrs[attname]
-
-
-    @staticmethod
     def get_attr(obj, key):
-        """Get an attribute from obj.
-
-        Try netCDF4 first, then fall back to h5py.
-        """
-        try:
-            return getattr(obj, key)
-
-        except Exception:
-            LOG.info(
-                f"Falling back to h5py for {obj.name} attribute {key}"
-            )
-
-            return NetCDF4Accessor._get_h5_attr(obj, key)
-
+        """Get an attribute from obj."""
+        return getattr(obj, key)
 
     @staticmethod
     def get_object_attrs(obj):
         """Get the attributes for obj."""
         try:
             return obj.__dict__
-
         except KeyError:
-            # Some compound attributes can't be decoded by netCDF4.
-            # Recover them individually.
+            # Maybe unrecognised datatype, retrieve recoverable attributes.
             atts = {}
-
             for attname in obj.ncattrs():
                 try:
-                    atts[attname] = NetCDF4Accessor.get_attr(
-                        obj,
-                        attname,
-                    )
-
-                except Exception:
-                    LOG.warning(
-                        f"Warning: Cannot load object ({obj.name}) "
-                        f"attribute ({attname})."
-                    )
-
+                    atts[attname] = obj.getncattr(attname)
+                except KeyError:
+                    LOG.warning(f"Warning: Cannot load object ({obj.name}) attribute ({attname}).")
             return atts
+
 
 class H5NetcdfAccessor:
     """Accessor using the h5netcdf library as engine."""
