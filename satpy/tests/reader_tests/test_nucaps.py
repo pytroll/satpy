@@ -121,6 +121,24 @@ def _add_navigation_vars(file_content):
                   units="degrees_north", standard_name="latitude", valid_range=(-90., 90.))
 
 
+def _add_stability_var(file_content):
+    """Add the "Stability" variable, which packs 16 parameters per field of regard.
+
+    Column 0 is CAPE and column 9 the Lifted Index. NUCAPS leaves
+    non-retrievals at -999.0, which is not the declared _FillValue (-9999.0),
+    and the real files declare valid_range = [0, 1e6] for the whole variable,
+    which does not fit the Lifted Index: it can be negative.
+    """
+    stability = np.zeros(DEFAULT_FILE_SHAPE + (16,), dtype=DEFAULT_FILE_DTYPE)
+    stability[:, 0] = np.linspace(0., 3000., DEFAULT_FILE_SHAPE[0])
+    stability[:, 9] = np.linspace(-6., 6., DEFAULT_FILE_SHAPE[0])
+    stability[0, 0] = -999.
+    stability[1, 0] = -9999.
+    stability[2, 9] = -999.
+    _add_variable(file_content, "Stability", stability, stability.shape, units="1",
+                  valid_range=(0., 1e6))
+
+
 def _get_dim_names(filename):
     """Get the dimension names used by this version of the file format."""
     if "_v1" in filename:
@@ -138,6 +156,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         _add_pressure_vars(file_content)
         _add_quality_flag(file_content)
         _add_navigation_vars(file_content)
+        _add_stability_var(file_content)
         convert_file_content_to_data_array(
             file_content,
             attrs=("_FillValue", "flag_meanings", "flag_values", "units"),
@@ -357,6 +376,37 @@ class TestNUCAPSReader(unittest.TestCase):
         assert t_ds.shape == (DEFAULT_PRES_FILE_SHAPE[0], 1)
         pl_ds = datasets["Pressure_Levels"]
         assert pl_ds.shape == (1,)
+
+
+    def test_load_cape_and_lifted_index(self):
+        """Test loading CAPE and the Lifted Index packed in the "Stability" variable."""
+        from satpy.readers.core.loading import load_reader
+
+        # the fake Quality_Flag is 0..119, so quality masking would hide the values
+        r = load_reader(self.reader_configs, mask_quality=False)
+        loadables = r.select_files_from_pathnames([
+            "NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc",
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(["CAPE", "Lifted_Index"])
+        assert len(datasets) == 2
+        cape = datasets["CAPE"]
+        lifted_index = datasets["Lifted_Index"]
+        for v in (cape, lifted_index):
+            assert v.ndim == 1
+            assert v.shape == DEFAULT_FILE_SHAPE
+            assert v.attrs["shape"] == DEFAULT_FILE_SHAPE
+        # the units come from the YAML, not from the "1" of the shared variable
+        assert cape.attrs["units"] == "J/kg"
+        assert lifted_index.attrs["units"] == "K"
+        # -999.0 (non-retrieval) and -9999.0 (_FillValue) are both masked
+        assert np.isnan(cape.values[0])
+        assert np.isnan(cape.values[1])
+        assert np.isnan(lifted_index.values[2])
+        np.testing.assert_allclose(cape.values[119], 3000.)
+        # but a negative Lifted Index is a valid value and is kept
+        assert np.nanmin(lifted_index.values) < 0
+        np.testing.assert_allclose(lifted_index.values[0], -6.)
 
 
 class TestNUCAPSScienceEDRReader(unittest.TestCase):
