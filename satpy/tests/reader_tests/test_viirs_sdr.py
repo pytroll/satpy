@@ -1,5 +1,6 @@
 """Module for testing the satpy.readers.viirs_sdr module."""
 
+import datetime as dt
 import os
 from unittest import mock
 
@@ -308,15 +309,22 @@ class TestVIIRSSDRReader:
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_init(self, tmp_path):
-        """Test basic init with no extra parameters."""
+    @pytest.mark.parametrize(
+        ("filter_parameters", "expected_num_fhs"),
+        [
+            pytest.param({}, 1, id="no_filter"),
+            pytest.param({"start_time": dt.datetime(2012, 2, 26)}, 0, id="start_time_beyond"),
+            pytest.param({"end_time": dt.datetime(2012, 2, 24)}, 0, id="end_time_beyond"),
+            pytest.param({"start_time": dt.datetime(2012, 2, 24), "end_time": dt.datetime(2012, 2, 26)}, 1,
+                         id="start_end_time"),
+        ],
+    )
+    def test_init(self, tmp_path, filter_parameters, expected_num_fhs):
+        """Test basic init with and without time filters around the provided file."""
         from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI01"))
-        assert len(loadables) == 1
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        assert r.file_handlers
+        r = load_reader(self.reader_configs, filter_parameters=filter_parameters)
+        fhs = r.create_filehandlers(_make_filenames(tmp_path, "SVI01"))
+        assert sum(len(ft_fhs) for ft_fhs in fhs.values()) == expected_num_fhs
 
     def test_init_start_time_is_nodate(self, tmp_path):
         """Test basic init with start_time being set to the no-date 1/1-1958."""
@@ -327,192 +335,34 @@ class TestVIIRSSDRReader:
                 os.fspath(tmp_path / "SVI01_npp_d19580101_t0000000_e0001261_b01708_c20120226002130255476_noaa_ops.h5"),
             ])
 
-    def test_init_start_time_beyond(self, tmp_path):
-        """Test basic init with start_time after the provided files."""
-        import datetime as dt
-
+    @pytest.mark.parametrize(
+        ("use_tc", "input_geo", "geo_on_disk", "expected_lon_lat_min"),
+        [
+            pytest.param(None, (), (), None, id="no_geo"),
+            pytest.param(None, (), ("GMTCO", "GMODO"), (5, 45), id="find_geo"),
+            pytest.param(None, ("GMTCO",), ("GMTCO", "GMODO"), (5, 45), id="provided_geo"),
+            pytest.param(False, ("GMTCO", "GMODO"), ("GMTCO", "GMODO"), (15, 55), id="use_nontc"),
+            pytest.param(None, ("GMODO",), ("GMODO",), (15, 55), id="nontc_when_tc_unavailable"),
+        ],
+    )
+    def test_load_all_m_reflectances(self, tmp_path, use_tc, input_geo, geo_on_disk, expected_lon_lat_min):
+        """Load all M band reflectances with different geolocation files provided or on disk."""
         from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs,
-                        filter_parameters={
-                            "start_time": dt.datetime(2012, 2, 26)
-                        })
-        fhs = r.create_filehandlers(_make_filenames(tmp_path, "SVI01"))
-        assert len(fhs) == 0
-
-    def test_init_end_time_beyond(self, tmp_path):
-        """Test basic init with end_time before the provided files."""
-        import datetime as dt
-
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs,
-                        filter_parameters={
-                            "end_time": dt.datetime(2012, 2, 24)
-                        })
-        fhs = r.create_filehandlers(_make_filenames(tmp_path, "SVI01"))
-        assert len(fhs) == 0
-
-    def test_init_start_end_time(self, tmp_path):
-        """Test basic init with end_time before the provided files."""
-        import datetime as dt
-
-        from satpy.readers.core.loading import load_reader
-
-        r = load_reader(self.reader_configs,
-                        filter_parameters={
-                            "start_time": dt.datetime(2012, 2, 24),
-                            "end_time": dt.datetime(2012, 2, 26)
-                        })
-        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI01"))
-        assert len(loadables) == 1
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        assert r.file_handlers
-
-    def test_load_all_m_reflectances_no_geo(self, tmp_path):
-        """Load all M band reflectances with no geo files provided."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(_make_filenames(
-            tmp_path,
-            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
-            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11",
-        ))
-        r.create_filehandlers(loadables)
-        ds = r.load(["M01",
-                     "M02",
-                     "M03",
-                     "M04",
-                     "M05",
-                     "M06",
-                     "M07",
-                     "M08",
-                     "M09",
-                     "M10",
-                     "M11",
-                     ])
+        m_bands = [f"M{band_num:02d}" for band_num in range(1, 12)]
+        r = load_reader(self.reader_configs, use_tc=use_tc)
+        loadables = r.select_files_from_pathnames(
+            _make_filenames(tmp_path, *[f"SV{band}" for band in m_bands], *input_geo))
+        _touch_geo_files(tmp_path, *geo_on_disk)
+        r.create_filehandlers(loadables, {"use_tc": use_tc})
+        ds = r.load(m_bands)
         assert len(ds) == 11
+        with_area = expected_lon_lat_min is not None
         for d in ds.values():
-            self._assert_reflectance_properties(d, with_area=False)
-
-    def test_load_all_m_reflectances_find_geo(self, tmp_path):
-        """Load all M band reflectances with geo files not specified but existing."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(_make_filenames(
-            tmp_path,
-            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
-            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11",
-        ))
-        _touch_geo_files(tmp_path, "GMTCO", "GMODO")
-        r.create_filehandlers(loadables)
-        ds = r.load(["M01",
-                     "M02",
-                     "M03",
-                     "M04",
-                     "M05",
-                     "M06",
-                     "M07",
-                     "M08",
-                     "M09",
-                     "M10",
-                     "M11",
-                     ])
-
-        assert len(ds) == 11
-        for d in ds.values():
-            self._assert_reflectance_properties(d, with_area=True)
-
-    def test_load_all_m_reflectances_provided_geo(self, tmp_path):
-        """Load all M band reflectances with geo files provided."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(_make_filenames(
-            tmp_path,
-            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
-            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "GMTCO",
-        ))
-        _touch_geo_files(tmp_path, "GMTCO", "GMODO")
-        r.create_filehandlers(loadables)
-        ds = r.load(["M01",
-                     "M02",
-                     "M03",
-                     "M04",
-                     "M05",
-                     "M06",
-                     "M07",
-                     "M08",
-                     "M09",
-                     "M10",
-                     "M11",
-                     ])
-        assert len(ds) == 11
-        for d in ds.values():
-            self._assert_reflectance_properties(d, with_area=True)
-            assert d.attrs["area"].lons.min() == 5
-            assert d.attrs["area"].lats.min() == 45
-            assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
-            assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
-
-    def test_load_all_m_reflectances_use_nontc(self, tmp_path):
-        """Load all M band reflectances but use non-TC geolocation."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs, use_tc=False)
-        loadables = r.select_files_from_pathnames(_make_filenames(
-            tmp_path,
-            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
-            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "GMTCO",
-            "GMODO",
-        ))
-        _touch_geo_files(tmp_path, "GMTCO", "GMODO")
-        r.create_filehandlers(loadables, {"use_tc": False})
-        ds = r.load(["M01",
-                     "M02",
-                     "M03",
-                     "M04",
-                     "M05",
-                     "M06",
-                     "M07",
-                     "M08",
-                     "M09",
-                     "M10",
-                     "M11",
-                     ])
-        assert len(ds) == 11
-        for d in ds.values():
-            self._assert_reflectance_properties(d, with_area=True)
-            assert d.attrs["area"].lons.min() == 15
-            assert d.attrs["area"].lats.min() == 55
-            assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
-            assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
-
-    def test_load_all_m_reflectances_use_nontc2(self, tmp_path):
-        """Load all M band reflectances but use non-TC geolocation because TC isn't available."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs, use_tc=None)
-        loadables = r.select_files_from_pathnames(_make_filenames(
-            tmp_path,
-            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
-            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "GMODO",
-        ))
-        _touch_geo_files(tmp_path, "GMODO")
-        r.create_filehandlers(loadables, {"use_tc": None})
-        ds = r.load(["M01",
-                     "M02",
-                     "M03",
-                     "M04",
-                     "M05",
-                     "M06",
-                     "M07",
-                     "M08",
-                     "M09",
-                     "M10",
-                     "M11",
-                     ])
-        assert len(ds) == 11
-        for d in ds.values():
-            self._assert_reflectance_properties(d, with_area=True)
-            assert d.attrs["area"].lons.min() == 15
-            assert d.attrs["area"].lats.min() == 55
+            self._assert_reflectance_properties(d, with_area=with_area)
+            if not with_area:
+                continue
+            assert d.attrs["area"].lons.min() == expected_lon_lat_min[0]
+            assert d.attrs["area"].lats.min() == expected_lon_lat_min[1]
             assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
             assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
@@ -597,44 +447,31 @@ class TestVIIRSSDRReader:
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
 
-    def test_load_dnb(self, tmp_path):
-        """Load DNB dataset."""
-        from satpy.readers.core.loading import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVDNB", "GDNBO"))
-        r.create_filehandlers(loadables)
-        ds = r.load(["DNB"])
-        assert len(ds) == 1
-        for d in ds.values():
-            data = d.values
+    @pytest.mark.parametrize(
+        ("include_factors", "expected_first_values"),
+        [
             # default scale factors are 2 and offset 1
-            # multiply DNB by 10000 should mean the first value of 0 should be:
+            # multiply DNB by 10000 should mean the first two values of 0 and 1 should be:
             # data * factor * 10000 + offset * 10000
             # 0 * 2 * 10000 + 1 * 10000 => 10000
-            assert data[0, 0] == 10000
-            # the second value of 1 should be:
             # 1 * 2 * 10000 + 1 * 10000 => 30000
-            assert data[0, 1] == 30000
-            self._assert_dnb_radiance_properties(d, with_area=True)
-
-    def test_load_dnb_no_factors(self, tmp_path):
-        """Load DNB dataset with no provided scale factors."""
+            pytest.param(True, [10000, 30000], id="factors"),
+            # no scale factors, default factor 1 and offset 0
+            # 0 * 1 * 10000 + 0 * 10000 => 0
+            # 1 * 1 * 10000 + 0 * 10000 => 10000
+            pytest.param(False, [0, 10000], id="no_factors"),
+        ],
+    )
+    def test_load_dnb(self, tmp_path, include_factors, expected_first_values):
+        """Load DNB dataset with and without provided scale factors."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVDNB", "GDNBO"))
-        r.create_filehandlers(loadables, {"include_factors": False})
+        r.create_filehandlers(loadables, {"include_factors": include_factors})
         ds = r.load(["DNB"])
         assert len(ds) == 1
         for d in ds.values():
-            data = d.values
-            # no scale factors, default factor 1 and offset 0
-            # multiply DNB by 10000 should mean the first value of 0 should be:
-            # data * factor * 10000 + offset * 10000
-            # 0 * 1 * 10000 + 0 * 10000 => 0
-            assert data[0, 0] == 0
-            # the second value of 1 should be:
-            # 1 * 1 * 10000 + 0 * 10000 => 10000
-            assert data[0, 1] == 10000
+            np.testing.assert_array_equal(d.values[0, :2], expected_first_values)
             self._assert_dnb_radiance_properties(d, with_area=True)
 
     def test_load_i_no_files(self, tmp_path):
