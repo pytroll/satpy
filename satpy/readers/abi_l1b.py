@@ -51,7 +51,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         cal_dictionary = {
             "unnormalized_reflectance": self._vis_calibrate,
             # 8< v1.0
-            "reflectance": self._vis_calibrate,
+            "reflectance": self._deprecated_reflectance_calibrate,
             # >8 v1.0
             "brightness_temperature": self._ir_calibrate,
             "radiance": self._rad_calibrate,
@@ -140,6 +140,15 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs["long_name"] = "Product of cosine of solar zenith angle and TOA bidirectional reflectance"
         res.attrs["standard_name"] = "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"
         return res
+
+    # 8< v1.0
+    def _deprecated_reflectance_calibrate(self, data):
+        """Calibrate visible channels to unnormalized reflectance, labelled as the legacy reflectance."""
+        res = self._vis_calibrate(data)
+        res.attrs["standard_name"] = "toa_bidirectional_reflectance"
+        res.attrs["long_name"] = "Bidirectional Reflectance"
+        return res
+    # >8 v1.0
 
     def _get_minimum_radiance(self, data):
         """Estimate minimum radiance from Rad DataArray."""
