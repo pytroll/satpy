@@ -466,6 +466,38 @@ class TestSceneResampling:
         get_area_slices.assert_called_once_with(target_area, shape_divisible_by=exp_factor)
         assert rs.call_count == 1
 
+    @mock.patch("satpy.resample.base.resample_dataset")
+    def test_resamplers_cache_is_bounded(self, rs):
+        """Test that a Scene keeps recent resamplers alive without holding on to every one of them."""
+        import gc
+        import weakref
+
+        from pyresample.geometry import AreaDefinition
+
+        from satpy.scene import MAX_CACHED_RESAMPLERS
+
+        rs.side_effect = self._fake_resample_dataset
+        proj_str = ("+proj=lcc +datum=WGS84 +ellps=WGS84 "
+                    "+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs")
+        area_def = AreaDefinition("test", "test", "test", proj_str, 20, 20, (-1000., -1500., 1000., 1500.))
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp19"])
+        scene["comp19"].attrs["area"] = area_def
+
+        for idx in range(MAX_CACHED_RESAMPLERS + 2):
+            target_area = AreaDefinition(f"target{idx}", "target", "target", proj_str,
+                                         4, 4, (-1000., -1500., 0., idx))
+            scene.resample(target_area, resampler="nearest")
+
+        assert len(scene._resamplers) == MAX_CACHED_RESAMPLERS
+        # the mock records every resampler it was called with, so it has to be cleared
+        # before the ones the Scene no longer holds can be collected
+        refs = [weakref.ref(call.kwargs["resampler"]) for call in rs.call_args_list]
+        rs.reset_mock()
+        gc.collect()
+        assert refs[0]() is None
+        assert refs[-1]() is not None
+
     @pytest.mark.parametrize("dst_type", ["area_def", "name", "dynamic"])
     @mock.patch("satpy.resample.base.resample_dataset")
     def test_resample_destination_types(self, rs, dst_type):

@@ -729,7 +729,7 @@ class TestDatasetResampler:
 
     def test_reduction_cached_per_source_area(self, src_area, src_area2, dst_area, resample_dataset):
         """Test that area slicing is computed once per source area and reused for other datasets."""
-        from satpy.resample.base import DatasetResampler
+        from satpy.resample.base import CACHE_SIZE, DatasetResampler
 
         ds_resampler = DatasetResampler(dst_area)
         with mock.patch.object(src_area, "get_area_slices", wraps=src_area.get_area_slices) as gas, \
@@ -738,16 +738,23 @@ class TestDatasetResampler:
             res1 = ds_resampler.resample(_make_data_array("ds1", src_area))
             res2 = ds_resampler.resample(_make_data_array("ds2", src_area))
             res3 = ds_resampler.resample(_make_data_array("ds3", src_area2))
+            # the cache is keyed by the original area, so these are cache hits and
+            # `get_area_slices` is not called again
+            (slices, reduced_area) = ds_resampler._get_reduction(src_area)
+            (slices2, reduced_area2) = ds_resampler._get_reduction(src_area2)
 
         assert gas.call_count == 1
         assert gas2.call_count == 1
+        cache_info = ds_resampler._get_reduction.cache_info()
+        # one miss per source area, a hit for "ds2" and one for each lookup above
+        assert (cache_info.misses, cache_info.hits, cache_info.currsize) == (2, 3, 2)
+        assert cache_info.maxsize == CACHE_SIZE
         assert slice_data.call_count == 3
-        # cache is keyed by the original area and the reduced area is what gets resampled
-        (slices, reduced_area) = ds_resampler._reductions[src_area]
+        # the reduced area is what gets resampled
         assert reduced_area != src_area
         assert reduced_area.shape < src_area.shape
         for call, exp_reduced in zip(resample_dataset.call_args_list,
-                                     [reduced_area, reduced_area, ds_resampler._reductions[src_area2][1]]):
+                                     [reduced_area, reduced_area, reduced_area2]):
             sent_dataset = call.args[0]
             assert sent_dataset.attrs["area"] is exp_reduced
             assert sent_dataset.shape == exp_reduced.shape
@@ -755,8 +762,8 @@ class TestDatasetResampler:
             assert res.attrs["area"] is dst_area
 
     def test_resampler_reused_per_source_area(self, src_area, src_area2, dst_area, resample_dataset):
-        """Test that one resampler is created per source area and exposed by its cache key."""
-        from satpy.resample.base import DatasetResampler, prepare_resampler, resamplers_cache
+        """Test that one resampler is created per source area."""
+        from satpy.resample.base import DatasetResampler, prepare_resampler
 
         ds_resampler = DatasetResampler(dst_area, resampler="nearest")
         with mock.patch("satpy.resample.base.prepare_resampler", wraps=prepare_resampler) as prep:
@@ -765,14 +772,46 @@ class TestDatasetResampler:
             ds_resampler.resample(_make_data_array("ds3", src_area2))
 
         assert prep.call_count == 2
-        resamplers = ds_resampler.resamplers
-        assert len(resamplers) == 2
-        for key, resampler in resamplers.items():
-            assert resamplers_cache[key] is resampler
+        assert ds_resampler._get_resampler.cache_info().currsize == 2
         used = [call.kwargs["resampler"] for call in resample_dataset.call_args_list]
         assert used[0] is used[1]
         assert used[2] is not used[0]
-        assert set(used) == set(resamplers.values())
+        # each resampler is the one the global cache holds for the *reduced* source area,
+        # which is what the data is in by the time it is resampled
+        for source_area, resampler in zip((src_area, src_area2), (used[0], used[2])):
+            _, reduced_area = ds_resampler._get_reduction(source_area)
+            _, cached = prepare_resampler(reduced_area, dst_area, resampler="nearest")
+            assert cached is resampler
+
+    @pytest.mark.parametrize("reduce_data", [True, False])
+    def test_caches_are_bounded(self, src_area, src_area2, dst_area, resample_dataset, reduce_data):
+        """Test that the reduction and resampler caches evict the least recently used source area."""
+        from satpy.resample.base import DatasetResampler, prepare_resampler
+
+        ds_resampler = DatasetResampler(dst_area, reduce_data=reduce_data, resampler="nearest", cache_size=1)
+        with mock.patch.object(src_area, "get_area_slices", wraps=src_area.get_area_slices) as gas, \
+                mock.patch("satpy.resample.base.prepare_resampler", wraps=prepare_resampler) as prep:
+            ds_resampler.resample(_make_data_array("ds1", src_area))
+            ds_resampler.resample(_make_data_array("ds2", src_area2))
+            ds_resampler.resample(_make_data_array("ds3", src_area))
+
+        # the first source area was evicted by the second one and had to be redone
+        assert prep.call_count == 3
+        assert gas.call_count == (2 if reduce_data else 0)
+        assert ds_resampler._get_resampler.cache_info().currsize == 1
+        assert ds_resampler._get_reduction.cache_info().currsize == (1 if reduce_data else 0)
+
+    def test_nothing_is_remembered_between_resample_calls(self, src_area, dst_area, resample_dataset):
+        """Test that resampled datasets are not kept by the resampler after the call that made them."""
+        from satpy.resample.base import DatasetResampler
+
+        data_arr = _make_data_array("ds1", src_area)
+        ds_resampler = DatasetResampler(dst_area)
+        res1 = ds_resampler.resample(data_arr)
+        res2 = ds_resampler.resample(data_arr)
+
+        assert res1 is not res2
+        assert resample_dataset.call_count == 2
 
     def test_reduce_data_disabled(self, src_area, dst_area, resample_dataset):
         """Test that no slicing happens when data reduction is disabled."""
@@ -784,7 +823,7 @@ class TestDatasetResampler:
             ds_resampler.resample(data_arr)
         gas.assert_not_called()
         assert resample_dataset.call_args.args[0] is data_arr
-        assert ds_resampler._reductions == {}
+        assert ds_resampler._get_reduction.cache_info().currsize == 0
 
     def test_swath_source_not_reduced(self, dst_area, resample_dataset):
         """Test that sources that can't be sliced (swaths) are resampled without reduction."""
@@ -802,7 +841,7 @@ class TestDatasetResampler:
 
         assert resample_dataset.call_args.args[0] is data_arr
         assert res.attrs["area"] is dst_area
-        assert ds_resampler._reductions == {}
+        assert ds_resampler._get_reduction.cache_info().currsize == 0
 
     @pytest.mark.parametrize(
         ("resample_kwargs", "exp_factor"),
@@ -834,9 +873,7 @@ class TestDatasetResampler:
         src_anc_list = ds1.attrs["ancillary_variables"]
 
         ds_resampler = DatasetResampler(dst_area)
-        res1 = ds_resampler.resample(ds1)
-        res2 = ds_resampler.resample(ds2)
-        res_anc = ds_resampler.resample(anc)
+        res1, res2, res_anc = ds_resampler.resample_all([ds1, ds2, anc])
 
         assert resample_dataset.call_count == 3
         new_anc = res1.attrs["ancillary_variables"][0]
@@ -850,6 +887,21 @@ class TestDatasetResampler:
         assert ds1.attrs["ancillary_variables"] is src_anc_list
         assert src_anc_list[0] is anc
         assert ds2.attrs["ancillary_variables"][0] is anc
+
+    def test_ancillary_variables_shared_within_one_call_only(self, src_area, dst_area, resample_dataset):
+        """Test that a shared ancillary variable is only shared by datasets resampled together."""
+        from satpy.resample.base import DatasetResampler
+
+        anc = _make_data_array("anc", src_area)
+        ds1 = _make_data_array("ds1", src_area, anc_vars=[anc])
+        ds2 = _make_data_array("ds2", src_area, anc_vars=[anc])
+
+        ds_resampler = DatasetResampler(dst_area)
+        res1 = ds_resampler.resample(ds1)
+        res2 = ds_resampler.resample(ds2)
+
+        assert res1.attrs["ancillary_variables"][0] is not res2.attrs["ancillary_variables"][0]
+        assert resample_dataset.call_count == 4
 
     def test_no_area_dataset_passthrough(self, src_area, dst_area, resample_dataset):
         """Test that datasets without an area are returned untouched, ancillary variables included."""

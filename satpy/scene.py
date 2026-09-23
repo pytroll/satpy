@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections import deque
 from collections.abc import Iterable
 from typing import Any, Callable
 
@@ -22,6 +23,10 @@ from satpy.readers.core.loading import load_readers
 from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 
 LOG = logging.getLogger(__name__)
+
+#: Number of recent `DatasetResampler` objects a Scene keeps alive so that the
+#: resamplers they created can be reused by later `Scene.resample` calls.
+MAX_CACHED_RESAMPLERS = 3
 
 
 def _get_area_resolution(area):
@@ -141,7 +146,8 @@ class Scene:
         self._datasets = DatasetDict()
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers)
-        self._resamplers = {}
+        # only used to keep strong references to recently used resamplers, see `_resampled_scene`
+        self._resamplers: deque = deque(maxlen=MAX_CACHED_RESAMPLERS)
 
     @property
     def wishlist(self):
@@ -839,12 +845,15 @@ class Scene:
 
         destination_area = self._get_finalized_destination_area(destination_area, new_scn)
         ds_resampler = DatasetResampler(destination_area, reduce_data=reduce_data, **resample_kwargs)
-        for ds_id, data_arr in list(new_scn._datasets.items()):
+        datasets = list(new_scn._datasets.items())
+        resampled = ds_resampler.resample_all(data_arr for _, data_arr in datasets)
+        for (ds_id, _), new_data_arr in zip(datasets, resampled):
             # don't use `Scene.__setitem__` so the wishlist/dependency tree are not affected
-            new_scn._datasets[ds_id] = ds_resampler.resample(data_arr)
-        # keep strong references so the global weak resampler cache
-        # (satpy.resample.base.resamplers_cache) keeps them for the lifetime of this Scene
-        self._resamplers.update(ds_resampler.resamplers)
+            new_scn._datasets[ds_id] = new_data_arr
+        # keep a strong reference so the resamplers it created stay in the global
+        # weak resampler cache (satpy.resample.base.resamplers_cache) and can be
+        # reused by the next resampling of this Scene
+        self._resamplers.append(ds_resampler)
 
     def _get_finalized_destination_area(self, destination_area, new_scn):
         if isinstance(destination_area, str):
