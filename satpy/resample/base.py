@@ -1,6 +1,9 @@
 """Base resampling functionality."""
+from __future__ import annotations
+
 import hashlib
 import json
+import typing
 import warnings
 from contextlib import suppress
 from functools import lru_cache
@@ -12,6 +15,14 @@ import numpy as np
 
 from satpy.dataset import DataID
 from satpy.utils import get_legacy_chunk_size
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any
+
+    import xarray as xr
+    from pyresample.geometry import AreaDefinition, BaseDefinition
+    from pyresample.resampler import BaseResampler as PRBaseResampler
 
 LOG = getLogger(__name__)
 
@@ -219,7 +230,13 @@ class DatasetResampler:
 
     """
 
-    def __init__(self, destination_area, reduce_data=True, cache_size=CACHE_SIZE, **resample_kwargs):
+    def __init__(
+            self,
+            destination_area: BaseDefinition,
+            reduce_data: bool = True,
+            cache_size: int = CACHE_SIZE,
+            **resample_kwargs: Any,
+    ) -> None:
         """Set up caches for a resampling operation to *destination_area*."""
         self.destination_area = destination_area
         self.reduce_data = reduce_data
@@ -229,7 +246,7 @@ class DatasetResampler:
         # source_area -> resampler instance
         self._get_resampler = lru_cache(maxsize=cache_size)(self._get_resampler_uncached)
 
-    def resample_all(self, datasets):
+    def resample_all(self, datasets: Iterable[xr.DataArray]) -> list[xr.DataArray]:
         """Resample every dataset of *datasets* to the destination area.
 
         An ancillary variable shared by several of the datasets is resampled
@@ -237,10 +254,10 @@ class DatasetResampler:
         resampled parents. A dataset that is also an ancillary variable of
         another dataset in *datasets* is the same object in both places.
         """
-        resampled = {}
+        resampled: dict[DataID, xr.DataArray] = {}
         return [self._resample(dataset, resampled) for dataset in datasets]
 
-    def resample(self, dataset):
+    def resample(self, dataset: xr.DataArray) -> xr.DataArray:
         """Resample *dataset* and its ancillary variables.
 
         Use :meth:`resample_all` to share resampled ancillary variables between
@@ -249,7 +266,7 @@ class DatasetResampler:
         """
         return self._resample(dataset, {})
 
-    def _resample(self, dataset, resampled):
+    def _resample(self, dataset: xr.DataArray, resampled: dict[DataID, xr.DataArray]) -> xr.DataArray:
         """Resample *dataset*, reusing anything already in the *resampled* memo."""
         ds_id = DataID.from_dataarray(dataset)
         try:
@@ -269,25 +286,25 @@ class DatasetResampler:
         resampled[ds_id] = res
         return res
 
-    def _reduce_and_resample(self, dataset):
+    def _reduce_and_resample(self, dataset: xr.DataArray) -> xr.DataArray:
         """Reduce *dataset* to the destination area and resample it (no memoization)."""
         reduced, source_area = self._reduce_data(dataset)
         kwargs = self.resample_kwargs.copy()
         kwargs["resampler"] = self._get_resampler(source_area)
         return resample_dataset(reduced, self.destination_area, **kwargs)
 
-    def _resample_ancillary(self, anc, resampled):
+    def _resample_ancillary(self, anc: Any, resampled: dict[DataID, xr.DataArray]) -> Any:
         if not hasattr(anc, "attrs"):
             return anc
         return self._resample(anc, resampled)
 
-    def _get_resampler_uncached(self, source_area):
+    def _get_resampler_uncached(self, source_area: BaseDefinition) -> PRBaseResampler:
         """Create the resampler going from *source_area* to the destination area."""
         # we don't use the first argument (cache key)
         _, resampler = prepare_resampler(source_area, self.destination_area, **self.resample_kwargs)
         return resampler
 
-    def _reduce_data(self, dataset):
+    def _reduce_data(self, dataset: xr.DataArray) -> tuple[xr.DataArray, BaseDefinition]:
         """Slice *dataset* to the part of its area covering the destination area."""
         source_area = dataset.attrs["area"]
         if not self.reduce_data:
@@ -301,14 +318,16 @@ class DatasetResampler:
             return dataset, source_area
         return self._slice_data(dataset, slices, reduced_area), reduced_area
 
-    def _get_reduction_uncached(self, source_area):
+    def _get_reduction_uncached(self, source_area: BaseDefinition) -> tuple[tuple[slice, slice], AreaDefinition]:
         """Compute the slices and the reduced version of *source_area*."""
         if self.resample_kwargs.get("resampler") == "gradient_search":
             factor = self.resample_kwargs.get("shape_divisible_by", 2)
         else:
             factor = None
         try:
-            slice_x, slice_y = source_area.get_area_slices(self.destination_area, shape_divisible_by=factor)
+            # only AreaDefinition accepts `shape_divisible_by`, hence the ignore
+            slice_x, slice_y = source_area.get_area_slices(  # type: ignore[call-arg]
+                self.destination_area, shape_divisible_by=factor)
         except TypeError:
             # BaseDefinition (e.g. SwathDefinition) does not accept shape_divisible_by
             # and only raises NotImplementedError when called without it
@@ -317,7 +336,7 @@ class DatasetResampler:
         return (slice_x, slice_y), source_area[slice_y, slice_x]
 
     @staticmethod
-    def _slice_data(dataset, slices, reduced_area):
+    def _slice_data(dataset: xr.DataArray, slices: tuple[slice, slice], reduced_area: AreaDefinition) -> xr.DataArray:
         """Slice the data to reduce it."""
         slice_x, slice_y = slices
         dataset = dataset.isel(x=slice_x, y=slice_y)
