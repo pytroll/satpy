@@ -179,8 +179,10 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
                 info["ancillary_variables"] = anc_vars
         return info
 
-    def _mask_invalid(self, data, ds_info, valid_min, valid_max, fill_value, metadata):
+    def _mask_invalid(self, data, var_path, ds_info):
         """Mask values above valid_max, extra sentinel values and the fill value."""
+        valid_min, valid_max = self.get(var_path + "/attr/valid_range", (None, None))
+        fill_value = self.get(var_path + "/attr/_FillValue")
         if valid_min is not None and valid_max is not None:
             # the original .cfg/INI based reader only checked valid_max
             data = data.where((data <= valid_max))  # | (data >= valid_min))
@@ -195,7 +197,6 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         if fill_value is not None:
             data = data.where(data != fill_value)
             # this _FillValue is no longer valid
-            metadata.pop("_FillValue", None)
             data.attrs.pop("_FillValue", None)
         return data
 
@@ -203,8 +204,6 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Load data array and metadata for specified dataset."""
         var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         metadata = self.get_metadata(dataset_id, ds_info)
-        valid_min, valid_max = self.get(var_path + "/attr/valid_range", (None, None))
-        fill_value = self.get(var_path + "/attr/_FillValue")
 
         d_tmp = self[var_path]
         if "index" in ds_info:
@@ -232,7 +231,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
                 ds_info["surface_pressure"] = sp
             # include all the pressure levels
             ds_info.setdefault("pressure_levels", self["Pressure"][0])
-        data = self._mask_invalid(d_tmp, ds_info, valid_min, valid_max, fill_value, metadata)
+        data = self._mask_invalid(d_tmp, var_path, ds_info)
+        # the _FillValue is no longer valid once masked (a no-op when there is none)
+        metadata.pop("_FillValue", None)
 
         data.attrs.update(metadata)
         # Older format
