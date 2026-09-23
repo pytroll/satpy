@@ -14,6 +14,11 @@ NUCAPS data is derived from Cross-track Infrared Sounder (CrIS) data, and
 from Advanced Technology Microwave Sounder (ATMS) data, instruments
 onboard Joint Polar Satellite System spacecraft.
 
+The standard EDRs also provide two stability indices, ``CAPE`` (J/kg) and
+``Lifted_Index`` (K, at 500 hPa). In the files both are columns of the
+``Stability`` variable (0 and 9), which holds 16 parameters per field of
+regard; non-retrievals are masked.
+
 """
 
 import logging
@@ -134,7 +139,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             shape = self[var_path + "/shape"]
             if "index" in ds_info:
                 shape = shape[1:]
-            if "pressure_index" in ds_info:
+            if "pressure_index" in ds_info or "column_index" in ds_info:
                 shape = shape[:-1]
         return shape
 
@@ -144,6 +149,11 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         shape = self.get_shape(dataset_id, ds_info)
         file_units = ds_info.get("file_units",
                                  self.get(var_path + "/attr/units"))
+        # Kept before the file attributes overwrite ds_info below; otherwise a
+        # "units" declared in the YAML can never win. That matters when several
+        # products share one variable: NUCAPS packs CAPE (J/kg) and the Lifted
+        # Index (K) into "Stability", whose own units attribute is "1".
+        yaml_units = ds_info.get("units")
         ds_info.update(getattr(self[var_path], "attrs", {}))
         # don't overwrite information in the files attrs because the same
         # `.attrs` is used for each separate Temperature pressure level dataset
@@ -153,7 +163,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         info.update(dataset_id.to_dict())
         info.update({
             "shape": shape,
-            "units": ds_info.get("units", file_units),
+            "units": yaml_units or ds_info.get("units", file_units),
             "platform_name": self.platform_name,
             "sensor": self.sensor_names,
             "start_orbit": self.start_orbit_number,
@@ -169,6 +179,26 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
                 info["ancillary_variables"] = anc_vars
         return info
 
+    def _mask_invalid(self, data, ds_info, valid_min, valid_max, fill_value, metadata):
+        """Mask values above valid_max, extra sentinel values and the fill value."""
+        if valid_min is not None and valid_max is not None:
+            # the original .cfg/INI based reader only checked valid_max
+            data = data.where((data <= valid_max))  # | (data >= valid_min))
+        for extra_fill in ds_info.get("extra_fill_values", []):
+            # Some products leave sentinel values that do not match the declared
+            # _FillValue. NUCAPS initialises "Stability" with -999.0 and leaves
+            # non-retrievals at that value instead of the declared -9999.0. They
+            # cannot be masked through valid_range either: a negative Lifted
+            # Index is physically meaningful, and the valid_range = [0, 1e6]
+            # that the files declare for "Stability" only holds for CAPE.
+            data = data.where(data != extra_fill)
+        if fill_value is not None:
+            data = data.where(data != fill_value)
+            # this _FillValue is no longer valid
+            metadata.pop("_FillValue", None)
+            data.attrs.pop("_FillValue", None)
+        return data
+
     def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata for specified dataset."""
         var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
@@ -179,6 +209,12 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         d_tmp = self[var_path]
         if "index" in ds_info:
             d_tmp = d_tmp[int(ds_info["index"])]
+        if "column_index" in ds_info:
+            # Some variables pack several unrelated parameters along their last
+            # dimension. NUCAPS "Stability" is one: 16 parameters per field of
+            # regard, of which column 0 is CAPE and column 9 the Lifted Index.
+            # Unlike "pressure_index" this carries no pressure-level semantics.
+            d_tmp = d_tmp[..., int(ds_info["column_index"])]
         if "pressure_index" in ds_info:
             d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
             # this is a pressure based field
@@ -196,16 +232,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
                 ds_info["surface_pressure"] = sp
             # include all the pressure levels
             ds_info.setdefault("pressure_levels", self["Pressure"][0])
-        data = d_tmp
-
-        if valid_min is not None and valid_max is not None:
-            # the original .cfg/INI based reader only checked valid_max
-            data = data.where((data <= valid_max))  # | (data >= valid_min))
-        if fill_value is not None:
-            data = data.where(data != fill_value)
-            # this _FillValue is no longer valid
-            metadata.pop("_FillValue", None)
-            data.attrs.pop("_FillValue", None)
+        data = self._mask_invalid(d_tmp, ds_info, valid_min, valid_max, fill_value, metadata)
 
         data.attrs.update(metadata)
         # Older format
