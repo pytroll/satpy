@@ -371,9 +371,9 @@ can be applied in the following way::
         compositor: !!python/name:satpy.composites.core.GenericCompositor
         prerequisites:
         - name: VIS006
-          modifiers: [sunz_corrected]
+          modifiers: [effective_solar_pathlength_corrected]
         - name: VIS008
-          modifiers: [sunz_corrected]
+          modifiers: [effective_solar_pathlength_corrected]
         - IR_108
         standard_name: overview
 
@@ -384,7 +384,9 @@ Here we see two changes:
 2. a list of modifiers attached to the dictionary defining the channel
 
 The modifier above is a built-in that normalizes the Solar zenith
-angle to Sun being directly at the zenith.
+angle to Sun being directly at the zenith following the Li and Shibata
+(2006, :doi:`10.1175/JAS3682.1`) parameterization that reduces over-correction at high Solar
+zenith angles.
 
 More examples can be found in Satpy source code directory
 `satpy/etc/composites <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_.

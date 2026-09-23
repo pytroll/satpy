@@ -218,7 +218,8 @@ Parameters you can define for example are:
    when it is returned by the file handler. Only a few of these have been
    standardized across Satpy, but are based on the names of the modifiers
    configured in the "composites" YAML files. Examples include
-   ``sunz_corrected`` or ``rayleigh_corrected``. See the
+   ``sunz_corrected``, ``effective_solar_pathlength_corrected``
+   or ``rayleigh_corrected``. See the
    `metadata wiki <https://github.com/pytroll/satpy/wiki/Metadata-names>`_
    for more information.
  - file\_type: Name of file type (see above).
