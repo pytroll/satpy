@@ -545,12 +545,6 @@ composites:
     url: "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km_geo.tif"
     known_hash: "sha256:e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0"  # optional
 
-  geo_color_city_lights:
-    compositor: !!python/name:satpy.composites.aux_data.StaticImageCompositor
-    standard_name: geo_color_city_lights
-    url: "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km_geo.tif"
-    known_hash: "sha256:e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0"  # optional
-
   cloud_phase_distinction:
     description: >
       Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA

@@ -336,6 +336,12 @@ composites:
       - true_color
       - geo_color_night_no_blue
 
+  geo_color_city_lights:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    standard_name: geo_color_city_lights
+    prerequisites:
+      - name: _night_background_hires
+
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
     compositor: !!python/name:satpy.composites.mask.CloudCompositor
