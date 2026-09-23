@@ -1,8 +1,6 @@
 """Module for testing the satpy.readers.viirs_sdr module."""
 
 import os
-import unittest
-from contextlib import contextmanager
 from unittest import mock
 
 import numpy as np
@@ -17,6 +15,7 @@ DEFAULT_FILE_SHAPE = (32, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
+FILENAME_SUFFIX = "_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -214,6 +213,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
+        filename = os.path.basename(filename)
         final_content = {}
         for dataset in self.datasets:
             dataset_group = DATASET_KEYS[dataset]
@@ -242,24 +242,18 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         return final_content
 
 
-@contextmanager
-def touch_geo_files(*prefixes):
-    """Create and then remove VIIRS SDR geolocation files."""
-    geofiles = [_touch_geo_file(prefix) for prefix in prefixes]
-    try:
-        yield geofiles
-    finally:
-        for filename in geofiles:
-            os.remove(filename)
+def _make_filenames(base_dir, *prefixes):
+    """Create VIIRS SDR file paths in ``base_dir`` for each file type prefix."""
+    return [os.fspath(base_dir / (prefix + FILENAME_SUFFIX)) for prefix in prefixes]
 
 
-def _touch_geo_file(prefix):
-    geo_fn = prefix + "_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
-    open(geo_fn, "w")
-    return geo_fn
+def _touch_geo_files(base_dir, *prefixes):
+    """Create empty VIIRS SDR geolocation files in ``base_dir``."""
+    for geo_fn in _make_filenames(base_dir, *prefixes):
+        open(geo_fn, "w").close()
 
 
-class TestVIIRSSDRReader(unittest.TestCase):
+class TestVIIRSSDRReader:
     """Test VIIRS SDR Reader."""
 
     yaml_file = "viirs_sdr.yaml"
@@ -300,42 +294,40 @@ class TestVIIRSSDRReader(unittest.TestCase):
         else:
             assert "area" not in data_arr.attrs
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.core.viirs_atms_sdr import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(JPSS_SDR_FileHandler, "__bases__", (FakeHDF5FileHandler2,))
-        self.fake_handler = self.p.start()
+        self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_init(self):
+    def test_init(self, tmp_path):
         """Test basic init with no extra parameters."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI01"))
         assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
         assert r.file_handlers
 
-    def test_init_start_time_is_nodate(self):
+    def test_init_start_time_is_nodate(self, tmp_path):
         """Test basic init with start_time being set to the no-date 1/1-1958."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
         with pytest.raises(ValueError, match="Datetime invalid 1958-01-01 00:00:00"):
             _ = r.create_filehandlers([
-                "SVI01_npp_d19580101_t0000000_e0001261_b01708_c20120226002130255476_noaa_ops.h5",
+                os.fspath(tmp_path / "SVI01_npp_d19580101_t0000000_e0001261_b01708_c20120226002130255476_noaa_ops.h5"),
             ])
 
-    def test_init_start_time_beyond(self):
+    def test_init_start_time_beyond(self, tmp_path):
         """Test basic init with start_time after the provided files."""
         import datetime as dt
 
@@ -344,12 +336,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
                         filter_parameters={
                             "start_time": dt.datetime(2012, 2, 26)
                         })
-        fhs = r.create_filehandlers([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        fhs = r.create_filehandlers(_make_filenames(tmp_path, "SVI01"))
         assert len(fhs) == 0
 
-    def test_init_end_time_beyond(self):
+    def test_init_end_time_beyond(self, tmp_path):
         """Test basic init with end_time before the provided files."""
         import datetime as dt
 
@@ -358,12 +348,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
                         filter_parameters={
                             "end_time": dt.datetime(2012, 2, 24)
                         })
-        fhs = r.create_filehandlers([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        fhs = r.create_filehandlers(_make_filenames(tmp_path, "SVI01"))
         assert len(fhs) == 0
 
-    def test_init_start_end_time(self):
+    def test_init_start_end_time(self, tmp_path):
         """Test basic init with end_time before the provided files."""
         import datetime as dt
 
@@ -374,31 +362,21 @@ class TestVIIRSSDRReader(unittest.TestCase):
                             "start_time": dt.datetime(2012, 2, 24),
                             "end_time": dt.datetime(2012, 2, 26)
                         })
-        loadables = r.select_files_from_pathnames([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI01"))
         assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
         assert r.file_handlers
 
-    def test_load_all_m_reflectances_no_geo(self):
+    def test_load_all_m_reflectances_no_geo(self, tmp_path):
         """Load all M band reflectances with no geo files provided."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM06_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM07_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM08_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM09_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path,
+            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
+            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11",
+        ))
         r.create_filehandlers(loadables)
         ds = r.load(["M01",
                      "M02",
@@ -416,74 +394,57 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=False)
 
-    def test_load_all_m_reflectances_find_geo(self):
+    def test_load_all_m_reflectances_find_geo(self, tmp_path):
         """Load all M band reflectances with geo files not specified but existing."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM06_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM07_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM08_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM09_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
-        with touch_geo_files("GMTCO", "GMODO") as (geo_fn1, geo_fn2):
-            r.create_filehandlers(loadables)
-            ds = r.load(["M01",
-                         "M02",
-                         "M03",
-                         "M04",
-                         "M05",
-                         "M06",
-                         "M07",
-                         "M08",
-                         "M09",
-                         "M10",
-                         "M11",
-                         ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path,
+            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
+            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11",
+        ))
+        _touch_geo_files(tmp_path, "GMTCO", "GMODO")
+        r.create_filehandlers(loadables)
+        ds = r.load(["M01",
+                     "M02",
+                     "M03",
+                     "M04",
+                     "M05",
+                     "M06",
+                     "M07",
+                     "M08",
+                     "M09",
+                     "M10",
+                     "M11",
+                     ])
 
         assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
 
-    def test_load_all_m_reflectances_provided_geo(self):
+    def test_load_all_m_reflectances_provided_geo(self, tmp_path):
         """Load all M band reflectances with geo files provided."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM06_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM07_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM08_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM09_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
-        with touch_geo_files("GMTCO", "GMODO") as (geo_fn1, geo_fn2):
-            r.create_filehandlers(loadables)
-            ds = r.load(["M01",
-                         "M02",
-                         "M03",
-                         "M04",
-                         "M05",
-                         "M06",
-                         "M07",
-                         "M08",
-                         "M09",
-                         "M10",
-                         "M11",
-                         ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path,
+            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
+            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "GMTCO",
+        ))
+        _touch_geo_files(tmp_path, "GMTCO", "GMODO")
+        r.create_filehandlers(loadables)
+        ds = r.load(["M01",
+                     "M02",
+                     "M03",
+                     "M04",
+                     "M05",
+                     "M06",
+                     "M07",
+                     "M08",
+                     "M09",
+                     "M10",
+                     "M11",
+                     ])
         assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
@@ -492,39 +453,30 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
             assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
-    def test_load_all_m_reflectances_use_nontc(self):
+    def test_load_all_m_reflectances_use_nontc(self, tmp_path):
         """Load all M band reflectances but use non-TC geolocation."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs, use_tc=False)
-        loadables = r.select_files_from_pathnames([
-            "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM06_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM07_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM08_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM09_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GMODO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
-        with touch_geo_files("GMTCO", "GMODO") as (geo_fn1, geo_fn2):
-            r.create_filehandlers(loadables, {"use_tc": False})
-            ds = r.load(["M01",
-                         "M02",
-                         "M03",
-                         "M04",
-                         "M05",
-                         "M06",
-                         "M07",
-                         "M08",
-                         "M09",
-                         "M10",
-                         "M11",
-                         ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path,
+            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
+            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "GMTCO",
+            "GMODO",
+        ))
+        _touch_geo_files(tmp_path, "GMTCO", "GMODO")
+        r.create_filehandlers(loadables, {"use_tc": False})
+        ds = r.load(["M01",
+                     "M02",
+                     "M03",
+                     "M04",
+                     "M05",
+                     "M06",
+                     "M07",
+                     "M08",
+                     "M09",
+                     "M10",
+                     "M11",
+                     ])
         assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
@@ -533,38 +485,29 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
             assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
-    def test_load_all_m_reflectances_use_nontc2(self):
+    def test_load_all_m_reflectances_use_nontc2(self, tmp_path):
         """Load all M band reflectances but use non-TC geolocation because TC isn't available."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs, use_tc=None)
-        loadables = r.select_files_from_pathnames([
-            "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM06_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM07_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM08_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM09_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GMODO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
-        with touch_geo_files("GMODO") as (geo_fn2,):
-            r.create_filehandlers(loadables, {"use_tc": None})
-            ds = r.load(["M01",
-                         "M02",
-                         "M03",
-                         "M04",
-                         "M05",
-                         "M06",
-                         "M07",
-                         "M08",
-                         "M09",
-                         "M10",
-                         "M11",
-                         ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path,
+            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
+            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "GMODO",
+        ))
+        _touch_geo_files(tmp_path, "GMODO")
+        r.create_filehandlers(loadables, {"use_tc": None})
+        ds = r.load(["M01",
+                     "M02",
+                     "M03",
+                     "M04",
+                     "M05",
+                     "M06",
+                     "M07",
+                     "M08",
+                     "M09",
+                     "M10",
+                     "M11",
+                     ])
         assert len(ds) == 11
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
@@ -573,18 +516,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert d.attrs["area"].lons.attrs["rows_per_scan"] == 16
             assert d.attrs["area"].lats.attrs["rows_per_scan"] == 16
 
-    def test_load_all_m_bts(self):
+    def test_load_all_m_bts(self, tmp_path):
         """Load all M band brightness temperatures."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVM12_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM13_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM14_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM15_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM16_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path, "SVM12", "SVM13", "SVM14", "SVM15", "SVM16", "GMTCO"))
         r.create_filehandlers(loadables)
         ds = r.load(["M12",
                      "M13",
@@ -596,7 +533,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self._assert_bt_properties(d, with_area=True)
 
-    def test_load_dnb_sza_no_factors(self):
+    def test_load_dnb_sza_no_factors(self, tmp_path):
         """Load DNB solar zenith angle with no scaling factors.
 
         The angles in VIIRS SDRs should never have scaling factors so we test
@@ -605,9 +542,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         """
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "GDNBO"))
         r.create_filehandlers(loadables, {"include_factors": False})
         ds = r.load(["dnb_solar_zenith_angle",
                      "dnb_solar_azimuth_angle",
@@ -623,30 +558,17 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
 
-    def test_load_all_m_radiances(self):
+    def test_load_all_m_radiances(self, tmp_path):
         """Load all M band radiances."""
         from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dsq
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM06_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM07_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM08_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM09_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM12_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM13_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM14_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM15_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVM16_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path,
+            "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06",
+            "SVM07", "SVM08", "SVM09", "SVM10", "SVM11", "SVM12",
+            "SVM13", "SVM14", "SVM15", "SVM16", "GMTCO",
+        ))
         r.create_filehandlers(loadables)
         ds = r.load([
             make_dsq(name="M01", calibration="radiance"),
@@ -675,14 +597,11 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert "area" in d.attrs
             assert d.attrs["area"] is not None
 
-    def test_load_dnb(self):
+    def test_load_dnb(self, tmp_path):
         """Load DNB dataset."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVDNB", "GDNBO"))
         r.create_filehandlers(loadables)
         ds = r.load(["DNB"])
         assert len(ds) == 1
@@ -698,14 +617,11 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert data[0, 1] == 30000
             self._assert_dnb_radiance_properties(d, with_area=True)
 
-    def test_load_dnb_no_factors(self):
+    def test_load_dnb_no_factors(self, tmp_path):
         """Load DNB dataset with no provided scale factors."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVDNB", "GDNBO"))
         r.create_filehandlers(loadables, {"include_factors": False})
         ds = r.load(["DNB"])
         assert len(ds) == 1
@@ -721,29 +637,22 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert data[0, 1] == 10000
             self._assert_dnb_radiance_properties(d, with_area=True)
 
-    def test_load_i_no_files(self):
+    def test_load_i_no_files(self, tmp_path):
         """Load I01 when only DNB files are provided."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVDNB", "GDNBO"))
         r.create_filehandlers(loadables)
         assert "I01" not in [x["name"] for x in r.available_dataset_ids]
         ds = r.load(["I01"])
         assert len(ds) == 0
 
-    def test_load_all_i_reflectances_provided_geo(self):
+    def test_load_all_i_reflectances_provided_geo(self, tmp_path):
         """Load all I band reflectances with geo files provided."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GITCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path, "SVI01", "SVI02", "SVI03", "GITCO"))
         r.create_filehandlers(loadables)
         ds = r.load(["I01",
                      "I02",
@@ -757,15 +666,11 @@ class TestVIIRSSDRReader(unittest.TestCase):
             assert d.attrs["area"].lons.attrs["rows_per_scan"] == 32
             assert d.attrs["area"].lats.attrs["rows_per_scan"] == 32
 
-    def test_load_all_i_bts(self):
+    def test_load_all_i_bts(self, tmp_path):
         """Load all I band brightness temperatures."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVI04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GITCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI04", "SVI05", "GITCO"))
         r.create_filehandlers(loadables)
         ds = r.load(["I04",
                      "I05",
@@ -774,19 +679,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self._assert_bt_properties(d, num_scans=32)
 
-    def test_load_all_i_radiances(self):
+    def test_load_all_i_radiances(self, tmp_path):
         """Load all I band radiances."""
         from satpy.readers.core.loading import load_reader
         from satpy.tests.utils import make_dsq
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "SVI05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-            "GITCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(
+            tmp_path, "SVI01", "SVI02", "SVI03", "SVI04", "SVI05", "GITCO"))
         r.create_filehandlers(loadables)
         ds = r.load([
             make_dsq(name="I01", calibration="radiance"),
@@ -812,32 +711,30 @@ class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler2):
     _num_scans_per_gran = [48] * 4
 
 
-class TestAggrVIIRSSDRReader(unittest.TestCase):
+class TestAggrVIIRSSDRReader:
     """Test VIIRS SDR Reader."""
 
     yaml_file = "viirs_sdr.yaml"
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIIRSSDRFileHandler, "__bases__", (FakeHDF5FileHandlerAggr,))
-        self.fake_handler = self.p.start()
+        self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_bounding_box(self):
+    def test_bounding_box(self, tmp_path):
         """Test bounding box."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI01"))
         r.create_filehandlers(loadables)
         # make sure we have some files
         expected_lons = [
@@ -862,32 +759,30 @@ class FakeShortHDF5FileHandlerAggr(FakeHDF5FileHandler2):
     _num_scans_per_gran = [47, 48, 47]
 
 
-class TestShortAggrVIIRSSDRReader(unittest.TestCase):
+class TestShortAggrVIIRSSDRReader:
     """Test VIIRS SDR Reader with a file that has truncated granules."""
 
     yaml_file = "viirs_sdr.yaml"
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.core.viirs_atms_sdr import JPSS_SDR_FileHandler
         self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(JPSS_SDR_FileHandler, "__bases__", (FakeShortHDF5FileHandlerAggr,))
-        self.fake_handler = self.p.start()
+        self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_load_truncated_band(self):
+    def test_load_truncated_band(self, tmp_path):
         """Test loading a single truncated band."""
         from satpy.readers.core.loading import load_reader
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5",
-        ])
+        loadables = r.select_files_from_pathnames(_make_filenames(tmp_path, "SVI01"))
         r.create_filehandlers(loadables)
         ds = r.load(["I01"])
         assert len(ds) == 1
