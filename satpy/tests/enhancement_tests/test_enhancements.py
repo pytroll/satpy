@@ -81,6 +81,9 @@ _nwcsaf_geo_props = {
                        "rdt_cell_type", "RDT-CW", "uint8"),
 }
 
+_nwcsaf_colorized = {"ctth_alti_pps", "cmic_reff_pps", "cmic_cot_pps", "cmic_cwp_pps",
+                     "cmic_lwp_pps", "cmic_iwp_pps"}
+
 
 @pytest.mark.parametrize(
     "data",
@@ -151,9 +154,20 @@ def test_nwcsaf_comps(fake_area, tmp_path, data):
         srnN_.side_effect = _fake_get_varname
         sc.load([comp])
     im = get_enhanced_image(sc[comp])
-    if flavour == "geo":
+    if data in _nwcsaf_colorized:
+        # the fake palette is a gray ramp so every band is the normalized data
+        assert im.mode == "RGB"
+        for band in "RGB":
+            np.testing.assert_allclose(
+                im.data.sel(bands=band),
+                (fake_alti - rng[0]) / np.ptp(rng),
+                rtol=1e-6)
+    else:
         assert im.mode == "P"
         np.testing.assert_array_equal(im.data.coords["bands"], ["P"])
+        if flavour != "geo":
+            # some PPS composites alter the data before palettizing
+            return
         if dtp == "float64":
             np.testing.assert_allclose(
                 im.data.sel(bands="P"),

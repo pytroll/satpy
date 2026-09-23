@@ -66,6 +66,96 @@ the :class:`satpy.composites.core.GenericCompositor` removes attributes such as 
 because they are typically not meaningful for an RGB image.  Such attributes
 are retained in the :class:`satpy.composites.core.SingleBandCompositor`.
 
+SingleBandCompositor
+--------------------
+
+:class:`satpy.composites.core.SingleBandCompositor` creates a composite from a
+single dataset. The data is passed through unchanged and the original
+attributes (``units``, ``valid_range``, etc.) are kept, but the result is a
+new product with its own name and ``standard_name``.
+
+This is useful because Satpy handles compositing and enhancing as two
+separate processing steps. A loaded product is converted to an image by the
+enhancement that matches its metadata, most often its ``standard_name``
+(see :doc:`enhancements`). A band therefore always gets the same
+enhancement, no matter how many ways you might want to look at it. Giving the
+band an alternative name with a :class:`~satpy.composites.core.SingleBandCompositor`
+makes a second product that can be enhanced differently while the original
+band keeps its default appearance.
+
+For example, to show the 10.8 µm brightness temperatures with a colormap for
+cold cloud tops in addition to the usual grayscale image, add a composite
+with a new ``standard_name``::
+
+    composites:
+      ir108_cold_clouds:
+        compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+        prerequisites:
+        - 10.8
+        standard_name: ir108_cold_clouds
+
+and a matching enhancement::
+
+    enhancements:
+      ir108_cold_clouds:
+        standard_name: ir108_cold_clouds
+        operations:
+        - name: colorize
+          method: !!python/name:satpy.enhancements.colormap.colorize
+          kwargs:
+            palettes:
+              - {colors: spectral, min_value: 193.15, max_value: 253.149999}
+              - {colors: greys, min_value: 253.15, max_value: 303.15}
+
+Loading both ``10.8`` and ``ir108_cold_clouds`` in the same
+:class:`~satpy.scene.Scene` now produces two differently enhanced images
+from the same data. The same composite can also be created directly in
+Python::
+
+    >>> from satpy.composites.core import SingleBandCompositor
+    >>> compositor = SingleBandCompositor("ir108_cold_clouds", standard_name="ir108_cold_clouds")
+    >>> composite = compositor([local_scene[10.8]])
+
+The same approach is used to apply a colormap that is provided with the data,
+like the palettes included in NWC SAF products. The composite only needs the
+data as a prerequisite::
+
+    composites:
+      cloud_top_height:
+        compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+        prerequisites:
+        - ctth_alti
+        standard_name: cloud_top_height
+
+and the enhancement refers to the palette dataset, which must be listed in
+the data's ``ancillary_variables``::
+
+    enhancements:
+      cloud_top_height:
+        standard_name: cloud_top_height
+        operations:
+        - name: palettize
+          method: !!python/name:satpy.enhancements.colormap.palettize
+          kwargs:
+            palettes:
+              - dataset: ctth_alti_pal
+                color_scale: 255
+
+Use :func:`~satpy.enhancements.colormap.palettize` for categorical data and
+:func:`~satpy.enhancements.colormap.colorize` to interpolate between the
+palette colors for continuous data. To save a palettized image with mode
+``P``, pass ``keep_palette=True`` to
+:meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.
+
+.. deprecated:: 0.39
+
+   :class:`satpy.composites.lookup.ColorizeCompositor` and
+   :class:`satpy.composites.lookup.PaletteCompositor` applied the colormap
+   during compositing. They are deprecated in favor of a
+   :class:`~satpy.composites.core.SingleBandCompositor` with a
+   :func:`~satpy.enhancements.colormap.colorize` or
+   :func:`~satpy.enhancements.colormap.palettize` enhancement as shown above.
+
 DifferenceCompositor
 --------------------
 
@@ -89,38 +179,6 @@ with the values of another dataset:::
     >>> data_with_holes_3 = local_scene['ch_c']
     >>> composite = compositor([filler, data_with_holes_1, data_with_holes_2,
     ...                         data_with_holes_3])
-
-PaletteCompositor
-------------------
-
-:class:`satpy.composites.lookup.PaletteCompositor` creates a color version of a single channel
-categorical dataset using a colormap::
-
-    >>> from satpy.composites.lookup import PaletteCompositor
-    >>> compositor = PaletteCompositor("palcomp")
-    >>> composite = compositor([local_scene['cma'], local_scene['cma_pal']])
-
-The palette should have a single entry for all the (possible) values
-in the dataset mapping the value to an RGB triplet.  Typically the
-palette comes with the categorical (e.g. cloud mask) product that is
-being visualized.
-
-.. deprecated:: 0.40
-
-   Composites produced with :class:`satpy.composites.lookup.PaletteCompositor` will result in
-   an image with mode RGB when enhanced.  To produce an image with mode P, use
-   the :class:`satpy.composites.core.SingleBandCompositor` with an associated
-   :func:`~satpy.enhancements.colormap.palettize` enhancement and pass ``keep_palette=True``
-   to :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.  If the colormap is sourced from
-   the same dataset as the dataset to be palettized, it must be contained
-   in the auxiliary datasets.
-
-   Since Satpy 0.40, all built-in composites that used
-   :class:`satpy.composites.lookup.PaletteCompositor` have been migrated to use
-   :class:`satpy.composites.core.SingleBandCompositor` instead.  This has no impact on resulting
-   images unless ``keep_palette=True`` is passed to
-   :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`, but the loaded composite now has only
-   one band (previously three).
 
 DayNightCompositor
 ------------------
