@@ -4,6 +4,8 @@ import inspect
 import logging
 import os
 import warnings
+import weakref
+from collections.abc import Mapping
 from contextlib import suppress
 
 import dask.array as da
@@ -46,6 +48,12 @@ class NetCDF4FileHandler(BaseFileHandler):
     Or for all of global attributes:
 
         wrapper["/attrs"]
+
+    The size of a dimension of the file or of one of its groups is available
+    as ``wrapper["/dimension/dim_name"]`` or
+    ``wrapper["group/dimension/dim_name"]``. All of this information is read
+    from the file when it is requested, see :class:`NetCDF4FileContent` for
+    the ``file_content`` mapping that holds it.
 
     Note that loading datasets requires opening the original file with
     ``xarray`` (unless those datasets are cached, see below). That dataset is
@@ -129,17 +137,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         if self._open_strategy == "file_handle":
             self._check_file_handle_can_maskandscale(opened_file, auto_maskandscale)
             self._set_file_handle_auto_maskandscale(opened_file, auto_maskandscale)
-            self.file_handle = root = opened_file
+            self.file_handle = opened_file
         else:
             self._root_store = opened_file
-            root = opened_file.ds
-
-        listed_variables = filetype_info.get("required_netcdf_variables")
-        if listed_variables:
-            self._collect_listed_variables(root, listed_variables)
-        else:
-            self.collect_metadata("", root)
-            self.collect_dimensions("", root)
+        self.file_content = NetCDF4FileContent(self.accessor, _weak_root_getter(self),
+                                               listed_keys=self._get_listed_keys(filetype_info))
         self.collect_cache_vars(cache_var_size)
 
     def _open_file(self):
@@ -155,7 +157,8 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self.get_accessor_and_filehandle()
 
         def open_with_engine(engine):
-            return _get_accessor_and_root_store(self.filename, engine, self._store_open_kwargs)
+            accessor = choose_accessor_from_engine(engine)
+            return accessor, _open_root_store(self.filename, engine, self._store_open_kwargs)
 
         if isinstance(self.engine, str):
             return open_with_engine(self.engine)
@@ -185,56 +188,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs.setdefault("chunks", CHUNK_SIZE)
         self._xarray_kwargs.setdefault("mask_and_scale", auto_maskandscale)
 
-    def collect_metadata(self, name, obj):
-        """Collect all file variables and attributes for the provided file object.
-
-        This method also iterates through subgroups of the provided object.
-        """
-        # Look through each subgroup
-        base_name = name + "/" if name else ""
-        self._collect_groups_info(base_name, obj)
-        self._collect_variables_info(base_name, obj)
-        if not name:
-            self._collect_global_attrs(obj)
-        else:
-            self._collect_attrs(name, obj)
-
-    def _collect_groups_info(self, base_name, obj):
-        for group_name, group_obj in obj.groups.items():
-            full_group_name = base_name + group_name
-            self.file_content[full_group_name] = group_obj
-            self._collect_attrs(full_group_name, group_obj)
-            self.collect_metadata(full_group_name, group_obj)
-
-    def _collect_variables_info(self, base_name, obj):
-        for var_name, var_obj in obj.variables.items():
-            var_name = base_name + var_name
-            self._collect_variable_info(var_name, var_obj)
-
-    def _collect_variable_info(self, var_name, var_obj):
-        self.file_content[var_name] = var_obj
-        self.file_content[var_name + "/dtype"] = var_obj.dtype
-        self.file_content[var_name + "/shape"] = var_obj.shape
-        self.file_content[var_name + "/dimensions"] = var_obj.dimensions
-        self._collect_attrs(var_name, var_obj)
-
-    def _collect_listed_variables(self, file_handle, listed_variables):
-        variable_name_replacements = self.filetype_info.get("variable_name_replacements")
-        for itm in self._get_required_variable_names(listed_variables, variable_name_replacements):
-            parts = itm.split("/")
-            grp = file_handle
-            is_attribute = False
-            for p in parts[:-1]:
-                if p == "attr":
-                    n = "/".join(parts)
-                    self.file_content[n] = self._get_attr_value(grp, parts[-1])
-                    is_attribute = True
-                    break
-                grp = grp[p]
-            if not is_attribute:
-                var_obj = grp[parts[-1]]
-                self._collect_variable_info(itm, var_obj)
-                self.collect_dimensions(itm, grp)
+    def _get_listed_keys(self, filetype_info):
+        """Get the keys that iterating over ``file_content`` is limited to, if any."""
+        listed_variables = filetype_info.get("required_netcdf_variables")
+        if not listed_variables:
+            return None
+        return self._get_required_variable_names(listed_variables, filetype_info.get("variable_name_replacements"))
 
     @staticmethod
     def _get_required_variable_names(listed_variables, variable_name_replacements):
@@ -274,36 +233,6 @@ class NetCDF4FileHandler(BaseFileHandler):
                 self._root_store.close()
         self._root_store = None
 
-    def _collect_global_attrs(self, obj):
-        """Collect all the global attributes for the provided file object."""
-        global_attrs = {}
-        for key in self.accessor.get_object_attrs(obj):
-            fc_key = f"/attr/{key}"
-            value = self._get_attr_value(obj, key)
-            self.file_content[fc_key] = global_attrs[key] = value
-        self.file_content["/attrs"] = global_attrs
-
-    def _collect_attrs(self, name, obj):
-        """Collect all the attributes for the provided file object."""
-        for key in self.accessor.get_object_attrs(obj):
-            fc_key = f"{name}/attr/{key}"
-            value = self._get_attr_value(obj, key)
-            self.file_content[fc_key] = value
-
-    def _get_attr_value(self, obj, key):
-        value = self.accessor.get_attr(obj, key)
-        try:
-            value = np2str(value)
-        except ValueError:
-            pass
-        return value
-
-    def collect_dimensions(self, name, obj):
-        """Collect dimensions."""
-        for dim_name, dim_obj in obj.dimensions.items():
-            dim_name = "{}/dimension/{}".format(name, dim_name)
-            self.file_content[dim_name] = len(dim_obj)
-
     def collect_cache_vars(self, cache_var_size):
         """Collect data variables for caching.
 
@@ -311,8 +240,6 @@ class NetCDF4FileHandler(BaseFileHandler):
         This may be useful if some small variables are frequently accessed,
         to prevent needlessly frequently opening and closing the file, which
         in case of xarray is associated with some overhead.
-
-        Should be called later than `collect_metadata`.
 
         Args:
             cache_var_size (int): Maximum size of the collected variables in bytes
@@ -384,13 +311,27 @@ class NetCDF4FileHandler(BaseFileHandler):
         store, so the file is only opened once however many groups are read.
 
         """
-        if self._root_store is None:
-            # reopened after ``close`` or, for the "file_handle" open strategy,
-            # opened on the first group access
-            _, self._root_store = _get_accessor_and_root_store(
-                self.filename, self.accessor.engine, self._store_open_kwargs)
-        store = self._root_store.get_child_store(group) if group else self._root_store
+        root_store = self._get_root_store()
+        store = root_store.get_child_store(group) if group else root_store
         return xr.open_dataset(store, **self._xarray_kwargs)
+
+    def _get_root_store(self):
+        """Get the xarray backend store of the whole file.
+
+        It is reopened after ``close`` or, for the "file_handle" open strategy,
+        opened on the first access.
+
+        """
+        if self._root_store is None:
+            self._root_store = _open_root_store(self.filename, self.accessor.engine, self._store_open_kwargs)
+        return self._root_store
+
+    def _get_metadata_root(self):
+        """Get the (raw) root group of the file that ``file_content`` reads from."""
+        if self._open_strategy == "file_handle":
+            return self.file_handle
+        # xarray reopens the file if its file cache closed it in the meantime
+        return self._get_root_store().ds
 
     def _get_group(self, key, val):
         """Get a group from the netcdf file."""
@@ -484,6 +425,203 @@ def _resolve_open_strategy(strategy, cache_handle):
     return strategy
 
 
+def _weak_root_getter(file_handler):
+    """Get a function returning the root group of ``file_handler`` that doesn't keep the file handler alive.
+
+    Referencing the file handler itself from its ``file_content`` would be a
+    reference cycle, which delays closing the file until the garbage
+    collector runs instead of when the file handler is deleted.
+
+    """
+    weak_get_root = weakref.WeakMethod(file_handler._get_metadata_root)
+
+    def _get_root():
+        get_root = weak_get_root()
+        if get_root is None:
+            raise ReferenceError("The file handler of this file content doesn't exist anymore.")
+        return get_root()
+    return _get_root
+
+
+class NetCDF4FileContent(Mapping):
+    """Lazy mapping of the variables, groups, attributes and dimensions of a netCDF file.
+
+    The keys are the ones described in :class:`NetCDF4FileHandler`:
+
+    - ``"group/subgroup"`` and ``"group/var_name"`` for groups and variables,
+      whose values are the raw netCDF4/h5netcdf objects.
+    - ``"group/var_name/dtype"``, ``".../shape"`` and ``".../dimensions"`` for
+      the properties of a variable.
+    - ``"group/var_name/attr/attr_name"`` and ``"group/attr/attr_name"`` for
+      attributes, ``"/attr/attr_name"`` (or ``"attr/attr_name"``) for global
+      attributes and ``"/attrs"`` for a dictionary of all global attributes.
+    - ``"group/dimension/dim_name"`` and ``"/dimension/dim_name"`` for the size
+      of a dimension.
+
+    A value is only read from the file when it is requested. Everything but
+    the group and variable objects is remembered after that; those objects
+    belong to a file handle that may be closed and reopened by xarray's file
+    cache, so they are looked up again every time.
+
+    Iterating (including ``len``, ``keys`` and ``items``) needs the full list of
+    keys, which walks through the whole file the first time. If ``listed_keys``
+    is given, iterating is limited to those keys, the properties and
+    attributes of the listed variables. Any key can be looked up either way.
+
+    The mapping is read-only.
+
+    Args:
+        accessor: The ``NetCDF4Accessor``/``H5NetcdfAccessor`` for the engine of the file.
+        get_root (callable): Function returning the raw root group of the file.
+        listed_keys (list or None): The keys that iterating is limited to.
+
+    """
+
+    _VARIABLE_PROPERTIES = ("dtype", "shape", "dimensions")
+
+    def __init__(self, accessor, get_root, listed_keys=None):
+        """Initialize the mapping without reading anything from the file."""
+        self._accessor = accessor
+        self._get_root = get_root
+        self._listed_keys = listed_keys
+        self._cache = {}
+        self._file_keys = None
+
+    def __getitem__(self, key):
+        """Get the value of ``key``, reading it from the file if needed."""
+        if key in self._cache:
+            return self._cache[key]
+        value, cacheable = self._read(key)
+        if cacheable:
+            self._cache[key] = value
+        return value
+
+    def __iter__(self):
+        """Iterate over the keys, walking through the file the first time."""
+        return iter(self._get_file_keys())
+
+    def __len__(self):
+        """Get the number of keys, walking through the file the first time."""
+        return len(self._get_file_keys())
+
+    def _get_file_keys(self):
+        if self._file_keys is None:
+            items = self._walk_listed_keys() if self._listed_keys is not None else self._walk_file()
+            file_keys = {}
+            for key, value, cacheable in items:
+                file_keys[key] = None
+                if cacheable:
+                    self._cache.setdefault(key, value)
+            self._file_keys = file_keys
+        return self._file_keys
+
+    def _read(self, key):
+        """Read the value of ``key`` from the file and tell if it can be remembered."""
+        root = self._get_root()
+        if key == "/attrs":
+            return self._get_attrs(root), True
+        for prefix in ("/attr/", "attr/"):
+            if key.startswith(prefix):
+                return self._get_attr(root, key[len(prefix):], key), True
+        if key.startswith("/dimension/"):
+            return self._get_dimension(root, key[len("/dimension/"):], key), True
+        parts = key.split("/")
+        obj = root
+        for index, part in enumerate(parts):
+            child = self._get_child(obj, part)
+            if child is not None:
+                obj = child
+                continue
+            return self._read_from_object(obj, part, parts[index + 1:], key), True
+        return obj, False
+
+    def _read_from_object(self, obj, part, rest, key):
+        """Read the attribute, dimension or variable property of ``obj`` that the rest of ``key`` refers to."""
+        if part == "attr" and rest:
+            return self._get_attr(obj, "/".join(rest), key)
+        is_variable = self._accessor.is_variable(obj)
+        if part == "dimension" and len(rest) == 1 and not is_variable:
+            return self._get_dimension(obj, rest[0], key)
+        if part in self._VARIABLE_PROPERTIES and not rest and is_variable:
+            return getattr(obj, part)
+        raise KeyError(key)
+
+    def _get_child(self, obj, name):
+        """Get the group or variable ``name`` of group ``obj``, or None."""
+        if self._accessor.is_variable(obj):
+            return None
+        for children in (obj.groups, obj.variables):
+            if name in children:
+                return children[name]
+        return None
+
+    def _get_attr(self, obj, name, key):
+        if name not in self._accessor.get_object_attrs(obj):
+            raise KeyError(key)
+        value = self._accessor.get_attr(obj, name)
+        with suppress(ValueError):
+            value = np2str(value)
+        return value
+
+    def _get_attrs(self, obj):
+        return {name: self._get_attr(obj, name, name) for name in self._accessor.get_object_attrs(obj)}
+
+    @staticmethod
+    def _get_dimension(obj, name, key):
+        if name not in obj.dimensions:
+            raise KeyError(key)
+        return len(obj.dimensions[name])
+
+    def _walk_file(self):
+        """Walk through the whole file, yielding every key, its value and if the value can be remembered."""
+        root = self._get_root()
+        yield from self._walk_group("", root)
+        global_attrs = self._get_attrs(root)
+        for name, value in global_attrs.items():
+            yield f"/attr/{name}", value, True
+        yield "/attrs", global_attrs, True
+        yield from self._walk_dimensions("", root)
+
+    def _walk_group(self, name, group):
+        prefix = name + "/" if name else ""
+        for group_name, subgroup in group.groups.items():
+            full_name = prefix + group_name
+            yield full_name, subgroup, False
+            yield from self._walk_attrs(full_name, subgroup)
+            yield from self._walk_group(full_name, subgroup)
+            yield from self._walk_dimensions(full_name, subgroup)
+        for var_name, var in group.variables.items():
+            full_name = prefix + var_name
+            yield full_name, var, False
+            yield from self._walk_variable_properties(full_name, var)
+            yield from self._walk_attrs(full_name, var)
+
+    def _walk_variable_properties(self, name, var):
+        for prop in self._VARIABLE_PROPERTIES:
+            yield f"{name}/{prop}", getattr(var, prop), True
+
+    def _walk_attrs(self, name, obj):
+        for attr_name, value in self._get_attrs(obj).items():
+            yield f"{name}/attr/{attr_name}", value, True
+
+    @staticmethod
+    def _walk_dimensions(name, group):
+        for dim_name, dim in group.dimensions.items():
+            yield f"{name}/dimension/{dim_name}", len(dim), True
+
+    def _walk_listed_keys(self):
+        """Yield the listed keys that exist in the file, with the properties and attributes of listed variables."""
+        for key in self._listed_keys:
+            try:
+                value, cacheable = self._read(key)
+            except KeyError:
+                continue
+            yield key, value, cacheable
+            if self._accessor.is_variable(value):
+                yield from self._walk_variable_properties(key, value)
+                yield from self._walk_attrs(key, value)
+
+
 def _compose_replacement_names(variable_name_replacements, var, variable_names):
     for key in variable_name_replacements:
         vals = variable_name_replacements[key]
@@ -574,9 +712,8 @@ def _split_xarray_kwargs(xarray_kwargs):
     return open_kwargs, decode_kwargs
 
 
-def _get_accessor_and_root_store(filename, engine, store_open_kwargs):
-    """Choose an accessor from engine, and return it along with the xarray backend store of the whole file."""
-    accessor = choose_accessor_from_engine(engine)
+def _open_root_store(filename, engine, store_open_kwargs):
+    """Open the xarray backend store of the whole file with ``engine``."""
     store_cls = _get_store_class(engine)
     # skip the options that only the backend store of the other engine has
     all_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
@@ -588,7 +725,7 @@ def _get_accessor_and_root_store(filename, engine, store_open_kwargs):
     if isinstance(filename, os.PathLike):
         # xarray only uses its (cached) file manager for string paths
         filename = os.fspath(filename)
-    return accessor, store_cls.open(filename, mode="r", **open_kwargs)
+    return store_cls.open(filename, mode="r", **open_kwargs)
 
 
 class NetCDF4Accessor:

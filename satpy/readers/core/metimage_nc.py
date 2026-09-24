@@ -139,9 +139,9 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
     def _collect_dim_sizes(self) -> dict[str, int]:
         """Map dimension name to size for every dimension used by a variable.
 
-        ``NetCDF4FileHandler.collect_dimensions`` does not recurse into groups,
-        so the dimensions of a grouped product are not in ``file_content``.
-        The per-variable shape and dimension entries always are.
+        The sizes are taken from the per-variable shape and dimension entries of
+        ``file_content``, as a variable may use a dimension that is defined in
+        one of the parent groups of the variable instead of its own group.
 
         """
         suffix = "/dimensions"
