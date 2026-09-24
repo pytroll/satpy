@@ -2,6 +2,7 @@
 
 import logging
 import os
+import warnings
 from contextlib import suppress
 
 import dask.array as da
@@ -15,6 +16,9 @@ from satpy.utils import get_legacy_chunk_size
 
 LOG = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
+
+OPEN_STRATEGIES = ("per_group", "shared_store", "file_handle")
+DEFAULT_OPEN_STRATEGY = "per_group"
 
 
 class NetCDF4FileHandler(BaseFileHandler):
@@ -55,33 +59,30 @@ class NetCDF4FileHandler(BaseFileHandler):
     any variable smaller than this number in bytes will be read into RAM.
     Warning, this part of the API is provisional and subject to change.
 
-    You may get an additional speedup by passing ``cache_handle=True``. This
-    will keep the netCDF4 dataset handles open throughout the lifetime of the
-    object, and instead of using `xarray.open_dataset` to open every data
-    variable, a dask array will be created "manually". This may be useful if
-    you have a dataset distributed over many files, such as for FCI. Note
-    that the coordinates will be missing in this case. If you use this option,
-    ``xarray_kwargs`` will have no effect (unless ``xarray_open_strategy`` is
-    ``"file_handle"``, see below).
-
-    When variables are read with xarray, ``xarray_open_strategy`` selects how
-    the ``xarray.Dataset`` for a group is created. Every strategy holds the
-    datasets open for the lifetime of this file handler:
+    ``open_strategy`` selects how the file is opened and how variables are
+    turned into ``xarray.DataArray`` objects. Every strategy holds what it
+    opened for the lifetime of this file handler; call ``close`` to release it
+    sooner.
 
     - ``"per_group"`` (default): ``xarray.open_dataset(filename, group=...)``
       for every group that is accessed. Each call opens the file again and
       takes its own slot in xarray's global file cache
       (``xarray.set_options(file_cache_maxsize=...)``, 128 by default).
-    - ``"datatree"``: ``xarray.open_datatree(filename)`` once, opening (and
-      decoding) every group in the file, and serve groups from that tree.
     - ``"shared_store"``: open the file once as an xarray backend store and
       derive a child store per accessed group, so all groups share one file
       cache slot and only the accessed groups are decoded.
-    - ``"file_handle"``: like ``"shared_store"`` but wrap the netCDF4/h5netcdf
-      handle that is already open thanks to ``cache_handle=True`` (required)
-      instead of opening the file again. Variables are then read with xarray
-      rather than being wrapped in a dask array "manually". Note that arrays
-      created this way can't be pickled (e.g. for dask distributed workers).
+    - ``"file_handle"``: keep the netCDF4/h5netcdf file handle open and wrap
+      each variable in a dask array "manually". xarray does not parse or
+      decode anything in this case: the attributes are the raw ones from the
+      file (including ``scale_factor``, ``add_offset`` and ``_FillValue``),
+      the coordinates are missing and ``xarray_kwargs`` has no effect on
+      variables. Masking and scaling is left to the netCDF4 library (see
+      ``auto_maskandscale``), which is why this strategy can't be combined
+      with ``auto_maskandscale=True`` and the h5netcdf engine. This avoids
+      the overhead of xarray, which may be useful if you have a dataset
+      distributed over many files, such as for FCI. Note that the arrays
+      created this way can't be pickled (e.g. for dask distributed workers)
+      and can't be read anymore once the file handler is closed.
 
     Args:
         filename (str): File to read.
@@ -90,39 +91,40 @@ class NetCDF4FileHandler(BaseFileHandler):
         auto_maskandscale (bool): Apply mask and scale factors.
         xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`.
         cache_var_size (int): Cache variables smaller than this size.
-        cache_handle (bool): Keep files open for lifetime of filehandler.
+        cache_handle (bool): Deprecated, use ``open_strategy="file_handle"`` instead of ``cache_handle=True``.
         engine (str or list of str): The engine to use for reading, either "netcdf4" or "h5netcdf". As a list, will try
             each engine until one works.
-        xarray_open_strategy (str): How to open ``xarray.Dataset`` objects for the groups of the file. One of
-            "per_group" (default), "datatree", "shared_store" or "file_handle". See above.
+        open_strategy (str): How to open the file and read its variables. One of "per_group" (default),
+            "shared_store" or "file_handle". See above.
 
     """
 
     file_handle = None
+    _open_strategy = DEFAULT_OPEN_STRATEGY
     # ``xarray.Dataset`` objects held open for the lifetime of this file
     # handler, keyed by group name. See ``_open_xr_dataset``.
     _open_datasets = None
-    # Backend store or datatree the datasets above are derived from for the
-    # "shared_store"/"file_handle" and "datatree" open strategies.
+    # Backend store the datasets above are derived from for the
+    # "shared_store" open strategy.
     _root_store = None
-    _datatree = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=False, engine="netcdf4",
-                 xarray_open_strategy="per_group"):
+                 cache_var_size=0, cache_handle=None, engine="netcdf4",
+                 open_strategy=None):
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info)
         self.file_content = {}
         self.cached_file_content = {}
         self.engine = engine
-        self._xarray_open_strategy = _validate_xarray_open_strategy(xarray_open_strategy, cache_handle)
+        self._open_strategy = _resolve_open_strategy(open_strategy, cache_handle)
         try:
             self.accessor, file_handle = self.get_accessor_and_filehandle()
         except IOError:
             LOG.exception(
                 "Failed reading file %s. Possibly corrupted file", self.filename)
             raise
+        self._check_file_handle_can_maskandscale(file_handle, auto_maskandscale)
         self._set_file_handle_auto_maskandscale(file_handle, auto_maskandscale)
         self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
 
@@ -134,7 +136,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.collect_dimensions("", file_handle)
         self.collect_cache_vars(cache_var_size)
 
-        if cache_handle:
+        if self._open_strategy == "file_handle":
             self.file_handle = file_handle
         else:
             file_handle.close()
@@ -144,6 +146,14 @@ class NetCDF4FileHandler(BaseFileHandler):
         if not isinstance(self.engine, str):
             return get_accessor_and_filehandle_from_engines(self.filename, *self.engine)
         return get_accessor_and_filehandle_from_engine(self.filename, self.engine)
+
+    def _check_file_handle_can_maskandscale(self, file_handle, auto_maskandscale):
+        """Refuse reading unscaled data with the "file_handle" strategy and an engine that can't mask and scale."""
+        if (self._open_strategy == "file_handle" and auto_maskandscale
+                and not hasattr(file_handle, "set_auto_maskandscale")):
+            file_handle.close()
+            raise ValueError(f"open_strategy='file_handle' can't apply auto_maskandscale=True with the "
+                             f"{self.accessor.engine} engine. Use another open_strategy or engine.")
 
     @staticmethod
     def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
@@ -240,11 +250,9 @@ class NetCDF4FileHandler(BaseFileHandler):
                 nc.close()
         if self._open_datasets:
             self._open_datasets.clear()
-        for obj in (self._datatree, self._root_store):
-            if obj is not None:
-                with suppress(RuntimeError):
-                    obj.close()
-        self._datatree = None
+        if self._root_store is not None:
+            with suppress(RuntimeError):
+                self._root_store.close()
         self._root_store = None
 
     def _collect_global_attrs(self, obj):
@@ -328,7 +336,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             group, key = parts
         else:
             group = None
-        if self.file_handle is not None and self._xarray_open_strategy != "file_handle":
+        if self._open_strategy == "file_handle":
             val = self._get_var_from_filehandle(group, key)
         else:
             val = self._get_var_from_xr(group, key)
@@ -353,16 +361,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         return self._open_datasets[group]
 
     def _open_xr_dataset_for_group(self, group):
-        """Open the dataset for ``group`` following ``xarray_open_strategy``."""
-        strategy = self._xarray_open_strategy
-        if strategy == "per_group":
+        """Open the dataset for ``group`` following ``open_strategy``."""
+        if self._open_strategy == "per_group":
             return xr.open_dataset(self.filename, group=group, **self._xarray_kwargs)
-        if strategy == "datatree":
-            if self._datatree is None:
-                self._datatree = xr.open_datatree(self.filename, **self._xarray_kwargs)
-            return self._datatree[group or "/"].to_dataset(inherit=False)
-        # "shared_store" and "file_handle": one backend store for the whole
-        # file, child stores share its file manager (and file cache slot).
+        # "shared_store": one backend store for the whole file, child stores
+        # share its file manager (and file cache slot).
         if self._root_store is None:
             self._root_store = self._create_root_store()
         store = self._root_store.get_child_store(group) if group else self._root_store
@@ -370,13 +373,10 @@ class NetCDF4FileHandler(BaseFileHandler):
         return xr.open_dataset(store, **kwargs)
 
     def _create_root_store(self):
-        """Create the xarray backend store of the whole file for the store based open strategies."""
+        """Create the xarray backend store of the whole file for the "shared_store" open strategy."""
         from xarray.backends import H5NetCDFStore, NetCDF4DataStore
 
         store_cls = NetCDF4DataStore if self.accessor.engine == "netcdf4" else H5NetCDFStore
-        if self._xarray_open_strategy == "file_handle":
-            # xarray wraps the already open handle instead of opening the file again
-            return store_cls(self.file_handle)
         filename = open_file_or_filename(self.filename) if store_cls is H5NetCDFStore else self.filename
         if isinstance(filename, os.PathLike):
             # xarray only uses its (cached) file manager for string paths
@@ -436,7 +436,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             val = v
         elif self.file_handle is None and self.accessor.is_variable(v):
             # The variable object belongs to the file handle that was closed
-            # at the end of ``__init__`` (``cache_handle=False``) and can't be
+            # at the end of ``__init__`` (all but the "file_handle" open strategy) and can't be
             # read from anymore. Read the data through xarray instead.
             val = self[var_name].load()
         else:
@@ -454,14 +454,23 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _get_object_attrs(self, obj):
         return self.accessor.get_object_attrs(obj)
 
-XARRAY_OPEN_STRATEGIES = ("per_group", "datatree", "shared_store", "file_handle")
-
-
-def _validate_xarray_open_strategy(strategy, cache_handle):
-    if strategy not in XARRAY_OPEN_STRATEGIES:
-        raise ValueError(f"Unknown xarray_open_strategy {strategy!r}, expected one of {XARRAY_OPEN_STRATEGIES}")
-    if strategy == "file_handle" and not cache_handle:
-        raise ValueError("xarray_open_strategy='file_handle' requires cache_handle=True")
+def _resolve_open_strategy(strategy, cache_handle):
+    if cache_handle is not None:
+        # 8< v1.0
+        warnings.warn(
+            "The 'cache_handle' argument is deprecated and will be removed in Satpy 1.0. "
+            "Use open_strategy='file_handle' instead of cache_handle=True.",
+            DeprecationWarning,
+            stacklevel=3)
+        # >8 v1.0
+        handle_strategy = "file_handle" if cache_handle else DEFAULT_OPEN_STRATEGY
+        if strategy is not None and strategy != handle_strategy:
+            raise ValueError(f"cache_handle={cache_handle} conflicts with open_strategy={strategy!r}")
+        strategy = handle_strategy
+    if strategy is None:
+        return DEFAULT_OPEN_STRATEGY
+    if strategy not in OPEN_STRATEGIES:
+        raise ValueError(f"Unknown open_strategy {strategy!r}, expected one of {OPEN_STRATEGIES}")
     return strategy
 
 

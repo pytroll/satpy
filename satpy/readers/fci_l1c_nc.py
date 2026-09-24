@@ -244,7 +244,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                  clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
         kwargs.setdefault("cache_var_size", 0)
-        kwargs.setdefault("cache_handle", True)
+        kwargs.setdefault("open_strategy", "file_handle")
         super().__init__(filename, filename_info,
                          filetype_info,
                          **kwargs)

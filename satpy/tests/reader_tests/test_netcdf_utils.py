@@ -13,13 +13,13 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=False, extra_file_content=None):
+                 cache_var_size=0, open_strategy=None, extra_file_content=None):
         """Get fake file content from 'get_test_content'."""
         # unused kwargs from the real file handler
         del auto_maskandscale
         del xarray_kwargs
         del cache_var_size
-        del cache_handle
+        del open_strategy
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         if extra_file_content:
@@ -206,7 +206,7 @@ class TestNetCDF4FileHandler:
         """Test that caching works as intended."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
         h = NetCDF4FileHandler(netcdf_file, {}, {}, cache_var_size=1000,
-                               cache_handle=True)
+                               open_strategy="file_handle")
         assert h.file_handle is not None
         assert h.file_handle.isopen()
 
@@ -237,7 +237,7 @@ class TestNetCDF4FileHandler:
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy="file_handle", engine=engine)
 
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert isinstance(data, xr.DataArray)
@@ -246,7 +246,7 @@ class TestNetCDF4FileHandler:
     def test_get_and_cache_npxr_for_scalar(self, netcdf_file, engine):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy="file_handle", engine=engine)
 
         data = file_handler.get_and_cache_npxr("ds2_sc")
         # WARN: h5netcdf returns an int64!
@@ -258,7 +258,7 @@ class TestNetCDF4FileHandler:
         """Test that the data are cached when get_and_cache_npxr() is called."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy="file_handle", engine=engine)
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
 
         # Delete the dataset from the file content dict, it should be available from the cache
@@ -275,14 +275,14 @@ class TestNetCDF4FileHandler:
     def test_get_and_cache_npxr_without_file_handle(self, netcdf_file, engine, var_name, expected):
         """Test that get_and_cache_npxr() reads variables after the file handle was closed.
 
-        With ``cache_handle=False`` the variable objects collected in
-        ``__init__`` belong to a closed file, so the data has to be read
-        through xarray instead.
+        With any open strategy but "file_handle" the variable objects
+        collected in ``__init__`` belong to a closed file, so the data has to
+        be read through xarray instead.
         """
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, engine=engine)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine)
 
         data = file_handler.get_and_cache_npxr(var_name)
         assert isinstance(data, xr.DataArray)
@@ -362,21 +362,19 @@ class TestNetCDF4FileHandler:
         assert file_handler["ds2_f"].shape == (10, 100)
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
-    @pytest.mark.parametrize(("strategy", "cache_handle", "exp_new_cache_entries"), [
-        ("per_group", False, 2),
-        ("datatree", False, 1),
-        ("shared_store", False, 1),
-        ("file_handle", True, 0),
+    @pytest.mark.parametrize(("strategy", "exp_new_cache_entries"), [
+        ("per_group", 2),
+        ("shared_store", 1),
+        ("file_handle", 0),
     ])
-    def test_xarray_open_strategies(self, netcdf_file, engine, strategy, cache_handle, exp_new_cache_entries):
-        """Test that every xarray open strategy reads the same data and holds the expected number of files open."""
+    def test_open_strategies(self, netcdf_file, engine, strategy, exp_new_cache_entries):
+        """Test that every open strategy reads the same data and holds the expected number of files open."""
         from xarray.backends.file_manager import FILE_CACHE
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
         num_cached_before = len(FILE_CACHE)
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=cache_handle, engine=engine,
-                                          xarray_open_strategy=strategy)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy=strategy)
         expected = np.arange(10. * 100).reshape((10, 100))
         for var_name in ("test_group/ds1_f", "ds2_f"):
             data = file_handler[var_name]
@@ -391,16 +389,47 @@ class TestNetCDF4FileHandler:
         assert len(FILE_CACHE) == num_cached_before
         assert not file_handler._open_datasets
         assert file_handler._root_store is None
-        assert file_handler._datatree is None
 
-    def test_invalid_xarray_open_strategy(self, netcdf_file):
-        """Test that unknown or incompatible open strategies are rejected."""
+    def test_invalid_open_strategy(self, netcdf_file):
+        """Test that unknown open strategies are rejected."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
-        with pytest.raises(ValueError, match="Unknown xarray_open_strategy"):
-            NetCDF4FileHandler(netcdf_file, {}, {}, xarray_open_strategy="magic")
-        with pytest.raises(ValueError, match="requires cache_handle=True"):
-            NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, xarray_open_strategy="file_handle")
+        with pytest.raises(ValueError, match="Unknown open_strategy"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy="magic")
+
+    @pytest.mark.parametrize(("cache_handle", "open_strategy", "exp_strategy"), [
+        (True, None, "file_handle"),
+        (True, "file_handle", "file_handle"),
+        (False, None, "per_group"),
+    ])
+    def test_cache_handle_deprecated(self, netcdf_file, cache_handle, open_strategy, exp_strategy):
+        """Test that cache_handle is deprecated and mapped to an open strategy."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        with pytest.warns(DeprecationWarning, match="cache_handle"):
+            file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=cache_handle,
+                                              open_strategy=open_strategy)
+        assert file_handler._open_strategy == exp_strategy
+        assert (file_handler.file_handle is not None) == (exp_strategy == "file_handle")
+
+    def test_cache_handle_conflicting_open_strategy(self, netcdf_file):
+        """Test that cache_handle can't be combined with an open strategy it doesn't map to."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        with pytest.warns(DeprecationWarning, match="cache_handle"), \
+                pytest.raises(ValueError, match="conflicts with open_strategy"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, open_strategy="shared_store")
+        with pytest.warns(DeprecationWarning, match="cache_handle"), \
+                pytest.raises(ValueError, match="conflicts with open_strategy"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=False, open_strategy="file_handle")
+
+    def test_file_handle_h5netcdf_maskandscale_raises(self, netcdf_file):
+        """Test that the file_handle strategy refuses to return unscaled data with h5netcdf."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        with pytest.raises(ValueError, match="can't apply auto_maskandscale=True"):
+            NetCDF4FileHandler(netcdf_file, {}, {}, engine="h5netcdf", open_strategy="file_handle",
+                               auto_maskandscale=True)
 
     def test_group_attrs_are_not_shared(self, netcdf_file):
         """Test that modifying a returned group does not affect later reads."""
