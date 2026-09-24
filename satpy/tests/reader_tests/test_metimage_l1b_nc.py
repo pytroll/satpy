@@ -28,8 +28,21 @@ NUM_LINES = NUM_SCANS * ROWS_PER_SCAN
 NUM_PIXELS = (NUM_TIE_POINTS_ACT - 1) * TIE_POINTS_FACTOR
 NUM_TIE_POINTS_ALT = NUM_SCANS * SCAN_ALT_TIE_POINTS
 
+COUNTS_FILL = np.uint16(8191)
+COUNTS_SCALE = np.float32(0.00235)
+COUNTS_OFFSET = np.float32(0.105)
 
-def _create_l1b_file(path, with_tie_points=True):
+
+def _counts_raw():
+    """Digital numbers stored in the file's scaled-integer channel."""
+    raw = (np.arange(NUM_LINES * NUM_PIXELS) * 7 % 4096).astype(np.uint16)
+    raw = raw.reshape(NUM_LINES, NUM_PIXELS)
+    raw[3, ::5] = COUNTS_FILL
+    return raw
+
+
+def _create_l1b_file(path, with_tie_points=True,
+                     solar_irradiance_name="band_averaged_solar_irradiance"):
     """Write a small METimage L1B file with realistic dimensions and on-disk chunking."""
     with Dataset(path, "w") as nc:
         nc.sensing_start_time_utc = "20170920173040.888"
@@ -47,7 +60,7 @@ def _create_l1b_file(path, with_tie_points=True):
         for name, dim, size in (("bt_conversion_a", "num_chan_thermal", 9),
                                 ("bt_conversion_b", "num_chan_thermal", 9),
                                 ("channel_cw_thermal", "num_chan_thermal", 9),
-                                ("band_averaged_solar_irradiance", "num_chan_solar", 11)):
+                                (solar_irradiance_name, "num_chan_solar", 11)):
             var = calibration.createVariable(name, np.float32, dimensions=(dim,))
             var[:] = np.arange(1, size + 1)
 
@@ -65,6 +78,16 @@ def _create_l1b_file(path, with_tie_points=True):
                                               dimensions=("num_lines", "num_pixels"),
                                               chunksizes=(1, NUM_PIXELS))
         radiance[:] = np.arange(NUM_LINES * NUM_PIXELS).reshape(NUM_LINES, NUM_PIXELS)
+        # Stored as scaled integers with a fill value, like the real products;
+        # used by the counts calibration tests.
+        counts = measurement.createVariable("vii_3740", np.uint16,
+                                            dimensions=("num_lines", "num_pixels"),
+                                            fill_value=COUNTS_FILL,
+                                            chunksizes=(1, NUM_PIXELS))
+        counts.scale_factor = COUNTS_SCALE
+        counts.add_offset = COUNTS_OFFSET
+        counts.set_auto_maskandscale(False)
+        counts[:] = _counts_raw()
         delta_lat = measurement.createVariable("delta_lat", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
                                                chunksizes=(1, NUM_PIXELS))
@@ -208,6 +231,46 @@ def test_reflectance_calibration(reader):
 
     expected_values = np.full((NUM_LINES, NUM_PIXELS), 104.71975512)
     np.testing.assert_allclose(calibrated_variable.values, expected_values)
+
+
+def test_counts_calibration_returns_stored_integers(reader):
+    """Test that the counts calibration recovers the on-disk digital numbers exactly."""
+    variable = reader["data/measurement_data/vii_3740"]
+
+    calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
+
+    assert calibrated_variable.dtype == np.uint16
+    np.testing.assert_array_equal(calibrated_variable.values, _counts_raw())
+
+
+def test_counts_calibration_restores_fill_values(reader):
+    """Test that pixels masked by _FillValue come back as the fill value, not zero."""
+    variable = reader["data/measurement_data/vii_3740"]
+
+    calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
+
+    assert (calibrated_variable.values[3, ::5] == COUNTS_FILL).all()
+
+
+def test_counts_calibration_of_unscaled_variable(reader):
+    """Test counts calibration of a variable stored without scaling or a fill value."""
+    variable = _make_variable()
+
+    calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
+
+    np.testing.assert_array_equal(calibrated_variable.values,
+                                  np.ones((NUM_LINES, NUM_PIXELS)))
+
+
+def test_capitalized_solar_irradiance_fallback(tmp_path):
+    """Test that pre-launch test files with a capital-B solar irradiance name still load."""
+    path = tmp_path / "metimage_l1b_cap_b.nc"
+    _create_l1b_file(path, solar_irradiance_name="Band_averaged_solar_irradiance")
+
+    handler = _make_handler(path)
+
+    np.testing.assert_array_equal(handler._integrated_solar_irradiance,
+                                  np.arange(1, 12, dtype=np.float32))
 
 
 # Row chunks the reader is expected to produce for the test file (600 rows of 72 float32 pixels,
