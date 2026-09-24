@@ -186,14 +186,14 @@ logger = logging.getLogger(__name__)
 class LINCFileHandler(NetCDF4FsspecFileHandler):
     """Base class used as parent for the concrete LI reader classes."""
 
-    def __init__(self, filename, filename_info, filetype_info, cache_handle=True):
+    def __init__(self, filename, filename_info, filetype_info, open_strategy="file_handle"):
         """Initialize LINCFileHandler."""
         super().__init__(filename, filename_info, filetype_info,
                          cache_var_size=10000,
-                         cache_handle=cache_handle
+                         open_strategy=open_strategy
                          )
 
-        # decode_times should be disabled for xr.open_dataset access (cache_handle=False):
+        # decode_times should be disabled for xr.open_dataset access (open strategies other than "file_handle"):
         # Note: the default dict assignment is need to avoid error when using the fake
         # netcdf4 file handler in mock unit tests:
         self._xarray_kwargs = getattr(self, "_xarray_kwargs", {})
