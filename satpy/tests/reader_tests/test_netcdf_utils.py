@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pytest
 
-from satpy.readers.core.netcdf import NetCDF4FileHandler, choose_accessor_from_engine
+from satpy.readers.core.netcdf import OPEN_STRATEGIES, NetCDF4FileHandler, choose_accessor_from_engine
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -95,6 +95,29 @@ def netcdf_file(tmp_path_factory):
             d.test_attr_int = 0
             d.test_attr_float = 1.2
     return filename
+
+
+@pytest.fixture(scope="module")
+def cf_netcdf_file(tmp_path_factory):
+    """Create a test NetCDF4 file with CF encoded variables (scaling, fill value, coordinates, times)."""
+    from netCDF4 import Dataset
+    filename = tmp_path_factory.mktemp("data") / "test_cf.nc"
+    with Dataset(filename, "w") as nc:
+        nc.createDimension("x", 4)
+        x = nc.createVariable("x", np.float32, ("x",))
+        x[:] = np.arange(4)
+        x.units = "m"
+        scaled = nc.createVariable("scaled", np.int16, ("x",), fill_value=-1)
+        scaled.scale_factor = np.float32(0.5)
+        scaled.add_offset = np.float32(10.)
+        scaled.units = "K"
+        scaled.coordinates = "x"
+        scaled[:] = np.ma.masked_array([1, 2, 3, 4], mask=[0, 0, 1, 0])
+        time = nc.createVariable("time", np.float64, ("x",))
+        time.units = "seconds since 2000-01-01"
+        time[:] = np.arange(4)
+    return filename
+
 
 class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
@@ -223,6 +246,45 @@ class TestNetCDF4FileHandler:
         h.__del__()
         assert not h.file_handle.isopen()
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize("auto_maskandscale", [False, True])
+    @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
+    def test_cached_variables_match_uncached(self, cf_netcdf_file, strategy, auto_maskandscale, engine):
+        """Test that variables cached with cache_var_size are read the same way as variables that aren't."""
+        import xarray as xr
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        if strategy == "file_handle" and auto_maskandscale and engine == "h5netcdf":
+            pytest.skip("h5netcdf can't mask and scale with the file_handle open strategy")
+        kwargs = {"open_strategy": strategy, "auto_maskandscale": auto_maskandscale, "engine": engine}
+        cached_handler = NetCDF4FileHandler(cf_netcdf_file, {}, {}, cache_var_size=1000, **kwargs)
+        uncached_handler = NetCDF4FileHandler(cf_netcdf_file, {}, {}, **kwargs)
+
+        for var_name in ("scaled", "time"):
+            assert var_name in cached_handler.cached_file_content
+            assert var_name not in uncached_handler.cached_file_content
+            cached = cached_handler[var_name]
+            uncached = uncached_handler[var_name]
+            assert cached.chunks is None
+            xr.testing.assert_identical(cached, uncached.compute())
+
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf", ["netcdf4", "h5netcdf"]])
+    def test_xarray_kwargs_split_between_store_and_open_dataset(self, cf_netcdf_file, engine):
+        """Test that xarray_kwargs are given to the backend store or xarray.open_dataset depending on the option."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        # phony_dims is an option of the h5netcdf backend store only
+        xarray_kwargs = {"phony_dims": "sort", "decode_times": False, "backend_kwargs": {"lock": False}}
+        file_handler = NetCDF4FileHandler(cf_netcdf_file, {}, {}, engine=engine, xarray_kwargs=xarray_kwargs)
+
+        assert file_handler._store_open_kwargs == {"phony_dims": "sort", "lock": False}
+        assert "phony_dims" not in file_handler._xarray_kwargs
+        assert "backend_kwargs" not in file_handler._xarray_kwargs
+        assert file_handler["time"].dtype == np.float64
+        # the given kwargs are not modified
+        assert xarray_kwargs == {"phony_dims": "sort", "decode_times": False, "backend_kwargs": {"lock": False}}
+
     def test_filenotfound(self):
         """Test that error is raised when file not found."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
@@ -290,8 +352,8 @@ class TestNetCDF4FileHandler:
         np.testing.assert_array_equal(data.values, expected)
         assert var_name in file_handler.cached_file_content
 
-    def test_file_opened_once_per_group(self, netcdf_file, monkeypatch):
-        """Test that reading many variables only opens each group once.
+    def test_file_opened_once(self, netcdf_file, monkeypatch):
+        """Test that reading many variables only opens the file once and decodes each group once.
 
         Opening (and closing) the file for every variable gives each returned
         lazy array its own entry in xarray's global file cache. Once that LRU
@@ -300,24 +362,34 @@ class TestNetCDF4FileHandler:
 
         """
         import xarray as xr
+        from xarray.backends import NetCDF4DataStore
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        store_opens = []
+        real_store_open = NetCDF4DataStore.open
+
+        def counting_store_open(*args, **kwargs):
+            store = real_store_open(*args, **kwargs)
+            store_opens.append(store)
+            return store
 
         groups = []
         real_open_dataset = xr.open_dataset
 
-        def counting_open_dataset(*args, **kwargs):
-            groups.append(kwargs.get("group"))
-            return real_open_dataset(*args, **kwargs)
+        def counting_open_dataset(store, **kwargs):
+            groups.append(store._group)
+            return real_open_dataset(store, **kwargs)
 
+        monkeypatch.setattr(NetCDF4DataStore, "open", counting_store_open)
         monkeypatch.setattr(xr, "open_dataset", counting_open_dataset)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
         for var in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "ds2_s"):
             for _ in range(3):
                 file_handler[var]
 
-        assert set(groups) == {None, "test_group"}
-        assert len(groups) == 2
+        assert len(store_opens) == 1
+        assert sorted(groups, key=str) == [None, "test_group"]
 
     def test_file_cache_does_not_grow_with_variables(self, netcdf_file):
         """Test that repeated variable access does not fill xarray's file cache."""
@@ -363,7 +435,6 @@ class TestNetCDF4FileHandler:
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     @pytest.mark.parametrize(("strategy", "exp_new_cache_entries"), [
-        ("per_group", 2),
         ("shared_store", 1),
         ("file_handle", 0),
     ])
@@ -400,7 +471,7 @@ class TestNetCDF4FileHandler:
     @pytest.mark.parametrize(("cache_handle", "open_strategy", "exp_strategy"), [
         (True, None, "file_handle"),
         (True, "file_handle", "file_handle"),
-        (False, None, "per_group"),
+        (False, None, "shared_store"),
     ])
     def test_cache_handle_deprecated(self, netcdf_file, cache_handle, open_strategy, exp_strategy):
         """Test that cache_handle is deprecated and mapped to an open strategy."""
@@ -462,18 +533,22 @@ class TestNetCDF4FsspecFileHandler:
             fh = NetCDF4FsspecFileHandler(fname, {}, {})
             assert fh.accessor.engine == "netcdf4"
 
-    def test_use_h5netcdf_for_file_not_accessible_locally(self):
+    @pytest.mark.parametrize(("open_strategy", "h5_opener"), [
+        ("shared_store", "xarray.backends.H5NetCDFStore.open"),
+        ("file_handle", "h5netcdf.File"),
+    ])
+    def test_use_h5netcdf_for_file_not_accessible_locally(self, open_strategy, h5_opener):
         """Test that h5netcdf is used for files that are not accesible locally."""
         from unittest.mock import patch
 
         fname = "s3://bucket/object.nc"
 
-        with patch("h5netcdf.File") as h5_file:
+        with patch(h5_opener) as h5_open:
             with patch("satpy.readers.core.netcdf.open_file_or_filename"):
                 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
-                fh = NetCDF4FsspecFileHandler(fname, {}, {})
-                h5_file.assert_called()
+                fh = NetCDF4FsspecFileHandler(fname, {}, {}, open_strategy=open_strategy)
+                h5_open.assert_called()
                 assert fh.accessor.engine == "h5netcdf"
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
