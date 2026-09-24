@@ -456,7 +456,7 @@ class NetCDF4FileContent(Mapping):
       attributes, ``"/attr/attr_name"`` (or ``"attr/attr_name"``) for global
       attributes and ``"/attrs"`` for a dictionary of all global attributes.
     - ``"group/dimension/dim_name"`` and ``"/dimension/dim_name"`` for the size
-      of a dimension.
+      of a dimension (the current size for an unlimited dimension).
 
     A value is only read from the file when it is requested. Everything but
     the group and variable objects is remembered after that; those objects
@@ -570,7 +570,7 @@ class NetCDF4FileContent(Mapping):
     def _get_dimension(obj, name, key):
         if name not in obj.dimensions:
             raise KeyError(key)
-        return len(obj.dimensions[name])
+        return obj.dimensions[name].size
 
     def _walk_file(self):
         """Walk through the whole file, yielding every key, its value and if the value can be remembered."""
@@ -607,7 +607,7 @@ class NetCDF4FileContent(Mapping):
     @staticmethod
     def _walk_dimensions(name, group):
         for dim_name, dim in group.dimensions.items():
-            yield f"{name}/dimension/{dim_name}", len(dim), True
+            yield f"{name}/dimension/{dim_name}", dim.size, True
 
     def _walk_listed_keys(self):
         """Yield the listed keys that exist in the file, with the properties and attributes of listed variables."""
