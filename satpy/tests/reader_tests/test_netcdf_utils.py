@@ -551,6 +551,20 @@ def nested_netcdf_file(tmp_path_factory):
     return filename
 
 
+@pytest.fixture(scope="module")
+def unlimited_netcdf_file(tmp_path_factory):
+    """Create a test NetCDF4 file with unlimited dimensions in the root group and in a group."""
+    from netCDF4 import Dataset
+    filename = tmp_path_factory.mktemp("data") / "test_unlimited.nc"
+    with Dataset(filename, "w") as nc:
+        nc.createDimension("root_dim", None)
+        group = nc.createGroup("group")
+        group.createDimension("group_dim", None)
+        var = group.createVariable("var", np.float32, ("root_dim", "group_dim"))
+        var[:] = np.arange(3 * 5).reshape((3, 5))
+    return filename
+
+
 @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
 @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
 class TestNetCDF4FileContent:
@@ -636,6 +650,19 @@ class TestNetCDF4FileContent:
             "/attrs",
             "/dimension/root_dim",
         ]
+
+    def test_unlimited_dimensions(self, unlimited_netcdf_file, strategy, engine):
+        """Test that the size of unlimited dimensions is their current size."""
+        file_handler = NetCDF4FileHandler(unlimited_netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
+        file_content = file_handler.file_content
+
+        assert file_content["/dimension/root_dim"] == 3
+        assert file_content["group/dimension/group_dim"] == 5
+        assert file_content["group/var/shape"] == (3, 5)
+        # the sizes found by walking through the file are the same
+        file_handler = NetCDF4FileHandler(unlimited_netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
+        dimensions = {key: val for key, val in file_handler.file_content.items() if "/dimension/" in key}
+        assert dimensions == {"/dimension/root_dim": 3, "group/dimension/group_dim": 5}
 
     def test_file_not_walked_for_lookups(self, netcdf_file, strategy, engine):
         """Test that looking keys up doesn't walk through the whole file."""
