@@ -225,60 +225,25 @@ CHANS_AF = fill_chans_af()
 # Filehandlers preparation ---------------------------
 # ----------------------------------------------------
 
-class FakeH5Variable:
-    """Class for faking h5netcdf.Variable class."""
-
-    def __init__(self, data, dims=(), attrs=None):
-        """Initialize the class."""
-        self.dimensions = dims
-        self.name = "name"
-        self.attrs = attrs if attrs else {}
-        self.dtype = None
-        self._data = data
-        self._set_meta()
-
-    def _set_meta(self):
-        if hasattr(self._data, "dtype"):
-            self.dtype = self._data.dtype
-
-    def __array__(self):
-        """Get the array data."""
-        return self._data.__array__()
-
-    def __getitem__(self, key):
-        """Get item for the key."""
-        return self._data[key]
-
-    @property
-    def shape(self):
-        """Get the shape."""
-        return self._data.shape
-
-    @property
-    def ndim(self):
-        """Get the number of dimensions."""
-        return self._data.ndim
-
-
 def _get_test_calib_for_channel_ir(data, meas_path):
     from pyspectral.blackbody import C_SPEED as c
     from pyspectral.blackbody import H_PLANCK as h
     from pyspectral.blackbody import K_BOLTZMANN as k
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable(
-        da.array(955.0, dtype=np.float32))
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable(da.array(1.0, dtype=np.float32))
-    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable(da.array(0.4, dtype=np.float32))
-    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable(
-        da.array(1e11 * 2 * h * c ** 2, dtype=np.float32))
-    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable(
-        da.array(1e2 * h * c / k, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xr.DataArray(
+        np.array(955.0, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_a"] = xr.DataArray(np.array(1.0, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_coefficient_b"] = xr.DataArray(np.array(0.4, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c1"] = xr.DataArray(
+        np.array(1e11 * 2 * h * c ** 2, dtype=np.float32))
+    data[meas_path + "/radiance_to_bt_conversion_constant_c2"] = xr.DataArray(
+        np.array(1e2 * h * c / k, dtype=np.float32))
     return data
 
 
 def _get_test_calib_for_channel_vis(data, meas):
-    data["state/celestial/earth_sun_distance"] = FakeH5Variable(
+    data["state/celestial/earth_sun_distance"] = xr.DataArray(
         da.repeat(da.array([149597870.7]), 6000), dims="index")
-    data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable(da.array(50.0, dtype=np.float32))
+    data[meas + "/channel_effective_solar_irradiance"] = xr.DataArray(np.array(50.0, dtype=np.float32))
     return data
 
 
@@ -306,7 +271,7 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
         fire_line = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024) * 5000
         data_without_fires = da.full((n_rows_cols[0] - 2, n_rows_cols[1]), 5, dtype="uint16", chunks=1024)
         neg_rad = da.ones((1, n_rows_cols[1]), dtype="uint16", chunks=1024)
-        d = FakeH5Variable(
+        d = xr.DataArray(
             da.concatenate([fire_line, data_without_fires, neg_rad], axis=0),
             dims=("y", "x"),
             attrs={
@@ -317,7 +282,7 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
             }
         )
     else:
-        d = FakeH5Variable(
+        d = xr.DataArray(
             da.full(n_rows_cols, 5, dtype="uint16", chunks=1024),
             dims=("y", "x"),
             attrs={
@@ -334,10 +299,10 @@ def _get_test_image_data_for_channel(data, ch_str, n_rows_cols):
 
 def _get_test_segment_position_for_channel(data, ch_str, n_rows_cols):
     pos = "data/{:s}/measured/{:s}_position_{:s}"
-    data[pos.format(ch_str, "start", "row")] = FakeH5Variable(da.array(1))
-    data[pos.format(ch_str, "start", "column")] = FakeH5Variable(da.array(1))
-    data[pos.format(ch_str, "end", "row")] = FakeH5Variable(da.array(n_rows_cols[0]))
-    data[pos.format(ch_str, "end", "column")] = FakeH5Variable(da.array(n_rows_cols[1]))
+    data[pos.format(ch_str, "start", "row")] = xr.DataArray(np.array(1))
+    data[pos.format(ch_str, "start", "column")] = xr.DataArray(np.array(1))
+    data[pos.format(ch_str, "end", "row")] = xr.DataArray(np.array(n_rows_cols[0]))
+    data[pos.format(ch_str, "end", "column")] = xr.DataArray(np.array(n_rows_cols[1]))
 
 
 def _get_test_index_map_for_channel(data, ch_str, n_rows_cols):
@@ -444,7 +409,6 @@ def _get_test_content_for_channel(ch_str, grid_type):
 class FakeFCIFileHandlerBase(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
-    cached_file_content: Dict[str, xr.DataArray] = {}
     # overwritten by FDHSI and HRFI File Handlers
     chan_patterns: Dict[str, Dict[str, Union[List[int], str]]] = {}
 
@@ -490,7 +454,7 @@ class FakeFCIFileHandlerFDHSIIQTI(FakeFCIFileHandlerFDHSI):
 
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
-        data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
+        data.update({"state/celestial/earth_sun_distance": xr.DataArray(
             da.repeat(da.array([np.nan]), 6000), dims="index")})
         return data
 
@@ -530,7 +494,7 @@ class FakeFCIFileHandlerHRFIIQTI(FakeFCIFileHandlerHRFI):
 
     def _get_test_content_all_channels(self):
         data = super()._get_test_content_all_channels()
-        data.update({"state/celestial/earth_sun_distance": FakeH5Variable(
+        data.update({"state/celestial/earth_sun_distance": xr.DataArray(
             da.repeat(da.array([np.nan]), 6000), dims="x")})
         return data
 
@@ -557,16 +521,7 @@ def _get_reader_with_filehandlers(filenames, reader_configs, **reader_kwargs):
     reader = load_reader(reader_configs)
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
-    clear_cache(reader)
     return reader
-
-
-def clear_cache(reader):
-    """Clear the cache for file handlres in reader."""
-    for key in reader.file_handlers:
-        fhs = reader.file_handlers[key]
-        for fh in fhs:
-            fh.cached_file_content = {}
 
 
 def get_list_channel_calibration(calibration):

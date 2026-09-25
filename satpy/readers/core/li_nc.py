@@ -194,11 +194,8 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
                          )
 
         # decode_times should be disabled for xr.open_dataset access (open strategies other than "file_handle"):
-        # Note: the default dict assignment is need to avoid error when using the fake
-        # netcdf4 file handler in mock unit tests:
-        self._xarray_kwargs = getattr(self, "_xarray_kwargs", {})
-        self._xarray_kwargs["decode_times"] = False
-        self._xarray_kwargs["mask_and_scale"] = False
+        self._open_dataset_kwargs["decode_times"] = False
+        self._open_dataset_kwargs["mask_and_scale"] = False
 
         # Processing level that should be set by derived classes.
         self.processing_level = filetype_info.get("processing_level", "L0")
