@@ -158,6 +158,11 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
             ),
         ]
 
+        # the readers created in setUp hold the file open for reading
+        self.reader.close()
+        self.reader_2.close()
+        self.reader_3.close()
+
         for start_str, expected_start, end_str, expected_end in time_cases:
             with Dataset(self.test_file_name, "r+") as nc:
                 nc.sensing_start_time_utc = start_str
@@ -171,9 +176,15 @@ class TestMETimageNCBaseFileHandler(unittest.TestCase):
 
             assert reader.start_time == expected_start
             assert reader.end_time == expected_end
+            reader.close()
 
     def test_bad_start_end_time(self):
         """Test parsing a bad datetime format."""
+        # the readers created in setUp hold the file open for reading
+        self.reader.close()
+        self.reader_2.close()
+        self.reader_3.close()
+
         with Dataset(self.test_file_name, "r+") as nc:
             nc.sensing_start_time_utc = "201709201730"
             nc.sensing_end_time_utc = "201709201740"
