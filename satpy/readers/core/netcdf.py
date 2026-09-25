@@ -4,7 +4,6 @@ import inspect
 import logging
 import os
 import warnings
-import weakref
 from collections.abc import Mapping
 from contextlib import suppress
 
@@ -95,11 +94,12 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     By default the file is opened when the file handler is created, so that
     an unreadable file fails right away. With ``defer_open=True`` the file
-    is only opened when something is first read from it (including the
-    ``accessor``), so opening errors are raised then instead. This saves
-    opening files that are never read, but is only useful for readers whose
-    ``start_time``, ``end_time`` and ``available_datasets`` don't read from
-    the file, as those are needed when the ``Scene`` is created.
+    is only opened when something is first read from it, or when the
+    ``accessor`` is needed to choose between several engines, so opening
+    errors are raised then instead. This saves opening files that are never
+    read, but is only useful for readers whose ``start_time``, ``end_time``
+    and ``available_datasets`` don't read from the file, as those are needed
+    when the ``Scene`` is created.
 
     Args:
         filename (str): File to read.
@@ -118,16 +118,8 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     """
 
-    file_handle = None
-    _accessor = None
-    _open_strategy = DEFAULT_OPEN_STRATEGY
-    _cache_var_size = 0
-    # ``xarray.Dataset`` objects held open for the lifetime of this file
-    # handler, keyed by group name. See ``_open_xr_dataset``.
-    _open_datasets = None
-    # Backend store the datasets above are derived from for the
-    # "shared_store" open strategy.
-    _root_store = None
+    # for ``close`` when ``__init__`` fails before creating the opener
+    _opener = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
@@ -135,108 +127,30 @@ class NetCDF4FileHandler(BaseFileHandler):
                  open_strategy=None, defer_open=False):
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info)
-        self.cached_file_content = {}
         self.engine = engine
-        self._open_strategy = _resolve_open_strategy(open_strategy, cache_handle)
-        self._auto_maskandscale = auto_maskandscale
-        self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
         self._cache_var_size = cache_var_size
-        self.file_content = NetCDF4FileContent(_weak_method_caller(self._get_accessor),
-                                               _weak_method_caller(self._get_metadata_root),
-                                               listed_keys=self._get_listed_keys(filetype_info))
+        # Variables read into memory, see ``cache_var_size`` and ``get_and_cache_npxr``.
+        self.cached_variables = {}
+        store_open_kwargs, self._open_dataset_kwargs = _split_xarray_kwargs(xarray_kwargs, auto_maskandscale)
+        open_strategy = _resolve_open_strategy(open_strategy, cache_handle)
+        opener_cls = _FileHandleOpener if open_strategy == "file_handle" else _SharedStoreOpener
+        self._opener = opener_cls(filename, engine, store_open_kwargs, auto_maskandscale)
+        # The file content references the opener, not this file handler, so
+        # deleting the file handler closes the file right away.
+        self.file_content = NetCDF4FileContent(self._opener,
+                                               listed_keys=_get_required_variable_names(filetype_info))
         if not defer_open:
-            self._open()
+            self._opener.open()
 
     @property
     def accessor(self):
-        """Get the accessor for the engine of the file, opening the file if it wasn't yet."""
-        if self._accessor is None:
-            self._open()
-        return self._accessor
+        """Get the accessor for the engine of the file.
 
-    @accessor.setter
-    def accessor(self, accessor):
-        self._accessor = accessor
-
-    def _get_accessor(self):
-        return self.accessor
-
-    def _open(self):
-        """Open the file following ``open_strategy``, and choose the accessor for the engine that could open it."""
-        try:
-            accessor, opened_file = self._open_file()
-        except IOError:
-            LOG.exception(
-                "Failed reading file %s. Possibly corrupted file", self.filename)
-            raise
-        if self._open_strategy == "file_handle":
-            self._check_file_handle_can_maskandscale(opened_file, accessor)
-            self._set_file_handle_auto_maskandscale(opened_file, self._auto_maskandscale)
-            self.file_handle = opened_file
-        else:
-            self._root_store = opened_file
-        self._accessor = accessor
-
-    def _open_file(self):
-        """Open the file following ``open_strategy``.
-
-        Returns:
-            The accessor for the engine that could open the file and the opened
-            file: the netCDF4/h5netcdf file handle for the "file_handle" open
-            strategy, the xarray backend store of the whole file otherwise.
+        With several engines to try, this opens the file (if it isn't yet) to
+        choose one of them.
 
         """
-        if self._open_strategy == "file_handle":
-            return self.get_accessor_and_filehandle()
-
-        def open_with_engine(engine):
-            accessor = choose_accessor_from_engine(engine)
-            return accessor, _open_root_store(self.filename, engine, self._store_open_kwargs)
-
-        if isinstance(self.engine, str):
-            return open_with_engine(self.engine)
-        return _open_with_engines(self.engine, open_with_engine)
-
-    def get_accessor_and_filehandle(self):
-        """Choose the accessor based on the engine, and return in along with the file handle."""
-        if not isinstance(self.engine, str):
-            return get_accessor_and_filehandle_from_engines(self.filename, *self.engine)
-        return get_accessor_and_filehandle_from_engine(self.filename, self.engine)
-
-    def _check_file_handle_can_maskandscale(self, file_handle, accessor):
-        """Refuse reading unscaled data with the "file_handle" strategy and an engine that can't mask and scale."""
-        if self._auto_maskandscale and not hasattr(file_handle, "set_auto_maskandscale"):
-            file_handle.close()
-            raise ValueError(f"open_strategy='file_handle' can't apply auto_maskandscale=True with the "
-                             f"{accessor.engine} engine. Use another open_strategy or engine.")
-
-    @staticmethod
-    def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
-        if hasattr(file_handle, "set_auto_maskandscale"):
-            file_handle.set_auto_maskandscale(auto_maskandscale)
-
-    def _set_xarray_kwargs(self, xarray_kwargs, auto_maskandscale):
-        """Split ``xarray_kwargs`` in options for opening the backend store and for ``xarray.open_dataset``."""
-        self._store_open_kwargs, self._xarray_kwargs = _split_xarray_kwargs(xarray_kwargs or {})
-        self._xarray_kwargs.setdefault("chunks", CHUNK_SIZE)
-        self._xarray_kwargs.setdefault("mask_and_scale", auto_maskandscale)
-
-    def _get_listed_keys(self, filetype_info):
-        """Get the keys that iterating over ``file_content`` is limited to, if any."""
-        listed_variables = filetype_info.get("required_netcdf_variables")
-        if not listed_variables:
-            return None
-        return self._get_required_variable_names(listed_variables, filetype_info.get("variable_name_replacements"))
-
-    @staticmethod
-    def _get_required_variable_names(listed_variables, variable_name_replacements):
-        variable_names = []
-        for var in listed_variables:
-            if variable_name_replacements and "{" in var:
-                _compose_replacement_names(variable_name_replacements, var, variable_names)
-            else:
-                variable_names.append(var)
-        return variable_names
+        return self._opener.accessor
 
     def close(self):
         """Close every file object this file handler is holding open.
@@ -245,55 +159,25 @@ class NetCDF4FileHandler(BaseFileHandler):
         to release the file before then, for example to write to it.
 
         """
-        if self.file_handle is not None:
-            with suppress(RuntimeError):
-                self.file_handle.close()
-        self._close_open_datasets()
+        if self._opener is not None:
+            self._opener.close()
 
     def __del__(self):
         """Delete the file handler."""
         self.close()
 
-    def _close_open_datasets(self):
-        """Close the datasets held open by ``_open_xr_dataset`` and what they were derived from."""
-        for nc in (self._open_datasets or {}).values():
-            with suppress(RuntimeError):
-                nc.close()
-        if self._open_datasets:
-            self._open_datasets.clear()
-        if self._root_store is not None:
-            with suppress(RuntimeError):
-                self._root_store.close()
-        self._root_store = None
-
     def __getitem__(self, key):
         """Get item for given key."""
+        if key in self.cached_variables:
+            return self.cached_variables[key]
         val = self.file_content[key]
         if self.accessor.is_variable(val):
-            return self._get_variable(key, val)
+            if self._is_small_variable(val):
+                return self._cache_variable(key)
+            return self._opener.read_variable(key, self._open_dataset_kwargs)
         if self.accessor.is_group(val):
-            return self._get_group(key, val)
+            return self._opener.read_group(key, self._open_dataset_kwargs)
         return val
-
-    def _get_variable(self, key, val):
-        """Get a variable from the netcdf file."""
-        if key in self.cached_file_content:
-            return self.cached_file_content[key]
-        if self._is_small_variable(val):
-            return self._cache_variable(key, val)
-        return self._read_variable(key)
-
-    def _read_variable(self, key):
-        """Read variable ``key`` as a (lazy) DataArray following ``open_strategy``."""
-        # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
-        parts = key.rsplit("/", 1)
-        if len(parts) == 2:
-            group, key = parts
-        else:
-            group = None
-        if self._open_strategy == "file_handle":
-            return self._get_var_from_filehandle(group, key)
-        return self._get_var_from_xr(group, key)
 
     def _is_small_variable(self, var):
         """Tell if variable object ``var`` is smaller than ``cache_var_size``."""
@@ -301,100 +185,11 @@ class NetCDF4FileHandler(BaseFileHandler):
                 and isinstance(var.dtype, np.dtype)  # vlen may be str
                 and np.prod(var.shape) * var.dtype.itemsize < self._cache_var_size)
 
-    def _cache_variable(self, key, var):
-        """Read variable ``key`` (object ``var``) into memory and remember it."""
-        if self._open_strategy == "file_handle":
-            val = get_data_as_xarray(var)
-        else:
-            # The variable object belongs to the file handle of the xarray
-            # backend store, which may have been closed (and reopened) by
-            # xarray's file cache since and has masking and scaling disabled
-            # by xarray. Read the data through xarray instead.
-            val = self._read_variable(key).load()
-        self.cached_file_content[key] = val
+    def _cache_variable(self, key):
+        """Read variable ``key`` into memory and keep it for the next reads."""
+        val = self._opener.load_variable(key, self._open_dataset_kwargs)
+        self.cached_variables[key] = val
         return val
-
-    def _open_xr_dataset(self, group):
-        """Get the dataset for ``group``, opening and remembering it if needed.
-
-        The dataset is held open for the lifetime of this file handler. Opening
-        and closing it once per variable instead would give every returned lazy
-        array its own ``CachingFileManager``, and every manager its own entry in
-        xarray's global file cache. That cache is an LRU of ``file_cache_maxsize``
-        entries (128 by default), so reading more variables than that starts
-        evicting entries and closing netCDF4 handles that sibling arrays of the
-        same file are still reading through, which segfaults in libhdf5.
-
-        """
-        if self._open_datasets is None:
-            self._open_datasets = {}
-        if group not in self._open_datasets:
-            self._open_datasets[group] = self._open_xr_dataset_for_group(group)
-        return self._open_datasets[group]
-
-    def _open_xr_dataset_for_group(self, group):
-        """Open the dataset for ``group`` from the backend store of the whole file.
-
-        Child stores share the file manager (and file cache slot) of the root
-        store, so the file is only opened once however many groups are read.
-
-        """
-        root_store = self._get_root_store()
-        store = root_store.get_child_store(group) if group else root_store
-        return xr.open_dataset(store, **self._xarray_kwargs)
-
-    def _get_root_store(self):
-        """Get the xarray backend store of the whole file.
-
-        It is reopened after ``close`` or, for the "file_handle" open strategy,
-        opened on the first access.
-
-        """
-        if self._root_store is None:
-            self._root_store = _open_root_store(self.filename, self.accessor.engine, self._store_open_kwargs)
-        return self._root_store
-
-    def _get_metadata_root(self):
-        """Get the (raw) root group of the file that ``file_content`` reads from, opening the file if needed."""
-        if self._accessor is None:
-            self._open()
-        if self._open_strategy == "file_handle":
-            return self.file_handle
-        # xarray reopens the file if its file cache closed it in the meantime
-        return self._get_root_store().ds
-
-    def _get_group(self, key, val):
-        """Get a group from the netcdf file."""
-        # Full groups are conveniently read with xr even if file_handle is available
-        # Copied so callers can modify metadata without touching the shared dataset.
-        return self._open_xr_dataset(key).copy()
-
-    def _get_var_from_xr(self, group, key):
-        nc = self._open_xr_dataset(group)
-        val = nc[key]
-        # Even though `chunks` is specified in the kwargs, xarray
-        # uses dask.arrays only for data variables that have at least
-        # one dimension; for zero-dimensional data variables (scalar),
-        # it uses its own lazy loading for scalars.  Loading them now keeps
-        # them usable once this file handler and its datasets are gone.
-        if not val.chunks:
-            val.load()
-        # Copied so callers can modify metadata without touching the shared dataset.
-        return val.copy(deep=False)
-
-    def _get_var_from_filehandle(self, group, key):
-        # Not getting coordinates as this is more work, therefore more
-        # overhead, and those are not used downstream.
-        if group is None:
-            g = self.file_handle
-        else:
-            g = self.file_handle[group]
-        v = g[key]
-        attrs = self.accessor.get_object_attrs(v)
-        x = xr.DataArray(
-                da.from_array(v), dims=v.dimensions, attrs=attrs,
-                name=v.name)
-        return x
 
     def __contains__(self, item):
         """Get item from file content."""
@@ -409,27 +204,13 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def get_and_cache_npxr(self, var_name):
         """Get and cache variable as DataArray[numpy]."""
-        if var_name in self.cached_file_content:
-            return self.cached_file_content[var_name]
-        v = self.file_content[var_name]
-        if self.accessor.is_variable(v):
-            return self._cache_variable(var_name, v)
-        if isinstance(v, xr.DataArray):
-            val = v
-        else:
-            try:
-                val = get_data_as_xarray(v)
-            except AttributeError:
-                # Handle strings
-                val = v
-        self.cached_file_content[var_name] = val
-        return self.cached_file_content[var_name]
+        if var_name in self.cached_variables:
+            return self.cached_variables[var_name]
+        val = self.file_content[var_name]
+        if self.accessor.is_variable(val):
+            return self._cache_variable(var_name)
+        return val
 
-    def _get_attr(self, obj, key):
-        return self.accessor.get_attr(obj, key)
-
-    def _get_object_attrs(self, obj):
-        return self.accessor.get_object_attrs(obj)
 
 def _resolve_open_strategy(strategy, cache_handle):
     if cache_handle is not None:
@@ -451,22 +232,257 @@ def _resolve_open_strategy(strategy, cache_handle):
     return strategy
 
 
-def _weak_method_caller(method):
-    """Get a function calling the bound ``method`` that doesn't keep the object of the method alive.
+def _split_xarray_kwargs(xarray_kwargs, auto_maskandscale):
+    """Split ``xarray_kwargs`` in options for opening the backend store and options for ``xarray.open_dataset``.
 
-    Referencing the file handler itself from its ``file_content`` would be a
-    reference cycle, which delays closing the file until the garbage
-    collector runs instead of when the file handler is deleted.
+    Options of the backend store of any engine are used when opening the file,
+    as the engine may not be known yet, as well as those in ``backend_kwargs``.
+    The options for ``xarray.open_dataset`` default to chunks of ``CHUNK_SIZE``
+    and to masking and scaling following ``auto_maskandscale``.
 
     """
-    weak_method = weakref.WeakMethod(method)
+    xarray_kwargs = xarray_kwargs or {}
+    store_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
+    store_open_kwargs = dict(xarray_kwargs.get("backend_kwargs") or {})
+    open_dataset_kwargs = {"chunks": CHUNK_SIZE, "mask_and_scale": auto_maskandscale}
+    for key, val in xarray_kwargs.items():
+        if key in store_params:
+            store_open_kwargs[key] = val
+        elif key not in ("engine", "backend_kwargs"):
+            open_dataset_kwargs[key] = val
+    return store_open_kwargs, open_dataset_kwargs
 
-    def _call():
-        method = weak_method()
-        if method is None:
-            raise ReferenceError("The file handler of this file content doesn't exist anymore.")
-        return method()
-    return _call
+
+def _get_required_variable_names(filetype_info):
+    """Get the ``required_netcdf_variables`` of the file type with their names composed, or None if there are none."""
+    listed_variables = filetype_info.get("required_netcdf_variables")
+    if not listed_variables:
+        return None
+    variable_name_replacements = filetype_info.get("variable_name_replacements")
+    variable_names = []
+    for var in listed_variables:
+        if variable_name_replacements and "{" in var:
+            _compose_replacement_names(variable_name_replacements, var, variable_names)
+        else:
+            variable_names.append(var)
+    return variable_names
+
+
+def _compose_replacement_names(variable_name_replacements, var, variable_names):
+    for key in variable_name_replacements:
+        vals = variable_name_replacements[key]
+        for val in vals:
+            if key in var:
+                variable_names.append(var.format(**{key: val}))
+
+
+class _NetCDF4Opener:
+    """Open a netCDF file for one file handler, read from it and own everything opened from it.
+
+    Subclasses implement the open strategies of the file handler: what is
+    opened, what the metadata is read from and how variables are read. The
+    file handler and its ``file_content`` both use this object, which doesn't
+    reference either of them.
+
+    The accessor of a single engine is known from the start. Of several
+    engines, the first one that opens the file is chosen and used from then on.
+
+    """
+
+    def __init__(self, filename, engine, store_open_kwargs, auto_maskandscale):
+        """Initialize the opener without opening anything."""
+        self.filename = filename
+        self._engine = engine
+        self._store_open_kwargs = store_open_kwargs
+        self._auto_maskandscale = auto_maskandscale
+        self._accessor = choose_accessor_from_engine(engine) if isinstance(engine, str) else None
+        self.file_handle = None
+        self._root_store = None
+        # ``xarray.Dataset`` objects held open until ``close``, keyed by group name. See ``_get_dataset``.
+        self._datasets = {}
+
+    @property
+    def accessor(self):
+        """Get the accessor for the engine of the file, opening the file first to choose between several engines."""
+        if self._accessor is None:
+            self.open()
+        return self._accessor
+
+    def open(self):
+        """Open the file if it isn't open."""
+        self.get_metadata_root()
+
+    def get_metadata_root(self):
+        """Get the raw netCDF4/h5netcdf root group that metadata is read from, opening the file if needed."""
+        raise NotImplementedError
+
+    def read_variable(self, key, open_dataset_kwargs):
+        """Read variable ``key`` as a DataArray of a dask array."""
+        raise NotImplementedError
+
+    def load_variable(self, key, open_dataset_kwargs):
+        """Read variable ``key`` into memory as a DataArray."""
+        raise NotImplementedError
+
+    def read_group(self, key, open_dataset_kwargs):
+        """Read group ``key`` as a Dataset of dask arrays with xarray, whatever the open strategy."""
+        # Copied so callers can modify metadata without touching the shared dataset.
+        return self._get_dataset(key, open_dataset_kwargs).copy()
+
+    def _open_with_engine(self, open_func):
+        """Return ``open_func(accessor)`` with the accessor for the engine of the file.
+
+        If the engine isn't known yet, the engines are tried in turn and the
+        first one that works is chosen.
+
+        """
+        if self._accessor is not None:
+            try:
+                return open_func(self._accessor)
+            except IOError:
+                LOG.exception("Failed reading file %s. Possibly corrupted file", self.filename)
+                raise
+
+        def open_and_choose_engine(engine):
+            accessor = choose_accessor_from_engine(engine)
+            opened = open_func(accessor)
+            self._accessor = accessor
+            return opened
+
+        return _open_with_engines(self._engine, open_and_choose_engine)
+
+    def _get_root_store(self):
+        """Get the xarray backend store of the whole file, (re)opening it if needed."""
+        if self._root_store is None:
+            self._root_store = self._open_with_engine(self._open_root_store)
+        return self._root_store
+
+    def _open_root_store(self, accessor):
+        """Open the xarray backend store of the whole file with the engine of ``accessor``."""
+        engine = accessor.engine
+        # skip the options that only the backend store of the other engine has
+        all_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
+        own_params = _get_store_open_params(engine)
+        open_kwargs = {key: val for key, val in self._store_open_kwargs.items()
+                       if key in own_params or key not in all_params}
+        filename = open_file_or_filename(self.filename) if engine == "h5netcdf" else self.filename
+        if isinstance(filename, os.PathLike):
+            # xarray only uses its (cached) file manager for string paths
+            filename = os.fspath(filename)
+        return _get_store_class(engine).open(filename, mode="r", **open_kwargs)
+
+    def _get_dataset(self, group, open_dataset_kwargs):
+        """Get the dataset for ``group``, opening and remembering it if needed.
+
+        The dataset is held open until ``close``. Opening and closing it once
+        per variable instead would give every returned lazy array its own
+        ``CachingFileManager``, and every manager its own entry in xarray's
+        global file cache. That cache is an LRU of ``file_cache_maxsize``
+        entries (128 by default), so reading more variables than that starts
+        evicting entries and closing netCDF4 handles that sibling arrays of the
+        same file are still reading through, which segfaults in libhdf5.
+
+        Child stores share the file manager (and file cache slot) of the root
+        store, so the file is only opened once however many groups are read.
+
+        """
+        if group not in self._datasets:
+            root_store = self._get_root_store()
+            store = root_store.get_child_store(group) if group else root_store
+            self._datasets[group] = xr.open_dataset(store, **open_dataset_kwargs)
+        return self._datasets[group]
+
+    def close(self):
+        """Close everything opened from the file. What can be reopened is reopened on the next access."""
+        for nc in self._datasets.values():
+            with suppress(RuntimeError):
+                nc.close()
+        self._datasets.clear()
+        if self._root_store is not None:
+            with suppress(RuntimeError):
+                self._root_store.close()
+        self._root_store = None
+        if self.file_handle is not None:
+            with suppress(RuntimeError):
+                self.file_handle.close()
+
+
+class _SharedStoreOpener(_NetCDF4Opener):
+    """Opener for the "shared_store" open strategy: one xarray backend store for metadata and data.
+
+    Variables are always read with xarray, never from the raw variable objects
+    of the metadata: xarray disables masking and scaling on them, and its file
+    cache may close and reopen the file handle they belong to.
+
+    """
+
+    def get_metadata_root(self):
+        """Get the raw root group of the backend store, (re)opening the store if needed."""
+        return self._get_root_store().ds
+
+    def read_variable(self, key, open_dataset_kwargs):
+        """Read variable ``key`` from the dataset of its group."""
+        group, _, name = key.rpartition("/")
+        val = self._get_dataset(group, open_dataset_kwargs)[name]
+        # Even though `chunks` is specified in the kwargs, xarray
+        # uses dask.arrays only for data variables that have at least
+        # one dimension; for zero-dimensional data variables (scalar),
+        # it uses its own lazy loading for scalars.  Loading them now keeps
+        # them usable once the file handler and its datasets are gone.
+        if not val.chunks:
+            val.load()
+        # Copied so callers can modify metadata without touching the shared dataset.
+        return val.copy(deep=False)
+
+    def load_variable(self, key, open_dataset_kwargs):
+        """Read variable ``key`` from the dataset of its group into memory."""
+        return self.read_variable(key, open_dataset_kwargs).load()
+
+
+class _FileHandleOpener(_NetCDF4Opener):
+    """Opener for the "file_handle" open strategy: a netCDF4/h5netcdf file handle kept open.
+
+    Variables are read from the file handle without xarray decoding them. The
+    file handle isn't reopened once closed. Groups are still read with xarray,
+    through a backend store which is opened when a group is first read.
+
+    """
+
+    def get_metadata_root(self):
+        """Get the file handle, opening the file if it wasn't yet."""
+        if self.file_handle is None:
+            self.file_handle = self._open_with_engine(self._open_file_handle)
+        return self.file_handle
+
+    def _open_file_handle(self, accessor):
+        file_handle = accessor.create_file_handle(self.filename)
+        if hasattr(file_handle, "set_auto_maskandscale"):
+            file_handle.set_auto_maskandscale(self._auto_maskandscale)
+        elif self._auto_maskandscale:
+            file_handle.close()
+            raise ValueError(f"open_strategy='file_handle' can't apply auto_maskandscale=True with the "
+                             f"{accessor.engine} engine. Use another open_strategy or engine.")
+        return file_handle
+
+    def read_variable(self, key, open_dataset_kwargs):
+        """Wrap variable ``key`` of the file handle in a dask array."""
+        return self._to_dataarray(key, da.from_array)
+
+    def load_variable(self, key, open_dataset_kwargs):
+        """Read variable ``key`` of the file handle into memory.
+
+        This is about ten times as fast for a small variable as computing the
+        dask array of ``read_variable``.
+
+        """
+        return self._to_dataarray(key, _read_data)
+
+    def _to_dataarray(self, key, get_data):
+        var = self.file_handle[key]
+        # Not getting coordinates as this is more work, therefore more
+        # overhead, and those are not used downstream.
+        return xr.DataArray(get_data(var), dims=var.dimensions, attrs=self.accessor.get_object_attrs(var),
+                            name=var.name)
 
 
 class NetCDF4FileContent(Mapping):
@@ -497,22 +513,24 @@ class NetCDF4FileContent(Mapping):
     The mapping is read-only.
 
     Args:
-        get_accessor (callable): Function returning the ``NetCDF4Accessor``/``H5NetcdfAccessor`` for the
-            engine of the file.
-        get_root (callable): Function returning the raw root group of the file.
+        opener: The object opening the file for the file handler, which gives the raw root group of the file
+            (``get_metadata_root()``) and the ``accessor`` for its engine.
         listed_keys (list or None): The keys that iterating is limited to.
 
     """
 
     _VARIABLE_PROPERTIES = ("dtype", "shape", "dimensions")
 
-    def __init__(self, get_accessor, get_root, listed_keys=None):
+    def __init__(self, opener, listed_keys=None):
         """Initialize the mapping without reading anything from the file."""
-        self._get_accessor = get_accessor
-        self._get_root = get_root
+        self._opener = opener
         self._listed_keys = listed_keys
         self._cache = {}
         self._file_keys = None
+
+    @property
+    def _accessor(self):
+        return self._opener.accessor
 
     def __getitem__(self, key):
         """Get the value of ``key``, reading it from the file if needed."""
@@ -544,7 +562,7 @@ class NetCDF4FileContent(Mapping):
 
     def _read(self, key):
         """Read the value of ``key`` from the file and tell if it can be remembered."""
-        root = self._get_root()
+        root = self._opener.get_metadata_root()
         if key == "/attrs":
             return self._get_attrs(root), True
         for prefix in ("/attr/", "attr/"):
@@ -566,7 +584,7 @@ class NetCDF4FileContent(Mapping):
         """Read the attribute, dimension or variable property of ``obj`` that the rest of ``key`` refers to."""
         if part == "attr" and rest:
             return self._get_attr(obj, "/".join(rest), key)
-        is_variable = self._get_accessor().is_variable(obj)
+        is_variable = self._accessor.is_variable(obj)
         if part == "dimension" and len(rest) == 1 and not is_variable:
             return self._get_dimension(obj, rest[0], key)
         if part in self._VARIABLE_PROPERTIES and not rest and is_variable:
@@ -575,7 +593,7 @@ class NetCDF4FileContent(Mapping):
 
     def _get_child(self, obj, name):
         """Get the group or variable ``name`` of group ``obj``, or None."""
-        if self._get_accessor().is_variable(obj):
+        if self._accessor.is_variable(obj):
             return None
         for children in (obj.groups, obj.variables):
             if name in children:
@@ -583,15 +601,15 @@ class NetCDF4FileContent(Mapping):
         return None
 
     def _get_attr(self, obj, name, key):
-        if name not in self._get_accessor().get_object_attrs(obj):
+        if name not in self._accessor.get_object_attrs(obj):
             raise KeyError(key)
-        value = self._get_accessor().get_attr(obj, name)
+        value = self._accessor.get_attr(obj, name)
         with suppress(ValueError):
             value = np2str(value)
         return value
 
     def _get_attrs(self, obj):
-        return {name: self._get_attr(obj, name, name) for name in self._get_accessor().get_object_attrs(obj)}
+        return {name: self._get_attr(obj, name, name) for name in self._accessor.get_object_attrs(obj)}
 
     @staticmethod
     def _get_dimension(obj, name, key):
@@ -601,7 +619,7 @@ class NetCDF4FileContent(Mapping):
 
     def _walk_file(self):
         """Walk through the whole file, yielding every key, its value and if the value can be remembered."""
-        root = self._get_root()
+        root = self._opener.get_metadata_root()
         yield from self._walk_group("", root)
         global_attrs = self._get_attrs(root)
         for name, value in global_attrs.items():
@@ -644,17 +662,9 @@ class NetCDF4FileContent(Mapping):
             except KeyError:
                 continue
             yield key, value, cacheable
-            if self._get_accessor().is_variable(value):
+            if self._accessor.is_variable(value):
                 yield from self._walk_variable_properties(key, value)
                 yield from self._walk_attrs(key, value)
-
-
-def _compose_replacement_names(variable_name_replacements, var, variable_names):
-    for key in variable_name_replacements:
-        vals = variable_name_replacements[key]
-        for val in vals:
-            if key in var:
-                variable_names.append(var.format(**{key: val}))
 
 
 def get_data_as_xarray(variable):
@@ -664,15 +674,16 @@ def get_data_as_xarray(variable):
     except AttributeError:
         # netCDF4 backend requires usage of __dict__ to get the attributes
         attrs = variable.__dict__
+    return xr.DataArray(_read_data(variable), dims=variable.dimensions, attrs=attrs, name=variable.name)
+
+
+def _read_data(variable):
+    """Read all the data of a netCDF4/h5netcdf variable."""
     try:
-        data = variable[:]
+        return variable[:]
     except (ValueError, IndexError):
         # Handle scalars for h5netcdf backend
-        data = variable.__array__()
-
-    arr = xr.DataArray(data, dims=variable.dimensions, attrs=attrs, name=variable.name)
-
-    return arr
+        return variable.__array__()
 
 
 def choose_accessor_from_engine(engine):
@@ -682,18 +693,6 @@ def choose_accessor_from_engine(engine):
     elif engine == "h5netcdf":
         return H5NetcdfAccessor()
     raise NotImplementedError(f"Engine {engine} not implemented.")
-
-
-def get_accessor_and_filehandle_from_engine(filename, engine):
-    """Choose an accessor from engine, and return in along with the file handle."""
-    accessor = choose_accessor_from_engine(engine)
-    file_handle = accessor.create_file_handle(filename)
-    return accessor, file_handle
-
-
-def get_accessor_and_filehandle_from_engines(filename, *engines):
-    """Choose an accessor from the first possible engine, and return in along with the file handle."""
-    return _open_with_engines(engines, lambda engine: get_accessor_and_filehandle_from_engine(filename, engine))
 
 
 def _open_with_engines(engines, open_with_engine):
@@ -719,40 +718,6 @@ def _get_store_class(engine):
 def _get_store_open_params(engine):
     """Get the names of the options for opening the xarray backend store of ``engine``."""
     return set(inspect.signature(_get_store_class(engine).open).parameters) - {"filename", "mode", "group"}
-
-
-def _split_xarray_kwargs(xarray_kwargs):
-    """Split ``xarray_kwargs`` in options for opening the backend store and options for ``xarray.open_dataset``.
-
-    Options of the backend store of any engine are used when opening the file,
-    as the engine may not be known yet, as well as those in ``backend_kwargs``.
-
-    """
-    store_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
-    open_kwargs = dict(xarray_kwargs.get("backend_kwargs") or {})
-    decode_kwargs = {}
-    for key, val in xarray_kwargs.items():
-        if key in store_params:
-            open_kwargs[key] = val
-        elif key not in ("engine", "backend_kwargs"):
-            decode_kwargs[key] = val
-    return open_kwargs, decode_kwargs
-
-
-def _open_root_store(filename, engine, store_open_kwargs):
-    """Open the xarray backend store of the whole file with ``engine``."""
-    store_cls = _get_store_class(engine)
-    # skip the options that only the backend store of the other engine has
-    all_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
-    own_params = _get_store_open_params(engine)
-    open_kwargs = {key: val for key, val in store_open_kwargs.items()
-                   if key in own_params or key not in all_params}
-    if engine == "h5netcdf":
-        filename = open_file_or_filename(filename)
-    if isinstance(filename, os.PathLike):
-        # xarray only uses its (cached) file manager for string paths
-        filename = os.fspath(filename)
-    return store_cls.open(filename, mode="r", **open_kwargs)
 
 
 class NetCDF4Accessor:

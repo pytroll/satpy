@@ -166,7 +166,6 @@ import logging
 from functools import cached_property
 from warnings import warn
 
-import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
@@ -399,7 +398,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         attrs = dict(data.attrs).copy()
         info = info.copy()
-        data = _ensure_dataarray(data)
 
         fv = attrs.pop(
             "_FillValue",
@@ -572,7 +570,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self.get_and_cache_npxr(AUX_DATA[aux_data_name])
-        lut = _ensure_dataarray(lut)
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
 
@@ -849,10 +846,3 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = np.nanmean(
                 self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
         return sun_earth_distance
-
-
-def _ensure_dataarray(arr):
-    if not isinstance(arr, xr.DataArray):
-        attrs = dict(arr.attrs).copy()
-        arr = xr.DataArray(da.from_array(arr), dims=arr.dimensions, attrs=attrs, name=arr.name)
-    return arr

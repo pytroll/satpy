@@ -70,7 +70,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         # Hold on to row_chunks so we can use it for rechunking interpolated arrays later
         self._row_chunks, chunks = self._chunks_for_file()
         if chunks:
-            self._xarray_kwargs["chunks"] = chunks
+            self._open_dataset_kwargs["chunks"] = chunks
 
         # Saves the orthorectification flag
         self.orthorect = orthorect and filetype_info.get("orthorect", True)

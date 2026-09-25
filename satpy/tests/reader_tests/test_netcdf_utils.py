@@ -5,27 +5,20 @@ import os
 import numpy as np
 import pytest
 
-from satpy.readers.core.netcdf import OPEN_STRATEGIES, NetCDF4FileHandler, choose_accessor_from_engine
+from satpy.readers.core.netcdf import OPEN_STRATEGIES, NetCDF4FileHandler
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, open_strategy=None, extra_file_content=None):
+    def __init__(self, filename, filename_info, filetype_info, *args, extra_file_content=None, **kwargs):
         """Get fake file content from 'get_test_content'."""
-        # unused kwargs from the real file handler
-        del auto_maskandscale
-        del xarray_kwargs
-        del cache_var_size
-        del open_strategy
-        super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
+        # The file is never opened: everything is read from the fake file
+        # content, and the accessor of a single engine is known without opening.
+        super().__init__(filename, filename_info, filetype_info, *args, defer_open=True, **kwargs)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         if extra_file_content:
             self.file_content.update(extra_file_content)
-        self.engine = "netcdf4"
-        self.accessor = choose_accessor_from_engine(self.engine)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
@@ -163,7 +156,7 @@ class TestNetCDF4FileHandler:
 
         assert ("ds2_f" in file_handler) is True
         assert ("fake_ds" in file_handler) is False
-        assert file_handler.file_handle is None
+        assert file_handler._opener.file_handle is None
         assert file_handler["ds2_sc"] == 42
 
     def test_listed_variables(self, netcdf_file):
@@ -230,10 +223,10 @@ class TestNetCDF4FileHandler:
         from satpy.readers.core.netcdf import NetCDF4FileHandler
         h = NetCDF4FileHandler(netcdf_file, {}, {}, cache_var_size=1000,
                                open_strategy="file_handle")
-        assert h.file_handle is not None
-        assert h.file_handle.isopen()
+        assert h._opener.file_handle is not None
+        assert h._opener.file_handle.isopen()
         # variables are only cached when they are accessed, without walking through the file
-        assert not h.cached_file_content
+        assert not h.cached_variables
         assert h.file_content._file_keys is None
 
         # with caching, these tests access different lines than without
@@ -246,10 +239,10 @@ class TestNetCDF4FileHandler:
         np.testing.assert_array_equal(
                 h["ds2_f"],
                 np.arange(10. * 100).reshape((10, 100)))
-        assert sorted(h.cached_file_content.keys()) == ["ds2_s", "ds2_sc"]
-        assert h["ds2_s"] is h.cached_file_content["ds2_s"]
+        assert sorted(h.cached_variables.keys()) == ["ds2_s", "ds2_sc"]
+        assert h["ds2_s"] is h.cached_variables["ds2_s"]
         h.__del__()
-        assert not h.file_handle.isopen()
+        assert not h._opener.file_handle.isopen()
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     @pytest.mark.parametrize("auto_maskandscale", [False, True])
@@ -269,8 +262,8 @@ class TestNetCDF4FileHandler:
         for var_name in ("scaled", "time"):
             cached = cached_handler[var_name]
             uncached = uncached_handler[var_name]
-            assert var_name in cached_handler.cached_file_content
-            assert var_name not in uncached_handler.cached_file_content
+            assert var_name in cached_handler.cached_variables
+            assert var_name not in uncached_handler.cached_variables
             assert cached.chunks is None
             xr.testing.assert_identical(cached, uncached.compute())
 
@@ -283,9 +276,9 @@ class TestNetCDF4FileHandler:
         xarray_kwargs = {"phony_dims": "sort", "decode_times": False, "backend_kwargs": {"lock": False}}
         file_handler = NetCDF4FileHandler(cf_netcdf_file, {}, {}, engine=engine, xarray_kwargs=xarray_kwargs)
 
-        assert file_handler._store_open_kwargs == {"phony_dims": "sort", "lock": False}
-        assert "phony_dims" not in file_handler._xarray_kwargs
-        assert "backend_kwargs" not in file_handler._xarray_kwargs
+        assert file_handler._opener._store_open_kwargs == {"phony_dims": "sort", "lock": False}
+        assert "phony_dims" not in file_handler._open_dataset_kwargs
+        assert "backend_kwargs" not in file_handler._open_dataset_kwargs
         assert file_handler["time"].dtype == np.float64
         # the given kwargs are not modified
         assert xarray_kwargs == {"phony_dims": "sort", "decode_times": False, "backend_kwargs": {"lock": False}}
@@ -354,7 +347,7 @@ class TestNetCDF4FileHandler:
         assert isinstance(data, xr.DataArray)
         assert data.chunks is None
         np.testing.assert_array_equal(data.values, expected)
-        assert var_name in file_handler.cached_file_content
+        assert var_name in file_handler.cached_variables
 
     def test_file_opened_once(self, netcdf_file, monkeypatch):
         """Test that reading many variables only opens the file once and decodes each group once.
@@ -429,11 +422,11 @@ class TestNetCDF4FileHandler:
 
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
         file_handler["ds2_f"]
-        assert file_handler._open_datasets
+        assert file_handler._opener._datasets
 
         file_handler.close()
 
-        assert not file_handler._open_datasets
+        assert not file_handler._opener._datasets
         # the variable is still readable, the file is simply reopened
         assert file_handler["ds2_f"].shape == (10, 100)
 
@@ -462,8 +455,8 @@ class TestNetCDF4FileHandler:
 
         file_handler.close()
         assert len(FILE_CACHE) == num_cached_before
-        assert not file_handler._open_datasets
-        assert file_handler._root_store is None
+        assert not file_handler._opener._datasets
+        assert file_handler._opener._root_store is None
 
     def test_invalid_open_strategy(self, netcdf_file):
         """Test that unknown open strategies are rejected."""
@@ -484,8 +477,7 @@ class TestNetCDF4FileHandler:
         with pytest.warns(DeprecationWarning, match="cache_handle"):
             file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=cache_handle,
                                               open_strategy=open_strategy)
-        assert file_handler._open_strategy == exp_strategy
-        assert (file_handler.file_handle is not None) == (exp_strategy == "file_handle")
+        assert (file_handler._opener.file_handle is not None) == (exp_strategy == "file_handle")
 
     def test_cache_handle_conflicting_open_strategy(self, netcdf_file):
         """Test that cache_handle can't be combined with an open strategy it doesn't map to."""
@@ -713,7 +705,7 @@ class TestNetCDF4FileContent:
             file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
             file_content = file_handler.file_content
             assert len(file_content) == len(EXPECTED_FILE_CONTENT_KEYS)
-            file_handle = file_handler.file_handle
+            file_handle = file_handler._opener.file_handle
             handler_ref = weakref.ref(file_handler)
             del file_handler
             assert handler_ref() is None
@@ -722,10 +714,6 @@ class TestNetCDF4FileContent:
         assert len(FILE_CACHE) == num_cached_before
         if file_handle is not None:
             assert not _is_open(file_handle)
-        # values read before are remembered, but nothing new can be read anymore
-        assert file_content["ds2_f/shape"] == (10, 100)
-        with pytest.raises(ReferenceError):
-            file_content["ds2_f"]
 
     def test_readable_after_close(self, netcdf_file, strategy, engine):
         """Test that the file content can still be read after closing the file handler if the file can be reopened."""
@@ -761,15 +749,23 @@ class TestDeferOpen:
         num_cached_before = len(FILE_CACHE)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
                                           defer_open=True)
-        assert file_handler._accessor is None
-        assert file_handler.file_handle is None
-        assert file_handler._root_store is None
+        assert file_handler._opener.file_handle is None
+        assert file_handler._opener._root_store is None
         assert len(FILE_CACHE) == num_cached_before
 
         assert file_handler["/attr/test_attr_str"] == "test_string"
         assert file_handler.accessor.engine == ("netcdf4" if isinstance(engine, list) else engine)
-        assert (file_handler.file_handle is not None) == (strategy == "file_handle")
+        assert (file_handler._opener.file_handle is not None) == (strategy == "file_handle")
         np.testing.assert_array_equal(file_handler["ds2_s"], np.arange(10))
+
+    def test_accessor_opens_only_to_choose_engine(self, netcdf_file, strategy, engine):
+        """Test that getting the accessor only opens the file to choose between several engines."""
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
+                                          defer_open=True)
+
+        assert file_handler.accessor.engine == ("netcdf4" if isinstance(engine, list) else engine)
+        is_open = file_handler._opener.file_handle is not None or file_handler._opener._root_store is not None
+        assert is_open == isinstance(engine, list)
 
     def test_missing_file_fails_on_first_read(self, tmp_path, strategy, engine):
         """Test that a file that can't be opened only fails when it is first read."""
@@ -786,8 +782,8 @@ class TestDeferOpen:
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
                                           defer_open=True)
         file_handler.close()
-        assert file_handler._accessor is None
-        assert file_handler._root_store is None
+        assert file_handler._opener.file_handle is None
+        assert file_handler._opener._root_store is None
 
 
 class TestNetCDF4FsspecFileHandler:
