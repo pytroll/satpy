@@ -93,6 +93,14 @@ class NetCDF4FileHandler(BaseFileHandler):
       created this way can't be pickled (e.g. for dask distributed workers)
       and can't be read anymore once the file handler is closed.
 
+    By default the file is opened when the file handler is created, so that
+    an unreadable file fails right away. With ``defer_open=True`` the file
+    is only opened when something is first read from it (including the
+    ``accessor``), so opening errors are raised then instead. This saves
+    opening files that are never read, but is only useful for readers whose
+    ``start_time``, ``end_time`` and ``available_datasets`` don't read from
+    the file, as those are needed when the ``Scene`` is created.
+
     Args:
         filename (str): File to read.
         filename_info (dict): Dictionary with filename information.
@@ -106,10 +114,12 @@ class NetCDF4FileHandler(BaseFileHandler):
             each engine until one works.
         open_strategy (str): How to open the file and read its variables. One of "shared_store" (default)
             or "file_handle". See above.
+        defer_open (bool): Only open the file when something is first read from it. See above.
 
     """
 
     file_handle = None
+    _accessor = None
     _open_strategy = DEFAULT_OPEN_STRATEGY
     _cache_var_size = 0
     # ``xarray.Dataset`` objects held open for the lifetime of this file
@@ -122,29 +132,50 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_var_size=0, cache_handle=None, engine="netcdf4",
-                 open_strategy=None):
+                 open_strategy=None, defer_open=False):
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info)
-        self.file_content = {}
         self.cached_file_content = {}
         self.engine = engine
         self._open_strategy = _resolve_open_strategy(open_strategy, cache_handle)
+        self._auto_maskandscale = auto_maskandscale
         self._set_xarray_kwargs(xarray_kwargs, auto_maskandscale)
+        self._cache_var_size = cache_var_size
+        self.file_content = NetCDF4FileContent(_weak_method_caller(self._get_accessor),
+                                               _weak_method_caller(self._get_metadata_root),
+                                               listed_keys=self._get_listed_keys(filetype_info))
+        if not defer_open:
+            self._open()
+
+    @property
+    def accessor(self):
+        """Get the accessor for the engine of the file, opening the file if it wasn't yet."""
+        if self._accessor is None:
+            self._open()
+        return self._accessor
+
+    @accessor.setter
+    def accessor(self, accessor):
+        self._accessor = accessor
+
+    def _get_accessor(self):
+        return self.accessor
+
+    def _open(self):
+        """Open the file following ``open_strategy``, and choose the accessor for the engine that could open it."""
         try:
-            self.accessor, opened_file = self._open_file()
+            accessor, opened_file = self._open_file()
         except IOError:
             LOG.exception(
                 "Failed reading file %s. Possibly corrupted file", self.filename)
             raise
         if self._open_strategy == "file_handle":
-            self._check_file_handle_can_maskandscale(opened_file, auto_maskandscale)
-            self._set_file_handle_auto_maskandscale(opened_file, auto_maskandscale)
+            self._check_file_handle_can_maskandscale(opened_file, accessor)
+            self._set_file_handle_auto_maskandscale(opened_file, self._auto_maskandscale)
             self.file_handle = opened_file
         else:
             self._root_store = opened_file
-        self.file_content = NetCDF4FileContent(self.accessor, _weak_root_getter(self),
-                                               listed_keys=self._get_listed_keys(filetype_info))
-        self._cache_var_size = cache_var_size
+        self._accessor = accessor
 
     def _open_file(self):
         """Open the file following ``open_strategy``.
@@ -172,12 +203,12 @@ class NetCDF4FileHandler(BaseFileHandler):
             return get_accessor_and_filehandle_from_engines(self.filename, *self.engine)
         return get_accessor_and_filehandle_from_engine(self.filename, self.engine)
 
-    def _check_file_handle_can_maskandscale(self, file_handle, auto_maskandscale):
+    def _check_file_handle_can_maskandscale(self, file_handle, accessor):
         """Refuse reading unscaled data with the "file_handle" strategy and an engine that can't mask and scale."""
-        if auto_maskandscale and not hasattr(file_handle, "set_auto_maskandscale"):
+        if self._auto_maskandscale and not hasattr(file_handle, "set_auto_maskandscale"):
             file_handle.close()
             raise ValueError(f"open_strategy='file_handle' can't apply auto_maskandscale=True with the "
-                             f"{self.accessor.engine} engine. Use another open_strategy or engine.")
+                             f"{accessor.engine} engine. Use another open_strategy or engine.")
 
     @staticmethod
     def _set_file_handle_auto_maskandscale(file_handle, auto_maskandscale):
@@ -324,7 +355,9 @@ class NetCDF4FileHandler(BaseFileHandler):
         return self._root_store
 
     def _get_metadata_root(self):
-        """Get the (raw) root group of the file that ``file_content`` reads from."""
+        """Get the (raw) root group of the file that ``file_content`` reads from, opening the file if needed."""
+        if self._accessor is None:
+            self._open()
         if self._open_strategy == "file_handle":
             return self.file_handle
         # xarray reopens the file if its file cache closed it in the meantime
@@ -418,22 +451,22 @@ def _resolve_open_strategy(strategy, cache_handle):
     return strategy
 
 
-def _weak_root_getter(file_handler):
-    """Get a function returning the root group of ``file_handler`` that doesn't keep the file handler alive.
+def _weak_method_caller(method):
+    """Get a function calling the bound ``method`` that doesn't keep the object of the method alive.
 
     Referencing the file handler itself from its ``file_content`` would be a
     reference cycle, which delays closing the file until the garbage
     collector runs instead of when the file handler is deleted.
 
     """
-    weak_get_root = weakref.WeakMethod(file_handler._get_metadata_root)
+    weak_method = weakref.WeakMethod(method)
 
-    def _get_root():
-        get_root = weak_get_root()
-        if get_root is None:
+    def _call():
+        method = weak_method()
+        if method is None:
             raise ReferenceError("The file handler of this file content doesn't exist anymore.")
-        return get_root()
-    return _get_root
+        return method()
+    return _call
 
 
 class NetCDF4FileContent(Mapping):
@@ -464,7 +497,8 @@ class NetCDF4FileContent(Mapping):
     The mapping is read-only.
 
     Args:
-        accessor: The ``NetCDF4Accessor``/``H5NetcdfAccessor`` for the engine of the file.
+        get_accessor (callable): Function returning the ``NetCDF4Accessor``/``H5NetcdfAccessor`` for the
+            engine of the file.
         get_root (callable): Function returning the raw root group of the file.
         listed_keys (list or None): The keys that iterating is limited to.
 
@@ -472,9 +506,9 @@ class NetCDF4FileContent(Mapping):
 
     _VARIABLE_PROPERTIES = ("dtype", "shape", "dimensions")
 
-    def __init__(self, accessor, get_root, listed_keys=None):
+    def __init__(self, get_accessor, get_root, listed_keys=None):
         """Initialize the mapping without reading anything from the file."""
-        self._accessor = accessor
+        self._get_accessor = get_accessor
         self._get_root = get_root
         self._listed_keys = listed_keys
         self._cache = {}
@@ -532,7 +566,7 @@ class NetCDF4FileContent(Mapping):
         """Read the attribute, dimension or variable property of ``obj`` that the rest of ``key`` refers to."""
         if part == "attr" and rest:
             return self._get_attr(obj, "/".join(rest), key)
-        is_variable = self._accessor.is_variable(obj)
+        is_variable = self._get_accessor().is_variable(obj)
         if part == "dimension" and len(rest) == 1 and not is_variable:
             return self._get_dimension(obj, rest[0], key)
         if part in self._VARIABLE_PROPERTIES and not rest and is_variable:
@@ -541,7 +575,7 @@ class NetCDF4FileContent(Mapping):
 
     def _get_child(self, obj, name):
         """Get the group or variable ``name`` of group ``obj``, or None."""
-        if self._accessor.is_variable(obj):
+        if self._get_accessor().is_variable(obj):
             return None
         for children in (obj.groups, obj.variables):
             if name in children:
@@ -549,15 +583,15 @@ class NetCDF4FileContent(Mapping):
         return None
 
     def _get_attr(self, obj, name, key):
-        if name not in self._accessor.get_object_attrs(obj):
+        if name not in self._get_accessor().get_object_attrs(obj):
             raise KeyError(key)
-        value = self._accessor.get_attr(obj, name)
+        value = self._get_accessor().get_attr(obj, name)
         with suppress(ValueError):
             value = np2str(value)
         return value
 
     def _get_attrs(self, obj):
-        return {name: self._get_attr(obj, name, name) for name in self._accessor.get_object_attrs(obj)}
+        return {name: self._get_attr(obj, name, name) for name in self._get_accessor().get_object_attrs(obj)}
 
     @staticmethod
     def _get_dimension(obj, name, key):
@@ -610,7 +644,7 @@ class NetCDF4FileContent(Mapping):
             except KeyError:
                 continue
             yield key, value, cacheable
-            if self._accessor.is_variable(value):
+            if self._get_accessor().is_variable(value):
                 yield from self._walk_variable_properties(key, value)
                 yield from self._walk_attrs(key, value)
 
