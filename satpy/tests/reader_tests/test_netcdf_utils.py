@@ -1,7 +1,5 @@
 """Module for testing the satpy.readers.core.netcdf module."""
 
-import os
-
 import numpy as np
 import pytest
 
@@ -789,22 +787,19 @@ class TestDeferOpen:
 class TestNetCDF4FsspecFileHandler:
     """Test the remote reading class."""
 
-    def test_default_to_netcdf4_lib(self):
+    def test_default_to_netcdf4_lib(self, tmp_path):
         """Test that the NetCDF4 backend is used by default."""
-        import tempfile
-
         import h5py
 
         from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create an empty HDF5
-            fname = os.path.join(tmpdir, "test.nc")
-            fid = h5py.File(fname, "w")
-            fid.close()
+        # Create an empty HDF5
+        fname = tmp_path / "test.nc"
+        with h5py.File(fname, "w"):
+            pass
 
-            fh = NetCDF4FsspecFileHandler(fname, {}, {})
-            assert fh.accessor.engine == "netcdf4"
+        fh = NetCDF4FsspecFileHandler(fname, {}, {})
+        assert fh.accessor.engine == "netcdf4"
 
     @pytest.mark.parametrize(("open_strategy", "h5_opener"), [
         ("shared_store", "xarray.backends.H5NetCDFStore.open"),
