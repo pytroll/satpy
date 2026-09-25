@@ -65,8 +65,9 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     If your file has many small data variables that are frequently accessed,
     you may choose to cache some of them. You can do this by passing a number,
-    any variable smaller than this number in bytes will be read into RAM.
-    Warning, this part of the API is provisional and subject to change.
+    any variable smaller than this number in bytes will be read into RAM the
+    first time it is accessed and kept there. Warning, this part of the API is
+    provisional and subject to change.
 
     ``open_strategy`` selects how the file is opened and how variables are
     turned into ``xarray.DataArray`` objects. Every strategy holds what it
@@ -99,7 +100,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         auto_maskandscale (bool): Apply mask and scale factors.
         xarray_kwargs (dict): Additional arguments to `xarray.open_dataset`. Options of the xarray backend
             store (e.g. ``lock`` or ``phony_dims``, or those in ``backend_kwargs``) are used when opening the file.
-        cache_var_size (int): Cache variables smaller than this size.
+        cache_var_size (int): Keep variables smaller than this size in bytes in memory once they are read.
         cache_handle (bool): Deprecated, use ``open_strategy="file_handle"`` instead of ``cache_handle=True``.
         engine (str or list of str): The engine to use for reading, either "netcdf4" or "h5netcdf". As a list, will try
             each engine until one works.
@@ -110,6 +111,7 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     file_handle = None
     _open_strategy = DEFAULT_OPEN_STRATEGY
+    _cache_var_size = 0
     # ``xarray.Dataset`` objects held open for the lifetime of this file
     # handler, keyed by group name. See ``_open_xr_dataset``.
     _open_datasets = None
@@ -142,7 +144,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self._root_store = opened_file
         self.file_content = NetCDF4FileContent(self.accessor, _weak_root_getter(self),
                                                listed_keys=self._get_listed_keys(filetype_info))
-        self.collect_cache_vars(cache_var_size)
+        self._cache_var_size = cache_var_size
 
     def _open_file(self):
         """Open the file following ``open_strategy``.
@@ -233,32 +235,6 @@ class NetCDF4FileHandler(BaseFileHandler):
                 self._root_store.close()
         self._root_store = None
 
-    def collect_cache_vars(self, cache_var_size):
-        """Collect data variables for caching.
-
-        This method will collect some data variables and store them in RAM.
-        This may be useful if some small variables are frequently accessed,
-        to prevent needlessly frequently opening and closing the file, which
-        in case of xarray is associated with some overhead.
-
-        Args:
-            cache_var_size (int): Maximum size of the collected variables in bytes
-
-        """
-        if cache_var_size == 0:
-            return
-
-        cache_vars = self._collect_cache_var_names(cache_var_size)
-        for var_name in cache_vars:
-            self.get_and_cache_npxr(var_name)
-
-    def _collect_cache_var_names(self, cache_var_size):
-        return [varname for (varname, var)
-                in self.file_content.items()
-                if self.accessor.is_variable(var)
-                and isinstance(var.dtype, np.dtype)  # vlen may be str
-                and np.prod(var.shape) * var.dtype.itemsize < cache_var_size]
-
     def __getitem__(self, key):
         """Get item for given key."""
         val = self.file_content[key]
@@ -272,8 +248,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Get a variable from the netcdf file."""
         if key in self.cached_file_content:
             return self.cached_file_content[key]
-        # these datasets are closed and inaccessible when the file is
-        # closed, need to reopen
+        if self._is_small_variable(val):
+            return self._cache_variable(key, val)
+        return self._read_variable(key)
+
+    def _read_variable(self, key):
+        """Read variable ``key`` as a (lazy) DataArray following ``open_strategy``."""
         # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
         parts = key.rsplit("/", 1)
         if len(parts) == 2:
@@ -281,9 +261,26 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             group = None
         if self._open_strategy == "file_handle":
-            val = self._get_var_from_filehandle(group, key)
+            return self._get_var_from_filehandle(group, key)
+        return self._get_var_from_xr(group, key)
+
+    def _is_small_variable(self, var):
+        """Tell if variable object ``var`` is smaller than ``cache_var_size``."""
+        return (self._cache_var_size > 0
+                and isinstance(var.dtype, np.dtype)  # vlen may be str
+                and np.prod(var.shape) * var.dtype.itemsize < self._cache_var_size)
+
+    def _cache_variable(self, key, var):
+        """Read variable ``key`` (object ``var``) into memory and remember it."""
+        if self._open_strategy == "file_handle":
+            val = get_data_as_xarray(var)
         else:
-            val = self._get_var_from_xr(group, key)
+            # The variable object belongs to the file handle of the xarray
+            # backend store, which may have been closed (and reopened) by
+            # xarray's file cache since and has masking and scaling disabled
+            # by xarray. Read the data through xarray instead.
+            val = self._read_variable(key).load()
+        self.cached_file_content[key] = val
         return val
 
     def _open_xr_dataset(self, group):
@@ -382,14 +379,10 @@ class NetCDF4FileHandler(BaseFileHandler):
         if var_name in self.cached_file_content:
             return self.cached_file_content[var_name]
         v = self.file_content[var_name]
+        if self.accessor.is_variable(v):
+            return self._cache_variable(var_name, v)
         if isinstance(v, xr.DataArray):
             val = v
-        elif self._open_strategy != "file_handle" and self.accessor.is_variable(v):
-            # The variable object belongs to the file handle of the xarray
-            # backend store, which may have been closed (and reopened) by
-            # xarray's file cache since and has masking and scaling disabled
-            # by xarray. Read the data through xarray instead.
-            val = self[var_name].load()
         else:
             try:
                 val = get_data_as_xarray(v)
