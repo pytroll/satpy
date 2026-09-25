@@ -28,9 +28,17 @@ from satpy.readers.core.netcdf import NetCDF4FileHandler, choose_accessor_from_e
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=False, extra_file_content=None):
+    def __init__(
+        self,
+        filename,
+        filename_info,
+        filetype_info,
+        auto_maskandscale=False,
+        xarray_kwargs=None,
+        cache_var_size=0,
+        cache_handle=False,
+        extra_file_content=None,
+    ):
         """Get fake file content from 'get_test_content'."""
         # unused kwargs from the real file handler
         del auto_maskandscale
@@ -43,6 +51,10 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
             self.file_content.update(extra_file_content)
         self.engine = "netcdf4"
         self.accessor = choose_accessor_from_engine(self.engine)
+        self.cached_file_content = {}
+        self.file_handle = None
+        self._xarray_kwargs = {}
+        self._initialized = True
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
@@ -69,6 +81,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
 def netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file."""
     from netCDF4 import Dataset
+
     filename = tmp_path_factory.mktemp("data") / "test.nc"
     with Dataset(filename, "w") as nc:
         # Create dimensions
@@ -78,23 +91,18 @@ def netcdf_file(tmp_path_factory):
         # Create Group
         g1 = nc.createGroup("test_group")
         # Add datasets
-        ds1_f = g1.createVariable("ds1_f", np.float32,
-                                  dimensions=("rows", "cols"))
-        ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
+        ds1_f = g1.createVariable("ds1_f", np.float32, dimensions=("rows", "cols"))
+        ds1_f[:] = np.arange(10.0 * 100).reshape((10, 100))
         ds1_f.set_auto_scale(True)
 
-        ds1_i = g1.createVariable("ds1_i", np.int32,
-                                  dimensions=("rows", "cols"))
+        ds1_i = g1.createVariable("ds1_i", np.int32, dimensions=("rows", "cols"))
         ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
 
-        ds2_f = nc.createVariable("ds2_f", np.float32,
-                                  dimensions=("rows", "cols"))
-        ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
-        ds2_i = nc.createVariable("ds2_i", np.int32,
-                                  dimensions=("rows", "cols"))
+        ds2_f = nc.createVariable("ds2_f", np.float32, dimensions=("rows", "cols"))
+        ds2_f[:] = np.arange(10.0 * 100).reshape((10, 100))
+        ds2_i = nc.createVariable("ds2_i", np.int32, dimensions=("rows", "cols"))
         ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
-        ds2_s = nc.createVariable("ds2_s", np.int8,
-                                  dimensions=("rows",))
+        ds2_s = nc.createVariable("ds2_s", np.int8, dimensions=("rows",))
         ds2_s[:] = np.arange(10)
         ds2_sc = nc.createVariable("ds2_sc", np.int8, dimensions=())
         ds2_sc[:] = np.int8(42)
@@ -113,6 +121,7 @@ def netcdf_file(tmp_path_factory):
             d.test_attr_float = 1.2
     return filename
 
+
 class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
 
@@ -121,6 +130,7 @@ class TestNetCDF4FileHandler:
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
+
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
 
         assert file_handler["/dimension/rows"] == 10
@@ -147,8 +157,8 @@ class TestNetCDF4FileHandler:
             "test_attr_str": "test_string",
             "test_attr_str_arr": "test_string2",
             "test_attr_int": 0,
-            "test_attr_float": 1.2
-            }
+            "test_attr_float": 1.2,
+        }
         assert file_handler["/attrs"] == global_attrs
 
         assert isinstance(file_handler.get("ds2_f")[:], xr.DataArray)
@@ -171,6 +181,8 @@ class TestNetCDF4FileHandler:
             ]
         }
         file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
+        # Trigger lazy initialization by accessing file content
+        file_handler._ensure_initialized()
         assert len(file_handler.file_content) == 2
         assert "test_group/attr/test_attr_str" in file_handler.file_content
         assert "attr/test_attr_str" in file_handler.file_content
@@ -189,12 +201,12 @@ class TestNetCDF4FileHandler:
                     "ds1_f",
                     "ds1_i",
                 ],
-                "another_parameter": [
-                    "not_used"
-                ],
-            }
+                "another_parameter": ["not_used"],
+            },
         }
         file_handler = NetCDF4FileHandler(netcdf_file, {}, filetype_info)
+        # Trigger lazy initialization by accessing file content
+        file_handler._ensure_initialized()
         assert len(file_handler.file_content) == 3
         assert "test_group/ds1_f/attr/test_attr_str" in file_handler.file_content
         assert "test_group/ds1_i/attr/test_attr_str" in file_handler.file_content
@@ -206,21 +218,20 @@ class TestNetCDF4FileHandler:
     def test_caching(self, netcdf_file):
         """Test that caching works as intended."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
-        h = NetCDF4FileHandler(netcdf_file, {}, {}, cache_var_size=1000,
-                               cache_handle=True)
+
+        h = NetCDF4FileHandler(netcdf_file, {}, {}, cache_var_size=1000, cache_handle=True)
+        # Trigger lazy initialization
+        h._ensure_initialized()
         assert h.file_handle is not None
         assert h.file_handle.isopen()
 
         assert sorted(h.cached_file_content.keys()) == ["ds2_s", "ds2_sc"]
         # with caching, these tests access different lines than without
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
-        np.testing.assert_array_equal(h["test_group/ds1_i"],
-                                      np.arange(10 * 100).reshape((10, 100)))
+        np.testing.assert_array_equal(h["test_group/ds1_i"], np.arange(10 * 100).reshape((10, 100)))
         # check that root variables can still be read from cached file object,
         # even if not cached themselves
-        np.testing.assert_array_equal(
-                h["ds2_f"],
-                np.arange(10. * 100).reshape((10, 100)))
+        np.testing.assert_array_equal(h["ds2_f"], np.arange(10.0 * 100).reshape((10, 100)))
         h.__del__()
         assert not h.file_handle.isopen()
 
@@ -229,8 +240,10 @@ class TestNetCDF4FileHandler:
         from satpy.readers.core.netcdf import NetCDF4FileHandler
 
         # NOTE: Some versions of NetCDF C report unknown file format on Windows
+        # With lazy initialization, error is raised when file is accessed
+        h = NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
         with pytest.raises(IOError, match=".*(No such file or directory|Unknown file format).*"):
-            NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
+            h._ensure_initialized()
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     def test_get_and_cache_npxr_is_xr(self, netcdf_file, engine):
@@ -238,6 +251,7 @@ class TestNetCDF4FileHandler:
         import xarray as xr
 
         from satpy.readers.core.netcdf import NetCDF4FileHandler
+
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
 
         data = file_handler.get_and_cache_npxr("test_group/ds1_f")
@@ -247,6 +261,7 @@ class TestNetCDF4FileHandler:
     def test_get_and_cache_npxr_for_scalar(self, netcdf_file, engine):
         """Test that get_and_cache_npxr() returns xr.DataArray."""
         from satpy.readers.core.netcdf import NetCDF4FileHandler
+
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=True, engine=engine)
 
         data = file_handler.get_and_cache_npxr("ds2_sc")
@@ -267,6 +282,7 @@ class TestNetCDF4FileHandler:
         data2 = file_handler.get_and_cache_npxr("test_group/ds1_f")
         assert np.all(data == data2)
 
+
 class TestNetCDF4FsspecFileHandler:
     """Test the remote reading class."""
 
@@ -285,6 +301,7 @@ class TestNetCDF4FsspecFileHandler:
             fid.close()
 
             fh = NetCDF4FsspecFileHandler(fname, {}, {})
+            fh._ensure_initialized()
             assert fh.accessor.engine == "netcdf4"
 
     def test_use_h5netcdf_for_file_not_accessible_locally(self):
@@ -298,6 +315,7 @@ class TestNetCDF4FsspecFileHandler:
                 from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
                 fh = NetCDF4FsspecFileHandler(fname, {}, {})
+                fh._ensure_initialized()
                 h5_file.assert_called()
                 assert fh.accessor.engine == "h5netcdf"
 
@@ -307,16 +325,118 @@ class TestNetCDF4FsspecFileHandler:
         from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 
         fh = NetCDF4FsspecFileHandler(netcdf_file, {}, {}, engine=engine)
+        np.testing.assert_array_equal(fh["ds2_f"], np.arange(10.0 * 100).reshape((10, 100)))
         assert fh.accessor.engine == engine
-        np.testing.assert_array_equal(
-                fh["ds2_f"],
-                np.arange(10. * 100).reshape((10, 100)))
 
 
-NC_ATTRS = {
-    "standard_name": "test_data",
-    "scale_factor": 0.01,
-    "add_offset": 0}
+class TestNetCDF4FileHandlerLazyNavigation:
+    """Test lazy on-demand variable navigation (cache_handle=True + required_netcdf_variables)."""
+
+    def test_init_does_not_pre_collect_variables(self, netcdf_file):
+        """After init, file_content is empty — nothing traversed until first access."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f", "ds2_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        h._ensure_initialized()
+        assert h.file_content == {}
+        assert h.file_handle is not None
+
+    def test_getitem_variable_lazy(self, netcdf_file):
+        """Accessing a variable navigates lazily and returns a DataArray."""
+        import xarray as xr
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        data = h["test_group/ds1_f"]
+        assert isinstance(data, xr.DataArray)
+        np.testing.assert_array_equal(data, np.arange(10.0 * 100).reshape((10, 100)))
+
+    def test_getitem_attribute_lazy(self, netcdf_file):
+        """Accessing a global attribute navigates lazily."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["attr/test_attr_str"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        assert h["attr/test_attr_str"] == "test_string"
+
+    def test_getitem_nested_attribute_lazy(self, netcdf_file):
+        """Accessing a group attribute navigates lazily."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/attr/test_attr_str"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        assert h["test_group/attr/test_attr_str"] == "test_string"
+
+    def test_shape_lazily_populated_with_variable(self, netcdf_file):
+        """Accessing /shape navigates to the parent variable and caches shape."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        assert h["test_group/ds1_f/shape"] == (10, 100)
+        # Parent variable should also be cached now
+        assert "test_group/ds1_f" in h.file_content
+
+    def test_contains_existing_key_lazy(self, netcdf_file):
+        """__contains__ returns True for existing paths, caching the result."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        assert "test_group/ds1_f" in h
+        assert "test_group/ds1_f" in h.file_content  # now cached
+
+    def test_contains_nonexistent_key_lazy(self, netcdf_file):
+        """__contains__ returns False for paths that don't exist in the file."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        assert "nonexistent/path" not in h
+
+    def test_get_and_cache_npxr_lazy(self, netcdf_file):
+        """get_and_cache_npxr navigates lazily and caches the numpy-backed result."""
+        import xarray as xr
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        result = h.get_and_cache_npxr("test_group/ds1_f")
+        assert isinstance(result, xr.DataArray)
+        # Second call must return the identical cached object
+        assert h.get_and_cache_npxr("test_group/ds1_f") is result
+
+    def test_second_access_is_cache_hit(self, netcdf_file):
+        """After the first lazy navigation, file_content is populated and no re-navigation happens."""
+        from unittest.mock import patch
+
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=True)
+        h["test_group/ds1_f"]  # first access populates file_content
+        with patch.object(h, "_lazily_navigate", wraps=h._lazily_navigate) as mock_nav:
+            h["test_group/ds1_f"]  # second access should hit cache
+            mock_nav.assert_not_called()
+
+    def test_eager_collect_when_no_cache_handle(self, netcdf_file):
+        """When cache_handle=False, still eagerly collects required variables (original behaviour)."""
+        from satpy.readers.core.netcdf import NetCDF4FileHandler
+
+        filetype_info = {"required_netcdf_variables": ["test_group/ds1_f", "attr/test_attr_str"]}
+        h = NetCDF4FileHandler(netcdf_file, {}, filetype_info, cache_handle=False)
+        h._ensure_initialized()
+        # Eagerly collected, not empty
+        assert len(h.file_content) > 0
+        assert "test_group/ds1_f" in h.file_content
+
+
+NC_ATTRS = {"standard_name": "test_data", "scale_factor": 0.01, "add_offset": 0}
+
 
 def test_get_data_as_xarray_netcdf4(tmp_path):
     """Test getting xr.DataArray from netcdf4 variable."""

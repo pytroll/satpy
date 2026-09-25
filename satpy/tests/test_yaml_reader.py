@@ -1521,3 +1521,52 @@ class TestGEOVariableSegmentYAMLReader:
         new_empty_segment = geswh(empty_segment, new_height, "y")
         assert new_empty_segment.shape == (new_height, 5568)
         assert (new_empty_segment == empty_segment[0,0]).all()
+
+    def test_collect_segment_position_infos_uses_threads(self, GVSYReader):
+        """Test that _collect_segment_position_infos calls get_segment_position_info in worker threads."""
+        import threading
+
+        call_threads = []
+
+        def record_thread_and_return():
+            call_threads.append(threading.current_thread())
+            return {"1km": {"start_position_row": 0, "end_position_row": 100,
+                            "segment_height": 100, "grid_width": 11136}}
+
+        fhs = []
+        for segment in [1, 2, 3]:
+            fh = _create_mocked_basic_fh()
+            fh.filename_info = {"segment": segment}
+            fh.get_segment_position_info = record_thread_and_return
+            fhs.append(fh)
+
+        GVSYReader.segment_infos = {"filetype1": {"available_segment_infos": []}}
+        GVSYReader.file_handlers = {"filetype1": fhs}
+        GVSYReader._collect_segment_position_infos("filetype1")
+
+        assert len(call_threads) == 3
+        # ThreadPoolExecutor always runs tasks in worker threads, not the main thread
+        main_thread = threading.main_thread()
+        assert all(t is not main_thread for t in call_threads)
+
+    def test_collect_segment_position_infos_preserves_order(self, GVSYReader):
+        """Test that _collect_segment_position_infos sets segment_nr correctly for each file handler."""
+        chk_pos_info = {"1km": {"start_position_row": 0, "end_position_row": 100,
+                                "segment_height": 100, "grid_width": 11136}}
+
+        fhs = []
+        for segment in [2, 5]:
+            fh = _create_mocked_basic_fh()
+            fh.filename_info = {"segment": segment}
+            fh.get_segment_position_info = MagicMock(return_value=dict(chk_pos_info))
+            fhs.append(fh)
+
+        GVSYReader.segment_infos = {"filetype1": {"available_segment_infos": []}}
+        GVSYReader.file_handlers = {"filetype1": fhs}
+        GVSYReader._collect_segment_position_infos("filetype1")
+
+        infos = GVSYReader.segment_infos["filetype1"]["available_segment_infos"]
+        assert len(infos) == 2
+        # segment_nr is 0-indexed (segment number minus 1)
+        assert infos[0]["segment_nr"] == 1  # segment 2
+        assert infos[1]["segment_nr"] == 4  # segment 5

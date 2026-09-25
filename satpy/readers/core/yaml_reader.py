@@ -1383,10 +1383,14 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
         # if current empty segment is too tall, slice the DataArray
         return empty_segment[:new_height, :]
     if empty_segment.shape[0] < new_height:
-        # if current empty segment is too short, pad to the new size using the empty segment values
+        # if current empty segment is too short, pad to the new size using the empty segment values.
+        # Determine the fill value from the dtype without triggering a dask compute.
+        # empty_segment is created via xr.full_like(projectable, np.nan): for float dtypes the
+        # fill value is nan; for integer dtypes np.nan coerces to 0.
+        fill_value = np.nan if np.issubdtype(empty_segment.dtype, np.floating) else 0
         return empty_segment.pad(pad_width={dim : (new_height - empty_segment.shape[0], 0)},
                                  mode="constant",
-                                 constant_values=empty_segment[0, 0])
+                                 constant_values=fill_value)
     return empty_segment
 
 
@@ -1422,9 +1426,12 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         return
 
     def _collect_segment_position_infos(self, filetype):
-        # collect the segment positioning infos for all available segments
-        for fh in self.file_handlers[filetype]:
-            chk_infos = fh.get_segment_position_info()
+        # collect the segment positioning infos for all available segments in parallel
+        from concurrent.futures import ThreadPoolExecutor
+        fhs = self.file_handlers[filetype]
+        with ThreadPoolExecutor() as executor:
+            results = list(executor.map(lambda fh: fh.get_segment_position_info(), fhs))
+        for fh, chk_infos in zip(fhs, results):
             chk_infos.update({"segment_nr": fh.filename_info["segment"] - 1})
             self.segment_infos[filetype]["available_segment_infos"].append(chk_infos)
 

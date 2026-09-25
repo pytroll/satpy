@@ -156,16 +156,14 @@ AUX_DATA = {
     "swath_direction": "data/swath_direction",
 }
 
-HIGH_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "500m",
-                                       "grid_width": 22272},
-                      "fci_l1c_fdhsi": {"grid_type": "1km",
-                                        "grid_width": 11136},
-                      }
-LOW_RES_GRID_INFO = {"fci_l1c_hrfi": {"grid_type": "1km",
-                                      "grid_width": 11136},
-                     "fci_l1c_fdhsi": {"grid_type": "2km",
-                                       "grid_width": 5568},
-                     }
+HIGH_RES_GRID_INFO = {
+    "fci_l1c_hrfi": {"grid_type": "500m", "grid_width": 22272},
+    "fci_l1c_fdhsi": {"grid_type": "1km", "grid_width": 11136},
+}
+LOW_RES_GRID_INFO = {
+    "fci_l1c_hrfi": {"grid_type": "1km", "grid_width": 11136},
+    "fci_l1c_fdhsi": {"grid_type": "2km", "grid_width": 5568},
+}
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -179,11 +177,11 @@ def _get_aux_data_name_from_dsname(dsname):
 def _get_channel_name_from_dsname(dsname):
     # FIXME: replace by .removesuffix after we drop support for Python < 3.9
     if dsname.endswith("_pixel_quality"):
-        channel_name = dsname[:-len("_pixel_quality")]
+        channel_name = dsname[: -len("_pixel_quality")]
     elif dsname.endswith("_index_map"):
-        channel_name = dsname[:-len("_index_map")]
+        channel_name = dsname[: -len("_index_map")]
     elif _get_aux_data_name_from_dsname(dsname) is not None:
-        channel_name = dsname[:-len(_get_aux_data_name_from_dsname(dsname)) - 1]
+        channel_name = dsname[: -len(_get_aux_data_name_from_dsname(dsname)) - 1]
     else:
         channel_name = dsname
 
@@ -200,14 +198,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     ``"fci_l1c_nc"``.
 
     """
-    def __init__(self, filename, filename_info, filetype_info,
-                 clip_negative_radiances=None, **kwargs):
+
+    def __init__(self, filename, filename_info, filetype_info, clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
         kwargs.setdefault("cache_var_size", 0)
         kwargs.setdefault("cache_handle", True)
-        super().__init__(filename, filename_info,
-                         filetype_info,
-                         **kwargs)
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
         logger.debug("Reading: {}".format(self.filename))
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))
@@ -245,10 +241,11 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         elif self.filename_info["coverage"] in ["FD", "AF"]:
             return 10
         else:
-            logger.debug(f"Coverage \"{self.filename_info['coverage']}\" not recognised. "
-                         f"Using observation times for nominal times.")
+            logger.debug(
+                f'Coverage "{self.filename_info["coverage"]}" not recognised. '
+                f"Using observation times for nominal times."
+            )
             return None
-
 
     @property
     def nominal_start_time(self):
@@ -257,8 +254,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             return self.filename_info["start_time"]
         else:
             rc_date = self.observation_start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-            return rc_date + dt.timedelta(
-                minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
+            return rc_date + dt.timedelta(minutes=(self.filename_info["repeat_cycle_in_day"] - 1) * self.rc_period_min)
 
     @property
     def nominal_end_time(self):
@@ -316,17 +312,19 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             HIGH_RES_GRID_INFO[file_type]["grid_type"]: {
                 "start_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item(),
                 "end_position_row": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item(),
-                "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item() -
-                                  self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item() + 1,
-                "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"]
+                "segment_height": self.get_and_cache_npxr(vis_06_measured_path + "/end_position_row").item()
+                - self.get_and_cache_npxr(vis_06_measured_path + "/start_position_row").item()
+                + 1,
+                "grid_width": HIGH_RES_GRID_INFO[file_type]["grid_width"],
             },
             LOW_RES_GRID_INFO[file_type]["grid_type"]: {
                 "start_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item(),
                 "end_position_row": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item(),
-                "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item() -
-                                  self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item() + 1,
-                "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"]
-            }
+                "segment_height": self.get_and_cache_npxr(ir_105_measured_path + "/end_position_row").item()
+                - self.get_and_cache_npxr(ir_105_measured_path + "/start_position_row").item()
+                + 1,
+                "grid_width": LOW_RES_GRID_INFO[file_type]["grid_width"],
+            },
         }
         return segment_position_info
 
@@ -342,8 +340,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         elif any(lb in key["name"] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
-            raise ValueError("Unknown dataset key, not a channel, quality or auxiliary data: "
-                             f"{key['name']:s}")
+            raise ValueError(f"Unknown dataset key, not a channel, quality or auxiliary data: {key['name']:s}")
 
     def _get_dataset_measurand(self, key, info=None):
         """Load dataset corresponding to channel measurement.
@@ -352,18 +349,15 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         (counts) or calibrated in terms of brightness temperature, radiance, or
         reflectance.
         """
-        # Get the dataset
-        # Get metadata for given dataset
         measured = self.get_channel_measured_group_path(key["name"])
         data = self[measured + "/effective_radiance"]
 
         attrs = dict(data.attrs).copy()
+
         info = info.copy()
         data = _ensure_dataarray(data)
 
-        fv = attrs.pop(
-            "_FillValue",
-            default_fillvals.get(data.dtype.str[1:], np.float32(np.nan)))
+        fv = attrs.pop("_FillValue", default_fillvals.get(data.dtype.str[1:], np.float32(np.nan)))
         vr = attrs.get("valid_range", [np.float32(-np.inf), np.float32(np.inf)])
         if key["calibration"] == "counts":
             attrs["_FillValue"] = fv
@@ -390,13 +384,15 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         # https://github.com/pytroll/satpy/issues/1171.
         if "pixel_quality" in attrs["ancillary_variables"]:
             attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
-                "pixel_quality", key["name"] + "_pixel_quality")
+                "pixel_quality", key["name"] + "_pixel_quality"
+            )
         else:
             raise ValueError(
                 "Unexpected value for attribute ancillary_variables, "
                 "which the FCI file handler intends to rewrite (see "
                 "https://github.com/pytroll/satpy/issues/1171 for why). "
-                f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
+                f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}"
+            )
 
         resattrs.update(key.to_dict())
 
@@ -431,8 +427,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         if None not in (attrs, key):
             resattrs = self._set_calibrated_data_attributes(resattrs, attrs, key)
 
-        resattrs["platform_name"] = platform_name_translate.get(
-            self["attr/platform"], self["attr/platform"])
+        resattrs["platform_name"] = platform_name_translate.get(self["attr/platform"], self["attr/platform"])
 
         # Add time_parameter attributes
         resattrs["time_parameters"] = {
@@ -450,15 +445,18 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
-        actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
-                                                          "longitude_of_projection_origin"))
+        actual_subsat_lon = float(
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin")
+        )
         actual_subsat_lat = 0.0
         actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
-        logger.info("For IQT data, the following parameter is hardcoded:"
-                    f" satellite_actual_latitude = {actual_subsat_lat}. "
-                    "The following parameters are taken from the projection dictionary: "
-                    f"satellite_actual_longitude = {actual_subsat_lon}, "
-                    f"satellite_actual_altitude = {actual_sat_alt}")
+        logger.info(
+            "For IQT data, the following parameter is hardcoded:"
+            f" satellite_actual_latitude = {actual_subsat_lat}. "
+            "The following parameters are taken from the projection dictionary: "
+            f"satellite_actual_longitude = {actual_subsat_lon}, "
+            f"satellite_actual_altitude = {actual_sat_alt}"
+        )
         return actual_subsat_lon, actual_subsat_lat, actual_sat_alt
 
     def get_parameters_lon_lat_alt(self):
@@ -481,12 +479,14 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         # The "try" is a temporary part of the code as long as the AF data are not fixed
         try:
             nominal_and_proj_subsat_lon = float(
-                self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
+                self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin")
+            )
         except ValueError:
             nominal_and_proj_subsat_lon = 0.0
         nominal_and_proj_subsat_lat = 0.0
         nominal_and_proj_sat_alt = float(
-            self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height")
+        )
 
         orb_param_dict = {
             "orbital_parameters": {
@@ -499,7 +499,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "projection_longitude": nominal_and_proj_subsat_lon,
                 "projection_latitude": nominal_and_proj_subsat_lat,
                 "projection_altitude": nominal_and_proj_sat_alt,
-            }}
+            }
+        }
 
         return orb_param_dict
 
@@ -641,36 +642,114 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
-        logger.debug("Calculated area extent: {}"
-                     .format("".join(str(area_extent))))
+        logger.debug("Calculated area extent: {}".format("".join(str(area_extent))))
 
         # use a (semi-major axis) and rf (reverse flattening) to define ellipsoid as recommended by EUM (see PUG)
-        proj_dict = {"a": a,
-                     "lon_0": lon_0,
-                     "h": h,
-                     "rf": rf,
-                     "proj": "geos",
-                     "units": "m",
-                     "sweep": sweep}
+        proj_dict = {"a": a, "lon_0": lon_0, "h": h, "rf": rf, "proj": "geos", "units": "m", "sweep": sweep}
 
-        area_naming_input_dict = {"platform_name": "mtg",
-                                  "instrument_name": "fci",
-                                  "resolution": int(key["resolution"])
-                                  }
-        area_naming = get_geos_area_naming({**area_naming_input_dict,
-                                            **get_service_mode("fci", lon_0)})
+        area_naming_input_dict = {
+            "platform_name": "mtg",
+            "instrument_name": "fci",
+            "resolution": int(key["resolution"]),
+        }
+        area_naming = get_geos_area_naming({**area_naming_input_dict, **get_service_mode("fci", lon_0)})
 
         area = geometry.AreaDefinition(
-            area_naming["area_id"],
-            area_naming["description"],
-            "",
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+            area_naming["area_id"], area_naming["description"], "", proj_dict, ncols, nlines, area_extent
+        )
 
         self._cache[key["resolution"]] = area
         return area
+
+    def get_bounding_box(self):
+        """Get the bounding box of the file as (lons, lats) tuple.
+
+        Returns the corner coordinates of the file's coverage in (longitude, latitude) format.
+        This is used for area filtering to determine which files cover a given area.
+        """
+        # Check if we already computed this
+        if hasattr(self, "_bounding_box_cached"):
+            return self._bounding_box_cached
+
+        import numpy as np
+
+        # Quick file open - just read what we need directly from h5netcdf
+        # This is much faster than going through get_and_cache_npxr
+        try:
+            import h5netcdf
+        except ImportError:
+            # Fallback to the chunk-based calculation
+            return self._get_bounding_box_from_chunk()
+
+        try:
+            with h5netcdf.File(self.filename, "r") as f:
+                # Get projection parameters
+                proj = f.groups["data"].groups["mtg_geos_projection"]
+                h = float(proj.attrs["perspective_point_height"])
+                a = float(proj.attrs["semi_major_axis"])
+                rf = float(proj.attrs["inverse_flattening"])
+                try:
+                    lon_0 = float(proj.attrs["longitude_of_projection_origin"])
+                except KeyError:
+                    lon_0 = 0.0
+                sweep = (
+                    proj.attrs["sweep_angle_axis"].decode()
+                    if isinstance(proj.attrs["sweep_angle_axis"], bytes)
+                    else proj.attrs["sweep_angle_axis"]
+                )
+
+                # Get x/y coordinates for a sample channel
+                ch = f.groups["data"].groups["ir_105"].groups["measured"]
+                x = ch["x"][:]
+                y = ch["y"][:]
+                x_scale = ch["x"].attrs["scale_factor"]
+                x_offset = ch["x"].attrs["add_offset"]
+                y_scale = ch["y"].attrs["scale_factor"]
+                y_offset = ch["y"].attrs["add_offset"]
+
+                # Calculate extent in projection coordinates
+                x_extent = (x[0] * x_scale + x_offset, x[-1] * x_scale + x_offset)
+                y_extent = (y[0] * y_scale + y_offset, y[-1] * y_scale + y_offset)
+
+                # Convert to lat/lon using pyproj
+                from pyproj import CRS, Transformer
+
+                geos_crs = CRS.from_proj4(f"+proj=geos +h={h} +lon_0={lon_0} +a={a} +rf={rf} +sweep={sweep} +units=m")
+                wgs84 = CRS.from_epsg(4326)
+                transformer = Transformer.from_crs(geos_crs, wgs84, always_xy=True)
+
+                # Get corner coordinates
+                lons, lats = transformer.transform(
+                    [x_extent[0], x_extent[1], x_extent[1], x_extent[0]],
+                    [y_extent[0], y_extent[0], y_extent[1], y_extent[1]],
+                )
+
+                result = (np.array(lons), np.array(lats))
+                self._bounding_box_cached = result
+                return result
+        except Exception:
+            # Fallback to chunk-based calculation
+            return self._get_bounding_box_from_chunk()
+
+    def _get_bounding_box_from_chunk(self):
+        """Get bounding box from chunk number (fallback method)."""
+        import numpy as np
+
+        # FCI scans south to north (chunk 1 is southernmost, chunk 40 is northernmost)
+        chunk = self.filename_info.get("count_in_repeat_cycle", 1)
+
+        num_chunks = 40
+        lat_min = -81.0 + (chunk - 1) * 162.0 / num_chunks
+        lat_max = -81.0 + chunk * 162.0 / num_chunks
+
+        lon_min = -81.0
+        lon_max = 81.0
+
+        lons = np.array([lon_min, lon_max, lon_max, lon_min])
+        lats = np.array([lat_min, lat_min, lat_max, lat_max])
+
+        self._bounding_box_cached = (lons, lats)
+        return self._bounding_box_cached
 
     def calibrate(self, data, key):
         """Calibrate data."""
@@ -679,8 +758,8 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         elif key["calibration"] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
-                + key["calibration"] + ".")
+                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got " + key["calibration"] + "."
+            )
 
         return data
 
@@ -702,26 +781,29 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         if self.clip_negative_radiances:
             data = self._clipneg(data)
         if key["name"] == "ir_38":
-            data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
-                            (data * data.attrs.get("warm_scale_factor", 1) +
-                             data.attrs.get("warm_add_offset", 0)),
-                            (data * data.attrs.get("scale_factor", 1) +
-                             data.attrs.get("add_offset", 0))
-                            )
+            data = xr.where(
+                ((2**12 - 1 < data) & (data <= 2**13 - 1)),
+                (data * data.attrs.get("warm_scale_factor", 1) + data.attrs.get("warm_add_offset", 0)),
+                (data * data.attrs.get("scale_factor", 1) + data.attrs.get("add_offset", 0)),
+            )
         else:
-            data = (data * data.attrs.get("scale_factor", 1) +
-                    data.attrs.get("add_offset", 0))
+            data = data * data.attrs.get("scale_factor", 1) + data.attrs.get("add_offset", 0)
 
         measured = self.get_channel_measured_group_path(key["name"])
-        data.attrs.update({"radiance_unit_conversion_coefficient":
-                               self.get_and_cache_npxr(measured + "/radiance_unit_conversion_coefficient")})
+        data.attrs.update(
+            {
+                "radiance_unit_conversion_coefficient": self.get_and_cache_npxr(
+                    measured + "/radiance_unit_conversion_coefficient"
+                )
+            }
+        )
         return data
 
     @staticmethod
     def _clipneg(data):
         """Clip counts to avoid negative radiances."""
         lo = -data.attrs.get("add_offset", 0) // data.attrs.get("scale_factor", 1) + 1
-        return data.where((~data.notnull())|(data>=lo), lo)
+        return data.where((~data.notnull()) | (data >= lo), lo)
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
@@ -737,18 +819,16 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         c2 = self.get_and_cache_npxr(measured + "/radiance_to_bt_conversion_constant_c2").astype(np.float32)
 
         for v in (vc, a, b, c1, c2):
-            if v == v.attrs.get("_FillValue",
-                                default_fillvals.get(v.dtype.str[1:])):
+            if v == v.attrs.get("_FillValue", default_fillvals.get(v.dtype.str[1:])):
                 logger.error(
-                    "{:s} set to fill value, cannot produce "
-                    "brightness temperatures for {:s}.".format(
-                        v.attrs.get("long_name",
-                                    "at least one necessary coefficient"),
-                        measured))
+                    "{:s} set to fill value, cannot produce brightness temperatures for {:s}.".format(
+                        v.attrs.get("long_name", "at least one necessary coefficient"), measured
+                    )
+                )
                 return radiance * np.float32(np.nan)
 
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc ** np.float32(3.)) / radiance)
+        denom = a * np.log(1 + (c1 * vc ** np.float32(3.0)) / radiance)
 
         res = nom / denom - b / a
         return res
@@ -759,11 +839,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         cesi = self.get_and_cache_npxr(measured + "/channel_effective_solar_irradiance").astype(np.float32)
 
-        if cesi == cesi.attrs.get(
-                "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
+        if cesi == cesi.attrs.get("_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
-                "channel effective solar irradiance set to fill value, "
-                "cannot produce reflectance for {:s}.".format(measured))
+                "channel effective solar irradiance set to fill value, cannot produce reflectance for {:s}.".format(
+                    measured
+                )
+            )
             return radiance * np.float32(np.nan)
         sun_earth_distance = self._compute_sun_earth_distance
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
@@ -778,8 +859,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = sun_earth_distance_correction(utc_date)
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
         else:
-            sun_earth_distance = np.nanmean(
-                self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
+            sun_earth_distance = np.nanmean(self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
         return sun_earth_distance
 
 
