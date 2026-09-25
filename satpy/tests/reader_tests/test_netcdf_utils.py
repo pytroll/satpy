@@ -749,6 +749,47 @@ def _is_open(file_handle):
     return not file_handle._closed
 
 
+@pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf", ["netcdf4", "h5netcdf"]])
+@pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
+class TestDeferOpen:
+    """Test opening the file only when something is first read from it."""
+
+    def test_not_opened_until_read(self, netcdf_file, strategy, engine):
+        """Test that the file is opened on the first read."""
+        from xarray.backends.file_manager import FILE_CACHE
+
+        num_cached_before = len(FILE_CACHE)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
+                                          defer_open=True)
+        assert file_handler._accessor is None
+        assert file_handler.file_handle is None
+        assert file_handler._root_store is None
+        assert len(FILE_CACHE) == num_cached_before
+
+        assert file_handler["/attr/test_attr_str"] == "test_string"
+        assert file_handler.accessor.engine == ("netcdf4" if isinstance(engine, list) else engine)
+        assert (file_handler.file_handle is not None) == (strategy == "file_handle")
+        np.testing.assert_array_equal(file_handler["ds2_s"], np.arange(10))
+
+    def test_missing_file_fails_on_first_read(self, tmp_path, strategy, engine):
+        """Test that a file that can't be opened only fails when it is first read."""
+        file_handler = NetCDF4FileHandler(tmp_path / "missing.nc", {}, {}, open_strategy=strategy,
+                                          engine=engine, defer_open=True)
+        # engine lists raise a RuntimeError when none of them can open the file
+        with pytest.raises((IOError, RuntimeError)):
+            file_handler["/attr/test_attr_str"]
+        with pytest.raises((IOError, RuntimeError)):
+            "ds2_f" in file_handler  # noqa: B015
+
+    def test_close_before_open(self, netcdf_file, strategy, engine):
+        """Test that closing a file handler that never opened its file doesn't open it."""
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
+                                          defer_open=True)
+        file_handler.close()
+        assert file_handler._accessor is None
+        assert file_handler._root_store is None
+
+
 class TestNetCDF4FsspecFileHandler:
     """Test the remote reading class."""
 
