@@ -232,10 +232,13 @@ class TestNetCDF4FileHandler:
                                open_strategy="file_handle")
         assert h.file_handle is not None
         assert h.file_handle.isopen()
+        # variables are only cached when they are accessed, without walking through the file
+        assert not h.cached_file_content
+        assert h.file_content._file_keys is None
 
-        assert sorted(h.cached_file_content.keys()) == ["ds2_s", "ds2_sc"]
         # with caching, these tests access different lines than without
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
+        assert h["ds2_sc"] == 42
         np.testing.assert_array_equal(h["test_group/ds1_i"],
                                       np.arange(10 * 100).reshape((10, 100)))
         # check that root variables can still be read from cached file object,
@@ -243,6 +246,8 @@ class TestNetCDF4FileHandler:
         np.testing.assert_array_equal(
                 h["ds2_f"],
                 np.arange(10. * 100).reshape((10, 100)))
+        assert sorted(h.cached_file_content.keys()) == ["ds2_s", "ds2_sc"]
+        assert h["ds2_s"] is h.cached_file_content["ds2_s"]
         h.__del__()
         assert not h.file_handle.isopen()
 
@@ -262,10 +267,10 @@ class TestNetCDF4FileHandler:
         uncached_handler = NetCDF4FileHandler(cf_netcdf_file, {}, {}, **kwargs)
 
         for var_name in ("scaled", "time"):
-            assert var_name in cached_handler.cached_file_content
-            assert var_name not in uncached_handler.cached_file_content
             cached = cached_handler[var_name]
             uncached = uncached_handler[var_name]
+            assert var_name in cached_handler.cached_file_content
+            assert var_name not in uncached_handler.cached_file_content
             assert cached.chunks is None
             xr.testing.assert_identical(cached, uncached.compute())
 
