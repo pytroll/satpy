@@ -69,7 +69,7 @@ class TestSceneAllAvailableDatasets:
         num_reader_ds = 21 + 6
         assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        assert len(id_list) == num_reader_ds + 33
+        assert len(id_list) == num_reader_ds + 36
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
@@ -79,8 +79,8 @@ class TestSceneAllAvailableDatasets:
         assert len(id_list) == 2
         id_list = scene.all_dataset_ids(composites=True)
         # ds1 and ds2 => 2
-        # composites that use these two datasets => 11
-        assert len(id_list) == 2 + 11
+        # composites that use these two datasets => 14
+        assert len(id_list) == 2 + 14
 
     def test_available_datasets_one_reader(self):
         """Test the available datasets for one reader."""
@@ -89,8 +89,41 @@ class TestSceneAllAvailableDatasets:
         id_list = scene.available_dataset_ids()
         assert len(id_list) == 1
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16, static_image, comp26
-        assert len(id_list) == 6
+        # ds1, comp1, comp1_wmo, comp_tagged_only_wmo, comp_uses_tagged, comp14, comp16, static_image, comp26
+        assert len(id_list) == 9
+
+    def test_available_composite_names_lists_each_name_once(self):
+        """Check that tagged variants don't duplicate entries in the composite name list.
+
+        'comp1' exists both untagged and with tag='wmo'; the default name listing must
+        contain 'comp1' exactly once so that load(available_composite_names()) chains
+        don't silently start computing every variant.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        names = scene.available_composite_names()
+        assert names.count("comp1") == 1
+
+    def test_available_composite_names_show_tagged_only_composites_as_loadable(self):
+        """Check that tagged-only composites are listed by their loadable tagged spelling.
+
+        'comp_tagged_only' exists only as tag='wmo'; a plain 'comp_tagged_only' entry
+        would fail to load, so the listing must show 'comp_tagged_only:wmo' instead.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        names = scene.available_composite_names()
+        assert "comp_tagged_only:wmo" in names
+        assert "comp_tagged_only" not in names
+
+    def test_all_composite_names_show_tagged_only_composites_as_loadable(self):
+        """Check that all_composite_names uses the same loadable spellings as the available listing.
+
+        'comp_tagged_only' exists only as tag='wmo', so the all-composites listing must show
+        'comp_tagged_only:wmo' and not the plain name that scene.load rejects.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        names = scene.all_composite_names()
+        assert "comp_tagged_only:wmo" in names
+        assert "comp_tagged_only" not in names
 
     def test_available_composite_ids_missing_available(self):
         """Test available_composite_ids when a composites dep is missing."""
@@ -301,6 +334,80 @@ class TestLoadingComposites:
             assert loaded_ids[0]["name"] == exp_id_or_name
         else:
             assert loaded_ids[0] == exp_id_or_name
+
+    def test_load_composite_by_tag_syntax(self):
+        """Check that loading with tag syntax stores the dataset under a DataID with name and tag.
+
+        'comp1:wmo' is syntactic sugar for DataQuery(name='comp1', tag='wmo').
+        The dataset should be accessible via scene['comp1:wmo'] and its DataID
+        should have name='comp1' and tag='wmo'.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp1:wmo"])
+        assert not scene.missing_datasets
+        data = scene["comp1:wmo"]
+        assert data.attrs["_satpy_id"]["name"] == "comp1"
+        assert data.attrs["_satpy_id"]["tag"] == "wmo"
+
+    def test_load_composite_by_preferred_tags(self):
+        """Check that preferred_composite_tags causes a plain load to resolve to the tagged variant.
+
+        With preferred_composite_tags=['wmo'], loading 'comp1' selects the DataID(name='comp1', tag='wmo')
+        compositor.  The resulting dataset is stored under that tagged DataID and is accessible
+        via the tag syntax 'comp1:wmo'.
+        """
+        import satpy
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        with satpy.config.set(preferred_composite_tags=["wmo"]):
+            scene.load(["comp1"])
+        assert not scene.missing_datasets
+        data = scene["comp1:wmo"]
+        assert data.attrs["_satpy_id"]["name"] == "comp1"
+        assert data.attrs["_satpy_id"]["tag"] == "wmo"
+
+    def test_load_plain_name_prefers_untagged_variant(self):
+        """Check that a plain-name load picks the untagged variant when tagged ones also exist.
+
+        Both 'comp1' (untagged) and the tag='wmo' variant are defined; with no tag in the
+        query and no preferred_composite_tags configured, the untagged compositor wins.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp1"])
+        assert not scene.missing_datasets
+        data = scene["comp1"]
+        assert data.attrs["_satpy_id"]["name"] == "comp1"
+        assert data.attrs["_satpy_id"].get("tag") is None
+
+    def test_load_plain_name_fails_when_only_tagged_variants_exist(self):
+        """Check that a plain-name load fails when the composite exists only in tagged form.
+
+        'comp_tagged_only' is defined only with tag='wmo'; loading it without a tag
+        (and without preferred_composite_tags) must raise, not silently pick a variant.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        with pytest.raises(KeyError):
+            scene.load(["comp_tagged_only"])
+
+    def test_loaded_tagged_composite_exposes_tag_in_attrs(self):
+        """Check that a loaded tagged composite carries its tag in the plain attrs.
+
+        Writer filename patterns like '{name}_{tag}.tif' read from the dataset attrs,
+        so the tag must be present there, not only inside the '_satpy_id'.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp1:wmo"])
+        assert scene["comp1:wmo"].attrs["tag"] == "wmo"
+
+    def test_load_composite_with_tagged_prerequisite(self):
+        """Check that a composite can depend on the tagged variant of another composite.
+
+        'comp_uses_tagged' lists 'comp1:wmo' as a prerequisite; loading it must resolve
+        that dependency to the DataID(name='comp1', tag='wmo') compositor and succeed.
+        """
+        scene = Scene(filenames=["fake1_1.txt"], reader="fake1")
+        scene.load(["comp_uses_tagged"])
+        assert not scene.missing_datasets
+        assert "comp_uses_tagged" in scene
 
     def test_load_multiple_resolutions(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""

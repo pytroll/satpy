@@ -279,6 +279,49 @@ Clipping of negative radiances is currently implemented for the following reader
 * ``abi_l1b``, ``ami_l1b``, ``fci_l1c_nc``
 
 
+Preferred Composite Tags
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_PREFERRED_COMPOSITE_TAGS``
+* **YAML/Config Key**: ``preferred_composite_tags``
+* **Default**: ``[]``
+
+Ordered list of composite variant tags that Satpy should prefer when resolving
+an unqualified composite name.  When a user requests a composite such as
+``"true_color"`` and this list is non-empty, Satpy tries each tag in the list,
+in order, looking for a compositor with that ``name`` and ``tag``.  If no
+tagged variant is found the untagged variant is used as a fallback.  The
+resolution is done per composite, so a preference like ``["chmi", "wmo"]``
+picks the ``chmi`` variant where one exists, the ``wmo`` variant otherwise,
+and the untagged composite as a last resort.  The preference also applies when
+resolving a composite's plain-name prerequisites.
+
+For example, to prefer Pyspectral-based variants:
+
+.. code-block:: python
+
+    import satpy
+    satpy.config.set(preferred_composite_tags=["pyspectral"])
+
+Or to prefer CREFL Rayleigh correction over Pyspectral:
+
+.. code-block:: python
+
+    satpy.config.set(preferred_composite_tags=["crefl", "pyspectral"])
+
+An explicit ``name:tag`` syntax in the ``scene.load()`` call always overrides
+this setting for that specific dataset.
+
+When setting this as an environment variable, it should be a comma-separated
+list of tag names, for example:
+
+.. code-block:: bash
+
+    export SATPY_PREFERRED_COMPOSITE_TAGS=crefl,pyspectral
+
+See :ref:`composite_variants` for a full description of
+composite tagging and the ``name:tag`` load syntax.
+
 Temporary Directory
 ^^^^^^^^^^^^^^^^^^^
 
