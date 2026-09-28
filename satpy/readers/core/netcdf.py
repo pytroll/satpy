@@ -601,15 +601,16 @@ class NetCDF4FileContent(Mapping):
         return None
 
     def _get_attr(self, obj, name, key):
-        if name not in self._accessor.get_object_attrs(obj):
-            raise KeyError(key)
-        value = self._accessor.get_attr(obj, name)
-        with suppress(ValueError):
-            value = np2str(value)
-        return value
+        try:
+            value = self._accessor.get_attr(obj, name)
+        except (AttributeError, KeyError):
+            raise KeyError(key) from None
+        return _decode_attr(value)
 
     def _get_attrs(self, obj):
-        return {name: self._get_attr(obj, name, name) for name in self._accessor.get_object_attrs(obj)}
+        # The values come from a single read of all attributes. With netCDF4, every such
+        # read gets each attribute from the file, so reading it per attribute is quadratic.
+        return {name: _decode_attr(value) for name, value in self._accessor.get_object_attrs(obj).items()}
 
     @staticmethod
     def _get_dimension(obj, name, key):
@@ -665,6 +666,13 @@ class NetCDF4FileContent(Mapping):
             if self._accessor.is_variable(value):
                 yield from self._walk_variable_properties(key, value)
                 yield from self._walk_attrs(key, value)
+
+
+def _decode_attr(value):
+    """Convert attribute ``value`` to str if it is a single numpy string or bytes value, see :func:`np2str`."""
+    with suppress(ValueError):
+        value = np2str(value)
+    return value
 
 
 def get_data_as_xarray(variable):
@@ -744,7 +752,8 @@ class NetCDF4Accessor:
     @staticmethod
     def get_attr(obj, key):
         """Get an attribute from obj."""
-        return getattr(obj, key)
+        # Not getattr, which also gives the python attributes of the netCDF4 objects (e.g. "name" or "shape").
+        return obj.getncattr(key)
 
     @staticmethod
     def get_object_attrs(obj):
