@@ -6,6 +6,7 @@ import os
 import warnings
 from collections.abc import Mapping
 from contextlib import suppress
+from functools import cache
 
 import dask.array as da
 import numpy as np
@@ -131,10 +132,9 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._cache_var_size = cache_var_size
         # Variables read into memory, see ``cache_var_size`` and ``get_and_cache_npxr``.
         self.cached_variables = {}
-        store_open_kwargs, self._open_dataset_kwargs = _split_xarray_kwargs(xarray_kwargs, auto_maskandscale)
         open_strategy = _resolve_open_strategy(open_strategy, cache_handle)
         opener_cls = _FileHandleOpener if open_strategy == "file_handle" else _SharedStoreOpener
-        self._opener = opener_cls(filename, engine, store_open_kwargs, auto_maskandscale)
+        self._opener = opener_cls(filename, engine, xarray_kwargs, auto_maskandscale)
         # The file content references the opener, not this file handler, so
         # deleting the file handler closes the file right away.
         self.file_content = NetCDF4FileContent(self._opener,
@@ -174,9 +174,9 @@ class NetCDF4FileHandler(BaseFileHandler):
         if self.accessor.is_variable(val):
             if self._is_small_variable(val):
                 return self._cache_variable(key)
-            return self._opener.read_variable(key, self._open_dataset_kwargs)
+            return self._opener.read_variable(key)
         if self.accessor.is_group(val):
-            return self._opener.read_group(key, self._open_dataset_kwargs)
+            return self._opener.read_group(key)
         return val
 
     def _is_small_variable(self, var):
@@ -187,7 +187,7 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def _cache_variable(self, key):
         """Read variable ``key`` into memory and keep it for the next reads."""
-        val = self._opener.load_variable(key, self._open_dataset_kwargs)
+        val = self._opener.load_variable(key)
         self.cached_variables[key] = val
         return val
 
@@ -242,11 +242,10 @@ def _split_xarray_kwargs(xarray_kwargs, auto_maskandscale):
 
     """
     xarray_kwargs = xarray_kwargs or {}
-    store_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
     store_open_kwargs = dict(xarray_kwargs.get("backend_kwargs") or {})
     open_dataset_kwargs = {"chunks": CHUNK_SIZE, "mask_and_scale": auto_maskandscale}
     for key, val in xarray_kwargs.items():
-        if key in store_params:
+        if key in _get_all_store_open_params():
             store_open_kwargs[key] = val
         elif key not in ("engine", "backend_kwargs"):
             open_dataset_kwargs[key] = val
@@ -287,13 +286,17 @@ class _NetCDF4Opener:
     The accessor of a single engine is known from the start. Of several
     engines, the first one that opens the file is chosen and used from then on.
 
+    The options for ``xarray.open_dataset`` are in ``open_dataset_kwargs``.
+    A file handler can change them until it first reads a variable or group
+    with xarray, as the datasets opened with them are kept until ``close``.
+
     """
 
-    def __init__(self, filename, engine, store_open_kwargs, auto_maskandscale):
+    def __init__(self, filename, engine, xarray_kwargs, auto_maskandscale):
         """Initialize the opener without opening anything."""
         self.filename = filename
         self._engine = engine
-        self._store_open_kwargs = store_open_kwargs
+        self._store_open_kwargs, self.open_dataset_kwargs = _split_xarray_kwargs(xarray_kwargs, auto_maskandscale)
         self._auto_maskandscale = auto_maskandscale
         self._accessor = choose_accessor_from_engine(engine) if isinstance(engine, str) else None
         self.file_handle = None
@@ -316,18 +319,18 @@ class _NetCDF4Opener:
         """Get the raw netCDF4/h5netcdf root group that metadata is read from, opening the file if needed."""
         raise NotImplementedError
 
-    def read_variable(self, key, open_dataset_kwargs):
+    def read_variable(self, key):
         """Read variable ``key`` as a DataArray of a dask array."""
         raise NotImplementedError
 
-    def load_variable(self, key, open_dataset_kwargs):
+    def load_variable(self, key):
         """Read variable ``key`` into memory as a DataArray."""
         raise NotImplementedError
 
-    def read_group(self, key, open_dataset_kwargs):
+    def read_group(self, key):
         """Read group ``key`` as a Dataset of dask arrays with xarray, whatever the open strategy."""
         # Copied so callers can modify metadata without touching the shared dataset.
-        return self._get_dataset(key, open_dataset_kwargs).copy()
+        return self._get_dataset(key).copy()
 
     def _open_with_engine(self, open_func):
         """Return ``open_func(accessor)`` with the accessor for the engine of the file.
@@ -342,14 +345,18 @@ class _NetCDF4Opener:
             except IOError:
                 LOG.exception("Failed reading file %s. Possibly corrupted file", self.filename)
                 raise
-
-        def open_and_choose_engine(engine):
-            accessor = choose_accessor_from_engine(engine)
-            opened = open_func(accessor)
+        for engine in self._engine:
+            LOG.debug(f"Trying reading nc file with {engine} engine…")
+            try:
+                accessor = choose_accessor_from_engine(engine)
+                opened = open_func(accessor)
+            except Exception as err:
+                LOG.warning(f"Cannot use {engine} engine to read nc file.")
+                LOG.debug(f"The error is: {str(err)}")
+                continue
             self._accessor = accessor
             return opened
-
-        return _open_with_engines(self._engine, open_and_choose_engine)
+        raise RuntimeError("Could not work out an appropriate engine to open netCDF4 files")
 
     def _get_root_store(self):
         """Get the xarray backend store of the whole file, (re)opening it if needed."""
@@ -361,17 +368,15 @@ class _NetCDF4Opener:
         """Open the xarray backend store of the whole file with the engine of ``accessor``."""
         engine = accessor.engine
         # skip the options that only the backend store of the other engine has
-        all_params = _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
-        own_params = _get_store_open_params(engine)
-        open_kwargs = {key: val for key, val in self._store_open_kwargs.items()
-                       if key in own_params or key not in all_params}
+        other_params = _get_all_store_open_params() - _get_store_open_params(engine)
+        open_kwargs = {key: val for key, val in self._store_open_kwargs.items() if key not in other_params}
         filename = open_file_or_filename(self.filename) if engine == "h5netcdf" else self.filename
         if isinstance(filename, os.PathLike):
             # xarray only uses its (cached) file manager for string paths
             filename = os.fspath(filename)
         return _get_store_class(engine).open(filename, mode="r", **open_kwargs)
 
-    def _get_dataset(self, group, open_dataset_kwargs):
+    def _get_dataset(self, group):
         """Get the dataset for ``group``, opening and remembering it if needed.
 
         The dataset is held open until ``close``. Opening and closing it once
@@ -389,7 +394,7 @@ class _NetCDF4Opener:
         if group not in self._datasets:
             root_store = self._get_root_store()
             store = root_store.get_child_store(group) if group else root_store
-            self._datasets[group] = xr.open_dataset(store, **open_dataset_kwargs)
+            self._datasets[group] = xr.open_dataset(store, **self.open_dataset_kwargs)
         return self._datasets[group]
 
     def close(self):
@@ -420,10 +425,10 @@ class _SharedStoreOpener(_NetCDF4Opener):
         """Get the raw root group of the backend store, (re)opening the store if needed."""
         return self._get_root_store().ds
 
-    def read_variable(self, key, open_dataset_kwargs):
+    def read_variable(self, key):
         """Read variable ``key`` from the dataset of its group."""
         group, _, name = key.rpartition("/")
-        val = self._get_dataset(group, open_dataset_kwargs)[name]
+        val = self._get_dataset(group)[name]
         # Even though `chunks` is specified in the kwargs, xarray
         # uses dask.arrays only for data variables that have at least
         # one dimension; for zero-dimensional data variables (scalar),
@@ -434,9 +439,9 @@ class _SharedStoreOpener(_NetCDF4Opener):
         # Copied so callers can modify metadata without touching the shared dataset.
         return val.copy(deep=False)
 
-    def load_variable(self, key, open_dataset_kwargs):
+    def load_variable(self, key):
         """Read variable ``key`` from the dataset of its group into memory."""
-        return self.read_variable(key, open_dataset_kwargs).load()
+        return self.read_variable(key).load()
 
 
 class _FileHandleOpener(_NetCDF4Opener):
@@ -464,11 +469,11 @@ class _FileHandleOpener(_NetCDF4Opener):
                              f"{accessor.engine} engine. Use another open_strategy or engine.")
         return file_handle
 
-    def read_variable(self, key, open_dataset_kwargs):
+    def read_variable(self, key):
         """Wrap variable ``key`` of the file handle in a dask array."""
         return self._to_dataarray(key, da.from_array)
 
-    def load_variable(self, key, open_dataset_kwargs):
+    def load_variable(self, key):
         """Read variable ``key`` of the file handle into memory.
 
         This is about ten times as fast for a small variable as computing the
@@ -693,29 +698,22 @@ def choose_accessor_from_engine(engine):
     raise NotImplementedError(f"Engine {engine} not implemented.")
 
 
-def _open_with_engines(engines, open_with_engine):
-    """Return the result of ``open_with_engine(engine)`` for the first engine that works."""
-    for engine in engines:
-        try:
-            LOG.debug(f"Trying reading nc file with {engine} engine…")
-            return open_with_engine(engine)
-        except Exception as err:
-            LOG.warning(f"Cannot use {engine} engine to read nc file.")
-            LOG.debug(f"The error is: {str(err)}")
-            continue
-    else:
-        raise RuntimeError("Could not work out an appropriate engine to open netCDF4 files")
-
-
 def _get_store_class(engine):
     from xarray.backends import H5NetCDFStore, NetCDF4DataStore
 
     return {"netcdf4": NetCDF4DataStore, "h5netcdf": H5NetCDFStore}[engine]
 
 
+@cache
 def _get_store_open_params(engine):
     """Get the names of the options for opening the xarray backend store of ``engine``."""
-    return set(inspect.signature(_get_store_class(engine).open).parameters) - {"filename", "mode", "group"}
+    return frozenset(inspect.signature(_get_store_class(engine).open).parameters) - {"filename", "mode", "group"}
+
+
+@cache
+def _get_all_store_open_params():
+    """Get the names of the options for opening the xarray backend store of any engine."""
+    return _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
 
 
 class NetCDF4Accessor:

@@ -188,14 +188,12 @@ class LINCFileHandler(NetCDF4FsspecFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, open_strategy="file_handle"):
         """Initialize LINCFileHandler."""
+        # decode_times should be disabled for xr.open_dataset access (open strategies other than "file_handle"):
         super().__init__(filename, filename_info, filetype_info,
                          cache_var_size=10000,
-                         open_strategy=open_strategy
+                         open_strategy=open_strategy,
+                         xarray_kwargs={"decode_times": False, "mask_and_scale": False},
                          )
-
-        # decode_times should be disabled for xr.open_dataset access (open strategies other than "file_handle"):
-        self._open_dataset_kwargs["decode_times"] = False
-        self._open_dataset_kwargs["mask_and_scale"] = False
 
         # Processing level that should be set by derived classes.
         self.processing_level = filetype_info.get("processing_level", "L0")
