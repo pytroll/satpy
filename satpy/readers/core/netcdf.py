@@ -55,11 +55,9 @@ class NetCDF4FileHandler(BaseFileHandler):
     from the file when it is requested, see :class:`NetCDF4FileContent` for
     the ``file_content`` mapping that holds it.
 
-    Note that loading datasets requires opening the original file with
-    ``xarray`` (unless those datasets are cached, see below). That dataset is
-    then held open for the lifetime of this file handler; call ``close`` to
-    release it sooner. To get just the shape of the dataset append "/shape" to
-    the item string:
+    Note that loading datasets requires reading them from the original file
+    (unless those datasets are cached, see below). To get just the shape of
+    the dataset append "/shape" to the item string:
 
         wrapper["group/subgroup/var_name/shape"]
 
@@ -580,12 +578,10 @@ class NetCDF4FileContent(Mapping):
         root = self._opener.get_metadata_root()
         if key == "/attrs":
             return self._get_attrs(root)
-        for prefix in ("/attr/", "attr/"):
-            if key.startswith(prefix):
-                return self._get_attr(root, key[len(prefix):], key)
-        if key.startswith("/dimension/"):
-            return self._get_dimension(root, key[len("/dimension/"):], key)
         parts = key.split("/")
+        if key.startswith("/"):
+            # "/attr/..." and "/dimension/..." of the root group itself, even if it has a child named like that
+            return self._read_from_object(root, parts[1], parts[2:], key)
         obj = root
         for index, part in enumerate(parts):
             child = self._get_child(obj, part)
