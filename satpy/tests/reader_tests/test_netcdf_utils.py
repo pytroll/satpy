@@ -640,6 +640,22 @@ class TestNetCDF4FileContent:
         file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
         assert {key: val for key, val in file_handler.file_content.items() if "/attr/" in key} == expected
 
+    def test_root_variable_named_attr(self, tmp_path, strategy, engine):
+        """Test that a root variable named "attr" is looked up as it is walked, without hiding the global attributes."""
+        from netCDF4 import Dataset
+        filename = tmp_path / "test_attr_variable.nc"
+        with Dataset(filename, "w") as nc:
+            nc.createDimension("x", 3)
+            nc.createVariable("attr", np.float32, ("x",)).units = "K"
+            nc.units = "global"
+        expected = {"attr/shape": (3,), "attr/attr/units": "K", "/attr/units": "global"}
+
+        file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+        assert {key: file_handler[key] for key in expected} == expected
+        file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+        walked = dict(file_handler.file_content.items())
+        assert {key: walked[key] for key in expected} == expected
+
     @pytest.mark.parametrize("key", [
         "fake_ds",
         "",
