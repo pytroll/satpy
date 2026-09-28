@@ -2,6 +2,7 @@
 
 import itertools
 from contextlib import nullcontext
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -17,7 +18,6 @@ from satpy.readers.core.netcdf import (
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - tmp_path
 # - tmp_path_factory
-# - monkeypatch
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -263,7 +263,7 @@ class TestNetCDF4FileHandler:
         assert group["ds1_i"].shape == (10, 100)
         assert not file_handler.cached_variables
 
-    def test_file_opened_once(self, netcdf_file, monkeypatch):
+    def test_file_opened_once(self, netcdf_file):
         """Test that reading many variables only opens the file once and decodes each group once.
 
         Opening (and closing) the file for every variable gives each returned
@@ -275,29 +275,15 @@ class TestNetCDF4FileHandler:
         import xarray as xr
         from xarray.backends import NetCDF4DataStore
 
-        store_opens = []
-        real_store_open = NetCDF4DataStore.open
+        with mock.patch.object(NetCDF4DataStore, "open", wraps=NetCDF4DataStore.open) as store_open, \
+                mock.patch.object(xr, "open_dataset", wraps=xr.open_dataset) as open_dataset:
+            file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
+            for var in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "ds2_s"):
+                for _ in range(3):
+                    file_handler[var]
 
-        def counting_store_open(*args, **kwargs):
-            store = real_store_open(*args, **kwargs)
-            store_opens.append(store)
-            return store
-
-        groups = []
-        real_open_dataset = xr.open_dataset
-
-        def counting_open_dataset(store, **kwargs):
-            groups.append(store._group)
-            return real_open_dataset(store, **kwargs)
-
-        monkeypatch.setattr(NetCDF4DataStore, "open", counting_store_open)
-        monkeypatch.setattr(xr, "open_dataset", counting_open_dataset)
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
-        for var in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "ds2_s"):
-            for _ in range(3):
-                file_handler[var]
-
-        assert len(store_opens) == 1
+        store_open.assert_called_once()
+        groups = [call.args[0]._group for call in open_dataset.call_args_list]
         assert sorted(groups, key=str) == [None, "test_group"]
 
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
@@ -731,12 +717,10 @@ class TestNetCDF4FsspecFileHandler:
     ])
     def test_use_h5netcdf_for_file_not_accessible_locally(self, open_strategy, nc4_opener, h5_opener):
         """Test that h5netcdf is used for files that are not accesible locally."""
-        from unittest.mock import patch
-
         fname = "s3://bucket/object.nc"
 
-        with patch(nc4_opener, side_effect=OSError("not a local file")), patch(h5_opener) as h5_open:
-            with patch("satpy.readers.core.netcdf.open_file_or_filename"):
+        with mock.patch(nc4_opener, side_effect=OSError("not a local file")), mock.patch(h5_opener) as h5_open:
+            with mock.patch("satpy.readers.core.netcdf.open_file_or_filename"):
                 fh = NetCDF4FsspecFileHandler(fname, {}, {}, open_strategy=open_strategy)
                 h5_open.assert_called()
                 assert fh.accessor.engine == "h5netcdf"
