@@ -6,7 +6,6 @@ import os
 import warnings
 from collections.abc import Mapping
 from contextlib import suppress
-from functools import cache
 
 import dask.array as da
 import numpy as np
@@ -242,7 +241,7 @@ def _split_xarray_kwargs(xarray_kwargs, auto_maskandscale):
     store_open_kwargs = dict(xarray_kwargs.get("backend_kwargs") or {})
     open_dataset_kwargs = {"chunks": CHUNK_SIZE, "mask_and_scale": auto_maskandscale}
     for key, val in xarray_kwargs.items():
-        if key in _get_all_store_open_params():
+        if key in _ALL_STORE_OPEN_PARAMS:
             store_open_kwargs[key] = val
         elif key not in ("engine", "backend_kwargs"):
             open_dataset_kwargs[key] = val
@@ -363,7 +362,7 @@ class _NetCDF4Opener:
         """Open the xarray backend store of the whole file with the engine of ``accessor``."""
         engine = accessor.engine
         # skip the options that only the backend store of the other engine has
-        other_params = _get_all_store_open_params() - _get_store_open_params(engine)
+        other_params = _ALL_STORE_OPEN_PARAMS - _STORE_OPEN_PARAMS[engine]
         open_kwargs = {key: val for key, val in self._store_open_kwargs.items() if key not in other_params}
         filename = open_file_or_filename(self.filename) if engine == "h5netcdf" else self.filename
         if isinstance(filename, os.PathLike):
@@ -710,16 +709,15 @@ def _get_store_class(engine):
     return {"netcdf4": NetCDF4DataStore, "h5netcdf": H5NetCDFStore}[engine]
 
 
-@cache
 def _get_store_open_params(engine):
     """Get the names of the options for opening the xarray backend store of ``engine``."""
     return frozenset(inspect.signature(_get_store_class(engine).open).parameters) - {"filename", "mode", "group"}
 
 
-@cache
-def _get_all_store_open_params():
-    """Get the names of the options for opening the xarray backend store of any engine."""
-    return _get_store_open_params("netcdf4") | _get_store_open_params("h5netcdf")
+# Looked up once, when this module is imported, so that replacing the ``open``
+# method of a store later (e.g. with a mock in tests) doesn't change them.
+_STORE_OPEN_PARAMS = {engine: _get_store_open_params(engine) for engine in ("netcdf4", "h5netcdf")}
+_ALL_STORE_OPEN_PARAMS = _STORE_OPEN_PARAMS["netcdf4"] | _STORE_OPEN_PARAMS["h5netcdf"]
 
 
 class NetCDF4Accessor:
