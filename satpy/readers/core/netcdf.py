@@ -296,9 +296,7 @@ class _NetCDF4Opener:
         self.filename = filename
         self._engine = engine
         self._store_open_kwargs, self.open_dataset_kwargs = _split_xarray_kwargs(xarray_kwargs, auto_maskandscale)
-        self._auto_maskandscale = auto_maskandscale
         self._accessor = choose_accessor_from_engine(engine) if isinstance(engine, str) else None
-        self.file_handle = None
         self._root_store = None
         # ``xarray.Dataset`` objects held open until ``close``, keyed by group name. See ``_get_dataset``.
         self._datasets = {}
@@ -406,9 +404,6 @@ class _NetCDF4Opener:
             with suppress(RuntimeError):
                 self._root_store.close()
         self._root_store = None
-        if self.file_handle is not None:
-            with suppress(RuntimeError):
-                self.file_handle.close()
 
 
 class _SharedStoreOpener(_NetCDF4Opener):
@@ -451,6 +446,19 @@ class _FileHandleOpener(_NetCDF4Opener):
     through a backend store which is opened when a group is first read.
 
     """
+
+    def __init__(self, filename, engine, xarray_kwargs, auto_maskandscale):
+        """Initialize the opener without opening anything."""
+        super().__init__(filename, engine, xarray_kwargs, auto_maskandscale)
+        self._auto_maskandscale = auto_maskandscale
+        self.file_handle = None
+
+    def close(self):
+        """Close everything opened from the file, including the file handle, which isn't reopened."""
+        super().close()
+        if self.file_handle is not None:
+            with suppress(RuntimeError):
+                self.file_handle.close()
 
     def get_metadata_root(self):
         """Get the file handle, opening the file if it wasn't yet."""
